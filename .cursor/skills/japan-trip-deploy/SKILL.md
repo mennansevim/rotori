@@ -1,110 +1,74 @@
 ---
 name: japan-trip-deploy
 description: >-
-  Run the project's review-commit tool to commit unstaged changes, push to the
-  remote, and/or deploy to the Raspberry Pi via SSH + docker compose. Use when
-  the user says "commit et", "kaydet", "pushla", "yükle", "deploy et",
-  "Pi'ye gönder", "Pi'ye deploy et", "en son değişiklikleri gönder",
-  "hepsini yap", or any English equivalent like "commit and deploy",
-  "push to pi", "ship it". Lives at tools/review-commit/.
+  Run the project's review-commit tool for git commit, git push, or Raspberry
+  Pi docker redeploy. Use when the user types exactly "commit", "push", or
+  "deploy" — these are the only three supported commands. Lives at
+  tools/review-commit/.
 ---
 
 # japan-trip-deploy
 
-The repo has a custom CLI agent at `tools/review-commit/` that handles the full
-commit → push → Pi deploy chain. It uses local Ollama (qwen2.5:3b) for AI, so
-it is free to run.
+Three atomic commands. Always run them **in order** for safety: commit first,
+then push, then deploy.
 
-## When to use
+## Commands
 
-User intent → action chain:
-
-| User says | Action plan |
+| User says | Action |
 |---|---|
-| `commit`, `kaydet` | commit only |
-| `push`, `yükle` | push only |
-| `deploy`, `Pi'ye deploy` | deploy only |
-| `pushla` (after committed work) | push + deploy |
-| **`en son değişiklikleri gönder`** | **commit + push + deploy** |
-| `Pi'ye gönder`, `hepsini yap` | commit + push + deploy |
+| `commit` | `git add -A && git commit` (AI-generated message) |
+| `push` | `git push origin main` |
+| `deploy` | SSH to Pi → `git pull && docker compose down && up -d --build` |
 
-The tool itself recognises these phrases via keyword matching, so just pass
-the user's command verbatim.
+The recommended workflow is **commit → push → deploy**, run as three separate
+invocations so the user verifies each step.
 
 ## How to invoke
 
-Always run from the tool's directory with `--yes` for non-interactive mode:
-
 ```bash
-cd tools/review-commit && npm run review -- --yes "<user's command>"
+cd tools/review-commit && npm run review -- --yes "<command>"
 ```
 
 Examples:
 
 ```bash
-cd tools/review-commit && npm run review -- --yes "deploy"
-cd tools/review-commit && npm run review -- --yes "en son değişiklikleri gönder"
 cd tools/review-commit && npm run review -- --yes "commit"
+cd tools/review-commit && npm run review -- --yes "push"
+cd tools/review-commit && npm run review -- --yes "deploy"
 ```
 
-`--yes` auto-confirms every prompt:
-- plan approval → yes
-- commit message approval → yes (uses AI-generated message as-is)
-- push branch confirmation → yes
+`--yes` auto-confirms every prompt.
 
 ## Workflow
 
-1. **Confirm with the user first** when the action involves push or deploy.
-   These touch remote systems (GitHub, the Pi). Use `AskQuestion` with the
-   plan summary before invoking the tool. Skip confirmation for plain
-   `commit`-only requests — those are local and reversible.
+1. **Confirm with the user** before running `push` or `deploy` (they touch
+   remote systems). For `commit`, just run it — local and reversible.
+2. Run the requested command via `Shell` with `block_until_ms: 120000`.
+3. Surface the final status lines and report success or failure.
 
-2. **Show staged changes preview** if the user is unsure:
+## When NOT to invoke
 
-   ```bash
-   git -C /Users/sevimm/Documents/Projects/japan-trip status --short
-   ```
+- User asks to **review** changes without committing → run `git diff` and
+  summarise instead.
+- User wants a **custom commit message** → run interactively in their
+  terminal: `cd tools/review-commit && npm run review`.
+- No working-tree changes and request is `commit` → tell the user there's
+  nothing to commit.
 
-3. **Invoke the tool** with `Shell`:
+## Exit codes
 
-   ```bash
-   cd tools/review-commit && npm run review -- --yes "<command>"
-   ```
+| Code | Meaning |
+|---|---|
+| 0 | success / cancelled |
+| 1 | provider not ready (Ollama down) |
+| 2 | AI run error |
+| 3 | git commit failed |
+| 4 | git push failed |
+| 5 | SSH / Pi deploy failed |
+| 6 | Pi config missing in `.env` |
 
-   - `block_until_ms: 120000` (Pi deploy + docker rebuild can take ~60s)
-   - The tool streams Pi docker output; surface the final lines to the user.
+## Tool internals
 
-4. **Report the result**:
-   - Success: short summary (commit hash if committed, "deployed to Pi" if deployed).
-   - Failure: include the exit code and last 10 lines of stderr. Exit codes:
-
-     | Code | Meaning |
-     |---|---|
-     | 0 | success / user cancelled |
-     | 1 | provider not ready (Ollama down, no model) |
-     | 2 | AI run error |
-     | 3 | git commit failed |
-     | 4 | git push failed |
-     | 5 | SSH / Pi deploy failed |
-     | 6 | Pi config missing in `.env` |
-
-## When NOT to invoke automatically
-
-- User asks "what would happen if I deploy?" → **explain**, don't run.
-- User asks to **review** changes without deploying → run `git diff` and
-  summarise; don't call the tool.
-- User specifies a different commit message format or wants to write the
-  message themselves → **don't use `--yes`**. Run interactively in their
-  terminal instead and tell them: `cd tools/review-commit && npm run review`.
-- No changes in the working tree and the request is `commit` only → tell the
-  user there's nothing to commit instead of invoking the tool.
-
-## Tool internals (for context only)
-
-- Provider: Ollama by default (`AI_PROVIDER=ollama`, `OLLAMA_MODEL=qwen2.5:3b`).
-- Pi target: `mennano@192.168.1.60:agora-voice-chatbot-web` (from `.env`).
-- Deploy command: `git pull origin main && docker compose down && docker compose up -d --build`.
-- Source: `tools/review-commit/review.ts` (entry), `ai.ts` (provider), `deploy.ts` (SSH).
-
-To switch to Cursor SDK instead of Ollama: edit `.env` → `AI_PROVIDER=cursor`
-and add `CURSOR_API_KEY`.
+- AI: Ollama `qwen2.5:3b` (free, local).
+- Pi: `mennano@192.168.1.60`, deploys `agora-voice-chatbot-web` via docker compose.
+- Source: `tools/review-commit/{review,ai,deploy}.ts`.

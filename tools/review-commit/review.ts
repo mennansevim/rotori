@@ -98,24 +98,12 @@ function actionLabel(a: PlanAction): string {
 }
 
 function defaultPlanForKeywords(input: string): Plan | null {
-  const s = input.toLowerCase();
-  const wantsAll = /(en son|hepsi|t[üu]m[üu]|all|deploy.*g[öo]nder|pi'?ye g[öo]nder|de\u011fi\u015fiklikleri g[öo]nder)/i.test(
-    s,
-  );
-  const onlyDeploy = /^deploy\s*$/i.test(s) || /sadece deploy/i.test(s);
-  const onlyPush = /^push\s*$/i.test(s) || /sadece push/i.test(s);
-  const onlyCommit = /^commit\s*$/i.test(s) || /sadece commit/i.test(s);
-
-  if (wantsAll) {
-    return {
-      actions: [{ type: "commit" }, { type: "push", branch: DEFAULT_PUSH_BRANCH }, { type: "deploy" }],
-      rationale: "Tüm değişiklikleri commit'le, push'la ve Pi'ye deploy et.",
-    };
+  const s = input.toLowerCase().trim();
+  if (/^commit$/.test(s)) return { actions: [{ type: "commit" }], rationale: "Sadece commit." };
+  if (/^push$/.test(s)) {
+    return { actions: [{ type: "push", branch: DEFAULT_PUSH_BRANCH }], rationale: "Sadece push." };
   }
-  if (onlyDeploy) return { actions: [{ type: "deploy" }], rationale: "Sadece Pi deploy." };
-  if (onlyPush) return { actions: [{ type: "push", branch: DEFAULT_PUSH_BRANCH }], rationale: "Sadece push." };
-  if (onlyCommit) return { actions: [{ type: "commit" }], rationale: "Sadece commit." };
-
+  if (/^deploy$/.test(s)) return { actions: [{ type: "deploy" }], rationale: "Sadece deploy." };
   return null;
 }
 
@@ -162,9 +150,11 @@ MEVCUT ACTIONS:
 - {"type": "deploy"} — Raspberry Pi'ye SSH bağlanıp uzak deploy komutunu çalıştırır
 
 KURALLAR:
-- "en son değişiklikleri gönder", "Pi'ye gönder", "deploy et" → [commit, push, deploy]
-- "kaydet", "commit" → [commit]
-- "push" / "yükle" → [push] (commit varsa önce commit ekle)
+- Sadece üç atomik komut destekleniyor: "commit", "push", "deploy"
+- "commit" → [commit]
+- "push" → [push]
+- "deploy" → [deploy]
+- Anlam belirsizse [commit] döndür
 - "deploy" → [deploy]
 - "main'e gönder" gibi spesifik branch belirtirse push.branch değerini ver
 - Birden fazla iş varsa ("commit ve deploy", "her şeyi yap") action'ları o sırada listele
@@ -426,7 +416,7 @@ async function main(): Promise<number> {
       log("→", `--yes modu, varsayılan komut: "${userInput}"`, colors.dim);
     } else {
       console.log(
-        `${colors.dim}Örnekler: "commit" · "en son değişiklikleri gönder" · "deploy et" · "commit ve push" · boş = sadece commit${colors.reset}`,
+        `${colors.dim}Komutlar: commit · push · deploy${colors.reset}`,
       );
       userInput = await ask("Ne yapılsın? > ", "commit");
     }

@@ -4,9 +4,8 @@
 
 `npm run review` deyince:
 
-1. **Komut sorulur** (örn. "en son değişiklikleri gönder", "commit").
-2. AI komutu yorumlar ve sırayla yapılacak **action planı** üretir.
-3. Plan onaylanınca her adım sırayla çalıştırılır:
+1. **Komut sorulur** — sadece üç seçenek var: `commit`, `push`, `deploy`.
+2. Komut bir action plan'a dönüşür ve onaylanınca çalışır:
    - **commit**: AI Türkçe yorum + commit msg önerir, onaylarsanız `git add -A && git commit`
    - **push**: `git push origin <branch>`
    - **deploy**: Pi'ye SSH bağlanıp `git pull && docker compose ...`
@@ -84,9 +83,9 @@ Ne yapılsın? >
 ### CLI argümanı
 
 ```bash
-npm run review -- "en son değişiklikleri gönder"
 npm run review -- "commit"
-npm run review -- "deploy et"
+npm run review -- "push"
+npm run review -- "deploy"
 ```
 
 ### Non-interaktif (`--yes`)
@@ -94,24 +93,24 @@ npm run review -- "deploy et"
 Tüm onayları otomatik **evet** yapar (Cursor agent skill'i de bunu kullanır):
 
 ```bash
+npm run review -- --yes "commit"
+npm run review -- --yes "push"
 npm run review -- --yes "deploy"
-npm run review -- --yes "en son değişiklikleri gönder"
 ```
 
-## Komut Örnekleri
+## Komutlar
 
-| Söylediğiniz | Üretilen plan |
+Sadece üç atomik komut. **Sıra önemli**: önce `commit`, sonra `push`, en son `deploy`.
+
+| Komut | Yapılan |
 |---|---|
-| (boş) | `commit` |
-| `commit`, `kaydet` | `commit` |
-| `push`, `yükle` | `push` |
-| `deploy`, `Pi'ye deploy` | `deploy` |
-| `en son değişiklikleri gönder` | `commit → push → deploy` |
-| `Pi'ye gönder` | `commit → push → deploy` |
-| `hepsini yap` | `commit → push → deploy` |
-| serbest cümle | AI yorumlar |
+| `commit` | `git add -A && git commit` (AI Türkçe yorum + Conventional Commits msg) |
+| `push` | `git push origin main` |
+| `deploy` | SSH → Pi → `git pull && docker compose down && up -d --build` |
 
-İlk birkaç kalıp **AI'a gitmeden** anında çözülür.
+Her birini ayrı çalıştır, ara sonucu doğrula, sonra bir sonrakine geç. Bu **güvenli akış**:
+local commit'i bozarsan rollback kolay; push'tan sonra `git revert` gerekir; deploy'dan sonra
+container restart'ı şart.
 
 ## Tam akış örneği
 
