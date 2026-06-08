@@ -1,0 +1,21 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "planner",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:planner"],
+      "port": 5173,
+      "url": "http://localhost:5173/planner/?u=demo",
+      "autoPort": true
+    },
+    {
+      "name": "viewer",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:viewer"],
+      "port": 5180,
+      "url": "http://localhost:5180/viewer/?u=demo",
+      "autoPort": true
+    }
+  ]
+}

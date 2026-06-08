@@ -546,6 +546,25 @@
       max-height: 12000px;
     }
 
+    .day-card.active-day {
+      border-color: rgba(255, 143, 171, 0.45);
+      box-shadow: 0 0 0 1px rgba(255, 143, 171, 0.2), var(--shadow-glow);
+    }
+
+    .day-card.active-day .day-header {
+      background: rgba(255, 143, 171, 0.06);
+    }
+
+    .top-countdown-bar.trip-completed .top-countdown-timer {
+      display: none;
+    }
+
+    .top-countdown-bar.trip-completed .top-countdown-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--accent-matcha);
+    }
+
     .day-body {
       padding: 24px;
     }
@@ -1940,9 +1959,9 @@
   <div class="sakura-container" id="sakuraContainer"></div>
 
   <!-- Top Countdown Bar -->
-  <div class="top-countdown-bar">
+  <div class="top-countdown-bar" id="topCountdownBar">
     <div class="top-countdown-content">
-      <span class="top-countdown-label">🇯🇵 Tatile</span>
+      <span class="top-countdown-label" id="topCountdownLabel">🇯🇵 Tatile</span>
       <div class="top-countdown-timer">
         <span class="top-cd-value" id="topDays">--</span><span class="top-cd-unit">g</span>
         <span class="top-cd-sep">:</span>
@@ -2151,7 +2170,7 @@
       </div>
 
       <!-- Day 1 -->
-      <div class="day-card expanded">
+      <div class="day-card" data-date="2026-05-14">
         <div class="day-header" onclick="toggleDay(this)">
           <div class="day-number">
             <span class="num">1</span>
@@ -2214,7 +2233,7 @@
       </div>
 
       <!-- Day 2 -->
-      <div class="day-card">
+      <div class="day-card" data-date="2026-05-15">
         <div class="day-header" onclick="toggleDay(this)">
           <div class="day-number">
             <span class="num">2</span>
@@ -2359,7 +2378,7 @@
       </div>
 
       <!-- Day 3 -->
-      <div class="day-card">
+      <div class="day-card" data-date="2026-05-16">
         <div class="day-header" onclick="toggleDay(this)">
           <div class="day-number">
             <span class="num">3</span>
@@ -2438,7 +2457,7 @@
       </div>
 
       <!-- Day 4 -->
-      <div class="day-card">
+      <div class="day-card" data-date="2026-05-17">
         <div class="day-header" onclick="toggleDay(this)">
           <div class="day-number">
             <span class="num">4</span>
@@ -2537,7 +2556,7 @@
       </div>
 
       <!-- Day 5 - SHINJUKU & OUTLET -->
-      <div class="day-card">
+      <div class="day-card" data-date="2026-05-18">
         <div class="day-header" onclick="toggleDay(this)">
           <div class="day-number">
             <span class="num">5</span>
@@ -2683,7 +2702,7 @@
       </div>
 
       <!-- Day 6 - DISNEYLAND -->
-      <div class="day-card">
+      <div class="day-card" data-date="2026-05-19">
         <div class="day-header" onclick="toggleDay(this)">
           <div class="day-number" style="background: linear-gradient(135deg, #ff6b9d, #ff9a7a);">
             <span class="num">6</span>
@@ -2732,8 +2751,7 @@
                   <p>💡 <strong>Sabah erken kalabalık önlemek için:</strong> JR Keiyo Line ekspres kalkışı az; platforma erken inin. Park kapısı <strong>08:00–08:30</strong> açılır — 07:15 çıkarsanız açılışa yetişirsiniz.</p>
                 </div>
               </div>
-              HTMLEOF
-echo "written: $(wc -c < /tmp/disney_transport.html) bytes"<div class="timeline-item">
+              <div class="timeline-item">
                 <div class="timeline-dot"></div>
                 <div class="timeline-time">08:30 - 22:00</div>
                 <div class="timeline-title"><a href="https://www.google.com/maps/search/Tokyo+Disneyland" target="_blank" rel="noopener">Tokyo Disneyland Macerası!</a></div>
@@ -2823,7 +2841,7 @@ echo "written: $(wc -c < /tmp/disney_transport.html) bytes"<div class="timeline-
       </div>
 
       <!-- Day 7 -->
-      <div class="day-card">
+      <div class="day-card" data-date="2026-05-20">
         <div class="day-header" onclick="toggleDay(this)">
           <div class="day-number" style="background: var(--gradient-sunset);">
             <span class="num">7</span>
@@ -2906,7 +2924,7 @@ echo "written: $(wc -c < /tmp/disney_transport.html) bytes"<div class="timeline-
       </div>
 
       <!-- Day 8 - USJ -->
-      <div class="day-card">
+      <div class="day-card" data-date="2026-05-21">
         <div class="day-header" onclick="toggleDay(this)">
           <div class="day-number" style="background: linear-gradient(135deg, #ffd54f, #ffb300);">
             <span class="num">8</span>
@@ -2983,7 +3001,7 @@ echo "written: $(wc -c < /tmp/disney_transport.html) bytes"<div class="timeline-
       </div>
 
       <!-- Day 9 - Kyoto + Fushimi Inari -->
-      <div class="day-card">
+      <div class="day-card" data-date="2026-05-22">
         <div class="day-header" onclick="toggleDay(this)">
           <div class="day-number" style="background: linear-gradient(135deg, #ff5722, #e64a19);">
             <span class="num">9</span>
@@ -3080,7 +3098,7 @@ echo "written: $(wc -c < /tmp/disney_transport.html) bytes"<div class="timeline-
       </div>
 
       <!-- Day 10 - Nara -->
-      <div class="day-card">
+      <div class="day-card" data-date="2026-05-23">
         <div class="day-header" onclick="toggleDay(this)">
           <div class="day-number" style="background: linear-gradient(135deg, #81c784, #4caf50);">
             <span class="num">10</span>
@@ -3158,7 +3176,7 @@ echo "written: $(wc -c < /tmp/disney_transport.html) bytes"<div class="timeline-
       </div>
 
       <!-- Day 11 -->
-      <div class="day-card">
+      <div class="day-card" data-date="2026-05-24">
         <div class="day-header" onclick="toggleDay(this)">
           <div class="day-number" style="background: var(--gradient-sunset);">
             <span class="num">11</span>
@@ -3233,7 +3251,7 @@ echo "written: $(wc -c < /tmp/disney_transport.html) bytes"<div class="timeline-
       </div>
 
       <!-- Day 12 -->
-      <div class="day-card">
+      <div class="day-card" data-date="2026-05-25">
         <div class="day-header" onclick="toggleDay(this)">
           <div class="day-number" style="background: var(--gradient-sunset);">
             <span class="num">12</span>
@@ -3304,7 +3322,7 @@ echo "written: $(wc -c < /tmp/disney_transport.html) bytes"<div class="timeline-
       </div>
 
       <!-- Day 13 - Departure -->
-      <div class="day-card">
+      <div class="day-card" data-date="2026-05-26">
         <div class="day-header" onclick="toggleDay(this)">
           <div class="day-number" style="background: linear-gradient(135deg, #78909c, #546e7a);">
             <span class="num">13</span>
@@ -4918,6 +4936,11 @@ echo "written: $(wc -c < /tmp/disney_transport.html) bytes"<div class="timeline-
   <footer class="footer">
     <div class="footer-emoji">🗾 🌸 ⛩️ 🍣 🚄</div>
     <p class="footer-text">Japonya Seyahati 2026 • 13-26 Mayıs • Tokyo → Osaka</p>
+    <p class="footer-text" style="margin-top: 8px;">
+      <a href="/planner/" style="color: var(--accent-fuji);">Planlayıcı</a>
+      ·
+      <a href="/viewer/" style="color: var(--accent-sakura);">Mobil rehber</a>
+    </p>
   </footer>
 
   <script>
@@ -5201,14 +5224,55 @@ echo "written: $(wc -c < /tmp/disney_transport.html) bytes"<div class="timeline-
       });
     }
 
-    // Countdown Timer Functions
-    const tripDate = new Date('2026-05-13T16:00:00+03:00'); // Uçuş saati
-    // Shinkansen: 20 Mayıs → Rezervasyon 1 ay önce açılıyor: 20 Nisan 2026
-    const shinkansenDeadline = new Date('2026-04-20T00:00:00+03:00');
+    // Trip config (dashboard / yeni seyahat için güncellenebilir)
+    const TRIP_CONFIG = {
+      timezone: 'Asia/Tokyo',
+      tripStart: '2026-05-13T16:00:00+03:00',
+      tripEnd: '2026-05-27T06:15:00+03:00',
+      shinkansenDeadline: '2026-04-20T00:00:00+03:00',
+      skytreeVisitDate: '2026-05-15T23:59:59+09:00',
+      skytreeBookingOpens: '2026-04-15T00:00:00+09:00',
+    };
 
-    // Tokyo Skytree: resmi sitede ön bilet genelde ziyaret gününden ~30 gün önce (aynı gün JST 00:00 yaklaşımı)
-    const skytreeVisitDate = new Date('2026-05-15T23:59:59+09:00');
-    const skytreeBookingOpens = new Date('2026-04-15T00:00:00+09:00');
+    const tripDate = new Date(TRIP_CONFIG.tripStart);
+    const tripEndDate = new Date(TRIP_CONFIG.tripEnd);
+    const shinkansenDeadline = new Date(TRIP_CONFIG.shinkansenDeadline);
+    const skytreeVisitDate = new Date(TRIP_CONFIG.skytreeVisitDate);
+    const skytreeBookingOpens = new Date(TRIP_CONFIG.skytreeBookingOpens);
+
+    function formatDateInTimeZone(date, timeZone) {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).formatToParts(date);
+      const y = parts.find(p => p.type === 'year').value;
+      const m = parts.find(p => p.type === 'month').value;
+      const d = parts.find(p => p.type === 'day').value;
+      return `${y}-${m}-${d}`;
+    }
+
+    function activateTodayDay() {
+      const cards = [...document.querySelectorAll('.day-card[data-date]')];
+      if (!cards.length) return;
+
+      const today = formatDateInTimeZone(new Date(), TRIP_CONFIG.timezone);
+      const sorted = [...cards].sort((a, b) => a.dataset.date.localeCompare(b.dataset.date));
+
+      let match = sorted.find(c => c.dataset.date === today);
+      if (!match) {
+        const future = sorted.find(c => c.dataset.date >= today);
+        match = future || sorted[sorted.length - 1];
+      }
+
+      cards.forEach(c => c.classList.remove('expanded', 'active-day'));
+      match.classList.add('expanded', 'active-day');
+
+      requestAnimationFrame(() => {
+        match.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
 
     function updateSkytreeBadge() {
       const el = document.getElementById('topSkytree');
@@ -5242,6 +5306,20 @@ echo "written: $(wc -c < /tmp/disney_transport.html) bytes"<div class="timeline-
 
     function updateTopCountdown() {
       const now = new Date();
+      const bar = document.getElementById('topCountdownBar');
+      const label = document.getElementById('topCountdownLabel');
+
+      if (now >= tripEndDate) {
+        document.getElementById('topDays').textContent = '00';
+        document.getElementById('topHours').textContent = '00';
+        document.getElementById('topMinutes').textContent = '00';
+        document.getElementById('topSeconds').textContent = '00';
+        if (label) label.textContent = '✅ Seyahat tamamlandı';
+        if (bar) bar.classList.add('trip-completed');
+        return;
+      }
+
+      if (bar) bar.classList.remove('trip-completed');
       const diff = tripDate - now;
 
       if (diff <= 0) {
@@ -5249,9 +5327,11 @@ echo "written: $(wc -c < /tmp/disney_transport.html) bytes"<div class="timeline-
         document.getElementById('topHours').textContent = '00';
         document.getElementById('topMinutes').textContent = '00';
         document.getElementById('topSeconds').textContent = '00';
-        document.querySelector('.top-countdown-label').textContent = '🎉 Tatil Başladı!';
+        if (label) label.textContent = '🎉 Tatil başladı!';
         return;
       }
+
+      if (label) label.textContent = '🇯🇵 Tatile';
 
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
       const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -5296,6 +5376,10 @@ echo "written: $(wc -c < /tmp/disney_transport.html) bytes"<div class="timeline-
     // İlk güncelleme ve her saniye tekrar
     updateAllCountdowns();
     setInterval(updateAllCountdowns, 1000);
+
+    document.addEventListener('DOMContentLoaded', () => {
+      activateTodayDay();
+    });
   </script>
 </body>
 </html>

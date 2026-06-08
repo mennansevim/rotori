@@ -1,0 +1,23 @@
+{
+  "name": "japan-trip",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/viewer",
+    "apps/planner",
+    "apps/api"
+  ],
+  "scripts": {
+    "build": "npm run build -w @japan-trip/shared && npm run build -w @japan-trip/viewer && npm run build -w @japan-trip/planner && node scripts/assemble-dist.mjs",
+    "build:viewer": "npm run build -w @japan-trip/viewer",
+    "build:planner": "npm run build -w @japan-trip/planner",
+    "dev:viewer": "npm run dev -w @japan-trip/viewer",
+    "dev:planner": "npm run dev -w @japan-trip/planner",
+    "migrate": "tsx scripts/migrate-html-to-json.ts",
+    "typecheck": "npm run typecheck -w @japan-trip/shared && npm run typecheck -w @japan-trip/viewer && npm run typecheck -w @japan-trip/planner"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+apps/*/dist/
+packages/shared/dist/
+*.log
+.DS_Store
+tools/review-commit/.env
+.env
+.env.local

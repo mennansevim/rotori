@@ -1,0 +1,816 @@
+{
+  "id": "japan-14d",
+  "slug": "japan-14d",
+  "title": "🇯🇵 Japonya 14 günlük rota",
+  "subtitle": "Tokyo → Osaka, gün gün hazır plan (kişisel rezervasyon yok)",
+  "timezone": "Asia/Tokyo",
+  "tripStart": "2026-05-13T16:00:00+03:00",
+  "tripEnd": "2026-05-27T06:15:00+03:00",
+  "flights": {
+    "outbound": [],
+    "return": []
+  },
+  "hotels": [
+    {
+      "id": "tokyo-ikebukuro",
+      "city": "Tokyo",
+      "name": "Ikebukuro bölgesi (otelinizi seçin)",
+      "checkIn": "2026-05-14",
+      "checkOut": "2026-05-20",
+      "address": "Ikebukuro, Toshima-ku, Tokyo",
+      "notes": "Önerilen bölge: Ikebukuro veya Shinjuku — JR Yamanote hattı üzerinde, Skytree/Asakusa/Shibuya hepsine kolay erişim. Disney transferi için JR avantajlı."
+    },
+    {
+      "id": "osaka-namba",
+      "city": "Osaka",
+      "name": "Namba bölgesi (otelinizi seçin)",
+      "checkIn": "2026-05-20",
+      "checkOut": "2026-05-26",
+      "address": "Namba / Shinsaibashi, Chuo-ku, Osaka",
+      "notes": "Önerilen bölge: Namba veya Shinsaibashi — Dotonbori yürüme mesafesinde, Nankai Rapit ile KIX, JR Yumesaki ile USJ."
+    }
+  ],
+  "tickets": [
+    {
+      "id": "skytree",
+      "kind": "attraction",
+      "label": "Tokyo Skytree",
+      "visitDate": "2026-05-15",
+      "bookingOpens": "2026-04-15",
+      "purchased": false,
+      "emoji": "🗼"
+    },
+    {
+      "id": "disney",
+      "kind": "theme-park",
+      "label": "Tokyo Disneyland",
+      "visitDate": "2026-05-19",
+      "purchased": false,
+      "emoji": "🏰"
+    },
+    {
+      "id": "teamlab",
+      "kind": "museum",
+      "label": "teamLab Planets",
+      "visitDate": "2026-05-17",
+      "purchased": false,
+      "emoji": "🪐"
+    },
+    {
+      "id": "usj",
+      "kind": "theme-park",
+      "label": "Universal Studios Japan",
+      "visitDate": "2026-05-21",
+      "purchased": false,
+      "emoji": "🎢"
+    },
+    {
+      "id": "shinkansen",
+      "kind": "train",
+      "label": "Shinkansen Tokyo → Osaka",
+      "visitDate": "2026-05-20",
+      "purchased": false,
+      "url": "https://smart-ex.jp/en/",
+      "emoji": "🚄"
+    }
+  ],
+  "preferences": {
+    "travelDates": {
+      "start": "2026-05-14",
+      "end": "2026-05-26"
+    },
+    "mustSee": [
+      "Meiji Jingu",
+      "Senso-ji",
+      "Tokyo Skytree",
+      "Fushimi Inari",
+      "Nara geyikleri",
+      "Dotonbori"
+    ],
+    "foodLikes": [
+      "ramen",
+      "sushi",
+      "takoyaki",
+      "matcha"
+    ],
+    "foodDislikes": [],
+    "dietary": [],
+    "mealBudgetJpyPerPerson": 2500,
+    "planMeals": true,
+    "maxStepsPerDay": 16000,
+    "pace": "moderate",
+    "partySize": 2
+  },
+  "days": [
+    {
+      "dayNumber": 1,
+      "date": "2026-05-14",
+      "theme": "🛬 Tokyo'ya Varış",
+      "tags": [
+        "✈️ Varış"
+      ],
+      "stepsEstimate": 4500,
+      "taxiRecommended": false,
+      "route": {
+        "mapsUrl": "https://www.google.com/maps/dir/?api=1&origin=Tokyo+Haneda+Airport+Terminal+3&destination=Hotel+Grand+City+Ikebukuro+Tokyo&travelmode=transit"
+      },
+      "items": [
+        {
+          "id": "d1-i1",
+          "time": "19:45",
+          "title": "Tokyo Haneda Havalimanı (HND) Varış",
+          "description": "Japonya'ya hoş geldiniz! Pasaport kontrolü ve bagaj alma işlemleri yaklaşık 1 saat sürebilir.",
+          "mapUrl": "https://www.google.com/maps/search/Haneda+Airport+Tokyo"
+        },
+        {
+          "id": "d1-i2",
+          "time": "21:00",
+          "title": "Tokyo oteli'ye Transfer",
+          "description": "Rota: Haneda T3 → Keikyu Line → Shinagawa (15 dk) → JR Yamanote → Ikebukuro (25 dk) Toplam: ~45-50 dakika, ~600¥/kişi Suica/Pasmo: Keikyu istasyonunda otomattan al (2000-3000¥ yükleyin)",
+          "mapUrl": "https://www.google.com/maps/search/Hotel+Grand+City+Ikebukuro+Tokyo"
+        },
+        {
+          "id": "d1-i3",
+          "time": "22:00",
+          "title": "Tokyo oteli Check-in",
+          "description": "İstasyondan Otele: East Exit (North) veya Exit 32'den çık → HSBC ve UFJ Bank (kırmızı tabela) arası sokağa gir → 300m yürü → Bowling salonu görünce sola dön → 50m ileride sağda otel! Jet lag nedeniyle erken yatmanız önerilir. Ikebukuro istasyonu çevresinde 7-Eleven, FamilyMart, Lawson her yerde! Sunshine City alışveriş merkezi de yakında.",
+          "mapUrl": "https://www.google.com/maps/search/Hotel+Grand+City+Ikebukuro+Tokyo"
+        }
+      ],
+      "highlights": [
+        {
+          "title": "💡 İlk Gün Yapılacaklar",
+          "body": "1. eSIM'i Aktifleştir - Uçakta veya inmeden QR ile kur (Ubigi/Airalo) 2. Suica/Pasmo Al - Keikyu istasyonunda otomattan (2000-3000¥) 3. Keikyu Line → Shinagawa - ~15 dk, ~300¥ 4. JR Yamanote → Ikebukuro - ~25 dk 5. Tokyo oteli - East Exit (North) / Exit 32 → HSBC-UFJ arası → 300m → Bowling salonu → Sol → 50m"
+        }
+      ]
+    },
+    {
+      "dayNumber": 2,
+      "date": "2026-05-15",
+      "theme": "🗼 Asakusa & Ueno (Dinozor Müzesi) & Skytree",
+      "tags": [
+        "⛩️ Senso-ji",
+        "🗼 Skytree (hafta içi)",
+        "🌳 Ueno",
+        "🦕 Dinozorlar",
+        "🍜 Sokak lezzeti"
+      ],
+      "stepsEstimate": 15000,
+      "taxiRecommended": false,
+      "route": {
+        "mapsUrl": "https://www.google.com/maps/dir/?api=1&origin=Hotel+Grand+City+Ikebukuro+Tokyo&waypoints=Senso-ji+Asakusa+Tokyo%7CNational+Museum+of+Nature+and+Science+Ueno%7CTokyo+Skytree+Oshiage&destination=Hotel+Grand+City+Ikebukuro+Tokyo&travelmode=transit"
+      },
+      "items": [
+        {
+          "id": "d2-i1",
+          "time": "09:30 – 10:30",
+          "title": "Kahvaltı (esnek)",
+          "description": "Jet lag'e göre uyandığınız saate göre hareket edin. Konbini (7-Eleven / Lawson) ya da otel yakını kafe; acele yok."
+        },
+        {
+          "id": "d2-i2",
+          "time": "10:30 – 13:00",
+          "title": "Asakusa & Senso-ji Tapınağı",
+          "description": "🚃 Ikebukuro → Asakusa: JR Yamanote + Tokyo Metro Ginza | 30 dk | ~250¥/kişi Tokyo'nun en eski Budist tapınağı. Kaminarimon (Şimşek Kapısı) önünde fotoğraf, Nakamise-dori'de geleneksel hediyelik eşyalar ve atıştırmalıklar.",
+          "mapUrl": "https://www.google.com/maps/search/Senso-ji+Temple+Asakusa+Tokyo",
+          "tips": "🍡 Denemeniz Gerekenler: Ningyo-yaki, Melon-pan, Age-manju, Senbei (pirinç krakeri)"
+        },
+        {
+          "id": "d2-i3",
+          "time": "13:00 – 13:30",
+          "title": "Öğle Yemeği — Asakusa Hızlı Sokak Yemeği",
+          "description": "Nakamise çıkışında ayaküstü: Melon-pan, onigiri veya Gyukatsu dükkanından paket. Müze için zaman bırakmak adına oturmalı değil hızlı yiyin."
+        },
+        {
+          "id": "d2-i4",
+          "time": "13:30 – 15:50",
+          "title": "🦕 Doğa Bilimleri Müzesi (Ueno)",
+          "description": "🚃 Asakusa → Ueno: Tokyo Metro Ginza | 10 dk | ~170¥/kişi Ueno Park içinde, Japonya'nın en büyük doğal tarih müzesi. Dinozor & fosil salonu çocuklar için başlı başına bir deneyim — T-Rex ve Spinosaurus iskeletleri var. Japonya binasında uzay ve canlılar; Global binasında dinozorlar ve mineraller. ~2 saat 20 dk — Skytree bileti sabit 16:30 olduğundan 15:50’de çıkmanız gerekiyor; önce dinozor salonunu görün!",
+          "mapUrl": "https://www.google.com/maps/search/National+Museum+of+Nature+and+Science+Ueno+Tokyo",
+          "tips": "🎫 Giriş: Yetişkin ~630¥, 18 yaş altı ücretsiz! | Önce Global Navigation Hall (dinozorlar) — çocuklar için buradan başlayın."
+        },
+        {
+          "id": "d2-i5",
+          "time": "15:50 – 16:15",
+          "title": "Ueno → Skytree Taksi 🚕",
+          "description": "🚕 Ueno Müzesi → Tokyo Skytree (Oshiage): Taksi | ~10 dk | ~1.200–1.500¥ (tek ücret) Müzeden çıkınca hemen taksi çevirin — metro aktarması yok, kapıdan kapıya. Skytree 16:30 biletine rahatlıkla yetişirsiniz."
+        },
+        {
+          "id": "d2-i6",
+          "time": "16:30 – 17:30",
+          "title": "Tokyo Skytree 🗼 —",
+          "description": "Bilet rezervasyonu önerilir Tembo Deck (Kat 350) — 16:30–17:00 giriş slotu. Gün batımına (~18:20) yaklaşırken Tokyo manzarası; şehir ışıkları yakılmadan önce net panoramik görüntü yakalanabilir.",
+          "mapUrl": "https://www.tokyo-skytree.jp/en/ticket/",
+          "tips": "📸 Bilet saati değiştirilmedi — orijinal 16:30 slotu korundu. Gün batımı Mayıs'ta ~18:20; güvertede beklerseniz görebilirsiniz."
+        },
+        {
+          "id": "d2-i7",
+          "time": "17:30 – 19:00",
+          "title": "Solamachi — akşam yemeği & alışveriş",
+          "description": "Skytree'nin dibindeki 300+ dükkanlı AVM. 6F–8F ve 30F–31F restoran katları akşam yemeği için; Japon mutfağı, sushi, ramen, tonkatsu seçenekleri bol. Altta süpermarket katta Japon atıştırmalıkları ve çay çeşitleri.",
+          "mapUrl": "https://www.google.com/maps/search/Tokyo+Skytree+Solamachi"
+        },
+        {
+          "id": "d2-i8",
+          "time": "19:00 – 20:15",
+          "title": "Asakusa Gece Turu — Kaminarimon & Nakamise 🏮",
+          "description": "🚃 Oshiage → Asakusa: Toei Asakusa Hattı | 3 dk | ~180¥/kişi Sabah kalabalıkken göremediğiniz Kaminarimon ve Nakamise fenerli ışığında çok daha fotografik. Gece 22:00'ye kadar açık dükkanlar var; Sensoji tapınağı avlusu da gece ziyaretine açık.",
+          "mapUrl": "https://www.google.com/maps/search/Kaminarimon+Asakusa+Tokyo+night",
+          "tips": "🏮 İpucu: Kaminarimon'un büyük kırmızı fenerini gece çekin — sabahınkinden çok daha dramatik görünür."
+        },
+        {
+          "id": "d2-i9",
+          "time": "20:15 – 20:45",
+          "title": "Asakusa → Ikebukuro",
+          "description": "🚃 Asakusa → Ikebukuro: Tokyo Metro Ginza → Marunouchi → Fukutoshin | ~30 dk | ~250¥/kişi"
+        },
+        {
+          "id": "d2-i10",
+          "time": "20:45 – 21:45",
+          "title": "Bic Camera Ikebukuro 📷",
+          "description": "🚶 İstasyondan yürüme | 2 dk | Ücretsiz | Kapanış: 22:00 Japonya’nın en büyük elektroniçi zincirlerinden biri — Ikebukuro’daki mağaza devasa. Kamera, lens, oyun konsolları, kulaklık, SIM aksesuar, Japon teknoloji ürünleri. Yabancı kartla alışverişte %10 vergi iadesi (passport gösterin).",
+          "mapUrl": "https://www.google.com/maps/search/Bic+Camera+Ikebukuro+Tokyo",
+          "tips": "💡 İpucu: Pasaportunuzu yanınıza alın — vergi iadesi için kasaıda işlem yapılıyor. SD kart, pil, filtre gibi küçük aksesuarlar burada Türkiye’den çok daha ucuz."
+        }
+      ]
+    },
+    {
+      "dayNumber": 3,
+      "date": "2026-05-16",
+      "theme": "🌸 Modern Tokyo - Shibuya",
+      "tags": [
+        "📸 Shibuya",
+        "🌆 Shibuya Sky (hafta sonu)",
+        "🗼 Tokyo Tower (isteğe bağlı)"
+      ],
+      "stepsEstimate": 1500,
+      "stepsEstimateMax": 16000,
+      "taxiRecommended": false,
+      "route": {
+        "mapsUrl": "https://www.google.com/maps/dir/?api=1&origin=Hotel+Grand+City+Ikebukuro+Tokyo&waypoints=Meiji+Jingu+Shrine+Tokyo%7CShibuya+Scramble+Crossing%7CShibuya+Sky&destination=Hotel+Grand+City+Ikebukuro+Tokyo&travelmode=transit"
+      },
+      "items": [
+        {
+          "id": "d3-i1",
+          "time": "09:00 - 11:00",
+          "title": "Meiji Jingu Tapınağı",
+          "description": "🚃 Ikebukuro → Harajuku: JR Yamanote | 20 dk | ~180¥/kişi Yoyogi Parkı içindeki bu Shinto tapınağı, şehrin ortasında huzurlu bir orman sunuyor. Geleneksel Japon düğünü görme şansınız olabilir!"
+        },
+        {
+          "id": "d3-i2",
+          "time": "14:00 - 16:00",
+          "title": "Shibuya Keşfi",
+          "description": "🚃 Meiji Jingu (Harajuku) → Shibuya: JR Yamanote | ~7 dk | ~160¥/kişi Shibuya Crossing - dünyanın en kalabalık yaya geçidi! Hachiko heykeli ile fotoğraf, Shibuya 109 alışveriş, ABC Mart (ayakkabı).",
+          "mapUrl": "https://www.google.com/maps/search/Shibuya+Crossing+Tokyo"
+        },
+        {
+          "id": "d3-i3",
+          "time": "16:00 - 17:30",
+          "title": "Shibuya Sky 🌆 — Cumartesi (hafta sonu)",
+          "description": "🚶 Shibuya içi: Yürüme | 5 dk | Ücretsiz (Scramble Square binasında) Bu aktivite bilinçli olarak Cumartesiye kondu (hafta sonu, günbatımına yakın slot için uygun). 17 Mayıs Pazar sabah teamLab olduğu için Sky bu güne taşınmadı. 230 m açık güverte; bilet saatini günbatımına göre (ör. 16:00–18:00 bandı) resmi siteden seçin.",
+          "mapUrl": "https://www.google.com/maps/search/Shibuya+Sky+Tokyo"
+        },
+        {
+          "id": "d3-i4",
+          "time": "17:30 – 19:00",
+          "title": "Tokyo Tower 🗼 — isteğe bağlı",
+          "description": "🚃 Shibuya → Kamiyacho: Ginza + Hibiya | ~15 dk | ~200¥/kişi Shibuya Sky zaten yüksek manzara veriyorsa bu bloğu atlayın — ayakta daha az, Shibuya’da akşam yemeği + erken dönüş daha dinlendirici.",
+          "mapUrl": "https://www.google.com/maps/search/Tokyo+Tower",
+          "tips": "📸 Giderseniz: Shiba Park’tan kule fotoğrafı ücretsiz ve etkileyici; deck biletini önceden düşünün."
+        },
+        {
+          "id": "d3-i5",
+          "time": "19:00",
+          "title": "Akşam Yemeği & Dönüş"
+        }
+      ]
+    },
+    {
+      "dayNumber": 4,
+      "date": "2026-05-17",
+      "theme": "🎨 teamLab & Odaiba",
+      "tags": [
+        "🎨 teamLab 10:30–11:00",
+        "🌉 Odaiba"
+      ],
+      "stepsEstimate": 13000,
+      "taxiRecommended": false,
+      "route": {
+        "mapsUrl": "https://www.google.com/maps/dir/?api=1&origin=Hotel+Grand+City+Ikebukuro+Tokyo&waypoints=Toyosu+Station+Tokyo%7CteamLab+Planets+Tokyo%7CDiverCity+Tokyo+Plaza&destination=Hotel+Grand+City+Ikebukuro+Tokyo&travelmode=transit"
+      },
+      "items": [
+        {
+          "id": "d4-i1",
+          "time": "07:30 – 08:15",
+          "title": "Erken kahvaltı",
+          "description": "Konbini veya otel yakını — hızlı ve hafif. Bu gün 10:30–11:00 giriş için erken yola çıkılacak."
+        },
+        {
+          "id": "d4-i2",
+          "time": "08:30",
+          "title": "Otelden çıkış",
+          "description": "Ikebukuro İstasyonu’na yürüyün; yanlış çıkış / yoğunluk için ~15 dk tampon bu planda."
+        },
+        {
+          "id": "d4-i3",
+          "time": "08:45 – 09:00",
+          "title": "Ikebukuro → teamLab Taksi",
+          "description": "🚕 Tokyo oteli → teamLab Planets (Toyosu): Taksi | ~25–35 dk | ~3.000–4.500¥ (tek ücret, trafik koşullarına göre) Bilet saati 10:30 – 11:00 sabit; taksiyle erken inin (10:10–10:15 gibi). Kapıda QR kontrolü olabilir, 5–10 dk öncesinde giriş alanında olmak iyi."
+        },
+        {
+          "id": "d4-i4",
+          "time": "09:30 – 10:15",
+          "title": "Toyosu — tampon",
+          "description": "Tuvalet, su, son kez kıyafet kontrolü (su odaları için kısa pantolon/etek). İsterseniz istasyon yakınında çay/kahve; acele etmeyin."
+        },
+        {
+          "id": "d4-i5",
+          "time": "10:30 – 11:00",
+          "title": "teamLab Planets 🎨 — giriş penceresi",
+          "description": "Biletinizdeki saat: 10:30 – 11:00 (JST). Kapıda sıra / QR kontrolü olabilir; 10:15–10:20 civarında giriş alanında olun. Dünyanın en etkileyici dijital sanat müzesi — suyla interaktif alanlar. Ortalama kalış ~2–3 saat (önceki ziyaretçi yoğunluğuna bağlı).",
+          "mapUrl": "https://www.google.com/maps/search/teamLab+Planets+Toyosu+Tokyo",
+          "tips": "👖 Önemli: Kısa şort veya etek; çıplak ayaklı alanlar var. Telefonu su geçirmez kılıfa alın veya çantada saklayın."
+        },
+        {
+          "id": "d4-i6",
+          "time": "~13:00 – 14:00",
+          "title": "Öğle Yemeği - Toyosu",
+          "description": "🚶 teamLab → LaLaport Toyosu: Yürüme | 8 dk | Ücretsiz Toyosu Market yakınında taze sushi veya LaLaport Toyosu'da çeşitli restoran seçenekleri."
+        },
+        {
+          "id": "d4-i7",
+          "time": "14:15 - 19:00",
+          "title": "Odaiba Keşfi 🌉",
+          "description": "🚃 Toyosu → Odaiba: Yurikamome Line | 15 dk | ~320¥/kişi Özgürlük Heykeli replikası ve Rainbow Bridge manzarası, DiverCity (dev Gundam heykeli!), Aqua City alışveriş.",
+          "mapUrl": "https://www.google.com/maps/search/Odaiba+Tokyo"
+        },
+        {
+          "id": "d4-i8",
+          "time": "19:00",
+          "title": "Günbatımı & Akşam Yemeği",
+          "description": "Odaiba sahilinden günbatımını izleyin, ardından Aqua City veya DiverCity'de akşam yemeği. 🚃 Odaiba → Ikebukuro: Rinkai + JR Saikyo | 40 dk | ~520¥/kişi"
+        }
+      ],
+      "highlights": [
+        {
+          "title": "💡 Ginza nerede?",
+          "body": "Bu güne Ginza sığmıyor (teamLab sabahına öncelik). Kısa lüks cadde turu isterseniz başka bir Tokyo gününe veya serbest zamanda Marunouchi hattı ile ekleyin."
+        }
+      ]
+    },
+    {
+      "dayNumber": 5,
+      "date": "2026-05-18",
+      "theme": "🌃 Shinjuku · Mitsui Outlet (tam gün) · Akşam takkyubin",
+      "tags": [
+        "🌃 Shinjuku",
+        "🛍️ Mitsui Outlet (tam gün)",
+        "🚌 Outlet otobüs",
+        "📦 Takkyubin → Osaka",
+        "🍜 Fuunji Ramen"
+      ],
+      "stepsEstimate": 12000,
+      "taxiRecommended": false,
+      "route": {
+        "mapsUrl": "https://www.google.com/maps/dir/?api=1&origin=Hotel+Grand+City+Ikebukuro+Tokyo&waypoints=Shinjuku+Gyoen+Tokyo%7CMitsui+Outlet+Park+Tama+Minami+Osawa&destination=Hotel+Grand+City+Ikebukuro+Tokyo&travelmode=transit"
+      },
+      "items": [
+        {
+          "id": "d5-i1",
+          "time": "09:00 - 09:30",
+          "title": "📦 Takkyubin — valizleri Osaka oteline postala",
+          "description": "Tokyo oteli resepsiyonunda Yamato Transport (クロネコ / Kuroneko) veya benzeri 宅急便 (takkyubin) hizmetini sorun. Büyük valizleri Osaka Namba bölgesindeki otelinizin tam Japonca adresi + telefon ile gönderin (rezervasyon e-postanızdaki adresi Japonca yazdırın / resepsiyona gösterin). Maliyet: kabaca ~2.000–3.500¥ / büyük çuval (ağırlığa göre değişir). Süre: Tokyo → Osaka genelde ertesi iş günü içinde teslim; 20 Mayıs Osaka check-in ile uyumlu planlayın (19 Mayıs Disney’de zaten hafif çanta). Yarın Disney: Yanınızda sadece küçük sırt çantası — su, katmanlı kıyafet, powerbank."
+        },
+        {
+          "id": "d5-i2",
+          "time": "10:00 - 11:00",
+          "title": "Shinjuku Gyoen Bahçesi",
+          "description": "🚃 Ikebukuro → Shinjuku: JR Yamanote | 8 dk | ~170¥/kişi (çok yakın!) Tokyo'nun en güzel bahçelerinden biri. Japon, Fransız ve İngiliz tarzı bahçeler bir arada. Sakin bir sabah için ideal.",
+          "mapUrl": "https://www.google.com/maps/search/Shinjuku+Gyoen+Tokyo"
+        },
+        {
+          "id": "d5-i3",
+          "time": "11:00 - 11:45",
+          "title": "Öğle (hızlı) & kıyafet",
+          "description": "🚶 Shinjuku Gyoen → Shinjuku St.: Yürüme | 10 dk | Ücretsiz Fuunji veya istasyon yakını hızlı ramen / onigiri. Don Quijote, Uniqlo, ABC Mart için zaman kalırsa akşam dönüşte göz atın — öğleden sonra tamamı Mitsui Outlet için ayrıldı."
+        },
+        {
+          "id": "d5-i4",
+          "time": "11:30 – 12:00",
+          "title": "Shinjuku → Mitsui Outlet (Keio Treni)",
+          "description": "🚃 Adım adım gidiş tarifi ① Shinjuku İstasyonu — Keio Hat Girişi Shinjuku'nun batı çıkışından (West Exit) çıkın → zemin katta \"Keio Line\" / 京王線 tabelasını takip edin → Keio gişelerinden Suica/Pasmo ile girin. ② Bindirme: Keio Sagamihara Line 特急 (Tokkyuu / Ekspres) 🚉 Hedef: Minami-Osawa 南大沢 yönü — \"橋本 (Hashimoto)\" veya \"南大沢\" yazan trene binin Aktarmasız direkt; ekspres durmadan geçer, platforma yazılan listeye bakın. Süre: ~40–50 dk | Ücret: ~460–480¥/kişi (Suica otomatik keser) ③ Minami-Osawa İstasyonunda İnin İstasyondan çıkınca \"三井アウトレットパーク\" tabelasını takip edin — kapıdan kuyruğa kadar yürüyüş ~3–5 dk. 🚌 Otobüs seçeneği (daha yavaş ama oturarak): Shinjuku Batı Çıkışı Keio Otobüs Terminali → 「南大沢駅」 yönü Keio Bus → ~60–70 dk | ~550¥/kişi | Suica geçerli. Trafik yoğunsa trenden geç kalabilir, tren daha güvenli.",
+          "tips": "💡 Önemli: Ekspres trende doğru yönü kontrol edin — Shinjuku'dan Hashimoto/Hachioji yönü birden fazla hat; platforma asılı levhada \"南大沢 停車\" yazmalı."
+        },
+        {
+          "id": "d5-i5",
+          "time": "12:00 – 17:00",
+          "title": "Mitsui Outlet Park Tama Minami-Osawa 🛍️",
+          "description": "⏱️ Outlet'te ~5 saat | Mağazalar genelde 20:00'a kadar açık — bol bol gezin! 200+ marka outlet fiyatıyla: Nike, Adidas, Coach, Gap, Polo RL, The North Face, Levi's, Samsonite ve daha fazlası. Yemek katında Japonya mutfağı da var. Tax-Free: Pasaportunuzu yanınıza alın — outlet içinde tax-free sayacı var, tek seferde ₺ değeri yüksek alışverişlerde %8–10 vergi iadesi alırsınız.",
+          "mapUrl": "https://www.google.com/maps/search/Mitsui+Outlet+Park+Tama+Minami+Osawa",
+          "tips": "🛍️ İpucu: Büyük parçaları (bavul vb.) en son alın ya da mağazada bagaj hizmeti sorun. Yorulunca outlet içindeki food court'ta oturun, devam edin."
+        },
+        {
+          "id": "d5-i6",
+          "time": "17:10 - 17:50",
+          "title": "🚌 Outlet → Shinjuku (dönüş otobüsü)",
+          "description": "Aynı duraktan veya Minami-Osawa üzerinden Shinjuku yönü otobüs; trafik süreyi uzatabilir. Otobüs yoksa: Minami-Osawa → Keio ile Shinjuku."
+        },
+        {
+          "id": "d5-i7",
+          "time": "18:00 - 22:00",
+          "title": "Kamera Alışverişi — Yodobashi + Bic Camera (toplam ~4 saat) 📷",
+          "description": "🛍️ Hedef: Yodobashi Camera Shinjuku + Bic Camera (Shinjuku) | Toplam: ~4 saat | Tax-Free: pasaport şart Bu blok bilerek 4 saat ayrıldı: fiyat karşılaştırma + tax-free işlemleri + iade/garanti soruları zaman alıyor. Lens/kamera gövde bakıyorsanız acele etmeyin.",
+          "mapUrl": "https://www.google.com/maps/search/Yodobashi+Camera+Shinjuku+West+Exit"
+        },
+        {
+          "id": "d5-i8",
+          "time": "22:00 - 22:20",
+          "title": "Shinjuku → Ikebukuro",
+          "description": "🚃 JR Yamanote | ~8 dk | ~170¥/kişi"
+        },
+        {
+          "id": "d5-i9",
+          "time": "22:30",
+          "title": "Hafif akşam yemeği & erken uyku"
+        }
+      ]
+    },
+    {
+      "dayNumber": 6,
+      "date": "2026-05-19",
+      "theme": "🏰 Tokyo Disneyland",
+      "tags": [
+        "🎢 Salı = Az Kalabalık!",
+        "🚃 JR Tren",
+        "🏰 Disneyland"
+      ],
+      "stepsEstimate": 20000,
+      "stepsEstimateMax": 24000,
+      "taxiRecommended": true,
+      "route": {
+        "mapsUrl": "https://www.google.com/maps/dir/?api=1&origin=Hotel+Grand+City+Ikebukuro+Tokyo&waypoints=Tokyo+Station+Japan%7CMaihama+Station+Chiba&destination=Tokyo+Disneyland&travelmode=transit"
+      },
+      "items": [
+        {
+          "id": "d6-i1",
+          "time": "07:15 – 08:05",
+          "title": "🚃 Hotel → Tokyo Disneyland (JR Tren)",
+          "description": "✅ Seçilen: JR Tren — en ucuz + güvenilir, ~50 dk, ~430¥/kişi (~1.720¥ tüm aile) 🚃 Seçenek 1 — JR Tren (En Ucuz · Önerilen) aile için: ~1.720¥ | Süre: ~50 dk ① Ikebukuro → JR Yamanote Line (東京 Tokyo yönü) → Tokyo İstasyonu (~25 dk, ~210¥) ② Tokyo İstasyonu'nda JR Keiyo Line'a geçin (işaretleri takip edin, ~5 dk yürüme) → Maihama 舞浜 (~17 dk, ~220¥) ③ Maihama'dan park girişine yürüyüş ~5 dk — toplam kapıya ~50 dk. 🚌 Seçenek 2 — Limuzin Otobüs (En Konforlu · Direkt) Kişi başı: ~1.000–1.500¥ | Süre: ~50–70 dk (trafik var) Tokyo Disney Resort resmi Limuzin Otobüsü (リムジンバス) Ikebukuro çevresindeki otellerden kalkabilir. Oturarak direkt park kapısına. TDR resmi erişim sayfası'ndan Ikebukuro/Toshima durağı olup olmadığını kontrol edin. Rezervasyon önerilir. 🚕 Seçenek 3 — Taksi (En Pahalı) Toplam: ~9.000–14.000¥ | Süre: ~45–70 dk Trafik değişken; sabah 07:15'te köprü/otoyol yoğunluğu olabilir. GO / Japan Taxi uygulaması ile çağırın.",
+          "tips": "💡 Sabah erken kalabalık önlemek için: JR Keiyo Line ekspres kalkışı az; platforma erken inin. Park kapısı 08:00–08:30 açılır — 07:15 çıkarsanız açılışa yetişirsiniz."
+        },
+        {
+          "id": "d6-i2",
+          "time": "08:30 - 22:00",
+          "title": "Tokyo Disneyland Macerası!",
+          "description": "Kaçırılmaması Gereken Atraksiyonlar: 🎢 Space Mountain - Karanlıkta uzay yolculuğu 🏔️ Big Thunder Mountain - Madenci treni macerası 🐻 Pooh's Hunny Hunt - Trackless ride, çok popüler! 👻 Haunted Mansion - Klasik Disney korku evi 🌊 Splash Mountain - Su macerası 🏰 Cinderella Castle - İkonik kale, fotoğraf şart!",
+          "mapUrl": "https://www.google.com/maps/search/Tokyo+Disneyland"
+        },
+        {
+          "id": "d6-i3",
+          "time": "12:30",
+          "title": "Öğle Yemeği",
+          "description": "Queen of Hearts Banquet Hall (Alice temalı) veya Grandma Sara's Kitchen önerilir."
+        },
+        {
+          "id": "d6-i4",
+          "time": "20:30",
+          "title": "Gece Gösterisi",
+          "description": "Tokyo Disneyland Electrical Parade ve Happily Ever After havai fişek gösterisini kaçırmayın!"
+        }
+      ],
+      "highlights": [
+        {
+          "title": "🎯 Disney Premier Access & Standby Pass",
+          "body": "• Disney Premier Access - Ücretli hızlı geçiş, popüler oyuncaklar için önerilir • Standby Pass - Ücretsiz, belirli saatte sıraya girme hakkı • Disney Resort App indirin - bekleme süreleri ve harita için şart!"
+        }
+      ]
+    },
+    {
+      "dayNumber": 7,
+      "date": "2026-05-20",
+      "theme": "🚄 Osaka'ya Varış & Dotonbori",
+      "tags": [
+        "🚄 Shinkansen",
+        "🐙 Dotonbori",
+        "👕 Uniqlo",
+        "👟 ABC Mart"
+      ],
+      "stepsEstimate": 11000,
+      "taxiRecommended": false,
+      "route": {
+        "mapsUrl": "https://www.google.com/maps/dir/?api=1&origin=Hotel+Grand+City+Ikebukuro+Tokyo&waypoints=Tokyo+Station%7CShin-Osaka+Station%7CNamba+Station+Osaka%7CDotonbori+Osaka&destination=Namba+Osaka&travelmode=transit"
+      },
+      "items": [
+        {
+          "id": "d7-i1",
+          "time": "08:30",
+          "title": "Tokyo otelinden Check-out",
+          "description": "Valizler çoğunlukla dün takkyubin ile Osaka otele yolda — yanınızda hafif çanta ile Tokyo Station’a gidin."
+        },
+        {
+          "id": "d7-i2",
+          "time": "09:30",
+          "title": "Tokyo Station — Ekiben & Bekleme",
+          "description": "Tokyo Station’da Ekiben (tren bento) alın — “Ekiben-ya Matsuri” (駅弁屋 祭) mağazası 200+ çeşit sunar. Shinkansen peronuna erkenden geçin."
+        },
+        {
+          "id": "d7-i3",
+          "time": "10:21",
+          "title": "🚄 NOZOMI 253 — Tokyo Kalkış",
+          "description": "Tokyo → Shin-Osaka | 2 saat 27 dk. 🗻 Fuji Dağı manzarası için E koltuğu (sol pencere) seçin — kalkıştan ~40 dk sonra Şizuoka civarında görünür."
+        },
+        {
+          "id": "d7-i4",
+          "time": "12:48",
+          "title": "Shin-Osaka Varış",
+          "description": "Shin-Osaka’dan Midosuji Line ile Namba’ya (~15 dk). Bagajları coin locker’a bırakabilirsiniz."
+        },
+        {
+          "id": "d7-i5",
+          "time": "13:30",
+          "title": "Otele Check-in",
+          "description": "Namba bölgesindeki otele yerleşin — Dotonbori’ye yürüme mesafesinde!"
+        }
+      ]
+    },
+    {
+      "dayNumber": 8,
+      "date": "2026-05-21",
+      "theme": "🎢 Universal Studios Japan",
+      "tags": [
+        "🎢 Hafta İçi!",
+        "🧙 Harry Potter",
+        "🍄 Nintendo World"
+      ],
+      "stepsEstimate": 19000,
+      "stepsEstimateMax": 22000,
+      "taxiRecommended": false,
+      "route": {
+        "mapsUrl": "https://www.google.com/maps/dir/?api=1&origin=Namba+Station+Osaka&destination=Universal+Studios+Japan&travelmode=transit"
+      },
+      "items": [
+        {
+          "id": "d8-i1",
+          "time": "07:00",
+          "title": "Erken Kalkış!",
+          "description": "🚃 Namba → Universal City: JR Namba + Yumesaki Line | 35-40 dk | ~370¥/kişi JR Yumesaki Line ile Universal City İstasyonu'na gidin. Park açılışından en az 1 saat önce orada olun!",
+          "tips": "🎫 Bilet & Express Pass: Mutlaka önceden online alın! Express Pass 4/7 popüler oyuncaklar için bekleme süresini ciddi azaltır."
+        },
+        {
+          "id": "d8-i2",
+          "time": "08:00 - 21:00",
+          "title": "Universal Studios Japan Tam Gün!",
+          "description": "🍄 Super Nintendo World (En popüler!) • Mario Kart: Koopa's Challenge - AR teknolojili muhteşem ride • Yoshi's Adventure - Aile dostu • Power-Up Band ile interaktif oyunlar 🧙 The Wizarding World of Harry Potter • Harry Potter and the Forbidden Journey • Flight of the Hippogriff • Hogsmeade köyü & Hogwarts Kalesi • Butterbeer deneyin! 🎢 Diğer Favoriler: • Hollywood Dream (roller coaster) • Jurassic World • Minion Park • JAWS",
+          "mapUrl": "https://www.google.com/maps/search/Universal+Studios+Japan+Osaka"
+        }
+      ]
+    },
+    {
+      "dayNumber": 9,
+      "date": "2026-05-22",
+      "theme": "⛩️ Kyoto & Fushimi Inari (Günübirlik)",
+      "tags": [
+        "⛩️ Fushimi Inari",
+        "🎋 Gion",
+        "⌚ KUOE Kyoto",
+        "☕ Panel Kafe"
+      ],
+      "stepsEstimate": 17000,
+      "stepsEstimateMax": 20000,
+      "taxiRecommended": false,
+      "route": {
+        "mapsUrl": "https://www.google.com/maps/dir/?api=1&origin=Namba+Station+Osaka&waypoints=Fushimi+Inari+Taisha%7CGion-Shijo+Station+Kyoto&destination=Namba+Station+Osaka&travelmode=transit"
+      },
+      "items": [
+        {
+          "id": "d9-i1",
+          "time": "07:00",
+          "title": "Erken Hareket!",
+          "description": "🚃 Namba → Fushimi Inari: Keihan Line (Yodoyabashi aktarma) | 45 dk | ~420¥/kişi Kalabalıktan kaçmak için erken gidin!"
+        },
+        {
+          "id": "d9-i2",
+          "time": "08:00 - 10:30",
+          "title": "Fushimi Inari Taisha ⛩️",
+          "description": "10.000 kırmızı torii kapısı! Japonya'nın en ikonik manzaralarından biri. • Ana tapınak ve ilk torii tüneli: 30 dakika • Yotsutsuji kavşağına kadar: 1-1.5 saat (muhteşem şehir manzarası) • Tam zirve turu: 2-3 saat",
+          "mapUrl": "https://www.google.com/maps/search/Fushimi+Inari+Taisha+Kyoto",
+          "tips": "📸 Fotoğraf İpucu: Sabah 8'den önce gidin - boş torii tüneli fotoğrafı için şans artar!"
+        },
+        {
+          "id": "d9-i3",
+          "time": "10:30 - 14:30",
+          "title": "Gion Bölgesi & Öğle Yemeği",
+          "description": "🚃 Fushimi Inari → Gion-Shijo: Keihan Line (Fushimi-Inari → Gion-Shijo) | 25 dk | ~300¥/kişi Kyoto'nun geleneksel geyşa bölgesi. Hanami-koji sokağında tarihi ahşap evler, çay evleri. Şanslıysanız Maiko (çırak geyşa) görebilirsiniz.",
+          "mapUrl": "https://www.google.com/maps/search/Gion+Kyoto"
+        },
+        {
+          "id": "d9-i4",
+          "time": "15:00 - 16:30",
+          "title": "KUOE Kyoto - Saat Mağazası ⌚",
+          "description": "🚶 Gion → KUOE: Yürüme veya Metro | ~20 dk | Nakagyo Ward Kyoto'da 2020'de kurulan KUOE, klasik tasarım saatler üreten Japon markası. Kyoto atölyesinde el yapımı, yüksek kaliteli saatler! 📍 Adres: 224 Eirakucho, Tohbeh Building #105, Nakagyo Ward, Kyoto ⏰ Saat: 11:00 - 17:30 (Salı kapalı) 💰 Fiyat: ¥25,000 - ¥45,000 arası",
+          "mapUrl": "https://www.google.com/maps/search/KUOE+Kyoto+watch+store"
+        },
+        {
+          "id": "d9-i5",
+          "time": "17:00",
+          "title": "Osaka'ya Dönüş"
+        }
+      ]
+    },
+    {
+      "dayNumber": 10,
+      "date": "2026-05-23",
+      "theme": "🦌 Nara Günübirlik Turu",
+      "tags": [
+        "🦌 Geyikler",
+        "🛕 Todai-ji",
+        "UNESCO"
+      ],
+      "stepsEstimate": 15000,
+      "stepsEstimateMax": 18000,
+      "taxiRecommended": false,
+      "route": {
+        "mapsUrl": "https://www.google.com/maps/dir/?api=1&origin=Namba+Station+Osaka&waypoints=Kintetsu+Nara+Station%7CTodai-ji+Nara%7CKasuga+Taisha+Nara&destination=Namba+Station+Osaka&travelmode=transit"
+      },
+      "items": [
+        {
+          "id": "d10-i1",
+          "time": "09:00",
+          "title": "Nara'ya Hareket",
+          "description": "🚃 Namba → Kintetsu Nara: Kintetsu Line | 45 dk | ~570¥/kişi (merkeze daha yakın!)"
+        },
+        {
+          "id": "d10-i2",
+          "time": "10:00 - 12:30",
+          "title": "Nara Parkı & Todai-ji Tapınağı",
+          "description": "🚶 Kintetsu Nara → Nara Park: Yürüme | 10 dk | Ücretsiz (düz yol) 1000+ serbest gezen geyik! Shika senbei (geyik bisküvisi) alıp besleyebilirsiniz - eğilip selamlıyorlar! Todai-ji - Dünyanın en büyük ahşap yapısı ve devasa bronz Buda heykeli (15 metre!). UNESCO Dünya Mirası.",
+          "mapUrl": "https://www.google.com/maps/search/Todai-ji+Nara+Park",
+          "tips": "🦌 Geyik İpuçları: Bisküviyi yavaş verin, agresifleşebilirler! Yiyecekleri hemen cebinize koymayın."
+        },
+        {
+          "id": "d10-i3",
+          "time": "12:30 - 14:00",
+          "title": "Öğle Yemeği & Naramachi",
+          "description": "🚶 Todai-ji → Naramachi: Yürüme | 15 dk | Ücretsiz Geleneksel Naramachi bölgesinde eski tüccar evleri arasında yürüyüş. Kakinoha-zushi (hurma yaprağında sushi) yerel lezzet!",
+          "mapUrl": "https://www.google.com/maps/search/Naramachi+Nara"
+        },
+        {
+          "id": "d10-i4",
+          "time": "14:30 - 16:00",
+          "title": "Kasuga Taisha",
+          "description": "🚶 Naramachi → Kasuga Taisha: Yürüme (park içinden) | 20 dk | Ücretsiz Kasuga Taisha - Binlerce taş ve bronz fener ile ünlü Shinto tapınağı. Orman yolunda huzurlu yürüyüş. Dönüşte Kofuku-ji beş katlı pagodası görülebilir.",
+          "mapUrl": "https://www.google.com/maps/search/Kasuga+Taisha+Nara"
+        },
+        {
+          "id": "d10-i5",
+          "time": "17:00",
+          "title": "Osaka'ya Dönüş"
+        }
+      ]
+    },
+    {
+      "dayNumber": 11,
+      "date": "2026-05-24",
+      "theme": "🏯 Osaka Keşif Günü",
+      "tags": [
+        "🏯 Osaka Kalesi",
+        "🏙️ Harukas",
+        "🌆 Umeda Sky"
+      ],
+      "stepsEstimate": 16000,
+      "taxiRecommended": false,
+      "route": {
+        "mapsUrl": "https://www.google.com/maps/dir/?api=1&origin=Namba+Station+Osaka&waypoints=Osaka+Castle%7CTsutenkaku+Osaka%7CAbeno+Harukas%7CUmeda+Sky+Building%7CDotonbori+Osaka&destination=Namba+Station+Osaka&travelmode=transit"
+      },
+      "items": [
+        {
+          "id": "d11-i1",
+          "time": "09:30 - 12:00",
+          "title": "Osaka Kalesi 🏯",
+          "description": "🚃 Namba → Osakajokoen: Chuo Line | 15 dk | ~230¥/kişi Japonya'nın en ünlü kalelerinden biri! Tenshukaku (ana kule) - içinde müze var, en üst kattan şehir manzarası. Nishinomaru Bahçesi - kale etrafında güzel park alanı.",
+          "mapUrl": "https://www.google.com/maps/search/Osaka+Castle"
+        },
+        {
+          "id": "d11-i2",
+          "time": "12:30 - 15:00",
+          "title": "Shinsekai & Tsutenkaku",
+          "description": "🚃 Osakajokoen → Shin-Imamiya: JR Loop Line | 15 dk | ~200¥/kişi Retro Osaka atmosferi! Tsutenkaku Kulesi - Osaka'nın Eyfel Kulesi, Kushikatsu restoranlarının merkezi (Daruma önerilir), Billiken heykeli - şans getirdiğine inanılır.",
+          "mapUrl": "https://www.google.com/maps/search/Shinsekai+Tsutenkaku+Osaka"
+        },
+        {
+          "id": "d11-i3",
+          "time": "15:00 - 17:00",
+          "title": "Abeno Harukas 🏙️",
+          "description": "🚶 Shinsekai → Tennoji (Harukas): Yürüme | 10 dk | Ücretsiz (yan yana!) Japonya'nın en yüksek binası! (300m) Tennoji'de. Harukas 300 gözlem katından Osaka panoraması. Altta Kintetsu Department Store ve Abeno Q's Mall.",
+          "mapUrl": "https://www.google.com/maps/search/Abeno+Harukas+Osaka"
+        },
+        {
+          "id": "d11-i4",
+          "time": "17:30 - 19:30",
+          "title": "Umeda Sky Building 🌆 (Günbatımı)",
+          "description": "🚃 Tennoji → Umeda: JR Loop Line | 20 dk | ~200¥/kişi Floating Garden Observatory - İki kulenin tepesinde bağlantılı gözlem platformu. Günbatımı için mükemmel zamanlama! Mimari açıdan çok etkileyici.",
+          "mapUrl": "https://www.google.com/maps/search/Umeda+Sky+Building+Osaka"
+        },
+        {
+          "id": "d11-i5",
+          "time": "20:00 - 22:00",
+          "title": "Son Dotonbori Akşamı",
+          "mapUrl": "https://www.google.com/maps/search/Dotonbori+Osaka"
+        }
+      ]
+    },
+    {
+      "dayNumber": 12,
+      "date": "2026-05-25",
+      "theme": "🛍️ Son Alışveriş & Hazırlık",
+      "tags": [
+        "🛍️ Alışveriş",
+        "🍣 Son Lezzetler"
+      ],
+      "stepsEstimate": 9000,
+      "stepsEstimateMax": 11000,
+      "taxiRecommended": false,
+      "route": {
+        "mapsUrl": "https://www.google.com/maps/dir/?api=1&origin=Namba+Station+Osaka&waypoints=Kuromon+Market+Osaka%7CShinsaibashi+Osaka%7CDon+Quijote+Dotonbori&destination=Namba+Station+Osaka&travelmode=walking"
+      },
+      "items": [
+        {
+          "id": "d12-i1",
+          "time": "10:00 - 13:00",
+          "title": "Son Alışveriş Turu",
+          "description": "🚶 Namba → Kuromon Market: Yürüme | 10 dk | Ücretsiz Kuromon Market - \"Osaka'nın Mutfağı\", taze deniz ürünleri, meyve, yerel lezzetler. Yerinde yiyebileceğiniz taze sashimi ve deniz ürünleri! 🚶 Kuromon → Shinsaibashi/Don Quijote: Yürüme | 10 dk | Ücretsiz (hepsi yan yana!) Don Quijote - Son dakika hediyelik eşya, snack, kozmetik (vergisiz alışveriş için pasaport yanınızda olsun!)",
+          "mapUrl": "https://www.google.com/maps/search/Kuromon+Market+Osaka",
+          "tips": "📷 KAMERA: Kitamura Camera - Namba • Adres: Namba Parks veya Shinsaibashi şubesi • Yeni + ikinci el kamera ve lens • Tokyo'da kaçırdıysan son şans! • Tax-Free mevcut (5000¥ üzeri)"
+        },
+        {
+          "id": "d12-i2",
+          "time": "13:30 - 15:00",
+          "title": "Öğle Yemeği - Özel Bir Son Öğün",
+          "description": "Kendinize özel bir Japon yemeği ısmarlayın! Kobe Beef deneyimi, Kaiseki (geleneksel çok çeşitli Japon mutfağı) veya lüks bir sushi omakase."
+        },
+        {
+          "id": "d12-i3",
+          "time": "15:30 - 18:00",
+          "title": "Dinlenme & Bavul Hazırlığı",
+          "description": "Otele dönün, bavulları hazırlayın. Vergisiz alışverişlerde aldığınız ürünlerin paketlerini kontrol edin."
+        }
+      ]
+    },
+    {
+      "dayNumber": 13,
+      "date": "2026-05-26",
+      "theme": "✈️ Osaka'dan Dönüş",
+      "tags": [
+        "✈️ KIX → IST"
+      ],
+      "stepsEstimate": 5000,
+      "stepsEstimateMax": 7000,
+      "taxiRecommended": false,
+      "route": {
+        "mapsUrl": "https://www.google.com/maps/dir/?api=1&origin=Namba+Station+Osaka&destination=Kansai+International+Airport&travelmode=transit"
+      },
+      "items": [
+        {
+          "id": "d13-i1",
+          "time": "08:00",
+          "title": "Kahvaltı & Check-out",
+          "description": "Otelden çıkış yapın. Bagajları son kez kontrol edin."
+        },
+        {
+          "id": "d13-i2",
+          "time": "09:00 - 10:30",
+          "title": "Son Sabah Aktivitesi (Opsiyonel)",
+          "description": "Vaktiniz varsa Namba'da son bir kahve veya Kuromon Market'te hafif bir kahvaltı."
+        },
+        {
+          "id": "d13-i3",
+          "time": "11:00",
+          "title": "Kansai Havalimanı'na (KIX) Hareket",
+          "description": "🚃 Namba → KIX: Nankai Rapit (Limited Express) | 40 dk | ~1,450¥/kişi veya Normal Nankai ~920¥/kişi (50 dk) Uluslararası uçuşlar için 3 saat önce havalimanında olun. Alternatif: JR Haruka (Shin-Osaka/Tennoji'den)."
+        },
+        {
+          "id": "d13-i4",
+          "time": "11:45",
+          "title": "Havalimanı Check-in",
+          "description": "Bagaj teslimi, güvenlik kontrolü ve pasaport işlemleri. Vergisiz alışveriş için son fırsat!"
+        },
+        {
+          "id": "d13-i5",
+          "time": "14:40",
+          "title": "Kalkış ✈️",
+          "description": "İstanbul'a dönüş. uzun uçuş, aktarmalı olabilir. さようなら日本！また会いましょう！ (Hoşçakal Japonya! Tekrar görüşürüz!)"
+        },
+        {
+          "id": "d13-i6",
+          "time": "+1 Gün 06:15",
+          "title": "İstanbul Varış"
+        }
+      ]
+    }
+  ],
+  "deadlines": {
+    "shinkansenBooking": "2026-04-20T00:00:00+03:00",
+    "skytreeVisit": "2026-05-15T23:59:59+09:00",
+    "skytreeBookingOpens": "2026-04-15T00:00:00+09:00"
+  }
+}

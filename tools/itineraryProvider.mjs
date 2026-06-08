@@ -1,0 +1,229 @@
+/**
+ * AI destekli günlük rota üretimi (Groq ücretsiz katman).
+ * Anahtar yoksa 501 döner; istemci shared generateItineraryFromTrip ile devam eder.
+ *
+ * Dönüş: { status, body }
+ */
+
+function paceLabel(pace) {
+  if (pace === 'relaxed') return 'Rahat (günde 2–3 aktivite, uzun molalar)';
+  if (pace === 'intense') return 'Yoğun (5+ aktivite, sabah erken başla)';
+  return 'Dengeli (3–4 aktivite, akşamları rahat)';
+}
+
+function buildPrompt(trip) {
+  const prefs = trip.preferences ?? {};
+
+  const destinations = (prefs.destinations ?? [])
+    .slice()
+    .sort((a, b) => a.order - b.order)
+    .map((d) => ({
+      id: d.id,
+      city: d.city,
+      country: d.countryName,
+      countryCode: d.countryCode,
+      arrival: d.arrivalDate,
+      departure: d.departureDate,
+      airline: d.airline,
+      flightNo: d.flightNo,
+    }));
+
+  const days = (trip.days ?? []).map((d) => ({
+    dayNumber: d.dayNumber,
+    date: d.date,
+    weekday: d.weekday,
+  }));
+
+  const hotels = (trip.hotels ?? []).map((h) => ({
+    city: h.city,
+    name: h.name,
+    address: h.address,
+    checkIn: h.checkIn,
+    checkOut: h.checkOut,
+  }));
+
+  const tickets = (trip.tickets ?? []).map((t) => ({
+    label: t.label,
+    visitDate: t.visitDate,
+    purchased: t.purchased,
+  }));
+
+  const foodPrefs = (prefs.destinationFood ?? []).map((f) => ({
+    destinationId: f.destinationId,
+    dietary: f.dietaryTags,
+    likes: f.foodLikes,
+    dislikes: f.foodDislikes,
+    budgetPerPerson: f.mealBudgetPerPerson,
+    currency: f.mealBudgetCurrency,
+  }));
+
+  const partySize = prefs.partySize ?? 1;
+  const childrenCount = prefs.childrenCount ?? 0;
+  const mustSee = prefs.mustSee ?? [];
+  const dietary = prefs.dietary ?? prefs.dietaryTags ?? [];
+  const origin = prefs.originCity ? `${prefs.originCity}${prefs.originAirport ? ` (${prefs.originAirport})` : ''}` : '—';
+  const mealBudget = prefs.mealBudgetPerPerson
+    ? `${prefs.mealBudgetPerPerson} ${prefs.mealBudgetCurrency ?? ''} / kişi / öğün`
+    : '—';
+
+  return `Sen Japonya'ya giden Türk kullanıcılar için uzmanlaşmış bir seyahat planlayıcısısın. Türkçe yanıt ver.
+
+Önemli: Bu uygulama YALNIZCA Japonya gezileri içindir. Tüm öneriler, ulaşım, restoran ve aktiviteler Japonya içindeki şehirlerden olmalı. Başka ülke önerme.
+
+Görev: Aşağıdaki seyahat için gün gün, SAAT SAAT detaylı plan üret. Plan referans seyahat günlüğü kalitesinde olmalı: her aktivitenin SAATİ, AÇIKLAMASI, ULAŞIM YÖNTEMİ + SÜRE + ÜCRET, ÖNERİLEN YEMEK YERLERİ ve PRATİK İPUCU var.
+
+Seyahat bilgileri:
+- Kalkış: ${origin}
+- Kişi sayısı: ${partySize} (çocuk: ${childrenCount})
+- Diyet/kısıtlar: ${dietary.length ? dietary.join(', ') : '—'}
+- Mutlaka gör (zorunlu): ${mustSee.length ? mustSee.join(', ') : '—'}
+- Tempo: ${paceLabel(prefs.pace)}
+- Öğün bütçesi: ${mealBudget}
+- Destinasyonlar: ${JSON.stringify(destinations)}
+- Günler: ${JSON.stringify(days)}
+- Oteller: ${JSON.stringify(hotels)}
+- Hazır biletler: ${JSON.stringify(tickets)}
+- Yemek tercihleri (destinasyon başına): ${JSON.stringify(foodPrefs)}
+
+Kurallar:
+1. Her günün dayNumber değeri verilen günlerle bire bir eşleşmeli. Eksik gün bırakma.
+2. Varış günü: hafif tempo, check-in, çevre keşfi, akşam yemeği. Ayrılış günü: check-out + havaalanı transferi + uçuş.
+3. Aktiviteleri saat sırasına dizin: 08:00–10:00 sabah, 12:00–14:00 öğle yemeği, 14:00–18:00 öğleden sonra, 18:30–21:00 akşam.
+4. Her gün en az 1 yemek (kind:"meal") ve mümkünse 1 ulaşım (kind:"transport") kalemi olsun.
+4b. KIND alanı YALNIZCA bu 4 değerden biri olabilir: "activity", "transport", "meal", "hotel". Başka değer ("arrival", "flight", "departure", "checkin", "food" vb.) YASAK; varış/ayrılış/havaalanı için "transport", check-in/out için "hotel" kullan.
+5. Önerdiğin restoran/yemek için ülke + yöre tarzına uygun spesifik isim ve menü ipucu ver (örn. "Tonkotsu ramen — Ichiran Shibuya").
+6. Ulaşım kalemlerinde: hat/sefer adı, süre, ücret aralığı yaz (örn. "Keikyu Line, ~15 dk, ~300¥").
+7. mapUrl alanına Google Maps arama linki üret: "https://www.google.com/maps/search/?api=1&query=<URL_ENCODED_QUERY>".
+8. Çocuk varsa: çocuk dostu mekanlar, kısa yürüyüş mesafeleri, atıştırmalık molaları.
+9. mustSee'deki maddeleri en uygun günde KESİNLİKLE programa al.
+10. Otel adresleri verilmişse: ilk gün check-in ve son gün check-out kalemlerini ona göre yaz.
+11. tips alanı KISA olsun (1 cümle, somut bilgi: en iyi saat, kuyruk uyarısı, fotoğraf noktası, ücret bilgisi vb.).
+12. theme: emoji + günün ana karakteri ("🗼 Asakusa & Skytree akşam manzarası").
+13. tags: günün etiketleri (3–5 adet, kısa: "Tapınak", "Manzara", "Yemek").
+14. stepsEstimate: tempoya göre 6000–22000 arası gerçekçi tahmin.
+15. highlights: 1–3 madde, gün özetini cebine sığacak şekilde.
+
+YALNIZCA aşağıdaki JSON şemasında yanıt ver, başka açıklama EKLEME:
+{
+  "days": [
+    {
+      "dayNumber": 1,
+      "theme": "🛬 Tokyo'ya varış & Shinjuku akşamı",
+      "tags": ["Varış", "Shinjuku", "Akşam"],
+      "stepsEstimate": 8000,
+      "highlights": [
+        { "title": "İlk gece", "body": "Otele yerleş, kısa yürüyüş, izakaya akşam yemeği." }
+      ],
+      "items": [
+        {
+          "time": "15:00",
+          "title": "🛬 Haneda → Shinjuku transferi",
+          "description": "Keikyu Line ile Shinagawa, oradan JR Yamanote ile Shinjuku.",
+          "tips": "Suica/Pasmo kartı havaalanından al, ~2000¥ depozito.",
+          "kind": "transport",
+          "durationMin": 60,
+          "cost": 700,
+          "costCurrency": "JPY",
+          "mapUrl": "https://www.google.com/maps/search/?api=1&query=Haneda+Airport+Keikyu+Line"
+        },
+        {
+          "time": "19:00",
+          "title": "🍜 Akşam yemeği — Ichiran Ramen Shinjuku",
+          "description": "Tonkotsu ramen, kişiye özel bölme. Vending machine ile sipariş.",
+          "tips": "20:00 sonrası kuyruk kısalır.",
+          "kind": "meal",
+          "durationMin": 45,
+          "cost": 1200,
+          "costCurrency": "JPY",
+          "mapUrl": "https://www.google.com/maps/search/?api=1&query=Ichiran+Ramen+Shinjuku"
+        }
+      ]
+    }
+  ]
+}`;
+}
+
+function extractJson(text) {
+  const raw = String(text ?? '').trim();
+  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const candidate = fenced ? fenced[1].trim() : raw;
+  try {
+    return JSON.parse(candidate);
+  } catch {
+    const start = candidate.indexOf('{');
+    const end = candidate.lastIndexOf('}');
+    if (start >= 0 && end > start) {
+      return JSON.parse(candidate.slice(start, end + 1));
+    }
+    throw new Error('invalid-json');
+  }
+}
+
+async function fromGroq(prompt, key) {
+  let resp;
+  try {
+    resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${key}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You output only valid JSON for Japan travel itineraries in Turkish. Only Japan locations. No markdown, no prose. Be specific about times, transit modes/durations/prices, restaurant names, and practical tips. Always include mapUrl for places.',
+          },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.4,
+        max_tokens: 8000,
+        response_format: { type: 'json_object' },
+      }),
+    });
+  } catch {
+    return null;
+  }
+  if (!resp.ok) return null;
+  let data;
+  try {
+    data = await resp.json();
+  } catch {
+    return null;
+  }
+  const content = data?.choices?.[0]?.message?.content;
+  if (!content) return null;
+  try {
+    const parsed = extractJson(content);
+    if (!Array.isArray(parsed?.days)) return null;
+    return parsed.days;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * @param {object} trip — Trip JSON özeti
+ * @param {string|undefined} groqKey — GROQ_API_KEY
+ */
+export async function fetchItinerary(trip, groqKey) {
+  if (!groqKey) {
+    return { status: 501, body: { error: 'not-configured', source: 'rules' } };
+  }
+  if (!trip?.days?.length) {
+    return { status: 400, body: { error: 'no-days' } };
+  }
+
+  const prompt = buildPrompt(trip);
+  const aiDays = await fromGroq(prompt, groqKey);
+  if (!aiDays) {
+    return { status: 502, body: { error: 'ai-failed', source: 'rules' } };
+  }
+
+  return {
+    status: 200,
+    body: { source: 'ai', days: aiDays },
+  };
+}

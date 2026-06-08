@@ -202,6 +202,19 @@ Değiştirmek için: `.env`'de `OLLAMA_MODEL=qwen2.5:7b` ve `ollama pull qwen2.5
 - **AI yanlış commit msg önerdi** → Onay sırasında `d` ile düzelt.
 - **Pi bağlanamıyor** → `ssh mennano@192.168.1.60` ile elle dene.
 
+## japan-trip deploy (statik build)
+
+Repo kökünde `npm run build` → `dist/` (`index.html`, `data/`, `viewer/`, `planner/`).
+
+Pi `.env` örneği:
+
+```env
+PI_REPO_DIR=japan-trip
+PI_DEPLOY_CMD=git pull origin main && npm ci && npm run build && rsync -a --delete dist/ /var/www/japan-trip/
+```
+
+Cursor skill: `commit` → `push` → `deploy` (değişmedi).
+
 ## Mimari
 
 ```

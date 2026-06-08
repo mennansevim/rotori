@@ -1,0 +1,10 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
+  "framework": null,
+  "rewrites": [
+    { "source": "/planner", "destination": "/planner/" },
+    { "source": "/viewer", "destination": "/viewer/" }
+  ]
+}
