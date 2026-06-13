@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   getDestinationProfile,
   newItemId,
@@ -38,7 +38,6 @@ export function PlanStep({ trip, onChange }: Props) {
   const [genSource, setGenSource] = useState<ItinerarySource | null>(null);
   const [genReason, setGenReason] = useState<ItineraryReason | null>(null);
   const [dragSource, setDragSource] = useState<{ dayNumber: number; index: number } | null>(null);
-  const autoRanRef = useRef(false);
 
   const pace = trip.preferences.pace ?? 'moderate';
   const childrenCount = trip.preferences.childrenCount ?? 0;
@@ -215,15 +214,7 @@ export function PlanStep({ trip, onChange }: Props) {
   };
 
   const allDaysEmpty = trip.days.length > 0 && trip.days.every((d) => d.items.length === 0);
-
-  useEffect(() => {
-    if (autoRanRef.current) return;
-    if (!destinations.length) return;
-    if (!allDaysEmpty) return;
-    autoRanRef.current = true;
-    void handleGenerate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [destinations.length, allDaysEmpty]);
+  const totalSteps = trip.days.reduce((sum, d) => sum + (d.stepsEstimate ?? 0), 0);
 
   const setPace = (p: 'relaxed' | 'moderate' | 'intense') => {
     onChange((t) => ({ ...t, preferences: { ...t.preferences, pace: p } }));
@@ -270,6 +261,11 @@ export function PlanStep({ trip, onChange }: Props) {
               </button>
             ))}
           </div>
+          {totalSteps > 0 && (
+            <span className="plan-toolbar-steps" title="Tahmini toplam adım">
+              👣 {(totalSteps / 1000).toFixed(0)}k adım
+            </span>
+          )}
         </div>
         <div className="plan-toolbar-right">
           {genSource && (
@@ -283,7 +279,7 @@ export function PlanStep({ trip, onChange }: Props) {
             onClick={() => void handleGenerate()}
             disabled={generating}
           >
-            {generating ? 'Oluşturuluyor…' : '✨ Rota oluştur'}
+            {generating ? 'Oluşturuluyor…' : '✨ Gezi planı oluştur'}
           </button>
         </div>
       </section>
@@ -313,6 +309,16 @@ export function PlanStep({ trip, onChange }: Props) {
         düzenleyebilirsiniz.
       </p>
 
+      {allDaysEmpty && !generating ? (
+        <div className="plan-empty">
+          <div className="plan-empty-icon">🗺️</div>
+          <h3>Henüz gezi planı yok</h3>
+          <p>
+            Yukarıdaki <strong>Gezi planı oluştur</strong> butonuyla {totalDays} günlük programı
+            saat saat hazırlayalım.
+          </p>
+        </div>
+      ) : (
       <div className="itinerary-day-list">
         {trip.days.map((day) => (
           <DayPlanCard
@@ -339,6 +345,7 @@ export function PlanStep({ trip, onChange }: Props) {
           />
         ))}
       </div>
+      )}
     </div>
   );
 }

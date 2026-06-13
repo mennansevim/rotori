@@ -2072,6 +2072,45 @@ a:hover {
   border-radius: 999px;
 }
 
+.plan-toolbar-steps {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 4px 12px;
+  border-radius: 999px;
+  margin-left: 4px;
+}
+
+.plan-empty {
+  text-align: center;
+  padding: 56px 24px;
+  background: var(--bg-elevated);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+}
+
+.plan-empty-icon {
+  font-size: 44px;
+  margin-bottom: 12px;
+  opacity: 0.7;
+}
+
+.plan-empty h3 {
+  font-size: 17px;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+
+.plan-empty p {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 auto;
+  max-width: 360px;
+}
+
 .plan-hint {
   font-size: 13px;
   color: var(--text-secondary);
