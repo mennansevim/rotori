@@ -301,7 +301,8 @@ export function JourneyStep({ trip, onChange, onLoadJapanPlan }: Props) {
     originSet && destinations.length > 0 && destinations.every((d) => d.city.trim());
 
   const lastDest = destinations[destinations.length - 1];
-  const showReturn = Boolean(lastDest?.airport);
+  const hasTicket = trip.preferences.hasTicket !== false;
+  const showReturn = hasTicket && Boolean(lastDest?.airport);
 
   // Render edilecek uçuş kartları: en az bir tane (ilk uçuş) her zaman görünür.
   const cards: { index: number; dest?: TripDestination }[] =
@@ -322,9 +323,9 @@ export function JourneyStep({ trip, onChange, onLoadJapanPlan }: Props) {
     <>
       <h2 className="page-headline">🇯🇵 Japonya rotası</h2>
       <p className="page-sub">
-        Türkiye'den Japonya'ya gidiş ve dönüş uçuşlarını numarasıyla gir. "🔎 Uçuşu internetten
-        bul" ile kalkış/varış saatleri otomatik dolar. Her uçuş kartının altında havaalanı
-        rehberi var.
+        {hasTicket
+          ? 'Türkiye\'den Japonya\'ya gidiş ve dönüş uçuşlarını numarasıyla gir. "🔎 Uçuşu internetten bul" ile kalkış/varış saatleri otomatik dolar. Her uçuş kartının altında havaalanı rehberi var.'
+          : 'Türkiye\'den nereden kalkacaksın ve Japonya\'da hangi şehre ineceksin? Bileti sonra ayırtacaksın, şimdilik şehir ve tarih yeter.'}
       </p>
       {onLoadJapanPlan && (
         <div className="japan-load-banner">
@@ -353,19 +354,23 @@ export function JourneyStep({ trip, onChange, onLoadJapanPlan }: Props) {
           return (
             <div className="flight-leg" key={dest?.id ?? `leg-${index}`}>
               <div className="flight-leg-head">
-                <span className="flight-leg-num">✈︎ Gidiş — Türkiye → Japonya</span>
+                <span className="flight-leg-num">
+                  {hasTicket ? '✈︎ Gidiş — Türkiye → Japonya' : '📍 Rota — Türkiye → Japonya'}
+                </span>
               </div>
 
-              <div className="field">
-                <label>Havayolu</label>
-                <AirlinePicker
-                  value={airline || undefined}
-                  valueLabel={airline ? airlineLabel(airline) : undefined}
-                  onSelect={(a: Airline) => updateLeg(index, { airline: a.code })}
-                />
-              </div>
+              {hasTicket && (
+                <div className="field">
+                  <label>Havayolu</label>
+                  <AirlinePicker
+                    value={airline || undefined}
+                    valueLabel={airline ? airlineLabel(airline) : undefined}
+                    onSelect={(a: Airline) => updateLeg(index, { airline: a.code })}
+                  />
+                </div>
+              )}
 
-              {airlineSet && (
+              {hasTicket && airlineSet && (
                 <div className="field route-reveal">
                   <label>Uçuş numarası</label>
                   <div className="flightno-input">
@@ -383,7 +388,7 @@ export function JourneyStep({ trip, onChange, onLoadJapanPlan }: Props) {
                 </div>
               )}
 
-              {airlineSet && flightNo.trim() && (
+              {(!hasTicket || (airlineSet && flightNo.trim())) && (
                 <div className="field route-reveal">
                   <label>Tarih</label>
                   <input
@@ -395,7 +400,7 @@ export function JourneyStep({ trip, onChange, onLoadJapanPlan }: Props) {
                 </div>
               )}
 
-              {airlineSet && flightNo.trim() && (
+              {hasTicket && airlineSet && flightNo.trim() && (
                 <div className="route-reveal flight-lookup-row">
                   <button
                     type="button"
@@ -425,7 +430,7 @@ export function JourneyStep({ trip, onChange, onLoadJapanPlan }: Props) {
                 </div>
               )}
 
-              {airlineSet && (
+              {(!hasTicket || airlineSet) && (
                 <div className="field route-reveal">
                   <label>Kalkış (Türkiye)</label>
                   {index === 0 ? (
@@ -442,7 +447,7 @@ export function JourneyStep({ trip, onChange, onLoadJapanPlan }: Props) {
                 </div>
               )}
 
-              {airlineSet && fromSet && (
+              {(!hasTicket || (airlineSet && fromSet)) && (
                 <div className="field route-reveal">
                   <label>Varış (Japonya)</label>
                   <AirportPicker

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { NavBar } from './components/NavBar';
+import { WelcomeStep } from './components/steps/WelcomeStep';
 import { JourneyStep } from './components/steps/JourneyStep';
 import { TitleStep } from './components/steps/TitleStep';
 import { FoodStep } from './components/steps/FoodStep';
@@ -26,7 +27,7 @@ export default function App() {
     loadJapanTemplate,
     username,
   } = useTripDraft();
-  const [step, setStep] = useState<StepId>('journey');
+  const [step, setStep] = useState<StepId>('welcome');
   const [showNewModal, setShowNewModal] = useState(false);
 
   const completedSteps = useMemo(() => {
@@ -57,7 +58,7 @@ export default function App() {
 
   const confirmNewPlan = () => {
     startFresh();
-    setStep('journey');
+    setStep('welcome');
     setShowNewModal(false);
   };
 
@@ -83,9 +84,18 @@ export default function App() {
 
       <main
         className={`main-content${
-          step === 'journey' || step === 'plan' || step === 'explore' ? ' wide' : ''
+          step === 'welcome' || step === 'journey' || step === 'plan' || step === 'explore'
+            ? ' wide'
+            : ''
         }`}
       >
+        {step === 'welcome' && (
+          <WelcomeStep
+            trip={trip}
+            onChange={updateTrip}
+            onContinue={() => setStep('journey')}
+          />
+        )}
         {step === 'journey' && (
           <JourneyStep
             trip={trip}
@@ -104,6 +114,7 @@ export default function App() {
         )}
       </main>
 
+      {step !== 'welcome' && (
       <div className="bottom-bar">
         <div className="bottom-bar-inner">
           {i > 0 ? (
@@ -143,6 +154,7 @@ export default function App() {
           )}
         </div>
       </div>
+      )}
 
       <footer className="footer-minimal">
         <button type="button" className="btn-ghost" onClick={undo}>

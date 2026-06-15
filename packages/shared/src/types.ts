@@ -168,6 +168,9 @@ export interface TripPreferences {
   interests?: InterestTag[];
   /** Onboarding: yemek hassasiyetleri (dietaryTags'a türetiliyor). */
   foodSensitivities?: FoodSensitivity[];
+  /** Welcome akışında "Biletim var" mı yoksa "Gezi planla" mı seçildi.
+   *  false → uçuş numarası/havayolu alanları gizlenir. */
+  hasTicket?: boolean;
 }
 
 export interface TimelineItem {

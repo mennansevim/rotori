@@ -3104,3 +3104,367 @@ a:hover {
   color: #64748b;
   margin: 10px 0 0;
 }
+
+/* ===================== Welcome ===================== */
+
+.welcome-screen {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 24px 20px 80px;
+}
+
+.welcome-hero {
+  text-align: center;
+  padding: 48px 0 32px;
+}
+
+.welcome-flag {
+  font-size: 64px;
+  margin-bottom: 12px;
+}
+
+.welcome-title {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+}
+
+.welcome-sub {
+  font-size: 18px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.welcome-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.welcome-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 36px 28px;
+  text-align: center;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.welcome-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--accent);
+}
+
+.welcome-card-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.welcome-card-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.welcome-card-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .welcome-choices {
+    grid-template-columns: 1fr;
+  }
+  .welcome-title {
+    font-size: 28px;
+  }
+}
+
+.welcome-back {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 8px 0;
+  margin-bottom: 8px;
+}
+
+.welcome-step-title {
+  font-size: 26px;
+  font-weight: 700;
+  margin: 8px 0 4px;
+}
+
+.welcome-step-sub {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin: 0 0 24px;
+}
+
+.welcome-section-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 32px 0 12px;
+}
+
+.welcome-section-warn {
+  color: #b45309;
+}
+
+/* Ticket form */
+.welcome-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+  padding: 20px;
+}
+
+.welcome-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.welcome-field span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.welcome-field input {
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  font-size: 15px;
+  font-family: inherit;
+  background: #fff;
+}
+
+.welcome-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.welcome-photo {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border);
+  margin-top: 6px;
+}
+
+.welcome-photo-btn {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.welcome-photo-name {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.welcome-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+@media (max-width: 640px) {
+  .welcome-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Season grid */
+.season-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.season-month {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.season-month-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.season-month-num {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.season-month-label {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.season-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.season-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.season-badge-good {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.season-badge-warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.season-badge-bad {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.season-badge-info {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.season-note {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Suggested ranges */
+.suggested-ranges {
+  display: grid;
+  gap: 10px;
+}
+
+.range-card {
+  text-align: left;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  padding: 16px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.range-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.range-card.range-good {
+  border-left: 4px solid #16a34a;
+}
+
+.range-card.range-warn {
+  border-left: 4px solid #d97706;
+}
+
+.range-card.range-bad {
+  border-left: 4px solid #dc2626;
+}
+
+.range-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.range-label {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.range-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.range-dates {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin-bottom: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.range-reason {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Avoid ranges */
+.avoid-ranges {
+  display: grid;
+  gap: 10px;
+}
+
+.avoid-card {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.avoid-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.avoid-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #9a3412;
+}
+
+.avoid-reason {
+  font-size: 13px;
+  color: #7c2d12;
+  line-height: 1.45;
+  margin: 0;
+}
