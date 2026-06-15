@@ -149,6 +149,7 @@ export default defineConfig(({ mode }) => {
     },
   },
   server: {
+    host: true,
     proxy: {
       '/viewer': {
         target: 'http://localhost:5180',

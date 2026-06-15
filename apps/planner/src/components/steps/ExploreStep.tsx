@@ -147,23 +147,20 @@ export function ExploreStep({ trip, onChange }: Props) {
   };
 
   const addPlace = (dest: { id: string }, place: PlaceSuggestion) => {
-    let chosenDay = 0;
-    onChange((t) => {
-      const dests = (t.preferences.destinations ?? []).slice().sort((a, b) => a.order - b.order);
-      const destDayNumbers = t.days
-        .filter((day) => getDestinationForDate(dests, day.date)?.id === dest.id)
-        .map((d) => d.dayNumber);
-      chosenDay = pickBestDayForDestination(t.days, destDayNumbers) ?? t.days[0]?.dayNumber ?? 1;
-      return {
-        ...t,
-        days: addPlaceToDay(t.days, chosenDay, {
-          name: place.name,
-          emoji: place.emoji,
-          steps: place.typicalSteps,
-        }),
-      };
-    });
-    // Updater senkron çalışır; chosenDay artık doğru.
+    const dests = (trip.preferences.destinations ?? []).slice().sort((a, b) => a.order - b.order);
+    const destDayNumbers = trip.days
+      .filter((day) => getDestinationForDate(dests, day.date)?.id === dest.id)
+      .map((d) => d.dayNumber);
+    const chosenDay =
+      pickBestDayForDestination(trip.days, destDayNumbers) ?? trip.days[0]?.dayNumber ?? 1;
+    onChange((t) => ({
+      ...t,
+      days: addPlaceToDay(t.days, chosenDay, {
+        name: place.name,
+        emoji: place.emoji,
+        steps: place.typicalSteps,
+      }),
+    }));
     if (chosenDay > 0) {
       markAdded(`${dest.id}:${place.id}`, `✓ Gün ${chosenDay}'e eklendi`);
     }

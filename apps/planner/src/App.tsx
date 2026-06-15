@@ -38,7 +38,12 @@ export default function App() {
       dests.length > 0 &&
       dests.every((d) => d.city.trim());
     if (hasRoute && trip.preferences.travelDates.start) done.add('journey');
-    if (trip.title.trim() && trip.title !== 'Yeni seyahat') done.add('title');
+    if (
+      trip.title.trim() &&
+      trip.title !== 'Yeni seyahat' &&
+      trip.title !== 'Japonya Turu'
+    )
+      done.add('title');
     if (hotelsComplete(trip)) done.add('hotels');
     if ((trip.preferences.destinationFood ?? []).some((f) => f.dietaryTags.length > 0 || f.foodLikes.length > 0))
       done.add('food');

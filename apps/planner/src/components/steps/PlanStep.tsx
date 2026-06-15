@@ -4,8 +4,12 @@ import {
   newItemId,
   optimizeDayItems,
   type DayPlan,
+  type InterestTag,
+  type Pace,
   type TimelineItem,
+  type TransportPreference,
   type Trip,
+  type WalkingTarget,
 } from '@japan-trip/shared';
 import { DayPlanCard } from '../DayPlanCard';
 import {
@@ -25,6 +29,38 @@ const PACE_LABELS: Record<string, string> = {
   intense: 'Yoğun',
 };
 
+const INTEREST_OPTIONS: { tag: InterestTag; emoji: string; label: string }[] = [
+  { tag: 'temples', emoji: '⛩️', label: 'Tapınaklar' },
+  { tag: 'traditional', emoji: '🎎', label: 'Geleneksel' },
+  { tag: 'anime', emoji: '🎌', label: 'Anime & manga' },
+  { tag: 'pokemon', emoji: '🎮', label: 'Pokemon & oyun' },
+  { tag: 'tech', emoji: '💻', label: 'Teknoloji' },
+  { tag: 'shopping', emoji: '🛍️', label: 'Alışveriş' },
+  { tag: 'food', emoji: '🍣', label: 'Yemek odaklı' },
+  { tag: 'theme_parks', emoji: '🎢', label: 'Tema parklar' },
+  { tag: 'kids', emoji: '👶', label: 'Çocuk dostu' },
+  { tag: 'photography', emoji: '📷', label: 'Fotoğrafçılık' },
+];
+
+const WALKING_OPTIONS: { value: WalkingTarget; emoji: string; label: string; hint: string }[] = [
+  { value: 'light', emoji: '🚶', label: 'Az', hint: '~7k adım/gün' },
+  { value: 'moderate', emoji: '🚶‍♂️', label: 'Orta', hint: '~11k adım/gün' },
+  { value: 'intense', emoji: '🏃', label: 'Yoğun', hint: '~15k+ adım/gün' },
+];
+
+const TRANSPORT_OPTIONS: { value: TransportPreference; emoji: string; label: string }[] = [
+  { value: 'transit', emoji: '🚇', label: 'Toplu taşıma' },
+  { value: 'mixed', emoji: '🔀', label: 'Karışık' },
+  { value: 'taxi_assisted', emoji: '🚕', label: 'Taksi destekli' },
+  { value: 'walking', emoji: '🚶', label: 'Yürüyüş ağırlıklı' },
+];
+
+const PACE_OPTIONS: { value: Pace; label: string; hint: string }[] = [
+  { value: 'relaxed', label: 'Rahat', hint: 'Az durak, uzun molalar' },
+  { value: 'moderate', label: 'Dengeli', hint: 'Standart tempo' },
+  { value: 'intense', label: 'Yoğun', hint: 'Çok yer, sıkı program' },
+];
+
 export function PlanStep({ trip, onChange }: Props) {
   const destinations = useMemo(
     () => [...(trip.preferences.destinations ?? [])].sort((a, b) => a.order - b.order),
@@ -38,6 +74,9 @@ export function PlanStep({ trip, onChange }: Props) {
   const [genSource, setGenSource] = useState<ItinerarySource | null>(null);
   const [genReason, setGenReason] = useState<ItineraryReason | null>(null);
   const [dragSource, setDragSource] = useState<{ dayNumber: number; index: number } | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [mustSeeDraft, setMustSeeDraft] = useState('');
+  const [notesDraft, setNotesDraft] = useState('');
 
   const pace = trip.preferences.pace ?? 'moderate';
   const childrenCount = trip.preferences.childrenCount ?? 0;
@@ -213,12 +252,53 @@ export function PlanStep({ trip, onChange }: Props) {
     }
   };
 
+  const openWizard = () => {
+    setMustSeeDraft((trip.preferences.mustSee ?? []).join(', '));
+    setNotesDraft(trip.subtitle ?? '');
+    setWizardOpen(true);
+  };
+
+  const handleWizardGenerate = async () => {
+    const mustSee = mustSeeDraft
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    onChange((t) => ({
+      ...t,
+      subtitle: notesDraft.trim() || t.subtitle,
+      preferences: { ...t.preferences, mustSee },
+    }));
+    setWizardOpen(false);
+    await handleGenerate();
+  };
+
+  const toggleInterest = (tag: InterestTag) => {
+    onChange((t) => {
+      const cur = new Set(t.preferences.interests ?? []);
+      if (cur.has(tag)) cur.delete(tag);
+      else cur.add(tag);
+      return { ...t, preferences: { ...t.preferences, interests: [...cur] } };
+    });
+  };
+
+  const setWalking = (w: WalkingTarget) => {
+    onChange((t) => ({ ...t, preferences: { ...t.preferences, walkingTarget: w } }));
+  };
+
+  const setTransport = (tp: TransportPreference) => {
+    onChange((t) => ({ ...t, preferences: { ...t.preferences, transportPreference: tp } }));
+  };
+
   const allDaysEmpty = trip.days.length > 0 && trip.days.every((d) => d.items.length === 0);
   const totalSteps = trip.days.reduce((sum, d) => sum + (d.stepsEstimate ?? 0), 0);
 
   const setPace = (p: 'relaxed' | 'moderate' | 'intense') => {
     onChange((t) => ({ ...t, preferences: { ...t.preferences, pace: p } }));
   };
+
+  const interestSet = new Set(trip.preferences.interests ?? []);
+  const currentWalking = trip.preferences.walkingTarget ?? 'moderate';
+  const currentTransport = trip.preferences.transportPreference ?? 'transit';
 
   if (!destinations.length) {
     return (
@@ -276,7 +356,7 @@ export function PlanStep({ trip, onChange }: Props) {
           <button
             type="button"
             className="btn btn-primary"
-            onClick={() => void handleGenerate()}
+            onClick={openWizard}
             disabled={generating}
           >
             {generating ? 'Oluşturuluyor…' : '✨ Gezi planı oluştur'}
@@ -345,6 +425,136 @@ export function PlanStep({ trip, onChange }: Props) {
           />
         ))}
       </div>
+      )}
+
+      {wizardOpen && (
+        <div
+          className="modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setWizardOpen(false)}
+        >
+          <div
+            className="modal plan-wizard"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3>✨ Optimum gezi planı</h3>
+            <p className="plan-wizard-sub">
+              Birkaç tercihini söyle, sana en uygun {totalDays} günlük programı saat saat
+              kuralım.
+            </p>
+
+            <div className="plan-wizard-section">
+              <div className="plan-wizard-label">İlgi alanların</div>
+              <div className="plan-wizard-chips">
+                {INTEREST_OPTIONS.map((o) => (
+                  <button
+                    key={o.tag}
+                    type="button"
+                    className={`chip${interestSet.has(o.tag) ? ' chip-active' : ''}`}
+                    onClick={() => toggleInterest(o.tag)}
+                  >
+                    {o.emoji} {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="plan-wizard-section">
+              <div className="plan-wizard-label">Yürüyüş tempon</div>
+              <div className="plan-wizard-chips">
+                {WALKING_OPTIONS.map((o) => (
+                  <button
+                    key={o.value}
+                    type="button"
+                    className={`chip${currentWalking === o.value ? ' chip-active' : ''}`}
+                    onClick={() => setWalking(o.value)}
+                  >
+                    {o.emoji} {o.label} <span className="chip-hint">· {o.hint}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="plan-wizard-section">
+              <div className="plan-wizard-label">Ulaşım tercihi</div>
+              <div className="plan-wizard-chips">
+                {TRANSPORT_OPTIONS.map((o) => (
+                  <button
+                    key={o.value}
+                    type="button"
+                    className={`chip${currentTransport === o.value ? ' chip-active' : ''}`}
+                    onClick={() => setTransport(o.value)}
+                  >
+                    {o.emoji} {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="plan-wizard-section">
+              <div className="plan-wizard-label">Plan temposu</div>
+              <div className="plan-wizard-chips">
+                {PACE_OPTIONS.map((o) => (
+                  <button
+                    key={o.value}
+                    type="button"
+                    className={`chip${pace === o.value ? ' chip-active' : ''}`}
+                    onClick={() => setPace(o.value)}
+                  >
+                    {o.label} <span className="chip-hint">· {o.hint}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="plan-wizard-section">
+              <label className="plan-wizard-label" htmlFor="plan-mustsee">
+                Mutlaka görmek istediklerin
+              </label>
+              <input
+                id="plan-mustsee"
+                type="text"
+                className="plan-wizard-input"
+                placeholder="Skytree, Fushimi Inari, teamLab… (virgülle ayır)"
+                value={mustSeeDraft}
+                onChange={(e) => setMustSeeDraft(e.target.value)}
+              />
+            </div>
+
+            <div className="plan-wizard-section">
+              <label className="plan-wizard-label" htmlFor="plan-notes">
+                Notlar (opsiyonel)
+              </label>
+              <textarea
+                id="plan-notes"
+                className="plan-wizard-input plan-wizard-textarea"
+                placeholder="Örn: Sushi sevmem, deniz ürünü yemem, çocuk dostu yerler önemli…"
+                rows={3}
+                value={notesDraft}
+                onChange={(e) => setNotesDraft(e.target.value)}
+              />
+            </div>
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setWizardOpen(false)}
+              >
+                Vazgeç
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => void handleWizardGenerate()}
+                disabled={generating}
+              >
+                {generating ? 'Oluşturuluyor…' : '✨ Optimum planı oluştur'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

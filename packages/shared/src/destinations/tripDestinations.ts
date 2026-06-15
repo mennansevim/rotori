@@ -25,11 +25,12 @@ export function buildTripTitleFromDestinations(
   originCity: string,
   destinations: TripDestination[],
 ): string {
-  const stops = destinations
-    .sort((a, b) => a.order - b.order)
-    .map((d) => d.city || d.countryName)
-    .filter(Boolean);
-  if (!originCity && !stops.length) return 'Yeni seyahat';
+  const sorted = [...destinations].sort((a, b) => a.order - b.order);
+  const allJapan =
+    sorted.length > 0 && sorted.every((d) => d.countryCode === 'JP');
+  if (allJapan) return 'Japonya Turu';
+  const stops = sorted.map((d) => d.city || d.countryName).filter(Boolean);
+  if (!originCity && !stops.length) return 'Japonya Turu';
   if (!stops.length) return originCity;
   if (!originCity) return stops.join(' → ');
   return `${originCity} → ${stops.join(' → ')} → ${originCity}`;
@@ -169,7 +170,12 @@ export function syncTripFromDestinations(
 
   return {
     ...trip,
-    title: trip.title === 'Yeni seyahat' || trip.title.includes('→') ? title : trip.title,
+    title:
+      trip.title === 'Yeni seyahat' ||
+      trip.title === 'Japonya Turu' ||
+      trip.title.includes('→')
+        ? title
+        : trip.title,
     timezone: getDestinationProfile(first?.countryCode ?? '')?.timezone ?? trip.timezone,
     tripStart: `${input.travelStart}T08:00:00`,
     tripEnd: `${input.travelEnd}T20:00:00`,

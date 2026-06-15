@@ -65,6 +65,18 @@ function buildPrompt(trip) {
   const mealBudget = prefs.mealBudgetPerPerson
     ? `${prefs.mealBudgetPerPerson} ${prefs.mealBudgetCurrency ?? ''} / kişi / öğün`
     : '—';
+  const interests = prefs.interests ?? [];
+  const walkingLabel = prefs.walkingTarget === 'light'
+    ? 'Az (~7k adım/gün)'
+    : prefs.walkingTarget === 'intense'
+      ? 'Yoğun (~15k+ adım/gün)'
+      : 'Orta (~11k adım/gün)';
+  const transportLabel = {
+    transit: 'Toplu taşıma ağırlıklı',
+    taxi_assisted: 'Taksi destekli',
+    walking: 'Yürüyüş ağırlıklı',
+    mixed: 'Karışık',
+  }[prefs.transportPreference ?? 'transit'] ?? 'Toplu taşıma ağırlıklı';
 
   return `Sen Japonya'ya giden Türk kullanıcılar için uzmanlaşmış bir seyahat planlayıcısısın. Türkçe yanıt ver.
 
@@ -77,6 +89,9 @@ Seyahat bilgileri:
 - Kişi sayısı: ${partySize} (çocuk: ${childrenCount})
 - Diyet/kısıtlar: ${dietary.length ? dietary.join(', ') : '—'}
 - Mutlaka gör (zorunlu): ${mustSee.length ? mustSee.join(', ') : '—'}
+- İlgi alanları: ${interests.length ? interests.join(', ') : '—'}
+- Yürüyüş hedefi: ${walkingLabel}
+- Ulaşım tercihi: ${transportLabel}
 - Tempo: ${paceLabel(prefs.pace)}
 - Öğün bütçesi: ${mealBudget}
 - Destinasyonlar: ${JSON.stringify(destinations)}
@@ -96,6 +111,9 @@ Kurallar:
 7. mapUrl alanına Google Maps arama linki üret: "https://www.google.com/maps/search/?api=1&query=<URL_ENCODED_QUERY>".
 8. Çocuk varsa: çocuk dostu mekanlar, kısa yürüyüş mesafeleri, atıştırmalık molaları.
 9. mustSee'deki maddeleri en uygun günde KESİNLİKLE programa al.
+9b. İlgi alanlarına göre yer seçimi yap: anime→Akihabara/Nakano Broadway, temples→Senso-ji/Meiji/Fushimi, tech→Akihabara, shopping→Shibuya/Ginza, food→Tsukiji Outer/Dotonbori, theme_parks→Disney/USJ, photography→Skytree/Shibuya Crossing/Arashiyama. mustSee yoksa bunlardan günleri doldur.
+9c. Yürüyüş hedefine UY: light için stepsEstimate 5000-8000, moderate için 9000-13000, intense için 14000-22000. Sınırı aşma.
+9d. Ulaşım tercihine UY: taxi_assisted ise transport kalemlerini taksi/Uber ile yaz; walking ise yakın mesafeli rota öner; transit ise tren/metro detayı; mixed ise gün içinde harmanla.
 10. Otel adresleri verilmişse: ilk gün check-in ve son gün check-out kalemlerini ona göre yaz.
 11. tips alanı KISA olsun (1 cümle, somut bilgi: en iyi saat, kuyruk uyarısı, fotoğraf noktası, ücret bilgisi vb.).
 12. theme: emoji + günün ana karakteri ("🗼 Asakusa & Skytree akşam manzarası").

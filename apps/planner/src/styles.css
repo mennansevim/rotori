@@ -3468,3 +3468,82 @@ a:hover {
   line-height: 1.45;
   margin: 0;
 }
+
+.title-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.title-suggestions-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.plan-wizard {
+  max-width: 640px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.plan-wizard-sub {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 4px 0 18px;
+  line-height: 1.5;
+}
+
+.plan-wizard-section {
+  margin-bottom: 18px;
+}
+
+.plan-wizard-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.plan-wizard-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip-hint {
+  font-weight: 400;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  margin-left: 2px;
+}
+
+.chip-active .chip-hint {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.plan-wizard-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--bg);
+}
+
+.plan-wizard-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.plan-wizard-textarea {
+  resize: vertical;
+  min-height: 64px;
+  line-height: 1.5;
+}

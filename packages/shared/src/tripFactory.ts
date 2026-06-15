@@ -59,7 +59,7 @@ export function createEmptyTrip(overrides?: Partial<Trip>): Trip {
   const base: Trip = {
     id,
     slug,
-    title: 'Yeni seyahat',
+    title: 'Japonya Turu',
     subtitle: '',
     timezone: tz,
     tripStart: `${start}T08:00:00`,
@@ -132,7 +132,10 @@ export function syncTripRoute(
 
   return {
     ...trip,
-    title: trip.title === 'Yeni seyahat' ? title : trip.title,
+    title:
+      trip.title === 'Yeni seyahat' || trip.title === 'Japonya Turu'
+        ? title
+        : trip.title,
     preferences: {
       ...trip.preferences,
       originCity,
