@@ -61,6 +61,17 @@ interface Props {
 export function ExploreStep({ trip, onChange }: Props) {
   const [added, setAdded] = useState<Record<string, string>>({});
 
+  const planPlaceNames = useMemo(() => {
+    const set = new Set<string>();
+    for (const day of trip.days) {
+      for (const item of day.items) {
+        const t = item.title.replace(/^[^\p{L}\p{N}]+\s*/u, '').toLowerCase().trim();
+        if (t) set.add(t);
+      }
+    }
+    return set;
+  }, [trip.days]);
+
   const destinations = useMemo(
     () => [...(trip.preferences.destinations ?? [])].sort((a, b) => a.order - b.order),
     [trip.preferences.destinations],
@@ -147,6 +158,10 @@ export function ExploreStep({ trip, onChange }: Props) {
   };
 
   const addPlace = (dest: { id: string }, place: PlaceSuggestion) => {
+    if (planPlaceNames.has(place.name.toLowerCase().trim())) {
+      markAdded(`${dest.id}:${place.id}`, '✓ Zaten planda');
+      return;
+    }
     const dests = (trip.preferences.destinations ?? []).slice().sort((a, b) => a.order - b.order);
     const destDayNumbers = trip.days
       .filter((day) => getDestinationForDate(dests, day.date)?.id === dest.id)
@@ -155,6 +170,7 @@ export function ExploreStep({ trip, onChange }: Props) {
       pickBestDayForDestination(trip.days, destDayNumbers) ?? trip.days[0]?.dayNumber ?? 1;
     onChange((t) => ({
       ...t,
+      preferences: { ...t.preferences, planRevealed: true },
       days: addPlaceToDay(t.days, chosenDay, {
         name: place.name,
         emoji: place.emoji,
@@ -375,10 +391,11 @@ export function ExploreStep({ trip, onChange }: Props) {
                     const rating = placeRating(place);
                     const kid = isKidFriendly(place);
                     const key = `${dest.id}:${place.id}`;
+                    const inPlan = planPlaceNames.has(place.name.toLowerCase().trim());
                     return (
                       <article
                         key={place.id}
-                        className={`explore-place${kidsMode && kid ? ' kid' : ''}`}
+                        className={`explore-place${kidsMode && kid ? ' kid' : ''}${inPlan ? ' added' : ''}`}
                       >
                         <div className="explore-place-top">
                           <span className="explore-place-emoji">{place.emoji}</span>
@@ -400,10 +417,11 @@ export function ExploreStep({ trip, onChange }: Props) {
                           </a>
                           <button
                             type="button"
-                            className="btn btn-primary btn-sm"
+                            className={`btn btn-sm ${inPlan ? 'btn-secondary' : 'btn-primary'}`}
                             onClick={() => addPlace(dest, place)}
+                            disabled={inPlan}
                           >
-                            {added[key] ?? '+ Plana ekle'}
+                            {added[key] ?? (inPlan ? '✓ Planda' : '+ Plana ekle')}
                           </button>
                         </div>
                       </article>

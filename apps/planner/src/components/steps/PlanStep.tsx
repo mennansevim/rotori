@@ -266,7 +266,7 @@ export function PlanStep({ trip, onChange }: Props) {
     onChange((t) => ({
       ...t,
       subtitle: notesDraft.trim() || t.subtitle,
-      preferences: { ...t.preferences, mustSee },
+      preferences: { ...t.preferences, mustSee, planRevealed: true },
     }));
     setWizardOpen(false);
     await handleGenerate();
@@ -291,6 +291,7 @@ export function PlanStep({ trip, onChange }: Props) {
 
   const allDaysEmpty = trip.days.length > 0 && trip.days.every((d) => d.items.length === 0);
   const totalSteps = trip.days.reduce((sum, d) => sum + (d.stepsEstimate ?? 0), 0);
+  const planRevealed = trip.preferences.planRevealed === true;
 
   const setPace = (p: 'relaxed' | 'moderate' | 'intense') => {
     onChange((t) => ({ ...t, preferences: { ...t.preferences, pace: p } }));
@@ -389,7 +390,7 @@ export function PlanStep({ trip, onChange }: Props) {
         düzenleyebilirsiniz.
       </p>
 
-      {allDaysEmpty && !generating ? (
+      {(!planRevealed || allDaysEmpty) && !generating ? (
         <div className="plan-empty">
           <div className="plan-empty-icon">🗺️</div>
           <h3>Henüz gezi planı yok</h3>

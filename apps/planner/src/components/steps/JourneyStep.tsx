@@ -302,7 +302,7 @@ export function JourneyStep({ trip, onChange, onLoadJapanPlan }: Props) {
 
   const lastDest = destinations[destinations.length - 1];
   const hasTicket = trip.preferences.hasTicket !== false;
-  const showReturn = hasTicket && Boolean(lastDest?.airport);
+  const showReturn = Boolean(lastDest?.airport);
 
   // Render edilecek uçuş kartları: en az bir tane (ilk uçuş) her zaman görünür.
   const cards: { index: number; dest?: TripDestination }[] =
@@ -483,21 +483,23 @@ export function JourneyStep({ trip, onChange, onLoadJapanPlan }: Props) {
           <div className="flight-leg flight-leg-return">
             <div className="flight-leg-head">
               <span className="flight-leg-num">🏠 Dönüş — Japonya → Türkiye</span>
-              <span className="flight-leg-hint">uçuş no ile bul</span>
+              {hasTicket && <span className="flight-leg-hint">uçuş no ile bul</span>}
             </div>
-            <div className="field">
-              <label>Havayolu</label>
-              <AirlinePicker
-                value={trip.preferences.returnAirline || undefined}
-                valueLabel={
-                  trip.preferences.returnAirline
-                    ? airlineLabel(trip.preferences.returnAirline)
-                    : undefined
-                }
-                onSelect={(a: Airline) => setReturnAirline(a.code)}
-              />
-            </div>
-            {trip.preferences.returnAirline && (
+            {hasTicket && (
+              <div className="field">
+                <label>Havayolu</label>
+                <AirlinePicker
+                  value={trip.preferences.returnAirline || undefined}
+                  valueLabel={
+                    trip.preferences.returnAirline
+                      ? airlineLabel(trip.preferences.returnAirline)
+                      : undefined
+                  }
+                  onSelect={(a: Airline) => setReturnAirline(a.code)}
+                />
+              </div>
+            )}
+            {hasTicket && trip.preferences.returnAirline && (
               <div className="field route-reveal">
                 <label>Uçuş numarası</label>
                 <div className="flightno-input">
@@ -512,18 +514,22 @@ export function JourneyStep({ trip, onChange, onLoadJapanPlan }: Props) {
                 </div>
               </div>
             )}
-            {trip.preferences.returnAirline && (trip.preferences.returnFlightNo ?? '').trim() && (
+            {(!hasTicket ||
+              (trip.preferences.returnAirline &&
+                (trip.preferences.returnFlightNo ?? '').trim())) && (
+              <div className="field route-reveal">
+                <label>Tarih</label>
+                <input
+                  type="date"
+                  className="flight-leg-date"
+                  value={trip.preferences.travelDates.end}
+                  min={lastDest?.arrivalDate}
+                  onChange={(e) => setReturnDate(e.target.value)}
+                />
+              </div>
+            )}
+            {hasTicket && trip.preferences.returnAirline && (trip.preferences.returnFlightNo ?? '').trim() && (
               <>
-                <div className="field route-reveal">
-                  <label>Tarih</label>
-                  <input
-                    type="date"
-                    className="flight-leg-date"
-                    value={trip.preferences.travelDates.end}
-                    min={lastDest?.arrivalDate}
-                    onChange={(e) => setReturnDate(e.target.value)}
-                  />
-                </div>
                 <div className="route-reveal flight-lookup-row">
                   <button
                     type="button"
