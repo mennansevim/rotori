@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { getDestinationForDate, getDestinationProfile } from '@japan-trip/shared';
 import type { DayPlan, TimelineItem, TripDestination } from '@japan-trip/shared';
 import { PlaceDiscoveryModal, type DiscoveredPlace } from './PlaceDiscoveryModal';
@@ -42,6 +42,19 @@ export function DayPlanCard({
   const [pickedCountInRun, setPickedCountInRun] = useState(0);
   const dest = getDestinationForDate(destinations, day.date);
   const profile = dest ? getDestinationProfile(dest.countryCode) : undefined;
+  const fallbackPlaces = useMemo(
+    () =>
+      profile?.popularPlaces.map((p) => ({
+        id: p.id,
+        name: p.name,
+        emoji: p.emoji,
+        category: p.category,
+        typicalSteps: p.typicalSteps,
+        mapsQuery: `${p.name} ${p.city}`,
+        imageQuery: p.name,
+      })),
+    [profile],
+  );
   void onAddItem;
 
   const handleModalOpen = () => {
@@ -199,15 +212,7 @@ export function DayPlanCard({
           city={dest.city}
           country={dest.countryName}
           countryFlag={profile?.flag}
-          fallbackPlaces={profile?.popularPlaces.map((p) => ({
-            id: p.id,
-            name: p.name,
-            emoji: p.emoji,
-            category: p.category,
-            typicalSteps: p.typicalSteps,
-            mapsQuery: `${p.name} ${p.city}`,
-            imageQuery: p.name,
-          }))}
+          fallbackPlaces={fallbackPlaces}
           onClose={handleModalClose}
           onPick={(place) => {
             onAddDiscoveredPlace?.(day.dayNumber, place);

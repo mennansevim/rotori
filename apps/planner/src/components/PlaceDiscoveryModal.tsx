@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchWikipediaThumbnail } from '../utils/wikipediaImage';
 
 export interface DiscoveredPlace {
@@ -126,6 +126,8 @@ export function PlaceDiscoveryModal({
   const [status, setStatus] = useState<Status>('idle');
   const [places, setPlaces] = useState<DiscoveredPlace[]>([]);
   const [picked, setPicked] = useState<Set<string>>(new Set());
+  const fallbackRef = useRef(fallbackPlaces);
+  fallbackRef.current = fallbackPlaces;
 
   useEffect(() => {
     if (!open) return;
@@ -137,16 +139,19 @@ export function PlaceDiscoveryModal({
     if (country) params.set('country', country);
 
     const useFallback = (reason: Status) => {
-      if (fallbackPlaces && fallbackPlaces.length > 0) {
-        setPlaces(fallbackPlaces);
+      const fb = fallbackRef.current;
+      if (fb && fb.length > 0) {
+        setPlaces(fb);
         setStatus('fallback');
       } else {
         setStatus(reason);
       }
     };
 
+    let cancelled = false;
     fetch(`/api/discover?${params.toString()}`)
       .then(async (resp) => {
+        if (cancelled) return;
         if (resp.status === 501) {
           setStatus('not-configured');
           return;
@@ -156,6 +161,7 @@ export function PlaceDiscoveryModal({
           return;
         }
         const data = (await resp.json()) as { places?: DiscoveredPlace[] };
+        if (cancelled) return;
         const list = data.places ?? [];
         if (list.length) {
           setPlaces(list);
@@ -164,8 +170,13 @@ export function PlaceDiscoveryModal({
           useFallback('empty');
         }
       })
-      .catch(() => useFallback('failed'));
-  }, [open, city, country, fallbackPlaces]);
+      .catch(() => {
+        if (!cancelled) useFallback('failed');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, city, country]);
 
   const headline = useMemo(() => {
     const flag = countryFlag ? `${countryFlag} ` : '';
