@@ -171,9 +171,6 @@ export interface TripPreferences {
   /** Welcome akışında "Biletim var" mı yoksa "Gezi planla" mı seçildi.
    *  false → uçuş numarası/havayolu alanları gizlenir. */
   hasTicket?: boolean;
-  /** Plan adımında gün listesi açıldı mı.
-   *  Wizard generate veya Keşfet'ten Plana ekle ile true olur. */
-  planRevealed?: boolean;
 }
 
 export interface TimelineItem {

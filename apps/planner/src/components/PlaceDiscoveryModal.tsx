@@ -14,6 +14,8 @@ export interface DiscoveredPlace {
   lat?: number;
   lng?: number;
   durationMin?: number;
+  /** Yer hangi şehirde — şehirler arası transfer önerisi için. */
+  city?: string;
 }
 
 interface Props {

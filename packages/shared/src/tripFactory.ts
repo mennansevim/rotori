@@ -291,7 +291,7 @@ function nextTimeSlot(day: DayPlan): string {
 export function addPlaceToDay(
   days: DayPlan[],
   dayNumber: number,
-  place: { name: string; emoji?: string; steps?: number },
+  place: { name: string; emoji?: string; steps?: number; city?: string },
 ): DayPlan[] {
   return days.map((d) => {
     if (d.dayNumber !== dayNumber) return d;
@@ -302,6 +302,7 @@ export function addPlaceToDay(
       kind: 'activity',
       time,
       scheduledTime: time,
+      cityId: place.city,
     };
     const tags = d.tags.includes(place.name) ? d.tags : [...d.tags, place.name];
     return {

@@ -52,6 +52,7 @@ export function DayPlanCard({
         typicalSteps: p.typicalSteps,
         mapsQuery: `${p.name} ${p.city}`,
         imageQuery: p.name,
+        city: p.city,
       })),
     [profile],
   );

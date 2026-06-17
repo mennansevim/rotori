@@ -148,7 +148,6 @@ export const tripSchema = z.object({
       )
       .optional(),
     hasTicket: z.boolean().optional(),
-    planRevealed: z.boolean().optional(),
   }),
   days: z.array(
     z.object({

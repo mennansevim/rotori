@@ -170,11 +170,11 @@ export function ExploreStep({ trip, onChange }: Props) {
       pickBestDayForDestination(trip.days, destDayNumbers) ?? trip.days[0]?.dayNumber ?? 1;
     onChange((t) => ({
       ...t,
-      preferences: { ...t.preferences, planRevealed: true },
       days: addPlaceToDay(t.days, chosenDay, {
         name: place.name,
         emoji: place.emoji,
         steps: place.typicalSteps,
+        city: place.city,
       }),
     }));
     if (chosenDay > 0) {

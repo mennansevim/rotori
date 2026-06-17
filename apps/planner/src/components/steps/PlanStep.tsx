@@ -1,8 +1,12 @@
 import { useMemo, useState } from 'react';
 import {
+  detectCityTransitions,
   getDestinationProfile,
+  hasExistingTransferTo,
+  insertCityTransfer,
   newItemId,
   optimizeDayItems,
+  type CityTransitionSuggestion,
   type DayPlan,
   type InterestTag,
   type Pace,
@@ -77,6 +81,9 @@ export function PlanStep({ trip, onChange }: Props) {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [mustSeeDraft, setMustSeeDraft] = useState('');
   const [notesDraft, setNotesDraft] = useState('');
+  // Plan ekranı her açılışta alt kısım boş başlar; sadece "Gezi planı oluştur"
+  // wizard'ı çalıştırılınca açılır. Bilinçli olarak persist edilmiyor.
+  const [planRevealed, setPlanRevealed] = useState(false);
 
   const pace = trip.preferences.pace ?? 'moderate';
   const childrenCount = trip.preferences.childrenCount ?? 0;
@@ -143,6 +150,7 @@ export function PlanStep({ trip, onChange }: Props) {
       lat?: number;
       lng?: number;
       durationMin?: number;
+      city?: string;
     },
   ) => {
     onChange((t) => ({
@@ -171,6 +179,7 @@ export function PlanStep({ trip, onChange }: Props) {
           lat: place.lat,
           lng: place.lng,
           durationMin: place.durationMin,
+          cityId: place.city,
         };
         return { ...d, items: [...d.items, item] };
       }),
@@ -266,9 +275,10 @@ export function PlanStep({ trip, onChange }: Props) {
     onChange((t) => ({
       ...t,
       subtitle: notesDraft.trim() || t.subtitle,
-      preferences: { ...t.preferences, mustSee, planRevealed: true },
+      preferences: { ...t.preferences, mustSee },
     }));
     setWizardOpen(false);
+    setPlanRevealed(true);
     await handleGenerate();
   };
 
@@ -291,7 +301,32 @@ export function PlanStep({ trip, onChange }: Props) {
 
   const allDaysEmpty = trip.days.length > 0 && trip.days.every((d) => d.items.length === 0);
   const totalSteps = trip.days.reduce((sum, d) => sum + (d.stepsEstimate ?? 0), 0);
-  const planRevealed = trip.preferences.planRevealed === true;
+
+  const transitionSuggestions = useMemo<CityTransitionSuggestion[]>(() => {
+    if (!planRevealed) return [];
+    const all = detectCityTransitions(trip.days, destinations);
+    return all.filter((s) => {
+      const day = trip.days.find((d) => d.dayNumber === s.toDayNumber);
+      return day ? !hasExistingTransferTo(day, s.toCity) : true;
+    });
+  }, [trip.days, destinations, planRevealed]);
+
+  const addTransition = (s: CityTransitionSuggestion) => {
+    onChange((t) => ({
+      ...t,
+      days: insertCityTransfer(t.days, s.toDayNumber, s),
+    }));
+  };
+
+  const addAllTransitions = () => {
+    onChange((t) => {
+      let days = t.days;
+      for (const s of transitionSuggestions) {
+        days = insertCityTransfer(days, s.toDayNumber, s);
+      }
+      return { ...t, days };
+    });
+  };
 
   const setPace = (p: 'relaxed' | 'moderate' | 'intense') => {
     onChange((t) => ({ ...t, preferences: { ...t.preferences, pace: p } }));
@@ -389,6 +424,52 @@ export function PlanStep({ trip, onChange }: Props) {
         görülmesi gereken yerler tempo ve konaklama günlerine göre dağıtılır. Günleri sürükleyerek
         düzenleyebilirsiniz.
       </p>
+
+      {transitionSuggestions.length > 0 && (
+        <div className="city-transitions card">
+          <div className="city-transitions-head">
+            <strong>🚄 Şehirler arası geçiş önerisi</strong>
+            {transitionSuggestions.length > 1 && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={addAllTransitions}
+              >
+                Hepsini ekle ({transitionSuggestions.length})
+              </button>
+            )}
+          </div>
+          <ul className="city-transitions-list">
+            {transitionSuggestions.map((s) => (
+              <li key={`${s.fromDayNumber}-${s.toDayNumber}`} className="city-transition-row">
+                <div className="city-transition-info">
+                  <div className="city-transition-route">
+                    <span>{s.transfer.emoji}</span>
+                    <strong>
+                      {s.fromCity} → {s.toCity}
+                    </strong>
+                    <span className="city-transition-mode">· {s.transfer.mode}</span>
+                  </div>
+                  <div className="city-transition-meta">
+                    Gün {s.fromDayNumber} → Gün {s.toDayNumber} · {s.transfer.duration} ·{' '}
+                    {s.transfer.fare}
+                  </div>
+                  {s.transfer.tip && (
+                    <div className="city-transition-tip">💡 {s.transfer.tip}</div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => addTransition(s)}
+                >
+                  + Ekle
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {(!planRevealed || allDaysEmpty) && !generating ? (
         <div className="plan-empty">
