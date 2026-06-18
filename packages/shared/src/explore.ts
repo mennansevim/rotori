@@ -26,6 +26,34 @@ export interface FoodRecommendation {
   emoji?: string;
 }
 
+/** Anahtar kelimeye göre yemek emojisi seç. Eşleşme yoksa default 🍽️. */
+function emojiForDish(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes('ramen')) return '🍜';
+  if (n.includes('udon') || n.includes('soba')) return '🍲';
+  if (n.includes('onigiri')) return '🍙';
+  if (n.includes('sushi') || n.includes('sashimi') || n.includes('nigiri') || n.includes('omakase'))
+    return '🍣';
+  if (n.includes('tempura')) return '🍤';
+  if (n.includes('takoyaki')) return '🐙';
+  if (n.includes('okonomiyaki')) return '🥞';
+  if (n.includes('yakitori')) return '🍢';
+  if (n.includes('yakiniku') || n.includes('wagyu') || n.includes('beef'))
+    return '🥩';
+  if (n.includes('izakaya') || n.includes('sake') || n.includes('shochu')) return '🍶';
+  if (n.includes('matcha') || n.includes('mochi') || n.includes('wagashi')) return '🍵';
+  if (n.includes('curry')) return '🍛';
+  if (n.includes('katsu')) return '🍱';
+  if (n.includes('tonkatsu')) return '🍖';
+  if (n.includes('kaiseki') || n.includes('teishoku')) return '🍱';
+  if (n.includes('konbini') || n.includes('sokak') || n.includes('street')) return '🏪';
+  if (n.includes('tonkotsu') || n.includes('shoyu') || n.includes('miso')) return '🍜';
+  if (n.includes('dim sum') || n.includes('dumpling') || n.includes('gyoza')) return '🥟';
+  if (n.includes('tatlı') || n.includes('dessert') || n.includes('crepe')) return '🍰';
+  if (n.includes('kahve') || n.includes('coffee') || n.includes('latte')) return '☕';
+  return '🍽️';
+}
+
 /** Ülke profilinden önerilen yemekler (cuisines + dishRecommendations). */
 export function recommendedFoods(countryCode: string): FoodRecommendation[] {
   const profile = getDestinationProfile(countryCode);
@@ -35,13 +63,13 @@ export function recommendedFoods(countryCode: string): FoodRecommendation[] {
   for (const c of profile.cuisines) {
     if (!seen.has(c.label)) {
       seen.add(c.label);
-      out.push({ label: c.label, emoji: c.emoji });
+      out.push({ label: c.label, emoji: c.emoji ?? emojiForDish(c.label) });
     }
   }
   for (const dish of profile.dishRecommendations) {
     if (!seen.has(dish)) {
       seen.add(dish);
-      out.push({ label: dish });
+      out.push({ label: dish, emoji: emojiForDish(dish) });
     }
   }
   return out;

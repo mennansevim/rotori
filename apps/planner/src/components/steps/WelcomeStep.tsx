@@ -1,5 +1,22 @@
 import { useMemo, useState } from 'react';
-import type { Trip } from '@japan-trip/shared';
+import {
+  MAX_TRIP_DAYS,
+  syncTripFromDestinations,
+  type Trip,
+} from '@japan-trip/shared';
+
+function addDays(iso: string, days: number): string {
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function daysBetween(startISO: string, endISO: string): number {
+  const ms =
+    new Date(endISO + 'T00:00:00Z').getTime() -
+    new Date(startISO + 'T00:00:00Z').getTime();
+  return Math.round(ms / 86400000) + 1;
+}
 import {
   AVOID_RANGES,
   BADGES,
@@ -62,21 +79,40 @@ export function WelcomeStep({ trip, onChange, onContinue }: Props) {
   );
 
   const applyDates = (start: string, end: string) => {
-    onChange((t) => ({
-      ...t,
-      tripStart: start,
-      tripEnd: end,
-      preferences: {
-        ...t.preferences,
-        travelDates: { start, end },
-      },
-    }));
+    onChange((t) => {
+      const dests = (t.preferences.destinations ?? []).map((d) => ({
+        ...d,
+        arrivalDate: start,
+        departureDate: end,
+      }));
+      const food = t.preferences.destinationFood ?? [];
+      if (dests.length === 0) {
+        return {
+          ...t,
+          tripStart: `${start}T08:00:00`,
+          tripEnd: `${end}T20:00:00`,
+          preferences: { ...t.preferences, travelDates: { start, end } },
+        };
+      }
+      return syncTripFromDestinations(t, {
+        originCity: t.preferences.originCity ?? '',
+        originAirport: t.preferences.originAirport,
+        originLat: t.preferences.originLat,
+        originLng: t.preferences.originLng,
+        destinations: dests,
+        destinationFood: food,
+        travelStart: start,
+        travelEnd: end,
+      });
+    });
   };
 
   const handleTicketSubmit = () => {
     if (!ticketReady) return;
     const start = ticket.outboundDate;
-    const end = ticket.returnDate || ticket.outboundDate;
+    let end = ticket.returnDate || ticket.outboundDate;
+    const maxEnd = addDays(start, MAX_TRIP_DAYS - 1);
+    if (end > maxEnd) end = maxEnd;
     applyDates(start, end);
 
     if (photoDataUrl) {
@@ -169,7 +205,8 @@ export function WelcomeStep({ trip, onChange, onContinue }: Props) {
         </button>
         <h2 className="welcome-step-title">Bilet bilgilerin</h2>
         <p className="welcome-step-sub">
-          Sadece tarihler zorunlu — diğer alanları boş bırakabilirsin.
+          Sadece tarihler zorunlu — diğer alanları boş bırakabilirsin. En fazla{' '}
+          {MAX_TRIP_DAYS} günlük plan oluşturuyoruz.
         </p>
 
         <div className="welcome-form card">
@@ -187,8 +224,22 @@ export function WelcomeStep({ trip, onChange, onContinue }: Props) {
               type="date"
               value={ticket.returnDate}
               min={ticket.outboundDate || undefined}
+              max={
+                ticket.outboundDate
+                  ? addDays(ticket.outboundDate, MAX_TRIP_DAYS - 1)
+                  : undefined
+              }
               onChange={(e) => setTicket({ ...ticket, returnDate: e.target.value })}
             />
+            {ticket.outboundDate &&
+              ticket.returnDate &&
+              daysBetween(ticket.outboundDate, ticket.returnDate) > MAX_TRIP_DAYS && (
+                <span className="welcome-field-warn">
+                  En fazla {MAX_TRIP_DAYS} günlük plan oluşturuyoruz —{' '}
+                  {daysBetween(ticket.outboundDate, ticket.returnDate)} gün seçildi, otomatik
+                  kısaltılacak.
+                </span>
+              )}
           </label>
           <label className="welcome-field">
             <span>Havayolu</span>

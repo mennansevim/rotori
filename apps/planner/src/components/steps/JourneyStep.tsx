@@ -9,12 +9,19 @@ import {
   getRouteLegs,
   formatRouteChain,
   airlineLabel,
+  MAX_TRIP_DAYS,
   type Airport,
   type Airline,
   type Trip,
   type TripDestination,
   type TicketKind,
 } from '@japan-trip/shared';
+
+function addDays(iso: string, days: number): string {
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
 import { AirportPicker } from '../AirportPicker';
 import { AirlinePicker } from '../AirlinePicker';
 import { TicketCard } from '../TicketCard';
@@ -171,7 +178,12 @@ export function JourneyStep({ trip, onChange, onLoadJapanPlan }: Props) {
   };
 
   const setReturnDate = (date: string) => {
-    onChange((t) => commitDests(t, [...(t.preferences.destinations ?? [])], date));
+    onChange((t) => {
+      const start = t.preferences.travelDates.start;
+      const maxEnd = start ? addDays(start, MAX_TRIP_DAYS - 1) : date;
+      const clamped = date > maxEnd ? maxEnd : date;
+      return commitDests(t, [...(t.preferences.destinations ?? [])], clamped);
+    });
   };
 
   const lookupLeg = async (legIndex: number) => {
@@ -524,6 +536,11 @@ export function JourneyStep({ trip, onChange, onLoadJapanPlan }: Props) {
                   className="flight-leg-date"
                   value={trip.preferences.travelDates.end}
                   min={lastDest?.arrivalDate}
+                  max={
+                    trip.preferences.travelDates.start
+                      ? addDays(trip.preferences.travelDates.start, MAX_TRIP_DAYS - 1)
+                      : undefined
+                  }
                   onChange={(e) => setReturnDate(e.target.value)}
                 />
               </div>

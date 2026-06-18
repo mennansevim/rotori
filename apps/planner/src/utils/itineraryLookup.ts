@@ -1,4 +1,5 @@
 import {
+  fillEmptyDays,
   generateItineraryFromTrip,
   mergeAiItinerary,
   type AiItineraryDay,
@@ -15,8 +16,16 @@ export interface ItineraryResult {
   days: DayPlan[];
 }
 
+function destinations(trip: Trip) {
+  return [...(trip.preferences.destinations ?? [])].sort((a, b) => a.order - b.order);
+}
+
 function rules(trip: Trip, reason: ItineraryReason): ItineraryResult {
-  return { source: 'rules', reason, days: generateItineraryFromTrip(trip) };
+  return {
+    source: 'rules',
+    reason,
+    days: fillEmptyDays(generateItineraryFromTrip(trip), destinations(trip)),
+  };
 }
 
 /** Önce AI dener; başarısızsa kural tabanlı üreticiye düşer. */
@@ -43,10 +52,11 @@ export async function generateItinerary(trip: Trip): Promise<ItineraryResult> {
   };
 
   if (data.source === 'ai' && data.days?.length) {
+    const merged = mergeAiItinerary(trip.days, data.days);
     return {
       source: 'ai',
       reason: 'ok',
-      days: mergeAiItinerary(trip.days, data.days),
+      days: fillEmptyDays(merged, destinations(trip)),
     };
   }
 

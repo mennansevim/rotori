@@ -3278,6 +3278,200 @@ a:hover {
   color: var(--text-secondary);
 }
 
+.welcome-field-warn {
+  font-size: 12px;
+  color: #b45309;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+/* ===================== Place Orbit Grid (Apple Watch-style) ===================== */
+
+.orbit-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 24px 8px 12px;
+  align-items: center;
+}
+
+.orbit-row {
+  display: flex;
+  gap: 28px;
+  justify-content: center;
+}
+
+.orbit-row-offset {
+  transform: translateX(60px);
+}
+
+.orbit-item {
+  --orbit-size: 92px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 104px;
+  padding: 4px 2px 6px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.orbit-item:disabled {
+  cursor: default;
+}
+
+.orbit-circle {
+  position: relative;
+  width: var(--orbit-size);
+  height: var(--orbit-size);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(140deg, #94a3b8 0%, #64748b 100%);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.08),
+    0 6px 18px rgba(15, 23, 42, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transition:
+    transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+    box-shadow 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.orbit-circle::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.5) 0%, transparent 45%);
+  pointer-events: none;
+}
+
+.orbit-emoji {
+  font-size: 42px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+  z-index: 1;
+}
+
+.orbit-item:hover .orbit-circle,
+.orbit-item.is-hover .orbit-circle {
+  transform: scale(1.08);
+  box-shadow:
+    0 2px 4px rgba(15, 23, 42, 0.1),
+    0 12px 28px rgba(15, 23, 42, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.orbit-item:active .orbit-circle {
+  transform: scale(0.96);
+}
+
+.orbit-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  text-align: center;
+  max-width: 100px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.orbit-city {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.01em;
+}
+
+.orbit-feedback {
+  font-size: 11px;
+  font-weight: 600;
+  color: #16a34a;
+  letter-spacing: -0.005em;
+}
+
+.orbit-hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-align: center;
+  margin: 4px 0 0;
+}
+
+.orbit-check {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #16a34a;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow:
+    0 2px 6px rgba(22, 163, 74, 0.4),
+    0 0 0 3px var(--bg, #f5f5f7);
+  z-index: 2;
+}
+
+.orbit-item.is-in-plan .orbit-circle {
+  opacity: 0.7;
+  filter: saturate(0.7);
+}
+
+.orbit-item.is-in-plan .orbit-name {
+  color: var(--text-secondary);
+}
+
+/* Category gradients — Apple-style refined palettes */
+.orbit-cat-culture .orbit-circle {
+  background: linear-gradient(140deg, #a78bfa 0%, #7c3aed 100%);
+}
+.orbit-cat-nature .orbit-circle {
+  background: linear-gradient(140deg, #34d399 0%, #059669 100%);
+}
+.orbit-cat-food .orbit-circle {
+  background: linear-gradient(140deg, #fbbf24 0%, #d97706 100%);
+}
+.orbit-cat-fun .orbit-circle {
+  background: linear-gradient(140deg, #fb7185 0%, #e11d48 100%);
+}
+.orbit-cat-shopping .orbit-circle {
+  background: linear-gradient(140deg, #38bdf8 0%, #0284c7 100%);
+}
+.orbit-cat-transport .orbit-circle {
+  background: linear-gradient(140deg, #94a3b8 0%, #475569 100%);
+}
+
+@media (max-width: 640px) {
+  .orbit-row {
+    gap: 18px;
+  }
+  .orbit-row-offset {
+    transform: translateX(40px);
+  }
+  .orbit-item {
+    --orbit-size: 76px;
+    width: 84px;
+  }
+  .orbit-emoji {
+    font-size: 34px;
+  }
+}
+
 .welcome-actions {
   display: flex;
   justify-content: flex-end;

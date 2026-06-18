@@ -101,7 +101,8 @@ Seyahat bilgileri:
 - Yemek tercihleri (destinasyon başına): ${JSON.stringify(foodPrefs)}
 
 Kurallar:
-1. Her günün dayNumber değeri verilen günlerle bire bir eşleşmeli. Eksik gün bırakma.
+1. Her günün dayNumber değeri verilen günlerle bire bir eşleşmeli. KESİNLİKLE EKSİK GÜN BIRAKMA — toplam ${days.length} gün, hepsini doldur. Hiçbir günü 0 aktiviteyle bırakma; her günde en az 4 item (1 sabah, 1 öğle yemeği, 1-2 öğleden sonra, 1 akşam yemeği veya akşam aktivitesi) olsun.
+1b. Plan optimize edilmiş olmalı: aynı bölgeden yerleri aynı güne grupla, gereksiz şehir-arası seyahati en aza indir. Uzun trip'te (>10 gün) çevre şehirlere day-trip (Nikko, Kamakura, Hakone, Yokohama, Nara, Kobe, Himeji) ekleyerek günleri çeşitlendir.
 2. Varış günü: hafif tempo, check-in, çevre keşfi, akşam yemeği. Ayrılış günü: check-out + havaalanı transferi + uçuş.
 3. Aktiviteleri saat sırasına dizin: 08:00–10:00 sabah, 12:00–14:00 öğle yemeği, 14:00–18:00 öğleden sonra, 18:30–21:00 akşam.
 4. Her gün en az 1 yemek (kind:"meal") ve mümkünse 1 ulaşım (kind:"transport") kalemi olsun.
@@ -177,7 +178,7 @@ function extractJson(text) {
   }
 }
 
-async function fromGroq(prompt, key) {
+async function fromGroq(prompt, key, maxTokens = 6000, retriesLeft = 2) {
   let resp;
   try {
     resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -197,29 +198,68 @@ async function fromGroq(prompt, key) {
           { role: 'user', content: prompt },
         ],
         temperature: 0.4,
-        max_tokens: 8000,
+        max_tokens: maxTokens,
         response_format: { type: 'json_object' },
       }),
     });
-  } catch {
+  } catch (e) {
+    console.error('[itinerary] fetch threw:', e?.message);
     return null;
   }
-  if (!resp.ok) return null;
+  if (resp.status === 429 && retriesLeft > 0) {
+    // Rate limit — mesajdan "try again in X.Xs" parse et, bekle, tekrar dene.
+    const errText = await resp.text().catch(() => '');
+    const match = errText.match(/try again in ([\d.]+)s/);
+    const waitMs = match
+      ? Math.ceil(parseFloat(match[1]) * 1000) + 1500
+      : 12000;
+    console.error(
+      `[itinerary] 429 rate-limit, ${waitMs}ms beklenip retry (kalan ${retriesLeft})`,
+    );
+    await new Promise((r) => setTimeout(r, waitMs));
+    return fromGroq(prompt, key, maxTokens, retriesLeft - 1);
+  }
+  if (!resp.ok) {
+    const errText = await resp.text().catch(() => '');
+    console.error('[itinerary] groq non-ok:', resp.status, errText.slice(0, 400));
+    return null;
+  }
   let data;
   try {
     data = await resp.json();
-  } catch {
+  } catch (e) {
+    console.error('[itinerary] json parse failed:', e?.message);
     return null;
   }
   const content = data?.choices?.[0]?.message?.content;
-  if (!content) return null;
-  try {
-    const parsed = extractJson(content);
-    if (!Array.isArray(parsed?.days)) return null;
-    return parsed.days;
-  } catch {
+  if (!content) {
+    console.error('[itinerary] empty content:', JSON.stringify(data).slice(0, 400));
     return null;
   }
+  try {
+    const parsed = extractJson(content);
+    if (!Array.isArray(parsed?.days)) {
+      console.error('[itinerary] not array days:', JSON.stringify(parsed).slice(0, 200));
+      return null;
+    }
+    return parsed.days;
+  } catch (e) {
+    console.error('[itinerary] extractJson failed:', e?.message, 'content head:', content.slice(0, 200));
+    return null;
+  }
+}
+
+const CHUNK_SIZE = 7;
+const TOKENS_PER_DAY = 750;
+const MIN_TOKENS = 2500;
+const MAX_TOKENS_PER_CALL = 7000;
+const CHUNK_DELAY_MS = 6500;
+
+function estimateMaxTokens(dayCount) {
+  return Math.min(
+    MAX_TOKENS_PER_CALL,
+    Math.max(MIN_TOKENS, dayCount * TOKENS_PER_DAY),
+  );
 }
 
 /**
@@ -234,14 +274,46 @@ export async function fetchItinerary(trip, groqKey) {
     return { status: 400, body: { error: 'no-days' } };
   }
 
-  const prompt = buildPrompt(trip);
-  const aiDays = await fromGroq(prompt, groqKey);
-  if (!aiDays) {
+  const days = trip.days;
+
+  // Kısa gezi: tek çağrı
+  if (days.length <= CHUNK_SIZE) {
+    const prompt = buildPrompt(trip);
+    const aiDays = await fromGroq(prompt, groqKey, estimateMaxTokens(days.length));
+    if (!aiDays) {
+      return { status: 502, body: { error: 'ai-failed', source: 'rules' } };
+    }
+    return { status: 200, body: { source: 'ai', days: aiDays } };
+  }
+
+  // Uzun gezi: 7'şer günlük parçalara böl, ardışık çağrılar.
+  // Her parça için ayrı prompt, sonuçları birleştir.
+  const chunks = [];
+  for (let i = 0; i < days.length; i += CHUNK_SIZE) {
+    chunks.push(days.slice(i, i + CHUNK_SIZE));
+  }
+  console.error(`[itinerary] uzun gezi (${days.length}g) → ${chunks.length} parça`);
+
+  const merged = [];
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    const chunkTrip = { ...trip, days: chunk };
+    const prompt = buildPrompt(chunkTrip);
+    const aiDays = await fromGroq(prompt, groqKey, estimateMaxTokens(chunk.length));
+    if (aiDays) {
+      merged.push(...aiDays);
+      console.error(`[itinerary] parça ${i + 1}/${chunks.length} → ${aiDays.length} gün`);
+    } else {
+      console.error(`[itinerary] parça ${i + 1}/${chunks.length} → BAŞARISIZ`);
+    }
+    if (i < chunks.length - 1) {
+      await new Promise((r) => setTimeout(r, CHUNK_DELAY_MS));
+    }
+  }
+
+  if (merged.length === 0) {
     return { status: 502, body: { error: 'ai-failed', source: 'rules' } };
   }
 
-  return {
-    status: 200,
-    body: { source: 'ai', days: aiDays },
-  };
+  return { status: 200, body: { source: 'ai', days: merged } };
 }

@@ -6,10 +6,8 @@ import {
   getDestinationForDate,
   getGuideDefaultsForCountry,
   recommendedFoods,
-  placeRating,
   isKidFriendly,
   googleReviewsUrl,
-  ratingStars,
   WALKING_TARGET_STEPS,
   type Trip,
   type PlaceSuggestion,
@@ -19,6 +17,7 @@ import {
   type PaymentPreference,
   type ChildProfile,
 } from '@japan-trip/shared';
+import { PlaceOrbitGrid } from '../PlaceOrbitGrid';
 
 const INTEREST_OPTIONS: { id: InterestTag; label: string; emoji: string }[] = [
   { id: 'anime', label: 'Anime / Manga', emoji: '🎴' },
@@ -386,68 +385,55 @@ export function ExploreStep({ trip, onChange }: Props) {
                     </button>
                   )}
                 </div>
-                <div className="explore-places">
-                  {places.map((place) => {
-                    const rating = placeRating(place);
-                    const kid = isKidFriendly(place);
-                    const key = `${dest.id}:${place.id}`;
-                    const inPlan = planPlaceNames.has(place.name.toLowerCase().trim());
-                    return (
-                      <article
-                        key={place.id}
-                        className={`explore-place${kidsMode && kid ? ' kid' : ''}${inPlan ? ' added' : ''}`}
-                      >
-                        <div className="explore-place-top">
-                          <span className="explore-place-emoji">{place.emoji}</span>
-                          <span className="explore-rating" title={`${rating} / 5`}>
-                            {ratingStars(rating)} <em>{rating.toFixed(1)}</em>
-                          </span>
-                        </div>
-                        <div className="explore-place-name">{place.name}</div>
-                        <div className="explore-place-city">{place.city}</div>
-                        {kid && <span className="explore-kid-badge">👶 Çocuk dostu</span>}
-                        <div className="explore-place-actions">
-                          <a
-                            className="explore-link"
-                            href={googleReviewsUrl(`${place.name} ${place.city}`)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Google yorumları →
-                          </a>
-                          <button
-                            type="button"
-                            className={`btn btn-sm ${inPlan ? 'btn-secondary' : 'btn-primary'}`}
-                            onClick={() => addPlace(dest, place)}
-                            disabled={inPlan}
-                          >
-                            {added[key] ?? (inPlan ? '✓ Planda' : '+ Plana ekle')}
-                          </button>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
+                <PlaceOrbitGrid
+                  places={(kidsMode
+                    ? [...places].sort(
+                        (a, b) => Number(isKidFriendly(b)) - Number(isKidFriendly(a)),
+                      )
+                    : places
+                  ).map((p) => ({
+                    id: p.id,
+                    name: p.name,
+                    city: p.city,
+                    emoji: p.emoji,
+                    category: p.category,
+                  }))}
+                  isInPlan={(p) => planPlaceNames.has(p.name.toLowerCase().trim())}
+                  onPick={(p) => {
+                    const original = places.find((x) => x.id === p.id);
+                    if (original) addPlace(dest, original);
+                  }}
+                  feedback={Object.fromEntries(
+                    places
+                      .filter((p) => added[`${dest.id}:${p.id}`])
+                      .map((p) => [p.id, added[`${dest.id}:${p.id}`]] as const),
+                  )}
+                />
+                <p className="orbit-hint">Dokunarak plana ekle · ✓ rozetli olanlar zaten planda</p>
               </div>
             )}
 
             {foods.length > 0 && (
               <div className="explore-block">
                 <div className="explore-block-title">🍽️ Önerilen yemekler</div>
-                <div className="explore-foods">
-                  {foods.map((food) => (
-                    <a
-                      key={food.label}
-                      className="explore-food-chip"
-                      href={googleReviewsUrl(`${food.label} ${dest.city || dest.countryName}`)}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {food.emoji && <span>{food.emoji}</span>}
-                      {food.label}
-                    </a>
-                  ))}
-                </div>
+                <PlaceOrbitGrid
+                  places={foods.map((f, idx) => ({
+                    id: `food-${dest.id}-${idx}`,
+                    name: f.label,
+                    emoji: f.emoji ?? '🍽️',
+                    category: 'food',
+                  }))}
+                  isInPlan={() => false}
+                  onPick={(p) => {
+                    const url = googleReviewsUrl(
+                      `${p.name} ${dest.city || dest.countryName}`,
+                    );
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                  }}
+                />
+                <p className="orbit-hint">
+                  Dokunarak Google'da yöresel mekan ara
+                </p>
               </div>
             )}
           </section>

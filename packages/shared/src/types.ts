@@ -1,5 +1,8 @@
 export type Pace = 'relaxed' | 'moderate' | 'intense';
 
+/** Plan oluşturulabilecek en uzun gezi süresi (gün). 30+ günlük plan üretmeyiz. */
+export const MAX_TRIP_DAYS = 31;
+
 /** Günlük yürüyüş hedefi — UI üç kategori sunar, generator buradan maxStepsPerDay'i türetir. */
 export type WalkingTarget = 'light' | 'moderate' | 'intense';
 
