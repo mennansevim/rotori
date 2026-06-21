@@ -154,7 +154,8 @@ a:hover {
 .step-pill {
   flex-shrink: 0;
   scroll-snap-align: start;
-  padding: 8px 16px;
+  padding: 11px 16px;
+  min-height: 44px;
   border-radius: var(--radius-pill);
   border: none;
   background: var(--bg-elevated);
@@ -654,7 +655,14 @@ a:hover {
   margin-bottom: 12px;
   display: flex;
   gap: 10px;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.alert-banner-action {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .alert-banner.warn {
@@ -2047,7 +2055,8 @@ a:hover {
   border: 1px solid var(--border);
   background: var(--bg);
   border-radius: 999px;
-  padding: 6px 14px;
+  padding: 11px 16px;
+  min-height: 44px;
   font-size: 13px;
   cursor: pointer;
 }
@@ -2124,6 +2133,16 @@ a:hover {
   margin: 12px 0;
   font-size: 13px;
   line-height: 1.45;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.plan-banner-retry {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .plan-banner code {
@@ -2138,6 +2157,12 @@ a:hover {
   background: #fff7e6;
   border: 1px solid #f5c97a;
   color: #6b4a00;
+}
+
+.plan-banner-loading {
+  background: var(--accent-soft);
+  border: 1px solid rgba(0, 113, 227, 0.25);
+  color: #003d80;
 }
 
 .itinerary-day-list {
@@ -3008,7 +3033,8 @@ a:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px;
+  padding: 11px 14px;
+  min-height: 44px;
   border-radius: 999px;
   border: 1px solid #d1d5db;
   background: #f9fafb;

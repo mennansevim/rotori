@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   detectCityTransitions,
   getDestinationProfile,
@@ -84,6 +84,7 @@ export function PlanStep({ trip, onChange }: Props) {
   // Plan ekranı her açılışta alt kısım boş başlar; sadece "Gezi planı oluştur"
   // wizard'ı çalıştırılınca açılır. Bilinçli olarak persist edilmiyor.
   const [planRevealed, setPlanRevealed] = useState(false);
+  const generateAbortRef = useRef<AbortController | null>(null);
 
   const pace = trip.preferences.pace ?? 'moderate';
   const childrenCount = trip.preferences.childrenCount ?? 0;
@@ -247,18 +248,38 @@ export function PlanStep({ trip, onChange }: Props) {
   };
 
   const handleGenerate = async () => {
+    // Önceki devam ediyorsa iptal et
+    generateAbortRef.current?.abort();
+    const controller = new AbortController();
+    generateAbortRef.current = controller;
     setGenerating(true);
     setGenSource(null);
     setGenReason(null);
     try {
-      const result = await generateItinerary(trip);
+      const result = await generateItinerary(trip, controller.signal);
+      if (controller.signal.aborted) return;
       updateDays(result.days);
       setGenSource(result.source);
       setGenReason(result.reason);
       setExpanded(new Set(result.days.map((d) => d.dayNumber)));
+    } catch (e) {
+      if ((e as { name?: string })?.name === 'AbortError') {
+        // İptal edildi — sessizce dön
+        return;
+      }
+      throw e;
     } finally {
+      if (generateAbortRef.current === controller) {
+        generateAbortRef.current = null;
+      }
       setGenerating(false);
     }
+  };
+
+  const cancelGenerate = () => {
+    generateAbortRef.current?.abort();
+    generateAbortRef.current = null;
+    setGenerating(false);
   };
 
   const openWizard = () => {
@@ -400,6 +421,20 @@ export function PlanStep({ trip, onChange }: Props) {
         </div>
       </section>
 
+      {generating && !wizardOpen && (
+        <div className="plan-banner plan-banner-loading" role="status">
+          <div>
+            <strong>⏳ Plan oluşturuluyor…</strong> Uzun gezilerde 30–90 saniye sürebilir.
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm plan-banner-retry"
+            onClick={cancelGenerate}
+          >
+            ✕ İptal et
+          </button>
+        </div>
+      )}
       {genReason === 'not-configured' && (
         <div className="plan-banner plan-banner-warn">
           <strong>GROQ_API_KEY tanımlı değil.</strong> Detaylı AI planı için repo kökündeki{' '}
@@ -409,13 +444,33 @@ export function PlanStep({ trip, onChange }: Props) {
       )}
       {genReason === 'ai-failed' && (
         <div className="plan-banner plan-banner-warn">
-          <strong>AI yanıt vermedi.</strong> Geçici hata olabilir, tekrar deneyebilirsin. Şimdilik
-          küratörlü şablonlar gösteriliyor.
+          <div>
+            <strong>AI yanıt vermedi.</strong> Geçici hata olabilir. Şimdilik küratörlü şablonlar
+            gösteriliyor.
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm plan-banner-retry"
+            onClick={() => void handleGenerate()}
+            disabled={generating}
+          >
+            {generating ? 'Deneniyor…' : '🔄 Tekrar dene'}
+          </button>
         </div>
       )}
       {genReason === 'network' && (
         <div className="plan-banner plan-banner-warn">
-          <strong>API'ye ulaşılamadı.</strong> Dev sunucusunu kontrol et veya tekrar dene.
+          <div>
+            <strong>API'ye ulaşılamadı.</strong> Bağlantını kontrol et.
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm plan-banner-retry"
+            onClick={() => void handleGenerate()}
+            disabled={generating}
+          >
+            {generating ? 'Deneniyor…' : '🔄 Tekrar dene'}
+          </button>
         </div>
       )}
 
@@ -636,17 +691,27 @@ export function PlanStep({ trip, onChange }: Props) {
                 type="button"
                 className="btn btn-secondary"
                 onClick={() => setWizardOpen(false)}
+                disabled={generating}
               >
                 Vazgeç
               </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => void handleWizardGenerate()}
-                disabled={generating}
-              >
-                {generating ? 'Oluşturuluyor…' : '✨ Optimum planı oluştur'}
-              </button>
+              {generating ? (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={cancelGenerate}
+                >
+                  ✕ İptal et
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => void handleWizardGenerate()}
+                >
+                  ✨ Optimum planı oluştur
+                </button>
+              )}
             </div>
           </div>
         </div>

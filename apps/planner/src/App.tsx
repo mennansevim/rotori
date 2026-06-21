@@ -112,7 +112,13 @@ export default function App() {
         {step === 'food' && <FoodStep trip={trip} onChange={updateTrip} />}
         {step === 'plan' && <PlanStep trip={trip} onChange={updateTrip} />}
         {step === 'publish' && (
-          <PublishStep trip={trip} onExport={exportJson} onImport={importJson} username={username} />
+          <PublishStep
+            trip={trip}
+            onExport={exportJson}
+            onImport={importJson}
+            username={username}
+            onJumpToStep={(s) => setStep(s)}
+          />
         )}
       </main>
 

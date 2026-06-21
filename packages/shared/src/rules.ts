@@ -5,6 +5,8 @@ export interface TripWarning {
   severity: 'info' | 'warn' | 'urgent';
   message: string;
   dayNumber?: number;
+  /** Yayın adımındaki "adıma dön" butonu için hedef step id. */
+  step?: 'journey' | 'explore' | 'title' | 'hotels' | 'food' | 'plan' | 'calendar';
 }
 
 export function checkStepsOverLimit(day: DayPlan, maxSteps?: number): TripWarning | null {
@@ -16,6 +18,7 @@ export function checkStepsOverLimit(day: DayPlan, maxSteps?: number): TripWarnin
       severity: 'warn',
       message: `Gün ${day.dayNumber}: tahmini ${estimate.toLocaleString('tr-TR')} adım, limit ${maxSteps.toLocaleString('tr-TR')}. Taksi veya aktivite azaltmayı düşünün.`,
       dayNumber: day.dayNumber,
+      step: 'plan',
     };
   }
   return null;
@@ -34,6 +37,7 @@ export function checkUnassignedMustSee(trip: Trip): TripWarning[] {
       id: `mustsee-${place}`,
       severity: 'info' as const,
       message: `"${place}" henüz günlük plana eklenmemiş.`,
+      step: 'plan' as const,
     }));
 }
 
@@ -62,8 +66,68 @@ export function checkShinkansenDeadline(
   return null;
 }
 
+export function checkHotelsIncomplete(trip: Trip): TripWarning | null {
+  const dests = trip.preferences.destinations ?? [];
+  if (dests.length === 0) return null;
+  const hotels = trip.hotels ?? [];
+  if (hotels.length === 0) {
+    return {
+      id: 'hotels-missing',
+      severity: 'warn',
+      message: 'Henüz otel eklenmedi. Konaklama adımında en az bir otel ekle.',
+      step: 'hotels',
+    };
+  }
+  const incomplete = hotels.filter(
+    (h) => !h.city?.trim() || !h.name?.trim() || !h.address?.trim(),
+  );
+  if (incomplete.length > 0) {
+    return {
+      id: 'hotels-incomplete',
+      severity: 'warn',
+      message: `${incomplete.length} otel için şehir, ad veya açık adres eksik.`,
+      step: 'hotels',
+    };
+  }
+  return null;
+}
+
+export function checkEmptyPlan(trip: Trip): TripWarning | null {
+  if (trip.days.length === 0) return null;
+  const allEmpty = trip.days.every((d) => d.items.length === 0);
+  if (allEmpty) {
+    return {
+      id: 'plan-empty',
+      severity: 'warn',
+      message: 'Plan günleri tamamen boş. Plan adımından gezi planını oluştur.',
+      step: 'plan',
+    };
+  }
+  return null;
+}
+
+export function checkMissingTitle(trip: Trip): TripWarning | null {
+  const t = trip.title?.trim();
+  if (!t || t === 'Yeni seyahat' || t === 'Japonya Turu') {
+    return {
+      id: 'title-default',
+      severity: 'info',
+      message: 'Plan başlığı varsayılan. Kendi başlığını yazmak istersen Başlık adımına dön.',
+      step: 'title',
+    };
+  }
+  return null;
+}
+
 export function collectTripWarnings(trip: Trip): TripWarning[] {
   const warnings: TripWarning[] = [];
+
+  const hotel = checkHotelsIncomplete(trip);
+  if (hotel) warnings.push(hotel);
+  const empty = checkEmptyPlan(trip);
+  if (empty) warnings.push(empty);
+  const title = checkMissingTitle(trip);
+  if (title) warnings.push(title);
 
   warnings.push(...checkUnassignedMustSee(trip));
   const sh = checkShinkansenDeadline(trip.deadlines?.shinkansenBooking);

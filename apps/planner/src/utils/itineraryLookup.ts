@@ -28,16 +28,24 @@ function rules(trip: Trip, reason: ItineraryReason): ItineraryResult {
   };
 }
 
-/** Önce AI dener; başarısızsa kural tabanlı üreticiye düşer. */
-export async function generateItinerary(trip: Trip): Promise<ItineraryResult> {
+/** Önce AI dener; başarısızsa kural tabanlı üreticiye düşer.
+ *  `signal` ile dış AbortController iletilirse iptal edilebilir. */
+export async function generateItinerary(
+  trip: Trip,
+  signal?: AbortSignal,
+): Promise<ItineraryResult> {
   let resp: Response;
   try {
     resp = await fetch('/api/itinerary', {
       method: 'POST',
       headers: { 'content-type': 'application/json', accept: 'application/json' },
       body: JSON.stringify(trip),
+      signal,
     });
-  } catch {
+  } catch (e) {
+    if ((e as { name?: string })?.name === 'AbortError') {
+      throw e;
+    }
     return rules(trip, 'network');
   }
 
