@@ -105,6 +105,25 @@ export function useTripDraft() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(trip));
   }, [trip]);
 
+  // Multi-tab senkron: başka tabta aynı user'ın trip'i güncellenirse
+  // burada da reflect et.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== STORAGE_KEY || !e.newValue) return;
+      try {
+        const next = normalize(JSON.parse(e.newValue));
+        setTrip((current) => {
+          if (JSON.stringify(current) === JSON.stringify(next)) return current;
+          return next;
+        });
+      } catch {
+        /* ignore */
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
   const exportJson = useCallback(() => {
     const blob = new Blob([JSON.stringify(trip, null, 2)], {
       type: 'application/json',

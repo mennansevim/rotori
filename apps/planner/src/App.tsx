@@ -80,6 +80,20 @@ export default function App() {
     (trip.preferences.destinations ?? []).length > 0 &&
     (trip.preferences.destinations ?? []).every((d) => d.city.trim());
 
+  // Rota tamamlanmadıysa sonraki adımları kilitle (welcome ve journey serbest).
+  const lockedSteps = useMemo<Set<StepId>>(() => {
+    if (canContinueJourney) return new Set();
+    return new Set<StepId>([
+      'explore',
+      'title',
+      'hotels',
+      'food',
+      'plan',
+      'calendar',
+      'publish',
+    ]);
+  }, [canContinueJourney]);
+
   return (
     <div className="app-shell">
       <NavBar
@@ -87,6 +101,7 @@ export default function App() {
         onStep={setStep}
         completedSteps={completedSteps}
         onNewPlan={() => setShowNewModal(true)}
+        lockedSteps={lockedSteps}
       />
 
       <main

@@ -308,20 +308,38 @@ export function WelcomeStep({ trip, onChange, onContinue }: Props) {
       </p>
 
       <section className="season-grid">
-        {MONTHS.map((m) => (
-          <div key={m.month} className="season-month">
-            <div className="season-month-head">
-              <span className="season-month-num">{m.month}</span>
-              <span className="season-month-label">{m.label}</span>
-            </div>
-            <div className="season-badges">
-              {m.tags.map((t) => (
-                <Badge key={t} tag={t} />
-              ))}
-            </div>
-            <p className="season-note">{m.note}</p>
-          </div>
-        ))}
+        {MONTHS.map((m) => {
+          const now = new Date();
+          const todayMonth = now.getUTCMonth() + 1;
+          const todayYear = now.getUTCFullYear();
+          const year = m.month >= todayMonth ? todayYear : todayYear + 1;
+          const start = `${year}-${String(m.month).padStart(2, '0')}-01`;
+          const endDate = new Date(start + 'T00:00:00Z');
+          endDate.setUTCDate(endDate.getUTCDate() + 13);
+          const end = endDate.toISOString().slice(0, 10);
+          return (
+            <button
+              key={m.month}
+              type="button"
+              className="season-month season-month-clickable"
+              onClick={() => handleRangePick(start, end)}
+              title={`${m.label} ${year} — 14 günlük plan`}
+            >
+              <div className="season-month-head">
+                <span className="season-month-num">{m.month}</span>
+                <span className="season-month-label">
+                  {m.label} <span className="season-month-year">{year}</span>
+                </span>
+              </div>
+              <div className="season-badges">
+                {m.tags.map((t) => (
+                  <Badge key={t} tag={t} />
+                ))}
+              </div>
+              <p className="season-note">{m.note}</p>
+            </button>
+          );
+        })}
       </section>
 
       <h3 className="welcome-section-title">Önerilen 2 haftalık aralıklar</h3>
