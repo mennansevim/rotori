@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import type { Pace, Trip } from '@japan-trip/shared';
 
 interface Props {
@@ -5,29 +6,10 @@ interface Props {
   onChange: (updater: (t: Trip) => Trip) => void;
 }
 
-function suggestTitles(trip: Trip): string[] {
-  const dests = (trip.preferences.destinations ?? [])
-    .slice()
-    .sort((a, b) => a.order - b.order);
-  const cities = dests.map((d) => d.city).filter(Boolean);
-  const days = trip.days.length;
-  const month = trip.tripStart ? new Date(trip.tripStart).getUTCMonth() + 1 : 0;
-  const seasonHint =
-    month === 3 || month === 4
-      ? 'Sakura'
-      : month === 10 || month === 11
-        ? 'Sonbahar'
-        : month === 12 || month === 1 || month === 2
-          ? 'Kış'
-          : null;
-
-  const out: string[] = ['Japonya Turu'];
-  if (days > 0) out.push(`${days} Günde Japonya`);
-  if (cities.length === 1) out.push(`${cities[0]} Macerası`);
-  if (cities.length >= 2) out.push(`${cities.slice(0, 2).join(' & ')} Rotası`);
-  if (seasonHint) out.push(`${seasonHint} Japonya'sı`);
-  out.push('İlk Japonya Seyahatim');
-  return [...new Set(out)];
+function autoTitle(trip: Trip): string {
+  const source = trip.tripStart || trip.preferences.travelDates?.start;
+  const year = source ? new Date(source).getUTCFullYear() : new Date().getUTCFullYear();
+  return `Japonya ${year}`;
 }
 
 export function TitleStep({ trip, onChange }: Props) {
@@ -35,7 +17,14 @@ export function TitleStep({ trip, onChange }: Props) {
     trip.preferences.originCity && trip.preferences.destinationCity
       ? `${trip.preferences.originCity} → ${trip.preferences.destinationCity}`
       : null;
-  const suggestions = suggestTitles(trip);
+  const computed = autoTitle(trip);
+
+  useEffect(() => {
+    const current = (trip.title ?? '').trim();
+    if (current === computed) return;
+    if (current && current !== 'Japonya Turu' && !/^Japonya \d{4}$/.test(current)) return;
+    onChange((t) => ({ ...t, title: computed }));
+  }, [computed, trip.title, onChange]);
 
   return (
     <>
@@ -56,22 +45,13 @@ export function TitleStep({ trip, onChange }: Props) {
           <label>Başlık</label>
           <input
             value={trip.title}
-            placeholder="ör. Japonya Turu"
+            placeholder={computed}
             onChange={(e) => onChange((t) => ({ ...t, title: e.target.value }))}
           />
-          <div className="title-suggestions">
-            <span className="title-suggestions-label">Öneriler:</span>
-            {suggestions.map((s) => (
-              <button
-                key={s}
-                type="button"
-                className={`chip${trip.title === s ? ' chip-active' : ''}`}
-                onClick={() => onChange((t) => ({ ...t, title: s }))}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+          <p className="field-hint">
+            Gezinin yılına göre otomatik belirlenir (örn. <strong>{computed}</strong>). İstersen
+            elle değiştirebilirsin.
+          </p>
         </div>
         <div className="field">
           <label>Açıklama (opsiyonel)</label>

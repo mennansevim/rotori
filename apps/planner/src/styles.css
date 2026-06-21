@@ -3815,3 +3815,209 @@ a:hover {
   margin-top: 4px;
   line-height: 1.45;
 }
+
+/* —— Plan generating overlay —— */
+.plan-generating-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: plan-gen-fade-in 0.2s ease-out;
+}
+
+.plan-generating-card {
+  background: var(--bg-elevated, #ffffff);
+  border-radius: 20px;
+  padding: 32px 36px;
+  max-width: 420px;
+  width: calc(100% - 32px);
+  text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.plan-generating-card h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.plan-generating-card p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.plan-generating-spinner {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 4px solid rgba(99, 102, 241, 0.18);
+  border-top-color: #6366f1;
+  animation: discover-spin 0.85s linear infinite;
+}
+
+@keyframes plan-gen-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* —— Explore card grid —— */
+.explore-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.explore-card {
+  position: relative;
+  padding: 18px 14px 14px;
+  border-radius: var(--radius);
+  border: 2px solid var(--border);
+  background: var(--bg-subtle);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 152px;
+}
+
+.explore-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.explore-card.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.explore-card-emoji {
+  font-size: 36px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.explore-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.explore-card-meta {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  line-height: 1.35;
+}
+
+.explore-card-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.explore-card-feedback {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* —— Booking import panel —— */
+.booking-import {
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  border-radius: var(--radius);
+  border: 1px dashed var(--border-strong);
+  background: var(--bg-subtle);
+}
+
+.booking-import-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.booking-import-sub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0 0 12px;
+}
+
+.booking-import-links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.booking-import-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.booking-import-link:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.booking-import-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.booking-import-row input {
+  flex: 1;
+}
+
+.booking-import-feedback {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.booking-import-feedback.success { color: #10b981; }
+.booking-import-feedback.error { color: #ef4444; }

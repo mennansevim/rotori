@@ -45,7 +45,6 @@ export function PlaceOrbitGrid({ places, isInPlan, onPick, feedback }: Props) {
                 className={`orbit-item orbit-cat-${cat}${inPlan ? ' is-in-plan' : ''}${
                   hover === p.id ? ' is-hover' : ''
                 }`}
-                disabled={inPlan && !fb}
                 onMouseEnter={() => setHover(p.id)}
                 onMouseLeave={() => setHover((h) => (h === p.id ? null : h))}
                 onClick={() => onPick(p)}

@@ -509,6 +509,19 @@ export function PlanStep({ trip, onChange }: Props) {
       </div>
       )}
 
+      {generating && (
+        <div className="plan-generating-overlay" role="status" aria-live="polite">
+          <div className="plan-generating-card">
+            <div className="plan-generating-spinner" aria-hidden />
+            <h3>✨ Planın hazırlanıyor</h3>
+            <p>
+              {totalDays} günlük rotayı saat saat kuruyoruz. AI ülkeye özel mutlaka görülmesi
+              gereken yerleri, ulaşımı ve restoranları yerleştiriyor…
+            </p>
+          </div>
+        </div>
+      )}
+
       {wizardOpen && (
         <div
           className="modal-backdrop"

@@ -7,7 +7,6 @@ import {
   getGuideDefaultsForCountry,
   recommendedFoods,
   isKidFriendly,
-  googleReviewsUrl,
   WALKING_TARGET_STEPS,
   type Trip,
   type PlaceSuggestion,
@@ -16,8 +15,9 @@ import {
   type TransportPreference,
   type PaymentPreference,
   type ChildProfile,
+  type DestinationFoodPrefs,
 } from '@japan-trip/shared';
-import { PlaceOrbitGrid } from '../PlaceOrbitGrid';
+import { ExploreCardGrid } from '../ExploreCardGrid';
 
 const INTEREST_OPTIONS: { id: InterestTag; label: string; emoji: string }[] = [
   { id: 'anime', label: 'Anime / Manga', emoji: '🎴' },
@@ -156,9 +156,32 @@ export function ExploreStep({ trip, onChange }: Props) {
     }), 2200);
   };
 
+  const normalizeTitle = (s: string) =>
+    s.replace(/^[^\p{L}\p{N}]+\s*/u, '').toLowerCase().trim();
+
+  const removePlaceByName = (name: string) => {
+    const target = normalizeTitle(name);
+    onChange((t) => ({
+      ...t,
+      days: t.days.map((d) => {
+        const items = d.items.filter((it) => normalizeTitle(it.title) !== target);
+        if (items.length === d.items.length) return d;
+        const tags = d.tags.filter((tg) => normalizeTitle(tg) !== target);
+        const themeNorm = d.theme ? normalizeTitle(d.theme) : '';
+        return {
+          ...d,
+          items,
+          tags,
+          theme: themeNorm === target ? `Gün ${d.dayNumber}` : d.theme,
+        };
+      }),
+    }));
+  };
+
   const addPlace = (dest: { id: string }, place: PlaceSuggestion) => {
     if (planPlaceNames.has(place.name.toLowerCase().trim())) {
-      markAdded(`${dest.id}:${place.id}`, '✓ Zaten planda');
+      removePlaceByName(place.name);
+      markAdded(`${dest.id}:${place.id}`, '✓ Plandan çıkarıldı');
       return;
     }
     const dests = (trip.preferences.destinations ?? []).slice().sort((a, b) => a.order - b.order);
@@ -179,6 +202,42 @@ export function ExploreStep({ trip, onChange }: Props) {
     if (chosenDay > 0) {
       markAdded(`${dest.id}:${place.id}`, `✓ Gün ${chosenDay}'e eklendi`);
     }
+  };
+
+  const getFoodPrefs = (t: Trip, destId: string): DestinationFoodPrefs => {
+    const found = t.preferences.destinationFood?.find((f) => f.destinationId === destId);
+    if (found) return found;
+    return {
+      destinationId: destId,
+      dietaryTags: [],
+      foodLikes: [],
+      foodDislikes: [],
+    };
+  };
+
+  const toggleFoodInPlan = (dest: { id: string }, label: string, key: string) => {
+    const current = getFoodPrefs(trip, dest.id);
+    const alreadyLiked = current.foodLikes.includes(label);
+    onChange((t) => {
+      const list = [...(t.preferences.destinationFood ?? [])];
+      const idx = list.findIndex((f) => f.destinationId === dest.id);
+      const base = idx >= 0 ? list[idx] : getFoodPrefs(t, dest.id);
+      const nextLikes = alreadyLiked
+        ? base.foodLikes.filter((x) => x !== label)
+        : [...base.foodLikes, label];
+      const next: DestinationFoodPrefs = {
+        ...base,
+        destinationId: dest.id,
+        foodLikes: nextLikes,
+      };
+      if (idx >= 0) list[idx] = next;
+      else list.push(next);
+      return {
+        ...t,
+        preferences: { ...t.preferences, destinationFood: list },
+      };
+    });
+    markAdded(key, alreadyLiked ? '✓ Plandan çıkarıldı' : '✓ Yemek planına eklendi');
   };
 
   const suggestKidRoute = (dest: { id: string; countryCode: string }) => {
@@ -385,8 +444,8 @@ export function ExploreStep({ trip, onChange }: Props) {
                     </button>
                   )}
                 </div>
-                <PlaceOrbitGrid
-                  places={(kidsMode
+                <ExploreCardGrid
+                  items={(kidsMode
                     ? [...places].sort(
                         (a, b) => Number(isKidFriendly(b)) - Number(isKidFriendly(a)),
                       )
@@ -394,12 +453,12 @@ export function ExploreStep({ trip, onChange }: Props) {
                   ).map((p) => ({
                     id: p.id,
                     name: p.name,
-                    city: p.city,
                     emoji: p.emoji,
                     category: p.category,
+                    meta: p.city,
                   }))}
-                  isInPlan={(p) => planPlaceNames.has(p.name.toLowerCase().trim())}
-                  onPick={(p) => {
+                  isSelected={(p) => planPlaceNames.has(p.name.toLowerCase().trim())}
+                  onToggle={(p) => {
                     const original = places.find((x) => x.id === p.id);
                     if (original) addPlace(dest, original);
                   }}
@@ -409,30 +468,35 @@ export function ExploreStep({ trip, onChange }: Props) {
                       .map((p) => [p.id, added[`${dest.id}:${p.id}`]] as const),
                   )}
                 />
-                <p className="orbit-hint">Dokunarak plana ekle · ✓ rozetli olanlar zaten planda</p>
+                <p className="orbit-hint">Dokunarak ekle · ✓ rozetli karta tekrar dokun → çıkar</p>
               </div>
             )}
 
             {foods.length > 0 && (
               <div className="explore-block">
                 <div className="explore-block-title">🍽️ Önerilen yemekler</div>
-                <PlaceOrbitGrid
-                  places={foods.map((f, idx) => ({
+                <ExploreCardGrid
+                  items={foods.map((f, idx) => ({
                     id: `food-${dest.id}-${idx}`,
                     name: f.label,
                     emoji: f.emoji ?? '🍽️',
                     category: 'food',
                   }))}
-                  isInPlan={() => false}
-                  onPick={(p) => {
-                    const url = googleReviewsUrl(
-                      `${p.name} ${dest.city || dest.countryName}`,
-                    );
-                    window.open(url, '_blank', 'noopener,noreferrer');
-                  }}
+                  isSelected={(p) =>
+                    getFoodPrefs(trip, dest.id).foodLikes.includes(p.name)
+                  }
+                  onToggle={(p) =>
+                    toggleFoodInPlan(dest, p.name, `food:${dest.id}:${p.id}`)
+                  }
+                  feedback={Object.fromEntries(
+                    foods
+                      .map((f, idx) => [`food-${dest.id}-${idx}`, f] as const)
+                      .filter(([id]) => added[`food:${dest.id}:${id}`])
+                      .map(([id]) => [id, added[`food:${dest.id}:${id}`]] as const),
+                  )}
                 />
                 <p className="orbit-hint">
-                  Dokunarak Google'da yöresel mekan ara
+                  Dokunarak yemek planına ekle · ✓ rozetli karta tekrar dokun → çıkar
                 </p>
               </div>
             )}

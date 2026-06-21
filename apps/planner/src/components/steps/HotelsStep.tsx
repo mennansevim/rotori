@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { newHotelId } from '@japan-trip/shared';
 import type { HotelStay, Trip } from '@japan-trip/shared';
 
@@ -15,6 +16,66 @@ const EMPTY_HOTEL = (start: string, end: string): HotelStay => ({
   address: '',
 });
 
+interface ParsedBooking {
+  name?: string;
+  city?: string;
+  checkIn?: string;
+  checkOut?: string;
+  mapsUrl?: string;
+  source: 'booking' | 'hostelworld' | 'unknown';
+}
+
+function titleCase(slug: string): string {
+  return slug
+    .replace(/[-_]+/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
+
+function parseBookingUrl(raw: string): ParsedBooking | null {
+  const text = raw.trim();
+  if (!text) return null;
+  let url: URL;
+  try {
+    url = new URL(text);
+  } catch {
+    return null;
+  }
+  const host = url.hostname.toLowerCase();
+  const checkIn = url.searchParams.get('checkin') || undefined;
+  const checkOut = url.searchParams.get('checkout') || undefined;
+
+  if (host.includes('booking.com')) {
+    const m = url.pathname.match(/\/hotel\/([a-z]{2})\/([^./]+)/i);
+    if (!m) return { source: 'booking', checkIn, checkOut };
+    const slug = m[2];
+    return {
+      source: 'booking',
+      name: titleCase(slug),
+      checkIn,
+      checkOut,
+    };
+  }
+
+  if (host.includes('hostelworld.com')) {
+    const segs = url.pathname.split('/').filter(Boolean);
+    const idx = segs.findIndex((s) => /hosteldetails/i.test(s));
+    const nameSlug = idx >= 0 ? segs[idx + 1] : segs[segs.length - 3];
+    const citySlug = idx >= 0 ? segs[idx + 2] : segs[segs.length - 2];
+    return {
+      source: 'hostelworld',
+      name: nameSlug ? titleCase(nameSlug) : undefined,
+      city: citySlug ? titleCase(citySlug) : undefined,
+      checkIn,
+      checkOut,
+    };
+  }
+
+  return { source: 'unknown', checkIn, checkOut };
+}
+
 export function hotelsComplete(trip: Trip): boolean {
   if (trip.hotels.length === 0) return false;
   return trip.hotels.every(
@@ -28,11 +89,50 @@ export function hotelsComplete(trip: Trip): boolean {
 }
 
 export function HotelsStep({ trip, onChange }: Props) {
+  const [importUrl, setImportUrl] = useState('');
+  const [importStatus, setImportStatus] = useState<{
+    kind: 'success' | 'error' | 'idle';
+    message: string;
+  }>({ kind: 'idle', message: '' });
+
   const addHotel = () => {
     onChange((t) => ({
       ...t,
       hotels: [...t.hotels, EMPTY_HOTEL(t.preferences.travelDates.start, t.preferences.travelDates.end)],
     }));
+  };
+
+  const importFromUrl = () => {
+    const parsed = parseBookingUrl(importUrl);
+    if (!parsed) {
+      setImportStatus({ kind: 'error', message: 'Geçerli bir URL yapıştır (Booking veya Hostelworld).' });
+      return;
+    }
+    if (parsed.source === 'unknown') {
+      setImportStatus({
+        kind: 'error',
+        message: 'Bu site desteklenmiyor. Booking.com veya Hostelworld linki yapıştır.',
+      });
+      return;
+    }
+    const start = trip.preferences.travelDates.start;
+    const end = trip.preferences.travelDates.end;
+    const hotel: HotelStay = {
+      id: newHotelId(),
+      city: parsed.city ?? '',
+      name: parsed.name ?? '',
+      checkIn: parsed.checkIn ?? start,
+      checkOut: parsed.checkOut ?? end,
+      address: '',
+      mapsUrl: importUrl.trim(),
+    };
+    onChange((t) => ({ ...t, hotels: [...t.hotels, hotel] }));
+    setImportUrl('');
+    const label = parsed.source === 'booking' ? 'Booking' : 'Hostelworld';
+    setImportStatus({
+      kind: 'success',
+      message: `${label}'dan içe aktarıldı: ${parsed.name ?? 'isimsiz'}. Eksik alanları doldurmayı unutma.`,
+    });
   };
 
   const updateHotel = (idx: number, patch: Partial<HotelStay>) => {
@@ -62,6 +162,58 @@ export function HotelsStep({ trip, onChange }: Props) {
         Her otel için açık adres zorunludur — taksi ve pusulada kullanılır. Yerel dilde adresi de
         ekleyin (Japonca, Korece vb.).
       </p>
+
+      <div className="booking-import">
+        <div className="booking-import-title">🔗 Rezervasyondan içe aktar</div>
+        <p className="booking-import-sub">
+          Booking.com veya Hostelworld'de yaptığın rezervasyonun linkini yapıştır — otel adı ve
+          tarihler otomatik dolar. Manuel ekleme her zaman aşağıdadır.
+        </p>
+        <div className="booking-import-links">
+          <a
+            className="booking-import-link"
+            href="https://www.booking.com/myreservations.tr.html"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            🛏️ Booking.com rezervasyonlarım
+          </a>
+          <a
+            className="booking-import-link"
+            href="https://www.hostelworld.com/myaccount/bookings"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            🏨 Hostelworld rezervasyonlarım
+          </a>
+        </div>
+        <div className="booking-import-row">
+          <input
+            value={importUrl}
+            placeholder="https://www.booking.com/hotel/jp/..."
+            onChange={(e) => setImportUrl(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                importFromUrl();
+              }
+            }}
+          />
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={importFromUrl}
+            disabled={!importUrl.trim()}
+          >
+            İçe aktar
+          </button>
+        </div>
+        {importStatus.kind !== 'idle' && (
+          <p className={`booking-import-feedback ${importStatus.kind}`}>
+            {importStatus.message}
+          </p>
+        )}
+      </div>
 
       {trip.hotels.length === 0 && (
         <div className="card">

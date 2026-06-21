@@ -6,7 +6,6 @@ import { TitleStep } from './components/steps/TitleStep';
 import { FoodStep } from './components/steps/FoodStep';
 import { PlanStep } from './components/steps/PlanStep';
 import { ExploreStep } from './components/steps/ExploreStep';
-import { CalendarStep } from './components/steps/CalendarStep';
 import { PublishStep } from './components/steps/PublishStep';
 import { HotelsStep, hotelsComplete } from './components/steps/HotelsStep';
 import { useTripDraft } from './hooks/useTripDraft';
@@ -48,7 +47,6 @@ export default function App() {
     if ((trip.preferences.destinationFood ?? []).some((f) => f.dietaryTags.length > 0 || f.foodLikes.length > 0))
       done.add('food');
     if (trip.days.some((d) => d.items.length > 0)) done.add('plan');
-    if (trip.days.length > 0) done.add('calendar');
     done.add('publish');
     return done;
   }, [trip]);
@@ -113,7 +111,6 @@ export default function App() {
         {step === 'hotels' && <HotelsStep trip={trip} onChange={updateTrip} />}
         {step === 'food' && <FoodStep trip={trip} onChange={updateTrip} />}
         {step === 'plan' && <PlanStep trip={trip} onChange={updateTrip} />}
-        {step === 'calendar' && <CalendarStep trip={trip} onChange={updateTrip} />}
         {step === 'publish' && (
           <PublishStep trip={trip} onExport={exportJson} onImport={importJson} username={username} />
         )}

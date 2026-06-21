@@ -6,8 +6,7 @@ export const STEPS = [
   { id: 'hotels', label: 'Konaklama', num: 5 },
   { id: 'food', label: 'Yemek', num: 6 },
   { id: 'plan', label: 'Plan', num: 7 },
-  { id: 'calendar', label: 'Takvim', num: 8 },
-  { id: 'publish', label: 'Yayın', num: 9 },
+  { id: 'publish', label: 'Yayın', num: 8 },
 ] as const;
 
 export type StepId = (typeof STEPS)[number]['id'];

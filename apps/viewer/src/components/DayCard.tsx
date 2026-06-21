@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { checkStepsOverLimit } from '@japan-trip/shared';
 import type { DayPlan, Trip } from '@japan-trip/shared';
 import { TipBubble } from './TipBubble';
 import { TimelineProgress } from './TimelineProgress';
@@ -37,7 +36,6 @@ interface Props {
 
 export function DayCard({ day, trip, expanded, isActive, isPast, onToggle }: Props) {
   const ref = useRef<HTMLElement>(null);
-  const stepWarn = checkStepsOverLimit(day, trip.preferences.maxStepsPerDay);
 
   const dayTotal = day.items.reduce((s, it) => s + (it.cost ?? 0), 0);
   const dayCurrency = day.items.find((it) => it.costCurrency)?.costCurrency;
@@ -98,9 +96,8 @@ export function DayCard({ day, trip, expanded, isActive, isPast, onToggle }: Pro
                 </a>
               )}
               {stepsLabel && (
-                <span className={`day-steps-est${stepWarn ? ' steps-warn' : ''}`}>
+                <span className="day-steps-est">
                   <strong>👟 {stepsLabel}</strong> adım
-                  {stepWarn && ' · limit aşıldı'}
                 </span>
               )}
               {day.taxiRecommended && <span>🚕 Taksi önerilir</span>}

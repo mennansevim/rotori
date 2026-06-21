@@ -64,20 +64,6 @@ export function checkShinkansenDeadline(
 
 export function collectTripWarnings(trip: Trip): TripWarning[] {
   const warnings: TripWarning[] = [];
-  const max = trip.preferences.maxStepsPerDay;
-
-  for (const day of trip.days) {
-    const w = checkStepsOverLimit(day, max);
-    if (w) warnings.push(w);
-    if (day.taxiRecommended) {
-      warnings.push({
-        id: `taxi-${day.dayNumber}`,
-        severity: 'info',
-        message: `Gün ${day.dayNumber}: yoğun gün — taksi (GO / Japan Taxi) düşünün.`,
-        dayNumber: day.dayNumber,
-      });
-    }
-  }
 
   warnings.push(...checkUnassignedMustSee(trip));
   const sh = checkShinkansenDeadline(trip.deadlines?.shinkansenBooking);
