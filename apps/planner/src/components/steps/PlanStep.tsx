@@ -15,6 +15,7 @@ import {
   type Trip,
   type WalkingTarget,
 } from '@japan-trip/shared';
+import { useModalFocus } from '../../hooks/useModalFocus';
 import { DayPlanCard } from '../DayPlanCard';
 import {
   generateItinerary,
@@ -85,6 +86,9 @@ export function PlanStep({ trip, onChange }: Props) {
   // wizard'ı çalıştırılınca açılır. Bilinçli olarak persist edilmiyor.
   const [planRevealed, setPlanRevealed] = useState(false);
   const generateAbortRef = useRef<AbortController | null>(null);
+  const wizardRef = useModalFocus<HTMLDivElement>(wizardOpen, () =>
+    setWizardOpen(false),
+  );
 
   const pace = trip.preferences.pace ?? 'moderate';
   const childrenCount = trip.preferences.childrenCount ?? 0;
@@ -559,6 +563,10 @@ export function PlanStep({ trip, onChange }: Props) {
             onAddItem={addItem}
             onAddDiscoveredPlace={addDiscoveredPlace}
             onOptimizeDay={optimizeDay}
+            allDays={trip.days.map((d) => ({ dayNumber: d.dayNumber, date: d.date }))}
+            onMoveItemToDay={(fromDay, idx, toDay) =>
+              moveItemBetweenDays(fromDay, idx, toDay)
+            }
           />
         ))}
       </div>
@@ -586,6 +594,7 @@ export function PlanStep({ trip, onChange }: Props) {
         >
           <div
             className="modal plan-wizard"
+            ref={wizardRef}
             onClick={(e) => e.stopPropagation()}
           >
             <h3>✨ Optimum gezi planı</h3>

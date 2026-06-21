@@ -6,6 +6,7 @@ import {
   type DayPlan,
   type Trip,
 } from '@japan-trip/shared';
+import { fetchWithTimeout } from './fetchWithTimeout';
 
 export type ItinerarySource = 'ai' | 'rules';
 export type ItineraryReason = 'ok' | 'not-configured' | 'ai-failed' | 'network' | 'unknown';
@@ -36,14 +37,16 @@ export async function generateItinerary(
 ): Promise<ItineraryResult> {
   let resp: Response;
   try {
-    resp = await fetch('/api/itinerary', {
+    resp = await fetchWithTimeout('/api/itinerary', {
       method: 'POST',
       headers: { 'content-type': 'application/json', accept: 'application/json' },
       body: JSON.stringify(trip),
       signal,
+      // Uzun trip için chunk başına +retry hesabı: 120s
+      timeoutMs: 120_000,
     });
   } catch (e) {
-    if ((e as { name?: string })?.name === 'AbortError') {
+    if (signal?.aborted) {
       throw e;
     }
     return rules(trip, 'network');

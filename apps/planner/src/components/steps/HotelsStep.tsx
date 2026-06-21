@@ -265,6 +265,8 @@ export function HotelsStep({ trip, onChange }: Props) {
                 <input
                   type="date"
                   value={h.checkIn}
+                  min={trip.preferences.travelDates.start}
+                  max={trip.preferences.travelDates.end}
                   onChange={(e) => updateHotel(idx, { checkIn: e.target.value })}
                 />
               </div>
@@ -273,6 +275,8 @@ export function HotelsStep({ trip, onChange }: Props) {
                 <input
                   type="date"
                   value={h.checkOut}
+                  min={h.checkIn || trip.preferences.travelDates.start}
+                  max={trip.preferences.travelDates.end}
                   onChange={(e) => updateHotel(idx, { checkOut: e.target.value })}
                 />
               </div>

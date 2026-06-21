@@ -19,6 +19,10 @@ interface Props {
   onAddItem: (dayNumber: number, title: string) => void;
   onAddDiscoveredPlace?: (dayNumber: number, place: DiscoveredPlace) => void;
   onOptimizeDay?: (dayNumber: number) => void;
+  /** Mobile-friendly taşıma için tüm günlerin (dayNumber, date) listesi. */
+  allDays?: { dayNumber: number; date: string }[];
+  /** Item'ı başka güne taşı (mobil tıklama akışı). */
+  onMoveItemToDay?: (fromDay: number, itemIndex: number, toDay: number) => void;
 }
 
 export function DayPlanCard({
@@ -37,7 +41,11 @@ export function DayPlanCard({
   onAddItem,
   onAddDiscoveredPlace,
   onOptimizeDay,
+  allDays,
+  onMoveItemToDay,
 }: Props) {
+  const [moveMenuOpenForIdx, setMoveMenuOpenForIdx] = useState<number | null>(null);
+
   const [discoverOpen, setDiscoverOpen] = useState(false);
   const [pickedCountInRun, setPickedCountInRun] = useState(0);
   const dest = getDestinationForDate(destinations, day.date);
@@ -175,6 +183,41 @@ export function DayPlanCard({
                   )}
                   {it.tips && <p className="itinerary-tl-tips">💡 {it.tips}</p>}
                 </div>
+                {allDays && allDays.length > 1 && onMoveItemToDay && (
+                  <div className="itinerary-tl-move-wrap">
+                    <button
+                      type="button"
+                      className="itinerary-tl-move"
+                      aria-label="Başka güne taşı"
+                      aria-expanded={moveMenuOpenForIdx === idx}
+                      onClick={() =>
+                        setMoveMenuOpenForIdx((cur) => (cur === idx ? null : idx))
+                      }
+                    >
+                      ↕
+                    </button>
+                    {moveMenuOpenForIdx === idx && (
+                      <div className="itinerary-tl-move-menu" role="menu">
+                        <div className="itinerary-tl-move-title">Hangi güne?</div>
+                        {allDays
+                          .filter((d) => d.dayNumber !== day.dayNumber)
+                          .map((d) => (
+                            <button
+                              key={d.dayNumber}
+                              type="button"
+                              className="itinerary-tl-move-item"
+                              onClick={() => {
+                                onMoveItemToDay(day.dayNumber, idx, d.dayNumber);
+                                setMoveMenuOpenForIdx(null);
+                              }}
+                            >
+                              Gün {d.dayNumber} · {d.date.slice(5)}
+                            </button>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <button
                   type="button"
                   className="itinerary-tl-remove"

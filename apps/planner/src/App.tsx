@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { NavBar } from './components/NavBar';
+import { useModalFocus } from './hooks/useModalFocus';
 import { WelcomeStep } from './components/steps/WelcomeStep';
 import { JourneyStep } from './components/steps/JourneyStep';
 import { TitleStep } from './components/steps/TitleStep';
@@ -28,6 +29,9 @@ export default function App() {
   } = useTripDraft();
   const [step, setStep] = useState<StepId>('welcome');
   const [showNewModal, setShowNewModal] = useState(false);
+  const newModalRef = useModalFocus<HTMLDivElement>(showNewModal, () =>
+    setShowNewModal(false),
+  );
 
   const completedSteps = useMemo(() => {
     const done = new Set<StepId>();
@@ -181,7 +185,7 @@ export default function App() {
           aria-modal="true"
           onClick={() => setShowNewModal(false)}
         >
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal" ref={newModalRef} onClick={(e) => e.stopPropagation()}>
             <h3>Yeni plan</h3>
             <p>
               Japonya 14 günlük tam plan ile hızlı başlayabilir veya boş bir plandan

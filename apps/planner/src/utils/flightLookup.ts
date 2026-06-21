@@ -1,4 +1,5 @@
 import { getAirport, airlineIcao, type Airport } from '@japan-trip/shared';
+import { fetchWithTimeout } from './fetchWithTimeout';
 
 export interface FlightEndpoint {
   iata: string;
@@ -69,7 +70,10 @@ export async function lookupFlight(
 
   let resp: Response;
   try {
-    resp = await fetch(url, { headers: { accept: 'application/json' } });
+    resp = await fetchWithTimeout(url, {
+      headers: { accept: 'application/json' },
+      timeoutMs: 15_000,
+    });
   } catch {
     throw new Error('network');
   }

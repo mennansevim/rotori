@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchWikipediaThumbnail } from '../utils/wikipediaImage';
+import { fetchWithTimeout } from '../utils/fetchWithTimeout';
+import { useModalFocus } from '../hooks/useModalFocus';
 
 export interface DiscoveredPlace {
   id: string;
@@ -151,7 +153,7 @@ export function PlaceDiscoveryModal({
     };
 
     let cancelled = false;
-    fetch(`/api/discover?${params.toString()}`)
+    fetchWithTimeout(`/api/discover?${params.toString()}`, { timeoutMs: 20_000 })
       .then(async (resp) => {
         if (cancelled) return;
         if (resp.status === 501) {
@@ -186,6 +188,8 @@ export function PlaceDiscoveryModal({
     return `${flag}${city || country || ''}`;
   }, [city, country, countryFlag]);
 
+  const modalRef = useModalFocus<HTMLDivElement>(open, onClose);
+
   if (!open) return null;
 
   const handlePick = (place: DiscoveredPlace) => {
@@ -199,7 +203,7 @@ export function PlaceDiscoveryModal({
 
   return (
     <div className="modal-backdrop discover-backdrop" role="dialog" aria-modal="true" onClick={onClose}>
-      <div className="discover-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="discover-modal" ref={modalRef} onClick={(e) => e.stopPropagation()}>
         <header className="discover-head">
           <div>
             <div className="discover-overline">Keşif portalı</div>
