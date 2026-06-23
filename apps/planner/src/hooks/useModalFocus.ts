@@ -19,6 +19,12 @@ export function useModalFocus<T extends HTMLElement = HTMLDivElement>(
   onClose: () => void,
 ) {
   const containerRef = useRef<T | null>(null);
+  // onClose her render'da yeni referans olabilir; ref ile sakla ki effect
+  // her keystroke'ta yeniden tetiklenip focus'u input'tan kaçırmasın.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -33,7 +39,7 @@ export function useModalFocus<T extends HTMLElement = HTMLDivElement>(
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== 'Tab') return;
@@ -63,7 +69,7 @@ export function useModalFocus<T extends HTMLElement = HTMLDivElement>(
       document.removeEventListener('keydown', handleKey);
       previouslyFocused?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   return containerRef;
 }

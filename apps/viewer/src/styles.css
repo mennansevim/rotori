@@ -300,6 +300,19 @@ a {
   margin: 0 auto;
 }
 
+.header-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 24px;
+}
+
+.header-badge-row .header-badge,
+.header-badge-row .rewards-chip {
+  margin-bottom: 0;
+}
+
 .header-badge {
   display: inline-flex;
   align-items: center;
@@ -1103,9 +1116,14 @@ a {
 .prejapan-section {
   margin: 24px 0;
   border-radius: 16px;
-  background: var(--card-bg, #fff);
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  background: var(--bg-card, #12121a);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   overflow: hidden;
+}
+
+[data-theme='apple-light'] .prejapan-section,
+[data-theme='sakura-soft'] .prejapan-section {
+  border-color: rgba(15, 23, 42, 0.08);
 }
 
 .prejapan-header {
@@ -1118,13 +1136,14 @@ a {
   border: none;
   cursor: pointer;
   text-align: left;
-  color: inherit;
+  color: var(--text-primary, #ffffff);
 }
 
 .prejapan-title {
   font-size: 17px;
   font-weight: 700;
   margin: 0;
+  color: var(--text-primary, #ffffff);
 }
 
 .prejapan-subtitle {
@@ -1954,9 +1973,15 @@ a {
 .rewards-panel {
   margin: 18px 0;
   padding: 18px;
-  background: var(--card-bg, #fff);
+  background: var(--bg-card, #12121a);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 16px;
+  color: var(--text-primary, #ffffff);
+}
+
+[data-theme='apple-light'] .rewards-panel,
+[data-theme='sakura-soft'] .rewards-panel {
+  border-color: rgba(15, 23, 42, 0.08);
 }
 
 .rewards-progress {
@@ -2024,6 +2049,11 @@ a {
   font-size: 13px;
   font-weight: 700;
   margin-bottom: 4px;
+  color: var(--text-primary, #ffffff);
+}
+
+.badge-card:not(.earned) .badge-title {
+  color: var(--text-secondary, #94a3b8);
 }
 
 .badge-desc {
@@ -2036,6 +2066,547 @@ a {
   font-size: 10px;
   margin-top: 8px;
   color: var(--text-tertiary, #94a3b8);
+}
+
+/* ---- Rewards header chip + modal ---- */
+
+.rewards-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 100px;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(236, 72, 153, 0.14));
+  color: var(--text-primary, #ffffff);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+  margin-bottom: 24px;
+  margin-left: 8px;
+}
+
+.rewards-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(245, 158, 11, 0.25);
+  border-color: rgba(245, 158, 11, 0.55);
+}
+
+.rewards-chip-emoji {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.rewards-chip-meta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.rewards-chip-level {
+  font-weight: 700;
+}
+
+.rewards-chip-sep {
+  opacity: 0.5;
+}
+
+.rewards-chip-count {
+  font-size: 12px;
+  color: var(--text-secondary, #cbd5e1);
+}
+
+.rewards-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 300;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 5vh 16px 16px;
+  overflow-y: auto;
+  animation: rewardsModalFadeIn 0.18s ease;
+}
+
+@keyframes rewardsModalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.rewards-modal {
+  width: 100%;
+  max-width: 920px;
+  background: var(--bg-card, #12121a);
+  color: var(--text-primary, #ffffff);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  animation: rewardsModalRise 0.22s ease;
+}
+
+@keyframes rewardsModalRise {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+[data-theme='apple-light'] .rewards-modal,
+[data-theme='sakura-soft'] .rewards-modal {
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2);
+}
+
+.rewards-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary, #ffffff);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s;
+}
+
+.rewards-modal-close:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.rewards-modal .rewards-panel,
+.rewards-modal .reward-map {
+  margin: 0;
+  border: 0;
+  border-radius: 18px;
+  position: relative;
+}
+
+/* ---- Reward Map screen ---- */
+
+.reward-map {
+  padding: 22px;
+  color: var(--text-primary, #ffffff);
+}
+
+.reward-map-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.reward-map-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f59e0b, #ec4899);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  flex-shrink: 0;
+}
+
+.reward-map-head-text h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary, #ffffff);
+}
+
+.reward-map-head-text p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.reward-map-progress {
+  margin: 6px 0 18px;
+}
+
+.reward-map-progress-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.reward-map-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #ec4899);
+  transition: width 0.4s ease;
+}
+
+.reward-map-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary, #94a3b8);
+  margin-top: 6px;
+}
+
+.reward-map-svg-wrap {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+[data-theme='apple-light'] .reward-map-svg-wrap,
+[data-theme='sakura-soft'] .reward-map-svg-wrap {
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.reward-map-svg-wrap svg {
+  width: 100%;
+  display: block;
+}
+
+.map-regions path {
+  stroke-width: 0.5;
+  vector-effect: non-scaling-stroke;
+  transition: fill 0.2s;
+}
+
+.map-region-hokkaido { fill: #3f5169; stroke: #2c3a4d; }
+.map-region-tohoku   { fill: #4a5a6e; stroke: #34414f; }
+.map-region-kanto    { fill: #6a4f7a; stroke: #4c3858; }
+.map-region-chubu    { fill: #5a4d3c; stroke: #40362a; }
+.map-region-kansai   { fill: #7a4f56; stroke: #58383e; }
+.map-region-chugoku  { fill: #3e5446; stroke: #2b3b31; }
+.map-region-shikoku  { fill: #4f6a4a; stroke: #384c34; }
+.map-region-kyushu   { fill: #7a5a3a; stroke: #58402a; }
+.map-region-okinawa  { fill: #355c5b; stroke: #254241; }
+
+[data-theme='apple-light'] .map-region-hokkaido,
+[data-theme='sakura-soft'] .map-region-hokkaido { fill: #cdd9e8; stroke: #aabbd0; }
+[data-theme='apple-light'] .map-region-tohoku,
+[data-theme='sakura-soft'] .map-region-tohoku   { fill: #d3dde8; stroke: #b0bccc; }
+[data-theme='apple-light'] .map-region-kanto,
+[data-theme='sakura-soft'] .map-region-kanto    { fill: #e0d3ea; stroke: #c4b0d4; }
+[data-theme='apple-light'] .map-region-chubu,
+[data-theme='sakura-soft'] .map-region-chubu    { fill: #ecdfcc; stroke: #d4bf9d; }
+[data-theme='apple-light'] .map-region-kansai,
+[data-theme='sakura-soft'] .map-region-kansai   { fill: #eed4d8; stroke: #d4a8b0; }
+[data-theme='apple-light'] .map-region-chugoku,
+[data-theme='sakura-soft'] .map-region-chugoku  { fill: #d6e3d4; stroke: #a8c4a8; }
+[data-theme='apple-light'] .map-region-shikoku,
+[data-theme='sakura-soft'] .map-region-shikoku  { fill: #d8e6cf; stroke: #aac99a; }
+[data-theme='apple-light'] .map-region-kyushu,
+[data-theme='sakura-soft'] .map-region-kyushu   { fill: #ecddc8; stroke: #d4bc94; }
+[data-theme='apple-light'] .map-region-okinawa,
+[data-theme='sakura-soft'] .map-region-okinawa  { fill: #cee3e0; stroke: #9ec9c4; }
+
+.map-inset-divider {
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+[data-theme='apple-light'] .map-inset-divider,
+[data-theme='sakura-soft'] .map-inset-divider {
+  stroke: rgba(15, 23, 42, 0.12);
+}
+
+.map-region-labels text {
+  font-size: 11px;
+  fill: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.35);
+  stroke-width: 2.5;
+}
+
+[data-theme='apple-light'] .map-region-labels text,
+[data-theme='sakura-soft'] .map-region-labels text {
+  fill: rgba(15, 23, 42, 0.75);
+  stroke: rgba(255, 255, 255, 0.6);
+}
+
+[data-theme='apple-light'] .map-region-labels text,
+[data-theme='sakura-soft'] .map-region-labels text {
+  fill: rgba(15, 23, 42, 0.55);
+}
+
+.map-pin .map-pin-dot {
+  fill: rgba(255, 255, 255, 0.55);
+  stroke: rgba(255, 255, 255, 0.3);
+  stroke-width: 1;
+}
+
+.map-pin .map-pin-label {
+  fill: rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+}
+
+[data-theme='apple-light'] .map-pin .map-pin-dot,
+[data-theme='sakura-soft'] .map-pin .map-pin-dot {
+  fill: rgba(15, 23, 42, 0.45);
+  stroke: rgba(15, 23, 42, 0.25);
+}
+
+[data-theme='apple-light'] .map-pin .map-pin-label,
+[data-theme='sakura-soft'] .map-pin .map-pin-label {
+  fill: rgba(15, 23, 42, 0.55);
+}
+
+.map-pin-progress .map-pin-halo {
+  fill: #f59e0b;
+  opacity: 0.18;
+}
+
+.map-pin-progress .map-pin-dot {
+  fill: #f59e0b;
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+.map-pin-progress .map-pin-label {
+  fill: #f59e0b;
+}
+
+.map-pin-earned .map-pin-halo {
+  fill: #facc15;
+  opacity: 0.28;
+  animation: mapPinPulse 2.2s ease-in-out infinite;
+}
+
+.map-pin-earned .map-pin-dot {
+  fill: #facc15;
+  stroke: #fff;
+  stroke-width: 2;
+}
+
+.map-pin-earned .map-pin-label {
+  fill: #fde68a;
+  font-weight: 600;
+}
+
+[data-theme='apple-light'] .map-pin-earned .map-pin-label,
+[data-theme='sakura-soft'] .map-pin-earned .map-pin-label {
+  fill: #b45309;
+}
+
+@keyframes mapPinPulse {
+  0%, 100% { opacity: 0.18; transform-origin: center; }
+  50% { opacity: 0.32; }
+}
+
+.reward-map-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.reward-map-stat {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+[data-theme='apple-light'] .reward-map-stat,
+[data-theme='sakura-soft'] .reward-map-stat {
+  background: rgba(15, 23, 42, 0.05);
+}
+
+.reward-map-stat span {
+  font-size: 12px;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.reward-map-stat strong {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary, #ffffff);
+}
+
+.reward-map-tracking {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.reward-map-tracking-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 220px;
+}
+
+.reward-map-tracking-text strong {
+  font-size: 14px;
+  color: var(--text-primary, #ffffff);
+}
+
+.reward-map-tracking-text span {
+  font-size: 12px;
+  color: var(--text-secondary, #94a3b8);
+  line-height: 1.5;
+}
+
+.reward-map-track-btn {
+  background: linear-gradient(135deg, #f59e0b, #ec4899);
+  color: #fff;
+  border: 0;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+
+.reward-map-track-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(236, 72, 153, 0.3);
+}
+
+.reward-map-list {
+  margin-bottom: 22px;
+}
+
+.reward-map-list-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: var(--text-primary, #ffffff);
+}
+
+.reward-map-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reward-map-row {
+  display: grid;
+  grid-template-columns: 32px 1fr 160px auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.reward-map-row.earned {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(236, 72, 153, 0.08));
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.reward-map-row-emoji {
+  font-size: 22px;
+  text-align: center;
+}
+
+.reward-map-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.reward-map-row-info strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+}
+
+.reward-map-row-city {
+  font-size: 11px;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.reward-map-row-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.reward-map-row-bar {
+  height: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.reward-map-row-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #ec4899);
+  transition: width 0.4s ease;
+}
+
+.reward-map-row-progress span {
+  font-size: 11px;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.reward-map-row-xp {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f59e0b;
+  text-align: right;
+}
+
+.reward-map-activity {
+  margin-top: 8px;
+}
+
+.reward-map-activity-note {
+  font-size: 12px;
+  color: var(--text-secondary, #94a3b8);
+  margin: 0 0 10px;
+}
+
+@media (max-width: 640px) {
+  .reward-map {
+    padding: 16px;
+  }
+  .reward-map-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+  .reward-map-row {
+    grid-template-columns: 28px 1fr;
+    grid-template-rows: auto auto;
+    gap: 4px 10px;
+  }
+  .reward-map-row-progress {
+    grid-column: 1 / -1;
+  }
+  .reward-map-row-xp {
+    grid-column: 2;
+    grid-row: 1;
+    text-align: right;
+  }
 }
 
 .badge-toast {

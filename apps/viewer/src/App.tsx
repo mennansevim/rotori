@@ -21,7 +21,10 @@ import { EditModal } from './components/EditModal';
 import { MorningSummary } from './components/MorningSummary';
 import { WeatherStrip } from './components/WeatherStrip';
 import { CalendarView } from './components/CalendarView';
-import { RewardsPanel } from './components/RewardsPanel';
+import { RewardsBadge } from './components/RewardsBadge';
+import { RewardMap } from './components/RewardMap';
+import { useGeofence } from './hooks/useGeofence';
+import { POPULAR_GEOFENCES } from '@japan-trip/shared';
 import { CommunityBeta } from './components/CommunityBeta';
 import {
   loadStats,
@@ -135,6 +138,7 @@ export default function App() {
   const [stats, setStats] = useState<UserStats>(() => loadStats(username));
   const [badgeToast, setBadgeToast] = useState<BadgeDefinition | null>(null);
   const [dayView, setDayViewState] = useState<DayView>(() => loadStoredDayView(username));
+  const [rewardsOpen, setRewardsOpen] = useState(false);
 
   const setDayView = (v: DayView) => {
     setDayViewState(v);
@@ -170,6 +174,14 @@ export default function App() {
     setToast(msg);
     window.setTimeout(() => setToast((m) => (m === msg ? null : m)), 4200);
   };
+
+  const geofence = useGeofence({
+    username,
+    fences: POPULAR_GEOFENCES,
+    onCompleted: (fence) => {
+      showToast(`📍 ${fence.emoji} ${fence.name} keşfedildi! +${fence.xp} XP`);
+    },
+  });
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -267,12 +279,15 @@ export default function App() {
       />
 
       <header className="header">
-        {(totalDays > 0 || nights > 0) && (
-          <div className="header-badge">
-            <span>✈️</span>
-            <span>
-              {totalDays} Gün{nights > 0 ? ` · ${nights} Gece` : ''}
-            </span>
+        {((totalDays > 0 || nights > 0)) && (
+          <div className="header-badge-row">
+            <div className="header-badge">
+              <span>✈️</span>
+              <span>
+                {totalDays} Gün{nights > 0 ? ` · ${nights} Gece` : ''}
+              </span>
+            </div>
+            <RewardsBadge stats={stats} onOpen={() => setRewardsOpen(true)} />
           </div>
         )}
         <h1>{trip.title || 'İsimsiz Seyahat'}</h1>
@@ -488,7 +503,6 @@ export default function App() {
         <PreJapanGuide />
         <QuickReference trip={trip} />
         <Pusula trip={trip} />
-        <RewardsPanel stats={stats} />
         <CommunityBeta
           trip={trip}
           community={stats.community}
@@ -570,6 +584,34 @@ export default function App() {
           <div>
             <strong>Rozet kazandın: {badgeToast.title}</strong>
             <p>{badgeToast.description}</p>
+          </div>
+        </div>
+      )}
+
+      {rewardsOpen && (
+        <div
+          className="rewards-modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Keşif haritası"
+          onClick={() => setRewardsOpen(false)}
+        >
+          <div className="rewards-modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="rewards-modal-close"
+              onClick={() => setRewardsOpen(false)}
+              aria-label="Kapat"
+            >
+              ✕
+            </button>
+            <RewardMap
+              stats={stats}
+              visits={geofence.visits}
+              permission={geofence.permission}
+              onStartTracking={geofence.start}
+              onStopTracking={geofence.stop}
+            />
           </div>
         </div>
       )}

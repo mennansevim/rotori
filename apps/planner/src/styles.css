@@ -3314,6 +3314,139 @@ a:hover {
   text-align: center;
 }
 
+.child-count-group {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.child-count-chip {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 14px 8px;
+  min-height: 72px;
+  border-radius: 14px;
+  text-align: center;
+}
+
+.child-count-num {
+  font-size: 22px !important;
+  font-weight: 700;
+  color: inherit !important;
+  line-height: 1;
+}
+
+.child-count-label {
+  font-size: 11px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b !important;
+}
+
+.child-count-chip.chip-active .child-count-label {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.child-ages-wrap {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed #e5e7eb;
+}
+
+.child-ages-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+
+.child-age-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.child-age-tag {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6366f1;
+  background: #eef2ff;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.child-age-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 2px;
+}
+
+.child-age-btn {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
+}
+
+.child-age-btn:hover {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.child-age-value {
+  min-width: 28px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.child-age-unit {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .child-count-group {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .child-count-chip {
+    min-height: 64px;
+    padding: 10px 4px;
+  }
+  .child-count-num {
+    font-size: 18px !important;
+  }
+  .child-count-label {
+    font-size: 10px !important;
+  }
+}
+
 .sensitivity-card .chip-group {
   margin-top: 8px;
 }

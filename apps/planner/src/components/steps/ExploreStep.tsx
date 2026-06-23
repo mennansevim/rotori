@@ -4,16 +4,11 @@ import {
   pickBestDayForDestination,
   getDestinationProfile,
   getDestinationForDate,
-  getGuideDefaultsForCountry,
   recommendedFoods,
   isKidFriendly,
-  WALKING_TARGET_STEPS,
   type Trip,
   type PlaceSuggestion,
   type InterestTag,
-  type WalkingTarget,
-  type TransportPreference,
-  type PaymentPreference,
   type ChildProfile,
   type DestinationFoodPrefs,
 } from '@japan-trip/shared';
@@ -32,25 +27,7 @@ const INTEREST_OPTIONS: { id: InterestTag; label: string; emoji: string }[] = [
   { id: 'food', label: 'Yemek keşfi', emoji: '🍜' },
 ];
 
-const WALKING_OPTIONS: { id: WalkingTarget; label: string; range: string }[] = [
-  { id: 'light', label: 'Az yürüyüş', range: '5.000–8.000 adım' },
-  { id: 'moderate', label: 'Orta tempo', range: '8.000–13.000 adım' },
-  { id: 'intense', label: 'Yoğun tempo', range: '13.000+ adım' },
-];
-
-const TRANSPORT_OPTIONS: { id: TransportPreference; label: string; emoji: string }[] = [
-  { id: 'transit', label: 'Metro / tren', emoji: '🚇' },
-  { id: 'taxi_assisted', label: 'Taksi destekli', emoji: '🚕' },
-  { id: 'walking', label: 'Yürüyüş ağırlıklı', emoji: '🚶' },
-  { id: 'mixed', label: 'Karışık', emoji: '🔀' },
-];
-
-const PAYMENT_OPTIONS: { id: PaymentPreference; label: string; emoji: string }[] = [
-  { id: 'credit_card', label: 'Kredi kartı', emoji: '💳' },
-  { id: 'cash', label: 'Nakit', emoji: '💴' },
-  { id: 'credit_and_cash', label: 'Kart + nakit', emoji: '🔄' },
-  { id: 'ic_card', label: 'IC kart (Suica/Pasmo)', emoji: '🎫' },
-];
+const CHILD_COUNT_OPTIONS = [0, 1, 2, 3, 4] as const;
 
 interface Props {
   trip: Trip;
@@ -80,32 +57,7 @@ export function ExploreStep({ trip, onChange }: Props) {
   const childProfiles = prefs.childProfiles ?? [];
   const childrenCount = childProfiles.length || prefs.childrenCount || 0;
   const kidsMode = childrenCount > 0;
-  const walkingTarget: WalkingTarget = prefs.walkingTarget ?? 'moderate';
-  const transportPreference: TransportPreference = prefs.transportPreference ?? 'mixed';
-  const paymentPreference: PaymentPreference = prefs.paymentPreference ?? 'credit_and_cash';
   const interests: InterestTag[] = prefs.interests ?? [];
-
-  const setWalkingTarget = (target: WalkingTarget) =>
-    onChange((t) => ({
-      ...t,
-      preferences: {
-        ...t.preferences,
-        walkingTarget: target,
-        maxStepsPerDay: WALKING_TARGET_STEPS[target],
-      },
-    }));
-
-  const setTransportPreference = (mode: TransportPreference) =>
-    onChange((t) => ({
-      ...t,
-      preferences: { ...t.preferences, transportPreference: mode },
-    }));
-
-  const setPaymentPreference = (mode: PaymentPreference) =>
-    onChange((t) => ({
-      ...t,
-      preferences: { ...t.preferences, paymentPreference: mode },
-    }));
 
   const toggleInterest = (tag: InterestTag) =>
     onChange((t) => {
@@ -278,90 +230,56 @@ export function ExploreStep({ trip, onChange }: Props) {
 
       <section className="prefs-panel">
         <div className="prefs-block">
-          <div className="prefs-block-title">🚶 Günlük yürüyüş hedefi</div>
-          <div className="chip-group" role="radiogroup">
-            {WALKING_OPTIONS.map((opt) => (
-              <button
-                type="button"
-                key={opt.id}
-                role="radio"
-                aria-checked={walkingTarget === opt.id}
-                className={`chip${walkingTarget === opt.id ? ' chip-active' : ''}`}
-                onClick={() => setWalkingTarget(opt.id)}
-              >
-                <strong>{opt.label}</strong>
-                <span>{opt.range}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="prefs-block">
-          <div className="prefs-block-title">🚇 Ulaşım tercihi</div>
-          <div className="chip-group" role="radiogroup">
-            {TRANSPORT_OPTIONS.map((opt) => (
-              <button
-                type="button"
-                key={opt.id}
-                role="radio"
-                aria-checked={transportPreference === opt.id}
-                className={`chip${transportPreference === opt.id ? ' chip-active' : ''}`}
-                onClick={() => setTransportPreference(opt.id)}
-              >
-                <span>{opt.emoji}</span> {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="prefs-block">
-          <div className="prefs-block-title">💴 Ödeme yöntemi</div>
-          <div className="chip-group" role="radiogroup">
-            {PAYMENT_OPTIONS.map((opt) => (
-              <button
-                type="button"
-                key={opt.id}
-                role="radio"
-                aria-checked={paymentPreference === opt.id}
-                className={`chip${paymentPreference === opt.id ? ' chip-active' : ''}`}
-                onClick={() => setPaymentPreference(opt.id)}
-              >
-                <span>{opt.emoji}</span> {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="prefs-block">
           <div className="prefs-block-title">👶 Çocuk profili</div>
-          <div className="prefs-row">
-            <label className="prefs-row-label">Kaç çocuk?</label>
-            <select
-              value={childrenCount}
-              onChange={(e) => setChildrenCount(Number(e.target.value))}
-            >
-              {[0, 1, 2, 3, 4].map((n) => (
-                <option key={n} value={n}>
-                  {n === 0 ? 'Çocuk yok' : `${n} çocuk`}
-                </option>
-              ))}
-            </select>
+          <p className="prefs-hint">Yanında gelen çocuk varsa seç — plan çocuk dostu kurulur.</p>
+          <div className="child-count-group" role="radiogroup" aria-label="Çocuk sayısı">
+            {CHILD_COUNT_OPTIONS.map((n) => {
+              const active = childrenCount === n;
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  className={`chip child-count-chip${active ? ' chip-active' : ''}`}
+                  onClick={() => setChildrenCount(n)}
+                >
+                  <span className="child-count-num">{n === 0 ? '—' : n}</span>
+                  <span className="child-count-label">
+                    {n === 0 ? 'Çocuk yok' : n === 1 ? 'çocuk' : 'çocuk'}
+                  </span>
+                </button>
+              );
+            })}
           </div>
           {childProfiles.length > 0 && (
-            <div className="prefs-row prefs-row-ages">
-              <label className="prefs-row-label">Yaşları</label>
+            <div className="child-ages-wrap">
+              <div className="child-ages-title">Yaşları</div>
               <div className="child-ages">
                 {childProfiles.map((c, i) => (
-                  <label key={c.id} className="child-age-input">
-                    <span>#{i + 1}</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={18}
-                      value={c.age}
-                      onChange={(e) => setChildAge(c.id, Number(e.target.value))}
-                    />
-                  </label>
+                  <div key={c.id} className="child-age-card">
+                    <span className="child-age-tag">Çocuk {i + 1}</span>
+                    <div className="child-age-stepper">
+                      <button
+                        type="button"
+                        aria-label="Yaşı azalt"
+                        className="child-age-btn"
+                        onClick={() => setChildAge(c.id, Math.max(0, c.age - 1))}
+                      >
+                        −
+                      </button>
+                      <span className="child-age-value">{c.age}</span>
+                      <button
+                        type="button"
+                        aria-label="Yaşı arttır"
+                        className="child-age-btn"
+                        onClick={() => setChildAge(c.id, Math.min(18, c.age + 1))}
+                      >
+                        +
+                      </button>
+                    </div>
+                    <span className="child-age-unit">yaş</span>
+                  </div>
                 ))}
               </div>
             </div>
@@ -394,9 +312,7 @@ export function ExploreStep({ trip, onChange }: Props) {
 
       {destinations.map((dest) => {
         const profile = getDestinationProfile(dest.countryCode);
-        const guide = getGuideDefaultsForCountry(dest.countryCode);
         const foods = recommendedFoods(dest.countryCode);
-        const arrivalTips = guide?.practicalTips ?? [];
         let places = profile?.popularPlaces ?? [];
         if (kidsMode) {
           places = [...places].sort(
@@ -412,23 +328,6 @@ export function ExploreStep({ trip, onChange }: Props) {
               </h3>
               {dest.city && <span className="explore-city">{dest.city}</span>}
             </div>
-
-            {arrivalTips.length > 0 && (
-              <div className="explore-block">
-                <div className="explore-block-title">🛬 İlk gün yapılacaklar</div>
-                <div className="explore-tips">
-                  {arrivalTips.map((tip) => (
-                    <div key={tip.id} className="explore-tip">
-                      <span className="explore-tip-icon">{tip.icon}</span>
-                      <div>
-                        <strong>{tip.title}</strong>
-                        <p>{tip.body}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {places.length > 0 && (
               <div className="explore-block">

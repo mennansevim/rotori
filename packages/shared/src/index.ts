@@ -19,3 +19,4 @@ export * from './preJapan.js';
 export * from './rewards.js';
 export * from './cityTransfers.js';
 export * from './fillEmptyDays.js';
+export * from './geofence.js';
