@@ -1,0 +1,42 @@
+{
+  "common": {
+    "back": "Back",
+    "continue": "Continue",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "loading": "Loading…",
+    "retry": "🔄 Try again"
+  },
+  "nav": {
+    "welcome": "Start",
+    "journey": "Route",
+    "explore": "Discover",
+    "title": "Title",
+    "hotels": "Hotels",
+    "food": "Food",
+    "plan": "Plan",
+    "calendar": "Calendar",
+    "publish": "Publish",
+    "newPlan": "New plan",
+    "guide": "Guide",
+    "brand": "Trip"
+  },
+  "welcome": {
+    "greeting": "Welcome to Japan",
+    "subPrompt": "Where shall we start?",
+    "ticketCardTitle": "I have a ticket",
+    "ticketCardDesc": "Enter flight details or upload a ticket photo",
+    "planCardTitle": "Plan a trip",
+    "planCardDesc": "Let's pick the best dates together"
+  },
+  "errors": {
+    "boundaryTitle": "Something went wrong",
+    "boundaryBody": "An unexpected error occurred. Try reloading — your plan is safe in localStorage.",
+    "reload": "Reload page",
+    "retry": "Try again",
+    "offline": "⚠️ You're offline — saved plan visible, AI generation unavailable",
+    "backOnline": "✓ Connection restored"
+  }
+}

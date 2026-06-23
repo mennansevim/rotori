@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { i18n } from '../i18n';
 
 interface Props {
   children: ReactNode;
@@ -29,23 +30,21 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (!this.state.error) return this.props.children;
+    const t = i18n.t.bind(i18n);
     return (
       <div className="error-boundary">
         <div className="error-boundary-icon">⚠️</div>
-        <h2>Bir şeyler ters gitti</h2>
-        <p>
-          Uygulamada beklenmedik bir hata oluştu. Sayfayı yenilemeyi deneyebilirsin —
-          planın <code>localStorage</code>'da güvende.
-        </p>
+        <h2>{t('errors.boundaryTitle')}</h2>
+        <p>{t('errors.boundaryBody')}</p>
         <pre className="error-boundary-trace">
           {this.state.error.name}: {this.state.error.message}
         </pre>
         <div className="error-boundary-actions">
           <button type="button" className="btn btn-primary" onClick={this.reload}>
-            Sayfayı yenile
+            {t('errors.reload')}
           </button>
           <button type="button" className="btn btn-secondary" onClick={this.reset}>
-            Tekrar dene
+            {t('errors.retry')}
           </button>
         </div>
       </div>

@@ -1,4 +1,6 @@
+import { useTranslation } from 'react-i18next';
 import { STEPS, type StepId } from '../steps';
+import { setLang } from '../i18n';
 
 interface Props {
   step: StepId;
@@ -16,24 +18,35 @@ export function NavBar({
   onNewPlan,
   lockedSteps,
 }: Props) {
+  const { t, i18n } = useTranslation();
+  const otherLang = i18n.language?.startsWith('en') ? 'tr' : 'en';
   return (
     <header className="top-nav">
       <div className="top-nav-inner">
         <a href="/planner/" className="brand">
           <span className="brand-icon">✈️</span>
-          <span>Seyahat</span>
+          <span>{t('nav.brand')}</span>
         </a>
         <div className="top-nav-actions">
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={() => setLang(otherLang as 'tr' | 'en')}
+            title={otherLang.toUpperCase()}
+            aria-label={`Language: ${otherLang.toUpperCase()}`}
+          >
+            🌐 {otherLang.toUpperCase()}
+          </button>
           <button type="button" className="btn-ghost" onClick={onNewPlan}>
-            Yeni plan
+            {t('nav.newPlan')}
           </button>
           <a href="/viewer/" className="btn-ghost">
-            Rehber
+            {t('nav.guide')}
           </a>
         </div>
       </div>
       <div className="step-nav-wrap">
-        <nav className="step-nav" aria-label="Plan adımları">
+        <nav className="step-nav" aria-label="Plan steps">
           {STEPS.map((s) => {
             const locked = lockedSteps?.has(s.id) ?? false;
             return (
@@ -44,7 +57,7 @@ export function NavBar({
                 onClick={() => !locked && onStep(s.id)}
                 disabled={locked}
                 aria-disabled={locked}
-                title={locked ? 'Önce Rota adımını tamamlayın' : undefined}
+                title={locked ? t('errors.boundaryBody') : undefined}
               >
                 <span className="step-num">
                   {locked
@@ -53,7 +66,7 @@ export function NavBar({
                       ? '✓'
                       : s.num}
                 </span>
-                {s.label}
+                {t(`nav.${s.id}`, s.label)}
               </button>
             );
           })}

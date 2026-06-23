@@ -117,6 +117,29 @@ function apiDevPlugin(opts: { aerodataboxKey?: string; groqKey?: string }): Plug
           res.end(JSON.stringify({ error: 'dev-proxy-failed' }));
         }
       });
+
+      server.middlewares.use('/api/ticket-ocr', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.setHeader('content-type', 'application/json');
+          res.end(JSON.stringify({ error: 'method-not-allowed' }));
+          return;
+        }
+        try {
+          const chunks: Buffer[] = [];
+          for await (const chunk of req) chunks.push(chunk as Buffer);
+          const input = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+          const { fetchTicketOcr } = await import('../../tools/ticketOcrProvider.mjs');
+          const { status, body } = await fetchTicketOcr(input, opts.groqKey);
+          res.statusCode = status;
+          res.setHeader('content-type', 'application/json');
+          res.end(JSON.stringify(body));
+        } catch {
+          res.statusCode = 500;
+          res.setHeader('content-type', 'application/json');
+          res.end(JSON.stringify({ error: 'dev-proxy-failed' }));
+        }
+      });
     },
   };
 }
@@ -132,6 +155,40 @@ export default defineConfig(({ mode }) => {
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        // Static asset cache (precache build çıktısı)
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        // Navigation isteklerinde offline fallback
+        navigateFallback: '/planner/index.html',
+        navigateFallbackDenylist: [/^\/api\//],
+        runtimeCaching: [
+          {
+            // /api/* için network-first, başarısızsa cache fallback
+            urlPattern: /\/api\//,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              networkTimeoutSeconds: 8,
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 24 * 60 * 60, // 1 gün
+              },
+            },
+          },
+          {
+            // Wikipedia thumbnail vb. CDN görsellerini cache'le
+            urlPattern: /^https:\/\/(upload\.wikimedia\.org|.*\.gstatic\.com)/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'image-cache',
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 7 * 24 * 60 * 60, // 1 hafta
+              },
+            },
+          },
+        ],
+      },
       manifest: {
         name: 'Japonya Seyahat Planlayıcı',
         short_name: 'JP Plan',

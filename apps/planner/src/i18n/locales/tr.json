@@ -1,0 +1,42 @@
+{
+  "common": {
+    "back": "Geri",
+    "continue": "Devam",
+    "cancel": "Vazgeç",
+    "save": "Kaydet",
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "loading": "Yükleniyor…",
+    "retry": "🔄 Tekrar dene"
+  },
+  "nav": {
+    "welcome": "Başla",
+    "journey": "Rota",
+    "explore": "Keşfet",
+    "title": "Başlık",
+    "hotels": "Konaklama",
+    "food": "Yemek",
+    "plan": "Plan",
+    "calendar": "Takvim",
+    "publish": "Yayın",
+    "newPlan": "Yeni plan",
+    "guide": "Rehber",
+    "brand": "Seyahat"
+  },
+  "welcome": {
+    "greeting": "Japonya'ya hoş geldin",
+    "subPrompt": "Nereden başlayalım?",
+    "ticketCardTitle": "Biletim var",
+    "ticketCardDesc": "Uçuş bilgilerini gir ya da bilet fotoğrafını yükle",
+    "planCardTitle": "Gezi planla",
+    "planCardDesc": "Sana en uygun tarihleri birlikte seçelim"
+  },
+  "errors": {
+    "boundaryTitle": "Bir şeyler ters gitti",
+    "boundaryBody": "Uygulamada beklenmedik bir hata oluştu. Sayfayı yenilemeyi deneyebilirsin — planın localStorage'da güvende.",
+    "reload": "Sayfayı yenile",
+    "retry": "Tekrar dene",
+    "offline": "⚠️ Çevrimdışısın — kayıtlı plan görüntülenebilir, AI üretim çalışmaz",
+    "backOnline": "✓ Bağlantı yeniden kuruldu"
+  }
+}

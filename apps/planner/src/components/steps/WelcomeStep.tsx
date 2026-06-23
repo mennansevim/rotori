@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   MAX_TRIP_DAYS,
   syncTripFromDestinations,
@@ -68,10 +69,13 @@ function formatDateTR(iso: string): string {
 }
 
 export function WelcomeStep({ trip, onChange, onContinue }: Props) {
+  const { t } = useTranslation();
   const [view, setView] = useState<View>('choose');
   const [ticket, setTicket] = useState<TicketDraft>(emptyTicket);
   const [photoName, setPhotoName] = useState<string | null>(null);
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
+  const [ocrStatus, setOcrStatus] = useState<'idle' | 'busy' | 'ok' | 'fail'>('idle');
+  const [ocrMessage, setOcrMessage] = useState<string | null>(null);
 
   const ticketReady = useMemo(
     () => ticket.outboundDate.trim().length > 0,
@@ -145,7 +149,53 @@ export function WelcomeStep({ trip, onChange, onContinue }: Props) {
     if (!file) return;
     setPhotoName(file.name);
     const reader = new FileReader();
-    reader.onload = () => setPhotoDataUrl(typeof reader.result === 'string' ? reader.result : null);
+    reader.onload = async () => {
+      const dataUrl = typeof reader.result === 'string' ? reader.result : null;
+      setPhotoDataUrl(dataUrl);
+      if (!dataUrl) return;
+      setOcrStatus('busy');
+      setOcrMessage('AI bilet bilgilerini çıkarıyor…');
+      try {
+        const resp = await fetch('/api/ticket-ocr', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ imageDataUrl: dataUrl }),
+        });
+        if (resp.status === 501) {
+          setOcrStatus('fail');
+          setOcrMessage('AI yapılandırılmamış — bilgileri manuel doldur.');
+          return;
+        }
+        if (!resp.ok) {
+          setOcrStatus('fail');
+          setOcrMessage('Bilgileri okuyamadık — manuel doldurabilirsin.');
+          return;
+        }
+        const data = await resp.json();
+        setTicket((cur) => ({
+          ...cur,
+          outboundDate: data.outboundDate || cur.outboundDate,
+          returnDate: data.returnDate || cur.returnDate,
+          airline: data.airline || cur.airline,
+          outboundFlightNo: data.flightNo || cur.outboundFlightNo,
+        }));
+        setOcrStatus('ok');
+        const filled = [
+          data.airline && 'havayolu',
+          data.flightNo && 'uçuş no',
+          data.outboundDate && 'gidiş tarihi',
+          data.returnDate && 'dönüş tarihi',
+        ].filter(Boolean);
+        setOcrMessage(
+          filled.length > 0
+            ? `✓ Otomatik dolduruldu: ${filled.join(', ')}`
+            : '✓ Foto kaydedildi (bilgi çıkmadı, manuel doldur)',
+        );
+      } catch {
+        setOcrStatus('fail');
+        setOcrMessage('Bağlantı hatası — manuel doldur.');
+      }
+    };
     reader.readAsDataURL(file);
   };
 
@@ -154,8 +204,8 @@ export function WelcomeStep({ trip, onChange, onContinue }: Props) {
       <div className="welcome-screen">
         <div className="welcome-hero">
           <div className="welcome-flag">🇯🇵</div>
-          <h1 className="welcome-title">Japonya'ya hoş geldin</h1>
-          <p className="welcome-sub">Nereden başlayalım?</p>
+          <h1 className="welcome-title">{t('welcome.greeting')}</h1>
+          <p className="welcome-sub">{t('welcome.subPrompt')}</p>
         </div>
         <div className="welcome-choices">
           <button
@@ -170,10 +220,8 @@ export function WelcomeStep({ trip, onChange, onContinue }: Props) {
             }}
           >
             <div className="welcome-card-icon">✈️</div>
-            <div className="welcome-card-title">Biletim var</div>
-            <div className="welcome-card-desc">
-              Uçuş bilgilerini gir ya da bilet fotoğrafını yükle
-            </div>
+            <div className="welcome-card-title">{t('welcome.ticketCardTitle')}</div>
+            <div className="welcome-card-desc">{t('welcome.ticketCardDesc')}</div>
           </button>
           <button
             type="button"
@@ -187,10 +235,8 @@ export function WelcomeStep({ trip, onChange, onContinue }: Props) {
             }}
           >
             <div className="welcome-card-icon">📅</div>
-            <div className="welcome-card-title">Gezi planla</div>
-            <div className="welcome-card-desc">
-              Sana en uygun tarihleri birlikte seçelim
-            </div>
+            <div className="welcome-card-title">{t('welcome.planCardTitle')}</div>
+            <div className="welcome-card-desc">{t('welcome.planCardDesc')}</div>
           </button>
         </div>
       </div>
@@ -272,11 +318,20 @@ export function WelcomeStep({ trip, onChange, onContinue }: Props) {
           <div className="welcome-photo">
             <label className="btn btn-secondary welcome-photo-btn">
               📷 Bilet fotoğrafı yükle
-              <input type="file" accept="image/*" onChange={handlePhoto} hidden />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handlePhoto}
+                hidden
+                disabled={ocrStatus === 'busy'}
+              />
             </label>
             {photoName && (
-              <span className="welcome-photo-name">
-                ✓ {photoName} — Şimdilik manuel doldur, sonra otomatik çıkarılacak.
+              <span className={`welcome-photo-name welcome-photo-${ocrStatus}`}>
+                {ocrStatus === 'busy' && '⏳ '}
+                {ocrStatus === 'ok' && ''}
+                {ocrStatus === 'fail' && '⚠️ '}
+                {ocrMessage ?? `✓ ${photoName}`}
               </span>
             )}
           </div>

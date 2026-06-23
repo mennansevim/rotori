@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { NavBar } from './components/NavBar';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { useModalFocus } from './hooks/useModalFocus';
 import { WelcomeStep } from './components/steps/WelcomeStep';
 import { JourneyStep } from './components/steps/JourneyStep';
@@ -17,6 +19,7 @@ function stepIndex(id: StepId) {
 }
 
 export default function App() {
+  const { t } = useTranslation();
   const {
     trip,
     updateTrip,
@@ -96,6 +99,7 @@ export default function App() {
 
   return (
     <div className="app-shell">
+      <OfflineIndicator />
       <NavBar
         step={step}
         onStep={setStep}
@@ -146,7 +150,7 @@ export default function App() {
         <div className="bottom-bar-inner">
           {i > 0 ? (
             <button type="button" className="btn btn-secondary" onClick={goPrev}>
-              Geri
+              {t('common.back')}
             </button>
           ) : (
             <span />
@@ -168,7 +172,7 @@ export default function App() {
                     : undefined
               }
             >
-              Devam
+              {t('common.continue')}
             </button>
           ) : (
             <a
@@ -176,7 +180,7 @@ export default function App() {
               className="btn btn-primary"
               style={{ textDecoration: 'none', textAlign: 'center' }}
             >
-              Rehberi aç
+              {t('nav.guide')}
             </a>
           )}
         </div>

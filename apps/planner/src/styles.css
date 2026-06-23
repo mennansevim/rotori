@@ -135,6 +135,30 @@ a:hover {
   overflow: hidden;
 }
 
+/* Mobile: step nav'ı ekranın altına taşı (palm reach).
+ *  Bottom action bar'ın üstüne fixed olarak yerleşir. */
+@media (max-width: 640px) {
+  .step-nav-wrap {
+    position: fixed;
+    top: auto;
+    bottom: calc(72px + var(--safe-bottom));
+    left: 0;
+    right: 0;
+    background: rgba(251, 251, 253, 0.92);
+    backdrop-filter: saturate(180%) blur(20px);
+    border-top: 1px solid var(--border);
+    border-bottom: none;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04);
+  }
+  /* Welcome'da bottom-bar gizli → step-nav alt safe area ile dursun */
+  body:has(.welcome-screen) .step-nav-wrap {
+    bottom: var(--safe-bottom);
+  }
+  .step-nav {
+    padding: 8px 12px 10px;
+  }
+}
+
 .step-nav {
   max-width: 980px;
   margin: 0 auto;
@@ -221,6 +245,13 @@ a:hover {
 
 .main-content.wide {
   max-width: 960px;
+}
+
+/* Mobile: step nav alta taşındığı için ekstra padding gerek. */
+@media (max-width: 640px) {
+  .main-content {
+    padding-bottom: calc(160px + var(--safe-bottom));
+  }
 }
 
 .page-headline {
@@ -2231,6 +2262,37 @@ a:hover {
   flex-wrap: wrap;
 }
 
+.offline-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: 8px 16px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  animation: offline-slide 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.offline-indicator.is-offline {
+  background: #fef2f2;
+  color: #991b1b;
+  border-bottom: 1px solid #fecaca;
+}
+
+.offline-indicator.is-back {
+  background: #f0fdf4;
+  color: #166534;
+  border-bottom: 1px solid #bbf7d0;
+}
+
+@keyframes offline-slide {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+
 .itinerary-day-list {
   display: flex;
   flex-direction: column;
@@ -3433,6 +3495,18 @@ a:hover {
 .welcome-photo-name {
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+.welcome-photo-busy {
+  color: var(--accent);
+}
+
+.welcome-photo-ok {
+  color: #16a34a;
+}
+
+.welcome-photo-fail {
+  color: #b45309;
 }
 
 .welcome-field-warn {
