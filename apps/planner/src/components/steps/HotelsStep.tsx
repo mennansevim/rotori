@@ -22,7 +22,7 @@ interface ParsedBooking {
   checkIn?: string;
   checkOut?: string;
   mapsUrl?: string;
-  source: 'booking' | 'hostelworld' | 'unknown';
+  source: 'booking' | 'hostelworld' | 'booking-mytrips' | 'unknown';
 }
 
 function titleCase(slug: string): string {
@@ -34,7 +34,7 @@ function titleCase(slug: string): string {
     .join(' ');
 }
 
-function parseBookingUrl(raw: string): ParsedBooking | null {
+export function parseBookingUrl(raw: string): ParsedBooking | null {
   const text = raw.trim();
   if (!text) return null;
   let url: URL;
@@ -48,6 +48,15 @@ function parseBookingUrl(raw: string): ParsedBooking | null {
   const checkOut = url.searchParams.get('checkout') || undefined;
 
   if (host.includes('booking.com')) {
+    // /mytrips, /myreservations gibi hesap sayfaları — tek otel datası yok.
+    const path = url.pathname.toLowerCase();
+    if (
+      path.includes('mytrips') ||
+      path.includes('myreservations') ||
+      path.includes('myaccount')
+    ) {
+      return { source: 'booking-mytrips' };
+    }
     const m = url.pathname.match(/\/hotel\/([a-z]{2})\/([^./]+)/i);
     if (!m) return { source: 'booking', checkIn, checkOut };
     const slug = m[2];
@@ -106,6 +115,14 @@ export function HotelsStep({ trip, onChange }: Props) {
     const parsed = parseBookingUrl(importUrl);
     if (!parsed) {
       setImportStatus({ kind: 'error', message: 'Geçerli bir URL yapıştır (Booking veya Hostelworld).' });
+      return;
+    }
+    if (parsed.source === 'booking-mytrips') {
+      setImportStatus({
+        kind: 'error',
+        message:
+          'Bu link Booking hesabındaki rezervasyon listesine gidiyor (üye girişi gerekir, tek bir otel bilgisi yok). Onaylama e-postandan veya rezervasyon detayından otelin sayfa linkini kopyala — örn. booking.com/hotel/jp/hotel-adi.html',
+      });
       return;
     }
     if (parsed.source === 'unknown') {
