@@ -14,6 +14,7 @@
     "dev:viewer": "npm run dev -w @japan-trip/viewer",
     "dev:planner": "npm run dev -w @japan-trip/planner",
     "migrate": "tsx scripts/migrate-html-to-json.ts",
+    "test": "npm run test -w @japan-trip/shared",
     "typecheck": "npm run typecheck -w @japan-trip/shared && npm run typecheck -w @japan-trip/viewer && npm run typecheck -w @japan-trip/planner"
   },
   "devDependencies": {

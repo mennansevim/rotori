@@ -20,9 +20,11 @@ function isValidIso(s?: string): boolean {
 interface Props {
   trip: Trip;
   onOpenSettings?: () => void;
+  /** ?u=username — planner'a dönüş için. */
+  username?: string;
 }
 
-export function CountdownBar({ trip, onOpenSettings }: Props) {
+export function CountdownBar({ trip, onOpenSettings, username }: Props) {
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -87,17 +89,29 @@ export function CountdownBar({ trip, onOpenSettings }: Props) {
           )}
         </div>
 
-        {onOpenSettings && (
-          <button
-            type="button"
-            className="settings-button"
-            onClick={onOpenSettings}
-            aria-label="Ayarlar"
-            title="Ayarlar ve tema"
-          >
-            ⚙ Ayarlar
-          </button>
-        )}
+        <div className="countdown-actions">
+          {username && (
+            <a
+              className="settings-button"
+              href={`/planner/?u=${encodeURIComponent(username)}`}
+              aria-label="Planlayıcıyı aç"
+              title="Planı düzenle"
+            >
+              ✏️ Düzenle
+            </a>
+          )}
+          {onOpenSettings && (
+            <button
+              type="button"
+              className="settings-button"
+              onClick={onOpenSettings}
+              aria-label="Ayarlar"
+              title="Ayarlar ve tema"
+            >
+              ⚙ Ayarlar
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -231,6 +231,7 @@ export default function App() {
             days: [],
           }}
           onOpenSettings={() => setSettingsOpen(true)}
+          username={username}
         />
         <div className="empty-state">
           <h2>Henüz bir plan yok</h2>
@@ -259,7 +260,11 @@ export default function App() {
 
   return (
     <>
-      <CountdownBar trip={trip} onOpenSettings={() => setSettingsOpen(true)} />
+      <CountdownBar
+        trip={trip}
+        onOpenSettings={() => setSettingsOpen(true)}
+        username={username}
+      />
 
       <header className="header">
         {(totalDays > 0 || nights > 0) && (
