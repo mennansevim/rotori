@@ -1,0 +1,29 @@
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+.metadata
+
+# Platform (flutter create tarafından üretilecek — commit et, ama build artifact'ları hariç)
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/App.framework/
+ios/Flutter/Flutter.framework/
+ios/Flutter/Generated.xcconfig
+android/.gradle/
+android/local.properties
+
+# Secret'lar — hiçbir zaman commit etme
+.env
+.env.local
+*.p8
