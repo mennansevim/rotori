@@ -2913,3 +2913,409 @@ a {
     display: none;
   }
 }
+
+/* ============================================================
+   Varış & pratik bilgiler (TripGuideSections — alt rehber)
+   ============================================================ */
+.guide-footer {
+  margin-top: 56px;
+  padding-top: 40px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+.guide-block {
+  margin: 0;
+}
+
+.guide-block > h2 {
+  font-family: var(--display-font);
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 20px;
+  color: var(--text-primary);
+}
+
+/* Kart ızgaraları (ipucu / yemek) */
+.tip-grid,
+.food-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.tip-card,
+.food-card,
+.compass-card {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.tip-card:hover,
+.food-card:hover,
+.compass-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-glow);
+}
+
+.compass-card {
+  margin-bottom: 12px;
+}
+
+.tip-card h3,
+.food-card h3,
+.compass-card h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 6px;
+  color: var(--text-primary);
+}
+
+.tip-card p,
+.food-card p,
+.compass-card p {
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.food-card .food-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.food-card a {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-sky);
+  text-decoration: none;
+}
+
+.food-card a:hover {
+  text-decoration: underline;
+}
+
+/* "Öneri" rozeti */
+.tag-suggestion {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--accent-sakura);
+  background: rgba(255, 143, 171, 0.12);
+  border: 1px solid rgba(255, 143, 171, 0.28);
+}
+
+.tag-suggestion.inline {
+  margin-bottom: 0;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* Alışveriş listesi */
+.shopping-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shopping-list li {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  transition: border-color 0.2s;
+}
+
+.shopping-list li:hover {
+  border-color: var(--border-strong);
+}
+
+.shopping-list label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.shopping-list input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.shopping-list strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.shopping-list label:has(input:checked) span {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+/* Konaklama adresleri */
+.hotel-address-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.hotel-address-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+
+.hotel-address-card > strong {
+  display: block;
+  font-size: 15px;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.hotel-address-card p {
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin: 0 0 4px;
+  color: var(--text-secondary);
+}
+
+.hotel-address-card .hotel-local {
+  color: var(--text-muted);
+}
+
+.hotel-address-card a {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-sky);
+  text-decoration: none;
+}
+
+.hotel-address-card a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+  .tip-grid,
+  .food-grid,
+  .hotel-address-list {
+    grid-template-columns: 1fr;
+  }
+  .guide-footer {
+    gap: 40px;
+  }
+}
+
+/* ============================================================
+   Şehir keşif haritaları (RewardMap — rota şehri iç krokileri)
+   ============================================================ */
+.city-explore-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 4px 0 16px;
+}
+
+.city-explore-empty {
+  text-align: center;
+  padding: 32px 20px;
+  color: var(--text-secondary);
+}
+.city-explore-empty-icon {
+  font-size: 34px;
+  margin-bottom: 10px;
+}
+.city-explore-empty p {
+  margin: 0 auto;
+  max-width: 340px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.city-explore-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.city-explore {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px 18px;
+}
+
+.city-explore-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.city-explore-emoji {
+  font-size: 24px;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-elevated);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+.city-explore-head-text {
+  flex-shrink: 0;
+}
+.city-explore-head-text h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.city-explore-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.city-explore-bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  overflow: hidden;
+}
+.city-explore-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent-matcha);
+  transition: width 0.3s ease;
+}
+
+/* Mini-kroki */
+.city-map {
+  margin-bottom: 14px;
+}
+.city-map svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.city-map-bg {
+  fill: rgba(255, 255, 255, 0.02);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.city-pin-halo {
+  fill: transparent;
+  transition: fill 0.2s;
+}
+.city-pin-dot {
+  fill: var(--bg-elevated);
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+  transition: fill 0.2s, stroke 0.2s;
+}
+.city-pin-glyph {
+  fill: var(--text-secondary);
+  pointer-events: none;
+  user-select: none;
+}
+/* GPS ile ziyaret algılanıyor (10 dk dolmadı) */
+.city-pin.in-progress .city-pin-dot {
+  stroke: var(--accent-gold);
+}
+.city-pin.in-progress .city-pin-halo {
+  fill: rgba(255, 213, 79, 0.14);
+}
+/* Otomatik gezildi */
+.city-pin.visited .city-pin-dot {
+  fill: var(--accent-matcha);
+  stroke: var(--accent-matcha);
+}
+.city-pin.visited .city-pin-halo {
+  fill: rgba(129, 199, 132, 0.16);
+}
+.city-pin.visited .city-pin-glyph {
+  fill: #0a0a0f;
+  font-weight: 700;
+}
+
+/* Nokta çipleri (GPS durumunu yansıtır — statik) */
+.city-place-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.city-place-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+.city-place-emoji {
+  font-size: 14px;
+  line-height: 1;
+}
+.city-place-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.city-place-cat {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.city-place-chip.in-progress {
+  background: rgba(255, 213, 79, 0.1);
+  border-color: rgba(255, 213, 79, 0.4);
+}
+.city-place-chip.in-progress .city-place-cat {
+  color: var(--accent-gold);
+}
+.city-place-chip.visited {
+  background: rgba(129, 199, 132, 0.14);
+  border-color: rgba(129, 199, 132, 0.45);
+}
+.city-place-chip.visited .city-place-name {
+  color: var(--accent-matcha);
+}
+.city-place-chip.visited .city-place-cat {
+  color: rgba(129, 199, 132, 0.7);
+}

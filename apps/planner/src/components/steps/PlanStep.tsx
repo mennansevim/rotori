@@ -6,6 +6,7 @@ import {
   insertCityTransfer,
   newItemId,
   optimizeDayItems,
+  resequenceTimes,
   type CityTransitionSuggestion,
   type DayPlan,
   type InterestTag,
@@ -209,7 +210,8 @@ export function PlanStep({ trip, onChange }: Props) {
         const items = [...d.items];
         const [moved] = items.splice(from, 1);
         items.splice(to, 0, moved);
-        return { ...d, items };
+        // Sürükleme sonrası saatleri yeni sıraya göre kronolojik dağıt.
+        return { ...d, items: resequenceTimes(items) };
       }),
     }));
   };
@@ -234,8 +236,8 @@ export function PlanStep({ trip, onChange }: Props) {
       return {
         ...t,
         days: t.days.map((d) => {
-          if (d.dayNumber === fromDay) return { ...d, items };
-          if (d.dayNumber === toDay) return { ...d, items: destItems };
+          if (d.dayNumber === fromDay) return { ...d, items: resequenceTimes(items) };
+          if (d.dayNumber === toDay) return { ...d, items: resequenceTimes(destItems) };
           return d;
         }),
       };

@@ -65,6 +65,29 @@ function durationFor(item: TimelineItem): number {
 }
 
 /**
+ * Item'ların GÖRSEL SIRASINI korur, yalnızca saatleri o sıraya göre yeniden
+ * dağıtır: mevcut saatler artan sıraya konur ve yukarıdan aşağıya atanır.
+ * Sürükle-bırak ile sıra değişince saatlerin de kronolojik kalması için.
+ * Saatsiz kalemler olduğu gibi bırakılır.
+ */
+export function resequenceTimes(items: TimelineItem[]): TimelineItem[] {
+  const sortedTimes = items
+    .map((it) => it.time ?? it.scheduledTime)
+    .filter((t): t is string => timeToMin(t) >= 0)
+    .sort((a, b) => timeToMin(a) - timeToMin(b));
+  if (sortedTimes.length === 0) return items;
+
+  let ti = 0;
+  return items.map((it) => {
+    const cur = it.time ?? it.scheduledTime;
+    if (timeToMin(cur) < 0) return it; // saatsiz — dokunma
+    const t = sortedTimes[ti++];
+    if (t === it.time && t === it.scheduledTime) return it;
+    return { ...it, time: t, scheduledTime: t };
+  });
+}
+
+/**
  * Bir günün item'larını saat ve coğrafi sıraya göre yeniden düzenler.
  * Mevcut item id'lerini korur — sadece time/scheduledTime günceller.
  */

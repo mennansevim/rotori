@@ -42,6 +42,8 @@ export function useGeofence({
   const [visits, setVisits] = useState<VisitState>(() => loadVisits(username));
   const sessionRef = useRef<Record<string, ActiveSession>>({});
   const watchIdRef = useRef<number | null>(null);
+  /** Sekme arka plana alınınca takip duraklatıldıysa true (öne gelince sürdür). */
+  const pausedRef = useRef(false);
   const onCompletedRef = useRef(onCompleted);
   useEffect(() => {
     onCompletedRef.current = onCompleted;
@@ -131,12 +133,33 @@ export function useGeofence({
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
     }
+    pausedRef.current = false;
     sessionRef.current = {};
   }, []);
 
   useEffect(() => {
     return () => stop();
   }, [stop]);
+
+  // Optimum GPS: sekme arka plandayken konum izlemeyi duraklat, öne gelince
+  // sürdür. Dwell oturumları korunur; böylece pil tüketimi azalır.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const onVisibility = () => {
+      if (document.hidden) {
+        if (watchIdRef.current != null) {
+          navigator.geolocation.clearWatch(watchIdRef.current);
+          watchIdRef.current = null;
+          pausedRef.current = true;
+        }
+      } else if (pausedRef.current) {
+        pausedRef.current = false;
+        start();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [start]);
 
   /** Test/debug: manuel olarak konum simüle et. */
   const simulate = useCallback(

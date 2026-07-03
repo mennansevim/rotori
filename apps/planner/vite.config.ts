@@ -207,6 +207,8 @@ export default defineConfig(({ mode }) => {
   },
   server: {
     host: true,
+    port: 5174,
+    strictPort: true,
     proxy: {
       '/viewer': {
         target: 'http://localhost:5180',

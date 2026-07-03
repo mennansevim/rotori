@@ -83,19 +83,25 @@ export default function App() {
     (trip.preferences.destinations ?? []).length > 0 &&
     (trip.preferences.destinations ?? []).every((d) => d.city.trim());
 
-  // Rota tamamlanmadıysa sonraki adımları kilitle (welcome ve journey serbest).
+  // Plan adımı çalıştırılıp en az bir aktivite üretilmeden yayın yapılamaz —
+  // aksi halde viewer boş ekran açar.
+  const planReady = useMemo(
+    () => trip.days.some((d) => d.items.length > 0),
+    [trip.days],
+  );
+
+  // Rota tamamlanmadıysa sonraki adımları, plan boşsa yayın adımını kilitle
+  // (welcome ve journey her zaman serbest).
   const lockedSteps = useMemo<Set<StepId>>(() => {
-    if (canContinueJourney) return new Set();
-    return new Set<StepId>([
-      'explore',
-      'title',
-      'hotels',
-      'food',
-      'plan',
-      'calendar',
-      'publish',
-    ]);
-  }, [canContinueJourney]);
+    const locked = new Set<StepId>();
+    if (!canContinueJourney) {
+      (['explore', 'title', 'hotels', 'food', 'plan', 'publish'] as StepId[]).forEach(
+        (s) => locked.add(s),
+      );
+    }
+    if (!planReady) locked.add('publish');
+    return locked;
+  }, [canContinueJourney, planReady]);
 
   return (
     <div className="app-shell">
@@ -162,14 +168,17 @@ export default function App() {
               onClick={goNext}
               disabled={
                 (step === 'journey' && !canContinueJourney) ||
-                (step === 'hotels' && !hotelsComplete(trip))
+                (step === 'hotels' && !hotelsComplete(trip)) ||
+                (step === 'plan' && !planReady)
               }
               title={
                 step === 'journey' && !canContinueJourney
                   ? 'Nereden ve nereye alanlarını doldurun'
                   : step === 'hotels' && !hotelsComplete(trip)
                     ? 'Her otel için şehir, ad ve açık adres gerekli'
-                    : undefined
+                    : step === 'plan' && !planReady
+                      ? 'Önce "Gezi planı oluştur" ile günlük programı hazırlayın'
+                      : undefined
               }
             >
               {t('common.continue')}

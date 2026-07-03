@@ -24,7 +24,8 @@ import { CalendarView } from './components/CalendarView';
 import { RewardsBadge } from './components/RewardsBadge';
 import { RewardMap } from './components/RewardMap';
 import { useGeofence } from './hooks/useGeofence';
-import { POPULAR_GEOFENCES } from '@japan-trip/shared';
+import { getRouteCities, cityPlacesToGeofences } from './data/cityPlaces';
+import { ensureNotificationPermission, notifyVisit } from './utils/notify';
 import { CommunityBeta } from './components/CommunityBeta';
 import {
   loadStats,
@@ -175,13 +176,29 @@ export default function App() {
     window.setTimeout(() => setToast((m) => (m === msg ? null : m)), 4200);
   };
 
+  // Rota şehirlerinin popüler noktaları GPS geofence'ine çevrilir.
+  const cityGeofences = useMemo(
+    () => (trip ? cityPlacesToGeofences(getRouteCities(trip)) : []),
+    [trip],
+  );
+
   const geofence = useGeofence({
     username,
-    fences: POPULAR_GEOFENCES,
+    fences: cityGeofences,
     onCompleted: (fence) => {
       showToast(`📍 ${fence.emoji} ${fence.name} keşfedildi! +${fence.xp} XP`);
+      notifyVisit(
+        'Yeni yer keşfedildi! 🎉',
+        `${fence.emoji} ${fence.name} — gezildi olarak işaretlendi (+${fence.xp} XP)`,
+      );
     },
   });
+
+  // Konum takibini başlatırken bildirim izni de iste (kullanıcı jesti içinde).
+  const startTracking = () => {
+    ensureNotificationPermission();
+    geofence.start();
+  };
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -609,8 +626,9 @@ export default function App() {
               stats={stats}
               visits={geofence.visits}
               permission={geofence.permission}
-              onStartTracking={geofence.start}
+              onStartTracking={startTracking}
               onStopTracking={geofence.stop}
+              trip={trip}
             />
           </div>
         </div>
