@@ -20,6 +20,8 @@ dependencies:
   shared_preferences: ^2.3.0
   # Online/offline durumu (arka planda otomatik senkron)
   connectivity_plus: ^6.0.5
+  # GPS konum akışı (keşif haritası geofence'leri)
+  geolocator: ^14.0.3
 
 dev_dependencies:
   flutter_test:

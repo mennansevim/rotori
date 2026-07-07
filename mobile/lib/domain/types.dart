@@ -647,6 +647,7 @@ class TimelineItem {
     String? tips,
     TimelineItemKind? kind,
     int? durationMin,
+    int? movedFromDay,
   }) =>
       TimelineItem(
         id: id,
@@ -656,7 +657,7 @@ class TimelineItem {
         mapUrl: mapUrl,
         tips: tips ?? this.tips,
         kind: kind ?? this.kind,
-        movedFromDay: movedFromDay,
+        movedFromDay: movedFromDay ?? this.movedFromDay,
         lat: lat,
         lng: lng,
         scheduledTime: scheduledTime ?? this.scheduledTime,
@@ -742,6 +743,31 @@ class DayPlan {
   String? routeMapsUrl;
   List<TimelineItem> items;
   List<DayHighlight> highlights;
+
+  /// TS'teki `{ ...day, ... }` spread'inin karşılığı — yeni DayPlan üretir.
+  /// Not: null'a sıfırlama yapılamaz (?? deseni); mevcut kullanım için yeterli.
+  DayPlan copyWith({
+    String? theme,
+    List<String>? tags,
+    List<TimelineItem>? items,
+    List<DayHighlight>? highlights,
+    int? stepsEstimate,
+    int? stepsEstimateMax,
+    bool? taxiRecommended,
+  }) =>
+      DayPlan(
+        dayNumber: dayNumber,
+        date: date,
+        theme: theme ?? this.theme,
+        weekday: weekday,
+        tags: tags ?? this.tags,
+        stepsEstimate: stepsEstimate ?? this.stepsEstimate,
+        stepsEstimateMax: stepsEstimateMax ?? this.stepsEstimateMax,
+        taxiRecommended: taxiRecommended ?? this.taxiRecommended,
+        routeMapsUrl: routeMapsUrl,
+        items: items ?? this.items,
+        highlights: highlights ?? this.highlights,
+      );
 
   factory DayPlan.fromJson(Map<String, dynamic> j) => DayPlan(
         dayNumber: (j['dayNumber'] as num).toInt(),

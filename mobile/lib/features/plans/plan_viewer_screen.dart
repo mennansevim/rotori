@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../domain/types.dart';
+import '../viewer/reward_map_screen.dart';
 import 'plan_providers.dart';
 
 /// Plan görüntüleyici — okuma modu. Countdown + rota özeti + günler.
@@ -96,6 +97,18 @@ class _Body extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Keşif haritası (GPS rozetleri)
+        FilledButton.icon(
+          icon: const Text('🗺️'),
+          label: const Text('Keşif haritası'),
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => RewardMapScreen(trip: trip),
             ),
           ),
         ),

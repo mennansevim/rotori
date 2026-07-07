@@ -1,0 +1,86 @@
+// packages/shared/src/__tests__/fillEmptyDays.test.ts'in birebir Dart eşdeğeri.
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:japan_trip/domain/fill_empty_days.dart';
+import 'package:japan_trip/domain/types.dart';
+
+DayPlan _day({List<TimelineItem>? items}) => DayPlan(
+      dayNumber: 1,
+      date: '2026-10-01',
+      theme: '',
+      tags: [],
+      items: items ?? [],
+    );
+
+final TripDestination _tokyoDest = TripDestination(
+  id: 'd1',
+  countryCode: 'JP',
+  countryName: 'Japonya',
+  city: 'Tokyo',
+  arrivalDate: '2026-10-01',
+  departureDate: '2026-10-10',
+  order: 0,
+);
+
+void main() {
+  group('fillEmptyDays', () {
+    test('tamamen boş günü en az 4 itemla doldurur', () {
+      final days = [_day()];
+      final filled = fillEmptyDays(days, [_tokyoDest]);
+      expect(filled[0].items.length, greaterThanOrEqualTo(4));
+    });
+
+    test('yeterince dolu günleri (>=4) değiştirmez', () {
+      final days = [
+        _day(
+          items: List.generate(
+            5,
+            (i) => TimelineItem(
+              id: 'i$i',
+              title: 'Item $i',
+              kind: TimelineItemKind.activity,
+              time: '0${i + 8}:00',
+            ),
+          ),
+        ),
+      ];
+      final filled = fillEmptyDays(days, [_tokyoDest]);
+      expect(filled[0].items, hasLength(5));
+    });
+
+    test('az itemli günleri tamamlar, mevcut item korunur', () {
+      final existing = TimelineItem(
+        id: 'orig',
+        title: 'Senso-ji Asakusa',
+        kind: TimelineItemKind.activity,
+        time: '10:00',
+      );
+      final days = [_day(items: [existing])];
+      final filled = fillEmptyDays(days, [_tokyoDest]);
+      expect(filled[0].items.length, greaterThanOrEqualTo(4));
+      expect(filled[0].items.where((i) => i.id == 'orig'), isNotEmpty);
+    });
+
+    test('item zaman sırasına dizilir', () {
+      final existing = TimelineItem(
+        id: 'late',
+        title: 'Geç aktivite',
+        kind: TimelineItemKind.activity,
+        time: '18:00',
+      );
+      final days = [_day(items: [existing])];
+      final filled = fillEmptyDays(days, [_tokyoDest]);
+      final times = filled[0].items.map((i) => i.time ?? '99:99').toList();
+      final sorted = [...times]..sort((a, b) => a.compareTo(b));
+      expect(times, sorted);
+    });
+
+    test('yemek slot sayısı 2 ile sınırlı', () {
+      final days = [_day()];
+      final filled = fillEmptyDays(days, [_tokyoDest]);
+      final meals =
+          filled[0].items.where((i) => i.kind == TimelineItemKind.meal);
+      expect(meals.length, lessThanOrEqualTo(2));
+    });
+  });
+}
