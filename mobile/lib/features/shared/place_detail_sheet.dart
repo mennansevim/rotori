@@ -35,21 +35,35 @@ Future<void> showPlaceDetailSheet({
 }) {
   final profile =
       countryCode != null ? getDestinationProfile(countryCode) : null;
+  final hasGuide = matchPlaceGuide(item.title) != null;
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (ctx) => _PlaceDetailSheet(
-      item: item,
-      city: city,
-      countryCode: countryCode,
-      profile: profile,
-      onEdit: onEdit,
-      existingTicket: existingTicket,
-      onAddTicket: onAddTicket,
+    useSafeArea: true,
+    backgroundColor: Colors.transparent,
+    builder: (ctx) => DraggableScrollableSheet(
+      // Rehberli yerlerde biraz daha yüksek başlar; asla tam ekran kaplamaz.
+      initialChildSize: hasGuide ? 0.68 : 0.5,
+      minChildSize: 0.4,
+      maxChildSize: 0.92,
+      expand: false,
+      builder: (ctx, scrollController) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(ctx).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: _PlaceDetailSheet(
+          item: item,
+          city: city,
+          countryCode: countryCode,
+          profile: profile,
+          onEdit: onEdit,
+          existingTicket: existingTicket,
+          onAddTicket: onAddTicket,
+          scrollController: scrollController,
+        ),
+      ),
     ),
   );
 }
@@ -140,6 +154,7 @@ class _PlaceDetailSheet extends StatefulWidget {
     required this.onEdit,
     required this.existingTicket,
     required this.onAddTicket,
+    required this.scrollController,
   });
 
   final TimelineItem item;
@@ -149,6 +164,7 @@ class _PlaceDetailSheet extends StatefulWidget {
   final VoidCallback? onEdit;
   final Ticket? existingTicket;
   final void Function(Ticket)? onAddTicket;
+  final ScrollController scrollController;
 
   @override
   State<_PlaceDetailSheet> createState() => _PlaceDetailSheetState();
@@ -441,286 +457,273 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
     final ticket = _ticket;
     final needsTicket = requiresTicket(item, category: match?.category);
 
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 12,
-          bottom: 20 + MediaQuery.of(context).viewInsets.bottom,
+    return ListView(
+      controller: widget.scrollController,
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 8,
+        bottom: 20 + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      children: [
+        Center(
+          child: Container(
+            width: 36,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: tertiary,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+
+        // Başlık
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: tertiary,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-
-            // Fotoğraf karuseli (rehber varsa)
-            if (guide != null && guide.imageUrls.isNotEmpty) ...[
-              _PlaceCarousel(imageUrls: guide.imageUrls, subtleBg: subtleBg),
-              const SizedBox(height: 16),
-            ],
-
-            // Başlık
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: subtleBg,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(_kindIcon(item.kind), size: 20, color: cs.primary),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(item.title,
-                          style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: onSurface)),
-                      if (time.isNotEmpty || rating != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: Text(
-                            [
-                              if (time.isNotEmpty) '🕒 $time',
-                              if (rating != null)
-                                '${ratingStars(rating)} ${rating.toStringAsFixed(1).replaceAll('.', ',')}',
-                            ].join('   '),
-                            style: TextStyle(fontSize: 13, color: secondary),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Tanıtım
-            Text(intro,
-                style: TextStyle(fontSize: 14, color: secondary, height: 1.5)),
-            const SizedBox(height: 16),
-
-            // Meta chip'leri (süre / en iyi zaman / ön rezervasyon)
-            if (guide != null) ...[
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _MetaChip(
-                    icon: Icons.schedule_outlined,
-                    label: 'Süre',
-                    value: _formatDuration(guide.visitDurationMin),
-                    subtleBg: subtleBg,
-                    onSurface: onSurface,
-                    secondary: secondary,
-                  ),
-                  _MetaChip(
-                    icon: Icons.wb_twilight_outlined,
-                    label: 'En iyi zaman',
-                    value: guide.bestTimeOfDay,
-                    subtleBg: subtleBg,
-                    onSurface: onSurface,
-                    secondary: secondary,
-                  ),
-                  if (guide.advanceBookingDays != null)
-                    _MetaChip(
-                      icon: Icons.event_available_outlined,
-                      label: 'Ön rezervasyon',
-                      value: '${guide.advanceBookingDays} gün önceden',
-                      subtleBg: subtleBg,
-                      onSurface: onSurface,
-                      secondary: secondary,
-                    ),
-                  if (guide.reviewCount != null)
-                    _MetaChip(
-                      icon: Icons.reviews_outlined,
-                      label: 'Yorum',
-                      value: '~${_formatReviewCount(guide.reviewCount!)}',
-                      subtleBg: subtleBg,
-                      onSurface: onSurface,
-                      secondary: secondary,
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            // Tahmini yürüme adımı
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
                 color: subtleBg,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Row(
+              child: Icon(_kindIcon(item.kind), size: 18, color: cs.primary),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('👣', style: TextStyle(fontSize: 18)),
-                  const SizedBox(width: 10),
-                  Text('Tahmini yürüme',
-                      style: TextStyle(fontSize: 13, color: secondary)),
-                  const Spacer(),
-                  Text(_formatSteps(steps),
+                  Text(item.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 17,
                           fontWeight: FontWeight.w700,
                           color: onSurface)),
+                  if (time.isNotEmpty || rating != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 1),
+                      child: Text(
+                        [
+                          if (time.isNotEmpty) time,
+                          if (rating != null)
+                            '★ ${rating.toStringAsFixed(1).replaceAll('.', ',')}'
+                                '${guide?.reviewCount != null ? ' (${_formatReviewCount(guide!.reviewCount!)} yorum)' : ''}',
+                        ].join(' · '),
+                        style: TextStyle(fontSize: 12.5, color: secondary),
+                      ),
+                    ),
                 ],
               ),
             ),
+          ],
+        ),
+        const SizedBox(height: 12),
 
-            // Ziyaretçi ipuçları
-            if (guide != null && guide.tips.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Text('Ziyaretçi ipuçları',
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: onSurface)),
-              const SizedBox(height: 8),
-              ...guide.tips.map((t) => Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.lightbulb_outline,
-                            size: 15, color: cs.primary),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(t,
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  color: onSurface,
-                                  height: 1.4)),
-                        ),
-                      ],
-                    ),
-                  )),
+        // Fotoğraflar (rehber varsa) — kompakt, kaydırmalı
+        if (guide != null && guide.imageUrls.isNotEmpty) ...[
+          _PlaceCarousel(imageUrls: guide.imageUrls, subtleBg: subtleBg),
+          const SizedBox(height: 12),
+        ],
+
+        // Tanıtım
+        Text(intro,
+            style: TextStyle(fontSize: 13.5, color: secondary, height: 1.45)),
+        const SizedBox(height: 12),
+
+        // Kompakt istatistik barı: Süre | Yürüme | Rezervasyon
+        _StatBar(
+          cells: [
+            if (guide != null)
+              ('⏱', 'Süre', _formatDuration(guide.visitDurationMin)),
+            ('👣', 'Yürüme', _formatSteps(steps)),
+            if (guide?.advanceBookingDays != null)
+              ('🎟', 'Bilet', '${guide!.advanceBookingDays} gün önce'),
+          ],
+          subtleBg: subtleBg,
+          onSurface: onSurface,
+          secondary: secondary,
+        ),
+
+        // En iyi zaman — tek satır
+        if (guide != null) ...[
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('🌅', style: TextStyle(fontSize: 13)),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(guide.bestTimeOfDay,
+                    style: TextStyle(fontSize: 12.5, color: secondary)),
+              ),
             ],
+          ),
+        ],
 
-            // Rezervasyon ipucu
-            if (guide?.bookingHint != null) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: cs.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                      color: cs.primary.withValues(alpha: 0.25)),
-                ),
+        // Ziyaretçi ipuçları
+        if (guide != null && guide.tips.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          Text('İpuçları',
+              style: TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w700, color: onSurface)),
+          const SizedBox(height: 6),
+          ...guide.tips.map((t) => Padding(
+                padding: const EdgeInsets.only(bottom: 5),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.confirmation_num_outlined,
-                        size: 16, color: cs.primary),
-                    const SizedBox(width: 8),
+                    Text('·',
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: cs.primary)),
+                    const SizedBox(width: 7),
                     Expanded(
-                      child: Text('Bileti nereden: ${guide!.bookingHint}',
+                      child: Text(t,
                           style: TextStyle(
-                              fontSize: 12, color: onSurface, height: 1.4)),
+                              fontSize: 12.5, color: onSurface, height: 1.35)),
                     ),
+                  ],
+                ),
+              )),
+          if (guide.bookingHint != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text('🎟 ${guide.bookingHint}',
+                  style: TextStyle(fontSize: 12, color: secondary)),
+            ),
+        ],
+
+        // Yakınındaki öneriler / restoran önerileri
+        if (recs.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          Text(
+            item.kind == TimelineItemKind.meal ? 'Ne yenir' : 'Yakınlarda',
+            style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.w700, color: onSurface),
+          ),
+          const SizedBox(height: 6),
+          ...recs.map((r) => Padding(
+                padding: const EdgeInsets.only(bottom: 5),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(r.$1, style: const TextStyle(fontSize: 14)),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Text(r.$2,
+                          style:
+                              TextStyle(fontSize: 13, color: onSurface)),
+                    ),
+                  ],
+                ),
+              )),
+        ],
+
+        // Bilet — mevcut bilet kartı veya "Bilet ekle" butonu.
+        if (ticket != null) ...[
+          const SizedBox(height: 14),
+          _ticketCard(ticket,
+              onSurface: onSurface, secondary: secondary, subtleBg: subtleBg),
+        ] else if (needsTicket && widget.onAddTicket != null) ...[
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              icon: _pickingTicket
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('🎫'),
+              label: Text(_pickingTicket ? 'Ekleniyor…' : 'Bilet ekle'),
+              onPressed: _pickingTicket ? null : _startAddTicket,
+            ),
+          ),
+        ],
+
+        const SizedBox(height: 16),
+
+        // Aksiyonlar
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton.icon(
+                icon: const Text('🗺️'),
+                label: const Text('Haritada aç'),
+                onPressed: () => _openMap(context),
+              ),
+            ),
+            if (onEdit != null) ...[
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  icon: const Text('✏️'),
+                  label: const Text('Düzenle'),
+                  onPressed: onEdit,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Tek satırlık kompakt istatistik barı — hücreler dikey çizgiyle ayrılır.
+class _StatBar extends StatelessWidget {
+  const _StatBar({
+    required this.cells,
+    required this.subtleBg,
+    required this.onSurface,
+    required this.secondary,
+  });
+
+  /// (emoji, etiket, değer)
+  final List<(String, String, String)> cells;
+  final Color subtleBg;
+  final Color onSurface;
+  final Color secondary;
+
+  @override
+  Widget build(BuildContext context) {
+    if (cells.isEmpty) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        color: subtleBg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          children: [
+            for (var i = 0; i < cells.length; i++) ...[
+              if (i > 0)
+                VerticalDivider(
+                    width: 1, thickness: 1, color: onSurface.withValues(alpha: 0.08)),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('${cells[i].$1} ${cells[i].$2}',
+                        style: TextStyle(fontSize: 11, color: secondary)),
+                    const SizedBox(height: 2),
+                    Text(cells[i].$3,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: onSurface)),
                   ],
                 ),
               ),
             ],
-
-            // Yakınındaki öneriler / restoran önerileri
-            if (recs.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Text(
-                item.kind == TimelineItemKind.meal
-                    ? 'Ne yenir'
-                    : 'Yakınlarda',
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: onSurface),
-              ),
-              const SizedBox(height: 8),
-              ...recs.map((r) => Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(r.$1, style: const TextStyle(fontSize: 15)),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(r.$2,
-                              style: TextStyle(fontSize: 14, color: onSurface)),
-                        ),
-                      ],
-                    ),
-                  )),
-            ],
-
-            // Bilet — mevcut bilet kartı veya "Bilet ekle" butonu.
-            if (ticket != null) ...[
-              const SizedBox(height: 16),
-              _ticketCard(ticket,
-                  onSurface: onSurface,
-                  secondary: secondary,
-                  subtleBg: subtleBg),
-            ] else if (needsTicket && widget.onAddTicket != null) ...[
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  icon: _pickingTicket
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('🎫'),
-                  label: Text(_pickingTicket ? 'Ekleniyor…' : 'Bilet ekle'),
-                  onPressed: _pickingTicket ? null : _startAddTicket,
-                ),
-              ),
-            ],
-
-            const SizedBox(height: 20),
-
-            // Aksiyonlar
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    icon: const Text('🗺️'),
-                    label: const Text('Haritada aç'),
-                    onPressed: () => _openMap(context),
-                  ),
-                ),
-                if (onEdit != null) ...[
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      icon: const Text('✏️'),
-                      label: const Text('Düzenle'),
-                      onPressed: onEdit,
-                    ),
-                  ),
-                ],
-              ],
-            ),
           ],
         ),
       ),
@@ -743,61 +746,6 @@ String _formatReviewCount(int n) {
     return '${k.toStringAsFixed(1).replaceAll('.0', '')}bin';
   }
   return '$n';
-}
-
-class _MetaChip extends StatelessWidget {
-  const _MetaChip({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.subtleBg,
-    required this.onSurface,
-    required this.secondary,
-  });
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color subtleBg;
-  final Color onSurface;
-  final Color secondary;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 260),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: subtleBg,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, size: 15, color: cs.primary),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label,
-                      style: TextStyle(fontSize: 10, color: secondary)),
-                  Text(value,
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: onSurface)),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 /// Yerin görsellerini kaydırılabilir bir carousel'de gösterir.
@@ -826,7 +774,7 @@ class _PlaceCarouselState extends State<_PlaceCarousel> {
     return Column(
       children: [
         SizedBox(
-          height: 180,
+          height: 150,
           child: PageView.builder(
             controller: _ctrl,
             itemCount: widget.imageUrls.length,
