@@ -14,6 +14,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../domain/destination_profiles.dart';
 import '../../domain/explore.dart';
 import '../../domain/japan_suggestions.dart';
+import '../../domain/place_guide.dart';
 import '../../domain/trip_factory.dart';
 import '../../domain/types.dart';
 import 'ticket_ocr.dart';
@@ -418,10 +419,13 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
     final categoryLabel = categoryKey != null
         ? (_kCategoryLabels[categoryKey] ?? categoryKey)
         : null;
+    final guide = matchPlaceGuide(item.title);
 
     final String intro;
     if (item.description != null && item.description!.trim().isNotEmpty) {
       intro = item.description!.trim();
+    } else if (guide != null) {
+      intro = guide.brief;
     } else {
       final parts = [
         if (categoryLabel != null) categoryLabel,
@@ -431,7 +435,8 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
     }
 
     final recs = _recommendations(match);
-    final rating = match != null ? placeRating(match) : null;
+    final rating = guide?.averageRating ??
+        (match != null ? placeRating(match) : null);
 
     final ticket = _ticket;
     final needsTicket = requiresTicket(item, category: match?.category);
@@ -460,6 +465,13 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
                 ),
               ),
             ),
+
+            // Fotoğraf karuseli (rehber varsa)
+            if (guide != null && guide.imageUrls.isNotEmpty) ...[
+              _PlaceCarousel(imageUrls: guide.imageUrls, subtleBg: subtleBg),
+              const SizedBox(height: 16),
+            ],
+
             // Başlık
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -507,6 +519,51 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
                 style: TextStyle(fontSize: 14, color: secondary, height: 1.5)),
             const SizedBox(height: 16),
 
+            // Meta chip'leri (süre / en iyi zaman / ön rezervasyon)
+            if (guide != null) ...[
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _MetaChip(
+                    icon: Icons.schedule_outlined,
+                    label: 'Süre',
+                    value: _formatDuration(guide.visitDurationMin),
+                    subtleBg: subtleBg,
+                    onSurface: onSurface,
+                    secondary: secondary,
+                  ),
+                  _MetaChip(
+                    icon: Icons.wb_twilight_outlined,
+                    label: 'En iyi zaman',
+                    value: guide.bestTimeOfDay,
+                    subtleBg: subtleBg,
+                    onSurface: onSurface,
+                    secondary: secondary,
+                  ),
+                  if (guide.advanceBookingDays != null)
+                    _MetaChip(
+                      icon: Icons.event_available_outlined,
+                      label: 'Ön rezervasyon',
+                      value: '${guide.advanceBookingDays} gün önceden',
+                      subtleBg: subtleBg,
+                      onSurface: onSurface,
+                      secondary: secondary,
+                    ),
+                  if (guide.reviewCount != null)
+                    _MetaChip(
+                      icon: Icons.reviews_outlined,
+                      label: 'Yorum',
+                      value: '~${_formatReviewCount(guide.reviewCount!)}',
+                      subtleBg: subtleBg,
+                      onSurface: onSurface,
+                      secondary: secondary,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+
             // Tahmini yürüme adımı
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -530,17 +587,73 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
               ),
             ),
 
-            // Öneriler
+            // Ziyaretçi ipuçları
+            if (guide != null && guide.tips.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text('Ziyaretçi ipuçları',
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: onSurface)),
+              const SizedBox(height: 8),
+              ...guide.tips.map((t) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.lightbulb_outline,
+                            size: 15, color: cs.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(t,
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  color: onSurface,
+                                  height: 1.4)),
+                        ),
+                      ],
+                    ),
+                  )),
+            ],
+
+            // Rezervasyon ipucu
+            if (guide?.bookingHint != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: cs.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                      color: cs.primary.withValues(alpha: 0.25)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.confirmation_num_outlined,
+                        size: 16, color: cs.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text('Bileti nereden: ${guide!.bookingHint}',
+                          style: TextStyle(
+                              fontSize: 12, color: onSurface, height: 1.4)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            // Yakınındaki öneriler / restoran önerileri
             if (recs.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text(
                 item.kind == TimelineItemKind.meal
-                    ? 'Öneriler — ne yenir'
-                    : 'Öneriler — yakında',
+                    ? 'Ne yenir'
+                    : 'Yakınlarda',
                 style: TextStyle(
                     fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: tertiary),
+                    fontWeight: FontWeight.w700,
+                    color: onSurface),
               ),
               const SizedBox(height: 8),
               ...recs.map((r) => Padding(
@@ -611,6 +724,165 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
           ],
         ),
       ),
+    );
+  }
+}
+
+String _formatDuration(int minutes) {
+  if (minutes < 60) return '$minutes dk';
+  final h = minutes ~/ 60;
+  final m = minutes % 60;
+  if (m == 0) return '$h saat';
+  return '$h sa $m dk';
+}
+
+String _formatReviewCount(int n) {
+  if (n >= 1000) {
+    final k = n / 1000;
+    if (k >= 10) return '${k.toStringAsFixed(0)}bin';
+    return '${k.toStringAsFixed(1).replaceAll('.0', '')}bin';
+  }
+  return '$n';
+}
+
+class _MetaChip extends StatelessWidget {
+  const _MetaChip({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.subtleBg,
+    required this.onSurface,
+    required this.secondary,
+  });
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color subtleBg;
+  final Color onSurface;
+  final Color secondary;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 260),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: subtleBg,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 15, color: cs.primary),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: TextStyle(fontSize: 10, color: secondary)),
+                  Text(value,
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: onSurface)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Yerin görsellerini kaydırılabilir bir carousel'de gösterir.
+/// Görsel yüklenemezse subtle placeholder gösterilir.
+class _PlaceCarousel extends StatefulWidget {
+  const _PlaceCarousel({required this.imageUrls, required this.subtleBg});
+  final List<String> imageUrls;
+  final Color subtleBg;
+
+  @override
+  State<_PlaceCarousel> createState() => _PlaceCarouselState();
+}
+
+class _PlaceCarouselState extends State<_PlaceCarousel> {
+  final _ctrl = PageController(viewportFraction: 0.92);
+  int _idx = 0;
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 180,
+          child: PageView.builder(
+            controller: _ctrl,
+            itemCount: widget.imageUrls.length,
+            onPageChanged: (i) => setState(() => _idx = i),
+            itemBuilder: (_, i) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.network(
+                  widget.imageUrls[i],
+                  fit: BoxFit.cover,
+                  loadingBuilder: (_, child, progress) {
+                    if (progress == null) return child;
+                    return Container(
+                      color: widget.subtleBg,
+                      alignment: Alignment.center,
+                      child: const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2)),
+                    );
+                  },
+                  errorBuilder: (_, __, ___) => Container(
+                    color: widget.subtleBg,
+                    alignment: Alignment.center,
+                    child: const Text('🗺️',
+                        style: TextStyle(fontSize: 36)),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (widget.imageUrls.length > 1) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var i = 0; i < widget.imageUrls.length; i++)
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: i == _idx ? 18 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: i == _idx
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.onSurface.withValues(
+                            alpha: 0.25),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 }
