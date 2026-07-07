@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../domain/booking_windows.dart';
 import '../../../domain/city_transfers.dart';
 import '../../../domain/day_optimizer.dart';
 import '../../../domain/destination_profiles.dart';
@@ -13,6 +15,7 @@ import '../../../domain/trip_factory.dart';
 import '../../../domain/types.dart';
 import '../../shared/place_detail_sheet.dart';
 import '../planner_theme.dart';
+import '../widgets/booking_alert_dialog.dart';
 
 /// AI plan servisi (POST /api/itinerary) mobil derlemede yapılandırılmadı.
 /// Bu bayrak false iken doğrudan kural tabanlı üretici çalışır:
@@ -208,6 +211,32 @@ class _PlanStepState extends State<PlanStep> {
         duration: const Duration(seconds: 2),
       ),
     );
+
+    // USJ / Disney / Shinkansen bilet açılış uyarıları — plan içinde
+    // yakalandıysa kullanıcıya hatırlatma teklif et.
+    await _maybeShowBookingAlerts();
+  }
+
+  Future<void> _maybeShowBookingAlerts() async {
+    final alerts = detectBookingAlerts(trip);
+    if (alerts.isEmpty || !mounted) return;
+    // ProviderScope.containerOf ile container al — PlanStep StatefulWidget kalabilsin.
+    final container = ProviderScope.containerOf(context, listen: false);
+    final result = await showBookingAlertsDialog(
+      context: context,
+      container: container,
+      alerts: alerts,
+      tripId: trip.id,
+    );
+    if (result != null && result.addedCount > 0 && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text('🔔 ${result.addedCount} hatırlatma eklendi'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   void _addTransition(CityTransitionSuggestion s) {

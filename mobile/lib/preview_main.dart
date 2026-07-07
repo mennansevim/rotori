@@ -19,6 +19,7 @@ import 'features/planner/planner_theme.dart';
 import 'features/planner/steps.dart';
 import 'features/plans/plan_providers.dart';
 import 'features/plans/plan_viewer_screen.dart';
+import 'features/reminders/reminders_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -129,6 +130,7 @@ class _PreviewApp extends StatelessWidget {
     final router = GoRouter(
       initialLocation: '/plans',
       routes: [
+        GoRoute(path: '/', redirect: (_, __) => '/plans'),
         GoRoute(path: '/plans', builder: (_, __) => const _PreviewHome()),
         GoRoute(
           path: '/plans/:id/edit',
@@ -147,6 +149,10 @@ class _PreviewApp extends StatelessWidget {
         GoRoute(
           path: '/plans/:id/view',
           builder: (_, s) => PlanViewerScreen(planId: s.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: '/reminders',
+          builder: (_, __) => const RemindersScreen(),
         ),
       ],
     );

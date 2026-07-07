@@ -14,8 +14,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../data/plans_repository.dart';
+import '../../data/reminders_store.dart';
 import '../../domain/destination_profiles.dart';
 import '../../domain/types.dart';
 import '../shared/place_detail_sheet.dart';
@@ -402,6 +404,10 @@ class _TopStatusBarState extends State<_TopStatusBar>
                     ),
                   ),
                 ),
+                _BarBellButton(
+                  color: onColor,
+                  onTap: () => context.push('/reminders'),
+                ),
                 _BarIconButton(
                   icon: Icons.map_outlined,
                   color: onColor,
@@ -465,6 +471,57 @@ class _BarIconButton extends StatelessWidget {
       tooltip: tooltip,
       constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
       onPressed: onTap,
+    );
+  }
+}
+
+class _BarBellButton extends ConsumerWidget {
+  const _BarBellButton({required this.color, required this.onTap});
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = ref.watch(remindersProvider).length;
+    return Tooltip(
+      message: 'Hatırlatmalar',
+      child: InkResponse(
+        onTap: onTap,
+        radius: 22,
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              Icon(LucideIcons.bell, color: color, size: 22),
+              if (count > 0)
+                Positioned(
+                  right: 6,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE74C3C),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    constraints: const BoxConstraints(minWidth: 16),
+                    alignment: Alignment.center,
+                    child: Text(
+                      count > 9 ? '9+' : '$count',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

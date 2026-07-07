@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../data/reminders_store.dart';
 import 'planner_theme.dart';
 import 'steps.dart';
 
 /// styles.css .top-nav — sticky üst bar (marka + aksiyonlar).
-class TopNav extends StatelessWidget implements PreferredSizeWidget {
+class TopNav extends ConsumerWidget implements PreferredSizeWidget {
   const TopNav({
     super.key,
     required this.onNewPlan,
@@ -21,7 +25,8 @@ class TopNav extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(PT.navHeight);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reminderCount = ref.watch(remindersProvider).length;
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xD1FBFBFD), // rgba(251,251,253,0.82)
@@ -57,12 +62,65 @@ class TopNav extends StatelessWidget implements PreferredSizeWidget {
                     ),
                   ),
                   const Spacer(),
+                  _BellButton(
+                    count: reminderCount,
+                    onTap: () => context.push('/reminders'),
+                  ),
                   _GhostButton(label: '🌐 $lang', onTap: onLang),
                   _GhostButton(label: 'Yeni plan', onTap: onNewPlan),
                   _GhostButton(label: 'Rehber', onTap: onGuide),
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Zil (hatırlatmalar) — sağ üstte badge sayı ile.
+class _BellButton extends StatelessWidget {
+  const _BellButton({required this.count, required this.onTap});
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(PT.radiusPill),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Icon(LucideIcons.bell, size: 18, color: PT.accent),
+              if (count > 0)
+                Positioned(
+                  right: -6,
+                  top: -4,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE74C3C),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    constraints: const BoxConstraints(minWidth: 16),
+                    alignment: Alignment.center,
+                    child: Text(
+                      count > 9 ? '9+' : '$count',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),

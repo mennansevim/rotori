@@ -8,6 +8,7 @@ import '../features/auth/auth_screen.dart';
 import '../features/planner/planner_screen.dart';
 import '../features/plans/plan_viewer_screen.dart';
 import '../features/plans/plans_list_screen.dart';
+import '../features/reminders/reminders_screen.dart';
 import 'supabase_client.dart';
 
 /// Uygulama router'ı. Auth state'e göre otomatik yönlendirme yapar:
@@ -44,6 +45,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/plans/:id/view',
         builder: (context, state) =>
             PlanViewerScreen(planId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/reminders',
+        builder: (context, state) => const RemindersScreen(),
       ),
       GoRoute(
         path: '/auth',

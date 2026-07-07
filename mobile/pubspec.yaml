@@ -29,6 +29,12 @@ dependencies:
   # Cihaz üstü (on-device) OCR — bilet metnini çıkarır (yalnızca mobil).
   # Web derlemesine sızmaması için ticket_ocr.dart koşullu import ile izole edilir.
   google_mlkit_text_recognition: ^0.15.0
+  # Yerel bildirim (bilet açılış hatırlatmaları) — mobilde çalışır, web'de no-op.
+  flutter_local_notifications: ^17.2.3
+  # Zaman dilimi verisi (schedule için gerekli)
+  timezone: ^0.9.4
+  # Modern ikon seti (emoji yerine tutarlı görsel dil)
+  lucide_icons_flutter: ^3.1.14+2
 
 dev_dependencies:
   flutter_test:
