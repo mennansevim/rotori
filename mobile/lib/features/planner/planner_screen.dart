@@ -10,14 +10,23 @@ import '../plans/plan_providers.dart';
 import 'planner_shell.dart';
 import 'planner_theme.dart';
 import 'steps.dart';
+import 'steps/explore_step.dart';
+import 'steps/food_step.dart';
+import 'steps/hotels_step.dart';
 import 'steps/journey_step.dart';
+import 'steps/plan_step.dart';
+import 'steps/publish_step.dart';
+import 'steps/title_step.dart';
 import 'steps/welcome_step.dart';
 
 /// apps/planner/src/App.tsx birebir shell:
 /// top-nav + step-pills + adım gövdesi + bottom-bar, tek Trip'i düzenler.
 class PlannerScreen extends ConsumerStatefulWidget {
-  const PlannerScreen({super.key, required this.planId});
+  const PlannerScreen({super.key, required this.planId, this.initialStep});
   final String planId;
+
+  /// Yalnızca önizleme/deep-link için başlangıç adımı; normalde welcome.
+  final StepId? initialStep;
 
   @override
   ConsumerState<PlannerScreen> createState() => _PlannerScreenState();
@@ -25,7 +34,7 @@ class PlannerScreen extends ConsumerStatefulWidget {
 
 class _PlannerScreenState extends ConsumerState<PlannerScreen> {
   Trip? _trip;
-  StepId _step = StepId.welcome;
+  late StepId _step = widget.initialStep ?? StepId.welcome;
   Timer? _saveDebounce;
 
   @override
@@ -217,46 +226,37 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
           trip: trip,
           onChange: _onChange,
         );
-      default:
-        return _NotYetPorted(step: _step);
+      case StepId.explore:
+        return ExploreStep(
+          trip: trip,
+          onChange: _onChange,
+        );
+      case StepId.title:
+        return TitleStep(
+          trip: trip,
+          onChange: _onChange,
+        );
+      case StepId.hotels:
+        return HotelsStep(
+          trip: trip,
+          onChange: _onChange,
+        );
+      case StepId.food:
+        return FoodStep(
+          trip: trip,
+          onChange: _onChange,
+        );
+      case StepId.plan:
+        return PlanStep(
+          trip: trip,
+          onChange: _onChange,
+        );
+      case StepId.publish:
+        return PublishStep(
+          trip: trip,
+          onChange: _onChange,
+          onGoToStep: (s) => setState(() => _step = s),
+        );
     }
-  }
-}
-
-/// Henüz portlanmamış adımlar için dürüst placeholder — sahte tasarım DEĞİL.
-/// Bir sonraki iterasyonda ilgili React ekranı birebir portlanacak.
-class _NotYetPorted extends StatelessWidget {
-  const _NotYetPorted({required this.step});
-  final StepId step;
-  @override
-  Widget build(BuildContext context) {
-    final label = kSteps.firstWhere((s) => s.id == step).label;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 28, 20, 120),
-      children: [
-        PageHeadline(label),
-        const PageSub('Bu adım React planner\'dan birebir portlanıyor.'),
-        PCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('🚧 $label ekranı',
-                  style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      color: PT.text)),
-              const SizedBox(height: 8),
-              const Text(
-                'Welcome ekranı + shell (top-nav, adım pill\'leri, bottom-bar) '
-                'React tasarımıyla birebir hazır. Kalan adımlar sırayla, aynı '
-                'sadakatle geliyor.',
-                style: TextStyle(
-                    fontSize: 14, color: PT.textSecondary, height: 1.5),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
   }
 }

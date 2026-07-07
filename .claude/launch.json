@@ -16,6 +16,17 @@
       "port": 5180,
       "url": "http://localhost:5180/viewer/?u=demo",
       "autoPort": true
+    },
+    {
+      "name": "flutter-preview",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd mobile && flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8090 -t lib/preview_main.dart"
+      ],
+      "port": 8090,
+      "url": "http://127.0.0.1:8090/",
+      "autoPort": false
     }
   ]
 }

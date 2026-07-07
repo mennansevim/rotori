@@ -1,0 +1,136 @@
+// Hotels adımı — gating (hotelsComplete) + booking URL parse + kart render.
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:japan_trip/domain/trip_factory.dart';
+import 'package:japan_trip/domain/types.dart';
+import 'package:japan_trip/features/planner/planner_theme.dart';
+import 'package:japan_trip/features/planner/steps/hotels_step.dart';
+
+Trip _tripWithDest() {
+  final t = createEmptyTrip();
+  t.preferences.destinations.add(TripDestination(
+    id: 'd1',
+    countryCode: 'JP',
+    countryName: 'Japonya',
+    city: 'Tokyo',
+    arrivalDate: t.preferences.travelDates.start,
+    departureDate: t.preferences.travelDates.end,
+    order: 0,
+  ));
+  return t;
+}
+
+void main() {
+  group('hotelsComplete gating', () {
+    test('otel yoksa false', () {
+      expect(hotelsComplete(_tripWithDest()), isFalse);
+    });
+
+    test('eksik adresli otel false', () {
+      final t = _tripWithDest();
+      t.hotels.add(HotelStay(
+        id: 'h1',
+        city: 'Tokyo',
+        name: 'Hotel A',
+        checkIn: t.preferences.travelDates.start,
+        checkOut: t.preferences.travelDates.end,
+        address: '',
+      ));
+      expect(hotelsComplete(t), isFalse);
+    });
+
+    test('tüm alanlar dolu otel true', () {
+      final t = _tripWithDest();
+      t.hotels.add(HotelStay(
+        id: 'h1',
+        city: 'Tokyo',
+        name: 'Hotel A',
+        checkIn: t.preferences.travelDates.start,
+        checkOut: t.preferences.travelDates.end,
+        address: '1-2-3 Shibuya',
+      ));
+      expect(hotelsComplete(t), isTrue);
+    });
+
+    test('bir otel eksikse tümü false (every mantığı)', () {
+      final t = _tripWithDest();
+      t.hotels.add(HotelStay(
+        id: 'h1',
+        city: 'Tokyo',
+        name: 'Hotel A',
+        checkIn: t.preferences.travelDates.start,
+        checkOut: t.preferences.travelDates.end,
+        address: '1-2-3 Shibuya',
+      ));
+      t.hotels.add(HotelStay(
+        id: 'h2',
+        city: '',
+        name: '',
+        checkIn: '',
+        checkOut: '',
+        address: '',
+      ));
+      expect(hotelsComplete(t), isFalse);
+    });
+  });
+
+  group('parseBookingUrl', () {
+    test('booking hotel linkinden isim çıkarır', () {
+      final p = parseBookingUrl(
+          'https://www.booking.com/hotel/jp/hotel-grand-city.html?checkin=2026-10-15&checkout=2026-10-18');
+      expect(p, isNotNull);
+      expect(p!.source, 'booking');
+      expect(p.name, 'Hotel Grand City');
+      expect(p.checkIn, '2026-10-15');
+      expect(p.checkOut, '2026-10-18');
+    });
+
+    test('booking mytrips linki booking-mytrips döndürür', () {
+      final p = parseBookingUrl('https://www.booking.com/mytrips/index.html');
+      expect(p!.source, 'booking-mytrips');
+    });
+
+    test('desteklenmeyen site unknown', () {
+      final p = parseBookingUrl('https://airbnb.com/rooms/123');
+      expect(p!.source, 'unknown');
+    });
+
+    test('geçersiz metin null', () {
+      expect(parseBookingUrl('merhaba'), isNull);
+      expect(parseBookingUrl(''), isNull);
+    });
+  });
+
+  testWidgets('boş otel listesinde "+ Otel ekle" gösterilir', (tester) async {
+    final t = _tripWithDest();
+    await tester.pumpWidget(MaterialApp(
+      theme: PT.theme(),
+      home: Scaffold(
+        body: HotelsStep(trip: t, onChange: (m) => m(t)),
+      ),
+    ));
+    expect(find.text('Konaklama'), findsOneWidget);
+    expect(find.text('+ Otel ekle'), findsOneWidget);
+  });
+
+  testWidgets('otel kartı şehir + ada göre render eder', (tester) async {
+    final t = _tripWithDest();
+    t.hotels.add(HotelStay(
+      id: 'h1',
+      city: 'Tokyo',
+      name: 'Hotel Sakura',
+      checkIn: t.preferences.travelDates.start,
+      checkOut: t.preferences.travelDates.end,
+      address: '1-2-3 Shibuya',
+    ));
+    await tester.pumpWidget(MaterialApp(
+      theme: PT.theme(),
+      home: Scaffold(
+        body: HotelsStep(trip: t, onChange: (m) => m(t)),
+      ),
+    ));
+    expect(find.text('Hotel Sakura'), findsOneWidget);
+    expect(find.text('+ Başka otel ekle'), findsOneWidget);
+  });
+}
