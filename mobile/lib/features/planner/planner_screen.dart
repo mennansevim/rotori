@@ -83,6 +83,14 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
     }
     if (t.days.any((d) => d.items.isNotEmpty)) done.add(StepId.plan);
     done.add(StepId.publish);
+
+    // Kullanıcı bir adımdan sonrakine ilerlediyse geçilen adımlar tick alır.
+    // Continue butonu gerekli veri şartlarını zaten sağlıyor, o yüzden
+    // "önceki tüm adımlar tamamlandı" varsayımı güvenli.
+    final currentIdx = stepIndex(_step);
+    for (var i = 0; i < currentIdx; i++) {
+      done.add(kSteps[i].id);
+    }
     return done;
   }
 

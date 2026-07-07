@@ -1,6 +1,7 @@
 // Plan adımı — gezi planı oluştur (fallback), reorder→resequence, keşif.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:japan_trip/domain/day_optimizer.dart';
 import 'package:japan_trip/domain/trip_factory.dart';
@@ -23,10 +24,12 @@ Trip _tripWithDest() {
 }
 
 void main() {
-  Widget harness(Trip trip) => MaterialApp(
-        theme: PT.theme(),
-        home: Scaffold(
-          body: PlanStep(trip: trip, onChange: (m) => m(trip)),
+  Widget harness(Trip trip) => ProviderScope(
+        child: MaterialApp(
+          theme: PT.theme(),
+          home: Scaffold(
+            body: PlanStep(trip: trip, onChange: (m) => m(trip)),
+          ),
         ),
       );
 
