@@ -1244,6 +1244,8 @@ class _DayCardState extends State<_DayCard> {
                         isNext: i == nextIdx,
                         isPastItem: widget.isActive &&
                             _isItemPast(day.items[i], nowMin),
+                        isFirst: i == 0,
+                        isLast: i == day.items.length - 1,
                         onOpen: () =>
                             widget.onOpenItem(day.items[i], widget.dest),
                       ),
@@ -1396,6 +1398,8 @@ class _TimelineRow extends StatelessWidget {
     required this.dest,
     required this.isNext,
     required this.isPastItem,
+    required this.isFirst,
+    required this.isLast,
     required this.onOpen,
   });
   final TimelineItem item;
@@ -1403,22 +1407,31 @@ class _TimelineRow extends StatelessWidget {
   final TripDestination? dest;
   final bool isNext;
   final bool isPastItem;
+  final bool isFirst;
+  final bool isLast;
   final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
     final p = palette;
     final time = item.time ?? item.scheduledTime ?? '--:--';
+    final timeStyle = TextStyle(
+      color: isPastItem ? p.textMuted : p.fuji,
+      fontWeight: FontWeight.w700,
+      fontSize: 13,
+      decoration: isPastItem ? TextDecoration.lineThrough : null,
+    );
 
-    final row = InkWell(
+    final content = InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: onOpen,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 3),
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          color: isNext ? p.accent.withValues(alpha: 0.10) : null,
+          color: isNext
+              ? p.accent.withValues(alpha: 0.10)
+              : (isPastItem ? p.textMuted.withValues(alpha: 0.05) : null),
           border: isNext
               ? Border.all(color: p.accent.withValues(alpha: 0.55), width: 1.5)
               : null,
@@ -1428,14 +1441,7 @@ class _TimelineRow extends StatelessWidget {
           children: [
             SizedBox(
               width: 48,
-              child: Text(
-                time,
-                style: TextStyle(
-                  color: p.fuji,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                ),
-              ),
+              child: Text(time, style: timeStyle),
             ),
             Icon(_kindIcon(item.kind), size: 16, color: p.textMuted),
             const SizedBox(width: 8),
@@ -1516,11 +1522,193 @@ class _TimelineRow extends StatelessWidget {
       ),
     );
 
+    final row = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _TimelineRail(
+              palette: p,
+              isFirst: isFirst,
+              isLast: isLast,
+              isPast: isPastItem,
+              isNext: isNext,
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: content),
+          ],
+        ),
+      ),
+    );
+
     if (isPastItem && !isNext) {
-      return Opacity(opacity: 0.5, child: row);
+      return Opacity(opacity: 0.6, child: row);
     }
     return row;
   }
+}
+
+/// Timeline'ın solundaki dikey akış rayı: node + üst/alt bağlantı çizgileri.
+/// - Geçmiş item → dolu koyu node + tam çizgi
+/// - Aktif "Sıradaki" → pulse'lı halka + gradient node
+/// - Gelecek → içi boş halka
+class _TimelineRail extends StatefulWidget {
+  const _TimelineRail({
+    required this.palette,
+    required this.isFirst,
+    required this.isLast,
+    required this.isPast,
+    required this.isNext,
+  });
+  final ViewerPalette palette;
+  final bool isFirst;
+  final bool isLast;
+  final bool isPast;
+  final bool isNext;
+
+  @override
+  State<_TimelineRail> createState() => _TimelineRailState();
+}
+
+class _TimelineRailState extends State<_TimelineRail>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1400),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final animate = widget.isNext ? _pulse : const AlwaysStoppedAnimation(0.0);
+    return SizedBox(
+      width: 22,
+      child: AnimatedBuilder(
+        animation: animate,
+        builder: (_, __) => CustomPaint(
+          painter: _TimelineRailPainter(
+            palette: widget.palette,
+            isFirst: widget.isFirst,
+            isLast: widget.isLast,
+            isPast: widget.isPast,
+            isNext: widget.isNext,
+            pulseT: animate.value,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TimelineRailPainter extends CustomPainter {
+  _TimelineRailPainter({
+    required this.palette,
+    required this.isFirst,
+    required this.isLast,
+    required this.isPast,
+    required this.isNext,
+    required this.pulseT,
+  });
+  final ViewerPalette palette;
+  final bool isFirst;
+  final bool isLast;
+  final bool isPast;
+  final bool isNext;
+  final double pulseT;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    // Node dikey merkez: ilk satırın time metniyle hizalanacak şekilde 20px'ten.
+    final cy = 20.0.clamp(0.0, size.height - 1);
+
+    final lineColor = isPast
+        ? palette.accent.withValues(alpha: 0.45)
+        : palette.textMuted.withValues(alpha: 0.35);
+
+    final linePaint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+
+    // Üst çizgi (isFirst değilse)
+    if (!isFirst) {
+      canvas.drawLine(Offset(cx, 0), Offset(cx, cy - 8), linePaint);
+    }
+    // Alt çizgi (isLast değilse)
+    if (!isLast) {
+      final downColor = (isPast || isNext)
+          ? palette.accent.withValues(alpha: 0.45)
+          : palette.textMuted.withValues(alpha: 0.35);
+      canvas.drawLine(
+        Offset(cx, cy + 8),
+        Offset(cx, size.height),
+        Paint()
+          ..color = downColor
+          ..strokeWidth = 2
+          ..strokeCap = StrokeCap.round,
+      );
+    }
+
+    // Node
+    if (isNext) {
+      // Pulse dış halka
+      final pulseR = 8 + pulseT * 6;
+      final pulseAlpha = (1 - pulseT) * 0.45;
+      canvas.drawCircle(
+        Offset(cx, cy),
+        pulseR,
+        Paint()..color = palette.accent.withValues(alpha: pulseAlpha),
+      );
+      // Dolu iç daire
+      canvas.drawCircle(
+        Offset(cx, cy),
+        6,
+        Paint()..color = palette.accent,
+      );
+      // İç beyaz nokta
+      canvas.drawCircle(
+        Offset(cx, cy),
+        2.4,
+        Paint()..color = Colors.white,
+      );
+    } else if (isPast) {
+      canvas.drawCircle(
+        Offset(cx, cy),
+        5,
+        Paint()..color = palette.accent.withValues(alpha: 0.7),
+      );
+    } else {
+      // Gelecek: içi boş halka
+      canvas.drawCircle(
+        Offset(cx, cy),
+        5,
+        Paint()..color = palette.textMuted.withValues(alpha: 0.20),
+      );
+      canvas.drawCircle(
+        Offset(cx, cy),
+        5,
+        Paint()
+          ..color = palette.textMuted.withValues(alpha: 0.55)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _TimelineRailPainter old) =>
+      old.pulseT != pulseT ||
+      old.isPast != isPast ||
+      old.isNext != isNext ||
+      old.isFirst != isFirst ||
+      old.isLast != isLast;
 }
 
 // ---------------------------------------------------------------------------
