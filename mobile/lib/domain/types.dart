@@ -10,22 +10,46 @@
 const int kMaxTripDays = 31;
 
 enum Pace { relaxed, moderate, intense }
+
 enum WalkingTarget { light, moderate, intense }
+
 enum TransportPreference { transit, taxiAssisted, walking, mixed }
+
 enum PaymentPreference { creditCard, cash, creditAndCash, icCard }
 
 enum InterestTag {
-  anime, pokemon, shopping, temples, traditional, tech,
-  kids, themeParks, photography, food,
+  anime,
+  pokemon,
+  shopping,
+  temples,
+  traditional,
+  tech,
+  kids,
+  themeParks,
+  photography,
+  food,
 }
 
 enum FoodSensitivity {
-  noPork, noPorkDerivatives, noSeafood, halalOnly, kidFriendly,
-  turkishPalate, vegetarian, chickenFocus, noFattyMeat,
+  noPork,
+  noPorkDerivatives,
+  noSeafood,
+  halalOnly,
+  kidFriendly,
+  turkishPalate,
+  vegetarian,
+  chickenFocus,
+  noFattyMeat,
 }
 
 enum TicketKind {
-  flight, train, bus, ferry, attraction, event, other,
+  flight,
+  train,
+  bus,
+  ferry,
+  attraction,
+  event,
+  other,
 }
 
 enum TimelineItemKind { activity, transport, meal, hotel }
@@ -108,7 +132,8 @@ class ChildProfile {
 }
 
 class FlightLeg {
-  FlightLeg({required this.city, required this.airport, required this.dateTime});
+  FlightLeg(
+      {required this.city, required this.airport, required this.dateTime});
   String city;
   String airport;
   String dateTime; // ISO string
@@ -443,40 +468,45 @@ class TripPreferences {
         dietary: List<String>.from(j['dietary'] as List? ?? const []),
         dietaryTags: List<String>.from(j['dietaryTags'] as List? ?? const []),
         walkingTarget: _walkingTargetFromJson(j['walkingTarget']),
-        transportPreference: _transportPreferenceFromJson(j['transportPreference']),
+        transportPreference:
+            _transportPreferenceFromJson(j['transportPreference']),
         paymentPreference: _paymentPreferenceFromJson(j['paymentPreference']),
         childProfiles: (j['childProfiles'] as List? ?? const [])
             .map((e) => ChildProfile.fromJson((e as Map).cast()))
             .toList(),
         interests: (j['interests'] as List? ?? const [])
-            .map((e) => switch (e) {
-                  'anime' => InterestTag.anime,
-                  'pokemon' => InterestTag.pokemon,
-                  'shopping' => InterestTag.shopping,
-                  'temples' => InterestTag.temples,
-                  'traditional' => InterestTag.traditional,
-                  'tech' => InterestTag.tech,
-                  'kids' => InterestTag.kids,
-                  'theme_parks' => InterestTag.themeParks,
-                  'photography' => InterestTag.photography,
-                  'food' => InterestTag.food,
-                  _ => null,
-                },)
+            .map(
+              (e) => switch (e) {
+                'anime' => InterestTag.anime,
+                'pokemon' => InterestTag.pokemon,
+                'shopping' => InterestTag.shopping,
+                'temples' => InterestTag.temples,
+                'traditional' => InterestTag.traditional,
+                'tech' => InterestTag.tech,
+                'kids' => InterestTag.kids,
+                'theme_parks' => InterestTag.themeParks,
+                'photography' => InterestTag.photography,
+                'food' => InterestTag.food,
+                _ => null,
+              },
+            )
             .whereType<InterestTag>()
             .toList(),
         foodSensitivities: (j['foodSensitivities'] as List? ?? const [])
-            .map((e) => switch (e) {
-                  'no_pork' => FoodSensitivity.noPork,
-                  'no_pork_derivatives' => FoodSensitivity.noPorkDerivatives,
-                  'no_seafood' => FoodSensitivity.noSeafood,
-                  'halal_only' => FoodSensitivity.halalOnly,
-                  'kid_friendly' => FoodSensitivity.kidFriendly,
-                  'turkish_palate' => FoodSensitivity.turkishPalate,
-                  'vegetarian' => FoodSensitivity.vegetarian,
-                  'chicken_focus' => FoodSensitivity.chickenFocus,
-                  'no_fatty_meat' => FoodSensitivity.noFattyMeat,
-                  _ => null,
-                },)
+            .map(
+              (e) => switch (e) {
+                'no_pork' => FoodSensitivity.noPork,
+                'no_pork_derivatives' => FoodSensitivity.noPorkDerivatives,
+                'no_seafood' => FoodSensitivity.noSeafood,
+                'halal_only' => FoodSensitivity.halalOnly,
+                'kid_friendly' => FoodSensitivity.kidFriendly,
+                'turkish_palate' => FoodSensitivity.turkishPalate,
+                'vegetarian' => FoodSensitivity.vegetarian,
+                'chicken_focus' => FoodSensitivity.chickenFocus,
+                'no_fatty_meat' => FoodSensitivity.noFattyMeat,
+                _ => null,
+              },
+            )
             .whereType<FoodSensitivity>()
             .toList(),
         selectedCityIds:
@@ -515,25 +545,34 @@ class TripPreferences {
         'dietaryTags': dietaryTags,
         'selectedCityIds': selectedCityIds,
         'childProfiles': childProfiles.map((c) => c.toJson()).toList(),
-        'interests': interests.map((i) => switch (i) {
-              InterestTag.themeParks => 'theme_parks',
-              _ => i.name,
-            },).toList(),
-        'foodSensitivities': foodSensitivities.map((s) => switch (s) {
-              FoodSensitivity.noPork => 'no_pork',
-              FoodSensitivity.noPorkDerivatives => 'no_pork_derivatives',
-              FoodSensitivity.noSeafood => 'no_seafood',
-              FoodSensitivity.halalOnly => 'halal_only',
-              FoodSensitivity.kidFriendly => 'kid_friendly',
-              FoodSensitivity.turkishPalate => 'turkish_palate',
-              FoodSensitivity.chickenFocus => 'chicken_focus',
-              FoodSensitivity.noFattyMeat => 'no_fatty_meat',
-              _ => s.name,
-            },).toList(),
+        'interests': interests
+            .map(
+              (i) => switch (i) {
+                InterestTag.themeParks => 'theme_parks',
+                _ => i.name,
+              },
+            )
+            .toList(),
+        'foodSensitivities': foodSensitivities
+            .map(
+              (s) => switch (s) {
+                FoodSensitivity.noPork => 'no_pork',
+                FoodSensitivity.noPorkDerivatives => 'no_pork_derivatives',
+                FoodSensitivity.noSeafood => 'no_seafood',
+                FoodSensitivity.halalOnly => 'halal_only',
+                FoodSensitivity.kidFriendly => 'kid_friendly',
+                FoodSensitivity.turkishPalate => 'turkish_palate',
+                FoodSensitivity.chickenFocus => 'chicken_focus',
+                FoodSensitivity.noFattyMeat => 'no_fatty_meat',
+                _ => s.name,
+              },
+            )
+            .toList(),
         if (walkingTarget != null)
           'walkingTarget': _walkingTargetToJson(walkingTarget!),
         if (transportPreference != null)
-          'transportPreference': _transportPreferenceToJson(transportPreference!),
+          'transportPreference':
+              _transportPreferenceToJson(transportPreference!),
         if (paymentPreference != null)
           'paymentPreference': _paymentPreferenceToJson(paymentPreference!),
         if (originCity != null) 'originCity': originCity,
@@ -713,8 +752,7 @@ class DayPlan {
         stepsEstimate: (j['stepsEstimate'] as num?)?.toInt(),
         stepsEstimateMax: (j['stepsEstimateMax'] as num?)?.toInt(),
         taxiRecommended: j['taxiRecommended'] as bool?,
-        routeMapsUrl:
-            ((j['route'] as Map?)?['mapsUrl'] as String?),
+        routeMapsUrl: ((j['route'] as Map?)?['mapsUrl'] as String?),
         items: (j['items'] as List? ?? const [])
             .map((e) => TimelineItem.fromJson((e as Map).cast()))
             .toList(),
@@ -778,7 +816,8 @@ class TripFlights {
 }
 
 class Deadlines {
-  Deadlines({this.shinkansenBooking, this.skytreeVisit, this.skytreeBookingOpens});
+  Deadlines(
+      {this.shinkansenBooking, this.skytreeVisit, this.skytreeBookingOpens});
   String? shinkansenBooking;
   String? skytreeVisit;
   String? skytreeBookingOpens;

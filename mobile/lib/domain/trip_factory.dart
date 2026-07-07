@@ -11,16 +11,43 @@ String _slug() =>
 /// UUID benzeri (tam RFC4122 değil ama JSON DB'de yeterli).
 String _uuid() {
   final r = Random.secure();
-  String h(int n) => List.generate(n, (_) => r.nextInt(16).toRadixString(16)).join();
+  String h(int n) =>
+      List.generate(n, (_) => r.nextInt(16).toRadixString(16)).join();
   return '${h(8)}-${h(4)}-${h(4)}-${h(4)}-${h(12)}';
 }
 
-String _ymd(DateTime d) =>
-    '${d.year.toString().padLeft(4, '0')}-'
+String _ymd(DateTime d) => '${d.year.toString().padLeft(4, '0')}-'
     '${d.month.toString().padLeft(2, '0')}-'
     '${d.day.toString().padLeft(2, '0')}';
 
 DateTime _addDays(DateTime d, int days) => d.add(Duration(days: days));
+
+const _trWeekdays = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+
+/// start..end (dahil) arası her gün için boş DayPlan üretir.
+/// React syncTripFromDestinations'ın gün üretimi karşılığı.
+List<DayPlan> generateDaysBetween(String startYmd, String endYmd) {
+  if (startYmd.isEmpty || endYmd.isEmpty) return [];
+  final start = DateTime.tryParse(startYmd);
+  final end = DateTime.tryParse(endYmd);
+  if (start == null || end == null || end.isBefore(start)) return [];
+  final days = <DayPlan>[];
+  var cur = start;
+  var n = 1;
+  while (!cur.isAfter(end) && n <= kMaxTripDays) {
+    days.add(DayPlan(
+      dayNumber: n,
+      date: _ymd(cur),
+      weekday: _trWeekdays[cur.weekday - 1],
+      theme: '',
+      tags: [],
+      items: [],
+    ));
+    cur = _addDays(cur, 1);
+    n++;
+  }
+  return days;
+}
 
 /// 7 günlük boş Trip, tarih bugünden 14 gün sonra başlar.
 /// Not: TS'te generateDaysBetween günleri de dolduruyordu; MVP burada boş liste

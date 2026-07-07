@@ -5,8 +5,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:japan_trip/domain/day_optimizer.dart';
 import 'package:japan_trip/domain/types.dart';
 
-TimelineItem _item(String id, String time,
-        {TimelineItemKind kind = TimelineItemKind.activity,}) =>
+TimelineItem _item(
+  String id,
+  String time, {
+  TimelineItemKind kind = TimelineItemKind.activity,
+}) =>
     TimelineItem(
       id: id,
       title: id,

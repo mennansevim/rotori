@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/auth_screen.dart';
-import '../features/home/home_screen.dart';
+import '../features/planner/planner_screen.dart';
+import '../features/plans/plan_viewer_screen.dart';
+import '../features/plans/plans_list_screen.dart';
 import 'supabase_client.dart';
 
 /// Uygulama router'ı. Auth state'e göre otomatik yönlendirme yapar:
@@ -21,13 +23,27 @@ final routerProvider = Provider<GoRouter>((ref) {
       final loggedIn = ref.read(currentSessionProvider) != null;
       final atAuth = state.matchedLocation == '/auth';
       if (!loggedIn && !atAuth) return '/auth';
-      if (loggedIn && atAuth) return '/';
+      if (loggedIn && atAuth) return '/plans';
       return null;
     },
     routes: [
       GoRoute(
         path: '/',
-        builder: (context, state) => const HomeScreen(),
+        redirect: (_, __) => '/plans',
+      ),
+      GoRoute(
+        path: '/plans',
+        builder: (context, state) => const PlansListScreen(),
+      ),
+      GoRoute(
+        path: '/plans/:id/edit',
+        builder: (context, state) =>
+            PlannerScreen(planId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/plans/:id/view',
+        builder: (context, state) =>
+            PlanViewerScreen(planId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/auth',

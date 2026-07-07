@@ -14,8 +14,10 @@ class AuthScreen extends ConsumerStatefulWidget {
 
 class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  // DEV: test kullanıcısı önden dolu — tek tık "Giriş yap".
+  // (Prod'da bu varsayılanlar kaldırılacak.)
+  final _emailController = TextEditingController(text: 'demo@japantrip.app');
+  final _passwordController = TextEditingController(text: 'Demo1234!');
   bool _isRegister = false;
   bool _busy = false;
   String? _error;
