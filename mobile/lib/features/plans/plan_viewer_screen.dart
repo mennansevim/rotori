@@ -1419,7 +1419,6 @@ class _TimelineRow extends StatelessWidget {
       color: isPastItem ? p.textMuted : p.fuji,
       fontWeight: FontWeight.w700,
       fontSize: 13,
-      decoration: isPastItem ? TextDecoration.lineThrough : null,
     );
 
     final content = InkWell(
@@ -1440,8 +1439,18 @@ class _TimelineRow extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              width: 48,
-              child: Text(time, style: timeStyle),
+              width: 62,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(time, style: timeStyle),
+                  if (isPastItem) ...[
+                    const SizedBox(width: 3),
+                    Icon(Icons.check_rounded,
+                        size: 13, color: p.textMuted),
+                  ],
+                ],
+              ),
             ),
             Icon(_kindIcon(item.kind), size: 16, color: p.textMuted),
             const SizedBox(width: 8),
