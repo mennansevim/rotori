@@ -1,8 +1,9 @@
 // Yer detay popup — hem planner (Plan adımı) hem viewer (gün planları)
 // tarafından kullanılır. Temaya uyumlu (açık/koyu) Material bileşenleri.
 //
-// İçerik: kısa tanıtım, tahmini yürüme adımı, öneriler (yakındaki yerler /
-// yemekler), "haritada aç" butonu ve opsiyonel "düzenle".
+// İçerik: kısa tanıtım, tahmini yürüme adımı, gerçek mesafeye dayalı
+// "yakınlarda" önerileri (koordinatlardan hesaplanır), yemek önerileri,
+// "haritada aç" butonu ve opsiyonel "düzenle".
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -11,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../domain/city_places.dart';
 import '../../domain/destination_profiles.dart';
 import '../../domain/explore.dart';
 import '../../domain/japan_suggestions.dart';
@@ -210,21 +212,28 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
     }
   }
 
-  List<(String, String)> _recommendations(PlaceSuggestion? match) {
+  /// Yemek öğesinde yerel yemek önerileri; diğerlerinde koordinatlardan
+  /// hesaplanan GERÇEK yakın yerler (isim · kategori · mesafe). Konum
+  /// çözülemezse boş döner — uydurma öneri göstermeyiz.
+  List<(String, String)> _recommendations() {
     final out = <(String, String)>[];
-    if (item.tips != null && item.tips!.trim().isNotEmpty) {
-      out.add(('💡', item.tips!.trim()));
-    }
     final cc = countryCode;
     if (item.kind == TimelineItemKind.meal && cc != null) {
       for (final f in recommendedFoods(cc).take(3)) {
         out.add((f.emoji ?? '🍽️', f.label));
       }
-    } else if (profile != null) {
-      final near = profile!.popularPlaces.where((p) => p.id != match?.id).take(3);
-      for (final p in near) {
-        out.add((p.emoji, '${p.name} · ${ratingStars(placeRating(p))}'));
-      }
+      return out;
+    }
+    final near = nearbyCityPlaces(
+      title: _normalize(item.title),
+      lat: item.lat,
+      lng: item.lng,
+    );
+    for (final n in near) {
+      out.add((
+        n.place.emoji,
+        '${n.place.name} · ${n.place.category} · ${_formatDistance(n.distanceM)}',
+      ));
     }
     return out;
   }
@@ -450,7 +459,8 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
       intro = parts.isNotEmpty ? parts.join(' · ') : 'Planınızdaki bir durak.';
     }
 
-    final recs = _recommendations(match);
+    final recs = _recommendations();
+    final userTip = item.tips?.trim();
     final rating = guide?.averageRating ??
         (match != null ? placeRating(match) : null);
 
@@ -532,6 +542,23 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
         // Tanıtım
         Text(intro,
             style: TextStyle(fontSize: 13.5, color: secondary, height: 1.45)),
+
+        // Kullanıcının kendi notu (plandaki tips alanı)
+        if (userTip != null && userTip.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('💡', style: TextStyle(fontSize: 13)),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(userTip,
+                    style: TextStyle(
+                        fontSize: 12.5, color: onSurface, height: 1.35)),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 12),
 
         // Kompakt istatistik barı: Süre | Yürüme | Rezervasyon
@@ -729,6 +756,19 @@ class _StatBar extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Kuş uçuşu mesafeyi okunur yapar: 50 m'ye yuvarlanmış metre ya da km.
+String _formatDistance(double m) {
+  if (m < 950) {
+    final r = (m / 50).round() * 50;
+    return '${r < 50 ? 50 : r} m';
+  }
+  final km = m / 1000;
+  final s = km < 10
+      ? km.toStringAsFixed(1).replaceAll('.', ',')
+      : km.toStringAsFixed(0);
+  return '$s km';
 }
 
 String _formatDuration(int minutes) {

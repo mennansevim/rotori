@@ -208,6 +208,83 @@ List<CityData> detectTripCities(Trip trip) {
   return scored.map((s) => s.city).toList();
 }
 
+/// Bir şehirde başlığa karşılık gelen noktayı bulur. Önce tam kapsama
+/// (contains) dener; olmazsa yer adının 4+ harfli parçalarını arar
+/// ("Senso-ji (Asakusa)" ↔ "Senso-ji Tapınağı" gibi).
+CityPlace? _matchPlaceInCity(CityData city, String t) {
+  for (final p in city.places) {
+    final n = p.name.toLowerCase();
+    if (t.contains(n) || n.contains(t)) return p;
+  }
+  for (final p in city.places) {
+    final tokens = p.name
+        .toLowerCase()
+        .split(RegExp(r'[^a-zçğıöşüâ0-9\-]+'))
+        .where((w) => w.length >= 4);
+    if (tokens.any(t.contains)) return p;
+  }
+  return null;
+}
+
+/// Gerçek yakınlık önerisi: bir nokta + ona olan kuş uçuşu mesafe.
+class NearbyPlace {
+  const NearbyPlace({required this.place, required this.distanceM});
+  final CityPlace place;
+  final double distanceM;
+}
+
+/// Öğeye gerçekten yakın küratörlü noktalar, mesafeye göre artan sırada.
+/// Konum önce verilen [lat]/[lng]'den, yoksa başlık eşleşmesinden çözülür.
+/// Çözülemezse boş liste döner — uydurma "yakında" önerisi göstermeyiz.
+List<NearbyPlace> nearbyCityPlaces({
+  required String title,
+  double? lat,
+  double? lng,
+  int limit = 3,
+}) {
+  final t = title.toLowerCase().trim();
+  CityData? city;
+  CityPlace? self;
+  if (t.isNotEmpty) {
+    for (final c in kCityData) {
+      final m = _matchPlaceInCity(c, t);
+      if (m != null) {
+        city = c;
+        self = m;
+        break;
+      }
+    }
+  }
+  final origin = (lat != null && lng != null)
+      ? LatLng(lat, lng)
+      : (self != null ? LatLng(self.lat, self.lng) : null);
+  if (origin == null) return const [];
+  // Başlıktan şehir çıkmadıysa koordinata en yakın noktanın şehrini al;
+  // en yakın nokta bile 30 km+ uzaktaysa öneri anlamsız olur.
+  if (city == null) {
+    var best = double.infinity;
+    for (final c in kCityData) {
+      for (final p in c.places) {
+        final d = distanceMeters(origin, LatLng(p.lat, p.lng));
+        if (d < best) {
+          best = d;
+          city = c;
+        }
+      }
+    }
+    if (best > 30000) return const [];
+  }
+  final out = [
+    for (final p in city!.places)
+      if (p.id != self?.id)
+        NearbyPlace(
+          place: p,
+          distanceM: distanceMeters(origin, LatLng(p.lat, p.lng)),
+        ),
+  ]..sort((a, b) => a.distanceM.compareTo(b.distanceM));
+  return out.take(limit).toList();
+}
+
 /// Şehir noktalarını GPS geofence'lerine çevirir. Ziyaret, kullanıcının nokta
 /// yarıçapında en az 10 dk (kDefaultMinDwell) kalmasıyla otomatik tamamlanır;
 /// geofence id'si CityPlace id'si ile aynıdır (UI ile eşleşsin diye).

@@ -10,6 +10,7 @@ import '../../../domain/explore.dart';
 import '../../../domain/fill_empty_days.dart';
 import '../../../domain/itinerary_generator.dart';
 import '../../../domain/japan_suggestions.dart';
+import '../../../domain/place_guide.dart';
 import '../../../domain/rules.dart';
 import '../../../domain/trip_factory.dart';
 import '../../../domain/types.dart';
@@ -1231,9 +1232,10 @@ class _DiscoverSheetState extends State<_DiscoverSheet> {
         : '$flag${widget.city.isNotEmpty ? widget.city : widget.country}';
 
     return DraggableScrollableSheet(
-      initialChildSize: 0.88,
+      // Tam ekran kaplamasın — yukarı çekilerek büyütülebilir.
+      initialChildSize: 0.72,
       minChildSize: 0.5,
-      maxChildSize: 0.95,
+      maxChildSize: 0.92,
       expand: false,
       builder: (ctx, scrollCtrl) => SafeArea(
         child: Column(
@@ -1327,7 +1329,14 @@ class _DiscoverCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rating = placeRating(place);
+    // Küratörlü rehber varsa gerçek puanı ve pratik meta bilgiyi göster.
+    final guide = matchPlaceGuide(place.name);
+    final rating = guide?.averageRating ?? placeRating(place);
+    final meta = [
+      if (guide != null) '⏱ ${_formatGuideDuration(guide.visitDurationMin)}',
+      if (guide?.advanceBookingDays != null)
+        '🎟 ${guide!.advanceBookingDays} gün önce bilet',
+    ].join(' · ');
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
@@ -1376,6 +1385,12 @@ class _DiscoverCard extends StatelessWidget {
                         ],
                       ],
                     ),
+                    if (meta.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(meta,
+                          style: const TextStyle(
+                              fontSize: 11.5, color: PT.textSecondary)),
+                    ],
                   ],
                 ),
               ),
@@ -1387,4 +1402,12 @@ class _DiscoverCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatGuideDuration(int minutes) {
+  if (minutes < 60) return '$minutes dk';
+  final h = minutes ~/ 60;
+  final m = minutes % 60;
+  if (m == 0) return '$h saat';
+  return '$h sa $m dk';
 }
