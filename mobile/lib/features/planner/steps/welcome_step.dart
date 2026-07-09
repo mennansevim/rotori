@@ -65,86 +65,82 @@ class _WelcomeStepState extends State<WelcomeStep> {
   }
 
   // ---- choose ----------------------------------------------------------
+  // Kaydırma YOK — hero + iki seçenek ekrana sığar (dar: alt alta, geniş: yan
+  // yana). Kartlar kalan yüksekliği paylaşır (Expanded) → her cihazda tam sığar.
   Widget _buildChoose() {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 80),
-      children: [
-        // welcome-hero
-        const Padding(
-          padding: EdgeInsets.fromLTRB(0, 48, 0, 32),
+    return LayoutBuilder(
+      builder: (context, c) {
+        final twoCol = c.maxWidth >= 560;
+        final card0 = _WelcomeCard(
+          icon: '✈️',
+          title: 'Biletim var',
+          desc: 'Uçuş bilgilerini gir ya da bilet fotoğrafını yükle',
+          onTap: () {
+            widget.onChange((t) => t.preferences.hasTicket = true);
+            setState(() => _view = _View.ticket);
+          },
+        );
+        final card1 = _WelcomeCard(
+          icon: '📅',
+          title: 'Gezi planla',
+          desc: 'Sana en uygun tarihleri birlikte seçelim',
+          onTap: () {
+            widget.onChange((t) => t.preferences.hasTicket = false);
+            setState(() => _view = _View.plan);
+          },
+        );
+        final Widget choices = twoCol
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: card0),
+                  const SizedBox(width: 16),
+                  Expanded(child: card1),
+                ],
+              )
+            : Column(
+                children: [
+                  Expanded(child: card0),
+                  const SizedBox(height: 14),
+                  Expanded(child: card1),
+                ],
+              );
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
           child: Column(
             children: [
-              Text('🇯🇵', style: TextStyle(fontSize: 64)),
-              SizedBox(height: 12),
-              Text(
-                "Japonya'ya hoş geldin",
+              const Text('🇯🇵', style: TextStyle(fontSize: 48)),
+              const SizedBox(height: 10),
+              const Text(
+                "Japonya'yı planlayalım",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 36,
+                  fontSize: 27,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: -0.72,
+                  letterSpacing: -0.5,
                   color: PT.text,
                 ),
               ),
-              SizedBox(height: 8),
-              Text(
+              const SizedBox(height: 6),
+              const Text(
                 'Nereden başlayalım?',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, color: PT.textSecondary),
+                style: TextStyle(fontSize: 16, color: PT.textSecondary),
+              ),
+              const SizedBox(height: 18),
+              // Kartlar kalan alanı doldurur (maks ~380px, dikey ortalı).
+              Expanded(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 380),
+                    child: choices,
+                  ),
+                ),
               ),
             ],
           ),
-        ),
-        // welcome-choices (responsive: geniş → 2 kolon, dar → 1)
-        LayoutBuilder(
-          builder: (context, c) {
-            final twoCol = c.maxWidth >= 560;
-            final cards = [
-              _WelcomeCard(
-                icon: '✈️',
-                title: 'Biletim var',
-                desc: 'Uçuş bilgilerini gir ya da bilet fotoğrafını yükle',
-                onTap: () {
-                  widget.onChange((t) => t.preferences.hasTicket = true);
-                  setState(() => _view = _View.ticket);
-                },
-              ),
-              _WelcomeCard(
-                icon: '📅',
-                title: 'Gezi planla',
-                desc: 'Sana en uygun tarihleri birlikte seçelim',
-                onTap: () {
-                  widget.onChange((t) => t.preferences.hasTicket = false);
-                  setState(() => _view = _View.plan);
-                },
-              ),
-            ];
-            if (twoCol) {
-              // IntrinsicHeight: Row'a sınırlı yükseklik verir → stretch ile
-              // iki kart eşit boyda (CSS grid align-items:stretch karşılığı).
-              // Bu olmadan ListView'in sonsuz yüksekliği layout'u bozar ve
-              // kartlar çizilse de tıklanamaz.
-              return IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(child: cards[0]),
-                    const SizedBox(width: 16),
-                    Expanded(child: cards[1]),
-                  ],
-                ),
-              );
-            }
-            return Column(
-              children: [
-                cards[0],
-                const SizedBox(height: 16),
-                cards[1],
-              ],
-            );
-          },
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -406,22 +402,25 @@ class _WelcomeCard extends StatelessWidget {
             border: Border.all(color: PT.border),
             boxShadow: PT.shadowSm,
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 36),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(icon, style: const TextStyle(fontSize: 48)),
-              const SizedBox(height: 16),
+              Text(icon, style: const TextStyle(fontSize: 38)),
+              const SizedBox(height: 12),
               Text(title,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                      fontSize: 22,
+                      fontSize: 20,
                       fontWeight: FontWeight.w600,
                       color: PT.text)),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(desc,
                   textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                      fontSize: 14, color: PT.textSecondary, height: 1.5)),
+                      fontSize: 13.5, color: PT.textSecondary, height: 1.4)),
             ],
           ),
         ),

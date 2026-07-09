@@ -53,15 +53,18 @@ class TopNav extends ConsumerWidget implements PreferredSizeWidget {
                     child: const Text('✈️', style: TextStyle(fontSize: 16)),
                   ),
                   const SizedBox(width: 10),
-                  const Text(
-                    'Seyahat',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 17,
-                      color: PT.text,
+                  // Esnek: dar ekranda kısalır (…), sağdaki aksiyonlar taşmaz.
+                  const Expanded(
+                    child: Text(
+                      'Seyahat',
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 17,
+                        color: PT.text,
+                      ),
                     ),
                   ),
-                  const Spacer(),
                   _BellButton(
                     count: reminderCount,
                     onTap: () => context.push('/reminders'),
@@ -141,7 +144,7 @@ class _GhostButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(PT.radiusPill),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
           child: Text(
             label,
             style: const TextStyle(
