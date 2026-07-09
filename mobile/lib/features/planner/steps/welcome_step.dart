@@ -99,6 +99,10 @@ class _WelcomeStepState extends State<WelcomeStep> {
                 ],
               )
             : Column(
+                // stretch: iki kart da tam genişlik — içerik uzunluğundan
+                // bağımsız eşit. (Column varsayılanı center → içeriğe göre
+                // boyutlanır ve genişlikler farklı çıkardı.)
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(child: card0),
                   const SizedBox(height: 14),
