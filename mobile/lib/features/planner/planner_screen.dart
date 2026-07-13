@@ -76,6 +76,14 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
         title != 'Japonya Turu') {
       done.add(StepId.title);
     }
+    // Keşfet: opsiyonel gezgin tercihleri — en az bir ilgi alanı, gezgin
+    // profili ya da yemek hassasiyeti seçilmişse tamamlandı say.
+    // (React App.tsx'te explore hiç işaretlenmez; bilinçli hafif sapma.)
+    if (t.preferences.interests.isNotEmpty ||
+        t.preferences.childProfiles.isNotEmpty ||
+        t.preferences.foodSensitivities.isNotEmpty) {
+      done.add(StepId.explore);
+    }
     if (_hotelsComplete(t)) done.add(StepId.hotels);
     if (t.preferences.destinationFood
         .any((f) => f.dietaryTags.isNotEmpty || f.foodLikes.isNotEmpty)) {

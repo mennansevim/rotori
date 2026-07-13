@@ -104,6 +104,13 @@ Trip _buildDemoTrip() {
     ),
   ];
 
+  // Keşfet adımının da dolu görünmesi için örnek ilgi alanları.
+  trip.preferences.interests = [
+    InterestTag.temples,
+    InterestTag.photography,
+    InterestTag.tech,
+  ];
+
   return ensureTripPreferences(trip);
 }
 
