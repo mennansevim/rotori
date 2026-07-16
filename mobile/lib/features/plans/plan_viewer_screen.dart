@@ -21,6 +21,7 @@ import '../../data/reminders_store.dart';
 import '../../domain/destination_profiles.dart';
 import '../../domain/types.dart';
 import '../shared/place_detail_sheet.dart';
+import '../viewer/budget_screen.dart';
 import '../viewer/compass_screen.dart';
 import '../viewer/day_map_screen.dart';
 import '../viewer/reward_map_screen.dart';
@@ -217,6 +218,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody> {
             onOpenThemePicker: _openThemePicker,
             onOpenMap: _openMap,
             onOpenCompass: _openCompass,
+            onOpenBudget: _openBudget,
           ),
           Expanded(
             child: ListView(
@@ -317,6 +319,22 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody> {
     );
   }
 
+  /// Bütçe & harcama panelini açar (gün/kategori toplamları, JPY→TL çevirici).
+  void _openBudget() {
+    final palette = ref.read(viewerPaletteProvider);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => Theme(
+          data: palette.toThemeData(),
+          child: ViewerPaletteScope(
+            palette: palette,
+            child: BudgetScreen(trip: widget.trip),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Bir günün rota haritasını açar (numaralı pinli OSM haritası).
   void _openDayMap(DayPlan day) {
     final palette = ref.read(viewerPaletteProvider);
@@ -358,6 +376,7 @@ class _TopStatusBar extends StatefulWidget {
     required this.onOpenThemePicker,
     required this.onOpenMap,
     required this.onOpenCompass,
+    required this.onOpenBudget,
   });
 
   final Trip trip;
@@ -366,6 +385,7 @@ class _TopStatusBar extends StatefulWidget {
   final VoidCallback onOpenThemePicker;
   final VoidCallback onOpenMap;
   final VoidCallback onOpenCompass;
+  final VoidCallback onOpenBudget;
 
   @override
   State<_TopStatusBar> createState() => _TopStatusBarState();
@@ -471,6 +491,12 @@ class _TopStatusBarState extends State<_TopStatusBar>
                   color: onColor,
                   tooltip: 'Pusula',
                   onTap: widget.onOpenCompass,
+                ),
+                _BarIconButton(
+                  icon: Icons.account_balance_wallet_outlined,
+                  color: onColor,
+                  tooltip: 'Bütçe',
+                  onTap: widget.onOpenBudget,
                 ),
                 _BarIconButton(
                   icon: Icons.palette_outlined,
