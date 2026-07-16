@@ -21,6 +21,7 @@ import '../../data/reminders_store.dart';
 import '../../domain/destination_profiles.dart';
 import '../../domain/types.dart';
 import '../shared/place_detail_sheet.dart';
+import '../viewer/day_map_screen.dart';
 import '../viewer/reward_map_screen.dart';
 import '../viewer/sakura_overlay.dart';
 import '../viewer/viewer_theme.dart';
@@ -251,6 +252,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody> {
                       isPast: i < activeIndex,
                       isActive: i == activeIndex,
                       onOpenItem: _openItem,
+                      onOpenMap: _openDayMap,
                     ),
               ],
             ),
@@ -291,6 +293,22 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody> {
           child: ViewerPaletteScope(
             palette: palette,
             child: RewardMapScreen(trip: widget.trip),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Bir günün rota haritasını açar (numaralı pinli OSM haritası).
+  void _openDayMap(DayPlan day) {
+    final palette = ref.read(viewerPaletteProvider);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => Theme(
+          data: palette.toThemeData(),
+          child: ViewerPaletteScope(
+            palette: palette,
+            child: DayMapScreen(trip: widget.trip, dayNumber: day.dayNumber),
           ),
         ),
       ),
@@ -1108,6 +1126,7 @@ class _DayCard extends StatefulWidget {
     required this.isPast,
     required this.isActive,
     required this.onOpenItem,
+    required this.onOpenMap,
   });
   final DayPlan day;
   final ViewerPalette palette;
@@ -1115,6 +1134,7 @@ class _DayCard extends StatefulWidget {
   final bool isPast;
   final bool isActive;
   final void Function(TimelineItem item, TripDestination? dest) onOpenItem;
+  final void Function(DayPlan day) onOpenMap;
 
   @override
   State<_DayCard> createState() => _DayCardState();
@@ -1263,6 +1283,31 @@ class _DayCardState extends State<_DayCard> {
                         onOpen: () =>
                             widget.onOpenItem(day.items[i], widget.dest),
                       ),
+                  if (day.items.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () => widget.onOpenMap(day),
+                        icon: Icon(Icons.map_outlined,
+                            size: 18, color: p.accent),
+                        label: Text(
+                          '🗺️ Haritada gör',
+                          style: TextStyle(
+                            color: p.accent,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          minimumSize: const Size(0, 36),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

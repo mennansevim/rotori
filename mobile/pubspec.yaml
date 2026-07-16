@@ -35,6 +35,10 @@ dependencies:
   timezone: ^0.9.4
   # Modern ikon seti (emoji yerine tutarlı görsel dil)
   lucide_icons_flutter: ^3.1.14+2
+  # Uygulama içi interaktif harita (OpenStreetMap raster tile — API key yok).
+  # Gün rotasını numaralı pinlerle çizer; mobil + web derlemesinde çalışır.
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
 
 dev_dependencies:
   flutter_test:

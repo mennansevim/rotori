@@ -20,6 +20,7 @@ import 'features/planner/steps.dart';
 import 'features/plans/plan_providers.dart';
 import 'features/plans/plan_viewer_screen.dart';
 import 'features/reminders/reminders_screen.dart';
+import 'features/viewer/day_map_screen.dart';
 import 'features/viewer/gps_sim_screen.dart';
 
 void main() {
@@ -163,6 +164,13 @@ class _PreviewApp extends StatelessWidget {
           builder: (_, s) => _GpsSimRoute(planId: s.pathParameters['id']!),
         ),
         GoRoute(
+          path: '/plans/:id/map/:day',
+          builder: (_, s) => _DayMapRoute(
+            planId: s.pathParameters['id']!,
+            dayNumber: int.tryParse(s.pathParameters['day'] ?? '') ?? 1,
+          ),
+        ),
+        GoRoute(
           path: '/reminders',
           builder: (_, __) => const RemindersScreen(),
         ),
@@ -187,6 +195,27 @@ class _GpsSimRoute extends ConsumerWidget {
     final planAsync = ref.watch(planByIdProvider(planId));
     return planAsync.when(
       data: (trip) => GpsSimScreen(trip: trip),
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Scaffold(
+        body: Center(child: Text('Plan yüklenemedi: $e')),
+      ),
+    );
+  }
+}
+
+/// Preview: planByIdProvider'dan trip'i çözüp bir günün rota haritasını açar.
+class _DayMapRoute extends ConsumerWidget {
+  const _DayMapRoute({required this.planId, required this.dayNumber});
+  final String planId;
+  final int dayNumber;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final planAsync = ref.watch(planByIdProvider(planId));
+    return planAsync.when(
+      data: (trip) => DayMapScreen(trip: trip, dayNumber: dayNumber),
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       ),
