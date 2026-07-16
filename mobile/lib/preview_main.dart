@@ -20,6 +20,7 @@ import 'features/planner/steps.dart';
 import 'features/plans/plan_providers.dart';
 import 'features/plans/plan_viewer_screen.dart';
 import 'features/reminders/reminders_screen.dart';
+import 'features/viewer/compass_screen.dart';
 import 'features/viewer/day_map_screen.dart';
 import 'features/viewer/gps_sim_screen.dart';
 
@@ -171,6 +172,10 @@ class _PreviewApp extends StatelessWidget {
           ),
         ),
         GoRoute(
+          path: '/plans/:id/compass',
+          builder: (_, s) => _CompassRoute(planId: s.pathParameters['id']!),
+        ),
+        GoRoute(
           path: '/reminders',
           builder: (_, __) => const RemindersScreen(),
         ),
@@ -216,6 +221,26 @@ class _DayMapRoute extends ConsumerWidget {
     final planAsync = ref.watch(planByIdProvider(planId));
     return planAsync.when(
       data: (trip) => DayMapScreen(trip: trip, dayNumber: dayNumber),
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Scaffold(
+        body: Center(child: Text('Plan yüklenemedi: $e')),
+      ),
+    );
+  }
+}
+
+/// Preview: planByIdProvider'dan trip'i çözüp Pusula ekranını açar.
+class _CompassRoute extends ConsumerWidget {
+  const _CompassRoute({required this.planId});
+  final String planId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final planAsync = ref.watch(planByIdProvider(planId));
+    return planAsync.when(
+      data: (trip) => CompassScreen(trip: trip),
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       ),

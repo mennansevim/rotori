@@ -21,6 +21,7 @@ import '../../data/reminders_store.dart';
 import '../../domain/destination_profiles.dart';
 import '../../domain/types.dart';
 import '../shared/place_detail_sheet.dart';
+import '../viewer/compass_screen.dart';
 import '../viewer/day_map_screen.dart';
 import '../viewer/reward_map_screen.dart';
 import '../viewer/sakura_overlay.dart';
@@ -215,6 +216,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody> {
             planId: widget.planId,
             onOpenThemePicker: _openThemePicker,
             onOpenMap: _openMap,
+            onOpenCompass: _openCompass,
           ),
           Expanded(
             child: ListView(
@@ -299,6 +301,22 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody> {
     );
   }
 
+  /// Pusula ekranını açar (acil numaralar, otel adresi, Japonca frazlar).
+  void _openCompass() {
+    final palette = ref.read(viewerPaletteProvider);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => Theme(
+          data: palette.toThemeData(),
+          child: ViewerPaletteScope(
+            palette: palette,
+            child: CompassScreen(trip: widget.trip),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Bir günün rota haritasını açar (numaralı pinli OSM haritası).
   void _openDayMap(DayPlan day) {
     final palette = ref.read(viewerPaletteProvider);
@@ -339,6 +357,7 @@ class _TopStatusBar extends StatefulWidget {
     required this.planId,
     required this.onOpenThemePicker,
     required this.onOpenMap,
+    required this.onOpenCompass,
   });
 
   final Trip trip;
@@ -346,6 +365,7 @@ class _TopStatusBar extends StatefulWidget {
   final String planId;
   final VoidCallback onOpenThemePicker;
   final VoidCallback onOpenMap;
+  final VoidCallback onOpenCompass;
 
   @override
   State<_TopStatusBar> createState() => _TopStatusBarState();
@@ -445,6 +465,12 @@ class _TopStatusBarState extends State<_TopStatusBar>
                   color: onColor,
                   tooltip: 'Keşif haritası',
                   onTap: widget.onOpenMap,
+                ),
+                _BarIconButton(
+                  icon: Icons.explore_outlined,
+                  color: onColor,
+                  tooltip: 'Pusula',
+                  onTap: widget.onOpenCompass,
                 ),
                 _BarIconButton(
                   icon: Icons.palette_outlined,
