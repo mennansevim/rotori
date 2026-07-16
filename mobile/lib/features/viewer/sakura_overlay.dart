@@ -28,6 +28,7 @@ class _SakuraOverlayState extends State<SakuraOverlay>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final List<_Petal> _petals;
+  bool _reduceMotion = false;
 
   @override
   void initState() {
@@ -35,10 +36,26 @@ class _SakuraOverlayState extends State<SakuraOverlay>
     final rnd = math.Random();
     _petals = List.generate(widget.petalCount, (_) => _Petal.random(rnd));
     // 60 sn'lik uzun döngü; her yaprak kendi süresine göre faz alır.
+    // repeat() didChangeDependencies'te başlatılır (hareket-azalt ayarına göre).
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 60),
-    )..repeat();
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // "Hareketi azalt" (erişilebilirlik) açıksa yapraklar sabit kalır.
+    // Bu ayrıca widget testlerinde sonsuz ticker'ı kapatır (deterministik).
+    final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (reduce == _reduceMotion && (reduce || _controller.isAnimating)) return;
+    _reduceMotion = reduce;
+    if (reduce) {
+      _controller.stop();
+    } else if (!_controller.isAnimating) {
+      _controller.repeat();
+    }
   }
 
   @override

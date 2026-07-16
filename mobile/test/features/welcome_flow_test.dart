@@ -24,7 +24,7 @@ void main() {
 
   testWidgets('choose görünümü hero + 2 kartı gösterir', (tester) async {
     await tester.pumpWidget(harness(createEmptyTrip()));
-    expect(find.text("Japonya'ya hoş geldin"), findsOneWidget);
+    expect(find.text("Japonya'yı planlayalım"), findsOneWidget);
     expect(find.text('Biletim var'), findsOneWidget);
     expect(find.text('Gezi planla'), findsOneWidget);
   });
@@ -95,6 +95,6 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('← Geri'));
     await tester.pumpAndSettle();
-    expect(find.text("Japonya'ya hoş geldin"), findsOneWidget);
+    expect(find.text("Japonya'yı planlayalım"), findsOneWidget);
   });
 }

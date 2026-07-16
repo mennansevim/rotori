@@ -20,6 +20,7 @@ import 'features/planner/steps.dart';
 import 'features/plans/plan_providers.dart';
 import 'features/plans/plan_viewer_screen.dart';
 import 'features/reminders/reminders_screen.dart';
+import 'features/viewer/gps_sim_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -158,6 +159,10 @@ class _PreviewApp extends StatelessWidget {
           builder: (_, s) => PlanViewerScreen(planId: s.pathParameters['id']!),
         ),
         GoRoute(
+          path: '/plans/:id/gpssim',
+          builder: (_, s) => _GpsSimRoute(planId: s.pathParameters['id']!),
+        ),
+        GoRoute(
           path: '/reminders',
           builder: (_, __) => const RemindersScreen(),
         ),
@@ -168,6 +173,26 @@ class _PreviewApp extends StatelessWidget {
       theme: PT.theme(),
       routerConfig: router,
       debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+/// Preview: planByIdProvider'dan trip'i çözüp GPS simülatörünü açar.
+class _GpsSimRoute extends ConsumerWidget {
+  const _GpsSimRoute({required this.planId});
+  final String planId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final planAsync = ref.watch(planByIdProvider(planId));
+    return planAsync.when(
+      data: (trip) => GpsSimScreen(trip: trip),
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Scaffold(
+        body: Center(child: Text('Plan yüklenemedi: $e')),
+      ),
     );
   }
 }

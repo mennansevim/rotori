@@ -65,7 +65,13 @@ void main() {
         planByIdProvider(trip.id).overrideWith((ref) => Stream.value(trip)),
       ],
       child: MaterialApp(
-        home: PlanViewerScreen(planId: trip.id),
+        // Sonsuz sakura/pulse animasyonlarını testte kapat (deterministik).
+        home: Builder(
+          builder: (context) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(disableAnimations: true),
+            child: PlanViewerScreen(planId: trip.id),
+          ),
+        ),
       ),
     );
   }

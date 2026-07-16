@@ -10,6 +10,8 @@ import '../../domain/city_places.dart';
 import '../../domain/geofence.dart';
 import '../../domain/types.dart';
 import 'geofence_service.dart';
+import 'gps_sim_screen.dart';
+import 'viewer_theme.dart';
 import 'widgets/city_card.dart';
 
 class RewardMapScreen extends ConsumerStatefulWidget {
@@ -33,17 +35,56 @@ class _RewardMapScreenState extends ConsumerState<RewardMapScreen> {
     );
   }
 
+  void _showBadges(List<BadgeDefinition> newly) {
+    if (!mounted || newly.isEmpty) return;
+    final messenger = ScaffoldMessenger.of(context);
+    for (final b in newly) {
+      messenger.showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('🎉 ${b.emoji} ${b.title} rozeti kazanıldı!'),
+        ),
+      );
+    }
+  }
+
+  void _openSimulator() {
+    final palette = ViewerPalette.of(context);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => Theme(
+          data: palette.toThemeData(),
+          child: ViewerPaletteScope(
+            palette: palette,
+            child: GpsSimScreen(trip: widget.trip),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = ref.watch(geofenceControllerProvider(widget.trip));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Keşif haritası')),
+      appBar: AppBar(
+        title: const Text('Keşif haritası'),
+        actions: [
+          IconButton(
+            tooltip: 'GPS Simülatörü (test)',
+            icon: const Text('🧪', style: TextStyle(fontSize: 20)),
+            onPressed: controller == null ? null : _openSimulator,
+          ),
+        ],
+      ),
       body: controller == null
           ? const Center(child: CircularProgressIndicator())
           : _RewardMapBody(
               trip: widget.trip,
-              controller: controller..onDiscovered = _showDiscovery,
+              controller: controller
+                ..onDiscovered = _showDiscovery
+                ..onBadgesEarned = _showBadges,
             ),
     );
   }

@@ -336,6 +336,7 @@ class _TopStatusBar extends StatefulWidget {
 class _TopStatusBarState extends State<_TopStatusBar>
     with SingleTickerProviderStateMixin {
   late final AnimationController _pulse;
+  bool _reduceMotion = false;
 
   @override
   void initState() {
@@ -343,7 +344,20 @@ class _TopStatusBarState extends State<_TopStatusBar>
     _pulse = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
-    )..repeat(reverse: true);
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (reduce == _reduceMotion && (reduce || _pulse.isAnimating)) return;
+    _reduceMotion = reduce;
+    if (reduce) {
+      _pulse.stop();
+    } else if (!_pulse.isAnimating) {
+      _pulse.repeat(reverse: true);
+    }
   }
 
   @override
@@ -1589,7 +1603,21 @@ class _TimelineRailState extends State<_TimelineRail>
   late final AnimationController _pulse = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1400),
-  )..repeat(reverse: true);
+  );
+  bool _reduceMotion = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reduce = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (reduce == _reduceMotion && (reduce || _pulse.isAnimating)) return;
+    _reduceMotion = reduce;
+    if (reduce) {
+      _pulse.stop();
+    } else if (!_pulse.isAnimating) {
+      _pulse.repeat(reverse: true);
+    }
+  }
 
   @override
   void dispose() {

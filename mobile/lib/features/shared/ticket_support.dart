@@ -87,9 +87,17 @@ Map<String, String> parseTicketInfo(String text) {
     out['time'] = '$h:$mm';
   }
 
-  final codeMatch = RegExp(r'\b[A-Z0-9]{6,}\b').firstMatch(text);
-  if (codeMatch != null) {
-    out['code'] = codeMatch.group(0)!;
+  // Onay/rezervasyon kodu: 6+ karakterlik token'lardan HEM harf HEM rakam
+  // içeren ilkini seç — böylece "DISNEYLAND" gibi salt-harf kelimeler ya da
+  // salt-rakam diziler yanlışlıkla kod sayılmaz.
+  for (final m in RegExp(r'\b[A-Z0-9]{6,}\b').allMatches(text)) {
+    final tok = m.group(0)!;
+    final hasDigit = tok.contains(RegExp(r'\d'));
+    final hasAlpha = tok.contains(RegExp(r'[A-Z]'));
+    if (hasDigit && hasAlpha) {
+      out['code'] = tok;
+      break;
+    }
   }
 
   return out;

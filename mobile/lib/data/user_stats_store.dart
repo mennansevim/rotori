@@ -56,6 +56,8 @@ class UserStats {
     this.badgesEarned = const [],
     this.actionCounts = const {},
     this.firstActionAt = const {},
+    this.discoveredPlaceIds = const [],
+    this.discoveredCityCounts = const {},
     this.communityMonth,
     this.communityCityRoom,
   });
@@ -69,6 +71,12 @@ class UserStats {
   /// Eylemin ilk gerçekleştiği tarih (ISO).
   final Map<String, String> firstActionAt;
 
+  /// GPS ile fiziksel olarak keşfedilen geofence id'leri (dwell tamamlanan).
+  final List<String> discoveredPlaceIds;
+
+  /// Küçük-harf şehir -> o şehirde keşfedilen nokta sayısı.
+  final Map<String, int> discoveredCityCounts;
+
   /// Topluluk tercihi (ay + şehir odası), opsiyonel.
   final String? communityMonth;
   final String? communityCityRoom;
@@ -78,15 +86,34 @@ class UserStats {
     List<String>? badgesEarned,
     Map<String, int>? actionCounts,
     Map<String, String>? firstActionAt,
+    List<String>? discoveredPlaceIds,
+    Map<String, int>? discoveredCityCounts,
   }) =>
       UserStats(
         xp: xp ?? this.xp,
         badgesEarned: badgesEarned ?? this.badgesEarned,
         actionCounts: actionCounts ?? this.actionCounts,
         firstActionAt: firstActionAt ?? this.firstActionAt,
+        discoveredPlaceIds: discoveredPlaceIds ?? this.discoveredPlaceIds,
+        discoveredCityCounts: discoveredCityCounts ?? this.discoveredCityCounts,
         communityMonth: communityMonth,
         communityCityRoom: communityCityRoom,
       );
+
+  /// GPS ile yeni bir nokta keşfedildiğinde çağrılır. [placeId] daha önce
+  /// keşfedilmediyse listeye eklenir ve [city] (küçük harfe çevrilir) sayacı
+  /// bir artar. Aynı id tekrar gelirse `this` değişmeden döner (idempotent).
+  UserStats withDiscovery(String placeId, String city) {
+    if (discoveredPlaceIds.contains(placeId)) return this;
+    final key = city.toLowerCase();
+    return copyWith(
+      discoveredPlaceIds: [...discoveredPlaceIds, placeId],
+      discoveredCityCounts: {
+        ...discoveredCityCounts,
+        key: (discoveredCityCounts[key] ?? 0) + 1,
+      },
+    );
+  }
 
   factory UserStats.fromJson(Map<String, dynamic> j) {
     final community = (j['community'] as Map?)?.cast<String, dynamic>();
@@ -97,6 +124,10 @@ class UserStats {
           .map((k, v) => MapEntry(k as String, (v as num).toInt())),
       firstActionAt: ((j['firstActionAt'] as Map?) ?? const {})
           .map((k, v) => MapEntry(k as String, v as String)),
+      discoveredPlaceIds:
+          List<String>.from(j['discoveredPlaceIds'] as List? ?? const []),
+      discoveredCityCounts: ((j['discoveredCityCounts'] as Map?) ?? const {})
+          .map((k, v) => MapEntry(k as String, (v as num).toInt())),
       communityMonth: community?['month'] as String?,
       communityCityRoom: community?['cityRoom'] as String?,
     );
@@ -107,6 +138,8 @@ class UserStats {
         'badgesEarned': badgesEarned,
         'actionCounts': actionCounts,
         'firstActionAt': firstActionAt,
+        'discoveredPlaceIds': discoveredPlaceIds,
+        'discoveredCityCounts': discoveredCityCounts,
         if (communityMonth != null || communityCityRoom != null)
           'community': {
             if (communityMonth != null) 'month': communityMonth,
@@ -279,6 +312,55 @@ final List<BadgeDefinition> kBadgeDefinitions = [
     hint: 'Beta topluluk bölümünden bir oda seç.',
     evaluate: (_, stats) =>
         stats.communityCityRoom != null && stats.communityCityRoom!.isNotEmpty,
+  ),
+  // --- GPS keşif rozetleri (yalnız stats okur; trip yok sayılır) ---
+  BadgeDefinition(
+    id: 'first-discovery',
+    emoji: '🧭',
+    title: 'İlk Keşif',
+    description: 'GPS ile ilk yerini keşfettin.',
+    hint: 'Rotandaki bir yere git ve 10 dk kal.',
+    evaluate: (_, stats) => stats.discoveredPlaceIds.isNotEmpty,
+  ),
+  BadgeDefinition(
+    id: 'explorer-5',
+    emoji: '🗺️',
+    title: 'Kaşif',
+    description: '5 yer keşfettin.',
+    hint: 'GPS ile 5 farklı yeri gez.',
+    evaluate: (_, stats) => stats.discoveredPlaceIds.length >= 5,
+  ),
+  BadgeDefinition(
+    id: 'explorer-10',
+    emoji: '🎌',
+    title: 'Japonya Gezgini',
+    description: '10 yer keşfettin.',
+    hint: 'GPS ile 10 farklı yeri gez.',
+    evaluate: (_, stats) => stats.discoveredPlaceIds.length >= 10,
+  ),
+  BadgeDefinition(
+    id: 'tokyo-roamer',
+    emoji: '🗼',
+    title: 'Tokyo Kâşifi',
+    description: "Tokyo'da 3 yer gezdin.",
+    hint: "Tokyo'da GPS ile 3 yer keşfet.",
+    evaluate: (_, stats) => (stats.discoveredCityCounts['tokyo'] ?? 0) >= 3,
+  ),
+  BadgeDefinition(
+    id: 'kyoto-roamer',
+    emoji: '⛩️',
+    title: 'Kyoto Kâşifi',
+    description: "Kyoto'da 3 yer gezdin.",
+    hint: "Kyoto'da GPS ile 3 yer keşfet.",
+    evaluate: (_, stats) => (stats.discoveredCityCounts['kyoto'] ?? 0) >= 3,
+  ),
+  BadgeDefinition(
+    id: 'osaka-roamer',
+    emoji: '🐙',
+    title: 'Osaka Kâşifi',
+    description: "Osaka'da 3 yer gezdin.",
+    hint: "Osaka'da GPS ile 3 yer keşfet.",
+    evaluate: (_, stats) => (stats.discoveredCityCounts['osaka'] ?? 0) >= 3,
   ),
 ];
 

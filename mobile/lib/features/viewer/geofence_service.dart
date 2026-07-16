@@ -163,13 +163,15 @@ typedef PermissionRequester = Future<GeofencePermissionStatus> Function();
 /// Test için konum akışı ve izin isteği enjekte edilebilir.
 class GeofenceController extends ChangeNotifier with WidgetsBindingObserver {
   GeofenceController({
+    required Trip trip,
     required List<Geofence> fences,
     required VisitStore visitStore,
     required UserStatsStore statsStore,
     int graceSeconds = 120,
     PositionStreamFactory? positionStreamFactory,
     PermissionRequester? permissionRequester,
-  })  : _visitStore = visitStore,
+  })  : _trip = trip,
+        _visitStore = visitStore,
         _statsStore = statsStore,
         _positionStreamFactory =
             positionStreamFactory ?? _defaultPositionStream,
@@ -184,6 +186,7 @@ class GeofenceController extends ChangeNotifier with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
   }
 
+  final Trip _trip;
   final VisitStore _visitStore;
   final UserStatsStore _statsStore;
   final PositionStreamFactory _positionStreamFactory;
@@ -202,6 +205,9 @@ class GeofenceController extends ChangeNotifier with WidgetsBindingObserver {
 
   /// UI'nın SnackBar göstermesi için keşif bildirimi.
   void Function(Geofence fence)? onDiscovered;
+
+  /// Bir keşif sonucu yeni rozet(ler) kazanıldığında tetiklenir.
+  void Function(List<BadgeDefinition> newly)? onBadgesEarned;
 
   // --- Okunabilir durum ---
   GeofencePermissionStatus get status => _status;
@@ -250,6 +256,11 @@ class GeofenceController extends ChangeNotifier with WidgetsBindingObserver {
     ));
   }
 
+  /// Simülasyon/test için tek bir hazır [GeoSample]'ı motora iletir.
+  /// Yalnızca GPS simülatörü ve entegrasyon testlerinde kullanılır — gerçek
+  /// konum akışı [start] üzerinden gelir.
+  void debugPushSample(GeoSample s) => _onSample(s);
+
   void _subscribe() {
     _sub = _positionStreamFactory().listen(
       _onSample,
@@ -273,10 +284,19 @@ class GeofenceController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _handleCompleted(Geofence fence) {
-    // Nokta keşfi XP'si (+25) — stats kalıcı olarak güncellenir.
-    _stats = _stats.copyWith(xp: _stats.xp + fence.xp);
+    // Nokta keşfi: +XP ekle ve keşfi kaydet (id + şehir sayacı, idempotent).
+    _stats = _stats.withDiscovery(fence.id, fence.city).copyWith(
+          xp: _stats.xp + fence.xp,
+        );
+    // Yeni açılan rozetleri değerlendir (GPS keşif + plan tabanlı hepsi).
+    final res = evaluateBadges(_trip, _stats);
+    _stats = _stats.copyWith(badgesEarned: res.allEarnedIds);
     unawaited(_statsStore.save(_stats).catchError((_) {}));
     onDiscovered?.call(fence);
+    if (res.newly.isNotEmpty) {
+      onBadgesEarned?.call(res.newly);
+    }
+    notifyListeners();
   }
 
   // --- Yaşam döngüsü: arka planda GPS'i duraklat, önde sürdür ---
@@ -358,6 +378,7 @@ final geofenceControllerProvider = ChangeNotifierProvider.autoDispose
   final userId = ref.watch(currentUserProvider)?.id ?? 'anon';
   final fences = cityPlacesToGeofences(detectTripCities(trip));
   return GeofenceController(
+    trip: trip,
     fences: fences,
     visitStore: VisitStore(prefs, userId),
     statsStore: UserStatsStore(prefs, userId),
