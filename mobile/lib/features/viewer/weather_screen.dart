@@ -10,30 +10,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/l10n.dart';
 import '../../data/weather_service.dart';
 import '../../domain/types.dart';
 import 'viewer_theme.dart';
 
 // ---------------------------------------------------------------------------
-// Türkçe tarih yardımcıları (intl'e bağlı DEĞİL — el ile diziler).
+// Tarih yardımcıları — dile göre ay/gün dizisi (intl'e bağlı DEĞİL).
 // ---------------------------------------------------------------------------
 
-const List<String> _trMonths = [
-  '', // 1-index
-  'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-  'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
-];
-
-const List<String> _trWeekdays = [
-  '', // DateTime.weekday: 1=Mon .. 7=Sun
-  'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar',
-];
-
-/// "2026-07-13" → ("13 Temmuz", "Pazartesi"). Parse edilemezse (isoDate, '').
-(String dayLabel, String weekday) _formatDay(String isoDate) {
+/// "2026-07-13" → ("13 Temmuz"/"13 July", "Pazartesi"/"Monday"). Parse
+/// edilemezse (isoDate, '').
+(String dayLabel, String weekday) _formatDay(String isoDate, AppLang lang) {
   final d = DateTime.tryParse(isoDate);
   if (d == null) return (isoDate, '');
-  return ('${d.day} ${_trMonths[d.month]}', _trWeekdays[d.weekday]);
+  final months = L10n.monthsFor(lang);
+  final weekdays = L10n.weekdaysFor(lang);
+  final day = lang == AppLang.en
+      ? '${months[d.month]} ${d.day}'
+      : '${d.day} ${months[d.month]}';
+  return (day, weekdays[d.weekday]);
 }
 
 /// Bugünün yerel tarihi YYYY-MM-DD (aktif günü vurgulamak için).
@@ -108,6 +104,7 @@ class _WeatherView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = ViewerPalette.of(context);
+    final s = LanguageScope.of(context);
     final dest = _destination();
     final coords = (lat: dest.lat, lng: dest.lng);
     final async = ref.watch(forecastProvider(coords));
@@ -117,7 +114,7 @@ class _WeatherView extends ConsumerWidget {
       appBar: AppBar(
         leading: const BackButton(),
         title: Text(
-          '🌤️ Hava Durumu',
+          s.s('weather.title'),
           style: TextStyle(
             color: palette.textPrimary,
             fontWeight: FontWeight.w700,
@@ -162,7 +159,7 @@ class _Loading extends StatelessWidget {
           CircularProgressIndicator(color: palette.accent),
           const SizedBox(height: 16),
           Text(
-            'Hava durumu yükleniyor…',
+            LanguageScope.of(context).s('weather.loading'),
             style: TextStyle(color: palette.textSecondary, fontSize: 14),
           ),
         ],
@@ -178,6 +175,7 @@ class _ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -187,7 +185,7 @@ class _ErrorView extends StatelessWidget {
             const Text('🌧️', style: TextStyle(fontSize: 40)),
             const SizedBox(height: 12),
             Text(
-              'Hava durumu alınamadı — internet bağlantısını kontrol et',
+              s.s('weather.error'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: palette.textPrimary,
@@ -199,7 +197,7 @@ class _ErrorView extends StatelessWidget {
             FilledButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Tekrar dene'),
+              label: Text(s.s('weather.retry')),
               style: FilledButton.styleFrom(
                 backgroundColor: palette.accent,
                 foregroundColor: Colors.white,
@@ -244,6 +242,7 @@ class _ForecastList extends StatelessWidget {
         overlapping.isNotEmpty ? overlapping : forecast.take(7).toList();
     final rangeMatched = overlapping.isNotEmpty;
     final today = _todayIso();
+    final s = LanguageScope.of(context);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
@@ -267,8 +266,8 @@ class _ForecastList extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           rangeMatched
-              ? 'Seyahat günlerin için tahmin'
-              : 'Önümüzdeki günler için tahmin',
+              ? s.s('weather.forecastTravel')
+              : s.s('weather.forecastUpcoming'),
           style: TextStyle(color: palette.textSecondary, fontSize: 13),
         ),
         const SizedBox(height: 16),
@@ -287,7 +286,7 @@ class _ForecastList extends StatelessWidget {
         const SizedBox(height: 8),
         Center(
           child: Text(
-            'Kaynak: Open-Meteo',
+            s.s('weather.source'),
             style: TextStyle(color: palette.textMuted, fontSize: 12),
           ),
         ),
@@ -309,8 +308,9 @@ class _DayRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final lang = LanguageScope.of(context).lang;
     final (emoji, label) = weatherInfo(forecast.code);
-    final (dayLabel, weekday) = _formatDay(forecast.date);
+    final (dayLabel, weekday) = _formatDay(forecast.date, lang);
     final tempStyle = TextStyle(
       color: palette.textPrimary,
       fontSize: 15,
@@ -357,9 +357,9 @@ class _DayRow extends StatelessWidget {
                           color: palette.accent,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text(
-                          'Bugün',
-                          style: TextStyle(
+                        child: Text(
+                          LanguageScope.of(context).s('weather.today'),
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 9,
                             fontWeight: FontWeight.w700,
@@ -439,7 +439,7 @@ class _EmptyCard extends StatelessWidget {
         border: Border.all(color: palette.border),
       ),
       child: Text(
-        'Bu konum için tahmin bulunamadı.',
+        LanguageScope.of(context).s('weather.empty'),
         textAlign: TextAlign.center,
         style: TextStyle(color: palette.textSecondary),
       ),

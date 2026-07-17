@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/l10n.dart';
 import '../../domain/compass_data.dart';
 import '../../domain/types.dart';
 import 'viewer_theme.dart';
@@ -54,13 +55,14 @@ class _CompassView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hotel = trip.hotels.isNotEmpty ? trip.hotels.first : null;
+    final s = LanguageScope.of(context);
 
     return Scaffold(
       backgroundColor: palette.bg,
       appBar: AppBar(
         leading: const BackButton(),
         title: Text(
-          '🧭 Pusula',
+          s.s('compass.title'),
           style: TextStyle(
             color: palette.textPrimary,
             fontWeight: FontWeight.w700,
@@ -75,14 +77,17 @@ class _CompassView extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
         children: [
           Text(
-            'Cebinde taşı — acil, dil, kültür',
+            s.s('compass.subtitle'),
             style: TextStyle(color: palette.textSecondary, fontSize: 14),
           ),
           const SizedBox(height: 16),
           _EmergencySection(
             palette: palette,
-            onCopy: (number) =>
-                _copy(context, number, 'Numara kopyalandı: $number'),
+            onCopy: (number) => _copy(
+              context,
+              number,
+              s.p('compass.numberCopied', {'n': number}),
+            ),
           ),
           if (hotel != null) ...[
             const SizedBox(height: 16),
@@ -90,13 +95,13 @@ class _CompassView extends StatelessWidget {
               hotel: hotel,
               palette: palette,
               onCopy: (addr) =>
-                  _copy(context, addr, 'Adres kopyalandı'),
+                  _copy(context, addr, s.s('compass.addressCopied')),
             ),
           ],
           const SizedBox(height: 16),
           _PhrasesSection(
             palette: palette,
-            onCopy: (jp) => _copy(context, jp, 'Kopyalandı: $jp'),
+            onCopy: (jp) => _copy(context, jp, s.p('compass.copied', {'n': jp})),
           ),
           for (final card in kCompassInfoCards) ...[
             const SizedBox(height: 16),
@@ -202,10 +207,11 @@ class _EmergencySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return _CompassCard(
       emoji: '🚨',
-      title: 'Acil Numaralar',
-      subtitle: 'Japonya · dokun, kopyalansın',
+      title: s.s('compass.emergency.title'),
+      subtitle: s.s('compass.emergency.subtitle'),
       accent: palette.sunset,
       palette: palette,
       borderColor: palette.sunset.withValues(alpha: 0.35),
@@ -291,10 +297,11 @@ class _HotelSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final local = hotel.addressLocal;
+    final s = LanguageScope.of(context);
     return _CompassCard(
       emoji: '🏨',
-      title: 'Otel adresi',
-      subtitle: 'Taksiciye göster',
+      title: s.s('compass.hotel.title'),
+      subtitle: s.s('compass.hotel.subtitle'),
       accent: palette.sky,
       palette: palette,
       child: Column(
@@ -351,7 +358,7 @@ class _HotelSection extends StatelessWidget {
                 (local != null && local.isNotEmpty) ? local : hotel.address,
               ),
               icon: const Text('📋', style: TextStyle(fontSize: 14)),
-              label: const Text('Kopyala'),
+              label: Text(s.s('common.copy')),
               style: FilledButton.styleFrom(
                 backgroundColor: palette.sky,
                 foregroundColor: Colors.white,
@@ -385,11 +392,12 @@ class _PhrasesSectionState extends State<_PhrasesSection> {
   Widget build(BuildContext context) {
     final palette = widget.palette;
     final category = kCompassPhraseCategories[_activeCat];
+    final s = LanguageScope.of(context);
 
     return _CompassCard(
       emoji: '🗣️',
-      title: 'Japonca fraz kartları',
-      subtitle: 'Cümleye dokun, kopyalansın',
+      title: s.s('compass.phrases.title'),
+      subtitle: s.s('compass.phrases.subtitle'),
       accent: palette.gold,
       palette: palette,
       child: Column(

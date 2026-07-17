@@ -10,6 +10,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # Çok dilli (i18n) — Material/Cupertino yerelleştirme delegeleri.
+  flutter_localizations:
+    sdk: flutter
   # Backend
   supabase_flutter: ^2.5.6
   # State management

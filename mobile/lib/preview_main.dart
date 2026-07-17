@@ -6,10 +6,13 @@
 //
 // Üretim girişi lib/main.dart'tır; bu dosya yalnızca görsel kontrol içindir.
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/l10n.dart';
 import 'core/supabase_client.dart' show currentUserProvider;
+import 'data/language_store.dart';
 import 'domain/fill_empty_days.dart';
 import 'domain/itinerary_generator.dart';
 import 'domain/trip_factory.dart';
@@ -135,11 +138,12 @@ StepId? _stepFromName(String? name) {
   return null;
 }
 
-class _PreviewApp extends StatelessWidget {
+class _PreviewApp extends ConsumerWidget {
   const _PreviewApp();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(appLangProvider);
     final router = GoRouter(
       initialLocation: '/plans',
       routes: [
@@ -196,11 +200,21 @@ class _PreviewApp extends StatelessWidget {
         ),
       ],
     );
-    return MaterialApp.router(
-      title: 'Japan-Trip Önizleme',
-      theme: PT.theme(),
-      routerConfig: router,
-      debugShowCheckedModeBanner: false,
+    return LanguageScope(
+      lang: lang,
+      child: MaterialApp.router(
+        title: 'Japan-Trip Önizleme',
+        theme: PT.theme(),
+        routerConfig: router,
+        debugShowCheckedModeBanner: false,
+        locale: Locale(lang.code),
+        supportedLocales: const [Locale('tr'), Locale('en')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+      ),
     );
   }
 }

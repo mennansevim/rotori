@@ -16,6 +16,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../core/l10n.dart';
+import '../../data/language_store.dart';
 import '../../data/plans_repository.dart';
 import '../../data/reminders_store.dart';
 import '../../domain/destination_profiles.dart';
@@ -32,37 +34,35 @@ import '../viewer/weather_screen.dart';
 import 'plan_providers.dart';
 
 // ---------------------------------------------------------------------------
-// Türkçe tarih yardımcıları (intl locale'e bağlı DEĞİL — el ile diziler).
+// Tarih yardımcıları — dile göre ay/gün dizisi (intl locale'e bağlı DEĞİL).
 // ---------------------------------------------------------------------------
 
-const List<String> _trMonths = [
-  '', // 1-index
-  'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-  'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
-];
-
-const List<String> _trWeekdays = [
-  '', // DateTime.weekday: 1=Mon .. 7=Sun
-  'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar',
-];
-
-/// "2025-05-13" → "13 Mayıs 2025, Salı"
-String _formatDateLong(String isoDate, {String? weekdayHint}) {
+/// "2025-05-13" → "13 Mayıs 2025, Salı" (tr) / "May 13 2025, Tuesday" (en).
+/// [weekdayHint] yalnızca TR'de kullanılır (domain verisi Türkçedir); EN'de
+/// gün adı tarihten hesaplanır.
+String _formatDateLong(String isoDate, AppLang lang, {String? weekdayHint}) {
   final d = DateTime.tryParse(isoDate);
   if (d == null) return isoDate;
-  final wd = weekdayHint?.isNotEmpty == true
+  final months = L10n.monthsFor(lang);
+  final weekdays = L10n.weekdaysFor(lang);
+  final wd = (lang == AppLang.tr && weekdayHint?.isNotEmpty == true)
       ? weekdayHint!
-      : _trWeekdays[d.weekday];
-  return '${d.day} ${_trMonths[d.month]} ${d.year}, $wd';
+      : weekdays[d.weekday];
+  return lang == AppLang.en
+      ? '${months[d.month]} ${d.day} ${d.year}, $wd'
+      : '${d.day} ${months[d.month]} ${d.year}, $wd';
 }
 
-/// ISO datetime → "13 Mayıs 16:00" (uçuş bacakları için).
-String _formatLegDateTime(String iso) {
+/// ISO datetime → "13 Mayıs 16:00" (tr) / "May 13 16:00" (en) — uçuş bacakları.
+String _formatLegDateTime(String iso, AppLang lang) {
   final d = DateTime.tryParse(iso);
   if (d == null) return iso;
+  final months = L10n.monthsFor(lang);
   final hh = d.hour.toString().padLeft(2, '0');
   final mm = d.minute.toString().padLeft(2, '0');
-  return '${d.day} ${_trMonths[d.month]} $hh:$mm';
+  return lang == AppLang.en
+      ? '${months[d.month]} ${d.day} $hh:$mm'
+      : '${d.day} ${months[d.month]} $hh:$mm';
 }
 
 int _daysUntil(String iso) {
@@ -139,7 +139,8 @@ class PlanViewerScreen extends ConsumerWidget {
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Yüklenemedi: $err',
+                  LanguageScope.of(context)
+                      .p('viewer.loadFailed', {'err': '$err'}),
                   style: TextStyle(color: palette.textPrimary),
                 ),
               ),
@@ -237,7 +238,8 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody> {
                 _HotelsCard(trip: trip, palette: palette),
                 const SizedBox(height: 8),
                 Text(
-                  '📅 Günler (${days.length})',
+                  LanguageScope.of(context)
+                      .p('viewer.days.title', {'n': '${days.length}'}),
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
@@ -464,27 +466,28 @@ class _TopStatusBarState extends State<_TopStatusBar>
     super.dispose();
   }
 
-  String _phaseLabel() {
+  String _phaseLabel(LanguageScope s) {
     final trip = widget.trip;
     final hasDates = DateTime.tryParse(trip.tripStart) != null &&
         DateTime.tryParse(trip.tripEnd) != null;
-    if (!hasDates) return '✈️ Yeni plan';
+    if (!hasDates) return s.s('viewer.phase.new');
     final now = DateTime.now();
     final phase = _tripPhase(trip.tripStart, trip.tripEnd, now);
-    if (phase == 'after') return '✨ Plan tamamlandı';
-    if (phase == 'during') return '🎉 Tatil başladı';
+    if (phase == 'after') return s.s('viewer.phase.done');
+    if (phase == 'during') return s.s('viewer.phase.during');
     final start = DateTime.parse(trip.tripStart);
     final diff = start.difference(now);
-    if (diff.isNegative) return '🎉 Tatil başladı';
+    if (diff.isNegative) return s.s('viewer.phase.during');
     final d = diff.inDays;
     final h = diff.inHours % 24;
-    return '🇯🇵 Tatile ${d}g ${h}s';
+    return s.p('viewer.phase.countdown', {'d': '$d', 'h': '$h'});
   }
 
   @override
   Widget build(BuildContext context) {
     final p = widget.palette;
     final onColor = p.topBarOnColor;
+    final s = LanguageScope.of(context);
 
     return Container(
       decoration: BoxDecoration(
@@ -503,12 +506,12 @@ class _TopStatusBarState extends State<_TopStatusBar>
                 _BarIconButton(
                   icon: Icons.arrow_back,
                   color: onColor,
-                  tooltip: 'Geri',
+                  tooltip: s.s('viewer.tt.back'),
                   onTap: () => context.go('/plans'),
                 ),
                 Expanded(
                   child: Text(
-                    _phaseLabel(),
+                    _phaseLabel(s),
                     style: TextStyle(
                       color: onColor,
                       fontWeight: FontWeight.w700,
@@ -523,43 +526,43 @@ class _TopStatusBarState extends State<_TopStatusBar>
                 _BarIconButton(
                   icon: Icons.map_outlined,
                   color: onColor,
-                  tooltip: 'Keşif haritası',
+                  tooltip: s.s('viewer.tt.map'),
                   onTap: widget.onOpenMap,
                 ),
                 _BarIconButton(
                   icon: Icons.explore_outlined,
                   color: onColor,
-                  tooltip: 'Pusula',
+                  tooltip: s.s('viewer.tt.compass'),
                   onTap: widget.onOpenCompass,
                 ),
                 _BarIconButton(
                   icon: Icons.wb_sunny_outlined,
                   color: onColor,
-                  tooltip: 'Hava',
+                  tooltip: s.s('viewer.tt.weather'),
                   onTap: widget.onOpenWeather,
                 ),
                 _BarIconButton(
                   icon: Icons.account_balance_wallet_outlined,
                   color: onColor,
-                  tooltip: 'Bütçe',
+                  tooltip: s.s('viewer.tt.budget'),
                   onTap: widget.onOpenBudget,
                 ),
                 _BarIconButton(
                   icon: Icons.luggage_outlined,
                   color: onColor,
-                  tooltip: 'Valiz',
+                  tooltip: s.s('viewer.tt.checklist'),
                   onTap: widget.onOpenChecklist,
                 ),
                 _BarIconButton(
                   icon: Icons.palette_outlined,
                   color: onColor,
-                  tooltip: 'Tema',
+                  tooltip: s.s('viewer.tt.theme'),
                   onTap: widget.onOpenThemePicker,
                 ),
                 _BarIconButton(
                   icon: Icons.edit_outlined,
                   color: onColor,
-                  tooltip: 'Düzenle',
+                  tooltip: s.s('viewer.tt.edit'),
                   onTap: () => context.go('/plans/${widget.planId}/edit'),
                 ),
               ],
@@ -620,7 +623,7 @@ class _BarBellButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final count = ref.watch(remindersProvider).length;
     return Tooltip(
-      message: 'Hatırlatmalar',
+      message: LanguageScope.of(context).s('viewer.tt.reminders'),
       child: InkResponse(
         onTap: onTap,
         radius: 22,
@@ -777,7 +780,10 @@ class _Hero extends StatelessWidget {
           children: [
             const SizedBox(height: 8),
             _Pill(
-              text: '✈️ $dayCount Gün · $_totalNights Gece',
+              text: LanguageScope.of(context).p('viewer.heroPill', {
+                'days': '$dayCount',
+                'nights': '$_totalNights',
+              }),
               palette: palette,
             ),
             const SizedBox(height: 16),
@@ -923,7 +929,7 @@ class _LegChip extends StatelessWidget {
         ),
         if (leg.dateTime.isNotEmpty)
           Text(
-            _formatLegDateTime(leg.dateTime),
+            _formatLegDateTime(leg.dateTime, LanguageScope.of(context).lang),
             style: TextStyle(color: palette.textMuted, fontSize: 11),
           ),
       ],
@@ -947,6 +953,7 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = LanguageScope.of(context);
     final totalNights = trip.hotels.fold(0, (s, h) => s + _hotelNights(h));
     final dests = [...trip.preferences.destinations]
       ..sort((a, b) => a.order.compareTo(b.order));
@@ -956,7 +963,7 @@ class _StatsRow extends StatelessWidget {
       cards.add(_StatCard(
         emoji: '🏨',
         value: '$totalNights',
-        label: 'Gece Konaklama',
+        label: loc.s('viewer.stat.nights'),
         palette: palette,
       ));
     }
@@ -968,7 +975,7 @@ class _StatsRow extends StatelessWidget {
         cards.add(_StatCard(
           emoji: '📍',
           value: '$nights',
-          label: '${dest.city} Gecesi',
+          label: loc.p('viewer.stat.cityNights', {'city': dest.city}),
           palette: palette,
         ));
       }
@@ -977,14 +984,14 @@ class _StatsRow extends StatelessWidget {
       cards.add(_StatCard(
         emoji: '🎫',
         value: '${trip.tickets.length}',
-        label: 'Bilet',
+        label: loc.s('viewer.stat.tickets'),
         palette: palette,
       ));
     }
     cards.add(_StatCard(
       emoji: '📅',
       value: '$dayCount',
-      label: 'Gün',
+      label: loc.s('viewer.stat.days'),
       palette: palette,
     ));
 
@@ -1098,7 +1105,7 @@ class _FlightsCard extends StatelessWidget {
       return const SizedBox.shrink();
     }
     return _SectionCard(
-      title: '✈️ Uçuşlar',
+      title: LanguageScope.of(context).s('viewer.flights'),
       palette: palette,
       children: [
         for (final leg in trip.flights.outbound)
@@ -1140,7 +1147,10 @@ class _FlightRow extends StatelessWidget {
             ),
           ),
           Text(
-            leg.dateTime.isNotEmpty ? _formatLegDateTime(leg.dateTime) : '',
+            leg.dateTime.isNotEmpty
+                ? _formatLegDateTime(
+                    leg.dateTime, LanguageScope.of(context).lang)
+                : '',
             style: TextStyle(color: palette.textSecondary, fontSize: 12),
           ),
         ],
@@ -1158,7 +1168,7 @@ class _HotelsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     if (trip.hotels.isEmpty) return const SizedBox.shrink();
     return _SectionCard(
-      title: '🏨 Konaklama',
+      title: LanguageScope.of(context).s('viewer.stays'),
       palette: palette,
       children: [
         for (final h in trip.hotels)
@@ -1209,7 +1219,7 @@ class _EmptyDaysCard extends StatelessWidget {
         border: Border.all(color: palette.border),
       ),
       child: Text(
-        'Bu plana henüz gün eklenmedi. Düzenle → gün ekle.',
+        LanguageScope.of(context).s('viewer.emptyDays'),
         textAlign: TextAlign.center,
         style: TextStyle(color: palette.textSecondary),
       ),
@@ -1319,8 +1329,11 @@ class _DayCardState extends State<_DayCard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _formatDateLong(day.date,
-                              weekdayHint: day.weekday),
+                          _formatDateLong(
+                            day.date,
+                            LanguageScope.of(context).lang,
+                            weekdayHint: day.weekday,
+                          ),
                           style: TextStyle(
                             color: p.textPrimary,
                             fontWeight: FontWeight.w700,
@@ -1369,7 +1382,7 @@ class _DayCardState extends State<_DayCard> {
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 6),
                       child: Text(
-                        '(Bu güne aktivite eklenmedi.)',
+                        LanguageScope.of(context).s('viewer.day.noItems'),
                         style: TextStyle(color: p.textMuted),
                       ),
                     )
@@ -1396,7 +1409,7 @@ class _DayCardState extends State<_DayCard> {
                         icon: Icon(Icons.map_outlined,
                             size: 18, color: p.accent),
                         label: Text(
-                          '🗺️ Haritada gör',
+                          LanguageScope.of(context).s('viewer.day.viewOnMap'),
                           style: TextStyle(
                             color: p.accent,
                             fontWeight: FontWeight.w700,
@@ -1439,10 +1452,12 @@ class _DayBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final lang = LanguageScope.of(context).lang;
     final d = DateTime.tryParse(day.date);
-    final wdShort = day.weekday?.isNotEmpty == true
+    // EN'de gün adını tarihten hesapla (day.weekday hint'i Türkçe domain verisi).
+    final wdShort = (lang == AppLang.tr && day.weekday?.isNotEmpty == true)
         ? day.weekday!
-        : (d != null ? _trWeekdays[d.weekday] : '');
+        : (d != null ? L10n.weekdaysFor(lang)[d.weekday] : '');
     return Container(
       width: 54,
       height: 54,
@@ -1504,7 +1519,7 @@ class _DayMeta extends StatelessWidget {
     }
     if (day.taxiRecommended == true) {
       chips.add(_MetaChip(
-        text: '🚕 Taksi önerilir',
+        text: LanguageScope.of(context).s('viewer.day.taxi'),
         color: palette.sunset,
         palette: palette,
       ));
@@ -1645,9 +1660,9 @@ class _TimelineRow extends StatelessWidget {
                             color: p.accent,
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Text(
-                            'Sıradaki',
-                            style: TextStyle(
+                          child: Text(
+                            LanguageScope.of(context).s('viewer.item.next'),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
@@ -1905,6 +1920,13 @@ class _TimelineRailPainter extends CustomPainter {
 // 4) Tema seçici.
 // ---------------------------------------------------------------------------
 
+/// ViewerThemeId → l10n anahtarı (tema adı, dile göre çözülür).
+String _themeLabelKey(ViewerThemeId id) => switch (id) {
+      ViewerThemeId.japanDark => 'theme.japanDark',
+      ViewerThemeId.appleLight => 'theme.appleLight',
+      ViewerThemeId.sakuraSoft => 'theme.sakuraSoft',
+    };
+
 class _ThemePickerSheet extends ConsumerWidget {
   const _ThemePickerSheet({required this.current});
   final ViewerThemeId current;
@@ -1912,16 +1934,18 @@ class _ThemePickerSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = ViewerPalette.forId(current);
+    final s = LanguageScope.of(context);
+    final lang = ref.watch(appLangProvider);
     return SafeArea(
       top: false,
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Tema',
+              s.s('viewer.theme.title'),
               style: TextStyle(
                 color: palette.textPrimary,
                 fontWeight: FontWeight.w700,
@@ -1938,6 +1962,84 @@ class _ThemePickerSheet extends ConsumerWidget {
                   Navigator.of(context).pop();
                 },
               ),
+            const SizedBox(height: 16),
+            // Dil / Language seçici — appLangProvider'ı ayarlar (kalıcı).
+            Text(
+              s.s('lang.title'),
+              style: TextStyle(
+                color: palette.textPrimary,
+                fontWeight: FontWeight.w700,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                for (final l in AppLang.values) ...[
+                  Expanded(
+                    child: _LangOption(
+                      lang: l,
+                      palette: palette,
+                      selected: l == lang,
+                      onTap: () =>
+                          ref.read(appLangProvider.notifier).set(l),
+                    ),
+                  ),
+                  if (l != AppLang.values.last) const SizedBox(width: 10),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Dil seçici tekli seçenek (TR / EN).
+class _LangOption extends StatelessWidget {
+  const _LangOption({
+    required this.lang,
+    required this.palette,
+    required this.selected,
+    required this.onTap,
+  });
+  final AppLang lang;
+  final ViewerPalette palette;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        decoration: BoxDecoration(
+          color: selected
+              ? palette.accent.withValues(alpha: 0.16)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? palette.accent : palette.border,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              lang.label,
+              style: TextStyle(
+                color: selected ? palette.accent : palette.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            if (selected) ...[
+              const SizedBox(width: 6),
+              Icon(Icons.check_circle, color: palette.accent, size: 18),
+            ],
           ],
         ),
       ),
@@ -1979,7 +2081,7 @@ class _ThemeOption extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                id.label,
+                LanguageScope.of(context).s(_themeLabelKey(id)),
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w600,

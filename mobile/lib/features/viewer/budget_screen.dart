@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/l10n.dart';
 import '../../data/exchange_rate_store.dart';
 import '../../domain/budget.dart';
 import '../../domain/types.dart';
@@ -49,11 +50,11 @@ String formatRate(double rate) {
 // Kategori etiketleri.
 // ---------------------------------------------------------------------------
 
-String _kindLabel(TimelineItemKind kind) => switch (kind) {
-      TimelineItemKind.activity => 'Aktivite',
-      TimelineItemKind.meal => 'Yemek',
-      TimelineItemKind.transport => 'Ulaşım',
-      TimelineItemKind.hotel => 'Otel',
+String _kindLabelKey(TimelineItemKind kind) => switch (kind) {
+      TimelineItemKind.activity => 'kind.activity',
+      TimelineItemKind.meal => 'kind.meal',
+      TimelineItemKind.transport => 'kind.transport',
+      TimelineItemKind.hotel => 'kind.hotel',
     };
 
 String _kindEmoji(TimelineItemKind kind) => switch (kind) {
@@ -108,6 +109,7 @@ class _BudgetView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = ViewerPalette.of(context);
+    final s = LanguageScope.of(context);
     final rate = ref.watch(jpyToTryProvider);
     final summary = computeBudget(trip, jpyToTry: rate);
     final party = trip.preferences.partySize ?? 1;
@@ -117,7 +119,7 @@ class _BudgetView extends ConsumerWidget {
       appBar: AppBar(
         leading: const BackButton(),
         title: Text(
-          '💰 Bütçe',
+          s.s('budget.title'),
           style: TextStyle(
             color: palette.textPrimary,
             fontWeight: FontWeight.w700,
@@ -166,6 +168,7 @@ class _BudgetView extends ConsumerWidget {
   ) async {
     final controller = TextEditingController(text: formatRate(current));
     final palette = ref.read(viewerPaletteProvider);
+    final s = LanguageScope.of(context);
     final result = await showDialog<double>(
       context: context,
       builder: (ctx) {
@@ -174,7 +177,7 @@ class _BudgetView extends ConsumerWidget {
           child: AlertDialog(
             backgroundColor: palette.card,
             title: Text(
-              'Kuru düzenle',
+              s.s('budget.editRate'),
               style: TextStyle(color: palette.textPrimary),
             ),
             content: Column(
@@ -182,7 +185,7 @@ class _BudgetView extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '1 ¥ kaç ₺?',
+                  s.s('budget.rateQuestion'),
                   style: TextStyle(color: palette.textSecondary, fontSize: 13),
                 ),
                 const SizedBox(height: 10),
@@ -207,7 +210,7 @@ class _BudgetView extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Kur elle güncellenir (çevrimdışı).',
+                  s.s('budget.rateManual'),
                   style: TextStyle(color: palette.textMuted, fontSize: 12),
                 ),
               ],
@@ -215,7 +218,7 @@ class _BudgetView extends ConsumerWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('İptal'),
+                child: Text(s.s('common.cancel')),
               ),
               FilledButton(
                 onPressed: () {
@@ -224,7 +227,7 @@ class _BudgetView extends ConsumerWidget {
                   );
                   Navigator.of(ctx).pop(parsed);
                 },
-                child: const Text('Kaydet'),
+                child: Text(s.s('common.save')),
               ),
             ],
           ),
@@ -301,6 +304,7 @@ class _TotalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return _Card(
       palette: palette,
       borderColor: palette.accent.withValues(alpha: 0.35),
@@ -308,7 +312,7 @@ class _TotalCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Toplam tahmini harcama',
+            s.s('budget.total'),
             style: TextStyle(color: palette.textSecondary, fontSize: 13),
           ),
           const SizedBox(height: 6),
@@ -347,7 +351,7 @@ class _TotalCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Kişi başı',
+                    s.s('budget.perPerson'),
                     style: TextStyle(
                       color: palette.textSecondary,
                       fontSize: 14,
@@ -355,7 +359,10 @@ class _TotalCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${formatTry(summary.perPersonTry)} ($party kişi)',
+                  s.p('budget.perPersonValue', {
+                    'amount': formatTry(summary.perPersonTry),
+                    'n': '$party',
+                  }),
                   style: TextStyle(
                     color: palette.textPrimary,
                     fontSize: 15,
@@ -368,7 +375,10 @@ class _TotalCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '${summary.itemsWithCost}/${summary.itemsTotal} öğede maliyet girili',
+            s.p('budget.itemsWithCost', {
+              'done': '${summary.itemsWithCost}',
+              'total': '${summary.itemsTotal}',
+            }),
             style: TextStyle(color: palette.textMuted, fontSize: 12),
           ),
         ],
@@ -394,6 +404,7 @@ class _RateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return _Card(
       palette: palette,
       child: Column(
@@ -406,7 +417,7 @@ class _RateCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Döviz kuru',
+                      s.s('budget.exchangeRate'),
                       style: TextStyle(
                         color: palette.textSecondary,
                         fontSize: 13,
@@ -428,7 +439,7 @@ class _RateCard extends StatelessWidget {
               FilledButton.icon(
                 onPressed: onEdit,
                 icon: const Icon(Icons.edit_outlined, size: 16),
-                label: const Text('Kuru düzenle'),
+                label: Text(s.s('budget.editRate')),
                 style: FilledButton.styleFrom(
                   backgroundColor: palette.accent,
                   foregroundColor: Colors.white,
@@ -438,7 +449,7 @@ class _RateCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Kur elle güncellenir (çevrimdışı).',
+            s.s('budget.rateManual'),
             style: TextStyle(color: palette.textMuted, fontSize: 12),
           ),
         ],
@@ -474,7 +485,10 @@ class _CategorySection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionTitle(text: 'Kategoriye göre', palette: palette),
+          _SectionTitle(
+            text: LanguageScope.of(context).s('budget.byCategory'),
+            palette: palette,
+          ),
           for (final e in entries)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -515,7 +529,7 @@ class _CategoryBar extends StatelessWidget {
             Text('${_kindEmoji(kind)} ', style: const TextStyle(fontSize: 14)),
             Expanded(
               child: Text(
-                _kindLabel(kind),
+                LanguageScope.of(context).s(_kindLabelKey(kind)),
                 style: TextStyle(
                   color: palette.textPrimary,
                   fontSize: 14,
@@ -579,7 +593,10 @@ class _DaySection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionTitle(text: 'Güne göre', palette: palette),
+          _SectionTitle(
+            text: LanguageScope.of(context).s('budget.byDay'),
+            palette: palette,
+          ),
           for (final d in summary.byDay)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 6),
@@ -652,17 +669,18 @@ class _MealBudgetSection extends StatelessWidget {
     final barColor = over ? palette.sunset : palette.matcha;
     final fraction = planned > 0 ? (actual / planned).clamp(0.0, 1.0) : 1.0;
 
+    final s = LanguageScope.of(context);
     return _Card(
       palette: palette,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionTitle(text: 'Yemek bütçesi', palette: palette),
+          _SectionTitle(text: s.s('budget.foodBudget'), palette: palette),
           Text.rich(
             TextSpan(
               style: TextStyle(color: palette.textSecondary, fontSize: 14),
               children: [
-                const TextSpan(text: 'Planlanan '),
+                TextSpan(text: s.s('budget.planned')),
                 TextSpan(
                   text: formatTry(planned),
                   style: TextStyle(
@@ -670,7 +688,7 @@ class _MealBudgetSection extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const TextSpan(text: ' · Gerçekleşen '),
+                TextSpan(text: s.s('budget.actual')),
                 TextSpan(
                   text: formatTry(actual),
                   style: TextStyle(
@@ -706,10 +724,10 @@ class _MealBudgetSection extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             over
-                ? 'Bütçe aşıldı — planlanandan ${formatTry(actual - planned)} fazla.'
+                ? s.p('budget.over', {'n': formatTry(actual - planned)})
                 : planned > 0
-                    ? 'Bütçe içinde — ${formatTry(planned - actual)} kaldı.'
-                    : 'Henüz planlanan yemek bütçesi yok.',
+                    ? s.p('budget.under', {'n': formatTry(planned - actual)})
+                    : s.s('budget.noFood'),
             style: TextStyle(
               color: over ? palette.sunset : palette.textMuted,
               fontSize: 12,
@@ -747,6 +765,7 @@ class _ConverterSectionState extends State<_ConverterSection> {
   @override
   Widget build(BuildContext context) {
     final palette = widget.palette;
+    final s = LanguageScope.of(context);
     final jpy =
         double.tryParse(_controller.text.trim().replaceAll(',', '.')) ?? 0;
     final tl = jpy * widget.rate;
@@ -756,7 +775,7 @@ class _ConverterSectionState extends State<_ConverterSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionTitle(text: 'Çevirici', palette: palette),
+          _SectionTitle(text: s.s('budget.converter'), palette: palette),
           TextField(
             controller: _controller,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -771,7 +790,7 @@ class _ConverterSectionState extends State<_ConverterSection> {
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
             decoration: InputDecoration(
-              labelText: 'Japon Yeni (¥)',
+              labelText: s.s('budget.yen'),
               labelStyle: TextStyle(color: palette.textSecondary),
               prefixText: '¥ ',
               prefixStyle: TextStyle(color: palette.textSecondary),
@@ -794,7 +813,7 @@ class _ConverterSectionState extends State<_ConverterSection> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Türk Lirası (₺)',
+                  s.s('budget.lira'),
                   style: TextStyle(color: palette.textSecondary, fontSize: 12),
                 ),
                 const SizedBox(height: 2),
@@ -842,8 +861,7 @@ class _EmptyBanner extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Planda henüz maliyet girilmemiş — Plan adımında aktivitelere '
-              'ücret ekleyin.',
+              LanguageScope.of(context).s('budget.empty'),
               style: TextStyle(
                 color: palette.textPrimary,
                 fontSize: 13,

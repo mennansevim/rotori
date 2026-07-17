@@ -8,6 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/l10n.dart';
 import '../../data/checklist_store.dart';
 import '../../domain/packing_data.dart';
 import '../../domain/types.dart';
@@ -51,6 +52,7 @@ class _ChecklistView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = ViewerPalette.of(context);
+    final s = LanguageScope.of(context);
     final state = ref.watch(checklistProvider(trip.id));
     final notifier = ref.read(checklistProvider(trip.id).notifier);
 
@@ -67,7 +69,7 @@ class _ChecklistView extends ConsumerWidget {
       appBar: AppBar(
         leading: const BackButton(),
         title: Text(
-          '🎒 Valiz & Hazırlık',
+          s.s('checklist.title'),
           style: TextStyle(
             color: palette.textPrimary,
             fontWeight: FontWeight.w700,
@@ -88,7 +90,7 @@ class _ChecklistView extends ConsumerWidget {
               PopupMenuItem<String>(
                 value: 'reset',
                 child: Text(
-                  'Sıfırla',
+                  s.s('checklist.reset'),
                   style: TextStyle(color: palette.textPrimary),
                 ),
               ),
@@ -130,6 +132,7 @@ class _ChecklistView extends ConsumerWidget {
     ViewerPalette palette,
     ChecklistNotifier notifier,
   ) async {
+    final s = LanguageScope.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => Theme(
@@ -137,22 +140,22 @@ class _ChecklistView extends ConsumerWidget {
         child: AlertDialog(
           backgroundColor: palette.card,
           title: Text(
-            'Listeyi sıfırla?',
+            s.s('checklist.resetConfirmTitle'),
             style: TextStyle(color: palette.textPrimary),
           ),
           content: Text(
-            'Tüm işaretler ve eklediğin özel maddeler silinecek.',
+            s.s('checklist.resetConfirmBody'),
             style: TextStyle(color: palette.textSecondary),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('İptal'),
+              child: Text(s.s('common.cancel')),
             ),
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(true),
               style: FilledButton.styleFrom(backgroundColor: palette.sunset),
-              child: const Text('Sıfırla'),
+              child: Text(s.s('checklist.reset')),
             ),
           ],
         ),
@@ -173,6 +176,7 @@ class _ChecklistView extends ConsumerWidget {
     ];
     if (!categories.contains('Diğer')) categories.add('Diğer');
 
+    final s = LanguageScope.of(context);
     final labelController = TextEditingController();
     var selectedCategory = categories.first;
 
@@ -185,7 +189,7 @@ class _ChecklistView extends ConsumerWidget {
             builder: (ctx, setState) => AlertDialog(
               backgroundColor: palette.card,
               title: Text(
-                'Kendi maddeni ekle',
+                s.s('checklist.addOwn'),
                 style: TextStyle(color: palette.textPrimary),
               ),
               content: Column(
@@ -193,7 +197,7 @@ class _ChecklistView extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Kategori',
+                    s.s('checklist.category'),
                     style: TextStyle(
                       color: palette.textSecondary,
                       fontSize: 13,
@@ -224,7 +228,7 @@ class _ChecklistView extends ConsumerWidget {
                     autofocus: true,
                     style: TextStyle(color: palette.textPrimary),
                     decoration: InputDecoration(
-                      labelText: 'Madde',
+                      labelText: s.s('checklist.item'),
                       labelStyle: TextStyle(color: palette.textSecondary),
                       border: const OutlineInputBorder(),
                       enabledBorder: OutlineInputBorder(
@@ -240,14 +244,14 @@ class _ChecklistView extends ConsumerWidget {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('İptal'),
+                  child: Text(s.s('common.cancel')),
                 ),
                 FilledButton(
                   onPressed: () => Navigator.of(ctx).pop(
                     _CustomEntry(selectedCategory, labelController.text),
                   ),
                   style: FilledButton.styleFrom(backgroundColor: palette.accent),
-                  child: const Text('Ekle'),
+                  child: Text(s.s('common.add')),
                 ),
               ],
             ),
@@ -285,6 +289,7 @@ class _ProgressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     final fraction = total > 0 ? done / total : 0.0;
     final allDone = total > 0 && done == total;
     return Container(
@@ -302,7 +307,9 @@ class _ProgressCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  allDone ? '✅ Her şey hazır!' : 'Hazırlık durumu',
+                  allDone
+                      ? s.s('checklist.allReady')
+                      : s.s('checklist.status'),
                   style: TextStyle(
                     color: palette.textSecondary,
                     fontSize: 13,
@@ -310,7 +317,7 @@ class _ProgressCard extends StatelessWidget {
                 ),
               ),
               Text(
-                '$done / $total hazır',
+                s.p('checklist.ready', {'done': '$done', 'total': '$total'}),
                 style: TextStyle(
                   color: palette.textPrimary,
                   fontSize: 15,
@@ -452,7 +459,8 @@ class _ChecklistRow extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                'özel',
+                                LanguageScope.of(context)
+                                    .s('checklist.customBadge'),
                                 style: TextStyle(
                                   color: palette.accent,
                                   fontSize: 10,
@@ -488,7 +496,7 @@ class _ChecklistRow extends StatelessWidget {
                       color: palette.textMuted,
                       size: 20,
                     ),
-                    tooltip: 'Sil',
+                    tooltip: LanguageScope.of(context).s('common.delete'),
                     constraints: const BoxConstraints(
                       minWidth: 36,
                       minHeight: 36,
@@ -523,7 +531,7 @@ class _AddButton extends StatelessWidget {
         onPressed: onTap,
         icon: Icon(Icons.add, color: palette.accent, size: 18),
         label: Text(
-          'Kendi maddeni ekle',
+          LanguageScope.of(context).s('checklist.addOwn'),
           style: TextStyle(
             color: palette.accent,
             fontWeight: FontWeight.w700,

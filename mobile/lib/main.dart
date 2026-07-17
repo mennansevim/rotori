@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/l10n.dart';
 import 'core/router.dart';
+import 'data/language_store.dart';
 import 'env.dart';
 import 'theme.dart';
 
@@ -28,11 +31,24 @@ class JapanTripApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
-    return MaterialApp.router(
-      title: 'Japan-Trip',
-      theme: AppTheme.dark,
-      routerConfig: router,
-      debugShowCheckedModeBanner: false,
+    final lang = ref.watch(appLangProvider);
+    // LanguageScope MaterialApp'in ÜSTÜNDE — böylece tüm pushed route'lar
+    // (viewer alt ekranları) aktif dili miras alır.
+    return LanguageScope(
+      lang: lang,
+      child: MaterialApp.router(
+        title: 'Japan-Trip',
+        theme: AppTheme.dark,
+        routerConfig: router,
+        debugShowCheckedModeBanner: false,
+        locale: Locale(lang.code),
+        supportedLocales: const [Locale('tr'), Locale('en')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+      ),
     );
   }
 }
