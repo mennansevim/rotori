@@ -22,6 +22,7 @@ import '../../domain/destination_profiles.dart';
 import '../../domain/types.dart';
 import '../shared/place_detail_sheet.dart';
 import '../viewer/budget_screen.dart';
+import '../viewer/checklist_screen.dart';
 import '../viewer/compass_screen.dart';
 import '../viewer/day_map_screen.dart';
 import '../viewer/reward_map_screen.dart';
@@ -219,6 +220,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody> {
             onOpenMap: _openMap,
             onOpenCompass: _openCompass,
             onOpenBudget: _openBudget,
+            onOpenChecklist: _openChecklist,
           ),
           Expanded(
             child: ListView(
@@ -335,6 +337,22 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody> {
     );
   }
 
+  /// Valiz & Hazırlık listesini açar (Japonya'ya özel, plan bazlı işaretlenir).
+  void _openChecklist() {
+    final palette = ref.read(viewerPaletteProvider);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => Theme(
+          data: palette.toThemeData(),
+          child: ViewerPaletteScope(
+            palette: palette,
+            child: ChecklistScreen(trip: widget.trip),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Bir günün rota haritasını açar (numaralı pinli OSM haritası).
   void _openDayMap(DayPlan day) {
     final palette = ref.read(viewerPaletteProvider);
@@ -377,6 +395,7 @@ class _TopStatusBar extends StatefulWidget {
     required this.onOpenMap,
     required this.onOpenCompass,
     required this.onOpenBudget,
+    required this.onOpenChecklist,
   });
 
   final Trip trip;
@@ -386,6 +405,7 @@ class _TopStatusBar extends StatefulWidget {
   final VoidCallback onOpenMap;
   final VoidCallback onOpenCompass;
   final VoidCallback onOpenBudget;
+  final VoidCallback onOpenChecklist;
 
   @override
   State<_TopStatusBar> createState() => _TopStatusBarState();
@@ -497,6 +517,12 @@ class _TopStatusBarState extends State<_TopStatusBar>
                   color: onColor,
                   tooltip: 'Bütçe',
                   onTap: widget.onOpenBudget,
+                ),
+                _BarIconButton(
+                  icon: Icons.luggage_outlined,
+                  color: onColor,
+                  tooltip: 'Valiz',
+                  onTap: widget.onOpenChecklist,
                 ),
                 _BarIconButton(
                   icon: Icons.palette_outlined,
