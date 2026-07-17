@@ -55,6 +55,12 @@ dependencies:
   sign_in_with_apple: ^6.1.3
   # Nonce SHA-256 hash'i — Apple isteğine hashed, Supabase'e raw nonce gider.
   crypto: ^3.0.3
+  # iOS Home Screen widget'ına veri gönderir (App Group üzerinden UserDefaults'a
+  # yazar) ve widget'ı yeniden yükletir. Web derlemesinde no-op'tur — kIsWeb
+  # gate'i + try/catch ile home_widget_hook.dart sessiz düşer.
+  # Native Xcode Widget Extension target'ı manuel oluşturulur; kurulum:
+  # docs/IOS_WIDGET_SETUP.md.
+  home_widget: ^0.6.0
 
 dev_dependencies:
   flutter_test:

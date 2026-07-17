@@ -27,6 +27,7 @@ import '../viewer/budget_screen.dart';
 import '../viewer/checklist_screen.dart';
 import '../viewer/compass_screen.dart';
 import '../viewer/day_map_screen.dart';
+import '../viewer/home_widget_hook.dart';
 import '../viewer/reward_map_screen.dart';
 import '../viewer/sakura_overlay.dart';
 import '../viewer/viewer_theme.dart';
@@ -166,7 +167,8 @@ class _ViewerBody extends ConsumerStatefulWidget {
   ConsumerState<_ViewerBody> createState() => _ViewerBodyState();
 }
 
-class _ViewerBodyState extends ConsumerState<_ViewerBody> {
+class _ViewerBodyState extends ConsumerState<_ViewerBody>
+    with WidgetsBindingObserver {
   final _scrollController = ScrollController();
   final _activeDayKey = GlobalKey();
   bool _autoScrolled = false;
@@ -181,7 +183,23 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // İlk frame sonrası: (1) aktif güne oto-kaydır, (2) iOS Home Screen
+    // widget'ına "Sıradaki Aktivite" verisini gönder. İki callback bağımsız —
+    // sıra önemli değil, hook web'de ve native target yoksa sessizce no-op.
     WidgetsBinding.instance.addPostFrameCallback((_) => _autoScrollToActive());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => HomeWidgetHook.pushFromTrip(widget.trip),
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Uygulama arka plandan öne alındığında widget verisini tazele — kullanıcı
+    // dışarıda saatlerce beklemiş olabilir; "sıradaki" değişmiş olabilir.
+    if (state == AppLifecycleState.resumed) {
+      HomeWidgetHook.pushFromTrip(widget.trip);
+    }
   }
 
   void _autoScrollToActive() {
@@ -199,6 +217,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
     super.dispose();
   }
