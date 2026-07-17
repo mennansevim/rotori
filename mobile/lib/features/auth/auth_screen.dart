@@ -1,10 +1,11 @@
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'auth_repository.dart';
 
-/// Login / Kayıt ekranı — e-posta + şifre.
-/// Sign in with Apple butonu iOS Faz 7'de eklenecek (App Store şartı).
+/// Login / Kayıt ekranı — e-posta + şifre + Sign in with Apple (iOS/macOS).
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
 
@@ -51,6 +52,33 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       // Başarı: authStateProvider tetikler → router HomeScreen'e yönlendirir.
     } on Exception catch (e) {
       setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Apple butonu yalnızca iOS/macOS'ta gösterilir. `kIsWeb` + platform
+  /// kontrolü `dart:io` kullanmadan (foundation) yapılır; böylece web
+  /// derlemesi `dart:io`'ya hiç dokunmaz ve buton web/Android'de render olmaz.
+  bool get _canUseApple =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.macOS);
+
+  Future<void> _signInWithApple() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await ref.read(authRepositoryProvider).signInWithApple();
+      // Başarı: authStateProvider tetikler → router yönlendirir.
+    } on Exception catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString());
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -134,6 +162,34 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             : 'Hesabın yok mu? Kayıt ol',
                       ),
                     ),
+                    // Sign in with Apple — yalnızca iOS/macOS'ta görünür.
+                    if (_canUseApple) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Expanded(child: Divider()),
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              'veya',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ),
+                          const Expanded(child: Divider()),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _busy ? null : _signInWithApple,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(48),
+                        ),
+                        child: const Text('🍎 Apple ile Giriş Yap'),
+                      ),
+                    ],
                   ],
                 ),
               ),

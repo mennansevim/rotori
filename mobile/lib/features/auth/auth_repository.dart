@@ -1,7 +1,38 @@
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:crypto/crypto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/supabase_client.dart';
+
+/// Ham (raw) nonce için kullanılan güvenli karakter kümesi (URL-safe).
+const _nonceCharset =
+    '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._';
+
+/// Kriptografik olarak güvenli, rastgele **ham** nonce üretir.
+///
+/// Apple akışında bu ham nonce Supabase'e (`signInWithIdToken(nonce:)`)
+/// gönderilir; Apple'a ise bunun SHA-256 özeti verilir. Test edilebilir
+/// olması için saf (pure) top-level fonksiyon olarak tutulur.
+String generateRawNonce([int length = 32]) {
+  final random = Random.secure();
+  return List.generate(
+    length,
+    (_) => _nonceCharset[random.nextInt(_nonceCharset.length)],
+  ).join();
+}
+
+/// Verilen string'in SHA-256 özetini onaltılık (hex) olarak döndürür.
+///
+/// Çıktı her zaman 64 karakterdir ve aynı girdi için deterministiktir.
+/// Apple `getAppleIDCredential(nonce:)` bu hash'lenmiş değeri bekler.
+String sha256OfString(String input) {
+  final bytes = utf8.encode(input);
+  return sha256.convert(bytes).toString();
+}
 
 /// Auth işlemlerinin tek girişi. Ekranlar doğrudan Supabase'i çağırmaz;
 /// böylece ileride Apple/Google native login eklenince tek nokta değişir.
@@ -25,9 +56,42 @@ class AuthRepository {
 
   Future<void> signOut() => _client.auth.signOut();
 
-  /// TODO(Faz 2b): Sign in with Apple — iOS için native token; Supabase
-  /// `signInWithIdToken(provider: OAuthProvider.apple, idToken: ..., nonce: ...)`
-  /// kullanılacak. App Store için şart.
+  /// Sign in with Apple — iOS/macOS native token akışı.
+  ///
+  /// Akış:
+  /// 1. Güvenli **ham** nonce üretilir ve SHA-256 özeti alınır.
+  /// 2. Apple'a hash'lenmiş nonce ile kimlik istenir; `identityToken` alınır.
+  /// 3. Supabase'e `signInWithIdToken` ile **ham** nonce + idToken gönderilir
+  ///    (Supabase ham nonce'u bekler; standart replay-koruması deseni).
+  ///
+  /// Kullanıcı akışı iptal ederse sessizce döner; diğer hatalarda Türkçe
+  /// mesajlı bir [Exception] fırlatır (UI SnackBar'da gösterir).
+  Future<void> signInWithApple() async {
+    final rawNonce = generateRawNonce();
+    final hashedNonce = sha256OfString(rawNonce);
+    try {
+      final cred = await SignInWithApple.getAppleIDCredential(
+        scopes: const [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: hashedNonce,
+      );
+      final idToken = cred.identityToken;
+      if (idToken == null) {
+        throw Exception('Apple kimlik jetonu alınamadı. Lütfen tekrar deneyin.');
+      }
+      await _client.auth.signInWithIdToken(
+        provider: OAuthProvider.apple,
+        idToken: idToken,
+        nonce: rawNonce,
+      );
+    } on SignInWithAppleAuthorizationException catch (e) {
+      // Kullanıcı vazgeçtiyse hata gösterme, sessizce çık.
+      if (e.code == AuthorizationErrorCode.canceled) return;
+      throw Exception('Apple ile giriş başarısız oldu: ${e.message}');
+    }
+  }
 }
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {

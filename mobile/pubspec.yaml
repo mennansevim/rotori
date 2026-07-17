@@ -44,6 +44,12 @@ dependencies:
   latlong2: ^0.9.1
   # HTTP istemcisi — Open-Meteo hava durumu (anahtar yok); web + mobilde çalışır.
   http: ^1.2.0
+  # Sign in with Apple — iOS/macOS native token akışı (App Store şartı).
+  # Web'de paketin kendi web implementasyonu var; UI butonu yine de platform
+  # gate'i ile yalnızca iOS/macOS'ta gösterilir (auth_screen.dart).
+  sign_in_with_apple: ^6.1.3
+  # Nonce SHA-256 hash'i — Apple isteğine hashed, Supabase'e raw nonce gider.
+  crypto: ^3.0.3
 
 dev_dependencies:
   flutter_test:
