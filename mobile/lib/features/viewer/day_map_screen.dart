@@ -16,6 +16,7 @@ import '../../domain/destination_profiles.dart';
 import '../../domain/place_coords.dart';
 import '../../domain/types.dart';
 import '../shared/place_detail_sheet.dart';
+import 'offline_tile_provider.dart';
 import 'viewer_theme.dart';
 
 /// Japonya kaba merkezi — şehir de duraklar da yoksa haritayı buraya odakla.
@@ -33,7 +34,8 @@ class DayMapScreen extends ConsumerWidget {
   final int dayNumber;
 
   /// Test'lerde ağ tile isteğini bypass etmek için enjekte edilir; üretimde
-  /// null → varsayılan OSM ağ sağlayıcısı kullanılır.
+  /// null → [CachingTileProvider.shared] — çevrimdışı-aware raster tile
+  /// sağlayıcısı (iOS/Android'de yerel diske cache eder; web'de düz ağ).
   final TileProvider? tileProvider;
 
   DayPlan? get _day {
@@ -61,7 +63,7 @@ class DayMapScreen extends ConsumerWidget {
   }
 }
 
-class _DayMapView extends StatelessWidget {
+class _DayMapView extends StatefulWidget {
   const _DayMapView({
     required this.trip,
     required this.day,
@@ -73,6 +75,19 @@ class _DayMapView extends StatelessWidget {
   final DayPlan? day;
   final ViewerPalette palette;
   final TileProvider? tileProvider;
+
+  @override
+  State<_DayMapView> createState() => _DayMapViewState();
+}
+
+class _DayMapViewState extends State<_DayMapView> {
+  // Prewarm ilerleme durumu — 0..1 arası; null iken overlay gizli.
+  double? _prewarmProgress;
+
+  Trip get trip => widget.trip;
+  DayPlan? get day => widget.day;
+  ViewerPalette get palette => widget.palette;
+  TileProvider? get tileProvider => widget.tileProvider;
 
   @override
   Widget build(BuildContext context) {
@@ -93,6 +108,14 @@ class _DayMapView extends StatelessWidget {
     // varsa o noktaya; hiç durak yoksa şehir merkezine (yoksa Japonya).
     final cityCenter = _cityCenter(dest, cityData);
 
+    // Çevrimdışı hazırlama: yalnızca kullanılan sağlayıcı çevrimdışı-uyumluysa
+    // ve harita üzerinde noktalar varsa göster. Test'ler kendi provider'ını
+    // enjekte edince buton görünmez → smoke test kırılmaz.
+    final effectiveProvider = tileProvider ?? CachingTileProvider.shared;
+    final canPrewarm = effectiveProvider is CachingTileProvider &&
+        stops.isNotEmpty &&
+        _prewarmProgress == null;
+
     return Scaffold(
       backgroundColor: palette.bg,
       appBar: AppBar(
@@ -109,10 +132,33 @@ class _DayMapView extends StatelessWidget {
         backgroundColor: palette.card,
         foregroundColor: palette.textPrimary,
         elevation: 0,
+        actions: [
+          if (canPrewarm)
+            TextButton.icon(
+              onPressed: () => _prewarmCurrentDay(
+                effectiveProvider,
+                stops,
+                cityCenter,
+              ),
+              icon: Icon(
+                Icons.download_for_offline_outlined,
+                color: palette.textPrimary,
+                size: 18,
+              ),
+              label: Text(
+                '📥 Çevrimdışı hazırla',
+                style: TextStyle(
+                  color: palette.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+        ],
       ),
       body: Stack(
         children: [
-          _buildMap(context, stops, cityCenter),
+          _buildMap(context, stops, cityCenter, effectiveProvider),
           if (stops.isEmpty)
             Positioned(
               left: 16,
@@ -120,15 +166,91 @@ class _DayMapView extends StatelessWidget {
               top: 16,
               child: _EmptyBanner(palette: palette),
             ),
+          if (_prewarmProgress != null)
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              child: LinearProgressIndicator(
+                value: _prewarmProgress,
+                minHeight: 3,
+                backgroundColor: palette.card.withValues(alpha: 0.6),
+                valueColor: AlwaysStoppedAnimation(palette.accent),
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  Future<void> _prewarmCurrentDay(
+    CachingTileProvider provider,
+    List<ResolvedStop> stops,
+    LatLng cityCenter,
+  ) async {
+    // Sınırlar: duraklar → LatLngBounds; tek durak varsa dar bir kutu.
+    final points = [for (final s in stops) LatLng(s.lat, s.lng)];
+    final LatLngBounds bounds;
+    if (points.length >= 2) {
+      bounds = LatLngBounds.fromPoints(points);
+    } else if (points.length == 1) {
+      // Tek durak: ~1km'lik dar bir kare.
+      final p = points.first;
+      const d = 0.01;
+      bounds = LatLngBounds(
+        LatLng(p.latitude - d, p.longitude - d),
+        LatLng(p.latitude + d, p.longitude + d),
+      );
+    } else {
+      // Şehir merkezi civarı — teorik olarak canPrewarm=false, gelmemeli.
+      const d = 0.05;
+      bounds = LatLngBounds(
+        LatLng(cityCenter.latitude - d, cityCenter.longitude - d),
+        LatLng(cityCenter.latitude + d, cityCenter.longitude + d),
+      );
+    }
+    setState(() => _prewarmProgress = 0.0);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final count = await provider.prewarmTiles(
+        south: bounds.south,
+        north: bounds.north,
+        west: bounds.west,
+        east: bounds.east,
+        minZoom: 12,
+        maxZoom: 15,
+        onProgress: (done, total) {
+          if (!mounted || total == 0) return;
+          setState(() => _prewarmProgress = done / total);
+        },
+      );
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            count > 0
+                ? 'Çevrimdışı hazır — $count kare'
+                : 'Çevrimdışı hazırlama atlandı (alan çok geniş ya da web).',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text('Çevrimdışı hazırlama başarısız: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _prewarmProgress = null);
+      }
+    }
   }
 
   Widget _buildMap(
     BuildContext context,
     List<ResolvedStop> stops,
     LatLng cityCenter,
+    TileProvider effectiveProvider,
   ) {
     final points = [for (final s in stops) LatLng(s.lat, s.lng)];
 
@@ -165,7 +287,7 @@ class _DayMapView extends StatelessWidget {
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'com.japantrip.app',
           maxZoom: 19,
-          tileProvider: tileProvider,
+          tileProvider: effectiveProvider,
         ),
         if (points.length >= 2)
           PolylineLayer(

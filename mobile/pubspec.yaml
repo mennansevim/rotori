@@ -44,6 +44,11 @@ dependencies:
   latlong2: ^0.9.1
   # HTTP istemcisi — Open-Meteo hava durumu (anahtar yok); web + mobilde çalışır.
   http: ^1.2.0
+  # Çevrimdışı harita tile cache — DefaultCacheManager iOS/Android'de dosya
+  # tabanlı, web'de kIsWeb kapısıyla devre dışı (day_map_screen.dart NetworkImage'e
+  # düşer). Kullanıcı bir günün haritasını çevrimiçi görüntülediğinde tile'lar
+  # yerel cache'e yazılır; sonraki açılışlarda ağ olmasa bile aynı kareler yüklenir.
+  flutter_cache_manager: ^3.4.1
   # Sign in with Apple — iOS/macOS native token akışı (App Store şartı).
   # Web'de paketin kendi web implementasyonu var; UI butonu yine de platform
   # gate'i ile yalnızca iOS/macOS'ta gösterilir (auth_screen.dart).
