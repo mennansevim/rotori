@@ -39,6 +39,8 @@ dependencies:
   # Gün rotasını numaralı pinlerle çizer; mobil + web derlemesinde çalışır.
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
+  # HTTP istemcisi — Open-Meteo hava durumu (anahtar yok); web + mobilde çalışır.
+  http: ^1.2.0
 
 dev_dependencies:
   flutter_test:

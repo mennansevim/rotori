@@ -28,6 +28,7 @@ import '../viewer/day_map_screen.dart';
 import '../viewer/reward_map_screen.dart';
 import '../viewer/sakura_overlay.dart';
 import '../viewer/viewer_theme.dart';
+import '../viewer/weather_screen.dart';
 import 'plan_providers.dart';
 
 // ---------------------------------------------------------------------------
@@ -221,6 +222,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody> {
             onOpenCompass: _openCompass,
             onOpenBudget: _openBudget,
             onOpenChecklist: _openChecklist,
+            onOpenWeather: _openWeather,
           ),
           Expanded(
             child: ListView(
@@ -353,6 +355,22 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody> {
     );
   }
 
+  /// Hava Durumu ekranını açar (Open-Meteo günlük tahmin, anahtar yok).
+  void _openWeather() {
+    final palette = ref.read(viewerPaletteProvider);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => Theme(
+          data: palette.toThemeData(),
+          child: ViewerPaletteScope(
+            palette: palette,
+            child: WeatherScreen(trip: widget.trip),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Bir günün rota haritasını açar (numaralı pinli OSM haritası).
   void _openDayMap(DayPlan day) {
     final palette = ref.read(viewerPaletteProvider);
@@ -396,6 +414,7 @@ class _TopStatusBar extends StatefulWidget {
     required this.onOpenCompass,
     required this.onOpenBudget,
     required this.onOpenChecklist,
+    required this.onOpenWeather,
   });
 
   final Trip trip;
@@ -406,6 +425,7 @@ class _TopStatusBar extends StatefulWidget {
   final VoidCallback onOpenCompass;
   final VoidCallback onOpenBudget;
   final VoidCallback onOpenChecklist;
+  final VoidCallback onOpenWeather;
 
   @override
   State<_TopStatusBar> createState() => _TopStatusBarState();
@@ -511,6 +531,12 @@ class _TopStatusBarState extends State<_TopStatusBar>
                   color: onColor,
                   tooltip: 'Pusula',
                   onTap: widget.onOpenCompass,
+                ),
+                _BarIconButton(
+                  icon: Icons.wb_sunny_outlined,
+                  color: onColor,
+                  tooltip: 'Hava',
+                  onTap: widget.onOpenWeather,
                 ),
                 _BarIconButton(
                   icon: Icons.account_balance_wallet_outlined,

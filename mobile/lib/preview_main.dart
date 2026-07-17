@@ -25,6 +25,7 @@ import 'features/viewer/checklist_screen.dart';
 import 'features/viewer/compass_screen.dart';
 import 'features/viewer/day_map_screen.dart';
 import 'features/viewer/gps_sim_screen.dart';
+import 'features/viewer/weather_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -186,6 +187,10 @@ class _PreviewApp extends StatelessWidget {
           builder: (_, s) => _ChecklistRoute(planId: s.pathParameters['id']!),
         ),
         GoRoute(
+          path: '/plans/:id/weather',
+          builder: (_, s) => _WeatherRoute(planId: s.pathParameters['id']!),
+        ),
+        GoRoute(
           path: '/reminders',
           builder: (_, __) => const RemindersScreen(),
         ),
@@ -291,6 +296,26 @@ class _ChecklistRoute extends ConsumerWidget {
     final planAsync = ref.watch(planByIdProvider(planId));
     return planAsync.when(
       data: (trip) => ChecklistScreen(trip: trip),
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Scaffold(
+        body: Center(child: Text('Plan yüklenemedi: $e')),
+      ),
+    );
+  }
+}
+
+/// Preview: planByIdProvider'dan trip'i çözüp Hava Durumu ekranını açar.
+class _WeatherRoute extends ConsumerWidget {
+  const _WeatherRoute({required this.planId});
+  final String planId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final planAsync = ref.watch(planByIdProvider(planId));
+    return planAsync.when(
+      data: (trip) => WeatherScreen(trip: trip),
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       ),
