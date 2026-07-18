@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../domain/types.dart';
-import '../data/japan_seasonality.dart';
 import '../planner_theme.dart';
 
 /// apps/planner/src/components/steps/WelcomeStep.tsx birebir port.
@@ -287,84 +288,164 @@ class _WelcomeStepState extends State<WelcomeStep> {
     );
   }
 
-  // ---- plan (mevsim) ---------------------------------------------------
+  // ---- plan (esnek gezi) ----------------------------------------------
+  // Google Flights "esnek gezi" tarzı: Kalkış pili + hedef şehir kartları.
+  // Her kartta hero görsel + 3 önerilen tarih aralığı; tıklayınca
+  // Google Flights deep-link açılır (GERÇEK fiyata orada bakılır).
   Widget _buildPlan() {
+    final trip = widget.trip;
+    final origin = _resolveOrigin(trip);
+    final year = _resolveYear(trip);
+    final dests = _japanDestinations();
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
       children: [
         _BackButton(onTap: () => setState(() => _view = _View.choose)),
-        const Text("Japonya'da hangi mevsim?",
+        const Text("Japonya'da esnek gezi",
             style: TextStyle(
-                fontSize: 26, fontWeight: FontWeight.w700, color: PT.text)),
+                fontSize: 22, fontWeight: FontWeight.w700, color: PT.text)),
         const SizedBox(height: 4),
-        const Text(
-          'Aylar bir bakışta. Aşağıdaki önerilen aralıklardan birini seç, '
-          'tarihleri otomatik dolduralım.',
-          style: TextStyle(fontSize: 15, color: PT.textSecondary),
+        Text(
+          "Kalkış: $origin · Google Flights'ta gerçek fiyata bak.",
+          style: const TextStyle(fontSize: 14, color: PT.textSecondary),
         ),
-        const SizedBox(height: 20),
-        // season-grid → içeriğe göre boyutlanan Wrap (CSS grid minmax(220,1fr))
-        LayoutBuilder(
-          builder: (context, c) {
-            const gap = 12.0;
-            final cols = (c.maxWidth / 232).floor().clamp(1, 4);
-            final cardW = (c.maxWidth - gap * (cols - 1)) / cols;
-            final now = DateTime.now().toUtc();
-            return Wrap(
-              spacing: gap,
-              runSpacing: gap,
-              children: [
-                for (final m in kMonths)
-                  SizedBox(
-                    width: cardW,
-                    child: Builder(
-                      builder: (_) {
-                        final year = m.month >= now.month ? now.year : now.year + 1;
-                        final start = '$year-${m.month.toString().padLeft(2, '0')}-01';
-                        final end = _addDays(start, 13);
-                        return _SeasonMonthCard(
-                          month: m,
-                          year: year,
-                          onTap: () {
-                            _applyDates(start, end);
-                            widget.onContinue();
-                          },
-                        );
-                      },
-                    ),
-                  ),
-              ],
-            );
-          },
-        ),
-        const SizedBox(height: 32),
-        const Text('Önerilen 2 haftalık aralıklar',
-            style: TextStyle(
-                fontSize: 18, fontWeight: FontWeight.w600, color: PT.text)),
         const SizedBox(height: 12),
-        for (final r in kSuggestedRanges) ...[
-          _RangeCard(
-            range: r,
-            onTap: () {
-              _applyDates(r.startISO, r.endISO);
-              widget.onContinue();
-            },
+        _OriginPill(
+          city: origin,
+          onEdit: () => _editOrigin(origin),
+        ),
+        const SizedBox(height: 18),
+        for (var i = 0; i < dests.length; i++) ...[
+          _DestCard(
+            dest: dests[i],
+            year: year,
+            fromCity: origin,
+            onRangeTap: (r) => _onPickRange(dest: dests[i], range: r, year: year, from: origin),
           ),
-          const SizedBox(height: 10),
-        ],
-        const SizedBox(height: 20),
-        const Text('⚠️ Bu pencerelerden uzak dur',
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFFB45309))),
-        const SizedBox(height: 12),
-        for (final r in kAvoidRanges) ...[
-          _AvoidCard(range: r),
-          const SizedBox(height: 10),
+          if (i < dests.length - 1) const SizedBox(height: 14),
         ],
       ],
     );
+  }
+
+  String _resolveOrigin(Trip trip) {
+    final c = (trip.preferences.originCity ?? '').trim();
+    return c.isEmpty ? 'İstanbul' : c;
+  }
+
+  int _resolveYear(Trip trip) {
+    final ts = trip.tripStart;
+    if (ts.length >= 4) {
+      final y = int.tryParse(ts.substring(0, 4));
+      if (y != null && y >= 2000) return y;
+    }
+    final now = DateTime.now();
+    return now.year + 1;
+  }
+
+  Future<void> _editOrigin(String current) async {
+    final controller = TextEditingController(text: current);
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: PT.bgElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final insets = MediaQuery.of(ctx).viewInsets.bottom;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + insets),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('Kalkış şehri',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: PT.text)),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (v) => Navigator.of(ctx).pop(v.trim()),
+                decoration: InputDecoration(
+                  hintText: 'İstanbul, İzmir, Ankara…',
+                  filled: true,
+                  fillColor: Colors.white,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 12),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: PT.borderStrong),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: PT.accent),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Align(
+                alignment: Alignment.centerRight,
+                child: PButton(
+                  label: 'Kaydet',
+                  onPressed: () =>
+                      Navigator.of(ctx).pop(controller.text.trim()),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (result == null) return;
+    final v = result.trim();
+    widget.onChange((t) {
+      t.preferences.originCity = v.isEmpty ? null : v;
+    });
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _onPickRange({
+    required _JpDest dest,
+    required _JpRange range,
+    required int year,
+    required String from,
+  }) async {
+    final (start, end) = range.dates(year);
+    final startIso = _isoDate(start);
+    final endIso = _isoDate(end);
+    _applyDates(startIso, endIso);
+    await _launchGoogleFlights(
+        from: from, toIata: dest.iataHint, start: start, end: end);
+  }
+
+  Future<void> _launchGoogleFlights({
+    required String from,
+    required String toIata,
+    required DateTime start,
+    required DateTime end,
+  }) async {
+    final url =
+        googleFlightsUrl(from: from, toIata: toIata, start: start, end: end);
+    final messenger = ScaffoldMessenger.of(context);
+    var launched = false;
+    try {
+      launched = await launchUrl(Uri.parse(url),
+          mode: LaunchMode.externalApplication);
+    } catch (_) {
+      launched = false;
+    }
+    if (!launched) {
+      await Clipboard.setData(ClipboardData(text: url));
+      messenger.showSnackBar(const SnackBar(
+        content: Text('Google Flights açılamadı — bağlantı panoya kopyalandı'),
+      ));
+    }
   }
 
   int _daysBetween(String a, String b) {
@@ -375,6 +456,160 @@ class _WelcomeStepState extends State<WelcomeStep> {
     return ms;
   }
 }
+
+// ===========================================================================
+// Esnek gezi verileri + biçimleyiciler
+// ===========================================================================
+
+String _isoDate(DateTime d) =>
+    '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+/// "23 Ağu Paz" biçimi — Google Flights satırındaki tarih etiketi.
+String formatTrShortDate(DateTime d) =>
+    '${d.day} ${_trShortMonths[d.month]} ${_trShortWeekdays[d.weekday]}';
+
+/// Google Flights derin bağlantısı. GERÇEK fiyata orada bakılır — sahte
+/// fiyat üretmiyoruz.
+String googleFlightsUrl({
+  required String from,
+  required String toIata,
+  required DateTime start,
+  required DateTime end,
+}) {
+  final startIso = _isoDate(start);
+  final endIso = _isoDate(end);
+  final q =
+      'Flights from $from to $toIata on $startIso through $endIso';
+  return 'https://www.google.com/travel/flights?q=${Uri.encodeComponent(q)}';
+}
+
+class _JpDest {
+  final String city;
+  final String country;
+  final String emoji;
+  final String tag;
+  final String imageUrl;
+  final String iataHint;
+  final List<_JpRange> ranges;
+  const _JpDest({
+    required this.city,
+    required this.country,
+    required this.emoji,
+    required this.tag,
+    required this.imageUrl,
+    required this.iataHint,
+    required this.ranges,
+  });
+}
+
+class _JpRange {
+  final int monthStart;
+  final int startDay;
+  final int lengthDays;
+  final String label;
+  const _JpRange({
+    required this.monthStart,
+    required this.startDay,
+    required this.lengthDays,
+    required this.label,
+  });
+
+  (DateTime, DateTime) dates(int year) {
+    final start = DateTime(year, monthStart, startDay);
+    final end = start.add(Duration(days: lengthDays - 1));
+    return (start, end);
+  }
+
+  String durationLabel() {
+    if (lengthDays % 7 == 0) {
+      final wk = lengthDays ~/ 7;
+      return '~$wk hafta';
+    }
+    return '~$lengthDays gün';
+  }
+}
+
+List<_JpDest> _japanDestinations() => const [
+      _JpDest(
+        city: 'Tokyo',
+        country: 'Japonya',
+        emoji: '🗼',
+        tag: 'Meiji, İmparatorluk Sarayı ve müzeler',
+        imageUrl:
+            'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&q=60',
+        iataHint: 'NRT',
+        ranges: [
+          _JpRange(
+              monthStart: 3,
+              startDay: 26,
+              lengthDays: 10,
+              label: '🌸 Sakura zirvesi'),
+          _JpRange(
+              monthStart: 4,
+              startDay: 20,
+              lengthDays: 7,
+              label: '🌸 Geç sakura, ılıman'),
+          _JpRange(
+              monthStart: 11,
+              startDay: 8,
+              lengthDays: 10,
+              label: '🍁 Sonbahar renkleri'),
+        ],
+      ),
+      _JpDest(
+        city: 'Osaka',
+        country: 'Japonya',
+        emoji: '🏯',
+        tag: "Osaka Kalesi'nin bulunduğu liman şehri",
+        imageUrl:
+            'https://images.unsplash.com/photo-1590559899731-a382839e5549?w=800&q=60',
+        iataHint: 'KIX',
+        ranges: [
+          _JpRange(
+              monthStart: 3,
+              startDay: 28,
+              lengthDays: 8,
+              label: '🌸 Sakura + Kansai'),
+          _JpRange(
+              monthStart: 5,
+              startDay: 3,
+              lengthDays: 7,
+              label: 'Ilıman, kalabalık az'),
+          _JpRange(
+              monthStart: 11,
+              startDay: 12,
+              lengthDays: 10,
+              label: '🍁 Sonbahar + gastronomi'),
+        ],
+      ),
+    ];
+
+const _trShortMonths = [
+  '',
+  'Oca',
+  'Şub',
+  'Mar',
+  'Nis',
+  'May',
+  'Haz',
+  'Tem',
+  'Ağu',
+  'Eyl',
+  'Eki',
+  'Kas',
+  'Ara',
+];
+
+const _trShortWeekdays = [
+  '',
+  'Pzt',
+  'Sal',
+  'Çar',
+  'Per',
+  'Cum',
+  'Cmt',
+  'Paz',
+];
 
 // ===========================================================================
 // Alt bileşenler
@@ -450,169 +685,40 @@ class _BackButton extends StatelessWidget {
       );
 }
 
-/// styles.css .season-badge + tone renkleri
-class SeasonBadgeChip extends StatelessWidget {
-  const SeasonBadgeChip(this.tag, {super.key});
-  final String tag;
+/// "Kalkış: {city} ✎" — küçük kalem ikonu ile origin değiştirme pili.
+class _OriginPill extends StatelessWidget {
+  const _OriginPill({required this.city, required this.onEdit});
+  final String city;
+  final VoidCallback onEdit;
   @override
   Widget build(BuildContext context) {
-    final b = kBadges[tag];
-    if (b == null) return const SizedBox.shrink();
-    final (bg, fg) = switch (b.tone) {
-      SeasonTone.good => (const Color(0xFFDCFCE7), const Color(0xFF166534)),
-      SeasonTone.warn => (const Color(0xFFFEF3C7), const Color(0xFF92400E)),
-      SeasonTone.bad => (const Color(0xFFFEE2E2), const Color(0xFF991B1B)),
-      SeasonTone.info => (const Color(0xFFE0E7FF), const Color(0xFF3730A3)),
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration:
-          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
-      child: Text('${b.emoji} ${b.label}',
-          style:
-              TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: fg)),
-    );
-  }
-}
-
-class _SeasonMonthCard extends StatelessWidget {
-  const _SeasonMonthCard(
-      {required this.month, required this.year, required this.onTap});
-  final SeasonMonth month;
-  final int year;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: PT.bgElevated,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: PT.border),
-          ),
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text('${month.month}',
-                      style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                          color: PT.textTertiary)),
-                  const SizedBox(width: 8),
-                  Text(month.label,
-                      style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: PT.text)),
-                  const SizedBox(width: 2),
-                  Text('$year',
-                      style: const TextStyle(
-                          fontSize: 12, color: PT.textTertiary)),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 4,
-                runSpacing: 4,
-                children: [for (final t in month.tags) SeasonBadgeChip(t)],
-              ),
-              const SizedBox(height: 8),
-              Text(month.note,
-                  style: const TextStyle(
-                      fontSize: 12, color: PT.textSecondary, height: 1.45)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RangeCard extends StatelessWidget {
-  const _RangeCard({required this.range, required this.onTap});
-  final SuggestedRange range;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final leftColor = switch (range.tone) {
-      SeasonTone.good => const Color(0xFF16A34A),
-      SeasonTone.warn => const Color(0xFFD97706),
-      SeasonTone.bad => const Color(0xFFDC2626),
-      SeasonTone.info => const Color(0xFF3730A3),
-    };
-    // CSS: border 1px + border-left 4px renkli + border-radius.
-    // Flutter'da non-uniform border + radius yasak → dış uniform border +
-    // içeride sol renkli çubuğu ayrı strip olarak (ClipRRect + IntrinsicHeight).
-    return Material(
-      color: PT.bgElevated,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: PT.borderStrong),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(13),
-            child: IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Container(width: 4, color: leftColor),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Wrap(
-                            spacing: 10,
-                            runSpacing: 6,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              Text(range.label,
-                                  style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                      color: PT.text)),
-                              Wrap(
-                                spacing: 4,
-                                children: [
-                                  for (final b in range.badges)
-                                    SeasonBadgeChip(b),
-                                ],
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text('${_fmt(range.startISO)} — ${_fmt(range.endISO)}',
-                              style: const TextStyle(
-                                  fontSize: 13, color: PT.textTertiary)),
-                          const SizedBox(height: 6),
-                          Text(range.reason,
-                              style: const TextStyle(
-                                  fontSize: 13,
-                                  color: PT.textSecondary,
-                                  height: 1.45)),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Material(
+        color: PT.bgElevated,
+        borderRadius: BorderRadius.circular(PT.radiusPill),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(PT.radiusPill),
+          onTap: onEdit,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(PT.radiusPill),
+              border: Border.all(color: PT.borderStrong),
+            ),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Kalkış: $city',
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: PT.text)),
+                const SizedBox(width: 6),
+                const Text('✎',
+                    style: TextStyle(fontSize: 12, color: PT.accent)),
+              ],
             ),
           ),
         ),
@@ -621,42 +727,219 @@ class _RangeCard extends StatelessWidget {
   }
 }
 
-class _AvoidCard extends StatelessWidget {
-  const _AvoidCard({required this.range});
-  final AvoidRange range;
+/// Google Flights "esnek gezi" tarzı hedef kartı: üstte hero görsel +
+/// altında 2-3 önerilen tarih aralığı satırı + Google Flights CTA.
+class _DestCard extends StatelessWidget {
+  const _DestCard({
+    required this.dest,
+    required this.year,
+    required this.fromCity,
+    required this.onRangeTap,
+  });
+  final _JpDest dest;
+  final int year;
+  final String fromCity;
+  final void Function(_JpRange range) onRangeTap;
+
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7ED),
-        border: Border.all(color: const Color(0xFFFED7AA)),
-        borderRadius: BorderRadius.circular(14),
+        color: PT.bgElevated,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: PT.border),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      clipBehavior: Clip.antiAlias,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Wrap(
-            spacing: 10,
-            runSpacing: 6,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(range.label,
-                  style: const TextStyle(
+          _DestHero(city: dest.city, country: dest.country,
+              emoji: dest.emoji, imageUrl: dest.imageUrl),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+            child: Text(dest.tag,
+                style: const TextStyle(
+                    fontSize: 13,
+                    color: PT.textSecondary,
+                    height: 1.4)),
+          ),
+          const Divider(height: 1, color: PT.border),
+          for (var i = 0; i < dest.ranges.length; i++) ...[
+            _RangeRow(
+              range: dest.ranges[i],
+              year: year,
+              onTap: () => onRangeTap(dest.ranges[i]),
+            ),
+            if (i < dest.ranges.length - 1)
+              const Divider(height: 1, color: PT.border, indent: 14, endIndent: 14),
+          ],
+          const Divider(height: 1, color: PT.border),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: PButton(
+                label: "Google Flights'ta aç",
+                primary: false,
+                onPressed: () => onRangeTap(dest.ranges.first),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DestHero extends StatelessWidget {
+  const _DestHero({
+    required this.city,
+    required this.country,
+    required this.emoji,
+    required this.imageUrl,
+  });
+  final String city;
+  final String country;
+  final String emoji;
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 180,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.network(
+            imageUrl,
+            fit: BoxFit.cover,
+            loadingBuilder: (ctx, child, progress) {
+              if (progress == null) return child;
+              return Container(color: const Color(0xFFEFEFF3));
+            },
+            errorBuilder: (ctx, err, stack) => _HeroFallback(
+                city: city, emoji: emoji),
+          ),
+          // gradient overlay
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0x00000000), Color(0xB3000000)],
+                stops: [0.4, 1.0],
+              ),
+            ),
+          ),
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 12,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(city,
+                    style: const TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                      color: Colors.white,
+                    )),
+                Text(country,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white70,
+                    )),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroFallback extends StatelessWidget {
+  const _HeroFallback({required this.city, required this.emoji});
+  final String city;
+  final String emoji;
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFB4C1), Color(0xFF7C6AEF)],
+        ),
+      ),
+      child: Center(
+        child: Text('$emoji $city',
+            style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: Colors.white)),
+      ),
+    );
+  }
+}
+
+class _RangeRow extends StatelessWidget {
+  const _RangeRow({
+    required this.range,
+    required this.year,
+    required this.onTap,
+  });
+  final _JpRange range;
+  final int year;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final (start, end) = range.dates(year);
+    final startLabel = formatTrShortDate(start);
+    final endLabel = formatTrShortDate(end);
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$startLabel — $endLabel',
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF9A3412))),
-              Wrap(
-                spacing: 4,
-                children: [for (final b in range.badges) SeasonBadgeChip(b)],
+                      color: PT.text,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${range.durationLabel()} · ${range.label}',
+                    style: const TextStyle(
+                        fontSize: 12,
+                        color: PT.textSecondary,
+                        height: 1.35),
+                  ),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(range.reason,
-              style: const TextStyle(
-                  fontSize: 13, color: Color(0xFF7C2D12), height: 1.45)),
-        ],
+            ),
+            const SizedBox(width: 8),
+            const Text('›',
+                style: TextStyle(
+                    fontSize: 22,
+                    color: PT.textTertiary,
+                    fontWeight: FontWeight.w400)),
+          ],
+        ),
       ),
     );
   }
@@ -769,23 +1052,3 @@ class _TextField extends StatelessWidget {
   }
 }
 
-const _trMonths = [
-  '',
-  'Ocak',
-  'Şubat',
-  'Mart',
-  'Nisan',
-  'Mayıs',
-  'Haziran',
-  'Temmuz',
-  'Ağustos',
-  'Eylül',
-  'Ekim',
-  'Kasım',
-  'Aralık',
-];
-
-String _fmt(String iso) {
-  final d = DateTime.parse('${iso}T00:00:00Z');
-  return '${d.day} ${_trMonths[d.month]} ${d.year}';
-}

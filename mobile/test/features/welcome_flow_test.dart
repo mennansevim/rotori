@@ -44,7 +44,7 @@ void main() {
     expect(trip.preferences.hasTicket, isTrue);
   });
 
-  testWidgets('"Gezi planla" kartına tıklayınca mevsim görünümü açılır',
+  testWidgets('"Gezi planla" kartına tıklayınca esnek gezi görünümü açılır',
       (tester) async {
     final trip = createEmptyTrip();
     await tester.pumpWidget(harness(trip));
@@ -52,40 +52,38 @@ void main() {
     await tester.tap(find.text('Gezi planla'));
     await tester.pumpAndSettle();
 
-    // Başlık ekranda görünür
-    expect(find.text("Japonya'da hangi mevsim?"), findsOneWidget);
-    // "Önerilen..." aşağıda — scroll ile bul
+    // Yeni Google Flights tarzı başlık + iki hedef kartı
+    expect(find.text("Japonya'da esnek gezi"), findsOneWidget);
+    expect(find.text('Tokyo'), findsOneWidget);
+    // Osaka kartı alta düşer — scroll ile bulunur.
     await tester.scrollUntilVisible(
-      find.text('Önerilen 2 haftalık aralıklar'),
+      find.text('Osaka'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('Önerilen 2 haftalık aralıklar'), findsOneWidget);
+    expect(find.text('Osaka'), findsOneWidget);
     expect(trip.preferences.hasTicket, isFalse);
   });
 
-  testWidgets('mevsim → bir öneri aralığına tıklayınca onContinue tetiklenir',
+  testWidgets('esnek gezi → tarih aralığına tıklayınca travelDates dolar',
       (tester) async {
-    var continued = false;
     final trip = createEmptyTrip();
-    await tester.pumpWidget(harness(trip, onContinue: () => continued = true));
+    await tester.pumpWidget(harness(trip));
 
     await tester.tap(find.text('Gezi planla'));
     await tester.pumpAndSettle();
 
-    // İlk önerilen aralık kartına scroll edip tıkla
-    final rangeCard = find.text('Ekim 2026 — Sonbahar başlangıcı');
-    await tester.scrollUntilVisible(
-      rangeCard,
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(rangeCard);
-    await tester.pumpAndSettle();
+    // Tokyo'nun ilk aralık satırı: 26 Mart · 10 gün · Sakura zirvesi.
+    // Yıl: trip.tripStart boşsa now.year+1 → tarih yılı buna göre değişir.
+    // Sadece travelDates.start'ın "-03-26" ile bittiğini doğrulamak yeterli.
+    final row = find.textContaining('Sakura zirvesi').first;
+    await tester.tap(row, warnIfMissed: false);
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
 
-    expect(continued, isTrue);
-    // Tarihler uygulanmalı
-    expect(trip.preferences.travelDates.start, '2026-10-15');
+    final start = trip.preferences.travelDates.start;
+    expect(start.endsWith('-03-26'), isTrue,
+        reason: 'travelDates.start beklenen "-03-26" ile bitmiyor: $start');
   });
 
   testWidgets('bilet formu → geri butonu choose görünümüne döner',
@@ -96,5 +94,32 @@ void main() {
     await tester.tap(find.text('← Geri'));
     await tester.pumpAndSettle();
     expect(find.text("Japonya'yı planlayalım"), findsOneWidget);
+  });
+
+  group('googleFlightsUrl', () {
+    test('beklenen deep-link biçimini üretir', () {
+      final url = googleFlightsUrl(
+        from: 'İzmir',
+        toIata: 'NRT',
+        start: DateTime(2027, 8, 23),
+        end: DateTime(2027, 8, 31),
+      );
+      // q parametresinin URL-encode edilmesi bekleniyor.
+      expect(
+        url,
+        'https://www.google.com/travel/flights?q='
+        '${Uri.encodeComponent('Flights from İzmir to NRT on 2027-08-23 through 2027-08-31')}',
+      );
+      expect(url.startsWith('https://www.google.com/travel/flights?q='), isTrue);
+    });
+  });
+
+  group('formatTrShortDate', () {
+    test('"gün Ay-kısa Gün-kısa" biçiminde döndürür', () {
+      // 2026-08-23 → Pazar (Paz)
+      expect(formatTrShortDate(DateTime(2026, 8, 23)), '23 Ağu Paz');
+      // 2027-08-23 → Pazartesi (Pzt)
+      expect(formatTrShortDate(DateTime(2027, 8, 23)), '23 Ağu Pzt');
+    });
   });
 }
