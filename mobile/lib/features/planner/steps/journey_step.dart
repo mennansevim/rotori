@@ -26,6 +26,11 @@ class JourneyStep extends StatefulWidget {
 }
 
 class _JourneyStepState extends State<JourneyStep> {
+  /// Kullanıcının "kaç şehir gezeceğim" pill tıklamasıyla seçtiği sayı.
+  /// Null → henüz seçmedi (mevcut destinasyon sayısı gösterge). Sadece görsel;
+  /// destinasyon ekleme/silmeyi zorlamaz.
+  int? _cityCountHint;
+
   @override
   void initState() {
     super.initState();
@@ -151,6 +156,11 @@ class _JourneyStepState extends State<JourneyStep> {
     final showReturn = (lastDest?.airport ?? '').isNotEmpty;
     final routePreview = _routePreview();
 
+    final destCount = dests.length;
+    // Hint yoksa mevcut destinasyon sayısını referans al — 2+ olduğunda
+    // Shinkansen kartı otomatik çıkar.
+    final effectiveCount = _cityCountHint ?? destCount;
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 120),
       children: [
@@ -159,6 +169,8 @@ class _JourneyStepState extends State<JourneyStep> {
             ? 'Türkiye\'den Japonya\'ya gidiş ve dönüş uçuşlarını gir. Her uçuş kartında havayolu, uçuş no, tarih ve havaalanları var.'
             : 'Türkiye\'den nereden kalkacaksın ve Japonya\'da hangi şehre ineceksin? Şimdilik şehir ve tarih yeter.'),
 
+        _cityCountPrompt(effectiveCount, destCount),
+
         if (widget.onLoadJapanPlan != null) _japanBanner(),
 
         // Gidiş bacağı (tek durak — çoklu durak Plan/rota editörü sonraki iterasyon)
@@ -166,6 +178,10 @@ class _JourneyStepState extends State<JourneyStep> {
           _flightLeg(i, dests.isEmpty ? null : dests[i]),
 
         if (showReturn) _returnLeg(lastDest!),
+
+        if (effectiveCount >= 2) _shinkansenReminder(),
+        if (_cityCountHint != null && _cityCountHint! > destCount)
+          _addMoreStopsHint(),
 
         if (routePreview.isNotEmpty)
           Padding(
@@ -219,6 +235,93 @@ class _JourneyStepState extends State<JourneyStep> {
   }
 
   // ---- parçalar ----
+
+  /// "📍 Kaç şehir gezeceksin?" — pill seçici. Destinasyon sayısını zorlamaz,
+  /// sadece Shinkansen hatırlatmasını + ekleme ipucunu tetikler. 375px'te Wrap.
+  Widget _cityCountPrompt(int effective, int destCount) {
+    const counts = [1, 2, 3, 4];
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: PT.bgSubtle,
+        borderRadius: BorderRadius.circular(PT.radius),
+        border: Border.all(color: PT.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('📍 Kaç şehir gezeceksin?',
+              style: TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.w700, color: PT.text)),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final n in counts)
+                PChip(
+                  label: n == 4 ? '4+' : '$n şehir',
+                  active: effective == n || (n == 4 && effective >= 4),
+                  onTap: () => setState(() => _cityCountHint = n),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _shinkansenReminder() {
+    return Container(
+      margin: const EdgeInsets.only(top: 6, bottom: 14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: PT.accentSoft,
+        borderRadius: BorderRadius.circular(PT.radius),
+        border: Border.all(color: PT.accent.withValues(alpha: 0.4)),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('🚄 Şehirler arası Shinkansen',
+              style: TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.w700, color: PT.accent)),
+          SizedBox(height: 6),
+          Text(
+              'Birden fazla şehir gezeceksin → Shinkansen (yüksek hızlı tren) en pratiği.',
+              style:
+                  TextStyle(fontSize: 13, color: PT.text, height: 1.35)),
+          SizedBox(height: 4),
+          Text(
+              'JR Pass / Smart-EX önerilir. Plan adımında otomatik şehir geçiş kartları çıkar.',
+              style: TextStyle(fontSize: 12, color: PT.textSecondary, height: 1.35)),
+        ],
+      ),
+    );
+  }
+
+  Widget _addMoreStopsHint() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: PT.bgElevated,
+        borderRadius: BorderRadius.circular(PT.radius),
+        border: Border.all(color: PT.borderStrong),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.arrow_downward, size: 16, color: PT.textSecondary),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text('Aşağıdan yeni durak ekle',
+                style: TextStyle(fontSize: 13, color: PT.textSecondary)),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _japanBanner() {
     return Container(

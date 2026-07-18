@@ -577,16 +577,21 @@ class _ExploreStepState extends State<ExploreStep> {
                     ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
+              const SizedBox(height: 10),
+              // 2-sütun kompakt grid — telefon genişliği için tasarlandı.
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 0.95,
                 children: [
                   for (final p in places)
-                    ExploreCard(
+                    _PopularPlaceCard(
                       emoji: p.emoji,
                       name: p.name,
-                      meta: p.city,
+                      city: p.city,
                       rating: placeRating(p),
                       kidFriendly: isKidFriendly(p),
                       selected:
@@ -833,4 +838,109 @@ class _StepperBtn extends StatelessWidget {
 
 extension _Let<T> on T {
   R let<R>(R Function(T) f) => f(this);
+}
+
+/// "⭐ Popüler gezilecek yerler" bölümüne özel kompakt kart — 2-sütun grid için.
+/// Emoji + ad (bold 14, 2 satır ellipsis) + puan (12 gold) + şehir (12 muted).
+class _PopularPlaceCard extends StatelessWidget {
+  const _PopularPlaceCard({
+    required this.emoji,
+    required this.name,
+    required this.city,
+    required this.rating,
+    required this.kidFriendly,
+    required this.selected,
+    required this.feedback,
+    required this.onTap,
+  });
+
+  final String emoji;
+  final String name;
+  final String city;
+  final double? rating;
+  final bool kidFriendly;
+  final bool selected;
+  final String? feedback;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? PT.accentSoft : PT.bgSubtle,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(PT.radius),
+        side: BorderSide(color: selected ? PT.accent : PT.borderStrong),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(PT.radius),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Text(emoji, style: const TextStyle(fontSize: 22)),
+                  const Spacer(),
+                  if (kidFriendly)
+                    const Padding(
+                      padding: EdgeInsets.only(right: 4),
+                      child: Text('🧸', style: TextStyle(fontSize: 12)),
+                    ),
+                  if (selected)
+                    Container(
+                      width: 18,
+                      height: 18,
+                      decoration: const BoxDecoration(
+                        color: PT.accent,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: const Icon(Icons.check,
+                          size: 12, color: Colors.white),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Expanded(
+                child: Text(
+                  feedback ?? name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    height: 1.2,
+                    color: feedback != null ? PT.accent : PT.text,
+                  ),
+                ),
+              ),
+              if (rating != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text('${ratingStars(rating!)} $rating',
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFFB8860B))),
+                ),
+              if (city.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    city,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 12, color: PT.textTertiary),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

@@ -79,4 +79,29 @@ void main() {
     expect(pref, isNotEmpty);
     expect(pref.first.foodLikes, isNotEmpty);
   });
+
+  testWidgets('375px iPhone genişliğinde beslenme/mutfak grid overflow etmez',
+      (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(375, 812);
+    addTearDown(tester.view.reset);
+
+    final t = _tripWithDest();
+    await tester.pumpWidget(harness(t));
+    await tester.pumpAndSettle();
+
+    // 2-sütun grid + Wrap render'ları exception fırlatmamalı.
+    expect(tester.takeException(), isNull);
+    // Scroll ederek grid'in ListView'da inşa edildiğini doğrula
+    await tester.scrollUntilVisible(
+      find.text('Beslenme tercihleri'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Beslenme tercihleri'), findsOneWidget);
+    // GridView 2-sütun kullanılıyor
+    final gridViews = tester.widgetList<GridView>(find.byType(GridView));
+    expect(gridViews, isNotEmpty);
+    expect(tester.takeException(), isNull);
+  });
 }

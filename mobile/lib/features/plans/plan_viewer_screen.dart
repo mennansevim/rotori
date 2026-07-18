@@ -1135,18 +1135,28 @@ class _FlightsCard extends StatelessWidget {
   final Trip trip;
   final ViewerPalette palette;
 
+  /// Tamamen boş bir bacak — filtre dışı bırakılır (görüntülemede işe yaramaz).
+  static bool _isBlankLeg(FlightLeg leg) =>
+      leg.city.trim().isEmpty &&
+      leg.airport.trim().isEmpty &&
+      leg.dateTime.trim().isEmpty;
+
   @override
   Widget build(BuildContext context) {
-    if (trip.flights.outbound.isEmpty && trip.flights.returnLegs.isEmpty) {
+    final outbound =
+        trip.flights.outbound.where((l) => !_isBlankLeg(l)).toList();
+    final returnLegs =
+        trip.flights.returnLegs.where((l) => !_isBlankLeg(l)).toList();
+    if (outbound.isEmpty && returnLegs.isEmpty) {
       return const SizedBox.shrink();
     }
     return _SectionCard(
       title: LanguageScope.of(context).s('viewer.flights'),
       palette: palette,
       children: [
-        for (final leg in trip.flights.outbound)
+        for (final leg in outbound)
           _FlightRow(leg: leg, arrow: '→', palette: palette),
-        for (final leg in trip.flights.returnLegs)
+        for (final leg in returnLegs)
           _FlightRow(leg: leg, arrow: '←', palette: palette),
       ],
     );
@@ -1163,6 +1173,21 @@ class _FlightRow extends StatelessWidget {
   final String arrow;
   final ViewerPalette palette;
 
+  /// buildRouteLegs bazen city/airport boş bacaklar üretebilir — satır asla
+  /// tamamen boş görünmesin diye kademeli fallback:
+  ///   - ikisi de boş → "—"
+  ///   - sadece şehir boş → havaalanı kodu tek başına
+  ///   - sadece havaalanı boş → şehir tek başına
+  ///   - ikisi de dolu → "City (IATA)"
+  String get _placeLabel {
+    final city = leg.city.trim();
+    final airport = leg.airport.trim();
+    if (city.isEmpty && airport.isEmpty) return '—';
+    if (city.isEmpty) return airport;
+    if (airport.isEmpty) return city;
+    return '$city ($airport)';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -1175,7 +1200,7 @@ class _FlightRow extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              '${leg.city}${leg.airport.isNotEmpty ? ' (${leg.airport})' : ''}',
+              _placeLabel,
               style: TextStyle(
                 color: palette.textPrimary,
                 fontWeight: FontWeight.w600,

@@ -269,15 +269,19 @@ class _DestFoodCard extends StatelessWidget {
           const Text('Beslenme tercihleri',
               style: TextStyle(fontSize: 13, color: PT.textSecondary)),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          // 2-sütun kompakt grid — telefonda 2 tile yan yana sığar.
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 2.4,
             children: [
               for (final opt in dietaryOpts)
                 _DietTile(
                   emoji: opt.emoji,
                   label: opt.label,
-                  desc: opt.description,
                   selected: tags.contains(opt.id),
                   onTap: () => _toggleTag(opt.id),
                 ),
@@ -289,9 +293,13 @@ class _DestFoodCard extends StatelessWidget {
             const Text('Mutfak türleri',
                 style: TextStyle(fontSize: 13, color: PT.textSecondary)),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 2.4,
               children: [
                 for (final c in cuisines)
                   _DietTile(
@@ -337,62 +345,51 @@ class _DestFoodCard extends StatelessWidget {
   }
 }
 
+/// Kompakt 2-sütun grid için — emoji + tek satır label. Grid hücresine sığar.
 class _DietTile extends StatelessWidget {
   const _DietTile({
     required this.emoji,
     required this.label,
     required this.selected,
     required this.onTap,
-    this.desc,
   });
   final String emoji;
   final String label;
-  final String? desc;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 140, maxWidth: 220, minHeight: 44),
-      child: Material(
-        color: selected ? PT.accentSoft : PT.bgSubtle,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: selected ? PT.accent : PT.borderStrong),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Text(emoji, style: const TextStyle(fontSize: 18)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(label,
-                          style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: selected ? PT.accent : PT.text)),
-                    ),
-                    if (selected)
-                      const Icon(Icons.check_circle, size: 16, color: PT.accent),
-                  ],
+    return Material(
+      color: selected ? PT.accentSoft : PT.bgSubtle,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: selected ? PT.accent : PT.borderStrong),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Row(
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 18)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: selected ? PT.accent : PT.text,
+                  ),
                 ),
-                if (desc != null) ...[
-                  const SizedBox(height: 4),
-                  Text(desc!,
-                      style: const TextStyle(
-                          fontSize: 11, color: PT.textTertiary, height: 1.3)),
-                ],
-              ],
-            ),
+              ),
+              if (selected)
+                const Icon(Icons.check_circle, size: 16, color: PT.accent),
+            ],
           ),
         ),
       ),

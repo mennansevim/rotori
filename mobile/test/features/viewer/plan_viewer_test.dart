@@ -128,4 +128,53 @@ void main() {
     expect(find.text('Apple Aydınlık'), findsOneWidget);
     expect(find.text('Sakura Yumuşak'), findsOneWidget);
   });
+
+  testWidgets('uçuş satırı boş şehir+havaalanı ile "—" gösterir', (tester) async {
+    final now = DateTime.now();
+    String d(int off) {
+      final t = now.add(Duration(days: off));
+      return '${t.year.toString().padLeft(4, '0')}-'
+          '${t.month.toString().padLeft(2, '0')}-'
+          '${t.day.toString().padLeft(2, '0')}';
+    }
+
+    // Bir bacak: şehir + havaalanı boş; dateTime dolu (blank-leg değil).
+    // Diğer bacak: normal Tokyo/HND. Amaç: boş satır "—" ile görünmeli,
+    // tamamen blank filtre dışına atılmamalı (dateTime dolu).
+    final trip = Trip(
+      id: 'trip-flights',
+      slug: 'flights-test',
+      title: 'Uçuş Testi',
+      timezone: 'Asia/Tokyo',
+      tripStart: d(-1),
+      tripEnd: d(1),
+      flights: TripFlights(
+        outbound: [
+          FlightLeg(city: '', airport: '', dateTime: '${d(-1)}T10:00:00'),
+          FlightLeg(
+              city: 'Tokyo', airport: 'HND', dateTime: '${d(-1)}T18:00:00'),
+        ],
+        returnLegs: [
+          // Tamamen boş bacak → filtre dışı kalmalı
+          FlightLeg(city: '', airport: '', dateTime: ''),
+        ],
+      ),
+      preferences: TripPreferences(
+        travelDates: TravelDates(start: d(-1), end: d(1)),
+        pace: Pace.moderate,
+      ),
+      days: [
+        DayPlan(dayNumber: 1, date: d(0), theme: 'x', tags: const [], items: []),
+      ],
+    );
+
+    await tester.pumpWidget(harness(trip));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Boş bacak "—" olarak render olmalı
+    expect(find.text('—'), findsWidgets);
+    // Dolu bacak korunmalı
+    expect(find.textContaining('Tokyo'), findsWidgets);
+  });
 }
