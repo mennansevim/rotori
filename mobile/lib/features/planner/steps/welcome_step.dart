@@ -322,8 +322,44 @@ class _WelcomeStepState extends State<WelcomeStep> {
           ),
           if (i < dests.length - 1) const SizedBox(height: 14),
         ],
+        const SizedBox(height: 22),
+        // Öneriler dışında kendi tarih aralığını seçmek isteyene çıkış:
+        // native date-range picker → gidiş-dönüş olarak doldur + Rota'ya geç.
+        PButton(
+          label: '📅 Kendim seçmek istiyorum',
+          block: true,
+          primary: false,
+          onPressed: _pickCustomRange,
+        ),
       ],
     );
+  }
+
+  /// Native date-range picker; kullanıcı gidiş-dönüş seçer, tarihler
+  /// otomatik doldurulur ve Rota adımına geçilir.
+  Future<void> _pickCustomRange() async {
+    final now = DateTime.now();
+    final trip = widget.trip;
+    final existingStart = DateTime.tryParse(trip.preferences.travelDates.start);
+    final existingEnd = DateTime.tryParse(trip.preferences.travelDates.end);
+    final initialStart = existingStart ?? DateTime(now.year, now.month + 2, 1);
+    final initialEnd = existingEnd ?? initialStart.add(const Duration(days: 9));
+
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: DateTime(now.year + 2, 12, 31),
+      initialDateRange: DateTimeRange(start: initialStart, end: initialEnd),
+      helpText: 'Gidiş — Dönüş tarihlerini seç',
+      cancelText: 'Vazgeç',
+      confirmText: 'Uygula',
+      saveText: 'Kaydet',
+      currentDate: now,
+    );
+    if (picked == null) return;
+    _applyDates(_isoDate(picked.start), _isoDate(picked.end));
+    if (!mounted) return;
+    widget.onContinue();
   }
 
   String _resolveOrigin(Trip trip) {

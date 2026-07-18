@@ -112,18 +112,7 @@ bool hotelsComplete(Trip trip) {
 }
 
 class _HotelsStepState extends State<HotelsStep> {
-  final TextEditingController _importCtrl = TextEditingController();
-  // {kind: 'success'|'error'|'idle', message}
-  String _importKind = 'idle';
-  String _importMessage = '';
-
   Trip get trip => widget.trip;
-
-  @override
-  void dispose() {
-    _importCtrl.dispose();
-    super.dispose();
-  }
 
   void _addHotel() {
     widget.onChange((t) {
@@ -138,54 +127,6 @@ class _HotelsStepState extends State<HotelsStep> {
     });
     // Yeni eklenen oteli düzenlemeye aç.
     _editHotel(trip.hotels.length - 1);
-  }
-
-  void _importFromUrl() {
-    final parsed = parseBookingUrl(_importCtrl.text);
-    if (parsed == null) {
-      setState(() {
-        _importKind = 'error';
-        _importMessage = 'Geçerli bir URL yapıştır (Booking veya Hostelworld).';
-      });
-      return;
-    }
-    if (parsed.source == 'booking-mytrips') {
-      setState(() {
-        _importKind = 'error';
-        _importMessage =
-            'Bu link Booking hesabındaki rezervasyon listesine gidiyor (üye girişi gerekir, tek bir otel bilgisi yok). Onaylama e-postandan veya rezervasyon detayından otelin sayfa linkini kopyala — örn. booking.com/hotel/jp/hotel-adi.html';
-      });
-      return;
-    }
-    if (parsed.source == 'unknown') {
-      setState(() {
-        _importKind = 'error';
-        _importMessage =
-            'Bu site desteklenmiyor. Booking.com veya Hostelworld linki yapıştır.';
-      });
-      return;
-    }
-    final start = trip.preferences.travelDates.start;
-    final end = trip.preferences.travelDates.end;
-    final urlTrim = _importCtrl.text.trim();
-    widget.onChange((t) {
-      t.hotels.add(HotelStay(
-        id: newHotelId(),
-        city: parsed.city ?? '',
-        name: parsed.name ?? '',
-        checkIn: parsed.checkIn ?? start,
-        checkOut: parsed.checkOut ?? end,
-        address: '',
-        mapsUrl: urlTrim,
-      ));
-    });
-    final label = parsed.source == 'booking' ? 'Booking' : 'Hostelworld';
-    setState(() {
-      _importCtrl.clear();
-      _importKind = 'success';
-      _importMessage =
-          '$label\'dan içe aktarıldı: ${parsed.name ?? 'isimsiz'}. Eksik alanları doldurmayı unutma.';
-    });
   }
 
   void _removeHotel(int idx) async {
@@ -238,76 +179,6 @@ class _HotelsStepState extends State<HotelsStep> {
         const PageSub(
             'Her otel için açık adres zorunludur — taksi ve pusulada kullanılır. '
             'Yerel dilde adresi de ekleyin (Japonca, Korece vb.).'),
-
-        // Booking import kartı
-        PCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('🔗 Rezervasyondan içe aktar',
-                  style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: PT.text)),
-              const SizedBox(height: 6),
-              const Text(
-                'Booking.com veya Hostelworld\'de yaptığın rezervasyonun linkini '
-                'yapıştır — otel adı ve tarihler otomatik dolar. Manuel ekleme '
-                'her zaman aşağıdadır.',
-                style: TextStyle(fontSize: 13, color: PT.textSecondary, height: 1.4),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _importCtrl,
-                      style: const TextStyle(fontSize: 15),
-                      decoration: InputDecoration(
-                        hintText: 'https://www.booking.com/hotel/jp/...',
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 12),
-                        filled: true,
-                        fillColor: PT.bgSubtle,
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: PT.borderStrong),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: PT.accent),
-                        ),
-                      ),
-                      onChanged: (_) => setState(() {}),
-                      onSubmitted: (_) => _importFromUrl(),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  PButton(
-                    label: 'İçe aktar',
-                    primary: true,
-                    onPressed:
-                        _importCtrl.text.trim().isEmpty ? null : _importFromUrl,
-                  ),
-                ],
-              ),
-              if (_importKind != 'idle')
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Text(
-                    _importMessage,
-                    style: TextStyle(
-                      fontSize: 13,
-                      height: 1.4,
-                      color: _importKind == 'error' ? PT.danger : const Color(0xFF15803D),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
 
         if (trip.hotels.isEmpty)
           PCard(
