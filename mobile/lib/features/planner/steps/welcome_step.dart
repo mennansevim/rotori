@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../domain/types.dart';
 import '../planner_theme.dart';
@@ -305,9 +303,9 @@ class _WelcomeStepState extends State<WelcomeStep> {
             style: TextStyle(
                 fontSize: 22, fontWeight: FontWeight.w700, color: PT.text)),
         const SizedBox(height: 4),
-        Text(
-          "Kalkış: $origin · Google Flights'ta gerçek fiyata bak.",
-          style: const TextStyle(fontSize: 14, color: PT.textSecondary),
+        const Text(
+          'Bir tarih aralığı seç — otomatik gidiş-dönüş olarak Rota adımına geçelim.',
+          style: TextStyle(fontSize: 14, color: PT.textSecondary),
         ),
         const SizedBox(height: 12),
         _OriginPill(
@@ -410,42 +408,17 @@ class _WelcomeStepState extends State<WelcomeStep> {
     if (mounted) setState(() {});
   }
 
-  Future<void> _onPickRange({
+  /// Bir tarih aralığını gidiş-dönüş olarak uygula ve Rota adımına geç.
+  /// Harici link AÇMAZ — uçuşları planner'ın Rota adımı listeler.
+  void _onPickRange({
     required _JpDest dest,
     required _JpRange range,
     required int year,
     required String from,
-  }) async {
+  }) {
     final (start, end) = range.dates(year);
-    final startIso = _isoDate(start);
-    final endIso = _isoDate(end);
-    _applyDates(startIso, endIso);
-    await _launchGoogleFlights(
-        from: from, toIata: dest.iataHint, start: start, end: end);
-  }
-
-  Future<void> _launchGoogleFlights({
-    required String from,
-    required String toIata,
-    required DateTime start,
-    required DateTime end,
-  }) async {
-    final url =
-        googleFlightsUrl(from: from, toIata: toIata, start: start, end: end);
-    final messenger = ScaffoldMessenger.of(context);
-    var launched = false;
-    try {
-      launched = await launchUrl(Uri.parse(url),
-          mode: LaunchMode.externalApplication);
-    } catch (_) {
-      launched = false;
-    }
-    if (!launched) {
-      await Clipboard.setData(ClipboardData(text: url));
-      messenger.showSnackBar(const SnackBar(
-        content: Text('Google Flights açılamadı — bağlantı panoya kopyalandı'),
-      ));
-    }
+    _applyDates(_isoDate(start), _isoDate(end));
+    widget.onContinue();
   }
 
   int _daysBetween(String a, String b) {
@@ -773,18 +746,6 @@ class _DestCard extends StatelessWidget {
             if (i < dest.ranges.length - 1)
               const Divider(height: 1, color: PT.border, indent: 14, endIndent: 14),
           ],
-          const Divider(height: 1, color: PT.border),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: PButton(
-                label: "Google Flights'ta aç",
-                primary: false,
-                onPressed: () => onRangeTap(dest.ranges.first),
-              ),
-            ),
-          ),
         ],
       ),
     );
