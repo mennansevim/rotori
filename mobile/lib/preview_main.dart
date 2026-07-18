@@ -39,12 +39,23 @@ void main() {
       overrides: [
         // Supabase auth yok → repo null → save() no-op, geofence userId 'anon'.
         currentUserProvider.overrideWithValue(null),
-        // Realtime yerine seedli demo trip yayınla.
-        planByIdProvider.overrideWith((ref, id) => Stream<Trip>.value(demo)),
+        // Realtime yerine trip yayınla — id 'demo' seedli, 'new' sıfırdan boş.
+        planByIdProvider.overrideWith((ref, id) {
+          if (id == 'new') return Stream<Trip>.value(_buildEmptyTrip());
+          return Stream<Trip>.value(demo);
+        }),
       ],
       child: const _PreviewApp(),
     ),
   );
+}
+
+/// Sıfırdan planlama akışı için boş trip — planner welcome adımı ile başlar.
+Trip _buildEmptyTrip() {
+  final t = createEmptyTrip();
+  t.title = 'Yeni seyahat';
+  t.subtitle = '';
+  return t;
 }
 
 /// Tokyo + Kyoto rotalı, dolu günlü, otelli demo trip.
@@ -374,9 +385,16 @@ class _PreviewHome extends StatelessWidget {
               ),
               const SizedBox(height: 28),
               _NavCard(
+                emoji: '✨',
+                title: 'Sıfırdan yeni plan',
+                subtitle: 'Boş bir gezi ile Welcome adımından başla',
+                onTap: () => context.go('/plans/new/edit'),
+              ),
+              const SizedBox(height: 12),
+              _NavCard(
                 emoji: '🗓️',
-                title: 'Planlayıcı',
-                subtitle: '8 adımlı sihirbaz (Welcome → Publish)',
+                title: 'Planlayıcı (demo)',
+                subtitle: 'Dolu Tokyo+Kyoto demo planında adımları gez',
                 onTap: () => context.go('/plans/$id/edit'),
               ),
               const SizedBox(height: 12),

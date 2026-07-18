@@ -528,9 +528,13 @@ class _TopStatusBarState extends State<_TopStatusBar>
                   tooltip: s.s('viewer.tt.back'),
                   onTap: () => context.go('/plans'),
                 ),
-                Expanded(
+                // Faz etiketi — sığmadığında tek satırda ellipsis, DEĞİL harf harf sarma.
+                Flexible(
                   child: Text(
                     _phaseLabel(s),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
                     style: TextStyle(
                       color: onColor,
                       fontWeight: FontWeight.w700,
@@ -538,45 +542,11 @@ class _TopStatusBarState extends State<_TopStatusBar>
                     ),
                   ),
                 ),
+                const SizedBox(width: 4),
+                // Sağa sabit iki birincil aksiyon: bildirim + düzenle.
                 _BarBellButton(
                   color: onColor,
                   onTap: () => context.push('/reminders'),
-                ),
-                _BarIconButton(
-                  icon: Icons.map_outlined,
-                  color: onColor,
-                  tooltip: s.s('viewer.tt.map'),
-                  onTap: widget.onOpenMap,
-                ),
-                _BarIconButton(
-                  icon: Icons.explore_outlined,
-                  color: onColor,
-                  tooltip: s.s('viewer.tt.compass'),
-                  onTap: widget.onOpenCompass,
-                ),
-                _BarIconButton(
-                  icon: Icons.wb_sunny_outlined,
-                  color: onColor,
-                  tooltip: s.s('viewer.tt.weather'),
-                  onTap: widget.onOpenWeather,
-                ),
-                _BarIconButton(
-                  icon: Icons.account_balance_wallet_outlined,
-                  color: onColor,
-                  tooltip: s.s('viewer.tt.budget'),
-                  onTap: widget.onOpenBudget,
-                ),
-                _BarIconButton(
-                  icon: Icons.luggage_outlined,
-                  color: onColor,
-                  tooltip: s.s('viewer.tt.checklist'),
-                  onTap: widget.onOpenChecklist,
-                ),
-                _BarIconButton(
-                  icon: Icons.palette_outlined,
-                  color: onColor,
-                  tooltip: s.s('viewer.tt.theme'),
-                  onTap: widget.onOpenThemePicker,
                 ),
                 _BarIconButton(
                   icon: Icons.edit_outlined,
@@ -585,6 +555,53 @@ class _TopStatusBarState extends State<_TopStatusBar>
                   onTap: () => context.go('/plans/${widget.planId}/edit'),
                 ),
               ],
+            ),
+            // Aksiyon şeridi — 6 ikon; ekran darsa yatay kaydırılabilir.
+            const SizedBox(height: 2),
+            SizedBox(
+              height: 44,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                children: [
+                  _BarIconButton(
+                    icon: Icons.map_outlined,
+                    color: onColor,
+                    tooltip: s.s('viewer.tt.map'),
+                    onTap: widget.onOpenMap,
+                  ),
+                  _BarIconButton(
+                    icon: Icons.explore_outlined,
+                    color: onColor,
+                    tooltip: s.s('viewer.tt.compass'),
+                    onTap: widget.onOpenCompass,
+                  ),
+                  _BarIconButton(
+                    icon: Icons.wb_sunny_outlined,
+                    color: onColor,
+                    tooltip: s.s('viewer.tt.weather'),
+                    onTap: widget.onOpenWeather,
+                  ),
+                  _BarIconButton(
+                    icon: Icons.account_balance_wallet_outlined,
+                    color: onColor,
+                    tooltip: s.s('viewer.tt.budget'),
+                    onTap: widget.onOpenBudget,
+                  ),
+                  _BarIconButton(
+                    icon: Icons.luggage_outlined,
+                    color: onColor,
+                    tooltip: s.s('viewer.tt.checklist'),
+                    onTap: widget.onOpenChecklist,
+                  ),
+                  _BarIconButton(
+                    icon: Icons.palette_outlined,
+                    color: onColor,
+                    tooltip: s.s('viewer.tt.theme'),
+                    onTap: widget.onOpenThemePicker,
+                  ),
+                ],
+              ),
             ),
             if (widget.trip.tickets.isNotEmpty) ...[
               const SizedBox(height: 4),

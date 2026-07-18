@@ -82,9 +82,14 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('Japonya Test Gezisi'), findsOneWidget);
-    // Aktif gün açık olduğu için aktivitesi görünür.
+    // Aktif gün açık; aktivitesi listeye eklenmiş olmalı (ekran dışı da olabilir).
+    // Küçük viewport'ta önce görünür alana kaydır, sonra doğrula.
+    await tester.scrollUntilVisible(
+      find.text('Aktif Aktivite'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('Aktif Aktivite'), findsOneWidget);
-    // Aktif gün teması görünür.
     expect(find.text('Aktif Gün Teması'), findsWidgets);
   });
 
