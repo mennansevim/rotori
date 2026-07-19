@@ -29,6 +29,7 @@ def call_dify(cfg: Config, group: dict[str, Any]) -> dict[str, Any]:
             "mekan_etiketi": group["mekan_etiketi"],
             "video_dosyalari": ", ".join(group["video_dosyalari"]),
             "toplam_sure_sn": group["toplam_sure_sn"],
+            "aciklama_tipi": group.get("aciklama_tipi", cfg.dify.aciklama_tipi),
         },
         "response_mode": "blocking",
         "user": "reels-maker",
@@ -72,10 +73,12 @@ _OVERLAY_SYSTEM = (
 
 def call_ollama_fallback(cfg: Config, group: dict[str, Any]) -> dict[str, Any]:
     client = OllamaClient(cfg.ollama.base_url, cfg.ollama.request_timeout_sn)
+    tipi = group.get("aciklama_tipi", cfg.dify.aciklama_tipi)
     prompt = (
         f"Mekan: {group['mekan_etiketi']}\n"
         f"Toplam süre: {group['toplam_sure_sn']} saniye\n"
-        f"Klip sayısı: {group['hedef_klip_sayisi']}"
+        f"Klip sayısı: {group['hedef_klip_sayisi']}\n"
+        f"Açıklama tipi: {tipi}"
     )
     raw = client.generate_text(cfg.ollama.text_model, prompt, system=_OVERLAY_SYSTEM, temperature=0.6)
     return _extract_json(raw)
