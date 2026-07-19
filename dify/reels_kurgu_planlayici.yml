@@ -1,0 +1,180 @@
+app:
+  description: "Verilen mekan etiketi ve video listesinden Reels için Türkçe hook, overlay metinleri ve CTA üretir."
+  icon: "🎬"
+  icon_background: "#EFF1F5"
+  mode: workflow
+  name: "Reels Kurgu Planlayici"
+workflow:
+  features:
+    file_upload:
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+          - local_file
+          - remote_url
+    opening_statement: ""
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ""
+      voice: ""
+  graph:
+    nodes:
+      - data:
+          desc: "Kurgu için girdi değişkenleri"
+          selected: false
+          title: "Start"
+          type: start
+          variables:
+            - label: "Mekan Etiketi"
+              max_length: 80
+              options: []
+              required: true
+              type: text-input
+              variable: mekan_etiketi
+            - label: "Video Dosyaları (virgülle ayrılmış)"
+              max_length: 2000
+              options: []
+              required: true
+              type: paragraph
+              variable: video_dosyalari
+            - label: "Toplam Süre (sn)"
+              max_length: 8
+              options: []
+              required: true
+              type: number
+              variable: toplam_sure_sn
+        height: 154
+        id: "start_1"
+        position:
+          x: 80
+          y: 260
+        positionAbsolute:
+          x: 80
+          y: 260
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 244
+      - data:
+          context:
+            enabled: false
+            variable_selector: []
+          desc: "Türkçe hook, overlay, CTA üretir. Sadece JSON döndürür."
+          model:
+            completion_params:
+              temperature: 0.6
+              top_p: 0.9
+            mode: chat
+            name: "qwen2.5:3b"
+            provider: ollama
+          prompt_template:
+            - id: "b0000000-0000-0000-0000-000000000001"
+              role: system
+              text: |
+                Sen bir Instagram Reels senaristi ve kurgu asistanısın.
+                Verilen mekan için Türkçe hook, 3-5 overlay ve bir CTA üret.
+                YANITINDA SADECE geçerli JSON döndür. Açıklama, markdown, code fence YAZMA.
+
+                Kurallar:
+                - hook: 6-8 kelime, çarpıcı, merak uyandıran Türkçe cümle.
+                - overlays: 3-5 madde. Her metin en fazla 5 kelime Türkçe.
+                - saniye ve sure alanları float. saniye < toplam_sure_sn olmalı.
+                - stil değerleri: "baslik" | "altbaslik" | "vurgu".
+                - cta: kısa, aksiyona çağıran Türkçe cümle (max 6 kelime).
+
+                Çıktı formatı:
+                {
+                  "hook": "string",
+                  "overlays": [
+                    {"saniye": 5.0, "metin": "string", "sure": 3.0, "stil": "vurgu"}
+                  ],
+                  "cta": "string"
+                }
+            - id: "b0000000-0000-0000-0000-000000000002"
+              role: user
+              text: |
+                Mekan: {{#start_1.mekan_etiketi#}}
+                Toplam süre: {{#start_1.toplam_sure_sn#}} saniye
+                Videolar: {{#start_1.video_dosyalari#}}
+
+                Sadece JSON döndür.
+          selected: false
+          title: "Kurgu Üretici (qwen2.5)"
+          type: llm
+          variables: []
+          vision:
+            enabled: false
+        height: 98
+        id: "llm_1"
+        position:
+          x: 400
+          y: 260
+        positionAbsolute:
+          x: 400
+          y: 260
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 300
+      - data:
+          desc: "Python tarafı bu değişkeni okur"
+          outputs:
+            - value_selector:
+                - "llm_1"
+                - text
+              variable: kurgu_json
+          selected: false
+          title: "End"
+          type: end
+        height: 90
+        id: "end_1"
+        position:
+          x: 780
+          y: 260
+        positionAbsolute:
+          x: 780
+          y: 260
+        selected: false
+        sourcePosition: right
+        targetPosition: left
+        type: custom
+        width: 244
+    edges:
+      - data:
+          isInIteration: false
+          sourceType: start
+          targetType: llm
+        id: "start_1-source-llm_1-target"
+        source: "start_1"
+        sourceHandle: source
+        target: "llm_1"
+        targetHandle: target
+        type: custom
+        zIndex: 0
+      - data:
+          isInIteration: false
+          sourceType: llm
+          targetType: end
+        id: "llm_1-source-end_1-target"
+        source: "llm_1"
+        sourceHandle: source
+        target: "end_1"
+        targetHandle: target
+        type: custom
+        zIndex: 0
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.9
