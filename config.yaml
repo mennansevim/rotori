@@ -1,0 +1,38 @@
+paths:
+  video_source_dir: "/Users/sevimm/Documents/Japonya"
+  frames_dir: "data/frames"
+  metadata_csv: "data/metadata.csv"
+  plans_dir: "data/kurgu_planlari"
+  output_dir: "output/reels"
+
+ollama:
+  base_url: "http://localhost:11434"
+  vision_model: "llava:7b"
+  text_model: "qwen2.5:3b"
+  request_timeout_sn: 240
+  vision_concurrency: 1
+
+dify:
+  base_url: "http://192.168.1.60:3000"
+  api_key: "REPLACE_ME_APP_TOKEN"
+  workflow_endpoint: "/v1/workflows/run"
+  concurrency: 2
+  timeout_sn: 180
+
+reels:
+  target_width: 1080
+  target_height: 1920
+  fps: 30
+  min_duration_sn: 30
+  max_duration_sn: 60
+  clip_per_reel: 4
+  crossfade_sn: 0.3
+  hook_duration_sn: 3.0
+  cta_duration_sn: 3.0
+  cta_text: "Takip et 👉 @japanreels"
+  font: "/System/Library/Fonts/Supplemental/Arial Unicode.ttf"
+
+pilot:
+  pilot_mode: true
+  pilot_count: 10
+  random_seed: 42
