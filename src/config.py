@@ -48,6 +48,9 @@ class ReelsCfg:
     cta_duration_sn: float
     cta_text: str
     font: str
+    font_alt: str = "/System/Library/Fonts/Supplemental/Arial Black.ttf"
+    shadow_offset: int = 6
+    stroke_width: int = 8
 
 
 @dataclass

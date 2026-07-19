@@ -99,12 +99,15 @@ def validate_plan(plan: dict[str, Any], max_sn: float) -> dict[str, Any]:
                 "metin": str(o["metin"])[:60],
                 "sure": float(o.get("sure", 3.0)),
                 "stil": str(o.get("stil", "vurgu")),
+                "renk": str(o.get("renk", "beyaz")),
             })
         except (KeyError, ValueError, TypeError):
             continue
     overlays = [o for o in overlays if o["saniye"] < max_sn]
     plan["overlays"] = overlays
     plan.setdefault("cta", "Takip et 👉")
+    plan.setdefault("aciklama", "")
+    plan.setdefault("hashtagler", [])
     return plan
 
 

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +18,29 @@ from src.config import Config, load_config, require_video_source
 from src.utils.logging import get_logger
 
 log = get_logger("step4")
+
+
+COLOR_MAP: dict[str, str] = {
+    "beyaz": "white",
+    "sari": "#FFD400",
+    "sarı": "#FFD400",
+    "kirmizi": "#FF3B30",
+    "kırmızı": "#FF3B30",
+    "siyah": "black",
+    "yesil": "#34C759",
+    "yeşil": "#34C759",
+    "mavi": "#0A84FF",
+    "turuncu": "#FF9500",
+    "pembe": "#FF2D92",
+}
+
+STIL_STYLE: dict[str, dict[str, Any]] = {
+    "baslik":    {"size": 130, "y_ratio": 0.15, "default_color": "beyaz"},
+    "hook":      {"size": 130, "y_ratio": 0.15, "default_color": "beyaz"},
+    "altbaslik": {"size": 78,  "y_ratio": 0.78, "default_color": "beyaz"},
+    "cta":       {"size": 88,  "y_ratio": 0.78, "default_color": "sari"},
+    "vurgu":     {"size": 110, "y_ratio": 0.42, "default_color": "sari"},
+}
 
 
 def crop_to_vertical(clip: VideoFileClip, target_w: int, target_h: int) -> Any:
@@ -46,30 +68,47 @@ def load_and_trim(video_path: Path, target_sn: float, cfg: Config) -> Any:
     return clip.with_fps(cfg.reels.fps)
 
 
-def make_text(text: str, cfg: Config, size: int = 80, y_ratio: float = 0.15) -> TextClip:
-    font = cfg.reels.font if Path(cfg.reels.font).exists() else None
-    tc = TextClip(
-        text=text,
-        font_size=size,
-        color="white",
-        font=font,
-        stroke_color="black",
-        stroke_width=4,
-        method="caption",
-        size=(int(cfg.reels.target_width * 0.85), None),
-        text_align="center",
-    )
+def _font_path(cfg: Config, stil: str) -> str | None:
+    primary = Path(cfg.reels.font)
+    if primary.exists():
+        return str(primary)
+    alt = Path(cfg.reels.font_alt)
+    if alt.exists():
+        return str(alt)
+    return None
+
+
+def _resolve_color(name: str) -> str:
+    return COLOR_MAP.get(name.strip().lower(), name)
+
+
+def make_overlay(text: str, cfg: Config, stil: str, renk: str) -> list[Any]:
+    style = STIL_STYLE.get(stil.lower(), STIL_STYLE["vurgu"])
+    size = style["size"]
+    y_ratio = style["y_ratio"]
+    color = _resolve_color(renk or style["default_color"])
+    font = _font_path(cfg, stil)
+    caption_w = int(cfg.reels.target_width * 0.88)
+
+    def _build(color_hex: str, stroke_hex: str, stroke_w: int) -> TextClip:
+        return TextClip(
+            text=text.upper(),
+            font_size=size,
+            color=color_hex,
+            font=font,
+            stroke_color=stroke_hex,
+            stroke_width=stroke_w,
+            method="caption",
+            size=(caption_w, None),
+            text_align="center",
+        )
+
     y_pos = int(cfg.reels.target_height * y_ratio)
-    return tc.with_position(("center", y_pos))
+    off = cfg.reels.shadow_offset
 
-
-def stil_to_size(stil: str, cfg: Config) -> tuple[int, float]:
-    stil = stil.lower()
-    if "baslik" in stil and "alt" not in stil:
-        return 100, 0.12
-    if "altbaslik" in stil:
-        return 70, 0.72
-    return 84, 0.35
+    shadow = _build("black", "black", 0).with_opacity(0.55).with_position(("center", y_pos + off))
+    main = _build(color, "black", cfg.reels.stroke_width).with_position(("center", y_pos))
+    return [shadow, main]
 
 
 def render_reel(final_json: Path, cfg: Config, source_dir: Path, name_index: dict[str, Path]) -> Path | None:
@@ -78,7 +117,6 @@ def render_reel(final_json: Path, cfg: Config, source_dir: Path, name_index: dic
     plan = data["kurgu_json"]
 
     per_clip_sn = cfg.reels.max_duration_sn / max(len(videos), 1)
-    per_clip_sn = min(per_clip_sn, cfg.reels.max_duration_sn / len(videos))
 
     clips: list[Any] = []
     for name in videos:
@@ -107,40 +145,36 @@ def render_reel(final_json: Path, cfg: Config, source_dir: Path, name_index: dic
     if base.duration > cfg.reels.max_duration_sn:
         base = base.subclipped(0, cfg.reels.max_duration_sn)
 
-    overlays: list[Any] = []
-    hook_text = plan.get("hook", "").strip()
+    overlay_clips: list[Any] = []
+
+    hook_text = str(plan.get("hook", "")).strip()
     if hook_text:
-        overlays.append(
-            make_text(hook_text, cfg, size=100, y_ratio=0.12)
-            .with_start(0.0)
-            .with_duration(cfg.reels.hook_duration_sn)
-        )
+        for c in make_overlay(hook_text, cfg, "hook", "beyaz"):
+            overlay_clips.append(c.with_start(0.0).with_duration(cfg.reels.hook_duration_sn))
 
     for o in plan.get("overlays", []):
         try:
-            size, y_ratio = stil_to_size(o.get("stil", "vurgu"), cfg)
+            stil = str(o.get("stil", "vurgu"))
+            renk = str(o.get("renk", ""))
             start = max(0.0, float(o["saniye"]))
             dur = min(float(o.get("sure", 3.0)), max(0.5, base.duration - start))
             if dur <= 0:
                 continue
-            overlays.append(
-                make_text(str(o["metin"]), cfg, size=size, y_ratio=y_ratio)
-                .with_start(start)
-                .with_duration(dur)
-            )
+            for c in make_overlay(str(o["metin"]), cfg, stil, renk):
+                overlay_clips.append(c.with_start(start).with_duration(dur))
         except Exception as exc:
             log.warning(f"Overlay atlandı: {exc}")
 
     cta = str(plan.get("cta") or cfg.reels.cta_text)
     if cta:
         cta_start = max(0.0, base.duration - cfg.reels.cta_duration_sn)
-        overlays.append(
-            make_text(cta, cfg, size=72, y_ratio=0.78)
-            .with_start(cta_start)
-            .with_duration(cfg.reels.cta_duration_sn)
-        )
+        for c in make_overlay(cta, cfg, "cta", "sari"):
+            overlay_clips.append(c.with_start(cta_start).with_duration(cfg.reels.cta_duration_sn))
 
-    final = CompositeVideoClip([base, *overlays], size=(cfg.reels.target_width, cfg.reels.target_height))
+    final = CompositeVideoClip(
+        [base, *overlay_clips],
+        size=(cfg.reels.target_width, cfg.reels.target_height),
+    )
 
     out_name = final_json.name.replace("_final.json", ".mp4")
     out_path = cfg.paths.output_dir / out_name
@@ -156,10 +190,29 @@ def render_reel(final_json: Path, cfg: Config, source_dir: Path, name_index: dic
         logger=None,
     )
 
+    _write_caption(final_json, plan, out_path)
+
     for c in clips:
         c.close()
     final.close()
     return out_path
+
+
+def _write_caption(final_json: Path, plan: dict[str, Any], mp4_path: Path) -> None:
+    aciklama = str(plan.get("aciklama", "")).strip()
+    hashtagler = plan.get("hashtagler") or []
+    if isinstance(hashtagler, str):
+        hashtagler = [h.strip() for h in hashtagler.split() if h.strip()]
+    tags = " ".join(
+        (t if t.startswith("#") else f"#{t}")
+        for t in hashtagler
+        if isinstance(t, str) and t.strip()
+    )
+    parts = [p for p in [aciklama, tags] if p]
+    caption = ("\n\n".join(parts)).strip() or "(Instagram açıklaması üretilmedi)"
+    caption_path = mp4_path.with_suffix(".txt")
+    caption_path.write_text(caption + "\n", encoding="utf-8")
+    log.info(f"Caption → {caption_path.name}")
 
 
 def main() -> None:
