@@ -33,6 +33,7 @@ class DifyCfg:
     workflow_endpoint: str
     concurrency: int
     timeout_sn: int
+    aciklama_tipi: str = "aciklayici"
 
 
 @dataclass

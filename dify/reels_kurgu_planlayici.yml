@@ -53,6 +53,15 @@ workflow:
               required: true
               type: number
               variable: toplam_sure_sn
+            - label: "Açıklama Tipi"
+              max_length: 32
+              options:
+                - aciklayici
+                - bolgeyi_tanit
+                - merak_uyandir
+              required: true
+              type: select
+              variable: aciklama_tipi
         height: 154
         id: "start_1"
         position:
@@ -127,16 +136,35 @@ workflow:
                   düz kelime listesi. Örnek: ["japonya","osaka","reels","gezi",
                   "japan","traveltips","7eleven","namba","japonyagezi","seyahat"].
 
-                TON: samimi, meraklandırıcı, "sen" dilinde, 20-35 yaş Türk gezi
-                izleyicisine hitap ediyor.
+                AÇIKLAMA TİPİ ({{#start_1.aciklama_tipi#}}):
+                Verilen tipe göre hook, aciklama ve overlay tonunu ayarla:
+
+                - "aciklayici": Nötr, bilgilendirici. Somut fact ver: sayı, tarih,
+                  saat, fiyat. Emoji sınırlı (2 kadar). Örnek hook: "Japonya'da
+                  günde 3 milyon kişi metroyu kullanıyor". Örnek overlay: "GÜNDE
+                  3 MİLYON YOLCU".
+
+                - "bolgeyi_tanit": Sıcak turistik tanıtım. Coğrafi + kültürel
+                  bağlam. "X'in kalbinde", "Y geleneğinin merkezi". Emoji 3-4.
+                  Örnek hook: "Kyoto'nun eski ruhunu burada bulacaksın".
+                  Örnek overlay: "1200 YILLIK SOKAK".
+
+                - "merak_uyandir": Cliffhanger, gizemli. "Az kişi biliyor ki",
+                  "İşte gerçek sırrı", "Kimse söylemiyor ama". Sonuna kadar
+                  cevap verme. Örnek hook: "Osaka'nın herkesin kaçırdığı sırrı".
+                  Örnek overlay: "SIR BURADA".
+
+                TON GENELİ: samimi, meraklandırıcı, "sen" dilinde, 20-35 yaş
+                Türk gezi izleyicisine hitap ediyor.
             - id: "b0000000-0000-0000-0000-000000000002"
               role: user
               text: |
                 Mekan: {{#start_1.mekan_etiketi#}}
                 Toplam reel süresi: {{#start_1.toplam_sure_sn#}} saniye
                 Videolar: {{#start_1.video_dosyalari#}}
+                Açıklama tipi: {{#start_1.aciklama_tipi#}}
 
-                Bu mekan için JSON kurgu planını üret. Sadece JSON.
+                Bu mekan ve tipe göre JSON kurgu planını üret. Sadece JSON.
           selected: false
           title: "Kurgu Üretici (qwen2.5)"
           type: llm

@@ -26,44 +26,67 @@ YANITIN SADECE GEÇERLİ JSON OLSUN. Açıklama, markdown, code fence yasak.
 
 KURALLAR:
 - hook: 5-8 kelime. Merak uyandıran, ünlemli, hitap eden Türkçe cümle.
-  Örnekler: "Osaka'daki bu 7/11 sırrını bilen az!",
-  "Kyoto'nun gizli tapınağı", "Bunu Tokyo'da denemeden dönme!".
 - overlays: 3-5 madde. Video üzerinde patlayan KISA yazı (Impact tarzı,
-  büyük, ekranda görünen fact/vurgu). Her metin MAX 4 KELİME.
-  Örnekler: "TAM 500 YIL ÖNCE", "BUNU KAÇIRMA", "ANIME SOKAKLARI",
-  "1000 YEN'E", "SADECE OSAKA'DA".
-- overlays timing: ilk overlay saniye 4-6, sonuncusu (toplam_sure_sn - 6)
-  saniyeden önce olsun. sure: 2.5-4.0 arası.
-- stil: konum → "baslik" (üst), "altbaslik" (alt), "vurgu" (orta).
-- renk: dikkat çekici olsun. Ana vurgu için "sari" veya "kirmizi",
-  destekleyici için "beyaz". Geçerli: "beyaz", "sari", "kirmizi",
-  "yesil", "mavi", "turuncu", "pembe".
-- cta: 3-5 kelime, aksiyon isteyen. Örnek: "Kaydet, Japonya'ya git!",
-  "Takip et, ipuçları gelsin", "Yorum: gitmek ister misin?".
-- aciklama: Instagram description için 3-5 CÜMLE akıcı Türkçe.
-  Mekan hakkında ilginç fact veya turistik ipucu. Emoji kullan (2-4).
-  Videoyu ÖZETLEMEZ, mekana dair bilgi paylaşır. Örnek:
-  "Osaka'daki 7-Eleven'lar sadece market değil 🎌 Bavul emanet
-  hizmeti veren ilk şubeler Osaka Namba'da. 3 saatlik seyahat
-  arası için birebir 💼 Fiyat 700 yen, app'ten rezervasyon var."
-- hashtagler: 8-12 tag, Türkçe + İngilizce karışık. "#" olmadan
-  düz kelime listesi. Örnek: ["japonya","osaka","reels","gezi",
-  "japan","traveltips","7eleven","namba","japonyagezi","seyahat"].
+  büyük). Her metin MAX 4 KELİME. Timing: ilk saniye 4-6, sonuncusu
+  (toplam_sure_sn - 6)'dan önce. sure: 2.5-4.0.
+- stil: "baslik" (üst), "altbaslik" (alt), "vurgu" (orta).
+- renk: "beyaz", "sari", "kirmizi", "yesil", "mavi", "turuncu", "pembe".
+  Ana vurgu için sari veya kirmizi tercih et.
+- cta: 3-5 kelime, aksiyon isteyen.
+- aciklama: Instagram description için 3-5 CÜMLE Türkçe. Mekan hakkında
+  fact veya turistik ipucu. 2-4 emoji. Videoyu ÖZETLEMEZ.
+- hashtagler: 8-12 tag, "#" olmadan düz kelime listesi.
 
-TON: samimi, meraklandırıcı, "sen" dilinde, 20-35 yaş Türk gezi
+AÇIKLAMA TİPİ ({{#start_1.aciklama_tipi#}}):
+Verilen tipe göre hook, aciklama ve overlay tonunu ayarla:
+
+- "aciklayici": Nötr, bilgilendirici. Somut fact ver: sayı, tarih, saat,
+  fiyat. Emoji sınırlı (2 kadar).
+  Örnek hook: "Japonya'da günde 3 milyon kişi metroyu kullanıyor".
+  Örnek overlay: "GÜNDE 3 MİLYON YOLCU".
+
+- "bolgeyi_tanit": Sıcak turistik tanıtım. Coğrafi + kültürel bağlam.
+  "X'in kalbinde", "Y geleneğinin merkezi". Emoji 3-4.
+  Örnek hook: "Kyoto'nun eski ruhunu burada bulacaksın".
+  Örnek overlay: "1200 YILLIK SOKAK".
+
+- "merak_uyandir": Cliffhanger, gizemli. "Az kişi biliyor ki",
+  "İşte gerçek sırrı", "Kimse söylemiyor ama". Sonuna kadar cevap verme.
+  Örnek hook: "Osaka'nın herkesin kaçırdığı sırrı".
+  Örnek overlay: "SIR BURADA".
+
+TON GENELİ: samimi, meraklandırıcı, "sen" dilinde, 20-35 yaş Türk gezi
 izleyicisine hitap ediyor.
 ```
 
 ---
 
-# USER prompt (aynı LLM node'un USER alanı — mevcuduna dokunmadıysan aynen kalabilir):
+# USER prompt (aynı LLM node'un USER alanı):
 
 ```
 Mekan: {{#start_1.mekan_etiketi#}}
 Toplam reel süresi: {{#start_1.toplam_sure_sn#}} saniye
 Videolar: {{#start_1.video_dosyalari#}}
+Açıklama tipi: {{#start_1.aciklama_tipi#}}
 
-Bu mekan için JSON kurgu planını üret. Sadece JSON.
+Bu mekan ve tipe göre JSON kurgu planını üret. Sadece JSON.
 ```
 
-Değişiklik sonrası → sağ üst **Publish**.
+---
+
+# Start node'a yeni değişken ekle
+
+Bu prompt'un çalışması için Dify'da workflow'un **Start** node'una yeni bir input değişkeni eklemen gerek:
+
+- **Variable name:** `aciklama_tipi`
+- **Label:** `Açıklama Tipi`
+- **Type:** `Select`
+- **Options:** `aciklayici`, `bolgeyi_tanit`, `merak_uyandir`
+- **Required:** true
+
+Sonra sağ üst **Publish** ▼ → **Publish**.
+
+## Nasıl kullanılır?
+
+- **Test Run:** dropdown'dan tona göre seçim yaparsın.
+- **Python pipeline:** `config.yaml` içinde `dify.aciklama_tipi` alanı hangi ton gönderilsin belirler (default: `aciklayici`).
