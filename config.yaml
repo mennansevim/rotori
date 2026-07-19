@@ -13,8 +13,8 @@ ollama:
   vision_concurrency: 1
 
 dify:
-  base_url: "http://192.168.1.60:3000"
-  api_key: "REPLACE_ME_APP_TOKEN"
+  base_url: "http://192.168.1.60:5001"
+  api_key: "app-JgsLpkZK8Q8L2FxV1DHmJkIV"
   workflow_endpoint: "/v1/workflows/run"
   concurrency: 2
   timeout_sn: 180
@@ -30,7 +30,10 @@ reels:
   hook_duration_sn: 3.0
   cta_duration_sn: 3.0
   cta_text: "Takip et 👉 @japanreels"
-  font: "/System/Library/Fonts/Supplemental/Arial Unicode.ttf"
+  font: "/System/Library/Fonts/Supplemental/Impact.ttf"
+  font_alt: "/System/Library/Fonts/Supplemental/Arial Black.ttf"
+  shadow_offset: 6
+  stroke_width: 8
 
 pilot:
   pilot_mode: true
