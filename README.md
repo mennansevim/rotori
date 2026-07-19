@@ -18,52 +18,38 @@ python3 -m venv .venv
 #   - dify.api_key: Dify app'in Access API token'ı (aşağıdaki workflow kurulduktan sonra alınır)
 ```
 
-## Dify Workflow Kurulumu (Manuel — bir kereye mahsus)
+## Dify Workflow Kurulumu (Tek tıkla DSL import)
 
-1. Tarayıcıdan `http://192.168.1.60:3000/apps` → **Create App** → **Workflow** → İsim: `Reels Kurgu Planlayıcı`.
+Workflow'un tamamı [dify/reels_kurgu_planlayici.yml](dify/reels_kurgu_planlayici.yml) içinde hazır. Manuel node kurulumu yok, sadece import edin:
 
-2. **Ollama provider ayarı** (henüz eklenmediyse):
-   - Sağ üst → **Settings** → **Model Provider** → **Ollama** → Add.
-   - Base URL: `http://<mac-lan-ip>:11434` (Docker içinden `localhost` çalışmaz).
-   - Modeller: `qwen2.5:3b` (LLM) ve `llava:7b` (Vision) ekleyin.
-   - **Not:** Mac'te Ollama'yı LAN'a açmak için:
-     ```bash
-     launchctl setenv OLLAMA_HOST "0.0.0.0:11434"
-     # Ollama uygulamasını yeniden başlatın
-     ```
+1. **Ollama'yı LAN'a aç** (Dify Docker container'ından Mac'inize erişebilsin):
+   ```bash
+   launchctl setenv OLLAMA_HOST "0.0.0.0:11434"
+   # Ollama uygulamasını yeniden başlatın (menu bar → Quit → tekrar aç)
+   ```
+   LAN IP'nizi öğrenin: `ipconfig getifaddr en0` (örn. `192.168.1.42`).
 
-3. **Start Node — Girdiler:**
-   | Değişken | Tip | Açıklama |
-   |---|---|---|
-   | `mekan_etiketi` | String | "Fushimi Inari Tapınağı" |
-   | `video_dosyalari` | String | virgülle ayrılmış dosya listesi |
-   | `toplam_sure_sn` | Number | Hedef reel süresi |
+2. **Ollama provider'ı Dify'a ekleyin** (bir kereye mahsus):
+   - Tarayıcı: `http://192.168.1.60:3000` → giriş yap.
+   - Sağ üst avatar → **Settings** → **Model Provider** → **Ollama** → **Add**.
+   - Base URL: `http://<mac-lan-ip>:11434`
+   - Modeller: `qwen2.5:3b` (LLM, mode: chat) ve `llava:7b` (Vision, opsiyonel) ekleyin.
 
-4. **LLM Node** ekle:
-   - Model: `qwen2.5:3b`
-   - Structured Output: açık
-   - Şema:
-     ```json
-     {
-       "hook": "string",
-       "overlays": [
-         {"saniye": 0.0, "metin": "string", "sure": 3.0, "stil": "vurgu"}
-       ],
-       "cta": "string"
-     }
-     ```
-   - System prompt:
-     ```
-     Sen bir Instagram Reels senaristisin. Verilen mekan için Türkçe hook, 3-5 overlay ve bir CTA üret.
-     hook: 6-8 kelime, çarpıcı.
-     overlays: her biri max 5 kelime, saniye/sure float.
-     stil: baslik | altbaslik | vurgu.
-     ```
-   - User prompt: `Mekan: {{mekan_etiketi}} / Süre: {{toplam_sure_sn}}s`
+3. **Workflow DSL'i import et:**
+   - Dify → **Studio** → **Create App** → **Import DSL file** → `dify/reels_kurgu_planlayici.yml` seç.
+   - Sağ üstten **Publish**.
 
-5. **End Node** → Output değişken adı: `kurgu_json` → LLM node çıktısını bağla.
+4. **API key'i al:**
+   - Sol menüde **API Access** → **API Key** → New Secret Key → kopyala.
+   - `config.yaml` içinde `dify.api_key: "app-..."` alanına yapıştır.
 
-6. Sağ üstten **Publish** → **Access API** → App API key'i kopyala → `config.yaml` içine yapıştır.
+5. **Doğrulama:**
+   ```bash
+   .venv/bin/python -m src.step3_dify   # --no-dify olmadan
+   ```
+   `data/kurgu_planlari/*_final.json` içinde Dify'dan gelen kurgu görünmeli.
+
+**Not:** Import ederken Dify sürümüne göre "DSL version mismatch" uyarısı verebilir; genelde yine de import eder. Node'lar eksik/hatalı görünürse UI'da düzelt → Publish.
 
 ## Çalıştırma
 
