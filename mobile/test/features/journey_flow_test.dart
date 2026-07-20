@@ -68,7 +68,7 @@ void main() {
     expect(trip.preferences.destinations.first.city, 'Tokyo');
   });
 
-  testWidgets('şehir sayısı promptu render edilir ve 375px\'te overflow olmaz',
+  testWidgets('şehir seçici render edilir ve 375px\'te overflow olmaz',
       (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(375, 812);
@@ -78,45 +78,19 @@ void main() {
     await tester.pumpWidget(harness(trip));
     await tester.pumpAndSettle();
 
-    expect(find.text('📍 Kaç şehir gezeceksin?'), findsOneWidget);
-    expect(find.text('1 şehir'), findsOneWidget);
-    expect(find.text('2 şehir'), findsOneWidget);
-    expect(find.text('3 şehir'), findsOneWidget);
-    expect(find.text('4+'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('2+ şehir seçilirse Shinkansen hatırlatması görünür',
-      (tester) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(375, 812);
-    addTearDown(tester.view.reset);
-
-    final trip = createEmptyTrip();
-    await tester.pumpWidget(harness(trip));
-    await tester.pumpAndSettle();
-
-    // Başlangıçta 1 destinasyon (auto Tokyo) → Shinkansen görünmemeli
-    expect(find.textContaining('Şehirler arası Shinkansen'), findsNothing);
-
-    // "2 şehir" chip'ine tıkla → Shinkansen kartı çıkmalı
-    await tester.tap(find.text('2 şehir'));
-    await tester.pumpAndSettle();
-
-    // ListView içinde aşağıda olabilir — scroll ederek doğrula
-    await tester.scrollUntilVisible(
-      find.textContaining('Şehirler arası Shinkansen'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.textContaining('Şehirler arası Shinkansen'), findsOneWidget);
-    // Şehir seçici de görünmeli (hint yerine kullanıcı listeden seçer).
+    // "Kaç şehir?" pill promptu kaldırıldı; onun yerine şehir seçici + Diğer.
     await tester.scrollUntilVisible(
       find.text('🏙️ Gezilecek şehirler'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('🏙️ Gezilecek şehirler'), findsOneWidget);
+    // Listedeki bazı şehirler görünmeli.
+    expect(find.text('Tokyo'), findsWidgets);
+    expect(find.text('Kyoto'), findsWidgets);
+    // Custom eklenmiş bir şehir yoksa "+ Başka şehir" tetikleyicisi var.
+    expect(find.text('+ Başka şehir'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('destinations.length >= 2 iken Shinkansen otomatik çıkar',

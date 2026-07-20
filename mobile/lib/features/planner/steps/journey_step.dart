@@ -27,11 +27,6 @@ class JourneyStep extends StatefulWidget {
 }
 
 class _JourneyStepState extends State<JourneyStep> {
-  /// Kullanıcının "kaç şehir gezeceğim" pill tıklamasıyla seçtiği sayı.
-  /// Null → henüz seçmedi (mevcut destinasyon sayısı gösterge). Sadece görsel;
-  /// destinasyon ekleme/silmeyi zorlamaz.
-  int? _cityCountHint;
-
   @override
   void initState() {
     super.initState();
@@ -158,9 +153,6 @@ class _JourneyStepState extends State<JourneyStep> {
     final routePreview = _routePreview();
 
     final destCount = dests.length;
-    // Hint yoksa mevcut destinasyon sayısını referans al — 2+ olduğunda
-    // Shinkansen kartı otomatik çıkar.
-    final effectiveCount = _cityCountHint ?? destCount;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 120),
@@ -170,8 +162,6 @@ class _JourneyStepState extends State<JourneyStep> {
             ? 'Türkiye\'den Japonya\'ya gidiş ve dönüş uçuşlarını gir. Her uçuş kartında havayolu, uçuş no, tarih ve havaalanları var.'
             : 'Türkiye\'den nereden kalkacaksın ve Japonya\'da hangi şehre ineceksin? Şimdilik şehir ve tarih yeter.'),
 
-        _cityCountPrompt(effectiveCount, destCount),
-
         if (widget.onLoadJapanPlan != null) _japanBanner(),
 
         // Gidiş bacağı (tek durak — çoklu durak Plan/rota editörü sonraki iterasyon)
@@ -180,7 +170,7 @@ class _JourneyStepState extends State<JourneyStep> {
 
         if (showReturn) _returnLeg(lastDest!),
 
-        if (effectiveCount >= 2) _shinkansenReminder(),
+        if (destCount >= 2) _shinkansenReminder(),
         _cityPicker(dests),
 
         if (routePreview.isNotEmpty)
@@ -235,42 +225,6 @@ class _JourneyStepState extends State<JourneyStep> {
   }
 
   // ---- parçalar ----
-
-  /// "📍 Kaç şehir gezeceksin?" — pill seçici. Destinasyon sayısını zorlamaz,
-  /// sadece Shinkansen hatırlatmasını + ekleme ipucunu tetikler. 375px'te Wrap.
-  Widget _cityCountPrompt(int effective, int destCount) {
-    const counts = [1, 2, 3, 4];
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: PT.bgSubtle,
-        borderRadius: BorderRadius.circular(PT.radius),
-        border: Border.all(color: PT.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('📍 Kaç şehir gezeceksin?',
-              style: TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w700, color: PT.text)),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final n in counts)
-                PChip(
-                  label: n == 4 ? '4+' : '$n şehir',
-                  active: effective == n || (n == 4 && effective >= 4),
-                  onTap: () => setState(() => _cityCountHint = n),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _shinkansenReminder() {
     return Container(
@@ -345,9 +299,81 @@ class _JourneyStepState extends State<JourneyStep> {
                 ),
             ],
           ),
+          const SizedBox(height: 10),
+          // Listede olmayan şehirler için — Japon havalimanı picker'ı ile
+          // custom destinasyon eklenir (Fukuoka, Okinawa, Hakone çevresi vb.).
+          AirportPickerField(
+            countryCodes: const ['JP'],
+            valueLabel: '+ Başka şehir',
+            placeholder: 'Diğer şehir/havalimanı ara',
+            onSelect: (a) => _addCustomCity(a),
+          ),
+          // Chip listesinde olmayan (custom eklenmiş) destinasyonları da göster.
+          if (dests.any((d) => !_isKnownCity(d.city))) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final d in dests)
+                  if (!_isKnownCity(d.city))
+                    _CityChip(
+                      emoji: '📍',
+                      label:
+                          '${d.city}${(d.airport ?? '').isNotEmpty ? ' (${d.airport})' : ''}',
+                      active: true,
+                      onTap: () => _removeCustomCity(d),
+                    ),
+              ],
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  bool _isKnownCity(String city) => kCityData
+      .any((c) => c.label.toLowerCase() == city.trim().toLowerCase());
+
+  /// Custom şehir: havalimanı seçicisinden gelen Airport ile destinasyon ekler.
+  void _addCustomCity(Airport a) {
+    if (a.iata.isEmpty) return;
+    widget.onChange((t) {
+      final list = [...t.preferences.destinations]
+        ..sort((x, y) => x.order.compareTo(y.order));
+      // Aynı şehir zaten varsa (havalimanı farklı olsa da) tekrar ekleme.
+      if (list.any((d) =>
+          d.city.trim().toLowerCase() == a.city.trim().toLowerCase())) {
+        return;
+      }
+      list.add(TripDestination(
+        id: 'dest-${DateTime.now().millisecondsSinceEpoch}-${list.length}',
+        countryCode: a.countryCode,
+        countryName: a.countryName,
+        city: a.city,
+        airport: a.iata,
+        lat: a.lat,
+        lng: a.lng,
+        arrivalDate: t.preferences.travelDates.start,
+        departureDate: t.preferences.travelDates.end,
+        order: list.length,
+      ));
+      t.preferences.destinations = list;
+      _resync(t);
+    });
+  }
+
+  void _removeCustomCity(TripDestination target) {
+    widget.onChange((t) {
+      final list = [...t.preferences.destinations]
+        ..sort((x, y) => x.order.compareTo(y.order));
+      list.removeWhere((d) => d.id == target.id);
+      for (var i = 0; i < list.length; i++) {
+        list[i].order = i;
+      }
+      t.preferences.destinations = list;
+      _resync(t);
+    });
   }
 
   /// Şehir chip'ine tıklanınca: rotada yoksa yeni destinasyon (ilk havalimanı
@@ -835,3 +861,4 @@ class _CityChip extends StatelessWidget {
     );
   }
 }
+
