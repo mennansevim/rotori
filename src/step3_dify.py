@@ -11,19 +11,20 @@ from typing import Any
 import requests
 from tqdm import tqdm
 
+from src import persona
 from src.config import Config, load_config
 from src.ollama_client import OllamaClient
 from src.utils.logging import get_logger
 
 log = get_logger("step3")
 
+# Daha iyi Türkçe için varsa bu modeli tercih et
+_PREFERRED_TEXT_MODELS = ["qwen2.5:7b", "qwen2.5:7b-instruct"]
+
 
 def call_dify(cfg: Config, group: dict[str, Any]) -> dict[str, Any]:
     url = f"{cfg.dify.base_url.rstrip('/')}{cfg.dify.workflow_endpoint}"
-    headers = {
-        "Authorization": f"Bearer {cfg.dify.api_key}",
-        "Content-Type": "application/json",
-    }
+    headers = {"Authorization": f"Bearer {cfg.dify.api_key}", "Content-Type": "application/json"}
     payload = {
         "inputs": {
             "mekan_etiketi": group["mekan_etiketi"],
@@ -40,48 +41,23 @@ def call_dify(cfg: Config, group: dict[str, Any]) -> dict[str, Any]:
             resp = requests.post(url, headers=headers, json=payload, timeout=cfg.dify.timeout_sn)
             resp.raise_for_status()
             data = resp.json()
-            outputs = data.get("data", {}).get("outputs", {}) or data.get("outputs", {})
-            return outputs
+            return data.get("data", {}).get("outputs", {}) or data.get("outputs", {})
         except (requests.RequestException, ValueError) as exc:
             last_err = exc
-            wait = 2 ** attempt
-            log.warning(f"Dify hata (attempt {attempt+1}): {exc}. {wait}s bekliyor.")
-            time.sleep(wait)
+            time.sleep(2 ** attempt)
     raise RuntimeError(f"Dify tüm denemeler başarısız: {last_err}")
 
 
-_HOOK_PROMPT = (
-    "Sen bir Instagram Reels senaristisin. Verilen mekan için 6-8 kelimelik, "
-    "Türkçe, çarpıcı ve merak uyandıran bir HOOK metni yaz. "
-    "Sadece hook metnini döndür, açıklama yazma."
-)
-
-_OVERLAY_SYSTEM = (
-    "Sen bir Reels kurgu asistanısın. Verilen mekan için JSON çıktısı üret. "
-    "Hiçbir açıklama yazma, sadece geçerli JSON döndür. Format:\n"
-    "{\n"
-    '  "hook": "kısa çarpıcı metin (6-8 kelime)",\n'
-    '  "overlays": [\n'
-    '    {"saniye": 5.0, "metin": "kısa vurgu", "sure": 3.0, "stil": "vurgu"},\n'
-    '    {"saniye": 15.0, "metin": "başka bir vurgu", "sure": 3.0, "stil": "altbaslik"}\n'
-    "  ],\n"
-    '  "cta": "Kaydet ve paylaş!"\n'
-    "}\n"
-    "Kurallar: 3-5 arası overlay üret. Her metin max 5 kelime Türkçe. saniye ve sure float."
-)
-
-
-def call_ollama_fallback(cfg: Config, group: dict[str, Any]) -> dict[str, Any]:
-    client = OllamaClient(cfg.ollama.base_url, cfg.ollama.request_timeout_sn)
-    tipi = group.get("aciklama_tipi", cfg.dify.aciklama_tipi)
-    prompt = (
-        f"Mekan: {group['mekan_etiketi']}\n"
-        f"Toplam süre: {group['toplam_sure_sn']} saniye\n"
-        f"Klip sayısı: {group['hedef_klip_sayisi']}\n"
-        f"Açıklama tipi: {tipi}"
-    )
-    raw = client.generate_text(cfg.ollama.text_model, prompt, system=_OVERLAY_SYSTEM, temperature=0.6)
-    return _extract_json(raw)
+def pick_text_model(cfg: Config, client: OllamaClient) -> str:
+    try:
+        r = requests.get(f"{cfg.ollama.base_url.rstrip('/')}/api/tags", timeout=5)
+        names = {m["name"] for m in r.json().get("models", [])}
+        for m in _PREFERRED_TEXT_MODELS:
+            if m in names:
+                return m
+    except requests.RequestException:
+        pass
+    return cfg.ollama.text_model
 
 
 def _extract_json(text: str) -> dict[str, Any]:
@@ -91,14 +67,147 @@ def _extract_json(text: str) -> dict[str, Any]:
     return json.loads(m.group(0))
 
 
+def _words_max(text: str, n: int) -> str:
+    words = str(text).strip().strip('"').strip("'").split()
+    return " ".join(words[:n]).strip(" .,-–—")
+
+
+def _clean_hashtags(raw: Any, seed_tags: list[str]) -> list[str]:
+    tags: list[str] = []
+    if isinstance(raw, str):
+        raw = re.split(r"[\s,]+", raw)
+    if isinstance(raw, list):
+        for t in raw:
+            t = re.sub(r"[^0-9A-Za-zçğıöşüÇĞİÖŞÜ]", "", str(t)).lower()
+            if t and t not in tags:
+                tags.append(t)
+    for t in seed_tags:
+        if len(tags) >= 10:
+            break
+        if t not in tags:
+            tags.append(t)
+    return tags[:12]
+
+
+def _build_overlays(texts: list[str], total: float, cfg: Config) -> list[dict[str, Any]]:
+    texts = [t for t in (_words_max(x, 4) for x in texts) if t]
+    texts = texts[:5]
+    if len(texts) < 2:
+        return []
+    start_min = max(cfg.reels.hook_duration_sn + 1.5, 4.5)
+    end_max = max(start_min + 2.0, total - cfg.reels.cta_duration_sn - 3.0)
+    n = len(texts)
+    gap = (end_max - start_min) / n if n else 0
+    sure = min(3.2, max(2.5, gap * 0.8)) if gap > 0 else 3.0
+
+    overlays: list[dict[str, Any]] = []
+    for i, t in enumerate(texts):
+        start = round(start_min + i * gap, 1) if gap > 0 else round(start_min + i * 3.3, 1)
+        if start + sure >= total:
+            break
+        overlays.append({
+            "saniye": start,
+            "metin": t,
+            "sure": round(sure, 1),
+            "stil": "baslik" if i % 2 == 0 else "vurgu",
+            "renk": "kirmizi" if i == 0 else "sari",
+        })
+    return overlays
+
+
+def _aciklama_fallback(mekan: str, tips: list[str]) -> str:
+    body = " ".join(t.strip() for t in tips[:3] if t.strip())
+    lead = f"{mekan} bizim için gezinin sürprizlerinden biriydi."
+    plug = "Bu tür detayları ailece 13 günde biriktirdik, burada paylaşıyorum 👇"
+    return " ".join(x for x in [lead, body, plug] if x).strip()
+
+
+def _sanitize_aciklama(text: str, mekan: str, tips: list[str]) -> str:
+    text = (text or "").strip()
+    parts = re.split(r"(?<=[.!?])\s+", text)
+    kept = [p for p in parts if p.strip() and not persona.cliche_iceriyor(p)]
+    result = " ".join(kept).strip()
+    if len(result) < 40:
+        return _aciklama_fallback(mekan, tips)
+    return result
+
+
+_ACIKLAMA_LEAK = re.compile(r"[{}]|\b(hook|overlay|hashtag|json|kelime)\b", re.IGNORECASE)
+_HOOK_KOTU = re.compile(r"\d\s*kelime|kelime|placeholder|string|^\W*$", re.IGNORECASE)
+
+
+def _valid_hook(h: str) -> bool:
+    h = (h or "").strip()
+    words = h.split()
+    if not (3 <= len(words) <= 9):
+        return False
+    if _HOOK_KOTU.search(h) or persona.cliche_iceriyor(h):
+        return False
+    return True
+
+
+def _valid_aciklama(t: str) -> bool:
+    t = (t or "").strip()
+    if not (60 <= len(t) <= 700):
+        return False
+    if _ACIKLAMA_LEAK.search(t) or persona.cliche_iceriyor(t):
+        return False
+    return True
+
+
+def _llm_aciklama(client: OllamaClient, model: str, mekan: str, tips: list[str]) -> str | None:
+    """LLM'den yalnızca düz açıklama metni iste (JSON değil → çok daha sağlam)."""
+    if not tips:
+        return None
+    tips_block = "\n".join(f"- {t}" for t in tips)
+    user = (
+        f"Aşağıdaki GERÇEK tüyoları kullanarak '{mekan}' için Instagram açıklaması yaz.\n"
+        "Kurallar: birinci çoğul ağız (biz, ailemle), 3-5 KISA cümle, akıcı ve kusursuz "
+        "Türkçe, uydurma bilgi/sayı/saat ekleme, klişe yok. Sonda tek cümlelik yumuşak "
+        "kanal hatırlatması ve 1-2 emoji.\n"
+        f"TÜYOLAR:\n{tips_block}\n\n"
+        "SADECE açıklama metnini yaz. JSON, tırnak, başlık, madde işareti YOK."
+    )
+    for _ in range(2):
+        try:
+            out = client.generate_text(model, user, system=persona.SYSTEM_PROMPT, temperature=0.6)
+        except RuntimeError:
+            continue
+        out = out.strip().strip("`").strip().strip('"').strip()
+        parts = re.split(r"(?<=[.!?])\s+", out)
+        out = " ".join(p for p in parts if not persona.cliche_iceriyor(p)).strip()
+        if _valid_aciklama(out):
+            return out
+    return None
+
+
+def generate_local(cfg: Config, group: dict[str, Any], client: OllamaClient, model: str) -> dict[str, Any]:
+    """Kalite garantisi: içeriğin tamamı gerçek geziye dayalı el yapımı seed'lerden
+    gelir → her seferinde kusursuz Türkçe, spesifik, klişesiz; zayıf modele bağımsız."""
+    mekan = group["mekan_etiketi"]
+    kategori = group.get("kategori", "")
+    total = float(group["toplam_sure_sn"])
+    seed = persona.seed_for(mekan, kategori)
+
+    aciklama = seed.get("aciklama") or _aciklama_fallback(mekan, seed.get("tips", []))
+    return {
+        "hook": seed.get("hook", persona.GENERIC["hook"]),
+        "overlays": _build_overlays(seed.get("overlays", persona.GENERIC["overlays"]), total, cfg),
+        "cta": persona.CTA_HAVUZU[group.get("idx", 0) % len(persona.CTA_HAVUZU)],
+        "aciklama": aciklama,
+        "hashtagler": _clean_hashtags(None, seed.get("hashtags", persona.GENERIC["hashtags"])),
+    }
+
+
 def validate_plan(plan: dict[str, Any], max_sn: float) -> dict[str, Any]:
-    if "hook" not in plan or "overlays" not in plan:
-        raise ValueError("plan hook veya overlays içermiyor")
     overlays: list[dict[str, Any]] = []
     for o in plan.get("overlays", []):
         try:
+            sn = float(o["saniye"])
+            if sn >= max_sn:
+                continue
             overlays.append({
-                "saniye": float(o["saniye"]),
+                "saniye": sn,
                 "metin": str(o["metin"])[:60],
                 "sure": float(o.get("sure", 3.0)),
                 "stil": str(o.get("stil", "vurgu")),
@@ -106,28 +215,28 @@ def validate_plan(plan: dict[str, Any], max_sn: float) -> dict[str, Any]:
             })
         except (KeyError, ValueError, TypeError):
             continue
-    overlays = [o for o in overlays if o["saniye"] < max_sn]
     plan["overlays"] = overlays
+    plan.setdefault("hook", "")
     plan.setdefault("cta", "Takip et 👉")
     plan.setdefault("aciklama", "")
     plan.setdefault("hashtagler", [])
     return plan
 
 
-def process_group(cfg: Config, input_path: Path, use_dify: bool) -> Path | None:
+def process_group(cfg: Config, input_path: Path, use_dify: bool, client: OllamaClient, model: str) -> Path | None:
     group = json.loads(input_path.read_text(encoding="utf-8"))
     output_path = input_path.with_name(input_path.name.replace("_input.json", "_final.json"))
     if output_path.exists():
         log.info(f"Atlanıyor (var): {output_path.name}")
         return output_path
     try:
-        if use_dify and cfg.dify.api_key != "REPLACE_ME_APP_TOKEN":
+        if use_dify and cfg.dify.api_key not in ("", "REPLACE_ME_APP_TOKEN"):
             raw = call_dify(cfg, group)
             plan = raw.get("kurgu_json") or raw
             if isinstance(plan, str):
                 plan = _extract_json(plan)
         else:
-            plan = call_ollama_fallback(cfg, group)
+            plan = generate_local(cfg, group, client, model)
         plan = validate_plan(plan, group["toplam_sure_sn"])
     except Exception as exc:
         log.error(f"Grup başarısız ({input_path.name}): {exc}")
@@ -135,26 +244,32 @@ def process_group(cfg: Config, input_path: Path, use_dify: bool) -> Path | None:
 
     merged = {**group, "kurgu_json": plan}
     output_path.write_text(json.dumps(merged, ensure_ascii=False, indent=2), encoding="utf-8")
+    log.info(f"✓ {output_path.name} → \"{plan.get('hook','')}\"")
     return output_path
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default=None)
-    parser.add_argument("--no-dify", action="store_true", help="Dify'ı bypass et, direkt Ollama kullan")
+    parser.add_argument("--no-dify", action="store_true", help="Dify'ı bypass et, lokal üretim")
     args = parser.parse_args()
 
     cfg = load_config(args.config)
+    client = OllamaClient(cfg.ollama.base_url, cfg.ollama.request_timeout_sn)
     inputs = sorted(cfg.paths.plans_dir.glob("*_input.json"))
     log.info(f"İşlenecek grup: {len(inputs)}")
 
     use_dify = not args.no_dify
-    if use_dify and cfg.dify.api_key == "REPLACE_ME_APP_TOKEN":
-        log.warning("Dify API key ayarlanmamış — Ollama fallback kullanılacak.")
+    if use_dify and cfg.dify.api_key in ("", "REPLACE_ME_APP_TOKEN"):
+        log.warning("Dify API key yok — lokal üretim kullanılacak.")
         use_dify = False
 
+    model = "" if use_dify else pick_text_model(cfg, client)
+    if not use_dify:
+        log.info(f"Lokal üretim modeli: {model}")
+
     with ThreadPoolExecutor(max_workers=cfg.dify.concurrency) as pool:
-        futures = {pool.submit(process_group, cfg, p, use_dify): p for p in inputs}
+        futures = {pool.submit(process_group, cfg, p, use_dify, client, model): p for p in inputs}
         with tqdm(total=len(futures), desc="Kurgu planı") as bar:
             for fut in as_completed(futures):
                 fut.result()

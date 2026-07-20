@@ -15,6 +15,7 @@ from moviepy import (
 from tqdm import tqdm
 
 from src.config import Config, load_config, require_video_source
+from src.utils.ffprobe import probe
 from src.utils.logging import get_logger
 
 log = get_logger("step4")
@@ -40,7 +41,13 @@ STIL_STYLE: dict[str, dict[str, Any]] = {
     "altbaslik": {"size": 78,  "y_ratio": 0.78, "default_color": "beyaz"},
     "cta":       {"size": 88,  "y_ratio": 0.78, "default_color": "sari"},
     "vurgu":     {"size": 110, "y_ratio": 0.42, "default_color": "sari"},
+    # Küçük puntolu, kalıcı lokasyon etiketi (alt tarafta, hook ile çakışmaz).
+    "lokasyon":  {"size": 44,  "y_ratio": 0.90, "default_color": "beyaz"},
 }
+
+# Hook'un giriş süresi: sadece başta görünsün, sonra kaybolsun.
+HOOK_START_SN = 0.4
+HOOK_VISIBLE_SN = 4.5
 
 
 def crop_to_vertical(clip: VideoFileClip, target_w: int, target_h: int) -> Any:
@@ -62,10 +69,22 @@ def crop_to_vertical(clip: VideoFileClip, target_w: int, target_h: int) -> Any:
 
 def load_and_trim(video_path: Path, target_sn: float, cfg: Config) -> Any:
     clip = VideoFileClip(str(video_path))
-    if clip.duration > target_sn:
+    if clip.duration and clip.duration > target_sn:
         clip = clip.subclipped(0, target_sn)
     clip = crop_to_vertical(clip, cfg.reels.target_width, cfg.reels.target_height)
     return clip.with_fps(cfg.reels.fps)
+
+
+def _plan_durations(clip_durations: list[float], cfg: Config) -> list[float]:
+    """Her klibe, kaynağını AŞMADAN, orantılı ekran süresi ver — siyah dolgu yok,
+    klipler yarıda garipçe kesilmez. Toplam [min, max] aralığına oturur."""
+    avail = sum(max(d, 0.0) for d in clip_durations)
+    if avail <= 0:
+        return [cfg.reels.max_duration_sn / max(len(clip_durations), 1)] * len(clip_durations)
+    target = min(cfg.reels.max_duration_sn, max(cfg.reels.min_duration_sn, avail))
+    target = min(target, avail)  # kaynaktan fazlasını isteme
+    ratio = target / avail
+    return [max(0.8, d * ratio) for d in clip_durations]
 
 
 def _font_path(cfg: Config, stil: str) -> str | None:
@@ -82,17 +101,23 @@ def _resolve_color(name: str) -> str:
     return COLOR_MAP.get(name.strip().lower(), name)
 
 
-def make_overlay(text: str, cfg: Config, stil: str, renk: str) -> list[Any]:
+def tr_upper(text: str) -> str:
+    """Türkçe-duyarlı büyük harf: i→İ, ı→I (Python .upper() bunu yanlış yapar)."""
+    return text.replace("i", "İ").replace("ı", "I").upper()
+
+
+def make_overlay(text: str, cfg: Config, stil: str, renk: str, upper: bool = True) -> list[Any]:
     style = STIL_STYLE.get(stil.lower(), STIL_STYLE["vurgu"])
     size = style["size"]
     y_ratio = style["y_ratio"]
     color = _resolve_color(renk or style["default_color"])
     font = _font_path(cfg, stil)
     caption_w = int(cfg.reels.target_width * 0.88)
+    render_text = tr_upper(text) if upper else text
 
     def _build(color_hex: str, stroke_hex: str, stroke_w: int) -> TextClip:
         return TextClip(
-            text=text.upper(),
+            text=render_text,
             font_size=size,
             color=color_hex,
             font=font,
@@ -104,10 +129,14 @@ def make_overlay(text: str, cfg: Config, stil: str, renk: str) -> list[Any]:
         )
 
     y_pos = int(cfg.reels.target_height * y_ratio)
-    off = cfg.reels.shadow_offset
+    # Gölge/kontur kalınlığını punto ile orantıla: büyük hook aynı kalır,
+    # küçük lokasyon etiketinde kontur okunur boyutta olur.
+    scale = size / 130
+    off = max(2, round(cfg.reels.shadow_offset * scale))
+    stroke_w = max(2, round(cfg.reels.stroke_width * scale))
 
     shadow = _build("black", "black", 0).with_opacity(0.55).with_position(("center", y_pos + off))
-    main = _build(color, "black", cfg.reels.stroke_width).with_position(("center", y_pos))
+    main = _build(color, "black", stroke_w).with_position(("center", y_pos))
     return [shadow, main]
 
 
@@ -116,60 +145,64 @@ def render_reel(final_json: Path, cfg: Config, source_dir: Path, name_index: dic
     videos: list[str] = data["video_dosyalari"]
     plan = data["kurgu_json"]
 
-    per_clip_sn = cfg.reels.max_duration_sn / max(len(videos), 1)
-
-    clips: list[Any] = []
+    present: list[Path] = []
+    durations: list[float] = []
     for name in videos:
         path = name_index.get(name)
         if path is None or not path.exists():
             log.warning(f"Bulunamadı: {name}")
             continue
         try:
-            c = load_and_trim(path, per_clip_sn, cfg)
-            clips.append(c)
+            durations.append(probe(path).duration_sn)
+            present.append(path)
         except Exception as exc:
-            log.error(f"Klip yüklenemedi ({name}): {exc}")
+            log.warning(f"Süre okunamadı ({name}): {exc}")
 
-    if not clips:
+    if not present:
         log.error(f"Hiç klip yok, atlanıyor: {final_json.name}")
         return None
 
+    shares = _plan_durations(durations, cfg)
+
+    clips: list[Any] = []
+    for path, share in zip(present, shares):
+        try:
+            clips.append(load_and_trim(path, share, cfg))
+        except Exception as exc:
+            log.error(f"Klip yüklenemedi ({path.name}): {exc}")
+
+    if not clips:
+        log.error(f"Hiç klip yüklenemedi, atlanıyor: {final_json.name}")
+        return None
+
     base = concatenate_videoclips(clips, method="compose")
-    if base.duration < cfg.reels.min_duration_sn:
-        pad = ColorClip(
-            size=(cfg.reels.target_width, cfg.reels.target_height),
-            color=(0, 0, 0),
-            duration=cfg.reels.min_duration_sn - base.duration,
-        ).with_fps(cfg.reels.fps)
-        base = concatenate_videoclips([base, pad])
     if base.duration > cfg.reels.max_duration_sn:
         base = base.subclipped(0, cfg.reels.max_duration_sn)
+    if base.duration < 3.0:
+        pad = ColorClip(
+            size=(cfg.reels.target_width, cfg.reels.target_height),
+            color=(0, 0, 0), duration=3.0 - base.duration,
+        ).with_fps(cfg.reels.fps)
+        base = concatenate_videoclips([base, pad])
 
     overlay_clips: list[Any] = []
 
+    # 1) HOOK: büyük/vurgulu, yalnızca girişte görünür (sonra kaybolur).
     hook_text = str(plan.get("hook", "")).strip()
     if hook_text:
+        hook_start = min(HOOK_START_SN, max(0.0, base.duration - 0.5))
+        hook_dur = max(0.5, min(HOOK_VISIBLE_SN, base.duration - hook_start))
         for c in make_overlay(hook_text, cfg, "hook", "beyaz"):
-            overlay_clips.append(c.with_start(0.0).with_duration(cfg.reels.hook_duration_sn))
+            overlay_clips.append(c.with_start(hook_start).with_duration(hook_dur))
 
-    for o in plan.get("overlays", []):
-        try:
-            stil = str(o.get("stil", "vurgu"))
-            renk = str(o.get("renk", ""))
-            start = max(0.0, float(o["saniye"]))
-            dur = min(float(o.get("sure", 3.0)), max(0.5, base.duration - start))
-            if dur <= 0:
-                continue
-            for c in make_overlay(str(o["metin"]), cfg, stil, renk):
-                overlay_clips.append(c.with_start(start).with_duration(dur))
-        except Exception as exc:
-            log.warning(f"Overlay atlandı: {exc}")
+    # 2) LOKASYON ETİKETİ: küçük puntolu, normal yazım, TÜM video boyunca kalıcı.
+    lokasyon = str(data.get("mekan_etiketi", "")).strip()
+    if lokasyon:
+        for c in make_overlay(lokasyon, cfg, "lokasyon", "beyaz", upper=False):
+            overlay_clips.append(c.with_start(0.0).with_duration(base.duration))
 
-    cta = str(plan.get("cta") or cfg.reels.cta_text)
-    if cta:
-        cta_start = max(0.0, base.duration - cfg.reels.cta_duration_sn)
-        for c in make_overlay(cta, cfg, "cta", "sari"):
-            overlay_clips.append(c.with_start(cta_start).with_duration(cfg.reels.cta_duration_sn))
+    # 3) Aradaki overlay'ler ve 4) sondaki CTA artık ekrana basılmıyor
+    #    (bu bilgiler açıklama/.txt içinde korunuyor).
 
     final = CompositeVideoClip(
         [base, *overlay_clips],
@@ -178,23 +211,43 @@ def render_reel(final_json: Path, cfg: Config, source_dir: Path, name_index: dic
 
     out_name = final_json.name.replace("_final.json", ".mp4")
     out_path = cfg.paths.output_dir / out_name
-    log.info(f"Render → {out_path.name} ({final.duration:.1f}s)")
+    expected = float(final.duration)
+    tmp_path = out_path.with_suffix(".part.mp4")
+    log.info(f"Render → {out_path.name} ({expected:.1f}s)")
 
-    final.write_videofile(
-        str(out_path),
-        codec="libx264",
-        audio_codec="aac",
-        fps=cfg.reels.fps,
-        preset="medium",
-        threads=4,
-        logger=None,
-    )
+    try:
+        final.write_videofile(
+            str(tmp_path),
+            codec="libx264",
+            audio_codec="aac",
+            fps=cfg.reels.fps,
+            preset="medium",
+            threads=4,
+            logger=None,
+        )
+    finally:
+        for c in clips:
+            try:
+                c.close()
+            except Exception:
+                pass
+        final.close()
 
+    # Tam-render doğrulaması: dosya var, süre beklenene yakın (yarıda kesilmemiş)
+    try:
+        got = probe(tmp_path).duration_sn
+    except Exception as exc:
+        log.error(f"✖ Çıktı doğrulanamadı ({out_name}): {exc}")
+        tmp_path.unlink(missing_ok=True)
+        return None
+    if got < min(expected - 1.5, expected * 0.9):
+        log.error(f"✖ Render eksik/kesik ({out_name}): beklenen {expected:.1f}s, elde {got:.1f}s — atılıyor")
+        tmp_path.unlink(missing_ok=True)
+        return None
+
+    tmp_path.replace(out_path)
     _write_caption(final_json, plan, out_path)
-
-    for c in clips:
-        c.close()
-    final.close()
+    log.info(f"✓ {out_name} doğrulandı ({got:.1f}s)")
     return out_path
 
 
