@@ -21,11 +21,24 @@ class ColorFormatter(logging.Formatter):
         return f"{color}[{ts}] {record.levelname:<8}{_RESET} {record.name}: {record.getMessage()}"
 
 
+class _FlushingStreamHandler(logging.StreamHandler):
+    def emit(self, record: logging.LogRecord) -> None:
+        super().emit(record)
+        try:
+            self.flush()
+        except Exception:
+            pass
+
+
 def get_logger(name: str) -> logging.Logger:
     logger = logging.getLogger(name)
     if logger.handlers:
         return logger
-    handler = logging.StreamHandler(sys.stdout)
+    try:
+        sys.stdout.reconfigure(line_buffering=True)
+    except Exception:
+        pass
+    handler = _FlushingStreamHandler(sys.stdout)
     handler.setFormatter(ColorFormatter())
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
