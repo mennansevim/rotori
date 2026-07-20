@@ -300,13 +300,10 @@ class _JourneyStepState extends State<JourneyStep> {
             ],
           ),
           const SizedBox(height: 10),
-          // Listede olmayan şehirler için — Japon havalimanı picker'ı ile
-          // custom destinasyon eklenir (Fukuoka, Okinawa, Hakone çevresi vb.).
-          AirportPickerField(
-            countryCodes: const ['JP'],
-            valueLabel: '+ Başka şehir',
-            placeholder: 'Diğer şehir/havalimanı ara',
-            onSelect: (a) => _addCustomCity(a),
+          // Listede olmayan şehirler için — Japon şehir picker'ı (havalimanı
+          // olmayanlar dahil). Seçince custom destinasyon olur.
+          _JpCityPickerField(
+            onSelect: (c) => _addCustomCityFromJp(c),
           ),
           // Chip listesinde olmayan (custom eklenmiş) destinasyonları da göster.
           if (dests.any((d) => !_isKnownCity(d.city))) ...[
@@ -335,25 +332,26 @@ class _JourneyStepState extends State<JourneyStep> {
   bool _isKnownCity(String city) => kCityData
       .any((c) => c.label.toLowerCase() == city.trim().toLowerCase());
 
-  /// Custom şehir: havalimanı seçicisinden gelen Airport ile destinasyon ekler.
-  void _addCustomCity(Airport a) {
-    if (a.iata.isEmpty) return;
+  /// Custom şehir: JpCity listesinden seçilen şehir ile destinasyon ekler.
+  /// Havalimanı olan şehirlerde IATA otomatik atanır (uçuş bacağı için); yoksa
+  /// airport boş — Shinkansen/tren ile gidilecek şehir olarak eklenir.
+  void _addCustomCityFromJp(_JpCity c) {
     widget.onChange((t) {
       final list = [...t.preferences.destinations]
         ..sort((x, y) => x.order.compareTo(y.order));
-      // Aynı şehir zaten varsa (havalimanı farklı olsa da) tekrar ekleme.
+      // Aynı şehir zaten varsa tekrar ekleme.
       if (list.any((d) =>
-          d.city.trim().toLowerCase() == a.city.trim().toLowerCase())) {
+          d.city.trim().toLowerCase() == c.name.trim().toLowerCase())) {
         return;
       }
       list.add(TripDestination(
         id: 'dest-${DateTime.now().millisecondsSinceEpoch}-${list.length}',
-        countryCode: a.countryCode,
-        countryName: a.countryName,
-        city: a.city,
-        airport: a.iata,
-        lat: a.lat,
-        lng: a.lng,
+        countryCode: 'JP',
+        countryName: 'Japonya',
+        city: c.name,
+        airport: c.iata ?? '',
+        lat: c.lat,
+        lng: c.lng,
         arrivalDate: t.preferences.travelDates.start,
         departureDate: t.preferences.travelDates.end,
         order: list.length,
@@ -855,6 +853,245 @@ class _CityChip extends StatelessWidget {
               const SizedBox(width: 6),
               const Icon(Icons.check, size: 14, color: Colors.white),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Genişletilmiş Japon şehir listesi + picker (havalimanı olmayanlar dahil).
+// AirportPickerField sadece 7 havalimanını gösterir; kullanıcının rotaya
+// koymak isteyebileceği Hakone, Nikko, Kamakura, Takayama gibi şehirler
+// havalimansız — bu picker onları da listeler.
+// ---------------------------------------------------------------------------
+
+class _JpCity {
+  const _JpCity({
+    required this.name,
+    required this.lat,
+    required this.lng,
+    this.iata,
+    this.airportLabel,
+  });
+  final String name;
+  final double lat;
+  final double lng;
+  /// Havalimanı IATA (varsa) — uçuş bacağı olarak kullanılır.
+  final String? iata;
+  /// Havalimanı görüntü etiketi (örn. "Haneda").
+  final String? airportLabel;
+}
+
+const List<_JpCity> _kJpCities = [
+  // Havalimanlı büyük şehirler
+  _JpCity(name: 'Tokyo', lat: 35.6762, lng: 139.6503, iata: 'HND', airportLabel: 'Haneda'),
+  _JpCity(name: 'Osaka', lat: 34.6937, lng: 135.5023, iata: 'KIX', airportLabel: 'Kansai'),
+  _JpCity(name: 'Sapporo', lat: 43.0621, lng: 141.3544, iata: 'CTS'),
+  _JpCity(name: 'Fukuoka', lat: 33.5904, lng: 130.4017, iata: 'FUK'),
+  _JpCity(name: 'Naha (Okinawa)', lat: 26.2124, lng: 127.6809, iata: 'OKA'),
+  _JpCity(name: 'Nagoya', lat: 35.1815, lng: 136.9066, iata: 'NGO', airportLabel: 'Chubu Centrair'),
+  _JpCity(name: 'Sendai', lat: 38.2682, lng: 140.8694, iata: 'SDJ'),
+  _JpCity(name: 'Hiroshima', lat: 34.3853, lng: 132.4553, iata: 'HIJ'),
+  _JpCity(name: 'Kagoshima', lat: 31.5966, lng: 130.5571, iata: 'KOJ'),
+  _JpCity(name: 'Kumamoto', lat: 32.8032, lng: 130.7079, iata: 'KMJ'),
+  _JpCity(name: 'Matsuyama', lat: 33.8416, lng: 132.7657, iata: 'MYJ'),
+  _JpCity(name: 'Komatsu (Kanazawa)', lat: 36.5615, lng: 136.6567, iata: 'KMQ'),
+  _JpCity(name: 'Miyazaki', lat: 31.9077, lng: 131.4202, iata: 'KMI'),
+  _JpCity(name: 'Nagasaki', lat: 32.7503, lng: 129.8779, iata: 'NGS'),
+  _JpCity(name: 'Aomori', lat: 40.8244, lng: 140.7400, iata: 'AOJ'),
+  _JpCity(name: 'Akita', lat: 39.7186, lng: 140.1024, iata: 'AXT'),
+
+  // Shinkansen / tren erişimli (havalimansız) turistik şehirler
+  _JpCity(name: 'Kyoto', lat: 35.0116, lng: 135.7681),
+  _JpCity(name: 'Nara', lat: 34.6851, lng: 135.8048),
+  _JpCity(name: 'Kanazawa', lat: 36.5613, lng: 136.6562),
+  _JpCity(name: 'Nikko', lat: 36.7194, lng: 139.6982),
+  _JpCity(name: 'Hakone', lat: 35.2325, lng: 139.1069),
+  _JpCity(name: 'Kamakura', lat: 35.3193, lng: 139.5466),
+  _JpCity(name: 'Yokohama', lat: 35.4437, lng: 139.6380),
+  _JpCity(name: 'Kobe', lat: 34.6901, lng: 135.1955),
+  _JpCity(name: 'Himeji', lat: 34.8394, lng: 134.6939),
+  _JpCity(name: 'Takayama', lat: 36.1461, lng: 137.2521),
+  _JpCity(name: 'Shirakawa-go', lat: 36.2586, lng: 136.9060),
+  _JpCity(name: 'Kurashiki', lat: 34.5851, lng: 133.7714),
+  _JpCity(name: 'Matsumoto', lat: 36.2381, lng: 137.9720),
+  _JpCity(name: 'Nagano', lat: 36.6486, lng: 138.1948),
+  _JpCity(name: 'Miyajima (Itsukushima)', lat: 34.2960, lng: 132.3197),
+  _JpCity(name: 'Fuji Kawaguchiko', lat: 35.5104, lng: 138.7626),
+  _JpCity(name: 'Ise', lat: 34.4901, lng: 136.7098),
+  _JpCity(name: 'Beppu', lat: 33.2846, lng: 131.4913),
+  _JpCity(name: 'Otaru', lat: 43.1907, lng: 140.9947),
+  _JpCity(name: 'Hakodate', lat: 41.7688, lng: 140.7288),
+  _JpCity(name: 'Uji', lat: 34.8845, lng: 135.7999),
+  _JpCity(name: 'Koyasan', lat: 34.2131, lng: 135.5843),
+  _JpCity(name: 'Kinosaki Onsen', lat: 35.6262, lng: 134.8078),
+  _JpCity(name: 'Yakushima', lat: 30.3583, lng: 130.5468),
+  _JpCity(name: 'Ishigaki', lat: 24.3448, lng: 124.1571, iata: 'ISG'),
+];
+
+/// "+ Başka şehir" tetikleyicisi — dokununca aramalı şehir sheet'i açar.
+class _JpCityPickerField extends StatelessWidget {
+  const _JpCityPickerField({required this.onSelect});
+  final ValueChanged<_JpCity> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () async {
+        final picked = await showModalBottomSheet<_JpCity>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: PT.bgElevated,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          builder: (_) => const _JpCitySearchSheet(),
+        );
+        if (picked != null) onSelect(picked);
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: PT.bgSubtle,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: PT.borderStrong),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.add, size: 20, color: PT.accent),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '+ Başka şehir',
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: PT.text),
+              ),
+            ),
+            Icon(Icons.chevron_right, color: PT.textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _JpCitySearchSheet extends StatefulWidget {
+  const _JpCitySearchSheet();
+  @override
+  State<_JpCitySearchSheet> createState() => _JpCitySearchSheetState();
+}
+
+class _JpCitySearchSheetState extends State<_JpCitySearchSheet> {
+  String _q = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final q = _q.trim().toLowerCase();
+    final filtered = q.isEmpty
+        ? _kJpCities
+        : _kJpCities
+            .where((c) =>
+                c.name.toLowerCase().contains(q) ||
+                (c.iata ?? '').toLowerCase().contains(q))
+            .toList();
+    return SafeArea(
+      top: false,
+      child: FractionallySizedBox(
+        heightFactor: 0.85,
+        child: Column(
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: PT.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text('Şehir seç',
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: PT.text)),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Kapat',
+                        style: TextStyle(color: PT.accent)),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TextField(
+                autofocus: true,
+                onChanged: (v) => setState(() => _q = v),
+                decoration: InputDecoration(
+                  hintText: 'Şehir ara — Kyoto, Hakone, Nikko…',
+                  prefixIcon: const Icon(Icons.search, color: PT.textSecondary),
+                  filled: true,
+                  fillColor: PT.bgSubtle,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: ListView.separated(
+                itemCount: filtered.length,
+                separatorBuilder: (_, __) => const Divider(
+                    height: 1, color: PT.border, indent: 16, endIndent: 16),
+                itemBuilder: (_, i) {
+                  final c = filtered[i];
+                  return ListTile(
+                    onTap: () => Navigator.pop(context, c),
+                    title: Text(c.name,
+                        style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: PT.text)),
+                    subtitle: Text(
+                      c.iata != null
+                          ? '${c.airportLabel ?? "Havalimanı"} · ${c.iata}'
+                          : 'Shinkansen / tren erişimli',
+                      style: const TextStyle(
+                          fontSize: 12, color: PT.textSecondary),
+                    ),
+                    trailing: c.iata != null
+                        ? Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: PT.accentSoft,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(c.iata!,
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: PT.accent)),
+                          )
+                        : const Icon(Icons.train,
+                            size: 20, color: PT.textTertiary),
+                  );
+                },
+              ),
+            ),
           ],
         ),
       ),
