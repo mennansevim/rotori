@@ -4,262 +4,433 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Japan Reels Maker</title>
+<link rel="preconnect" href="https://rsms.me/">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
 <style>
   :root{
-    --bg:#0d0f14; --panel:#161a22; --panel2:#1e232e; --line:#2a3040;
-    --txt:#e8ecf3; --muted:#8b93a7; --accent:#ff3b5c; --accent2:#ffd400;
-    --ok:#34c759; --warn:#ff9500; --err:#ff453a; --blue:#0a84ff;
+    /* Ana palet */
+    --bg: #0b0d12;
+    --bg-elev: #12151d;
+    --surface: #171b25;
+    --surface-2: #1e2330;
+    --line: #2b3142;
+    --line-strong: #3a4358;
+    --txt: #eef1f7;
+    --txt-dim: #b0b8ca;
+    --muted: #7c869e;
+
+    /* Aksan */
+    --accent: #ff3860;
+    --accent-hover: #ff4d6f;
+    --accent-soft: rgba(255,56,96,.12);
+    --gold: #ffd166;
+    --ok: #34d399;
+    --warn: #fbbf24;
+    --err: #f87171;
+    --info: #60a5fa;
+
+    /* Radius/Shadow/Motion */
+    --r-sm: 8px;
+    --r-md: 10px;
+    --r-lg: 14px;
+    --r-xl: 18px;
+    --sh-1: 0 1px 2px rgba(0,0,0,.3), 0 1px 0 rgba(255,255,255,.02) inset;
+    --sh-2: 0 4px 16px rgba(0,0,0,.4);
+    --sh-3: 0 12px 32px rgba(0,0,0,.5);
+    --sh-accent: 0 6px 24px rgba(255,56,96,.24);
+    --ease: cubic-bezier(.2,.6,.2,1);
+    --dur: .18s;
+
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Text",
+            "Helvetica Neue", Arial, sans-serif;
+    --mono: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
   }
+  @supports (font-variation-settings: normal){
+    :root{ --font: 'Inter var', -apple-system, BlinkMacSystemFont, sans-serif; }
+  }
+
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--txt);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
-  a{color:var(--blue)}
-  header{position:sticky;top:0;z-index:10;background:linear-gradient(180deg,#141821,#0d0f14);
-    border-bottom:1px solid var(--line);padding:14px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-  header h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
-  header h1 .jp{color:var(--accent)}
-  .pills{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
-  .pill{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);
-    padding:5px 10px;border-radius:20px;font-size:12px;color:var(--muted)}
-  .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
-  .dot.ok{background:var(--ok)} .dot.bad{background:var(--err)} .dot.warn{background:var(--warn)}
-  main{max-width:1180px;margin:0 auto;padding:22px;display:flex;flex-direction:column;gap:20px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
-  .card h2{margin:0 0 14px;font-size:14px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
-  .card h2 .h2-actions{float:right;font-size:12px;text-transform:none;letter-spacing:0}
-  .card h2 .h2-actions button{padding:5px 12px;font-size:12px}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
+    font-family:var(--font);font-size:14px;line-height:1.5;
+    -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{color:var(--accent-hover)}
 
-  /* Prompt formu */
-  form#promptForm{display:flex;flex-direction:column;gap:14px}
-  label.field{display:flex;flex-direction:column;gap:6px}
-  label.field span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  /* ------ Header ------ */
+  header{position:sticky;top:0;z-index:20;background:rgba(11,13,18,.85);
+    backdrop-filter:blur(12px);border-bottom:1px solid var(--line);
+    padding:14px 24px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  .logo{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700;
+    letter-spacing:-.01em}
+  .logo-mark{width:32px;height:32px;border-radius:9px;
+    background:linear-gradient(135deg,var(--accent),#c81e56);
+    display:flex;align-items:center;justify-content:center;font-size:18px;
+    box-shadow:var(--sh-accent)}
+  .logo-text{color:var(--txt)}
+  .logo-text .jp{color:var(--accent)}
+  .pills{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;align-items:center}
+  .pill{display:inline-flex;align-items:center;gap:6px;background:var(--surface);
+    border:1px solid var(--line);padding:5px 11px;border-radius:20px;
+    font-size:12px;color:var(--txt-dim);font-weight:500}
+  .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);
+    transition:background var(--dur) var(--ease)}
+  .pill .dot.ok{background:var(--ok);box-shadow:0 0 0 3px rgba(52,211,153,.15)}
+  .pill .dot.bad{background:var(--err);box-shadow:0 0 0 3px rgba(248,113,113,.15)}
+  .pill .dot.warn{background:var(--warn);box-shadow:0 0 0 3px rgba(251,191,36,.15)}
+
+  /* ------ Main layout ------ */
+  main{max-width:1200px;margin:0 auto;padding:24px;
+    display:flex;flex-direction:column;gap:20px}
+
+  .section{background:var(--bg-elev);border:1px solid var(--line);
+    border-radius:var(--r-xl);padding:22px;box-shadow:var(--sh-1)}
+  .section-head{display:flex;justify-content:space-between;align-items:center;
+    gap:12px;margin:0 0 16px;flex-wrap:wrap}
+  .section-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;
+    color:var(--muted);margin:0;font-weight:600;display:flex;align-items:center;
+    gap:8px}
+  .section-title .count{background:var(--surface);padding:2px 9px;
+    border-radius:12px;font-size:11px;font-weight:600;color:var(--txt-dim);
+    letter-spacing:0;text-transform:none}
+  .section-hint{color:var(--muted);font-size:12.5px;margin:0 0 14px;
+    line-height:1.55}
+
+  /* ------ Reels Fikirleri ------ */
+  .idea-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+    gap:12px}
+  .idea-card{position:relative;background:var(--surface);
+    border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;
+    cursor:pointer;display:flex;flex-direction:column;
+    transition:transform var(--dur) var(--ease),
+               border-color var(--dur) var(--ease),
+               box-shadow var(--dur) var(--ease)}
+  .idea-card:hover{transform:translateY(-3px);border-color:var(--accent);
+    box-shadow:var(--sh-accent)}
+  .idea-card:active{transform:translateY(-1px)}
+  .idea-thumb{position:relative;width:100%;aspect-ratio:16/10;background:#000;
+    background-size:cover;background-position:center}
+  .idea-thumb::after{content:"";position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.75))}
+  .idea-thumb.no-img{background:linear-gradient(135deg,var(--surface-2),var(--surface));
+    display:flex;align-items:center;justify-content:center;font-size:48px}
+  .idea-emoji{position:absolute;top:10px;left:10px;
+    background:rgba(11,13,18,.75);backdrop-filter:blur(8px);
+    width:34px;height:34px;border-radius:9px;display:flex;
+    align-items:center;justify-content:center;font-size:18px;z-index:2;
+    border:1px solid rgba(255,255,255,.06)}
+  .idea-count{position:absolute;top:10px;right:10px;
+    background:var(--accent);color:#fff;padding:4px 10px;border-radius:20px;
+    font-size:11px;font-weight:600;z-index:2;box-shadow:var(--sh-1)}
+  .idea-body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px;
+    flex:1}
+  .idea-title{font-weight:600;font-size:13px;line-height:1.35;color:var(--txt);
+    letter-spacing:-.005em}
+  .idea-hook{color:var(--txt-dim);font-size:11.5px;line-height:1.45;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+    overflow:hidden;font-style:italic}
+  .idea-meta{display:flex;justify-content:space-between;align-items:center;
+    margin-top:auto;padding-top:8px;font-size:10.5px;color:var(--muted);
+    font-weight:500}
+  .idea-mode{background:var(--surface-2);padding:3px 9px;border-radius:12px;
+    color:var(--gold);font-weight:600;letter-spacing:.02em;text-transform:uppercase;
+    font-size:10px}
+
+  /* ------ Form ------ */
+  form#promptForm{display:flex;flex-direction:column;gap:16px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field label{font-size:11px;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.06em;font-weight:600}
+  .field label .opt{color:var(--muted);text-transform:none;letter-spacing:0;
+    font-weight:400;font-style:italic}
   textarea, input[type="text"]{
-    font:inherit;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
-    padding:12px 14px;border-radius:10px;resize:vertical;width:100%;
-  }
-  textarea:focus, input[type="text"]:focus{outline:none;border-color:var(--accent)}
-  textarea#prompt{min-height:120px;font-size:16px;line-height:1.5}
+    font:inherit;background:var(--surface);border:1px solid var(--line);
+    color:var(--txt);padding:12px 14px;border-radius:var(--r-md);
+    width:100%;transition:border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);font-size:14px}
+  textarea:focus, input[type="text"]:focus{outline:none;
+    border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  textarea{resize:vertical}
+  textarea#prompt{min-height:110px;font-size:15px;line-height:1.55}
+  textarea::placeholder, input::placeholder{color:var(--muted);font-style:italic}
 
-  /* Süre modu segmented */
-  .segmented{display:flex;gap:6px;flex-wrap:wrap}
-  .segmented label{flex:1;min-width:110px;display:flex;flex-direction:column;align-items:center;gap:2px;
-    background:var(--panel2);border:1px solid var(--line);padding:10px 12px;border-radius:10px;cursor:pointer;
-    text-align:center;transition:.15s}
-  .segmented label:hover{border-color:var(--accent)}
-  .segmented input[type="radio"]{display:none}
-  .segmented label:has(input:checked){background:var(--accent);border-color:var(--accent);color:#fff}
-  .segmented span.title{font-size:14px;font-weight:600;color:var(--txt)}
-  .segmented span.hint{font-size:11px;color:var(--muted);margin-top:2px}
-  .segmented label:has(input:checked) span.title{color:#fff}
-  .segmented label:has(input:checked) span.hint{color:rgba(255,255,255,.9)}
+  /* Süre segmented */
+  .segmented{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .segmented label{position:relative;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:2px;
+    background:var(--surface);border:1px solid var(--line);
+    padding:12px 10px;border-radius:var(--r-md);cursor:pointer;text-align:center;
+    transition:all var(--dur) var(--ease)}
+  .segmented label:hover{border-color:var(--line-strong)}
+  .segmented input[type="radio"]{position:absolute;opacity:0;pointer-events:none}
+  .segmented label:has(input:checked){
+    background:linear-gradient(135deg,var(--accent),#c81e56);
+    border-color:var(--accent);box-shadow:var(--sh-accent)}
+  .segmented .seg-title{font-size:14px;font-weight:600;color:var(--txt)}
+  .segmented .seg-hint{font-size:11px;color:var(--muted);margin-top:2px}
+  .segmented label:has(input:checked) .seg-title{color:#fff}
+  .segmented label:has(input:checked) .seg-hint{color:rgba(255,255,255,.85)}
 
-  details.advanced{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:0}
-  details.advanced summary{padding:10px 14px;cursor:pointer;list-style:none;user-select:none;font-size:13px}
+  /* Advanced details */
+  details.advanced{background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--r-md);overflow:hidden}
+  details.advanced summary{padding:11px 14px;cursor:pointer;list-style:none;
+    user-select:none;font-size:13px;font-weight:500;color:var(--txt-dim);
+    display:flex;align-items:center;gap:8px;transition:color var(--dur) var(--ease)}
+  details.advanced summary:hover{color:var(--txt)}
   details.advanced summary::-webkit-details-marker{display:none}
+  details.advanced summary::before{content:"›";color:var(--muted);font-size:16px;
+    transition:transform var(--dur) var(--ease);display:inline-block}
+  details.advanced[open] summary::before{transform:rotate(90deg)}
   details.advanced[open] summary{border-bottom:1px solid var(--line)}
-  details.advanced summary::before{content:"▸ ";color:var(--muted)}
-  details.advanced[open] summary::before{content:"▾ "}
-  details.advanced .body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px}
+  details.advanced .body{padding:14px;display:flex;flex-direction:column;gap:12px}
 
-  button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);
-    background:var(--panel2);color:var(--txt);padding:10px 16px;transition:.15s}
-  button:hover:not(:disabled){border-color:var(--accent);color:#fff}
+  /* Buttons */
+  button{font:inherit;cursor:pointer;border-radius:var(--r-md);
+    border:1px solid var(--line);background:var(--surface);color:var(--txt);
+    padding:10px 16px;font-size:13.5px;font-weight:500;
+    transition:all var(--dur) var(--ease);
+    display:inline-flex;align-items:center;gap:6px}
+  button:hover:not(:disabled){border-color:var(--line-strong);
+    background:var(--surface-2)}
+  button:active:not(:disabled){transform:translateY(1px)}
   button:disabled{opacity:.4;cursor:not-allowed}
-  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;font-size:15px;padding:12px 22px}
-  button.primary:hover:not(:disabled){filter:brightness(1.1)}
-  button.ghost{background:transparent}
+  button.primary{background:linear-gradient(135deg,var(--accent),#e02a52);
+    border-color:var(--accent);color:#fff;font-weight:600;padding:12px 22px;
+    font-size:14px;box-shadow:var(--sh-1)}
+  button.primary:hover:not(:disabled){filter:brightness(1.08);
+    box-shadow:var(--sh-accent)}
+  button.ghost{background:transparent;border-color:var(--line)}
+  button.danger{border-color:transparent;color:var(--err);background:transparent}
+  button.danger:hover:not(:disabled){background:rgba(248,113,113,.08)}
+  button.sm{padding:6px 12px;font-size:12px}
 
-  .actions-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .job-status{font-size:13px;color:var(--muted)}
+  .actions-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    padding-top:4px}
+  .job-status{font-size:13px;color:var(--muted);flex:1;min-width:200px}
   .job-status.running{color:var(--warn)}
   .job-status.done{color:var(--ok)}
+  .job-status.error{color:var(--err)}
 
-  /* Log akışı */
-  .logbox{background:#0a0d13;border:1px solid var(--line);border-radius:10px;padding:12px 14px;
-    font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:12px;line-height:1.6;
-    max-height:340px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}
-  .logline{color:var(--txt)}
-  .logline.info{color:var(--blue)}
+  /* Log */
+  .logbox{background:#080a10;border:1px solid var(--line);
+    border-radius:var(--r-md);padding:12px 14px;
+    font-family:var(--mono);font-size:12px;line-height:1.65;
+    max-height:320px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}
+  .logbox::-webkit-scrollbar{width:8px}
+  .logbox::-webkit-scrollbar-thumb{background:var(--surface-2);border-radius:4px}
+  .logline{color:var(--txt);padding:1px 0}
+  .logline.info{color:var(--info)}
   .logline.warn{color:var(--warn)}
   .logline.error{color:var(--err)}
   .logline.cmd{color:var(--muted)}
-  .progress-line{color:var(--muted);font-family:ui-monospace,"SF Mono",Menlo,monospace;
-    font-size:11px;padding:6px 14px;border-top:1px solid var(--line);
+  .progress-line{color:var(--muted);font-family:var(--mono);
+    font-size:11px;padding:8px 14px 0;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-  /* Galeriler */
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
-  .reel-card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;overflow:hidden;
-    display:flex;flex-direction:column}
-  .reel-card video{width:100%;background:#000;aspect-ratio:9/16;object-fit:cover}
-  .reel-card .info{padding:11px 12px;display:flex;flex-direction:column;gap:6px}
-  .reel-card .mekan{font-weight:600;font-size:13px}
-  .reel-card .hook{color:var(--muted);font-size:12px;line-height:1.4}
-  .reel-card .prompt{color:var(--muted);font-size:11px;font-style:italic;
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .reel-card .actions{display:flex;gap:6px;padding:0 10px 10px;flex-wrap:wrap}
-  .reel-card .actions button{padding:6px 10px;font-size:12px;flex:1;min-width:auto}
-  .reel-card .caption{background:#0a0d13;border-top:1px solid var(--line);
-    padding:9px 12px;font-size:11px;color:var(--muted);max-height:70px;overflow-y:auto;white-space:pre-wrap}
+  /* Reel grid */
+  .reel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));
+    gap:14px}
+  .reel-card{background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--r-lg);overflow:hidden;display:flex;flex-direction:column;
+    transition:border-color var(--dur) var(--ease)}
+  .reel-card:hover{border-color:var(--line-strong)}
+  .reel-card video{width:100%;background:#000;aspect-ratio:9/16;object-fit:cover;
+    display:block}
+  .reel-card .info{padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+  .reel-card .mekan{font-weight:600;font-size:13px;color:var(--txt);
+    letter-spacing:-.005em}
+  .reel-card .mekan .clips{color:var(--muted);font-weight:400;margin-left:4px}
+  .reel-card .hook{color:var(--txt-dim);font-size:12px;line-height:1.45;
+    font-style:italic}
+  .reel-card .prompt{color:var(--muted);font-size:11.5px;line-height:1.4;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+    overflow:hidden}
+  .reel-card .prompt::before{content:"💬 "}
+  .reel-card .actions{display:flex;gap:6px;padding:0 12px 12px}
+  .reel-card .actions button{flex:1;padding:8px 10px;font-size:12px;
+    justify-content:center}
+  .reel-card .caption{background:#080a10;border-top:1px solid var(--line);
+    padding:10px 14px;font-size:11px;color:var(--muted);max-height:60px;
+    overflow-y:auto;white-space:pre-wrap;line-height:1.55}
 
-  .empty{color:var(--muted);font-style:italic;text-align:center;padding:30px}
+  .empty{color:var(--muted);text-align:center;padding:36px 20px;
+    font-size:13px;font-style:italic}
+  .empty::before{content:attr(data-icon);display:block;font-size:32px;
+    margin-bottom:8px;font-style:normal}
 
-  /* Reels fikirleri — hazır prompt kartları */
-  .idea-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
-  .idea-card{position:relative;background:linear-gradient(135deg,var(--panel2),#1a1f2b);
-    border:1px solid var(--line);border-radius:12px;padding:0;overflow:hidden;
-    cursor:pointer;transition:transform .18s,border-color .18s,box-shadow .18s;
-    display:flex;flex-direction:column;min-height:200px}
-  .idea-card:hover{transform:translateY(-2px);border-color:var(--accent);
-    box-shadow:0 8px 24px rgba(255,59,92,.18)}
-  .idea-card:active{transform:translateY(0)}
-  .idea-thumb{width:100%;aspect-ratio:16/10;background:#000 center/cover no-repeat;
-    position:relative;flex:0 0 auto}
-  .idea-thumb::after{content:"";position:absolute;inset:0;
-    background:linear-gradient(180deg,rgba(0,0,0,0) 40%,rgba(0,0,0,.65) 100%)}
-  .idea-thumb.no-img{background:linear-gradient(135deg,#2a2f3d,#1e2330);
-    display:flex;align-items:center;justify-content:center;font-size:44px}
-  .idea-icon-badge{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.55);
-    backdrop-filter:blur(6px);width:32px;height:32px;border-radius:8px;
-    display:flex;align-items:center;justify-content:center;font-size:18px;z-index:2}
-  .idea-count{position:absolute;top:8px;right:8px;background:rgba(255,59,92,.9);
-    color:#fff;padding:3px 8px;border-radius:20px;font-size:11px;
-    font-weight:600;z-index:2}
-  .idea-body{padding:11px 13px;display:flex;flex-direction:column;gap:5px;flex:1}
-  .idea-title{font-weight:600;font-size:13px;line-height:1.35;color:var(--txt)}
-  .idea-hook{color:var(--muted);font-size:11px;line-height:1.4;
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .idea-meta{display:flex;justify-content:space-between;align-items:center;
-    margin-top:auto;padding-top:6px;font-size:10px;color:var(--muted);
-    text-transform:uppercase;letter-spacing:.5px}
-  .idea-meta .idea-mode{background:var(--panel);padding:2px 7px;border-radius:12px;
-    color:var(--accent2);font-weight:600}
-  .idea-refresh{background:transparent;border:1px solid var(--line);padding:5px 10px;
-    font-size:12px;border-radius:8px;color:var(--muted)}
-  .idea-refresh:hover{color:var(--txt);border-color:var(--accent)}
+  /* Toast bildirimleri */
+  .toast-host{position:fixed;top:76px;right:20px;z-index:100;
+    display:flex;flex-direction:column;gap:8px;pointer-events:none}
+  .toast{background:var(--bg-elev);border:1px solid var(--line);
+    border-left:3px solid var(--info);padding:12px 16px;border-radius:var(--r-md);
+    box-shadow:var(--sh-3);min-width:260px;max-width:360px;font-size:13px;
+    display:flex;align-items:flex-start;gap:10px;
+    animation:toastIn .3s var(--ease) both;pointer-events:auto}
+  .toast.ok{border-left-color:var(--ok)}
+  .toast.err{border-left-color:var(--err)}
+  .toast.warn{border-left-color:var(--warn)}
+  .toast.info{border-left-color:var(--info)}
+  .toast .toast-icon{flex:0 0 auto;font-size:18px;line-height:1}
+  .toast .toast-body{flex:1;color:var(--txt-dim);line-height:1.5}
+  @keyframes toastIn{
+    from{opacity:0;transform:translateX(20px)}
+    to{opacity:1;transform:translateX(0)}
+  }
+
+  /* Small screens */
+  @media (max-width: 640px){
+    header{padding:12px 16px}
+    main{padding:16px}
+    .section{padding:16px}
+    .segmented{grid-template-columns:1fr}
+    .idea-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+    .reel-grid{grid-template-columns:1fr}
+  }
 </style>
 </head>
 <body>
 <header>
-  <h1><span class="jp">Japan</span> Reels Maker</h1>
+  <div class="logo">
+    <div class="logo-mark">🎬</div>
+    <div class="logo-text"><span class="jp">Japan</span> Reels Maker</div>
+  </div>
   <div class="pills">
     <span class="pill"><span id="pill-ollama" class="dot"></span> Ollama</span>
-    <span class="pill"><span id="pill-source" class="dot"></span> Kaynak: <span id="pill-source-txt">?</span></span>
+    <span class="pill"><span id="pill-source" class="dot"></span> Kaynak <span id="pill-source-txt">?</span></span>
+    <span class="pill" id="pill-count" style="color:var(--txt-dim)"><span id="pill-count-num">0</span> video</span>
   </div>
 </header>
 
+<div class="toast-host" id="toastHost"></div>
+
 <main>
-  <!-- Reels Fikirleri — arşive göre hazır promptlar -->
-  <section class="card" id="ideasCard">
-    <h2>
-      💡 Reels Fikirleri
-      <span class="h2-actions">
-        <button class="idea-refresh" onclick="loadSuggestions()" title="Arşive göre yeniden hesapla">🔄 Yenile</button>
-      </span>
-    </h2>
-    <div id="ideasHint" style="font-size:12px;color:var(--muted);margin-bottom:12px">
-      Elindeki videolara göre otomatik üretildi. Bir karta tıkla, alttaki form dolsun.
+  <!-- Reels Fikirleri -->
+  <section class="section" id="ideasCard">
+    <div class="section-head">
+      <h2 class="section-title">
+        💡 Reels Fikirleri
+        <span class="count" id="ideasCount">0</span>
+      </h2>
+      <button class="sm ghost" onclick="loadSuggestions()">🔄 Yenile</button>
     </div>
+    <p class="section-hint">Elindeki videolara göre otomatik. Bir kart tıkla, alttaki form dolsun; edit et, üret.</p>
     <div id="ideasGrid" class="idea-grid">
-      <div class="empty">Öneriler yükleniyor…</div>
+      <div class="empty" data-icon="✨">Öneriler yükleniyor…</div>
     </div>
   </section>
 
-  <!-- Ana input: prompt formu -->
-  <section class="card">
-    <h2>Reels Üretimi</h2>
-    <form id="promptForm" onsubmit="event.preventDefault(); submitPrompt();">
-      <label class="field">
-        <span>Prompt</span>
-        <textarea id="prompt" name="prompt" required
-          placeholder="Ne istediğini yaz. Örn: Nara geyikleri hakkında bir Reels · Japonya'da mutlaka bilinmesi gereken 3 şey · Konbini kültürü hakkında bilinmeyenler"></textarea>
-      </label>
+  <!-- Analiz -->
+  <section class="section">
+    <div class="section-head">
+      <h2 class="section-title">🔍 Video Analizi</h2>
+      <div style="display:flex;gap:8px">
+        <button class="sm" id="btn-analyze-fast" onclick="analyzeSources(false)"
+          title="Sadece etiketle, sahne özeti üretme">⚡ Hızlı Etiketle</button>
+        <button class="sm primary" id="btn-analyze" onclick="analyzeSources(true)"
+          style="padding:6px 14px;font-size:12px">Yeni Videoları Analiz Et</button>
+      </div>
+    </div>
+    <p class="section-hint">Kaynak klasöründe yeni video varsa etiketler + sahne özetlerini üretir. Her yeni video için ~10-15 saniye.</p>
+  </section>
 
-      <label class="field">
-        <span>Hook (opsiyonel — video başına gelecek çarpıcı metin)</span>
+  <!-- Reels Üretimi -->
+  <section class="section" id="promptSection">
+    <div class="section-head">
+      <h2 class="section-title">✏️ Reels Üretimi</h2>
+    </div>
+    <form id="promptForm" onsubmit="event.preventDefault(); submitPrompt();">
+      <div class="field">
+        <label for="prompt">Prompt</label>
+        <textarea id="prompt" name="prompt" required
+          placeholder="Ne istediğini yaz. Örn: Nara geyikleri hakkında bir Reels · Konbini kültürü hakkında bilinmeyenler"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="hook">Hook <span class="opt">— opsiyonel, video başında görünecek</span></label>
         <input type="text" id="hook" name="hook"
           placeholder="Boş bırakırsan LLM üretir. Örn: Bunu bilmeden Japonya'ya gitme">
-      </label>
+      </div>
 
-      <label class="field">
-        <span>Süre</span>
+      <div class="field">
+        <label>Süre</label>
         <div class="segmented">
           <label>
             <input type="radio" name="sure_modu" value="kisa">
-            <span class="title">Kısa</span>
-            <span class="hint">15–25 sn</span>
+            <span class="seg-title">Kısa</span>
+            <span class="seg-hint">15–25 sn</span>
           </label>
           <label>
             <input type="radio" name="sure_modu" value="orta" checked>
-            <span class="title">Orta</span>
-            <span class="hint">30–40 sn</span>
+            <span class="seg-title">Orta</span>
+            <span class="seg-hint">30–40 sn</span>
           </label>
           <label>
             <input type="radio" name="sure_modu" value="uzun">
-            <span class="title">Uzun</span>
-            <span class="hint">50–60 sn</span>
+            <span class="seg-title">Uzun</span>
+            <span class="seg-hint">50–60 sn</span>
           </label>
         </div>
-      </label>
+      </div>
 
       <details class="advanced">
         <summary>Advanced — CTA / Başlık / Hashtag override</summary>
         <div class="body">
-          <label class="field">
-            <span>CTA (boş bırakılırsa LLM üretir)</span>
+          <div class="field">
+            <label for="ov-cta">CTA <span class="opt">— boş bırakılırsa LLM üretir</span></label>
             <input type="text" id="ov-cta" placeholder="Örn: Takip et, sırada Kyoto var">
-          </label>
-          <label class="field">
-            <span>Video üst başlığı (opsiyonel)</span>
+          </div>
+          <div class="field">
+            <label for="ov-baslik">Video üst başlığı <span class="opt">— opsiyonel</span></label>
             <input type="text" id="ov-baslik" placeholder="Boş bırakılırsa LLM overlay'leri üretir">
-          </label>
-          <label class="field">
-            <span>Hashtag'ler (boşluk/virgülle ayır)</span>
+          </div>
+          <div class="field">
+            <label for="ov-tags">Hashtag'ler <span class="opt">— boşluk/virgülle</span></label>
             <input type="text" id="ov-tags" placeholder="japonya nara geyik gezi japan traveltips">
-          </label>
+          </div>
         </div>
       </details>
 
       <div class="actions-row">
-        <button type="submit" class="primary" id="btn-generate">Reels Üret</button>
+        <button type="submit" class="primary" id="btn-generate">🚀 Reels Üret</button>
         <button type="button" class="ghost" id="btn-cancel" onclick="cancelJob()" disabled>İptal</button>
         <div class="job-status" id="jobStatus">Hazır — prompt gir ve üretimi başlat.</div>
       </div>
     </form>
   </section>
 
-  <!-- Analiz -->
-  <section class="card">
-    <h2>
-      Video Analizi
-      <span class="h2-actions">
-        <button id="btn-analyze" onclick="analyzeSources(true)">🔍 Yeni Videoları Analiz Et</button>
-        <button id="btn-analyze-fast" onclick="analyzeSources(false)" title="Sadece etiketle, sahne özeti üretme">⚡ Hızlı Etiketle</button>
-      </span>
-    </h2>
-    <div id="analyzeInfo" style="font-size:13px;color:var(--muted);line-height:1.6">
-      Kaynak klasöründe yeni video varsa etiketler; sahne özetlerini (llava + qwen) üretir.
-      Her yeni video için ~10-15 saniye sürer.
+  <!-- Canlı Süreç -->
+  <section class="section">
+    <div class="section-head">
+      <h2 class="section-title">📊 Canlı Süreç</h2>
     </div>
-  </section>
-
-  <!-- Canlı süreç -->
-  <section class="card">
-    <h2>Canlı Süreç</h2>
-    <div id="logbox" class="logbox"><span class="empty">Log henüz yok.</span></div>
+    <div id="logbox" class="logbox"><div class="empty" data-icon="⏳">Log henüz yok.</div></div>
     <div id="progressLine" class="progress-line" style="display:none"></div>
   </section>
 
-  <!-- Onay bekleyen -->
-  <section class="card">
-    <h2>Onay Bekleyen (<span id="cnt-pending">0</span>)</h2>
-    <div id="pendingGrid" class="grid"><div class="empty">Henüz üretilmiş reel yok.</div></div>
+  <!-- Onay Bekleyen -->
+  <section class="section">
+    <div class="section-head">
+      <h2 class="section-title">
+        ⏳ Onay Bekleyen
+        <span class="count" id="cnt-pending">0</span>
+      </h2>
+    </div>
+    <div id="pendingGrid" class="reel-grid">
+      <div class="empty" data-icon="🎥">Henüz üretilmiş reel yok.</div>
+    </div>
   </section>
 
-  <!-- Yayına hazır -->
-  <section class="card">
-    <h2>Yayına Hazır (<span id="cnt-ready">0</span>)</h2>
-    <div id="readyGrid" class="grid"><div class="empty">Henüz onaylanmış reel yok.</div></div>
+  <!-- Yayına Hazır -->
+  <section class="section">
+    <div class="section-head">
+      <h2 class="section-title">
+        ✅ Yayına Hazır
+        <span class="count" id="cnt-ready">0</span>
+      </h2>
+    </div>
+    <div id="readyGrid" class="reel-grid">
+      <div class="empty" data-icon="📦">Henüz onaylanmış reel yok.</div>
+    </div>
   </section>
 </main>
 
@@ -267,20 +438,39 @@
 const $ = (id) => document.getElementById(id);
 let logSeq = 0;
 
+// ---------- toast ----------
+function toast(text, kind = "info", ms = 3500){
+  const host = $("toastHost");
+  const el = document.createElement("div");
+  el.className = "toast " + kind;
+  const icon = kind==="ok"?"✓":kind==="err"?"✗":kind==="warn"?"⚠":"ℹ";
+  el.innerHTML = `<div class="toast-icon">${icon}</div><div class="toast-body">${escapeHtml(text)}</div>`;
+  host.appendChild(el);
+  setTimeout(() => {
+    el.style.transition = "opacity .3s, transform .3s";
+    el.style.opacity = "0"; el.style.transform = "translateX(20px)";
+    setTimeout(() => el.remove(), 300);
+  }, ms);
+}
+
+// ---------- status ----------
 async function pollStatus(){
   try{
     const r = await fetch("/api/status");
     if(!r.ok) return;
     const s = await r.json();
-    updatePills(s.env);
+    updatePills(s.env, s.counts);
     updateJobStatus(s.job);
   }catch(e){/* ignore */}
 }
 
-function updatePills(env){
+function updatePills(env, counts){
   setDot("pill-ollama", env.ollama_ok);
   setDot("pill-source", env.source_ready);
   $("pill-source-txt").textContent = env.source_ready ? "hazır" : "yok";
+  if(counts){
+    $("pill-count-num").textContent = counts.source_videos || 0;
+  }
 }
 function setDot(id, ok){
   const el = $(id);
@@ -290,21 +480,24 @@ function setDot(id, ok){
 
 function updateJobStatus(job){
   const s = $("jobStatus");
-  const genBtn = $("btn-generate");
-  const canBtn = $("btn-cancel");
-  const anaBtns = [$("btn-analyze"), $("btn-analyze-fast")];
+  const btns = {
+    gen: $("btn-generate"),
+    can: $("btn-cancel"),
+    ana: $("btn-analyze"),
+    fast: $("btn-analyze-fast")
+  };
   if(job && job.running){
     s.className = "job-status running";
-    s.textContent = `⏳ Çalışıyor: ${job.label || "iş"}`;
-    genBtn.disabled = true;
-    canBtn.disabled = false;
-    anaBtns.forEach(b => b && (b.disabled = true));
+    s.textContent = `⏳ ${job.label || "Çalışıyor…"}`;
+    btns.gen.disabled = true; btns.can.disabled = false;
+    if(btns.ana) btns.ana.disabled = true;
+    if(btns.fast) btns.fast.disabled = true;
   }else{
-    genBtn.disabled = false;
-    canBtn.disabled = true;
-    anaBtns.forEach(b => b && (b.disabled = false));
+    btns.gen.disabled = false; btns.can.disabled = true;
+    if(btns.ana) btns.ana.disabled = false;
+    if(btns.fast) btns.fast.disabled = false;
     if(job && job.error){
-      s.className = "job-status"; s.textContent = "✖ " + job.error;
+      s.className = "job-status error"; s.textContent = "✗ " + job.error;
     }else if(job && job.finished_at){
       s.className = "job-status done"; s.textContent = "✓ Son iş bitti.";
     }else{
@@ -313,6 +506,7 @@ function updateJobStatus(job){
   }
 }
 
+// ---------- logs ----------
 async function pollLogs(){
   try{
     const r = await fetch(`/api/logs?since=${logSeq}`);
@@ -332,16 +526,14 @@ async function pollLogs(){
     }
     const pl = $("progressLine");
     if(data.progress_line){
-      pl.style.display = "block";
-      pl.textContent = data.progress_line;
+      pl.style.display = "block"; pl.textContent = data.progress_line;
     }else{
       pl.style.display = "none";
     }
-  }catch(e){/* ignore */}
+  }catch(e){}
 }
 
-// Her galerinin son "kimlik" imzasını sakla → aynıysa DOM'a dokunma
-// (yoksa her poll'da <video> elementleri destroy edilir ve oynatma sıfırlanır)
+// ---------- reels ----------
 const _lastSig = {pendingGrid: "", readyGrid: ""};
 
 async function pollReels(){
@@ -353,23 +545,23 @@ async function pollReels(){
     renderGrid("readyGrid", ready, false);
     $("cnt-pending").textContent = pending.length;
     $("cnt-ready").textContent = ready.length;
-  }catch(e){/* ignore */}
+  }catch(e){}
 }
 
 function _signature(items){
-  // sadece "kart kimliği + mtime" — küçük metin değişiklikleri de tetiklesin ama
-  // her poll'da farklı olan bir alan olmasın (yoksa DOM sürekli yenilenir)
   return items.map(r => `${r.name}:${r.mtime}`).join("|");
 }
 
 function renderGrid(id, items, isPending){
   const box = $(id);
   const sig = _signature(items);
-  if(sig === _lastSig[id]) return;   // hiçbir değişiklik yok → DOM sabit kalsın
+  if(sig === _lastSig[id]) return;
   _lastSig[id] = sig;
 
   if(!items.length){
-    box.innerHTML = `<div class="empty">Henüz ${isPending ? "üretilmiş" : "onaylanmış"} reel yok.</div>`;
+    const icon = isPending ? "🎥" : "📦";
+    const txt = isPending ? "üretilmiş" : "onaylanmış";
+    box.innerHTML = `<div class="empty" data-icon="${icon}">Henüz ${txt} reel yok.</div>`;
     return;
   }
   box.innerHTML = "";
@@ -377,21 +569,20 @@ function renderGrid(id, items, isPending){
     const card = document.createElement("div");
     card.className = "reel-card";
     card.dataset.name = r.name;
-    const promptHtml = r.prompt ? `<div class="prompt" title="${escapeHtml(r.prompt)}">💬 ${escapeHtml(r.prompt)}</div>` : "";
+    const promptHtml = r.prompt ? `<div class="prompt" title="${escapeHtml(r.prompt)}">${escapeHtml(r.prompt)}</div>` : "";
     const actions = isPending
       ? `<div class="actions">
            <button onclick="approve('${r.name}')" class="primary">✓ Yayına</button>
-           <button onclick="reject('${r.name}')">✗ Sil</button>
+           <button onclick="reject('${r.name}')" class="danger">✗ Sil</button>
          </div>`
       : `<div class="actions">
            <button onclick="unpublish('${r.name}')">↩ Geri Al</button>
          </div>`;
     const caption = r.caption ? `<div class="caption">${escapeHtml(r.caption)}</div>` : "";
-    // preload="none": tüm videolar aynı anda yüklenmez, sadece kullanıcı Play basınca
     card.innerHTML = `
       <video src="${r.url}" controls preload="none" playsinline ${r.thumb ? `poster="${r.thumb}"` : ""}></video>
       <div class="info">
-        <div class="mekan">${escapeHtml(r.mekan)} <span style="color:var(--muted);font-weight:400">· ${r.clips} klip</span></div>
+        <div class="mekan">${escapeHtml(r.mekan)}<span class="clips">· ${r.clips} klip</span></div>
         ${r.hook ? `<div class="hook">"${escapeHtml(r.hook)}"</div>` : ""}
         ${promptHtml}
       </div>
@@ -405,68 +596,17 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 
-async function analyzeSources(enrich){
-  const r = await fetch("/api/analyze", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({enrich})
-  });
-  if(!r.ok){
-    let msg = r.statusText;
-    try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
-    alert("Hata: " + msg);
-    return;
-  }
-  logSeq = 0;
-  $("logbox").innerHTML = "";
-  pollStatus(); pollLogs();
-}
-
-async function submitPrompt(){
-  const prompt = $("prompt").value.trim();
-  if(!prompt){ alert("Prompt gerekli."); return; }
-  const hook = $("hook").value.trim();
-  const sure = document.querySelector('input[name="sure_modu"]:checked').value;
-  const body = {
-    prompt, hook, sure_modu: sure,
-    overrides: {
-      cta: $("ov-cta").value.trim(),
-      baslik: $("ov-baslik").value.trim(),
-      hashtagler: $("ov-tags").value.trim(),
-    }
-  };
-  const r = await fetch("/api/generate/prompt", {
-    method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)
-  });
-  if(!r.ok){
-    let msg = r.statusText;
-    try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
-    alert("Hata: " + msg);
-    return;
-  }
-  logSeq = 0;
-  $("logbox").innerHTML = "";
-  pollStatus(); pollLogs();
-}
-
-async function cancelJob(){ await fetch("/api/cancel", {method:"POST"}); }
-async function approve(name){ await fetch(`/api/reels/${encodeURIComponent(name)}/approve`, {method:"POST"}); pollReels(); }
-async function reject(name){
-  if(!confirm("Bu reel silinecek. Emin misin?")) return;
-  await fetch(`/api/reels/${encodeURIComponent(name)}/reject`, {method:"POST"}); pollReels();
-}
-async function unpublish(name){ await fetch(`/api/ready/${encodeURIComponent(name)}/unpublish`, {method:"POST"}); pollReels(); }
-
-// --- Reels Fikirleri --------------------------------------------------
+// ---------- suggestions ----------
 async function loadSuggestions(){
   const grid = $("ideasGrid");
-  grid.innerHTML = `<div class="empty">Öneriler hesaplanıyor…</div>`;
+  grid.innerHTML = `<div class="empty" data-icon="✨">Öneriler hesaplanıyor…</div>`;
   try{
     const r = await fetch("/api/suggestions");
-    if(!r.ok){ grid.innerHTML = `<div class="empty">Öneri yüklenemedi.</div>`; return; }
+    if(!r.ok){ grid.innerHTML = `<div class="empty" data-icon="⚠">Öneri yüklenemedi.</div>`; return; }
     const {suggestions} = await r.json();
+    $("ideasCount").textContent = suggestions.length;
     if(!suggestions || !suggestions.length){
-      grid.innerHTML = `<div class="empty">Henüz öneri yok. Önce '🔍 Yeni Videoları Analiz Et' butonunu çalıştır.</div>`;
+      grid.innerHTML = `<div class="empty" data-icon="💭">Henüz öneri yok. Önce videoları analiz et.</div>`;
       return;
     }
     grid.innerHTML = "";
@@ -479,20 +619,20 @@ async function loadSuggestions(){
         : `<div class="idea-thumb no-img">${s.icon}</div>`;
       card.innerHTML = `
         ${thumb}
-        <div class="idea-icon-badge">${s.icon}</div>
+        <div class="idea-emoji">${s.icon}</div>
         <div class="idea-count">${s.klip_sayisi} klip</div>
         <div class="idea-body">
           <div class="idea-title">${escapeHtml(s.baslik)}</div>
           <div class="idea-hook">"${escapeHtml(s.hook)}"</div>
           <div class="idea-meta">
-            <span>${escapeHtml(s.id)}</span>
+            <span></span>
             <span class="idea-mode">${s.sure_modu}</span>
           </div>
         </div>`;
       grid.appendChild(card);
     }
   }catch(e){
-    grid.innerHTML = `<div class="empty">Öneri yüklenemedi.</div>`;
+    grid.innerHTML = `<div class="empty" data-icon="⚠">Öneri yüklenemedi.</div>`;
   }
 }
 
@@ -501,16 +641,81 @@ function useIdea(s){
   $("hook").value = s.hook;
   const radio = document.querySelector(`input[name="sure_modu"][value="${s.sure_modu}"]`);
   if(radio) radio.checked = true;
-  // scroll to form + focus
-  $("prompt").scrollIntoView({behavior:"smooth", block:"center"});
+  $("promptSection").scrollIntoView({behavior:"smooth", block:"start"});
   setTimeout(() => $("prompt").focus(), 400);
-  // hafif blink efekti
-  const promptEl = $("prompt");
-  promptEl.style.transition = "border-color .3s";
-  promptEl.style.borderColor = "var(--accent)";
-  setTimeout(() => promptEl.style.borderColor = "", 800);
+  toast(`Fikir yüklendi: ${s.baslik}`, "info", 2500);
 }
 
+// ---------- analyze ----------
+async function analyzeSources(enrich){
+  const r = await fetch("/api/analyze", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({enrich})
+  });
+  if(!r.ok){
+    let msg = r.statusText;
+    try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+    toast("Analiz başlatılamadı: " + msg, "err");
+    return;
+  }
+  logSeq = 0;
+  $("logbox").innerHTML = "";
+  toast(enrich ? "Sahne analizi başladı — canlı log'u izle." : "Hızlı etiketleme başladı.", "ok");
+  pollStatus(); pollLogs();
+}
+
+// ---------- submit ----------
+async function submitPrompt(){
+  const prompt = $("prompt").value.trim();
+  if(!prompt){ toast("Prompt gerekli.", "err"); return; }
+  const hook = $("hook").value.trim();
+  const sure = document.querySelector('input[name="sure_modu"]:checked').value;
+  const body = {
+    prompt, hook, sure_modu: sure,
+    overrides: {
+      cta: $("ov-cta").value.trim(),
+      baslik: $("ov-baslik").value.trim(),
+      hashtagler: $("ov-tags").value.trim(),
+    }
+  };
+  const r = await fetch("/api/generate/prompt", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(body)
+  });
+  if(!r.ok){
+    let msg = r.statusText;
+    try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+    toast("Üretim başlatılamadı: " + msg, "err");
+    return;
+  }
+  logSeq = 0;
+  $("logbox").innerHTML = "";
+  toast("Reels üretimi başladı — canlı log'u izle.", "ok");
+  pollStatus(); pollLogs();
+}
+
+async function cancelJob(){
+  await fetch("/api/cancel", {method:"POST"});
+  toast("İptal istendi.", "warn");
+}
+async function approve(name){
+  await fetch(`/api/reels/${encodeURIComponent(name)}/approve`, {method:"POST"});
+  toast("Yayına hazır listesine taşındı.", "ok");
+  pollReels();
+}
+async function reject(name){
+  if(!confirm("Bu reel silinecek. Emin misin?")) return;
+  await fetch(`/api/reels/${encodeURIComponent(name)}/reject`, {method:"POST"});
+  toast("Silindi.", "warn");
+  pollReels();
+}
+async function unpublish(name){
+  await fetch(`/api/ready/${encodeURIComponent(name)}/unpublish`, {method:"POST"});
+  toast("Onay bekleyene geri alındı.", "info");
+  pollReels();
+}
+
+// ---------- loop ----------
 setInterval(() => { pollStatus(); pollLogs(); }, 1000);
 setInterval(pollReels, 4000);
 pollStatus(); pollLogs(); pollReels(); loadSuggestions();
