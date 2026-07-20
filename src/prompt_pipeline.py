@@ -21,8 +21,6 @@ from pathlib import Path
 from threading import Event
 from typing import Any, Callable
 
-import requests
-
 from src import labeling
 from src.config import Config, require_video_source
 from src.utils.logging import get_logger
@@ -225,21 +223,6 @@ def select_clips(rows: list[dict[str, Any]], mekan_etiketi: str, sure_modu: str
 
 
 # --- Knowledge base yükleyici ---------------------------------------------
-def _dify_alive(cfg: Config, timeout: float = 3.0) -> bool:
-    """Dify API'ye hızlı bir bağlantı kontrolü. Yalnızca ping — payload atmaz.
-
-    Uzun timeout beklemek yerine önden ağı test ediyoruz: erişilemezse
-    direkt lokal Ollama'ya düşülür (kullanıcı Dify'ı henüz Publish etmemişse
-    tipik durum)."""
-    base = cfg.dify.base_url.rstrip("/")
-    try:
-        r = requests.get(f"{base}/v1/info", timeout=timeout,
-                         headers={"Authorization": f"Bearer {cfg.dify.api_key}"})
-        return r.status_code < 500
-    except requests.RequestException:
-        return False
-
-
 def load_knowledge(project_root: Path) -> str:
     p = project_root / "knowledge" / "japonya_tuyolar.md"
     if not p.exists():
@@ -410,24 +393,14 @@ def run_from_prompt(
         emit("İptal istendi — durduruldu.", "warn")
         return
 
-    emit("④ LLM → kurgu planı üretiliyor…", "log")
+    emit("④ LLM (lokal Ollama) → kurgu planı üretiliyor…", "log")
     client = OllamaClient(cfg.ollama.base_url, cfg.ollama.request_timeout_sn)
-    use_dify = cfg.dify.api_key not in ("", "REPLACE_ME_APP_TOKEN") and _dify_alive(cfg)
+    model = step3.pick_text_model(cfg, client)
+    emit(f"   model: {model}", "log")
 
-    final_path = None
-    if use_dify:
-        emit("   Dify erişilebilir, workflow çağrılıyor…", "log")
-        final_path = step3.process_group(cfg, input_path, use_dify=True, client=client, model="")
-        if final_path is None:
-            emit("   Dify başarısız — lokal Ollama fallback deniyor…", "warn")
-
+    final_path = step3.process_group(cfg, input_path, use_dify=False, client=client, model=model)
     if final_path is None:
-        model = step3.pick_text_model(cfg, client)
-        emit(f"   Lokal üretim modeli: {model}", "log")
-        final_path = step3.process_group(cfg, input_path, use_dify=False, client=client, model=model)
-
-    if final_path is None:
-        emit("✖ Kurgu planı üretilemedi (hem Dify hem lokal başarısız).", "error")
+        emit("✖ Kurgu planı üretilemedi.", "error")
         return
 
     # override uygula

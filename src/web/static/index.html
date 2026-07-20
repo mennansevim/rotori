@@ -110,7 +110,6 @@
   <h1><span class="jp">Japan</span> Reels Maker</h1>
   <div class="pills">
     <span class="pill"><span id="pill-ollama" class="dot"></span> Ollama</span>
-    <span class="pill"><span id="pill-dify" class="dot"></span> Dify</span>
     <span class="pill"><span id="pill-source" class="dot"></span> Kaynak: <span id="pill-source-txt">?</span></span>
   </div>
 </header>
@@ -230,7 +229,6 @@ async function pollStatus(){
 
 function updatePills(env){
   setDot("pill-ollama", env.ollama_ok);
-  setDot("pill-dify", env.dify_ready);
   setDot("pill-source", env.source_ready);
   $("pill-source-txt").textContent = env.source_ready ? "hazır" : "yok";
 }

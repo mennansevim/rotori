@@ -113,8 +113,6 @@ def status() -> dict[str, Any]:
             and cfg.paths.video_source_dir.exists(),
             "ollama_url": cfg.ollama.base_url,
             "ollama_ok": _ollama_ok(),
-            "dify_url": cfg.dify.base_url,
-            "dify_ready": cfg.dify.api_key not in ("", "REPLACE_ME_APP_TOKEN"),
             "ready_dir": str(cfg.paths.ready_dir),
         },
     }
