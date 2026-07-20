@@ -258,6 +258,17 @@
   .empty::before{content:attr(data-icon);display:block;font-size:32px;
     margin-bottom:8px;font-style:normal}
 
+  /* Instagram draft badge (Yayına Hazır kartında) */
+  .ig-badge{display:inline-flex;align-items:center;gap:5px;
+    background:linear-gradient(135deg,#833AB4,#E1306C,#F77737);
+    color:#fff;padding:3px 9px;border-radius:10px;font-size:10.5px;
+    font-weight:600;letter-spacing:.02em}
+  button.ig{background:linear-gradient(135deg,#833AB4,#E1306C,#F77737);
+    border-color:transparent;color:#fff;font-weight:600}
+  button.ig:hover:not(:disabled){filter:brightness(1.08)}
+  button.ig:disabled{background:var(--surface);color:var(--muted);
+    border-color:var(--line)}
+
   /* Toast bildirimleri */
   .toast-host{position:fixed;top:76px;right:20px;z-index:100;
     display:flex;flex-direction:column;gap:8px;pointer-events:none}
@@ -437,6 +448,7 @@
 <script>
 const $ = (id) => document.getElementById(id);
 let logSeq = 0;
+let igStatus = { enabled: false, uploads: {} };
 
 // ---------- toast ----------
 function toast(text, kind = "info", ms = 3500){
@@ -554,7 +566,7 @@ function _signature(items){
 
 function renderGrid(id, items, isPending){
   const box = $(id);
-  const sig = _signature(items);
+  const sig = _signature(items) + "|" + JSON.stringify(igStatus.uploads);
   if(sig === _lastSig[id]) return;
   _lastSig[id] = sig;
 
@@ -570,19 +582,30 @@ function renderGrid(id, items, isPending){
     card.className = "reel-card";
     card.dataset.name = r.name;
     const promptHtml = r.prompt ? `<div class="prompt" title="${escapeHtml(r.prompt)}">${escapeHtml(r.prompt)}</div>` : "";
-    const actions = isPending
-      ? `<div class="actions">
+    const uploaded = !isPending ? igStatus.uploads[r.name] : null;
+    const igBadge = uploaded ? `<span class="ig-badge">📱 Drafts • ${uploaded.uploaded_at.slice(5,10)}</span>` : "";
+    let actions;
+    if(isPending){
+      actions = `<div class="actions">
            <button onclick="approve('${r.name}')" class="primary">✓ Yayına</button>
            <button onclick="reject('${r.name}')" class="danger">✗ Sil</button>
-         </div>`
-      : `<div class="actions">
+         </div>`;
+    }else{
+      const igBtn = igStatus.enabled
+        ? (uploaded
+          ? `<button class="ig" disabled title="Media ID: ${uploaded.media_id}">📱 Gönderildi</button>`
+          : `<button class="ig" onclick="sendToInstagram('${r.name}')">📱 Instagram Taslak</button>`)
+        : `<button disabled title="config.yaml → instagram bölümünü doldur">📱 IG (kapalı)</button>`;
+      actions = `<div class="actions">
+           ${igBtn}
            <button onclick="unpublish('${r.name}')">↩ Geri Al</button>
          </div>`;
+    }
     const caption = r.caption ? `<div class="caption">${escapeHtml(r.caption)}</div>` : "";
     card.innerHTML = `
       <video src="${r.url}" controls preload="none" playsinline ${r.thumb ? `poster="${r.thumb}"` : ""}></video>
       <div class="info">
-        <div class="mekan">${escapeHtml(r.mekan)}<span class="clips">· ${r.clips} klip</span></div>
+        <div class="mekan">${escapeHtml(r.mekan)}<span class="clips">· ${r.clips} klip</span> ${igBadge}</div>
         ${r.hook ? `<div class="hook">"${escapeHtml(r.hook)}"</div>` : ""}
         ${promptHtml}
       </div>
@@ -590,6 +613,29 @@ function renderGrid(id, items, isPending){
       ${actions}`;
     box.appendChild(card);
   }
+}
+
+async function pollIgStatus(){
+  try{
+    const r = await fetch("/api/instagram/status");
+    if(!r.ok) return;
+    igStatus = await r.json();
+  }catch(e){}
+}
+
+async function sendToInstagram(name){
+  if(!confirm(`"${name}" reel'ini Instagram Drafts sekmesine göndermek istiyor musun?\n\nİlk kez gönderiyorsan Instagram sana e-posta/SMS ile onay kodu isteyebilir — terminal loglarını takip et.`)) return;
+  const r = await fetch(`/api/instagram/draft/${encodeURIComponent(name)}`, {method:"POST"});
+  if(!r.ok){
+    let msg = r.statusText;
+    try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+    toast("Instagram Draft başarısız: " + msg, "err");
+    return;
+  }
+  logSeq = 0;
+  $("logbox").innerHTML = "";
+  toast("Instagram Drafts'a yükleniyor — canlı log'u izle.", "ok");
+  pollStatus(); pollLogs();
 }
 
 function escapeHtml(s){
@@ -717,8 +763,8 @@ async function unpublish(name){
 
 // ---------- loop ----------
 setInterval(() => { pollStatus(); pollLogs(); }, 1000);
-setInterval(pollReels, 4000);
-pollStatus(); pollLogs(); pollReels(); loadSuggestions();
+setInterval(() => { pollIgStatus().then(() => pollReels()); }, 4000);
+pollStatus(); pollLogs(); pollIgStatus().then(() => pollReels()); loadSuggestions();
 </script>
 </body>
 </html>

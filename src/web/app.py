@@ -281,3 +281,59 @@ def reject(name: str) -> dict[str, Any]:
 def unpublish(name: str) -> dict[str, Any]:
     _move_reel(cfg.paths.ready_dir, cfg.paths.output_dir, name)
     return {"ok": True}
+
+
+# ---------------- Instagram Draft ----------------
+@app.get("/api/instagram/status")
+def instagram_status() -> dict[str, Any]:
+    """Instagram entegrasyonu aktif mi + hangi reel'ler drafts'a gönderildi?"""
+    from src import instagram_publisher as ig
+    return {
+        "enabled": cfg.instagram is not None,
+        "username": cfg.instagram.username if cfg.instagram else "",
+        "uploads": ig.read_upload_log(cfg),
+    }
+
+
+@app.post("/api/instagram/draft/{name}")
+def instagram_draft(name: str) -> dict[str, Any]:
+    """Yayına Hazır'daki mp4'ü Instagram uygulaması Drafts sekmesine yükler."""
+    if cfg.instagram is None:
+        raise HTTPException(status_code=400,
+                            detail="Instagram config yok. config.yaml içindeki instagram bölümünü doldur.")
+
+    mp4 = _safe_reel_path(cfg.paths.ready_dir, name)
+    if not mp4.exists():
+        raise HTTPException(status_code=404, detail="Reel bulunamadı (Yayına Hazır'da değil).")
+
+    # zaten gönderilmiş mi kontrol
+    from src import instagram_publisher as ig
+    existing = ig.read_upload_log(cfg).get(name)
+    if existing:
+        raise HTTPException(status_code=409,
+                            detail=f"Bu reel zaten drafts'a gönderilmiş (media_id={existing.get('media_id')})")
+
+    # caption: mp4'ün yanındaki .txt
+    txt = mp4.with_suffix(".txt")
+    caption = txt.read_text(encoding="utf-8") if txt.exists() else ""
+
+    def target(emit: Callable[..., None], cancel_ev: Event) -> None:
+        try:
+            ig.upload_draft(cfg, mp4, caption, emit, cancel_ev)
+        except Exception as exc:
+            emit(f"✖ Instagram upload hatası: {exc}", "error")
+            raise
+
+    try:
+        manager.start_callable(f"Instagram Draft: {name}", target)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"ok": True, "job": manager.state}
+
+
+@app.post("/api/instagram/logout")
+def instagram_logout() -> dict[str, Any]:
+    """Session cache'i sil — sonraki upload'ta re-login."""
+    from src import instagram_publisher as ig
+    removed = ig.logout(cfg)
+    return {"ok": True, "removed": removed}
