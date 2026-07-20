@@ -32,7 +32,8 @@ class OllamaClient:
                 time.sleep(wait)
         raise RuntimeError(f"Ollama {path} tüm denemeler başarısız: {last_err}")
 
-    def generate_text(self, model: str, prompt: str, system: str | None = None, temperature: float = 0.3) -> str:
+    def generate_text(self, model: str, prompt: str, system: str | None = None,
+                      temperature: float = 0.3, json_mode: bool = False) -> str:
         payload: dict[str, Any] = {
             "model": model,
             "prompt": prompt,
@@ -41,18 +42,24 @@ class OllamaClient:
         }
         if system:
             payload["system"] = system
+        if json_mode:
+            payload["format"] = "json"
         data = self._post("/api/generate", payload)
         return data.get("response", "").strip()
 
-    def generate_vision(self, model: str, prompt: str, image_path: Path, temperature: float = 0.2) -> str:
+    def generate_vision(self, model: str, prompt: str, image_path: Path,
+                        temperature: float = 0.2, max_tokens: int | None = None) -> str:
         with image_path.open("rb") as fh:
             b64 = base64.b64encode(fh.read()).decode()
+        options: dict[str, Any] = {"temperature": temperature}
+        if max_tokens:
+            options["num_predict"] = max_tokens
         payload = {
             "model": model,
             "prompt": prompt,
             "images": [b64],
             "stream": False,
-            "options": {"temperature": temperature},
+            "options": options,
         }
         data = self._post("/api/generate", payload)
         return data.get("response", "").strip()
