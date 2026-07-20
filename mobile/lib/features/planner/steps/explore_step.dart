@@ -420,13 +420,14 @@ class _ExploreStepState extends State<ExploreStep> {
               ),
               const SizedBox(height: 10),
               // 2-sütun kompakt grid — telefon genişliği için tasarlandı.
+              // Üstte küçük görsel + altta isim/puan/şehir → aspect ~0.78.
               GridView.count(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisCount: 2,
                 mainAxisSpacing: 12,
                 crossAxisSpacing: 12,
-                childAspectRatio: 0.95,
+                childAspectRatio: 0.78,
                 children: [
                   for (final p in places)
                     _PopularPlaceCard(
@@ -435,6 +436,7 @@ class _ExploreStepState extends State<ExploreStep> {
                       city: p.city,
                       rating: placeRating(p),
                       kidFriendly: isKidFriendly(p),
+                      imageUrl: p.imageUrl,
                       selected:
                           planNames.contains(p.name.toLowerCase().trim()),
                       feedback: _added['${dest.id}:${p.id}'],
@@ -464,6 +466,7 @@ class _PopularPlaceCard extends StatelessWidget {
     required this.selected,
     required this.feedback,
     required this.onTap,
+    this.imageUrl,
   });
 
   final String emoji;
@@ -474,6 +477,7 @@ class _PopularPlaceCard extends StatelessWidget {
   final bool selected;
   final String? feedback;
   final VoidCallback onTap;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -483,76 +487,131 @@ class _PopularPlaceCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(PT.radius),
         side: BorderSide(color: selected ? PT.accent : PT.borderStrong),
       ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         borderRadius: BorderRadius.circular(PT.radius),
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Görsel bandı (5:3) — emoji fallback / kid + selected overlay.
+            AspectRatio(
+              aspectRatio: 5 / 3,
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  Text(emoji, style: const TextStyle(fontSize: 22)),
-                  const Spacer(),
-                  if (kidFriendly)
-                    const Padding(
-                      padding: EdgeInsets.only(right: 4),
-                      child: Text('🧸', style: TextStyle(fontSize: 12)),
+                  if (imageUrl != null)
+                    Image.network(
+                      imageUrl!,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (_, child, progress) => progress == null
+                          ? child
+                          : Container(color: PT.bgElevated),
+                      errorBuilder: (_, __, ___) => _EmojiFallback(emoji: emoji),
+                    )
+                  else
+                    _EmojiFallback(emoji: emoji),
+                  // Sağ üstte kid + selected rozetleri.
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (kidFriendly)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text('🧸',
+                                style: TextStyle(fontSize: 11)),
+                          ),
+                        if (kidFriendly && selected) const SizedBox(width: 4),
+                        if (selected)
+                          Container(
+                            width: 22,
+                            height: 22,
+                            decoration: const BoxDecoration(
+                              color: PT.accent,
+                              shape: BoxShape.circle,
+                            ),
+                            alignment: Alignment.center,
+                            child: const Icon(Icons.check,
+                                size: 14, color: Colors.white),
+                          ),
+                      ],
                     ),
-                  if (selected)
-                    Container(
-                      width: 18,
-                      height: 18,
-                      decoration: const BoxDecoration(
-                        color: PT.accent,
-                        shape: BoxShape.circle,
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    feedback ?? name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      height: 1.2,
+                      color: feedback != null ? PT.accent : PT.text,
+                    ),
+                  ),
+                  if (rating != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: Text('${ratingStars(rating!)} $rating',
+                          style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFFB8860B))),
+                    ),
+                  if (city.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 1),
+                      child: Text(
+                        city,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 12, color: PT.textTertiary),
                       ),
-                      alignment: Alignment.center,
-                      child: const Icon(Icons.check,
-                          size: 12, color: Colors.white),
                     ),
                 ],
               ),
-              const SizedBox(height: 6),
-              Expanded(
-                child: Text(
-                  feedback ?? name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    height: 1.2,
-                    color: feedback != null ? PT.accent : PT.text,
-                  ),
-                ),
-              ),
-              if (rating != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Text('${ratingStars(rating!)} $rating',
-                      style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFFB8860B))),
-                ),
-              if (city.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Text(
-                    city,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 12, color: PT.textTertiary),
-                  ),
-                ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
+    );
+  }
+}
+
+/// Görsel yükleme başarısızsa/URL yoksa emoji'yi büyük gösteren fallback.
+class _EmojiFallback extends StatelessWidget {
+  const _EmojiFallback({required this.emoji});
+  final String emoji;
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFCE4EC), Color(0xFFE1BEE7)],
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Text(emoji, style: const TextStyle(fontSize: 38)),
     );
   }
 }
