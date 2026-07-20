@@ -90,6 +90,47 @@ def parse_prompt(prompt: str) -> dict[str, Any]:
     }
 
 
+# Prompt'ta aranan spesifik konu anahtarları (semantic fallback için).
+# Sözlükte match yoksa sahne_ozeti'nde bu terimlerin geçtiği klipleri arıyoruz.
+_STOP_WORDS = {
+    "bir", "hakkinda", "hakkında", "icin", "için", "reels", "video", "kısa",
+    "kisa", "uzun", "orta", "mutlaka", "bilmeniz", "gereken", "bilinmesi", "sey",
+    "şey", "en", "ne", "cok", "çok", "ve", "ile", "japon", "japonya", "japonyadaki",
+    "japonyada",
+}
+
+
+def _prompt_keywords(prompt: str) -> list[str]:
+    """Prompt'tan aramaya değer anahtar kelimeleri çıkar (stop-word'süz, min 3 karakter)."""
+    words = re.findall(r"[a-zçğıöşü]+", _norm(prompt))
+    return [w for w in words if len(w) >= 3 and w not in _STOP_WORDS]
+
+
+def _semantic_match(rows: list[dict[str, Any]], prompt: str) -> str | None:
+    """Sözlük eşleşmediyse veya eşleşen mekana ait klip yoksa devreye girer.
+    metadata.csv'deki `sahne_ozeti` metinlerini prompt anahtar kelimeleriyle
+    puanlar; en yüksek puanlı satırın `mekan_etiketi`'ni döner."""
+    kws = _prompt_keywords(prompt)
+    if not kws:
+        return None
+
+    # mekan_etiketi başına toplam skor
+    puan: dict[str, int] = {}
+    for r in rows:
+        ozet = _norm(r.get("sahne_ozeti", ""))
+        if not ozet:
+            continue
+        mek = r.get("mekan_etiketi", "") or ""
+        s = sum(1 for k in kws if k in ozet)
+        if s > 0:
+            puan[mek] = puan.get(mek, 0) + s
+
+    if not puan:
+        return None
+    # en yüksek puanlı mekan
+    return max(puan.items(), key=lambda kv: kv[1])[0]
+
+
 # --- Klip seçimi -----------------------------------------------------------
 def _read_metadata(csv_path: Path) -> list[dict[str, Any]]:
     if not csv_path.exists():
@@ -241,22 +282,47 @@ def run_from_prompt(
     emit(f"① Prompt çözümleniyor: \"{prompt[:80]}{'…' if len(prompt) > 80 else ''}\"", "log")
     parsed = parse_prompt(prompt)
     mekan = parsed["mekan_etiketi"]
-    if not mekan:
-        emit("✖ Prompt'tan tanınabilir bir mekan çıkaramadım. "
-             "Prompt'a 'Nara', 'Osaka', 'Fushimi', 'Shibuya' gibi bilinen bir mekan adı ekle.",
-             "error")
-        return
-    emit(f"   → mekan: {mekan} · kategori: {parsed['kategori']} · ton: {parsed['aciklama_tipi']}", "info")
 
-    emit(f"② Metadata okunuyor + klipler seçiliyor (süre modu: {sure_modu})…", "log")
+    emit("② Metadata okunuyor + klipler seçiliyor (süre modu: %s)…" % sure_modu, "log")
     rows = _read_metadata(cfg.paths.metadata_csv)
     if not rows:
         emit("✖ metadata.csv boş/eksik. Önce step1_analyze'i çalıştır.", "error")
         return
 
-    picked, hedef_sn = select_clips(rows, mekan, sure_modu)
+    picked: list[dict[str, Any]] = []
+    hedef_sn: float = 0.0
+
+    # 1) Sözlük eşleşmesi varsa → önce ondan klip aramaya çalış
+    if mekan:
+        emit(f"   → sözlük eşleşmesi: {mekan} · kategori: {parsed['kategori']} · ton: {parsed['aciklama_tipi']}", "info")
+        picked, hedef_sn = select_clips(rows, mekan, sure_modu)
+
+    # 2) Klip yoksa (sözlük yakaladı ama arşivde etiketli klip yok, ya da hiç
+    #    eşleşme olmadı) → sahne_ozeti üzerinde semantic search
     if not picked:
-        emit(f"✖ '{mekan}' için metadata.csv'de klip bulunamadı.", "error")
+        emit("   Sözlük yolu boş — sahne özetlerinde anahtar kelime araması yapılıyor…", "log")
+        alt_mekan = _semantic_match(rows, prompt)
+        if alt_mekan:
+            emit(f"   → semantic hit: {alt_mekan}", "info")
+            picked, hedef_sn = select_clips(rows, alt_mekan, sure_modu)
+            if picked:
+                mekan = alt_mekan
+                if not parsed["kategori"]:
+                    # ilk match'ten kategoriyi devral
+                    for r in rows:
+                        if r.get("mekan_etiketi") == alt_mekan:
+                            parsed["kategori"] = r.get("kategori", "")
+                            parsed["sehir"] = r.get("sehir", "")
+                            break
+
+    if not mekan:
+        emit("✖ Prompt'tan tanınabilir bir mekan çıkaramadım ve sahne özetlerinde de "
+             "eşleşme yok. 'Nara', 'Osaka', 'Fushimi', 'Shibuya' gibi bir mekan adı ekle "
+             "veya `python -m src.step1_analyze --enrich-scenes` ile sahne özetlerini üret.",
+             "error")
+        return
+    if not picked:
+        emit(f"✖ '{mekan}' için hiçbir klip bulunamadı (ne mekan_etiketi ne sahne_ozeti eşleşti).", "error")
         return
     emit(f"   → {len(picked)} klip seçildi, hedef süre {hedef_sn:.1f}s", "info")
 
