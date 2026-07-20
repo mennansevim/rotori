@@ -4,6 +4,7 @@ paths:
   metadata_csv: "data/metadata.csv"
   plans_dir: "data/kurgu_planlari"
   output_dir: "output/reels"
+  ready_dir: "output/ready_to_publish"
 
 ollama:
   base_url: "http://localhost:11434"
@@ -37,6 +38,11 @@ reels:
   stroke_width: 8
 
 pilot:
-  pilot_mode: true
+  pilot_mode: false
   pilot_count: 10
   random_seed: 42
+
+run:
+  # Tek çalıştırmada işlenecek MAKSİMUM video sayısı (güvenlik sınırı).
+  # "Tümünü çalıştır" yok; her step1 çalışması en fazla bu kadar yeni video işler.
+  max_videos_per_run: 10

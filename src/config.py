@@ -15,6 +15,7 @@ class PathsCfg:
     metadata_csv: Path
     plans_dir: Path
     output_dir: Path
+    ready_dir: Path
 
 
 @dataclass
@@ -62,12 +63,18 @@ class PilotCfg:
 
 
 @dataclass
+class RunCfg:
+    max_videos_per_run: int = 10
+
+
+@dataclass
 class Config:
     paths: PathsCfg
     ollama: OllamaCfg
     dify: DifyCfg
     reels: ReelsCfg
     pilot: PilotCfg
+    run: RunCfg
     project_root: Path
 
 
@@ -89,16 +96,18 @@ def load_config(config_path: str | None = None) -> Config:
         metadata_csv=_resolve(project_root, p["metadata_csv"]),
         plans_dir=_resolve(project_root, p["plans_dir"]),
         output_dir=_resolve(project_root, p["output_dir"]),
+        ready_dir=_resolve(project_root, p.get("ready_dir", "output/ready_to_publish")),
     )
     ollama = OllamaCfg(**raw["ollama"])
     dify = DifyCfg(**raw["dify"])
     reels = ReelsCfg(**raw["reels"])
     pilot = PilotCfg(**raw["pilot"])
+    run = RunCfg(**raw.get("run", {}))
 
-    for d in (paths.frames_dir, paths.plans_dir, paths.output_dir, paths.metadata_csv.parent):
+    for d in (paths.frames_dir, paths.plans_dir, paths.output_dir, paths.ready_dir, paths.metadata_csv.parent):
         d.mkdir(parents=True, exist_ok=True)
 
-    return Config(paths=paths, ollama=ollama, dify=dify, reels=reels, pilot=pilot, project_root=project_root)
+    return Config(paths=paths, ollama=ollama, dify=dify, reels=reels, pilot=pilot, run=run, project_root=project_root)
 
 
 def require_video_source(cfg: Config) -> Path:
