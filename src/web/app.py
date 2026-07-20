@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import csv
 import json
 import shutil
-import subprocess
 import time
-from collections import Counter, OrderedDict
 from pathlib import Path
 from threading import Event
 from typing import Any, Callable
@@ -15,11 +12,10 @@ import requests
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from src.config import Config, load_config, require_video_source
-from src.step2_group import build_groups, slug
-from src.web.jobs import STEP_MODULES, JobManager
+from src.config import Config, load_config
+from src.web.jobs import JobManager
 
 VIDEO_EXT = {".mp4", ".mov", ".m4v", ".avi", ".mkv", ".webm"}
 
@@ -73,161 +69,18 @@ def _ollama_ok() -> bool:
         return False
 
 
-# ---------------- kategori yardımcıları ----------------
-def _read_metadata_rows() -> list[dict[str, Any]]:
-    p = cfg.paths.metadata_csv
-    if not p.exists():
-        return []
-    with p.open("r", encoding="utf-8") as fh:
-        return list(csv.DictReader(fh))
-
-
-def _compute_categories() -> dict[str, Any]:
-    """metadata.csv'yi mekan_etiketi'ne göre grupla; her kategori için klip sayısı
-    ve build_groups ile üretilebilecek gerçek reel adedini döndür."""
-    rows = _read_metadata_rows()
-    # tüm satırlar üzerinden bir kez grupla → mekan başına reel sayısını say
-    try:
-        groups = build_groups(rows, cfg)
-    except Exception:
-        groups = []
-    reel_counts = Counter(g["mekan_etiketi"] for g in groups)
-
-    # mekan_etiketi → ilk görülen kategori/sehir + klip sayısı (görülme sırasını koru)
-    buckets: "OrderedDict[str, dict[str, Any]]" = OrderedDict()
-    for r in rows:
-        mekan = r.get("mekan_etiketi", "Genel") or "Genel"
-        b = buckets.get(mekan)
-        if b is None:
-            b = {
-                "mekan_etiketi": mekan,
-                "kategori": r.get("kategori", "") or "",
-                "sehir": r.get("sehir", "") or "",
-                "klip_sayisi": 0,
-            }
-            buckets[mekan] = b
-        b["klip_sayisi"] += 1
-
-    kategoriler: list[dict[str, Any]] = []
-    for mekan, b in buckets.items():
-        b["uretilebilir_reel"] = int(reel_counts.get(mekan, 0))
-        b["mevcut_reel"] = _glob_count(cfg.paths.output_dir, f"{slug(mekan)}_*.mp4")
-        kategoriler.append(b)
-
-    kategoriler.sort(key=lambda x: x["klip_sayisi"], reverse=True)
-    return {"toplam_video": len(rows), "kategoriler": kategoriler}
-
-
-def _render_lock_wait(emit: Callable[..., None], cancel: Event) -> None:
-    """Devam eden bir src.step4_render subprocess'i varsa (başka bir ajan/işlem
-    yeniden render ediyor olabilir) bitene kadar ~5sn arayla bekle."""
-    warned = False
-    while not cancel.is_set():
-        try:
-            rc = subprocess.run(
-                ["pgrep", "-f", "src.step4_render"],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            ).returncode
-        except FileNotFoundError:
-            return  # pgrep yoksa serileştirmeyi atla
-        if rc != 0:
-            if warned:
-                emit("Dış render bitti, devam ediliyor.", "info")
-            return
-        if not warned:
-            emit("⏳ Devam eden bir render var (src.step4_render). Bitmesi bekleniyor…", "warn")
-            warned = True
-        time.sleep(5)
-
-
-def _free_base_name(base: str) -> str:
-    """output_dir'de {base}.mp4 zaten varsa çakışmayan bir sonek üret."""
-    if not (cfg.paths.output_dir / f"{base}.mp4").exists():
-        return base
-    i = 2
-    while (cfg.paths.output_dir / f"{base}_r{i}.mp4").exists():
-        i += 1
-    return f"{base}_r{i}"
-
-
-def _generate_reels(mekan_etiketi: str, adet: int, emit: Callable[..., None], cancel: Event) -> None:
-    """Bir kategoriden `adet` reel üret: grup → *_input.json → *_final.json → mp4."""
-    # ağır bağımlılıkları (moviepy) tembel yükle
-    from src import step3_dify as step3
-    from src import step4_render as step4
-    from src.ollama_client import OllamaClient
-
-    rows = [r for r in _read_metadata_rows() if (r.get("mekan_etiketi") or "") == mekan_etiketi]
-    if not rows:
-        emit(f"'{mekan_etiketi}' için metadata satırı yok.", "error")
-        return
-
-    groups = build_groups(rows, cfg)
-    if not groups:
-        emit(f"'{mekan_etiketi}' için üretilebilir grup yok (yeterli klip yok).", "error")
-        return
-
-    if adet > len(groups):
-        emit(f"İstenen {adet} > mevcut {len(groups)} grup; {len(groups)}'e indirildi.", "warn")
-        adet = len(groups)
-    groups = groups[:adet]
-    emit(f"'{mekan_etiketi}' → {len(groups)} reel üretilecek.", "info")
-
-    try:
-        source = require_video_source(cfg)
-    except SystemExit as exc:
-        emit(str(exc), "error")
-        return
-
-    # dış render ile çakışmayı önle
-    _render_lock_wait(emit, cancel)
-    if cancel.is_set():
-        return
-
-    emit("Kaynak indeksi oluşturuluyor…", "log")
-    name_index: dict[str, Path] = {}
-    for p in source.rglob("*"):
-        if p.is_file() and p.suffix.lower() in VIDEO_EXT:
-            name_index[p.name] = p
-    emit(f"İndeks: {len(name_index)} dosya", "log")
-
-    client = OllamaClient(cfg.ollama.base_url, cfg.ollama.request_timeout_sn)
-    ts = int(time.time())
-    ok = 0
-    for i, g in enumerate(groups):
-        if cancel.is_set():
-            break
-        base = _free_base_name(f"{slug(mekan_etiketi)}_{ts}_{i:02d}")
-        input_path = cfg.paths.plans_dir / f"{base}_input.json"
-        input_path.write_text(json.dumps(g, ensure_ascii=False, indent=2), encoding="utf-8")
-
-        emit(f"[{i + 1}/{len(groups)}] Kurgu planı üretiliyor: {base}", "log")
-        final_path = step3.process_group(cfg, input_path, use_dify=False, client=client, model="")
-        if final_path is None:
-            emit(f"✖ Kurgu planı başarısız: {base}", "error")
-            continue
-
-        emit(f"[{i + 1}/{len(groups)}] Render ediliyor: {base}", "log")
-        out = step4.render_reel(final_path, cfg, source, name_index)
-        if out is None:
-            emit(f"✖ Render başarısız: {base}", "error")
-            continue
-        ok += 1
-        emit(f"✓ Hazır: {out.name}", "info")
-
-    emit(f"Üretim özeti: {ok}/{len(groups)} reel onay kuyruğuna eklendi.", "info")
-
-
 # ---------------- modeller ----------------
-class RunRequest(BaseModel):
-    steps: list[int] = [1, 2, 3, 4]
-    pilot: bool = False
-    no_dify: bool = False
+class PromptOverrides(BaseModel):
+    cta: str = ""
+    baslik: str = ""
+    hashtagler: str = ""  # boşlukla ayrılmış tag listesi
 
 
-class GenerateRequest(BaseModel):
-    mekan_etiketi: str
-    adet: int = 1
+class PromptRequest(BaseModel):
+    prompt: str = Field(..., min_length=3)
+    hook: str = ""
+    sure_modu: str = "orta"  # kisa | orta | uzun
+    overrides: PromptOverrides = Field(default_factory=PromptOverrides)
 
 
 # ---------------- endpoint'ler ----------------
@@ -240,26 +93,15 @@ def index() -> FileResponse:
 def status() -> dict[str, Any]:
     src_total = _source_video_count()
     meta = _metadata_count()
-    inputs = _glob_count(cfg.paths.plans_dir, "*_input.json")
-    finals = _glob_count(cfg.paths.plans_dir, "*_final.json")
     reels = _glob_count(cfg.paths.output_dir, "*.mp4")
     ready = _glob_count(cfg.paths.ready_dir, "*.mp4")
     return {
         "job": manager.state,
-        "steps": [{"no": n, "label": STEP_MODULES[n][1]} for n in sorted(STEP_MODULES)],
         "counts": {
             "source_videos": src_total,
             "metadata": meta,
-            "inputs": inputs,
-            "finals": finals,
             "reels": reels,
             "ready": ready,
-        },
-        "progress": {
-            "1": {"done": meta, "total": src_total},
-            "2": {"done": inputs, "total": None},
-            "3": {"done": finals, "total": inputs},
-            "4": {"done": reels, "total": finals},
         },
         "env": {
             "source_dir": str(cfg.paths.video_source_dir),
@@ -269,69 +111,36 @@ def status() -> dict[str, Any]:
             "ollama_ok": _ollama_ok(),
             "dify_url": cfg.dify.base_url,
             "dify_ready": cfg.dify.api_key not in ("", "REPLACE_ME_APP_TOKEN"),
-            "aciklama_tipi": cfg.dify.aciklama_tipi,
-            "pilot_default": cfg.pilot.pilot_mode,
-            "pilot_count": cfg.pilot.pilot_count,
-            "max_videos_per_run": cfg.run.max_videos_per_run,
             "ready_dir": str(cfg.paths.ready_dir),
         },
     }
 
 
-@app.post("/api/run")
-def run(req: RunRequest) -> dict[str, Any]:
-    try:
-        manager.start(sorted(set(req.steps)), req.pilot, req.no_dify)
-    except (RuntimeError, ValueError) as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    return {"ok": True, "job": manager.state}
+@app.post("/api/generate/prompt")
+def generate_prompt(req: PromptRequest) -> dict[str, Any]:
+    prompt = req.prompt.strip()
+    if not prompt:
+        raise HTTPException(status_code=400, detail="prompt gerekli.")
+    if req.sure_modu not in ("kisa", "orta", "uzun"):
+        raise HTTPException(status_code=400, detail="sure_modu: kisa|orta|uzun")
 
+    from src import prompt_pipeline
 
-@app.get("/api/categories")
-def categories() -> dict[str, Any]:
-    return _compute_categories()
-
-
-@app.post("/api/categorize")
-def categorize() -> dict[str, Any]:
-    """Analiz edilmemiş yeni klip varsa step1_analyze'i çalıştırıp metadata'yı
-    günceller; yoksa sadece kategorileri döndürür."""
-    if manager.state.get("running"):
-        raise HTTPException(status_code=409, detail="Zaten çalışan bir iş var.")
-
-    src_total = _source_video_count()
-    meta = _metadata_count()
-    if src_total > meta:
-        try:
-            manager.start([1], pilot=False, no_dify=True)
-        except (RuntimeError, ValueError) as exc:
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
-        return {
-            "started": True,
-            "message": f"{src_total - meta} yeni video için analiz başlatıldı. "
-                       "Bitince 'Yenile' ile kategoriler güncellenir.",
-            **_compute_categories(),
-        }
-    return {
-        "started": False,
-        "message": "Yapılacak yeni video yok; tüm klipler zaten analiz edilmiş.",
-        **_compute_categories(),
-    }
-
-
-@app.post("/api/generate")
-def generate(req: GenerateRequest) -> dict[str, Any]:
-    mekan = (req.mekan_etiketi or "").strip()
-    if not mekan:
-        raise HTTPException(status_code=400, detail="mekan_etiketi gerekli.")
-    if req.adet < 1:
-        raise HTTPException(status_code=400, detail="adet en az 1 olmalı.")
+    label_ozet = prompt[:60] + ("…" if len(prompt) > 60 else "")
 
     def target(emit: Callable[..., None], cancel: Event) -> None:
-        _generate_reels(mekan, req.adet, emit, cancel)
+        prompt_pipeline.run_from_prompt(
+            cfg=cfg,
+            prompt=prompt,
+            hook=req.hook,
+            sure_modu=req.sure_modu,
+            overrides=req.overrides.model_dump(),
+            emit=emit,
+            cancel=cancel,
+        )
 
     try:
-        manager.start_callable(f"'{mekan}' reel üretimi (adet={req.adet})", target)
+        manager.start_callable(f"Prompt Reels: {label_ozet}", target)
     except RuntimeError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     return {"ok": True, "job": manager.state}
@@ -387,12 +196,12 @@ def _reel_item(mp4: Path, media_prefix: str) -> dict[str, Any]:
         "hashtags": hashtags,
         "caption": caption,
         "clips": len(videos),
+        "prompt": data.get("kullanici_prompt", ""),
         "mtime": mp4.stat().st_mtime,
     }
 
 
 def _safe_reel_path(base: Path, name: str) -> Path:
-    """name → base/name.mp4, path-traversal koruması ile."""
     if not name or "/" in name or "\\" in name or name.startswith("."):
         raise HTTPException(status_code=400, detail="Geçersiz isim.")
     p = (base / f"{name}.mp4").resolve()
@@ -402,7 +211,6 @@ def _safe_reel_path(base: Path, name: str) -> Path:
 
 
 def _move_reel(src_dir: Path, dst_dir: Path, name: str) -> None:
-    """mp4 + eşlik eden .txt caption'ı taşı."""
     mp4 = _safe_reel_path(src_dir, name)
     if not mp4.exists():
         raise HTTPException(status_code=404, detail="Reel bulunamadı.")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 import subprocess
 import sys
@@ -18,9 +19,41 @@ STEP_MODULES: dict[int, tuple[str, str]] = {
 }
 
 # tqdm ilerleme çubuğu satırlarını normal loglardan ayırmak için
-_PROGRESS_RE = re.compile(r"\d+%\|| it/s|\d+/\d+ \[")
+_PROGRESS_RE = re.compile(r"\d+%\|| it/s|\d+/\d+ \[|\(\d+%\)")
 # terminal renk kodlarını (ANSI) temizlemek için
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+# in-process üretimde (generate) logları JobManager'a köprülemek için
+_BRIDGE_LOGGER_NAMES = ("step3", "step4", "step1", "step2")
+
+
+class _EmitLogHandler(logging.Handler):
+    """step3/step4 vb. logger çıktısını canlı log tamponuna yazar."""
+
+    def __init__(self, manager: "JobManager") -> None:
+        super().__init__(level=logging.INFO)
+        self._manager = manager
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            text = _ANSI_RE.sub("", record.getMessage()).strip()
+            if not text:
+                return
+            if _PROGRESS_RE.search(text):
+                self._manager.state["progress_line"] = text
+                # encode % satırlarını hem progress_line hem log akışına koy
+                if "(" in text and "%" in text:
+                    self._manager._emit(text, "log")
+                return
+            if record.levelno >= logging.ERROR:
+                kind = "error"
+            elif record.levelno >= logging.WARNING:
+                kind = "warn"
+            else:
+                kind = "log"
+            self._manager._emit(text, kind)
+        except Exception:  # noqa: BLE001
+            self.handleError(record)
 
 
 class JobManager:
@@ -42,6 +75,7 @@ class JobManager:
             "steps": [],
             "current_step": None,
             "step_status": {},          # {"1": "pending|running|done|error|cancelled"}
+            "label": None,
             "pilot": False,
             "no_dify": False,
             "started_at": None,
@@ -61,6 +95,25 @@ class JobManager:
             entries = [e for e in self._log if e["seq"] > since]
             return entries, self._seq
 
+    def _install_log_bridge(self) -> _EmitLogHandler:
+        """In-process işlerde step logger'larını Canlı Süreç paneline bağla."""
+        handler = _EmitLogHandler(self)
+        for name in _BRIDGE_LOGGER_NAMES:
+            lg = logging.getLogger(name)
+            lg.setLevel(logging.INFO)
+            # aynı handler'ı iki kez ekleme
+            if not any(isinstance(h, _EmitLogHandler) for h in lg.handlers):
+                lg.addHandler(handler)
+        return handler
+
+    def _remove_log_bridge(self, handler: _EmitLogHandler | None) -> None:
+        if handler is None:
+            return
+        for name in _BRIDGE_LOGGER_NAMES:
+            lg = logging.getLogger(name)
+            if handler in lg.handlers:
+                lg.removeHandler(handler)
+
     # ---------- kontrol ----------
     def start(self, steps: list[int], pilot: bool, no_dify: bool) -> None:
         with self._lock:
@@ -75,6 +128,7 @@ class JobManager:
                 "steps": steps,
                 "current_step": None,
                 "step_status": {str(s): "pending" for s in steps},
+                "label": None,
                 "pilot": pilot,
                 "no_dify": no_dify,
                 "started_at": time.time(),
@@ -124,6 +178,7 @@ class JobManager:
             self._thread.start()
 
     def _run_callable(self, label: str, target: Callable[..., None]) -> None:
+        bridge = self._install_log_bridge()
         self._emit(f"▶ {label} başladı", "info")
         try:
             target(self._emit, self._cancel)
@@ -135,8 +190,10 @@ class JobManager:
             self.state["error"] = str(exc)
             self._emit(f"✖ Beklenmeyen hata: {exc}", "error")
         finally:
+            self._remove_log_bridge(bridge)
             self.state["running"] = False
             self.state["current_step"] = None
+            self.state["progress_line"] = ""
             self.state["finished_at"] = time.time()
             self._proc = None
 
@@ -172,6 +229,7 @@ class JobManager:
         finally:
             self.state["running"] = False
             self.state["current_step"] = None
+            self.state["progress_line"] = ""
             self.state["finished_at"] = time.time()
             self._proc = None
 

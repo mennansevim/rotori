@@ -31,6 +31,8 @@ def call_dify(cfg: Config, group: dict[str, Any]) -> dict[str, Any]:
             "video_dosyalari": ", ".join(group["video_dosyalari"]),
             "toplam_sure_sn": group["toplam_sure_sn"],
             "aciklama_tipi": group.get("aciklama_tipi", cfg.dify.aciklama_tipi),
+            "kullanici_prompt": group.get("kullanici_prompt", ""),
+            "knowledge": group.get("knowledge", ""),
         },
         "response_mode": "blocking",
         "user": "reels-maker",
@@ -242,7 +244,9 @@ def process_group(cfg: Config, input_path: Path, use_dify: bool, client: OllamaC
         log.error(f"Grup başarısız ({input_path.name}): {exc}")
         return None
 
-    merged = {**group, "kurgu_json": plan}
+    # knowledge/kullanici_prompt input alanları çıktıya kopyalanmaz (final_json şişer)
+    slim_group = {k: v for k, v in group.items() if k != "knowledge"}
+    merged = {**slim_group, "kurgu_json": plan}
     output_path.write_text(json.dumps(merged, ensure_ascii=False, indent=2), encoding="utf-8")
     log.info(f"✓ {output_path.name} → \"{plan.get('hook','')}\"")
     return output_path
