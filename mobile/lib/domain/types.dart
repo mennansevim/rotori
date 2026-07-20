@@ -384,6 +384,8 @@ class TripPreferences {
     this.originLng,
     this.returnAirline,
     this.returnFlightNo,
+    this.returnDepartAirport,
+    this.returnArrivalAirport,
     this.destinationCity,
     this.destinationCountry,
     this.mealBudgetJpyPerPerson,
@@ -421,6 +423,10 @@ class TripPreferences {
   double? originLng;
   String? returnAirline;
   String? returnFlightNo;
+  /// Dönüş uçuşunda Japonya tarafından kalkış havalimanı IATA.
+  String? returnDepartAirport;
+  /// Dönüş uçuşunda Türkiye tarafına iniş havalimanı IATA.
+  String? returnArrivalAirport;
   String? destinationCity;
   String? destinationCountry;
   List<TripDestination> destinations;
@@ -522,6 +528,8 @@ class TripPreferences {
         originLng: (j['originLng'] as num?)?.toDouble(),
         returnAirline: j['returnAirline'] as String?,
         returnFlightNo: j['returnFlightNo'] as String?,
+        returnDepartAirport: j['returnDepartAirport'] as String?,
+        returnArrivalAirport: j['returnArrivalAirport'] as String?,
         destinationCity: j['destinationCity'] as String?,
         destinationCountry: j['destinationCountry'] as String?,
         mealBudgetJpyPerPerson: (j['mealBudgetJpyPerPerson'] as num?)?.toInt(),
@@ -587,6 +595,8 @@ class TripPreferences {
         if (originLng != null) 'originLng': originLng,
         if (returnAirline != null) 'returnAirline': returnAirline,
         if (returnFlightNo != null) 'returnFlightNo': returnFlightNo,
+        if (returnDepartAirport != null) 'returnDepartAirport': returnDepartAirport,
+        if (returnArrivalAirport != null) 'returnArrivalAirport': returnArrivalAirport,
         if (destinationCity != null) 'destinationCity': destinationCity,
         if (destinationCountry != null)
           'destinationCountry': destinationCountry,

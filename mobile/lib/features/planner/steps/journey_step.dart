@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../domain/city_places.dart';
 import '../../../domain/trip_factory.dart';
 import '../../../domain/types.dart';
 import '../data/airlines.dart';
@@ -180,8 +181,7 @@ class _JourneyStepState extends State<JourneyStep> {
         if (showReturn) _returnLeg(lastDest!),
 
         if (effectiveCount >= 2) _shinkansenReminder(),
-        if (_cityCountHint != null && _cityCountHint! > destCount)
-          _addMoreStopsHint(),
+        _cityPicker(dests),
 
         if (routePreview.isNotEmpty)
           Padding(
@@ -301,26 +301,97 @@ class _JourneyStepState extends State<JourneyStep> {
     );
   }
 
-  Widget _addMoreStopsHint() {
+  /// Japon şehirlerini chip listesi olarak sunar; kullanıcı seçtikçe
+  /// destinasyonlara eklenir/çıkarılır. Shinkansen mantığı zaten
+  /// destinations>=2 iken üstteki hatırlatma kartını gösterir.
+  Widget _cityPicker(List<TripDestination> dests) {
+    // Şu an rotadaki şehirleri normalize et — kolay karşılaştırma için.
+    final selectedNames = {
+      for (final d in dests) d.city.trim().toLowerCase(),
+    };
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
       decoration: BoxDecoration(
         color: PT.bgElevated,
         borderRadius: BorderRadius.circular(PT.radius),
         border: Border.all(color: PT.borderStrong),
       ),
-      child: const Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.arrow_downward, size: 16, color: PT.textSecondary),
-          SizedBox(width: 8),
-          Expanded(
-            child: Text('Aşağıdan yeni durak ekle',
-                style: TextStyle(fontSize: 13, color: PT.textSecondary)),
+          const Text('🏙️ Gezilecek şehirler',
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: PT.text)),
+          const SizedBox(height: 2),
+          const Text(
+              'Listeden seç — rotana eklenir. Tekrar dokun → çıkar. '
+              'İkinci şehri seçtiğinde şehirler arası Shinkansen önerilir.',
+              style: TextStyle(
+                  fontSize: 12, color: PT.textSecondary, height: 1.35)),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final c in kCityData)
+                _CityChip(
+                  emoji: c.emoji,
+                  label: c.label,
+                  active: selectedNames.contains(c.label.toLowerCase()),
+                  onTap: () => _toggleCity(c),
+                ),
+            ],
           ),
         ],
       ),
     );
+  }
+
+  /// Şehir chip'ine tıklanınca: rotada yoksa yeni destinasyon (ilk havalimanı
+  /// varsa airport otomatik atanır), varsa listeden çıkarılır.
+  void _toggleCity(CityData city) {
+    widget.onChange((t) {
+      final list = [...t.preferences.destinations]
+        ..sort((a, b) => a.order.compareTo(b.order));
+      final existingIdx =
+          list.indexWhere((d) => d.city.trim().toLowerCase() == city.label.toLowerCase());
+      if (existingIdx >= 0) {
+        list.removeAt(existingIdx);
+        for (var i = 0; i < list.length; i++) {
+          list[i].order = i;
+        }
+      } else {
+        final ap = kAirports.firstWhere(
+          (a) => a.countryCode == 'JP' &&
+              a.city.toLowerCase().contains(city.label.toLowerCase()),
+          orElse: () => Airport(
+            iata: '',
+            city: city.label,
+            countryCode: 'JP',
+            countryName: 'Japonya',
+            lat: 0,
+            lng: 0,
+          ),
+        );
+        list.add(TripDestination(
+          id: 'dest-${DateTime.now().millisecondsSinceEpoch}-${list.length}',
+          countryCode: 'JP',
+          countryName: 'Japonya',
+          city: city.label,
+          airport: ap.iata,
+          lat: ap.iata.isNotEmpty ? ap.lat : null,
+          lng: ap.iata.isNotEmpty ? ap.lng : null,
+          arrivalDate: t.preferences.travelDates.start,
+          departureDate: t.preferences.travelDates.end,
+          order: list.length,
+        ));
+      }
+      t.preferences.destinations = list;
+      _resync(t);
+    });
   }
 
   Widget _japanBanner() {
@@ -461,6 +532,12 @@ class _JourneyStepState extends State<JourneyStep> {
   }
 
   Widget _returnLeg(TripDestination lastDest) {
+    final returnDepIata =
+        trip.preferences.returnDepartAirport ?? (lastDest.airport ?? '');
+    final returnDep = kAirports.where((a) => a.iata == returnDepIata).toList();
+    final returnArrIata =
+        trip.preferences.returnArrivalAirport ?? _originAirport;
+    final returnArr = kAirports.where((a) => a.iata == returnArrIata).toList();
     return _legShell(
       isReturn: true,
       title: '🏠 Dönüş — Japonya → Türkiye',
@@ -472,10 +549,32 @@ class _JourneyStepState extends State<JourneyStep> {
             onPick: _setReturnDate,
           ),
         ),
-        _field('Kalkış (Japonya)',
-            _FixedBox(text: '${lastDest.city}${(lastDest.airport ?? '').isNotEmpty ? ' (${lastDest.airport})' : ''}')),
-        _field('Varış (Türkiye)',
-            _FixedBox(text: '$_origin${_originAirport.isNotEmpty ? ' ($_originAirport)' : ''}')),
+        _field(
+          'Kalkış (Japonya)',
+          AirportPickerField(
+            countryCodes: const ['JP'],
+            valueCode: returnDep.isNotEmpty ? returnDep.first.iata : null,
+            valueLabel: returnDep.isNotEmpty ? returnDep.first.city : null,
+            placeholder: 'Japonya\'dan kalkış havalimanı',
+            onSelect: (a) => widget.onChange((t) {
+              t.preferences.returnDepartAirport = a.iata;
+              _resync(t);
+            }),
+          ),
+        ),
+        _field(
+          'Varış (Türkiye)',
+          AirportPickerField(
+            countryCodes: const ['TR'],
+            valueCode: returnArr.isNotEmpty ? returnArr.first.iata : null,
+            valueLabel: returnArr.isNotEmpty ? returnArr.first.city : null,
+            placeholder: 'Türkiye\'ye varış havalimanı',
+            onSelect: (a) => widget.onChange((t) {
+              t.preferences.returnArrivalAirport = a.iata;
+              _resync(t);
+            }),
+          ),
+        ),
       ],
     );
   }
@@ -685,6 +784,54 @@ class _DropdownField<T> extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Şehir chip'i — aktifse dolgulu, değilse çerçeveli. 44pt tap hedefi.
+class _CityChip extends StatelessWidget {
+  const _CityChip({
+    required this.emoji,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+  final String emoji;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(100),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: active ? PT.accent : PT.bgSubtle,
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(
+            color: active ? PT.accent : PT.borderStrong,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 16)),
+            const SizedBox(width: 6),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: active ? Colors.white : PT.text)),
+            if (active) ...[
+              const SizedBox(width: 6),
+              const Icon(Icons.check, size: 14, color: Colors.white),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

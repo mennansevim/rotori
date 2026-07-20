@@ -110,14 +110,13 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.textContaining('Şehirler arası Shinkansen'), findsOneWidget);
-    // Hint > destCount → "yeni durak ekle" ipucu da render edilmeli
-    // (ekran dışında olabilir; sadece varlığını doğrula).
+    // Şehir seçici de görünmeli (hint yerine kullanıcı listeden seçer).
     await tester.scrollUntilVisible(
-      find.text('Aşağıdan yeni durak ekle'),
+      find.text('🏙️ Gezilecek şehirler'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('Aşağıdan yeni durak ekle'), findsOneWidget);
+    expect(find.text('🏙️ Gezilecek şehirler'), findsOneWidget);
   });
 
   testWidgets('destinations.length >= 2 iken Shinkansen otomatik çıkar',
