@@ -10,3 +10,11 @@ output/reels/
 config.local.yaml
 data/cleaned/
 data/metadata.csv.*.bak
+output/ready_to_publish/
+# hangi klasörde olursa olsun video/text çıktıları asla commit'e girmesin
+*.mp4
+*.mov
+*.MOV
+*.MP4
+*.part.mp4
+output/**/*.txt
