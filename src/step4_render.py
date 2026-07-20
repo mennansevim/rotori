@@ -12,6 +12,7 @@ from moviepy import (
     VideoFileClip,
     concatenate_videoclips,
 )
+from proglog import ProgressBarLogger
 from tqdm import tqdm
 
 from src.config import Config, load_config, require_video_source
@@ -48,6 +49,35 @@ STIL_STYLE: dict[str, dict[str, Any]] = {
 # Hook'un giriş süresi: sadece başta görünsün, sonra kaybolsun.
 HOOK_START_SN = 0.4
 HOOK_VISIBLE_SN = 4.5
+
+
+class LineProgressLogger(ProgressBarLogger):
+    """MoviePy encode progress'ini `\\r` yerine yeni satırla basar — böylece
+    subprocess okuyucuları (web dashboard, tail -f, docker logs) her adımı
+    canlı görebilir."""
+
+    def __init__(self, prefix: str = "encode", step_pct: int = 5) -> None:
+        super().__init__()
+        self.prefix = prefix
+        self.step = max(1, step_pct)
+        self._last_pct: dict[str, int] = {}
+
+    def bars_callback(self, bar, attr, value, old_value=None):
+        if attr != "index":
+            return
+        total = self.bars.get(bar, {}).get("total") or 0
+        if total <= 0:
+            return
+        pct = int(value / total * 100)
+        prev = self._last_pct.get(bar, -1)
+        if pct >= 100 or pct - prev >= self.step:
+            self._last_pct[bar] = pct
+            log.info(f"  [{self.prefix}:{bar}] {value}/{total} ({pct}%)")
+
+    def callback(self, **changes):
+        msg = changes.get("message")
+        if msg:
+            log.info(f"  [{self.prefix}] {msg}")
 
 
 def crop_to_vertical(clip: VideoFileClip, target_w: int, target_h: int) -> Any:
@@ -145,36 +175,44 @@ def render_reel(final_json: Path, cfg: Config, source_dir: Path, name_index: dic
     videos: list[str] = data["video_dosyalari"]
     plan = data["kurgu_json"]
 
+    log.info(f"▶ {final_json.name} — {len(videos)} klip")
+
     present: list[Path] = []
     durations: list[float] = []
     for name in videos:
         path = name_index.get(name)
         if path is None or not path.exists():
-            log.warning(f"Bulunamadı: {name}")
+            log.warning(f"  ✗ bulunamadı: {name}")
             continue
         try:
-            durations.append(probe(path).duration_sn)
+            d = probe(path).duration_sn
+            durations.append(d)
             present.append(path)
+            log.info(f"  · {name} ({d:.1f}s)")
         except Exception as exc:
-            log.warning(f"Süre okunamadı ({name}): {exc}")
+            log.warning(f"  ✗ süre okunamadı ({name}): {exc}")
 
     if not present:
         log.error(f"Hiç klip yok, atlanıyor: {final_json.name}")
         return None
 
     shares = _plan_durations(durations, cfg)
+    log.info(f"  paylaşım: {', '.join(f'{s:.1f}s' for s in shares)} (toplam {sum(shares):.1f}s)")
 
+    log.info("  klipler yükleniyor + 9:16 crop…")
     clips: list[Any] = []
-    for path, share in zip(present, shares):
+    for i, (path, share) in enumerate(zip(present, shares), 1):
         try:
             clips.append(load_and_trim(path, share, cfg))
+            log.info(f"    [{i}/{len(present)}] {path.name} hazır")
         except Exception as exc:
-            log.error(f"Klip yüklenemedi ({path.name}): {exc}")
+            log.error(f"  ✗ klip yüklenemedi ({path.name}): {exc}")
 
     if not clips:
         log.error(f"Hiç klip yüklenemedi, atlanıyor: {final_json.name}")
         return None
 
+    log.info(f"  {len(clips)} klip birleştiriliyor…")
     base = concatenate_videoclips(clips, method="compose")
     if base.duration > cfg.reels.max_duration_sn:
         base = base.subclipped(0, cfg.reels.max_duration_sn)
@@ -185,6 +223,7 @@ def render_reel(final_json: Path, cfg: Config, source_dir: Path, name_index: dic
         ).with_fps(cfg.reels.fps)
         base = concatenate_videoclips([base, pad])
 
+    log.info("  overlay'ler ekleniyor (hook + lokasyon)…")
     overlay_clips: list[Any] = []
 
     # 1) HOOK: büyük/vurgulu, yalnızca girişte görünür (sonra kaybolur).
@@ -194,12 +233,14 @@ def render_reel(final_json: Path, cfg: Config, source_dir: Path, name_index: dic
         hook_dur = max(0.5, min(HOOK_VISIBLE_SN, base.duration - hook_start))
         for c in make_overlay(hook_text, cfg, "hook", "beyaz"):
             overlay_clips.append(c.with_start(hook_start).with_duration(hook_dur))
+        log.info(f"    hook: \"{hook_text[:60]}\" ({hook_dur:.1f}s)")
 
     # 2) LOKASYON ETİKETİ: küçük puntolu, normal yazım, TÜM video boyunca kalıcı.
     lokasyon = str(data.get("mekan_etiketi", "")).strip()
     if lokasyon:
         for c in make_overlay(lokasyon, cfg, "lokasyon", "beyaz", upper=False):
             overlay_clips.append(c.with_start(0.0).with_duration(base.duration))
+        log.info(f"    lokasyon: \"{lokasyon}\"")
 
     # 3) Aradaki overlay'ler ve 4) sondaki CTA artık ekrana basılmıyor
     #    (bu bilgiler açıklama/.txt içinde korunuyor).
@@ -213,7 +254,7 @@ def render_reel(final_json: Path, cfg: Config, source_dir: Path, name_index: dic
     out_path = cfg.paths.output_dir / out_name
     expected = float(final.duration)
     tmp_path = out_path.with_suffix(".part.mp4")
-    log.info(f"Render → {out_path.name} ({expected:.1f}s)")
+    log.info(f"  encode başlıyor → {out_path.name} (hedef {expected:.1f}s @ {cfg.reels.fps}fps, H.264/AAC, 4 thread)")
 
     try:
         final.write_videofile(
@@ -223,7 +264,7 @@ def render_reel(final_json: Path, cfg: Config, source_dir: Path, name_index: dic
             fps=cfg.reels.fps,
             preset="medium",
             threads=4,
-            logger=None,
+            logger=LineProgressLogger(prefix=out_name),
         )
     finally:
         for c in clips:
