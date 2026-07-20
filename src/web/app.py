@@ -148,6 +148,13 @@ def generate_prompt(req: PromptRequest) -> dict[str, Any]:
     return {"ok": True, "job": manager.state}
 
 
+@app.get("/api/suggestions")
+def suggestions() -> dict[str, Any]:
+    """Mevcut arşiv videolarına göre hazır Reels fikirleri döndür."""
+    from src.suggestions import build_suggestions
+    return {"suggestions": build_suggestions(cfg)}
+
+
 @app.post("/api/analyze")
 def analyze(req: AnalyzeRequest) -> dict[str, Any]:
     """Yeni video keşfi + etiketleme + (opsiyonel) sahne özeti üretimi."""
