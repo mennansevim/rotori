@@ -45,7 +45,7 @@ const List<PlaceSuggestion> kJapanPopular = [
   PlaceSuggestion(id: 'shibuya', name: 'Shibuya Sky & Crossing', city: 'Tokyo', emoji: '📸', category: 'fun', typicalSteps: 15000,
       imageUrl: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=400&q=60'),
   PlaceSuggestion(id: 'meiji', name: 'Meiji Jingu', city: 'Tokyo', emoji: '🌳', category: 'culture', typicalSteps: 9000,
-      imageUrl: 'https://images.unsplash.com/photo-1583400400287-ec8bdcc4b91b?w=400&q=60'),
+      imageUrl: 'https://images.unsplash.com/photo-1522547902298-51566e4fb383?w=400&q=60'),
   PlaceSuggestion(id: 'teamlab', name: 'teamLab Planets', city: 'Tokyo', emoji: '🪐', category: 'fun', typicalSteps: 11000,
       imageUrl: 'https://images.unsplash.com/photo-1567013127542-490d757e51fc?w=400&q=60'),
   PlaceSuggestion(id: 'disney', name: 'Tokyo Disneyland', city: 'Tokyo', emoji: '🏰', category: 'fun', typicalSteps: 22000,

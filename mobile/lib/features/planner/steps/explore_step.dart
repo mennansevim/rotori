@@ -501,13 +501,16 @@ class _PopularPlaceCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
+                  // Görsel varsa Image; her durumda (loading/error/yok) emoji
+                  // gradient fallback görünür — böylece boş kart olmaz.
                   if (imageUrl != null)
                     Image.network(
                       imageUrl!,
                       fit: BoxFit.cover,
-                      loadingBuilder: (_, child, progress) => progress == null
-                          ? child
-                          : Container(color: PT.bgElevated),
+                      frameBuilder: (_, child, frame, wasSync) {
+                        if (wasSync || frame != null) return child;
+                        return _EmojiFallback(emoji: emoji);
+                      },
                       errorBuilder: (_, __, ___) => _EmojiFallback(emoji: emoji),
                     )
                   else
