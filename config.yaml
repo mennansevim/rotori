@@ -42,6 +42,9 @@ reels:
   font_alt: "/System/Library/Fonts/Supplemental/Arial Black.ttf"
   shadow_offset: 6
   stroke_width: 8
+  # Footer: her reel'de sabit alt imza. Video boyunca sabittir, küçük punto,
+  # alta yakın konum. Kanal handle'ı için idealdir. Boş bırakırsan footer basılmaz.
+  footer_text: "@mennansjapan"
 
 pilot:
   pilot_mode: false

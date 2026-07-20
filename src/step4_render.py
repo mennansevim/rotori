@@ -43,8 +43,8 @@ STIL_STYLE: dict[str, dict[str, Any]] = {
     "altbaslik": {"size": 78,  "y_ratio": 0.78, "default_color": "beyaz"},
     "cta":       {"size": 88,  "y_ratio": 0.78, "default_color": "sari"},
     "vurgu":     {"size": 110, "y_ratio": 0.42, "default_color": "sari"},
-    # Küçük puntolu, kalıcı lokasyon etiketi (alt tarafta, hook ile çakışmaz).
-    "lokasyon":  {"size": 44,  "y_ratio": 0.90, "default_color": "beyaz"},
+    # Kalıcı footer imzası — video boyunca sabit, altta (kanal handle vb.)
+    "footer":    {"size": 38,  "y_ratio": 0.93, "default_color": "beyaz"},
 }
 
 # Hook'un giriş süresi: sadece başta görünsün, sonra kaybolsun.
@@ -320,12 +320,14 @@ def render_reel(final_json: Path, cfg: Config, source_dir: Path, name_index: dic
             overlay_clips.append(c.with_start(hook_start).with_duration(hook_dur))
         log.info(f"    hook: \"{hook_text[:60]}\" ({hook_dur:.1f}s)")
 
-    # 2) LOKASYON ETİKETİ: küçük puntolu, normal yazım, TÜM video boyunca kalıcı.
-    lokasyon = str(data.get("mekan_etiketi", "")).strip()
-    if lokasyon:
-        for c in make_overlay(lokasyon, cfg, "lokasyon", "beyaz", upper=False):
+    # 2) FOOTER: cfg.reels.footer_text (ör "@mennansjapan") — video boyunca
+    #    altta sabit kalıcı kanal imzası. Mekan etiketi ("Doğa" vb.) artık
+    #    ekrana basılmıyor — metadata.csv'de kalır, semantic search için yeter.
+    footer_text = str(cfg.reels.footer_text or "").strip()
+    if footer_text:
+        for c in make_overlay(footer_text, cfg, "footer", "beyaz", upper=False):
             overlay_clips.append(c.with_start(0.0).with_duration(base.duration))
-        log.info(f"    lokasyon: \"{lokasyon}\"")
+        log.info(f"    footer: \"{footer_text}\"")
 
     # 3) Aradaki overlay'ler ve 4) sondaki CTA artık ekrana basılmıyor
     #    (bu bilgiler açıklama/.txt içinde korunuyor).

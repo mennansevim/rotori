@@ -61,6 +61,7 @@ class ReelsCfg:
     font_alt: str = "/System/Library/Fonts/Supplemental/Arial Black.ttf"
     shadow_offset: int = 6
     stroke_width: int = 8
+    footer_text: str = ""   # her reel'de sabit alt imza; boşsa footer basılmaz
 
 
 @dataclass
