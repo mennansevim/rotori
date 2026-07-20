@@ -3,7 +3,7 @@ pyyaml>=6.0.2
 tqdm>=4.66.0
 pandas>=2.2.0
 Pillow>=10.4.0
-moviepy==2.1.1
+moviepy>=2.2.1
 imageio-ffmpeg>=0.5.1
 numpy>=1.26.0
 fastapi>=0.115.0

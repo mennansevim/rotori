@@ -8,3 +8,5 @@ data/kurgu_planlari/
 data/raw_videos/
 output/reels/
 config.local.yaml
+data/cleaned/
+data/metadata.csv.*.bak

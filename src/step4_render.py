@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -97,8 +98,76 @@ def crop_to_vertical(clip: VideoFileClip, target_w: int, target_h: int) -> Any:
     return clip.resized((tw, th))
 
 
+def _clean_video_cache_dir(cfg: Config) -> Path:
+    """Cache klasörü: data/cleaned/ altında normalize edilmiş kopyalar."""
+    d = cfg.paths.frames_dir.parent / "cleaned"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _sanitize_input(video_path: Path, cfg: Config) -> Path:
+    """iPhone 17+ videolarında apac (Apple Positional Audio Codec) + DoVi HEVC
+    10-bit + mebx metadata stream'leri var → MoviePy ffmpeg parser bunları
+    tanımıyor, dosya açılmıyor. Kaynak dosyayı ffmpeg ile sadeleştirip
+    (yalnızca ilk video stream, ses yok, standart H.264 8-bit) cache'e yaz.
+
+    Cache anahtarı: dosya adı + mtime → aynı video değişmediyse yeniden üretilmez.
+    """
+    cache = _clean_video_cache_dir(cfg)
+    dst = cache / f"{video_path.stem}.mp4"
+    try:
+        if dst.exists() and dst.stat().st_mtime >= video_path.stat().st_mtime:
+            return dst
+    except OSError:
+        pass
+
+    log.info(f"  clean: {video_path.name} → {dst.name}")
+    # iPhone 17+ videolar birden fazla MoviePy uyumsuzluğu içeriyor:
+    # 1. apac (Apple Positional Audio Codec) audio stream → probe fail
+    # 2. HEVC Main 10 + Dolby Vision → decode ağır
+    # 3. Ambient Viewing Environment side data → MoviePy 2.1.1 parser hatası
+    # 4. BT.2020 → colorspace uyumsuzluğu
+    #
+    # ffmpeg pipeline hepsini tek seferde temizler:
+    # -map 0:v:0           → sadece ilk video, diğer stream'ler yok
+    # -vf scale=… BT.709   → 1080p yükseklik + renk uzayı normalize
+    # -pix_fmt yuv420p     → 8-bit (10-bit DoVi'yi düşür)
+    # -color_* bt709       → SDR metadata (Ambient Viewing side data düşer)
+    # -map_metadata -1     → tüm mov box'ları sıfırla
+    # -crf 20 veryfast     → dengeli kalite/hız
+    # -an                  → ses yok (zaten kullanmıyoruz)
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error",
+         "-i", str(video_path),
+         "-map", "0:v:0",
+         "-vf", "scale=-2:1080:in_color_matrix=bt2020nc:out_color_matrix=bt709,format=yuv420p",
+         "-c:v", "libx264",
+         "-pix_fmt", "yuv420p",
+         "-crf", "20",
+         "-preset", "veryfast",
+         "-color_primaries", "bt709",
+         "-color_trc", "bt709",
+         "-colorspace", "bt709",
+         "-map_metadata", "-1",
+         "-map_chapters", "-1",
+         "-an",
+         "-movflags", "+faststart",
+         str(dst)],
+        check=True,
+    )
+    return dst
+
+
 def load_and_trim(video_path: Path, target_sn: float, cfg: Config) -> Any:
-    clip = VideoFileClip(str(video_path))
+    """Video dosyasını aç, süreye trim et, 9:16 crop et.
+    Sorunlu iPhone stream'leri (apac, DoVi 10-bit) için önden sanitize eder."""
+    try:
+        clip = VideoFileClip(str(video_path), audio=False)
+    except (OSError, IOError):
+        # ffmpeg probe fail → önden ffmpeg ile temizle (cache'li), tekrar dene
+        cleaned = _sanitize_input(video_path, cfg)
+        clip = VideoFileClip(str(cleaned), audio=False)
+
     if clip.duration and clip.duration > target_sn:
         clip = clip.subclipped(0, target_sn)
     clip = crop_to_vertical(clip, cfg.reels.target_width, cfg.reels.target_height)
@@ -260,7 +329,7 @@ def render_reel(final_json: Path, cfg: Config, source_dir: Path, name_index: dic
         final.write_videofile(
             str(tmp_path),
             codec="libx264",
-            audio_codec="aac",
+            audio=False,       # kliplerin audio'sunu okumuyoruz (iPhone apac uyumsuz)
             fps=cfg.reels.fps,
             preset="medium",
             threads=4,
