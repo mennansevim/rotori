@@ -164,31 +164,27 @@ def _usable(dur: float, cap: float) -> float:
 
 def _pick_from_scored(scored_rows: list[dict[str, Any]], sure_modu: str
                       ) -> tuple[list[dict[str, Any]], float]:
-    """Semantic search sonucu puanı > 0 satırlardan süre moduna göre klip seçer.
-    scored_rows önceden puana göre sıralı olmalı (en yüksek puan başta)."""
+    """Semantic search sonucu puanı > 0 satırlardan TEK klip seç.
+    Klipleri birleştirmiyoruz — sadece en yüksek puanlı klibi alıp süre moduna
+    göre trim ediyoruz (kliplerin doğal süresi < mode.max ise olduğu gibi kalır)."""
+    if not scored_rows:
+        return [], SURE_MODU.get(sure_modu, SURE_MODU["orta"])["hedef"]
     mode = SURE_MODU.get(sure_modu, SURE_MODU["orta"])
-    picked: list[dict[str, Any]] = []
-    total = 0.0
-    for r in scored_rows:
-        if len(picked) >= mode["klip_max"]:
-            break
-        dur = _usable(float(r.get("sure_sn", 0) or 0), mode["per_clip_cap"])
-        picked.append(r)
-        total += dur
-        if total >= mode["hedef"] and len(picked) >= mode["klip_min"]:
-            break
-    if len(picked) < mode["klip_min"] and scored_rows:
-        picked = scored_rows[: mode["klip_min"]]
-        total = sum(_usable(float(r.get("sure_sn", 0) or 0), mode["per_clip_cap"]) for r in picked)
-    hedef_toplam = min(mode["max"], max(mode["min"], total)) if total > 0 else mode["hedef"]
-    return picked, hedef_toplam
+    picked = [scored_rows[0]]
+    dur = float(picked[0].get("sure_sn", 0) or 0)
+    hedef = min(mode["max"], dur) if dur > 0 else mode["hedef"]
+    return picked, hedef
 
 
 def select_clips(rows: list[dict[str, Any]], mekan_etiketi: str, sure_modu: str
                  ) -> tuple[list[dict[str, Any]], float]:
-    """Metadata satırlarından mekan_etiketi'ne match edenleri süre moduna göre seç.
+    """Metadata satırlarından mekan_etiketi'ne match eden TEK klip seç.
 
-    Return: (seçilen satırlar, hedef toplam süre)
+    Tasarım kararı: kullanıcı 'birden fazla klibi birleştirme' istedi, çünkü
+    kesitler videonun akışını bozuyor. Bunun yerine tek klibi olduğu gibi
+    render'a veriyoruz, üstüne sadece overlay/hook text bindiriyoruz.
+
+    Return: ([tek klip], hedef süre — klibin doğal süresiyle mode.max min'i)
     """
     mode = SURE_MODU.get(sure_modu, SURE_MODU["orta"])
 
@@ -196,29 +192,17 @@ def select_clips(rows: list[dict[str, Any]], mekan_etiketi: str, sure_modu: str
     if not matched:
         return [], mode["hedef"]
 
-    # intro başa, geçiş/yavaş sona; eşitlikte uzun klip öne
+    # intro/normal → yakin → yürüyüş → geçiş → yavaş. Eşitlikte SÜRE MODUNA
+    # yakın olan klip başa (kullanıcı "kısa" isterse kısa klip; "uzun"da uzun).
+    hedef_sure = mode["hedef"]
     matched.sort(key=lambda r: (
         labeling.tip_sira(r.get("cekim_tipi", "normal")),
-        -float(r.get("sure_sn", 0) or 0),
+        abs(float(r.get("sure_sn", 0) or 0) - hedef_sure),
     ))
 
-    picked: list[dict[str, Any]] = []
-    total = 0.0
-    for r in matched:
-        if len(picked) >= mode["klip_max"]:
-            break
-        dur = _usable(float(r.get("sure_sn", 0) or 0), mode["per_clip_cap"])
-        picked.append(r)
-        total += dur
-        if total >= mode["hedef"] and len(picked) >= mode["klip_min"]:
-            break
-
-    # klip_min doldurulamıyorsa: elimizdekiyle yetin (bilgi log'la)
-    if len(picked) < mode["klip_min"] and matched:
-        picked = matched[: mode["klip_min"]]
-        total = sum(_usable(float(r.get("sure_sn", 0) or 0), mode["per_clip_cap"]) for r in picked)
-
-    hedef_toplam = min(mode["max"], max(mode["min"], total)) if total > 0 else mode["hedef"]
+    picked = [matched[0]]
+    dur = float(picked[0].get("sure_sn", 0) or 0)
+    hedef_toplam = min(mode["max"], dur) if dur > 0 else mode["hedef"]
     return picked, hedef_toplam
 
 
