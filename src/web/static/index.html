@@ -272,6 +272,10 @@ async function pollLogs(){
   }catch(e){/* ignore */}
 }
 
+// Her galerinin son "kimlik" imzasını sakla → aynıysa DOM'a dokunma
+// (yoksa her poll'da <video> elementleri destroy edilir ve oynatma sıfırlanır)
+const _lastSig = {pendingGrid: "", readyGrid: ""};
+
 async function pollReels(){
   try{
     const r = await fetch("/api/reels");
@@ -284,8 +288,18 @@ async function pollReels(){
   }catch(e){/* ignore */}
 }
 
+function _signature(items){
+  // sadece "kart kimliği + mtime" — küçük metin değişiklikleri de tetiklesin ama
+  // her poll'da farklı olan bir alan olmasın (yoksa DOM sürekli yenilenir)
+  return items.map(r => `${r.name}:${r.mtime}`).join("|");
+}
+
 function renderGrid(id, items, isPending){
   const box = $(id);
+  const sig = _signature(items);
+  if(sig === _lastSig[id]) return;   // hiçbir değişiklik yok → DOM sabit kalsın
+  _lastSig[id] = sig;
+
   if(!items.length){
     box.innerHTML = `<div class="empty">Henüz ${isPending ? "üretilmiş" : "onaylanmış"} reel yok.</div>`;
     return;
@@ -294,6 +308,7 @@ function renderGrid(id, items, isPending){
   for(const r of items){
     const card = document.createElement("div");
     card.className = "reel-card";
+    card.dataset.name = r.name;
     const promptHtml = r.prompt ? `<div class="prompt" title="${escapeHtml(r.prompt)}">💬 ${escapeHtml(r.prompt)}</div>` : "";
     const actions = isPending
       ? `<div class="actions">
@@ -304,8 +319,9 @@ function renderGrid(id, items, isPending){
            <button onclick="unpublish('${r.name}')">↩ Geri Al</button>
          </div>`;
     const caption = r.caption ? `<div class="caption">${escapeHtml(r.caption)}</div>` : "";
+    // preload="none": tüm videolar aynı anda yüklenmez, sadece kullanıcı Play basınca
     card.innerHTML = `
-      <video src="${r.url}" controls preload="metadata" ${r.thumb ? `poster="${r.thumb}"` : ""}></video>
+      <video src="${r.url}" controls preload="none" playsinline ${r.thumb ? `poster="${r.thumb}"` : ""}></video>
       <div class="info">
         <div class="mekan">${escapeHtml(r.mekan)} <span style="color:var(--muted);font-weight:400">· ${r.clips} klip</span></div>
         ${r.hook ? `<div class="hook">"${escapeHtml(r.hook)}"</div>` : ""}
