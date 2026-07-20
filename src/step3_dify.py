@@ -183,9 +183,108 @@ def _llm_aciklama(client: OllamaClient, model: str, mekan: str, tips: list[str])
     return None
 
 
+_OPENAI_SYSTEM = (
+    "Sen Japonya'yı ailesiyle 13 gün gezmiş bir Türk gezginsin (Mayıs 2026, "
+    "Tokyo/Osaka/Kyoto/Nara). Kanalın 'Mennan'ın Japonya Günlüğü'. Videoların "
+    "üzerine gelecek KISA overlay metinleri + Instagram description üretiyorsun. "
+    "Yanıtın SADECE geçerli JSON olsun. Türkçen kusursuz, klişesiz, samimi ve "
+    "otoriter. Uydurma sayı/saat/fiyat YASAK — bilmiyorsan hiç yazma."
+)
+
+
+def _openai_generate(cfg: Config, group: dict[str, Any]) -> dict[str, Any] | None:
+    """OpenAI (gpt-4o-mini) ile Türkçe kaliteli metin üret. Key yoksa None."""
+    from src.openai_client import OpenAIClient
+
+    oai = OpenAIClient.from_config(cfg)
+    if oai is None:
+        return None
+
+    mekan = group["mekan_etiketi"]
+    kategori = group.get("kategori", "")
+    total = float(group["toplam_sure_sn"])
+    kullanici = (group.get("kullanici_prompt") or "").strip()
+    knowledge = (group.get("knowledge") or "").strip()
+    tipi = group.get("aciklama_tipi", "aciklayici")
+
+    # Seed'in tüyoları varsa referans olarak GPT'ye ver
+    seed = persona.seed_for(mekan, kategori)
+    tips_block = "\n".join(f"- {t}" for t in seed.get("tips", [])[:6])
+
+    ton_hint = {
+        "aciklayici": "Nötr bilgilendirici, somut fact (sayı/saat/fiyat varsa), emoji sınırlı.",
+        "bolgeyi_tanit": "Sıcak turistik tanıtım, coğrafi + kültürel bağlam, 3-4 emoji.",
+        "merak_uyandir": "Cliffhanger, gizemli — 'az kişi biliyor', sonuna kadar cevap verme.",
+    }.get(tipi, "Nötr bilgilendirici")
+
+    user_prompt = f"""Mekan: {mekan}
+Kategori: {kategori}
+Toplam reel süresi: {total} saniye
+Ton: {tipi} — {ton_hint}
+{f"Kullanıcı talebi: {kullanici}" if kullanici else ""}
+{f"Tüyolar (referans olarak kullan, uydurmadan):\\n{tips_block}" if tips_block else ""}
+{f"Insider Knowledge:\\n{knowledge[:5000]}" if knowledge else ""}
+
+Aşağıdaki JSON şemasında çıktı ver:
+{{
+  "hook": "5-8 kelime Türkçe, çarpıcı, video başında görünecek",
+  "overlays": [
+    {{"saniye": 4.5, "metin": "MAX 4 KELİME", "sure": 3.0,
+      "stil": "baslik|altbaslik|vurgu", "renk": "sari|kirmizi|beyaz|mavi|yesil|turuncu|pembe"}}
+  ],
+  "cta": "3-6 kelime aksiyon çağrısı",
+  "aciklama": "3-5 kısa Türkçe cümle, birinci çoğul (biz/ailemle), somut trick, 2-4 emoji. Videoyu özetleme — bilgi ver.",
+  "hashtagler": ["8-12 tag", "# olmadan", "küçük harf"]
+}}
+
+Kurallar:
+- overlays 3-5 madde, ilk saniye 4-6 arası, sonuncu (total-6)'dan önce
+- overlay metinleri MAX 4 kelime (kısa, Impact-punchy)
+- aciklama uydurma sayı/saat/fiyat İÇERMEMELİ
+- klişe cümleler yok ("erken git", "rahat ayakkabı", "büyülü ülke")
+- SADECE JSON döndür, açıklama yazma"""
+
+    try:
+        data = oai.chat_json(_OPENAI_SYSTEM, user_prompt, temperature=0.7, max_tokens=1200)
+    except (RuntimeError, ValueError) as exc:
+        log.warning(f"OpenAI başarısız, seed fallback: {exc}")
+        return None
+
+    # savunmacı normalize + validate
+    hook = str(data.get("hook", "")).strip()
+    if not _valid_hook(hook):
+        hook = seed.get("hook", persona.GENERIC["hook"])
+
+    aciklama = _sanitize_aciklama(str(data.get("aciklama", "")), mekan, seed.get("tips", []))
+
+    overlays_raw = data.get("overlays") or []
+    if not isinstance(overlays_raw, list) or len(overlays_raw) < 2:
+        overlays_raw = [{"metin": t} for t in seed.get("overlays", persona.GENERIC["overlays"])]
+
+    hashtagler = _clean_hashtags(data.get("hashtagler"), seed.get("hashtags", persona.GENERIC["hashtags"]))
+
+    log.info(f"  ↳ OpenAI ({oai.model}): {hook!r}")
+
+    return {
+        "hook": hook,
+        "overlays": overlays_raw,   # validate_plan bunları düzenleyecek
+        "cta": str(data.get("cta") or persona.CTA_HAVUZU[group.get("idx", 0) % len(persona.CTA_HAVUZU)]),
+        "aciklama": aciklama,
+        "hashtagler": hashtagler,
+    }
+
+
 def generate_local(cfg: Config, group: dict[str, Any], client: OllamaClient, model: str) -> dict[str, Any]:
-    """Kalite garantisi: içeriğin tamamı gerçek geziye dayalı el yapımı seed'lerden
-    gelir → her seferinde kusursuz Türkçe, spesifik, klişesiz; zayıf modele bağımsız."""
+    """İçerik üretimi. Öncelik sırası:
+      1. OpenAI (gpt-4o-mini) — cfg.openai.api_key varsa, en kaliteli Türkçe
+      2. Persona seed (el yapımı) — key yoksa, deterministik ve klişesiz
+    """
+    # 1) OpenAI dene (varsa)
+    oai_result = _openai_generate(cfg, group)
+    if oai_result is not None:
+        return oai_result
+
+    # 2) Fallback: persona seed'lerinden
     mekan = group["mekan_etiketi"]
     kategori = group.get("kategori", "")
     total = float(group["toplam_sure_sn"])

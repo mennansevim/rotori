@@ -205,14 +205,32 @@ def tr_upper(text: str) -> str:
     return text.replace("i", "İ").replace("ı", "I").upper()
 
 
+def _fit_font_size(text: str, base_size: int, upper: bool) -> int:
+    """Uzun metinde font-size'ı otomatik küçült — kenardan taşmayı önler.
+    Impact/Arial Black gibi kondense fontlarda 4 kelimeye kadar rahat, üstü sıkışır."""
+    render = text.upper() if upper else text
+    words = render.split()
+    max_w = max((len(w) for w in words), default=0)
+    total_len = len(render)
+    if max_w >= 14 or total_len > 40:
+        return int(base_size * 0.70)
+    if max_w >= 11 or total_len > 30:
+        return int(base_size * 0.80)
+    if total_len > 22:
+        return int(base_size * 0.90)
+    return base_size
+
+
 def make_overlay(text: str, cfg: Config, stil: str, renk: str, upper: bool = True) -> list[Any]:
     style = STIL_STYLE.get(stil.lower(), STIL_STYLE["vurgu"])
-    size = style["size"]
     y_ratio = style["y_ratio"]
     color = _resolve_color(renk or style["default_color"])
     font = _font_path(cfg, stil)
-    caption_w = int(cfg.reels.target_width * 0.88)
+    # %78 caption genişliği — kenardan güvenli margin bırakır (önceden %88 idi,
+    # 4K+dikey videolarda geniş harfler kenarda kesilebiliyordu).
+    caption_w = int(cfg.reels.target_width * 0.78)
     render_text = tr_upper(text) if upper else text
+    size = _fit_font_size(render_text, style["size"], upper=False)  # zaten upper'landı
 
     def _build(color_hex: str, stroke_hex: str, stroke_w: int) -> TextClip:
         return TextClip(
@@ -228,8 +246,6 @@ def make_overlay(text: str, cfg: Config, stil: str, renk: str, upper: bool = Tru
         )
 
     y_pos = int(cfg.reels.target_height * y_ratio)
-    # Gölge/kontur kalınlığını punto ile orantıla: büyük hook aynı kalır,
-    # küçük lokasyon etiketinde kontur okunur boyutta olur.
     scale = size / 130
     off = max(2, round(cfg.reels.shadow_offset * scale))
     stroke_w = max(2, round(cfg.reels.stroke_width * scale))
