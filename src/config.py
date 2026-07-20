@@ -46,6 +46,15 @@ class OpenAICfg:
 
 
 @dataclass
+class InstagramCfg:
+    username: str
+    password: str
+    totp_secret: str = ""    # 2FA aktifse authenticator app "elle setup" secret
+    session_file: str = "data/instagram_session.json"
+    uploads_log: str = "data/instagram_uploads.jsonl"
+
+
+@dataclass
 class ReelsCfg:
     target_width: int
     target_height: int
@@ -86,6 +95,7 @@ class Config:
     run: RunCfg
     project_root: Path
     openai: OpenAICfg | None = None
+    instagram: InstagramCfg | None = None
 
 
 def _resolve(base: Path, p: str) -> Path:
@@ -119,11 +129,17 @@ def load_config(config_path: str | None = None) -> Config:
     if openai_raw.get("api_key") and openai_raw["api_key"] not in ("", "REPLACE_ME_OPENAI_KEY"):
         openai_cfg = OpenAICfg(**openai_raw)
 
+    ig_raw = raw.get("instagram") or {}
+    ig_cfg: InstagramCfg | None = None
+    if (ig_raw.get("username") and ig_raw["username"] not in ("", "REPLACE_ME_USERNAME")
+            and ig_raw.get("password") and ig_raw["password"] not in ("", "REPLACE_ME_PASSWORD")):
+        ig_cfg = InstagramCfg(**ig_raw)
+
     for d in (paths.frames_dir, paths.plans_dir, paths.output_dir, paths.ready_dir, paths.metadata_csv.parent):
         d.mkdir(parents=True, exist_ok=True)
 
     return Config(paths=paths, ollama=ollama, dify=dify, reels=reels, pilot=pilot,
-                  run=run, project_root=project_root, openai=openai_cfg)
+                  run=run, project_root=project_root, openai=openai_cfg, instagram=ig_cfg)
 
 
 def require_video_source(cfg: Config) -> Path:

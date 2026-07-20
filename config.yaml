@@ -27,6 +27,20 @@ openai:
   base_url: "https://api.openai.com/v1"
   timeout_sn: 60
 
+instagram:
+  # Yayına Hazır reel'lerini Instagram uygulaması Drafts sekmesine gönderir.
+  # instagrapi kullanır (unofficial Python client) — hesabı riske sokabilir
+  # (Instagram TOS "3rd-party client" yasaklıyor). Şahsi kanal + haftada
+  # birkaç upload için tolere edilebilir. Alternatif Meta Graph API'de Drafts
+  # desteklenmiyor (sadece direct publish).
+  username: "REPLACE_ME_USERNAME"
+  password: "REPLACE_ME_PASSWORD"
+  # 2FA authenticator app aktifse: uygulama içi "Elle Setup" barkodunun
+  # altındaki 16 karakterlik secret'i buraya yaz. SMS 2FA veya 2FA yoksa boş.
+  totp_secret: ""
+  session_file: "data/instagram_session.json"
+  uploads_log: "data/instagram_uploads.jsonl"
+
 reels:
   target_width: 1080
   target_height: 1920
