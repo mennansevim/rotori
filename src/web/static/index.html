@@ -27,379 +27,337 @@
   .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
   .card h2{margin:0 0 14px;font-size:14px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
 
-  /* kontrol */
-  .controls{display:flex;flex-direction:column;gap:14px}
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .toggle{display:flex;align-items:center;gap:7px;background:var(--panel2);border:1px solid var(--line);
-    padding:8px 12px;border-radius:10px;cursor:pointer;user-select:none}
-  .toggle input{accent-color:var(--accent)}
+  /* Prompt formu */
+  form#promptForm{display:flex;flex-direction:column;gap:14px}
+  label.field{display:flex;flex-direction:column;gap:6px}
+  label.field span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  textarea, input[type="text"]{
+    font:inherit;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    padding:12px 14px;border-radius:10px;resize:vertical;width:100%;
+  }
+  textarea:focus, input[type="text"]:focus{outline:none;border-color:var(--accent)}
+  textarea#prompt{min-height:120px;font-size:16px;line-height:1.5}
+
+  /* Süre modu segmented */
+  .segmented{display:flex;gap:6px;flex-wrap:wrap}
+  .segmented label{flex:1;min-width:110px;display:flex;flex-direction:column;align-items:center;gap:2px;
+    background:var(--panel2);border:1px solid var(--line);padding:10px 12px;border-radius:10px;cursor:pointer;
+    text-align:center;transition:.15s}
+  .segmented label:hover{border-color:var(--accent)}
+  .segmented input[type="radio"]{display:none}
+  .segmented label:has(input:checked){background:var(--accent);border-color:var(--accent);color:#fff}
+  .segmented span.title{font-size:14px;font-weight:600}
+  .segmented span.hint{font-size:11px;color:var(--muted);margin-top:2px}
+  .segmented label:has(input:checked) span.hint{color:rgba(255,255,255,.85)}
+
+  details.advanced{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:0}
+  details.advanced summary{padding:10px 14px;cursor:pointer;list-style:none;user-select:none;font-size:13px}
+  details.advanced summary::-webkit-details-marker{display:none}
+  details.advanced[open] summary{border-bottom:1px solid var(--line)}
+  details.advanced summary::before{content:"▸ ";color:var(--muted)}
+  details.advanced[open] summary::before{content:"▾ "}
+  details.advanced .body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px}
+
   button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);
-    background:var(--panel2);color:var(--txt);padding:9px 15px;transition:.15s}
+    background:var(--panel2);color:var(--txt);padding:10px 16px;transition:.15s}
   button:hover:not(:disabled){border-color:var(--accent);color:#fff}
   button:disabled{opacity:.4;cursor:not-allowed}
-  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;font-size:15px;padding:12px 22px}
   button.primary:hover:not(:disabled){filter:brightness(1.1)}
-  button.danger{background:transparent;border-color:var(--err);color:var(--err)}
-  button.danger:hover:not(:disabled){background:var(--err);color:#fff}
-  button.ok{background:transparent;border-color:var(--ok);color:var(--ok)}
-  button.ok:hover:not(:disabled){background:var(--ok);color:#04210f}
   button.ghost{background:transparent}
-  .hint{color:var(--muted);font-size:12px}
 
-  /* pipeline board */
-  .board{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-  @media(max-width:820px){.board{grid-template-columns:repeat(2,1fr)}}
-  .stage{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px;position:relative;overflow:hidden}
-  .stage .no{font-size:11px;color:var(--muted)}
-  .stage .name{font-weight:600;margin:3px 0 10px;font-size:13px}
-  .stage .count{font-size:26px;font-weight:700}
-  .stage .count small{font-size:13px;color:var(--muted);font-weight:400}
-  .stage .bar{height:5px;background:#0d0f14;border-radius:4px;margin-top:10px;overflow:hidden}
-  .stage .bar>i{display:block;height:100%;width:0;background:var(--accent);transition:width .4s}
-  .stage .st{position:absolute;top:12px;right:12px;font-size:10px;padding:2px 7px;border-radius:10px;
-    text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border:1px solid var(--line)}
-  .stage .st.running{color:var(--accent2);border-color:var(--accent2);animation:pulse 1s infinite}
-  .stage .st.done{color:var(--ok);border-color:var(--ok)}
-  .stage .st.error{color:var(--err);border-color:var(--err)}
-  .stage .st.cancelled{color:var(--warn);border-color:var(--warn)}
-  .stage .runbtn{margin-top:10px;width:100%;padding:6px;font-size:12px}
-  @keyframes pulse{50%{opacity:.5}}
+  .actions-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .job-status{font-size:13px;color:var(--muted)}
+  .job-status.running{color:var(--warn)}
+  .job-status.done{color:var(--ok)}
 
-  /* log */
-  .log{background:#07090d;border:1px solid var(--line);border-radius:10px;height:280px;overflow:auto;
-    padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.55}
-  .log .l{white-space:pre-wrap;word-break:break-word}
-  .log .info{color:var(--ok)} .log .cmd{color:var(--blue)} .log .warn{color:var(--warn)}
-  .log .error{color:var(--err)} .log .muted{color:var(--muted)}
-  .progline{color:var(--accent2);font-family:ui-monospace,monospace;font-size:12px;margin-top:8px;min-height:16px}
+  /* Log akışı */
+  .logbox{background:#0a0d13;border:1px solid var(--line);border-radius:10px;padding:12px 14px;
+    font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:12px;line-height:1.6;
+    max-height:340px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}
+  .logline{color:var(--txt)}
+  .logline.info{color:var(--blue)}
+  .logline.warn{color:var(--warn)}
+  .logline.error{color:var(--err)}
+  .logline.cmd{color:var(--muted)}
+  .progress-line{color:var(--muted);font-family:ui-monospace,"SF Mono",Menlo,monospace;
+    font-size:11px;padding:6px 14px;border-top:1px solid var(--line);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-  /* gallery */
-  .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
-  .reel{background:var(--panel2);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
-  .reel video{width:100%;min-width:0;aspect-ratio:9/16;background:#000;object-fit:cover;display:block}
-  .reel .meta{padding:12px;display:flex;flex-direction:column;gap:8px}
-  .reel .mekan{font-weight:600;font-size:13px}
-  .reel .hook{color:var(--muted);font-size:12px;font-style:italic}
-  .reel .tags{display:flex;flex-wrap:wrap;gap:4px}
-  .reel .tag{background:#0d0f14;border:1px solid var(--line);color:var(--muted);font-size:10px;padding:2px 6px;border-radius:6px}
-  .reel .acts{display:flex;gap:6px;margin-top:2px;flex-wrap:wrap}
-  .reel .acts button{flex:1 1 40%;padding:6px;font-size:11px}
-  .reel.pub{border-color:var(--ok)}
-  .empty{color:var(--muted);text-align:center;padding:30px}
+  /* Galeriler */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+  .reel-card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;overflow:hidden;
+    display:flex;flex-direction:column}
+  .reel-card video{width:100%;background:#000;aspect-ratio:9/16;object-fit:cover}
+  .reel-card .info{padding:11px 12px;display:flex;flex-direction:column;gap:6px}
+  .reel-card .mekan{font-weight:600;font-size:13px}
+  .reel-card .hook{color:var(--muted);font-size:12px;line-height:1.4}
+  .reel-card .prompt{color:var(--muted);font-size:11px;font-style:italic;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .reel-card .actions{display:flex;gap:6px;padding:0 10px 10px;flex-wrap:wrap}
+  .reel-card .actions button{padding:6px 10px;font-size:12px;flex:1;min-width:auto}
+  .reel-card .caption{background:#0a0d13;border-top:1px solid var(--line);
+    padding:9px 12px;font-size:11px;color:var(--muted);max-height:70px;overflow-y:auto;white-space:pre-wrap}
 
-  /* kategoriler */
-  .catlist{display:flex;flex-direction:column;gap:8px}
-  .catrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--panel2);
-    border:1px solid var(--line);border-radius:10px;padding:10px 14px}
-  .catrow .info{display:flex;flex-direction:column;gap:2px;min-width:0}
-  .catrow .name{font-weight:600;font-size:13px}
-  .catrow .sub{color:var(--muted);font-size:11px}
-  .catrow .badge{background:#0d0f14;border:1px solid var(--line);color:var(--muted);
-    font-size:10px;padding:2px 7px;border-radius:8px;white-space:nowrap}
-  .catrow .gen{display:flex;align-items:center;gap:6px;margin-left:auto}
-  .catrow .gen input{width:56px;background:#0d0f14;border:1px solid var(--line);color:var(--txt);
-    border-radius:8px;padding:6px 8px;font:inherit;text-align:center}
-  .catrow.disabled{opacity:.5}
-  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ok);color:#04210f;
-    padding:10px 18px;border-radius:10px;font-weight:600;opacity:0;transition:.25s;pointer-events:none}
-  .toast.show{opacity:1}
+  .empty{color:var(--muted);font-style:italic;text-align:center;padding:30px}
 </style>
 </head>
 <body>
 <header>
-  <h1>🎬 <span class="jp">Japan</span> Reels Maker</h1>
-  <div class="pills" id="pills"></div>
+  <h1><span class="jp">Japan</span> Reels Maker</h1>
+  <div class="pills">
+    <span class="pill"><span id="pill-ollama" class="dot"></span> Ollama</span>
+    <span class="pill"><span id="pill-dify" class="dot"></span> Dify</span>
+    <span class="pill"><span id="pill-source" class="dot"></span> Kaynak: <span id="pill-source-txt">?</span></span>
+  </div>
 </header>
 
 <main>
-  <!-- Kontrol -->
+  <!-- Ana input: prompt formu -->
   <section class="card">
-    <h2>Pipeline Kontrol</h2>
-    <div class="controls">
-      <div class="row">
-        <label class="toggle"><input type="checkbox" id="pilot" /> Pilot modu <span id="pilotHint" style="color:var(--muted)"></span></label>
-        <label class="toggle"><input type="checkbox" id="nodify" /> Dify'ı atla (Ollama fallback)</label>
+    <h2>Reels Üretimi</h2>
+    <form id="promptForm" onsubmit="event.preventDefault(); submitPrompt();">
+      <label class="field">
+        <span>Prompt</span>
+        <textarea id="prompt" name="prompt" required
+          placeholder="Ne istediğini yaz. Örn: Nara geyikleri hakkında bir Reels · Japonya'da mutlaka bilinmesi gereken 3 şey · Konbini kültürü hakkında bilinmeyenler"></textarea>
+      </label>
+
+      <label class="field">
+        <span>Hook (opsiyonel — video başına gelecek çarpıcı metin)</span>
+        <input type="text" id="hook" name="hook"
+          placeholder="Boş bırakırsan LLM üretir. Örn: Bunu bilmeden Japonya'ya gitme">
+      </label>
+
+      <label class="field">
+        <span>Süre</span>
+        <div class="segmented">
+          <label>
+            <input type="radio" name="sure_modu" value="kisa">
+            <span class="title">Kısa</span>
+            <span class="hint">15–25 sn</span>
+          </label>
+          <label>
+            <input type="radio" name="sure_modu" value="orta" checked>
+            <span class="title">Orta</span>
+            <span class="hint">30–40 sn</span>
+          </label>
+          <label>
+            <input type="radio" name="sure_modu" value="uzun">
+            <span class="title">Uzun</span>
+            <span class="hint">50–60 sn</span>
+          </label>
+        </div>
+      </label>
+
+      <details class="advanced">
+        <summary>Advanced — CTA / Başlık / Hashtag override</summary>
+        <div class="body">
+          <label class="field">
+            <span>CTA (boş bırakılırsa LLM üretir)</span>
+            <input type="text" id="ov-cta" placeholder="Örn: Takip et, sırada Kyoto var">
+          </label>
+          <label class="field">
+            <span>Video üst başlığı (opsiyonel)</span>
+            <input type="text" id="ov-baslik" placeholder="Boş bırakılırsa LLM overlay'leri üretir">
+          </label>
+          <label class="field">
+            <span>Hashtag'ler (boşluk/virgülle ayır)</span>
+            <input type="text" id="ov-tags" placeholder="japonya nara geyik gezi japan traveltips">
+          </label>
+        </div>
+      </details>
+
+      <div class="actions-row">
+        <button type="submit" class="primary" id="btn-generate">Reels Üret</button>
+        <button type="button" class="ghost" id="btn-cancel" onclick="cancelJob()" disabled>İptal</button>
+        <div class="job-status" id="jobStatus">Hazır — prompt gir ve üretimi başlat.</div>
       </div>
-      <div class="row">
-        <button class="danger" id="cancel" disabled>⏹ Durdur</button>
-        <button class="ghost" id="refresh">↻ Yenile</button>
-      </div>
-      <div class="hint" id="runHint">Adımları tek tek çalıştır. Her çalıştırmada en fazla <b id="maxRun">?</b> yeni video işlenir.</div>
-    </div>
+    </form>
   </section>
 
-  <!-- Board -->
-  <section class="card">
-    <h2>Aşamalar</h2>
-    <div class="board" id="board"></div>
-  </section>
-
-  <!-- Kategoriler -->
-  <section class="card">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
-      <h2 style="margin:0">📂 Kategoriler <span class="hint" id="catTotal" style="margin:0"></span></h2>
-      <button class="ghost" id="categorize" style="margin-left:auto">🔄 Kategorize Et / Yenile</button>
-    </div>
-    <div class="hint" style="margin-bottom:12px">Bir kategori seç, kaç reel üretileceğini gir ve <b>Üret</b>'e bas. Üretilen reel'ler aşağıda "Onay Bekleyen"e düşer.</div>
-    <div id="cats"><div class="empty">Yükleniyor…</div></div>
-  </section>
-
-  <!-- Log -->
+  <!-- Canlı süreç -->
   <section class="card">
     <h2>Canlı Süreç</h2>
-    <div class="log" id="log"></div>
-    <div class="progline" id="progline"></div>
+    <div id="logbox" class="logbox"><span class="empty">Log henüz yok.</span></div>
+    <div id="progressLine" class="progress-line" style="display:none"></div>
   </section>
 
-  <!-- Onay kuyruğu -->
+  <!-- Onay bekleyen -->
   <section class="card">
-    <h2>Onay Bekleyen (<span id="pendingCount">0</span>)</h2>
-    <div class="gallery" id="pending"></div>
+    <h2>Onay Bekleyen (<span id="cnt-pending">0</span>)</h2>
+    <div id="pendingGrid" class="grid"><div class="empty">Henüz üretilmiş reel yok.</div></div>
   </section>
 
   <!-- Yayına hazır -->
   <section class="card">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
-      <h2 style="margin:0">✅ Yayına Hazır (<span id="readyCount">0</span>)</h2>
-      <span class="hint" id="readyPath" style="margin:0"></span>
-    </div>
-    <div class="gallery" id="ready"></div>
+    <h2>Yayına Hazır (<span id="cnt-ready">0</span>)</h2>
+    <div id="readyGrid" class="grid"><div class="empty">Henüz onaylanmış reel yok.</div></div>
   </section>
 </main>
 
-<div class="toast" id="toast"></div>
-
 <script>
-const $ = s => document.querySelector(s);
-let logSeq = 0, running = false, autoScroll = true;
+const $ = (id) => document.getElementById(id);
+let logSeq = 0;
 
-const STAGE_META = {
-  1:{key:"metadata"}, 2:{key:"inputs"}, 3:{key:"finals"}, 4:{key:"reels"}
-};
-
-function toast(msg){
-  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
-  setTimeout(()=>t.classList.remove("show"), 1800);
+async function pollStatus(){
+  try{
+    const r = await fetch("/api/status");
+    if(!r.ok) return;
+    const s = await r.json();
+    updatePills(s.env);
+    updateJobStatus(s.job);
+  }catch(e){/* ignore */}
 }
 
-async function api(path, opts){
-  const r = await fetch(path, opts);
-  if(!r.ok){ const e = await r.json().catch(()=>({detail:r.statusText})); throw new Error(e.detail||r.statusText); }
-  return r.json();
+function updatePills(env){
+  setDot("pill-ollama", env.ollama_ok);
+  setDot("pill-dify", env.dify_ready);
+  setDot("pill-source", env.source_ready);
+  $("pill-source-txt").textContent = env.source_ready ? "hazır" : "yok";
+}
+function setDot(id, ok){
+  const el = $(id);
+  el.classList.remove("ok","bad","warn");
+  el.classList.add(ok ? "ok" : "bad");
 }
 
-function pill(label, state){ // state: ok|bad|warn|neutral
-  return `<span class="pill"><span class="dot ${state==='neutral'?'':state}"></span>${label}</span>`;
-}
-
-function renderStatus(s){
-  running = s.job.running;
-  const env = s.env;
-  $("#pills").innerHTML = [
-    pill(env.ollama_ok?"Ollama":"Ollama yok", env.ollama_ok?"ok":"bad"),
-    pill(env.dify_ready?"Dify hazır":"Dify key yok", env.dify_ready?"ok":"warn"),
-    pill(env.source_ready?"Kaynak OK":"Kaynak yok", env.source_ready?"ok":"bad"),
-    pill("tip: "+env.aciklama_tipi, "neutral"),
-  ].join("");
-  $("#pilotHint").textContent = env.pilot_default ? `(config: açık, ${env.pilot_count})` : `(${env.pilot_count} örnek)`;
-  $("#maxRun").textContent = env.max_videos_per_run;
-  $("#readyPath").textContent = "→ " + env.ready_dir;
-
-  // board
-  const st = s.job.step_status || {};
-  $("#board").innerHTML = s.steps.map(step=>{
-    const p = s.progress[step.no] || {};
-    const done = p.done ?? 0, total = p.total;
-    const pct = total ? Math.min(100, Math.round(done/Math.max(total,1)*100)) : (done>0?100:0);
-    const status = st[step.no] || "";
-    return `<div class="stage">
-      ${status?`<span class="st ${status}">${status}</span>`:""}
-      <div class="no">Adım ${step.no}</div>
-      <div class="name">${step.label}</div>
-      <div class="count">${done}<small>${total!=null?" / "+total:""}</small></div>
-      <div class="bar"><i style="width:${pct}%"></i></div>
-      <button class="runbtn" data-step="${step.no}" ${running?"disabled":""}>Bu adımı çalıştır</button>
-    </div>`;
-  }).join("");
-  document.querySelectorAll(".runbtn").forEach(b=>b.onclick=()=>runSteps([+b.dataset.step]));
-
-  $("#cancel").disabled = !running;
-  document.querySelectorAll(".runbtn").forEach(b=>b.disabled = running);
-}
-
-function appendLogs(entries){
-  if(!entries.length) return;
-  const box = $("#log");
-  autoScroll = box.scrollTop + box.clientHeight >= box.scrollHeight - 40;
-  const frag = document.createDocumentFragment();
-  for(const e of entries){
-    const div = document.createElement("div");
-    div.className = "l " + (e.kind||"log");
-    const time = new Date(e.t*1000).toLocaleTimeString();
-    div.textContent = `${time}  ${e.text}`;
-    frag.appendChild(div);
-    logSeq = Math.max(logSeq, e.seq);
+function updateJobStatus(job){
+  const s = $("jobStatus");
+  const genBtn = $("btn-generate");
+  const canBtn = $("btn-cancel");
+  if(job && job.running){
+    s.className = "job-status running";
+    s.textContent = `⏳ Çalışıyor: ${job.label || "iş"}`;
+    genBtn.disabled = true;
+    canBtn.disabled = false;
+  }else{
+    genBtn.disabled = false;
+    canBtn.disabled = true;
+    if(job && job.error){
+      s.className = "job-status"; s.textContent = "✖ " + job.error;
+    }else if(job && job.finished_at){
+      s.className = "job-status done"; s.textContent = "✓ Son iş bitti.";
+    }else{
+      s.className = "job-status"; s.textContent = "Hazır — prompt gir ve üretimi başlat.";
+    }
   }
-  box.appendChild(frag);
-  if(autoScroll) box.scrollTop = box.scrollHeight;
 }
 
 async function pollLogs(){
   try{
-    const d = await api(`/api/logs?since=${logSeq}`);
-    appendLogs(d.entries);
-    $("#progline").textContent = d.progress_line || "";
-  }catch(e){}
+    const r = await fetch(`/api/logs?since=${logSeq}`);
+    if(!r.ok) return;
+    const data = await r.json();
+    const box = $("logbox");
+    if(data.entries && data.entries.length){
+      if(box.querySelector(".empty")) box.innerHTML = "";
+      for(const e of data.entries){
+        const div = document.createElement("div");
+        div.className = "logline " + (e.kind || "log");
+        div.textContent = e.text;
+        box.appendChild(div);
+      }
+      logSeq = data.seq;
+      box.scrollTop = box.scrollHeight;
+    }
+    const pl = $("progressLine");
+    if(data.progress_line){
+      pl.style.display = "block";
+      pl.textContent = data.progress_line;
+    }else{
+      pl.style.display = "none";
+    }
+  }catch(e){/* ignore */}
 }
 
-async function pollStatus(){
-  try{ renderStatus(await api("/api/status")); }catch(e){}
-}
-
-async function runSteps(steps){
+async function pollReels(){
   try{
-    await api("/api/run", {method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({steps, pilot:$("#pilot").checked, no_dify:$("#nodify").checked})});
-    toast("Başlatıldı");
-    await pollStatus();
-  }catch(e){ toast("Hata: "+e.message); }
+    const r = await fetch("/api/reels");
+    if(!r.ok) return;
+    const {pending, ready} = await r.json();
+    renderGrid("pendingGrid", pending, true);
+    renderGrid("readyGrid", ready, false);
+    $("cnt-pending").textContent = pending.length;
+    $("cnt-ready").textContent = ready.length;
+  }catch(e){/* ignore */}
 }
 
-function reelCard(r, published){
-  return `
-    <div class="reel${published?" pub":""}">
-      <video src="${r.url}" ${r.thumb?`poster="${r.thumb}"`:""} controls preload="none"></video>
-      <div class="meta">
-        <div class="mekan">${escapeHtml(r.mekan)} <small style="color:var(--muted)">· ${r.clips} klip</small></div>
-        ${r.hook?`<div class="hook">"${escapeHtml(r.hook)}"</div>`:""}
-        <div class="tags">${(r.hashtags||[]).slice(0,8).map(t=>`<span class="tag">#${escapeHtml(t)}</span>`).join("")}</div>
-        <div class="acts">
-          <button class="cap">📋 Açıklama</button>
-          <button class="tag">📋 Etiketler</button>
-          ${published
-            ? `<button class="unpub" style="flex-basis:100%">↩ Geri al (onaydan çıkar)</button>`
-            : `<button class="ok approve">✔ Yayına hazır</button><button class="danger reject">✖ Sil</button>`}
-        </div>
-      </div>
-    </div>`;
-}
-
-function wireCard(el, r, published, refresh){
-  el.querySelector(".cap").onclick = ()=>copy(r.caption || r.aciklama, "Açıklama kopyalandı");
-  el.querySelector(".tag").onclick = ()=>copy((r.hashtags||[]).map(t=>"#"+t).join(" "), "Etiketler kopyalandı");
-  if(published){
-    el.querySelector(".unpub").onclick = async()=>{ await act(`/api/ready/${encodeURIComponent(r.name)}/unpublish`, "Onaydan çıkarıldı"); refresh(); };
-  }else{
-    el.querySelector(".approve").onclick = async()=>{ await act(`/api/reels/${encodeURIComponent(r.name)}/approve`, "Yayına hazır ✅"); refresh(); };
-    el.querySelector(".reject").onclick = async()=>{ if(confirm("Bu reel silinsin mi?")){ await act(`/api/reels/${encodeURIComponent(r.name)}/reject`, "Silindi"); refresh(); } };
-  }
-}
-
-async function act(path, msg){
-  try{ await api(path, {method:"POST"}); toast(msg); }catch(e){ toast("Hata: "+e.message); }
-}
-
-function renderGallery(container, list, published, refresh){
-  if(!list.length){
-    container.innerHTML = `<div class="empty">${published?"Henüz onaylanmış reel yok.":"Onay bekleyen reel yok. Adımları çalıştır."}</div>`;
+function renderGrid(id, items, isPending){
+  const box = $(id);
+  if(!items.length){
+    box.innerHTML = `<div class="empty">Henüz ${isPending ? "üretilmiş" : "onaylanmış"} reel yok.</div>`;
     return;
   }
-  container.innerHTML = list.map(r=>reelCard(r, published)).join("");
-  Array.from(container.children).forEach((el,i)=>wireCard(el, list[i], published, refresh));
-}
-
-async function loadReels(){
-  try{
-    const d = await api("/api/reels");
-    $("#pendingCount").textContent = d.pending.length;
-    $("#readyCount").textContent = d.ready.length;
-    renderGallery($("#pending"), d.pending, false, loadReels);
-    renderGallery($("#ready"), d.ready, true, loadReels);
-  }catch(e){}
-}
-
-function catRow(c){
-  const max = c.uretilebilir_reel || 0;
-  const disabled = max < 1;
-  const mevcut = c.mevcut_reel ? ` · ${c.mevcut_reel} üretilmiş` : "";
-  return `
-    <div class="catrow${disabled?" disabled":""}" data-mekan="${escapeHtml(c.mekan_etiketi)}">
+  box.innerHTML = "";
+  for(const r of items){
+    const card = document.createElement("div");
+    card.className = "reel-card";
+    const promptHtml = r.prompt ? `<div class="prompt" title="${escapeHtml(r.prompt)}">💬 ${escapeHtml(r.prompt)}</div>` : "";
+    const actions = isPending
+      ? `<div class="actions">
+           <button onclick="approve('${r.name}')" class="primary">✓ Yayına</button>
+           <button onclick="reject('${r.name}')">✗ Sil</button>
+         </div>`
+      : `<div class="actions">
+           <button onclick="unpublish('${r.name}')">↩ Geri Al</button>
+         </div>`;
+    const caption = r.caption ? `<div class="caption">${escapeHtml(r.caption)}</div>` : "";
+    card.innerHTML = `
+      <video src="${r.url}" controls preload="metadata" ${r.thumb ? `poster="${r.thumb}"` : ""}></video>
       <div class="info">
-        <div class="name">${escapeHtml(c.mekan_etiketi)}</div>
-        <div class="sub">${escapeHtml(c.kategori||"")}${c.sehir?" · "+escapeHtml(c.sehir):""}${mevcut}</div>
+        <div class="mekan">${escapeHtml(r.mekan)} <span style="color:var(--muted);font-weight:400">· ${r.clips} klip</span></div>
+        ${r.hook ? `<div class="hook">"${escapeHtml(r.hook)}"</div>` : ""}
+        ${promptHtml}
       </div>
-      <span class="badge">${c.klip_sayisi} klip</span>
-      <span class="badge">~${max} reel</span>
-      <div class="gen">
-        <input type="number" class="adet" min="1" max="${max}" value="1" ${disabled?"disabled":""} title="adet (1..${max})" />
-        <button class="primary genbtn" ${disabled?"disabled":""}>Üret</button>
-      </div>
-    </div>`;
+      ${caption}
+      ${actions}`;
+    box.appendChild(card);
+  }
 }
 
-async function loadCategories(){
-  try{
-    const d = await api("/api/categories");
-    $("#catTotal").textContent = `· ${d.toplam_video} klip · ${d.kategoriler.length} kategori`;
-    const box = $("#cats");
-    if(!d.kategoriler.length){ box.innerHTML = `<div class="empty">Kategori yok. Önce "Kategorize Et" ile analiz çalıştır.</div>`; return; }
-    box.innerHTML = `<div class="catlist">${d.kategoriler.map(catRow).join("")}</div>`;
-    box.querySelectorAll(".catrow").forEach(row=>{
-      const btn = row.querySelector(".genbtn");
-      if(!btn) return;
-      btn.onclick = ()=>generateReels(row);
-    });
-  }catch(e){ $("#cats").innerHTML = `<div class="empty">Kategoriler yüklenemedi: ${escapeHtml(e.message)}</div>`; }
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 
-async function generateReels(row){
-  if(running){ toast("Zaten çalışan bir iş var."); return; }
-  const mekan = row.dataset.mekan;
-  const inp = row.querySelector(".adet");
-  const max = parseInt(inp.max||"1", 10);
-  let adet = parseInt(inp.value||"1", 10);
-  if(isNaN(adet) || adet < 1) adet = 1;
-  if(adet > max){ adet = max; inp.value = max; toast(`En fazla ${max} reel üretilebilir.`); }
-  try{
-    await api("/api/generate", {method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({mekan_etiketi: mekan, adet})});
-    toast(`Üretim başladı: ${mekan} ×${adet}`);
-    await pollStatus();
-  }catch(e){ toast("Hata: "+e.message); }
+async function submitPrompt(){
+  const prompt = $("prompt").value.trim();
+  if(!prompt){ alert("Prompt gerekli."); return; }
+  const hook = $("hook").value.trim();
+  const sure = document.querySelector('input[name="sure_modu"]:checked').value;
+  const body = {
+    prompt, hook, sure_modu: sure,
+    overrides: {
+      cta: $("ov-cta").value.trim(),
+      baslik: $("ov-baslik").value.trim(),
+      hashtagler: $("ov-tags").value.trim(),
+    }
+  };
+  const r = await fetch("/api/generate/prompt", {
+    method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)
+  });
+  if(!r.ok){
+    let msg = r.statusText;
+    try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+    alert("Hata: " + msg);
+    return;
+  }
+  logSeq = 0;
+  $("logbox").innerHTML = "";
+  pollStatus(); pollLogs();
 }
 
-async function categorize(){
-  const btn = $("#categorize"); btn.disabled = true;
-  try{
-    const d = await api("/api/categorize", {method:"POST"});
-    toast(d.message || "Tamam");
-    await loadCategories();
-  }catch(e){ toast("Hata: "+e.message); }
-  finally{ btn.disabled = false; }
+async function cancelJob(){ await fetch("/api/cancel", {method:"POST"}); }
+async function approve(name){ await fetch(`/api/reels/${encodeURIComponent(name)}/approve`, {method:"POST"}); pollReels(); }
+async function reject(name){
+  if(!confirm("Bu reel silinecek. Emin misin?")) return;
+  await fetch(`/api/reels/${encodeURIComponent(name)}/reject`, {method:"POST"}); pollReels();
 }
+async function unpublish(name){ await fetch(`/api/ready/${encodeURIComponent(name)}/unpublish`, {method:"POST"}); pollReels(); }
 
-function copy(text, msg){
-  navigator.clipboard.writeText(text||"").then(()=>toast(msg)).catch(()=>toast("Kopyalanamadı"));
-}
-function escapeHtml(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
-
-$("#cancel").onclick = async()=>{ try{ await api("/api/cancel",{method:"POST"}); toast("Durduruluyor…"); }catch(e){} };
-$("#refresh").onclick = ()=>{ pollStatus(); loadReels(); loadCategories(); };
-$("#categorize").onclick = categorize;
-
-// döngüler
-let lastRunning = false;
-setInterval(async ()=>{
-  await pollStatus();
-  await pollLogs();
-  // çalışırken Üret butonları kilitli olsun
-  document.querySelectorAll(".genbtn").forEach(b=>{ if(!b.closest(".catrow.disabled")) b.disabled = running; });
-  // iş biterse galeriyi + kategorileri tazele (mevcut_reel güncellensin)
-  if(lastRunning && !running){ loadReels(); loadCategories(); }
-  lastRunning = running;
-}, 1000);
-
-pollStatus(); pollLogs(); loadReels(); loadCategories();
+setInterval(() => { pollStatus(); pollLogs(); }, 1000);
+setInterval(pollReels, 4000);
+pollStatus(); pollLogs(); pollReels();
 </script>
 </body>
 </html>

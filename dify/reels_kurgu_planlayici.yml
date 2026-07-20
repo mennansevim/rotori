@@ -62,7 +62,19 @@ workflow:
               required: true
               type: select
               variable: aciklama_tipi
-        height: 154
+            - label: "Kullanıcı Prompt'u (serbest metin)"
+              max_length: 2000
+              options: []
+              required: false
+              type: paragraph
+              variable: kullanici_prompt
+            - label: "Insider Knowledge (japonya_tuyolar.md tam içerik)"
+              max_length: 100000
+              options: []
+              required: false
+              type: paragraph
+              variable: knowledge
+        height: 220
         id: "start_1"
         position:
           x: 80
@@ -221,6 +233,18 @@ workflow:
                 verebilirsin ("Tokyo'daki 4. günümüzde", "Nara'ya day-trip'te",
                 "Osaka'da 5 gün yetti mi? Anlatayım").
 
+                KULLANICI TALEBİ (bu Reels'te izleyene ne anlatmak istiyor):
+                {{#start_1.kullanici_prompt#}}
+
+                Bu talebi dinle — hook, overlay ve aciklama'nın ana teması
+                buradan çıkar. Talep spesifik bir konu içeriyorsa (örn.
+                "pirincin önemi", "sumo hakkında bilinmeyenler") aciklama'yı
+                o konuya odakla, mekan sadece ikinci planda kalabilir.
+
+                INSIDER VERİ BANKASI (aşağıdaki tüyolar birinci elden,
+                doğrulanmış; UYDURMA YERİNE BUNLARDAN yararlan):
+                {{#start_1.knowledge#}}
+
                 GERÇEK GEZİ NOTLARIN (yalnızca bunlara dayan, uydurma yer/olay
                 ekleme; mekana uyanı seç ve birinci ağızdan aktar):
                 - Geliş: İstanbul → Tokyo Haneda. İlk gece + 6 gece Ikebukuro,
@@ -256,8 +280,11 @@ workflow:
                 Toplam reel süresi: {{#start_1.toplam_sure_sn#}} saniye
                 Videolar: {{#start_1.video_dosyalari#}}
                 Açıklama tipi: {{#start_1.aciklama_tipi#}}
+                Kullanıcı talebi: {{#start_1.kullanici_prompt#}}
 
-                Bu mekan ve tipe göre JSON kurgu planını üret. Sadece JSON.
+                Bu mekan + tip + kullanıcı talebine göre JSON kurgu planını
+                üret. INSIDER VERİ BANKASI'nda ilgili mekana ait tüyo varsa
+                aciklama'da mutlaka o gerçek bilgiyi kullan. Sadece JSON.
           selected: false
           title: "Kurgu Üretici (qwen2.5)"
           type: llm
