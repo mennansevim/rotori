@@ -114,16 +114,85 @@ def analyze_one(video: Path, source: Path, cfg: Config, client: OllamaClient) ->
     }
 
 
+def _relabel_existing(cfg: Config, source: Path) -> None:
+    """Mevcut metadata.csv'yi oku, her satır için labeling.parse_filename'i tekrar
+    uygula ve mekan_etiketi/kategori/sehir/cekim_tipi kolonlarını güncelle. Vision
+    çağırmaz — dosya-adı kurallarıyla anında yeniden etiketleme.
+
+    Kullanım: `_KURALLAR` sözlüğünü genişlettikten sonra tüm eski satırların yeni
+    kuralları görmesi için çalıştır. Video kaynağını rglob ile alt-klasör bulmak
+    için de kullanır."""
+    if not cfg.paths.metadata_csv.exists():
+        log.error(f"metadata.csv yok: {cfg.paths.metadata_csv}")
+        sys.exit(1)
+
+    # subdir bilgisini üretmek için isim → path index
+    name_to_path: dict[str, Path] = {}
+    for p in source.rglob("*"):
+        if p.is_file() and p.suffix.lower() in VIDEO_EXT:
+            name_to_path.setdefault(p.name, p)
+
+    with cfg.paths.metadata_csv.open("r", encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+
+    degisti = 0
+    yeni_kaynak = 0
+    for r in rows:
+        name = r.get("dosya_adi", "")
+        p = name_to_path.get(name)
+        subdir = _subdir(p, source) if p else ""
+        et = labeling.parse_filename(name, subdir)
+        if et is None:
+            # dosya adı kuralları yakalayamadıysa mevcut değerleri koru (vision sonucu olabilir)
+            continue
+        eski_mekan = r.get("mekan_etiketi", "")
+        eski_kategori = r.get("kategori", "")
+        if eski_mekan != et.mekan_etiketi or eski_kategori != et.kategori:
+            degisti += 1
+            log.info(f"  {name}: {eski_mekan or '-'} → {et.mekan_etiketi}")
+        r["mekan_etiketi"] = et.mekan_etiketi
+        r["kategori"] = et.kategori
+        r["sehir"] = et.sehir
+        r["cekim_tipi"] = et.cekim_tipi
+        if r.get("kaynak") != "dosya_adi":
+            yeni_kaynak += 1
+        r["kaynak"] = "dosya_adi"
+
+    with cfg.paths.metadata_csv.open("w", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=CSV_FIELDS)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    log.info(f"Yeniden etiketleme bitti. Toplam satır: {len(rows)}, "
+             f"etiketi değişen: {degisti}, kaynak güncellenen: {yeni_kaynak}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default=None)
     parser.add_argument("--pilot", action="store_true", help="Sadece pilot_count kadar örnek işle")
     parser.add_argument("--max", type=int, default=None, help="Bu çalıştırmada işlenecek maksimum video (config'i geçersiz kılar)")
+    parser.add_argument("--overwrite", action="store_true",
+                        help="Mevcut metadata.csv'yi sil ve tüm videoları yeniden etiketle. "
+                             "Yeni labeling kuralları veya değişen dosya isimleri için kullan.")
+    parser.add_argument("--relabel-only", action="store_true",
+                        help="Vision çağırmadan sadece dosya-adı kurallarıyla mevcut satırları yeniden etiketle "
+                             "(çok hızlı, ollama gerektirmez).")
     args = parser.parse_args()
 
     cfg = load_config(args.config)
     source = require_video_source(cfg)
     client = OllamaClient(cfg.ollama.base_url, cfg.ollama.request_timeout_sn)
+
+    # --relabel-only: metadata satırlarını mevcut _KURALLAR ile yeniden yaz, vision atla.
+    if args.relabel_only:
+        _relabel_existing(cfg, source)
+        return
+
+    if args.overwrite and cfg.paths.metadata_csv.exists():
+        backup = cfg.paths.metadata_csv.with_suffix(".csv.bak")
+        cfg.paths.metadata_csv.replace(backup)
+        log.info(f"Eski metadata yedeklendi → {backup.name}, sıfırdan yeniden etiketleniyor.")
 
     if not client.health():
         log.warning("Ollama erişilemiyor — isimsiz klipler için vision atlanacak (dosya-adı etiketleri yine çalışır).")
