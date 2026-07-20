@@ -26,6 +26,8 @@
   main{max-width:1180px;margin:0 auto;padding:22px;display:flex;flex-direction:column;gap:20px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
   .card h2{margin:0 0 14px;font-size:14px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+  .card h2 .h2-actions{float:right;font-size:12px;text-transform:none;letter-spacing:0}
+  .card h2 .h2-actions button{padding:5px 12px;font-size:12px}
 
   /* Prompt formu */
   form#promptForm{display:flex;flex-direction:column;gap:14px}
@@ -177,6 +179,21 @@
     </form>
   </section>
 
+  <!-- Analiz -->
+  <section class="card">
+    <h2>
+      Video Analizi
+      <span class="h2-actions">
+        <button id="btn-analyze" onclick="analyzeSources(true)">🔍 Yeni Videoları Analiz Et</button>
+        <button id="btn-analyze-fast" onclick="analyzeSources(false)" title="Sadece etiketle, sahne özeti üretme">⚡ Hızlı Etiketle</button>
+      </span>
+    </h2>
+    <div id="analyzeInfo" style="font-size:13px;color:var(--muted);line-height:1.6">
+      Kaynak klasöründe yeni video varsa etiketler; sahne özetlerini (llava + qwen) üretir.
+      Her yeni video için ~10-15 saniye sürer.
+    </div>
+  </section>
+
   <!-- Canlı süreç -->
   <section class="card">
     <h2>Canlı Süreç</h2>
@@ -227,14 +244,17 @@ function updateJobStatus(job){
   const s = $("jobStatus");
   const genBtn = $("btn-generate");
   const canBtn = $("btn-cancel");
+  const anaBtns = [$("btn-analyze"), $("btn-analyze-fast")];
   if(job && job.running){
     s.className = "job-status running";
     s.textContent = `⏳ Çalışıyor: ${job.label || "iş"}`;
     genBtn.disabled = true;
     canBtn.disabled = false;
+    anaBtns.forEach(b => b && (b.disabled = true));
   }else{
     genBtn.disabled = false;
     canBtn.disabled = true;
+    anaBtns.forEach(b => b && (b.disabled = false));
     if(job && job.error){
       s.className = "job-status"; s.textContent = "✖ " + job.error;
     }else if(job && job.finished_at){
@@ -335,6 +355,23 @@ function renderGrid(id, items, isPending){
 
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+async function analyzeSources(enrich){
+  const r = await fetch("/api/analyze", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({enrich})
+  });
+  if(!r.ok){
+    let msg = r.statusText;
+    try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+    alert("Hata: " + msg);
+    return;
+  }
+  logSeq = 0;
+  $("logbox").innerHTML = "";
+  pollStatus(); pollLogs();
 }
 
 async function submitPrompt(){

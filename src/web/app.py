@@ -83,6 +83,10 @@ class PromptRequest(BaseModel):
     overrides: PromptOverrides = Field(default_factory=PromptOverrides)
 
 
+class AnalyzeRequest(BaseModel):
+    enrich: bool = True   # sahne özetlerini de üret
+
+
 # ---------------- endpoint'ler ----------------
 @app.get("/")
 def index() -> FileResponse:
@@ -141,6 +145,22 @@ def generate_prompt(req: PromptRequest) -> dict[str, Any]:
 
     try:
         manager.start_callable(f"Prompt Reels: {label_ozet}", target)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"ok": True, "job": manager.state}
+
+
+@app.post("/api/analyze")
+def analyze(req: AnalyzeRequest) -> dict[str, Any]:
+    """Yeni video keşfi + etiketleme + (opsiyonel) sahne özeti üretimi."""
+    from src import analyze_pipeline
+
+    def target(emit: Callable[..., None], cancel_ev: Event) -> None:
+        analyze_pipeline.run_analyze(cfg, emit, cancel_ev, enrich=req.enrich)
+
+    label = "Videoları Analiz Et" + (" (sahne özetiyle)" if req.enrich else "")
+    try:
+        manager.start_callable(label, target)
     except RuntimeError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     return {"ok": True, "job": manager.state}
