@@ -38,6 +38,14 @@ class DifyCfg:
 
 
 @dataclass
+class OpenAICfg:
+    api_key: str
+    model: str = "gpt-4o-mini"
+    base_url: str = "https://api.openai.com/v1"
+    timeout_sn: int = 60
+
+
+@dataclass
 class ReelsCfg:
     target_width: int
     target_height: int
@@ -76,6 +84,7 @@ class Config:
     pilot: PilotCfg
     run: RunCfg
     project_root: Path
+    openai: OpenAICfg | None = None
 
 
 def _resolve(base: Path, p: str) -> Path:
@@ -104,10 +113,16 @@ def load_config(config_path: str | None = None) -> Config:
     pilot = PilotCfg(**raw["pilot"])
     run = RunCfg(**raw.get("run", {}))
 
+    openai_raw = raw.get("openai") or {}
+    openai_cfg: OpenAICfg | None = None
+    if openai_raw.get("api_key") and openai_raw["api_key"] not in ("", "REPLACE_ME_OPENAI_KEY"):
+        openai_cfg = OpenAICfg(**openai_raw)
+
     for d in (paths.frames_dir, paths.plans_dir, paths.output_dir, paths.ready_dir, paths.metadata_csv.parent):
         d.mkdir(parents=True, exist_ok=True)
 
-    return Config(paths=paths, ollama=ollama, dify=dify, reels=reels, pilot=pilot, run=run, project_root=project_root)
+    return Config(paths=paths, ollama=ollama, dify=dify, reels=reels, pilot=pilot,
+                  run=run, project_root=project_root, openai=openai_cfg)
 
 
 def require_video_source(cfg: Config) -> Path:
