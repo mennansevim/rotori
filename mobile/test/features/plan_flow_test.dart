@@ -39,10 +39,26 @@ void main() {
         findsOneWidget);
   });
 
-  testWidgets('boş plan "Henüz gezi planı yok" gösterir', (tester) async {
+  testWidgets('boş plan "Henüz plan yok" gösterir', (tester) async {
     await tester.pumpWidget(harness(_tripWithDest()));
     expect(find.text('Plan'), findsWidgets);
-    expect(find.text('Henüz gezi planı yok'), findsOneWidget);
+    expect(find.text('Henüz plan yok'), findsOneWidget);
+  });
+
+  testWidgets('trip dolu gelse bile plan gizli başlar (kullanıcı açıkça istesin)',
+      (tester) async {
+    final t = _tripWithDest();
+    // Dolu bir günü el ile ekle — hero yine görünmeli.
+    if (t.days.isNotEmpty) {
+      t.days.first.items.add(TimelineItem(
+        id: 'x',
+        title: 'Var olan aktivite',
+        time: '09:00',
+        scheduledTime: '09:00',
+      ));
+    }
+    await tester.pumpWidget(harness(t));
+    expect(find.text('Henüz plan yok'), findsOneWidget);
   });
 
   testWidgets('"Gezi planı oluştur" fallback ile günleri doldurur',
@@ -56,7 +72,33 @@ void main() {
     // Kural tabanlı üretici en az bir güne aktivite ekler.
     expect(t.days.any((d) => d.items.isNotEmpty), isTrue);
     // Boş durum kartı artık yok.
-    expect(find.text('Henüz gezi planı yok'), findsNothing);
+    expect(find.text('Henüz plan yok'), findsNothing);
+  });
+
+  testWidgets('plan açıldıktan sonra "+ Aktivite" butonu render edilir',
+      (tester) async {
+    // Modal bottom-sheet açılış testi test contextte kararsız — burada sadece
+    // butonun VAR olduğunu doğrula. Sheet'in davranışı ayrı olarak _AddItemSheet
+    // widget testinde (unit) doğrulanır; bu test entegrasyon smoke.
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(800, 3000);
+    addTearDown(tester.view.reset);
+
+    final t = _tripWithDest();
+    await tester.pumpWidget(harness(t));
+
+    // Önce planı üret (aksi halde gün listesi gizli, "+ Aktivite" yok).
+    await tester.tap(find.text('✨ Gezi planı oluştur'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // "+ Aktivite" butonu render edilmiş olmalı (ilk gün expanded).
+    expect(find.text('+ Aktivite'), findsWidgets);
+
+    // Ve gerçekten plan gösterilmiş olmalı — en az bir öğe üretilmiş.
+    final afterCount =
+        t.days.fold<int>(0, (n, d) => n + d.items.length);
+    expect(afterCount, greaterThan(0));
   });
 
   test('reorder resequenceTimes ile saatleri kronolojik dizer', () {

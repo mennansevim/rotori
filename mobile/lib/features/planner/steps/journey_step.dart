@@ -489,8 +489,14 @@ class _JourneyStepState extends State<JourneyStep> {
       ),
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
+        initiallyExpanded: true,
         title: const Text('Yolcu & seçenekler',
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: PT.text)),
+        subtitle: const Padding(
+          padding: EdgeInsets.only(top: 2),
+          child: Text('Kaç kişi + kaç çocuk?',
+              style: TextStyle(fontSize: 12, color: PT.textSecondary)),
+        ),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: [
           Row(

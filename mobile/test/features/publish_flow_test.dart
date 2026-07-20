@@ -62,9 +62,15 @@ void main() {
     expect(jumped, StepId.hotels);
   });
 
-  testWidgets('paylaşım URL viewer slug ile gösterilir', (tester) async {
+  testWidgets('paylaşılabilir bağlantı kartı artık gösterilmez',
+      (tester) async {
     final t = _tripWithDest();
     await tester.pumpWidget(harness(t));
-    expect(find.textContaining('/viewer/?u=${t.slug}'), findsOneWidget);
+    expect(find.text('Paylaşılabilir bağlantı'), findsNothing);
+    expect(find.textContaining('/viewer/?u='), findsNothing);
+    // Dışa/İçe aktar ve yayın kilidi notu hala var.
+    expect(find.text('Dışa aktar'), findsOneWidget);
+    expect(find.text('İçe aktar'), findsOneWidget);
+    expect(find.textContaining('Yayın kilidi'), findsOneWidget);
   });
 }

@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../domain/types.dart';
 import '../planner_theme.dart';
 
-/// TitleStep.tsx birebir — başlık, açıklama, kişi sayısı, tempo.
+/// TitleStep.tsx birebir — başlık, açıklama, tempo.
+/// Kişi sayısı Rota adımının "Yolcu & seçenekler"inde yönetiliyor.
 class TitleStep extends StatelessWidget {
   const TitleStep({super.key, required this.trip, required this.onChange});
   final Trip trip;
@@ -53,30 +54,12 @@ class TitleStep extends StatelessWidget {
                   onChanged: (v) => onChange((t) => t.subtitle = v),
                 ),
               ),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: PField(
-                      label: 'Kişi sayısı',
-                      child: PTextField(
-                        value: '${trip.preferences.partySize ?? 2}',
-                        keyboardType: TextInputType.number,
-                        onChanged: (v) => onChange((t) => t.preferences.partySize = int.tryParse(v) ?? 2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: PField(
-                      label: 'Tempo',
-                      child: _PaceDropdown(
-                        value: trip.preferences.pace,
-                        onChanged: (p) => onChange((t) => t.preferences.pace = p),
-                      ),
-                    ),
-                  ),
-                ],
+              PField(
+                label: 'Tempo',
+                child: _PaceDropdown(
+                  value: trip.preferences.pace,
+                  onChanged: (p) => onChange((t) => t.preferences.pace = p),
+                ),
               ),
             ],
           ),

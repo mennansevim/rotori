@@ -401,6 +401,7 @@ class TripPreferences {
     this.transportPreference,
     this.paymentPreference,
     this.hasTicket,
+    this.stayArea,
   })  : mustSee = mustSee ?? [],
         foodLikes = foodLikes ?? [],
         foodDislikes = foodDislikes ?? [],
@@ -449,6 +450,10 @@ class TripPreferences {
   List<InterestTag> interests;
   List<FoodSensitivity> foodSensitivities;
   bool? hasTicket;
+
+  /// Konaklanacak bölge/mahalle (opsiyonel) — otel eklenmediğinde taksi/rehber
+  /// için serbest metin (örn. "Shinjuku", "Namba istasyon çevresi").
+  String? stayArea;
 
   factory TripPreferences.fromJson(Map<String, dynamic> j) => TripPreferences(
         travelDates: TravelDates.fromJson(
@@ -531,6 +536,7 @@ class TripPreferences {
         nearbyAirportsDest: j['nearbyAirportsDest'] as bool?,
         directFlightsOnly: j['directFlightsOnly'] as bool?,
         hasTicket: j['hasTicket'] as bool?,
+        stayArea: j['stayArea'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -601,6 +607,7 @@ class TripPreferences {
           'nearbyAirportsDest': nearbyAirportsDest,
         if (directFlightsOnly != null) 'directFlightsOnly': directFlightsOnly,
         if (hasTicket != null) 'hasTicket': hasTicket,
+        if (stayArea != null) 'stayArea': stayArea,
       };
 }
 

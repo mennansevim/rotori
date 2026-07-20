@@ -42,8 +42,6 @@ class PublishStep extends StatelessWidget {
     'plan': StepId.plan,
   };
 
-  String get _shareUrl => '/viewer/?u=${trip.slug}';
-
   Color _severityColor(TripWarningSeverity s) => switch (s) {
         TripWarningSeverity.info => const Color(0xFF0369A1),
         TripWarningSeverity.warn => const Color(0xFFB45309),
@@ -55,13 +53,6 @@ class PublishStep extends StatelessWidget {
         TripWarningSeverity.warn => const Color(0x14B45309),
         TripWarningSeverity.urgent => const Color(0x14BF4800),
       };
-
-  void _copyShare(BuildContext context) {
-    Clipboard.setData(ClipboardData(text: _shareUrl));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('✓ Bağlantı kopyalandı')),
-    );
-  }
 
   void _exportJson(BuildContext context) {
     final json = const JsonEncoder.withIndent('  ').convert(trip.toJson());
@@ -161,8 +152,8 @@ class PublishStep extends StatelessWidget {
       children: [
         const PageHeadline('Yayına hazır'),
         PageSub(
-            'Planınız "${trip.slug}" kullanıcısı altında kaydedildi. Aşağıdaki '
-            'bağlantıyı paylaşarak başka cihazdan rehbere ulaşılabilir.'),
+            'Planınız "${trip.slug}" kullanıcısı altında kaydedildi. Uyarıları '
+            'çözüp Rehber\'e (viewer) geçebilirsin.'),
 
         // Uyarı panelleri
         for (final w in warnings)
@@ -196,38 +187,11 @@ class PublishStep extends StatelessWidget {
             ),
           ),
 
-        // Paylaşım kartı
+        // JSON dışa/içe aktar + yayın kilidi notu.
         PCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const PCardTitle('Paylaşılabilir bağlantı'),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: PT.bg,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: PT.border),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: SelectableText(_shareUrl,
-                          style: const TextStyle(
-                              fontFamily: 'monospace',
-                              fontSize: 13,
-                              color: PT.text)),
-                    ),
-                    const SizedBox(width: 8),
-                    PButton(
-                      label: 'Kopyala',
-                      primary: false,
-                      onPressed: () => _copyShare(context),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(

@@ -49,8 +49,9 @@ class _PlanStepState extends State<PlanStep> {
     super.initState();
     // İlk 2 gün açık başlar (React slice(0,2)).
     _expanded = trip.days.take(2).map((d) => d.dayNumber).toSet();
-    // Zaten dolu bir plan varsa gün listesi görünür başlasın.
-    if (trip.days.any((d) => d.items.isNotEmpty)) _planRevealed = true;
+    // Plan listesi yalnızca "Gezi planı oluştur" tetiklendikten sonra açılır.
+    // (Trip zaten dolu gelse bile başta gizli kalır — kullanıcı önce toolbar'ı
+    // görsün, sonra açıkça istesin.)
   }
 
   List<TripDestination> get _destinations =>
@@ -98,21 +99,51 @@ class _PlanStepState extends State<PlanStep> {
     });
   }
 
-  void _addItem(int dayNumber, String title) {
+  void _addItem(
+    int dayNumber, {
+    required String title,
+    required String time,
+    required TimelineItemKind kind,
+  }) {
     widget.onChange((t) {
       for (final d in t.days) {
         if (d.dayNumber == dayNumber) {
           d.items.add(TimelineItem(
             id: newItemId(dayNumber),
             title: title,
-            kind: TimelineItemKind.activity,
-            time: '10:00',
-            scheduledTime: '10:00',
+            kind: kind,
+            time: time,
+            scheduledTime: time,
           ));
           break;
         }
       }
     });
+  }
+
+  /// "+ Aktivite" akışı: bottom-sheet ile yer adı + boş saat dilimi + tür seçtir.
+  void _openAddItemSheet(int dayNumber) {
+    final day = trip.days.firstWhere(
+      (d) => d.dayNumber == dayNumber,
+      orElse: () => DayPlan(dayNumber: dayNumber, date: '', theme: ''),
+    );
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: PT.bgElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(PT.radiusLg)),
+      ),
+      builder: (ctx) => _AddItemSheet(
+        occupiedTimes: [
+          for (final it in day.items)
+            (it.time ?? it.scheduledTime ?? '').trim(),
+        ]..removeWhere((s) => s.isEmpty),
+        onSubmit: (name, time, kind) {
+          _addItem(dayNumber, title: name, time: time, kind: kind);
+        },
+      ),
+    );
   }
 
   /// ReorderableListView.onReorderItem sonrası: newIndex zaten kaldırma için
@@ -474,21 +505,41 @@ class _PlanStepState extends State<PlanStep> {
             ),
           ),
 
-        if ((!_planRevealed || allDaysEmpty))
+        if (!_planRevealed)
           PCard(
             child: Column(
               children: [
                 const Text('🗺️', style: TextStyle(fontSize: 40)),
                 const SizedBox(height: 12),
-                const Text('Henüz gezi planı yok',
+                const Text('Henüz plan yok',
+                    style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        color: PT.text)),
+                const SizedBox(height: 8),
+                const Text(
+                  'Yukarıdaki butonla kur — sonra saat saat düzenleyebilirsin.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 14, color: PT.textSecondary, height: 1.5),
+                ),
+              ],
+            ),
+          )
+        else if (allDaysEmpty)
+          PCard(
+            child: Column(
+              children: [
+                const Text('🗺️', style: TextStyle(fontSize: 40)),
+                const SizedBox(height: 12),
+                const Text('Gün listesi boş kaldı',
                     style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
                         color: PT.text)),
                 const SizedBox(height: 8),
                 Text(
-                  'Yukarıdaki "Gezi planı oluştur" butonuyla ${trip.days.length} '
-                  'günlük programı saat saat hazırlayalım.',
+                  'Rota veya tarihleri güncelleyip "Planı yeniden oluştur"a bas.',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                       fontSize: 14, color: PT.textSecondary, height: 1.5),
@@ -509,7 +560,7 @@ class _PlanStepState extends State<PlanStep> {
               onUpdateDay: (m) => _updateDay(day.dayNumber, m),
               onOpenDetail: (it) => _openDetail(day, it),
               onRemoveItem: (id) => _removeItem(day.dayNumber, id),
-              onAddItem: () => _addItem(day.dayNumber, 'Yeni aktivite'),
+              onAddItem: () => _openAddItemSheet(day.dayNumber),
               onReorder: (o, n) => _reorder(day.dayNumber, o, n),
               onMoveItemToDay: (id, toDay) =>
                   _moveItemToDay(day.dayNumber, id, toDay),
@@ -1410,4 +1461,229 @@ String _formatGuideDuration(int minutes) {
   final m = minutes % 60;
   if (m == 0) return '$h saat';
   return '$h sa $m dk';
+}
+
+// ---------------------------------------------------------------------------
+// _AddItemSheet — "+ Aktivite" akışı için insancıl bottom-sheet.
+// ---------------------------------------------------------------------------
+
+class _AddItemSheet extends StatefulWidget {
+  const _AddItemSheet({
+    required this.occupiedTimes,
+    required this.onSubmit,
+  });
+
+  /// Günün mevcut item saatleri ("HH:mm" biçiminde). Bu saatlerin ±30 dk
+  /// çevresindeki dilimler filtrelenir.
+  final List<String> occupiedTimes;
+  final void Function(String name, String time, TimelineItemKind kind) onSubmit;
+
+  @override
+  State<_AddItemSheet> createState() => _AddItemSheetState();
+}
+
+class _AddItemSheetState extends State<_AddItemSheet> {
+  final TextEditingController _nameCtrl = TextEditingController();
+  TimelineItemKind _kind = TimelineItemKind.activity;
+  late List<String> _slots;
+  late String _time;
+  bool _submitted = false;
+
+  static const List<({TimelineItemKind kind, String label, String emoji})>
+      _kindOptions = [
+    (kind: TimelineItemKind.activity, label: 'Aktivite', emoji: '📍'),
+    (kind: TimelineItemKind.meal, label: 'Yemek', emoji: '🍽️'),
+    (kind: TimelineItemKind.transport, label: 'Ulaşım', emoji: '🚆'),
+    (kind: TimelineItemKind.hotel, label: 'Otel', emoji: '🏨'),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _slots = _computeSlots();
+    // Varsayılan: 10:00'dan itibaren ilk boş dilim; yoksa listedeki ilk.
+    _time = _slots.firstWhere(
+      (s) => _minutes(s) >= _minutes('10:00'),
+      orElse: () => _slots.isNotEmpty ? _slots.first : '10:00',
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    super.dispose();
+  }
+
+  int _minutes(String hhmm) {
+    final m = RegExp(r'^(\d{1,2}):(\d{2})$').firstMatch(hhmm);
+    if (m == null) return -1;
+    return int.parse(m.group(1)!) * 60 + int.parse(m.group(2)!);
+  }
+
+  String _fmt(int minutes) {
+    final h = (minutes ~/ 60).toString().padLeft(2, '0');
+    final m = (minutes % 60).toString().padLeft(2, '0');
+    return '$h:$m';
+  }
+
+  /// 08:00 → 22:00, 30 dk aralıkla, dolu dilimlerin ±30 dk çevresi hariç.
+  List<String> _computeSlots() {
+    final occupied = <int>[
+      for (final t in widget.occupiedTimes)
+        if (_minutes(t) >= 0) _minutes(t),
+    ];
+    final result = <String>[];
+    for (var m = 8 * 60; m <= 22 * 60; m += 30) {
+      final blocked = occupied.any((o) => (o - m).abs() < 30);
+      if (!blocked) result.add(_fmt(m));
+    }
+    return result;
+  }
+
+  void _submit() {
+    final name = _nameCtrl.text.trim();
+    setState(() => _submitted = true);
+    if (name.isEmpty) return;
+    widget.onSubmit(name, _time, _kind);
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final noSlots = _slots.isEmpty;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: PT.borderStrong,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const Text('Yeni aktivite ekle',
+                  style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: PT.text)),
+              const SizedBox(height: 16),
+              PField(
+                label: 'Yer adı',
+                hint: _submitted && _nameCtrl.text.trim().isEmpty
+                    ? const Text('Yer adı gerekli',
+                        style: TextStyle(fontSize: 12, color: PT.danger))
+                    : null,
+                child: TextField(
+                  controller: _nameCtrl,
+                  autofocus: true,
+                  onSubmitted: (_) => _submit(),
+                  style: const TextStyle(fontSize: 16),
+                  decoration: InputDecoration(
+                    hintText: 'Örn. Senso-ji, teamLab, ramen molası',
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    filled: true,
+                    fillColor: PT.bgSubtle,
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                          color: _submitted && _nameCtrl.text.trim().isEmpty
+                              ? PT.danger
+                              : PT.borderStrong),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: PT.accent),
+                    ),
+                  ),
+                ),
+              ),
+              PField(
+                label: 'Saat',
+                hint: noSlots
+                    ? const Text('Boş dilim yok — mevcut aktivitelerden birini kaldır.',
+                        style: TextStyle(fontSize: 12, color: PT.danger))
+                    : null,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: PT.bgSubtle,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: PT.borderStrong),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _slots.contains(_time)
+                          ? _time
+                          : (_slots.isNotEmpty ? _slots.first : null),
+                      isExpanded: true,
+                      hint: const Text('Saat seç'),
+                      items: [
+                        for (final s in _slots)
+                          DropdownMenuItem(value: s, child: Text(s)),
+                      ],
+                      onChanged: noSlots
+                          ? null
+                          : (v) {
+                              if (v != null) setState(() => _time = v);
+                            },
+                    ),
+                  ),
+                ),
+              ),
+              PField(
+                label: 'Tür (opsiyonel)',
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final opt in _kindOptions)
+                      PChip(
+                        label: '${opt.emoji} ${opt.label}',
+                        active: _kind == opt.kind,
+                        onTap: () => setState(() => _kind = opt.kind),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: PButton(
+                      label: 'Vazgeç',
+                      primary: false,
+                      block: true,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: PButton(
+                      label: 'Ekle',
+                      block: true,
+                      onPressed: noSlots ? null : _submit,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

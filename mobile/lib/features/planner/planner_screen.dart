@@ -105,6 +105,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
   bool _hotelsComplete(Trip t) {
     final dests = t.preferences.destinations;
     if (dests.isEmpty) return false;
+    final stayArea = t.preferences.stayArea?.trim() ?? '';
+    if (stayArea.isNotEmpty) return true;
     final hotels = t.hotels;
     if (hotels.isEmpty) return false;
     return hotels.every((h) =>

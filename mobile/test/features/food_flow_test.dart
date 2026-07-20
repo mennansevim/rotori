@@ -58,29 +58,22 @@ void main() {
     expect(t.preferences.dietaryTags.contains('no_pork'), isFalse);
   });
 
-  testWidgets('mutfak/beslenme seçimi destinationFood içine upsert eder',
-      (tester) async {
+  testWidgets('destinasyon başına mutfak/lezzet grid'
+      ' artık render edilmez — sadece hassasiyet + bütçe kalır', (tester) async {
     final t = _tripWithDest();
     await tester.pumpWidget(harness(t));
-
-    // Bir önerilen lezzet chip'ine dokun (destinationFood.foodLikes'a yazılır).
-    final dishFinder = find.textContaining('Tonkotsu');
-    await tester.scrollUntilVisible(
-      dishFinder,
-      250,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(dishFinder.first, warnIfMissed: false);
     await tester.pumpAndSettle();
 
-    final pref = t.preferences.destinationFood
-        .where((f) => f.destinationId == 'd1')
-        .toList();
-    expect(pref, isNotEmpty);
-    expect(pref.first.foodLikes, isNotEmpty);
+    // Kaldırılan bölümler görünmemeli.
+    expect(find.textContaining('Beslenme tercihleri'), findsNothing);
+    expect(find.textContaining('Mutfak türleri'), findsNothing);
+    expect(find.textContaining('Önerilen lezzetler'), findsNothing);
+    // Bütçe alanı hala var.
+    expect(find.textContaining('Kişi başı öğün'), findsOneWidget);
+    expect(find.text('Öğünleri plana ekle'), findsOneWidget);
   });
 
-  testWidgets('375px iPhone genişliğinde beslenme/mutfak grid overflow etmez',
+  testWidgets('375px iPhone genişliğinde hassasiyet wrap overflow etmez',
       (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(375, 812);
@@ -90,18 +83,8 @@ void main() {
     await tester.pumpWidget(harness(t));
     await tester.pumpAndSettle();
 
-    // 2-sütun grid + Wrap render'ları exception fırlatmamalı.
     expect(tester.takeException(), isNull);
-    // Scroll ederek grid'in ListView'da inşa edildiğini doğrula
-    await tester.scrollUntilVisible(
-      find.text('Beslenme tercihleri'),
-      250,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.text('Beslenme tercihleri'), findsOneWidget);
-    // GridView 2-sütun kullanılıyor
-    final gridViews = tester.widgetList<GridView>(find.byType(GridView));
-    expect(gridViews, isNotEmpty);
-    expect(tester.takeException(), isNull);
+    // PCardTitle metni upper-case'e çevirir → 'YEMEK HASSASIYETLERI' fragment ara.
+    expect(find.textContaining('YEMEK HASSASIYETLERI'), findsOneWidget);
   });
 }

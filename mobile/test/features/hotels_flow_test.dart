@@ -23,8 +23,20 @@ Trip _tripWithDest() {
 
 void main() {
   group('hotelsComplete gating', () {
-    test('otel yoksa false', () {
+    test('otel ve stayArea yoksa false', () {
       expect(hotelsComplete(_tripWithDest()), isFalse);
+    });
+
+    test('sadece stayArea doluysa (otel yok) true', () {
+      final t = _tripWithDest();
+      t.preferences.stayArea = 'Shinjuku';
+      expect(hotelsComplete(t), isTrue);
+    });
+
+    test('stayArea whitespace ise false gibi davranır', () {
+      final t = _tripWithDest();
+      t.preferences.stayArea = '   ';
+      expect(hotelsComplete(t), isFalse);
     });
 
     test('eksik adresli otel false', () {
@@ -102,7 +114,8 @@ void main() {
     });
   });
 
-  testWidgets('boş otel listesinde "+ Otel ekle" gösterilir', (tester) async {
+  testWidgets('boş otel listesinde "+ Otel ekle" + stayArea inputu gösterilir',
+      (tester) async {
     final t = _tripWithDest();
     await tester.pumpWidget(MaterialApp(
       theme: PT.theme(),
@@ -112,6 +125,8 @@ void main() {
     ));
     expect(find.text('Konaklama'), findsOneWidget);
     expect(find.text('+ Otel ekle'), findsOneWidget);
+    // Konaklanacak bölge (opsiyonel) alanı üstte görünür.
+    expect(find.text('🏘️ Konaklanacak bölge (opsiyonel)'), findsOneWidget);
   });
 
   testWidgets('otel kartı şehir + ada göre render eder', (tester) async {

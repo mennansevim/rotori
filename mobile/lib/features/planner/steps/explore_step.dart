@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../domain/destination_profiles.dart';
-import '../../../domain/dietary.dart';
 import '../../../domain/explore.dart';
 import '../../../domain/japan_suggestions.dart';
 import '../../../domain/trip_factory.dart';
@@ -12,8 +11,9 @@ import '../planner_theme.dart';
 import '../widgets/option_data.dart';
 
 /// apps/planner/src/components/steps/ExploreStep.tsx portu + tercih paneli.
-/// Çocuk profilleri, ilgi alanları, yürüyüş/ulaşım/ödeme tercihi, yemek
-/// hassasiyetleri, mutlaka-görülecekler ve destinasyon keşif kartları.
+/// İlgi alanları, yürüyüş/ulaşım/ödeme tercihi, mutlaka-görülecekler ve
+/// destinasyon keşif kartları. Çocuk profili Rota adımına, yemek hassasiyeti
+/// Yemek adımına taşındı.
 class ExploreStep extends StatefulWidget {
   const ExploreStep({super.key, required this.trip, required this.onChange});
   final Trip trip;
@@ -89,58 +89,6 @@ class _ExploreStepState extends State<ExploreStep> {
     });
   }
 
-  void _setChildrenCount(int count) {
-    widget.onChange((t) {
-      final cur = t.preferences.childProfiles;
-      final next = <ChildProfile>[];
-      for (var i = 0; i < count; i++) {
-        next.add(i < cur.length
-            ? cur[i]
-            : ChildProfile(
-                id: 'child-${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}-$i',
-                age: 6,
-              ));
-      }
-      t.preferences
-        ..childProfiles = next
-        ..childrenCount = count;
-    });
-  }
-
-  void _setChildAge(String id, int age) {
-    widget.onChange((t) {
-      t.preferences.childProfiles = t.preferences.childProfiles
-          .map((c) => c.id == id ? ChildProfile(id: c.id, age: age) : c)
-          .toList();
-    });
-  }
-
-  /// FoodStep.tsx toggleSensitivity ile aynı türetme mantığı.
-  void _toggleSensitivity(FoodSensitivity id) {
-    widget.onChange((t) {
-      final cur = t.preferences.foodSensitivities;
-      if (cur.contains(id)) {
-        cur.remove(id);
-      } else {
-        cur.add(id);
-      }
-      final derived = dietaryTagsFromSensitivities(cur);
-      const managed = [
-        'no_pork',
-        'no_seafood',
-        'halal',
-        'vegetarian',
-        'kid_friendly',
-        'chicken_focus',
-        'turkish_palate',
-        'no_fatty_meat',
-      ];
-      final kept =
-          t.preferences.dietaryTags.where((tag) => !managed.contains(tag));
-      t.preferences.dietaryTags = {...kept, ...derived}.toList();
-    });
-  }
-
   void _addMustSee(String raw) {
     final v = raw.trim();
     if (v.isEmpty) return;
@@ -148,29 +96,6 @@ class _ExploreStepState extends State<ExploreStep> {
       if (!t.preferences.mustSee.contains(v)) t.preferences.mustSee.add(v);
     });
     _mustSeeCtrl.clear();
-  }
-
-  DestinationFoodPrefs _foodPrefsFor(Trip t, String destId) {
-    for (final f in t.preferences.destinationFood) {
-      if (f.destinationId == destId) return f;
-    }
-    return DestinationFoodPrefs(destinationId: destId);
-  }
-
-  void _toggleFoodInPlan(TripDestination dest, String label, String key) {
-    final alreadyLiked = _foodPrefsFor(trip, dest.id).foodLikes.contains(label);
-    widget.onChange((t) {
-      final list = t.preferences.destinationFood;
-      final idx = list.indexWhere((f) => f.destinationId == dest.id);
-      final base = idx >= 0 ? list[idx] : _foodPrefsFor(t, dest.id);
-      if (alreadyLiked) {
-        base.foodLikes.remove(label);
-      } else {
-        base.foodLikes.add(label);
-      }
-      if (idx < 0) list.add(base);
-    });
-    _markAdded(key, alreadyLiked ? '✓ Plandan çıkarıldı' : '✓ Yemek planına eklendi');
   }
 
   void _removePlaceByName(String name) {
@@ -265,13 +190,11 @@ class _ExploreStepState extends State<ExploreStep> {
       children: [
         const PageHeadline('Keşfet'),
         const PageSub(
-          'Uçuş güzergahınıza göre popüler yerler, önerilen yemekler ve '
-          'varışta yapılacaklar. Beğendiğinizi tek dokunuşla plana ekleyin.',
+          'Uçuş güzergahınıza göre popüler yerler ve varışta yapılacaklar. '
+          'Beğendiğinizi tek dokunuşla plana ekleyin.',
         ),
-        _childProfileBlock(),
         _interestsBlock(),
         _travelStyleBlock(),
-        _sensitivitiesBlock(),
         _mustSeeBlock(),
         for (final dest in destinations) ..._destinationSections(dest),
       ],
@@ -290,62 +213,6 @@ class _ExploreStepState extends State<ExploreStep> {
         child: Text(text,
             style: const TextStyle(fontSize: 13, color: PT.textSecondary)),
       );
-
-  Widget _childProfileBlock() {
-    final profiles = trip.preferences.childProfiles;
-    return PCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _blockTitle('👶 Çocuk profili'),
-          _hint('Yanında gelen çocuk varsa seç — plan çocuk dostu kurulur.'),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final n in const [0, 1, 2, 3, 4])
-                PChip(
-                  label: n == 0 ? '— Çocuk yok' : '$n çocuk',
-                  active: _childrenCount == n,
-                  onTap: () => _setChildrenCount(n),
-                ),
-            ],
-          ),
-          if (profiles.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            const Text('Yaşları',
-                style: TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w600, color: PT.text)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                for (var i = 0; i < profiles.length; i++)
-                  _ChildAgeCard(
-                    label: 'Çocuk ${i + 1}',
-                    age: profiles[i].age,
-                    onDec: () => _setChildAge(
-                        profiles[i].id, (profiles[i].age - 1).clamp(0, 18)),
-                    onInc: () => _setChildAge(
-                        profiles[i].id, (profiles[i].age + 1).clamp(0, 18)),
-                  ),
-              ],
-            ),
-          ],
-          if (_kidsMode)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Text(
-                '$_childrenCount çocuk seçili — çocuk dostu yerler öne '
-                'çıkarılıyor, molalar artırılıyor.',
-                style: const TextStyle(fontSize: 13, color: PT.accent),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 
   Widget _interestsBlock() {
     final interests = trip.preferences.interests;
@@ -441,31 +308,6 @@ class _ExploreStepState extends State<ExploreStep> {
     );
   }
 
-  Widget _sensitivitiesBlock() {
-    final sensitivities = trip.preferences.foodSensitivities;
-    return PCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _blockTitle('🍽️ Yemek hassasiyetleri'),
-          _hint('Plan ve restoran önerileri buna göre filtrelenir.'),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final opt in kSensitivityOptions)
-                PChip(
-                  label: '${opt.emoji} ${opt.label}',
-                  active: sensitivities.contains(opt.value),
-                  onTap: () => _toggleSensitivity(opt.value),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _mustSeeBlock() {
     final mustSee = trip.preferences.mustSee;
     return PCard(
@@ -528,7 +370,6 @@ class _ExploreStepState extends State<ExploreStep> {
 
   List<Widget> _destinationSections(TripDestination dest) {
     final profile = getDestinationProfile(dest.countryCode);
-    final foods = recommendedFoods(dest.countryCode);
     var places = profile?.popularPlaces ?? const <PlaceSuggestion>[];
     if (_kidsMode) {
       places = [...places]..sort((a, b) =>
@@ -607,237 +448,8 @@ class _ExploreStepState extends State<ExploreStep> {
             ],
           ),
         ),
-      if (foods.isNotEmpty)
-        PCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('🍽️ Önerilen yemekler',
-                  style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: PT.text)),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  for (var idx = 0; idx < foods.length; idx++)
-                    ExploreCard(
-                      emoji: foods[idx].emoji ?? '🍽️',
-                      name: foods[idx].label,
-                      selected: _foodPrefsFor(trip, dest.id)
-                          .foodLikes
-                          .contains(foods[idx].label),
-                      feedback: _added['food:${dest.id}:food-${dest.id}-$idx'],
-                      onTap: () => _toggleFoodInPlan(dest, foods[idx].label,
-                          'food:${dest.id}:food-${dest.id}-$idx'),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                  'Dokunarak yemek planına ekle · ✓ rozetli karta tekrar dokun → çıkar',
-                  style: TextStyle(fontSize: 12, color: PT.textTertiary)),
-            ],
-          ),
-        ),
     ];
   }
-}
-
-/// ExploreCardGrid.tsx kart karşılığı — emoji + ad + puan + çocuk rozeti.
-class ExploreCard extends StatelessWidget {
-  const ExploreCard({
-    super.key,
-    required this.emoji,
-    required this.name,
-    required this.selected,
-    required this.onTap,
-    this.meta,
-    this.rating,
-    this.kidFriendly = false,
-    this.feedback,
-  });
-
-  final String emoji;
-  final String name;
-  final String? meta;
-  final double? rating;
-  final bool kidFriendly;
-  final bool selected;
-  final String? feedback;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: selected ? PT.accentSoft : PT.bgSubtle,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(PT.radius),
-        side: BorderSide(color: selected ? PT.accent : PT.borderStrong),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(PT.radius),
-        onTap: onTap,
-        child: Container(
-          width: 150,
-          constraints: const BoxConstraints(minHeight: 96),
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  Text(emoji, style: const TextStyle(fontSize: 22)),
-                  const Spacer(),
-                  if (selected)
-                    Container(
-                      width: 20,
-                      height: 20,
-                      decoration: const BoxDecoration(
-                        color: PT.accent,
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: const Icon(Icons.check,
-                          size: 13, color: Colors.white),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                feedback ?? name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: feedback != null ? PT.accent : PT.text,
-                ),
-              ),
-              if (meta != null || rating != null || kidFriendly) ...[
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    if (rating != null)
-                      Text('${ratingStars(rating!)} $rating',
-                          style: const TextStyle(
-                              fontSize: 11, color: Color(0xFFB8860B))),
-                    if (rating != null && (meta != null || kidFriendly))
-                      const SizedBox(width: 6),
-                    if (meta != null)
-                      Flexible(
-                        child: Text(meta!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontSize: 11, color: PT.textTertiary)),
-                      ),
-                    if (kidFriendly)
-                      const Padding(
-                        padding: EdgeInsets.only(left: 4),
-                        child: Text('🧸', style: TextStyle(fontSize: 11)),
-                      ),
-                  ],
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ChildAgeCard extends StatelessWidget {
-  const _ChildAgeCard({
-    required this.label,
-    required this.age,
-    required this.onDec,
-    required this.onInc,
-  });
-  final String label;
-  final int age;
-  final VoidCallback onDec;
-  final VoidCallback onInc;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: PT.bgSubtle,
-        borderRadius: BorderRadius.circular(PT.radius),
-        border: Border.all(color: PT.borderStrong),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: PT.textSecondary)),
-          const SizedBox(width: 10),
-          _StepperBtn(label: '−', onTap: onDec, semantics: 'Yaşı azalt'),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text('$age',
-                style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.w700, color: PT.text)),
-          ),
-          _StepperBtn(label: '+', onTap: onInc, semantics: 'Yaşı arttır'),
-          const SizedBox(width: 6),
-          const Text('yaş',
-              style: TextStyle(fontSize: 12, color: PT.textTertiary)),
-        ],
-      ),
-    );
-  }
-}
-
-class _StepperBtn extends StatelessWidget {
-  const _StepperBtn(
-      {required this.label, required this.onTap, required this.semantics});
-  final String label;
-  final VoidCallback onTap;
-  final String semantics;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: semantics,
-      child: Material(
-        color: PT.bgElevated,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-          side: const BorderSide(color: PT.borderStrong),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(10),
-          onTap: onTap,
-          child: const SizedBox(width: 44, height: 44)
-              .let((box) => SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: Center(
-                        child: Text(label,
-                            style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: PT.text))),
-                  )),
-        ),
-      ),
-    );
-  }
-}
-
-extension _Let<T> on T {
-  R let<R>(R Function(T) f) => f(this);
 }
 
 /// "⭐ Popüler gezilecek yerler" bölümüne özel kompakt kart — 2-sütun grid için.

@@ -99,9 +99,13 @@ ParsedBooking? parseBookingUrl(String raw) {
   return ParsedBooking(source: 'unknown', checkIn: checkIn, checkOut: checkOut);
 }
 
-/// HotelsStep.tsx hotelsComplete birebir (planner_screen'de de var, burada
-/// export edilir ki testler tek kaynaktan kontrol edebilsin).
+/// HotelsStep.tsx hotelsComplete — otel zorunlu değil: kullanıcı otel
+/// eklemek yerine yalnızca konaklanacak bölge yazmışsa da tamamlanmış sayılır.
+/// (Taksi/rehber semtin adını bilirse yeter.)
 bool hotelsComplete(Trip trip) {
+  if (trip.preferences.destinations.isEmpty) return false;
+  final stayArea = trip.preferences.stayArea?.trim() ?? '';
+  if (stayArea.isNotEmpty) return true;
   if (trip.hotels.isEmpty) return false;
   return trip.hotels.every((h) =>
       h.city.trim().isNotEmpty &&
@@ -177,15 +181,32 @@ class _HotelsStepState extends State<HotelsStep> {
       children: [
         const PageHeadline('Konaklama'),
         const PageSub(
-            'Her otel için açık adres zorunludur — taksi ve pusulada kullanılır. '
-            'Yerel dilde adresi de ekleyin (Japonca, Korece vb.).'),
+            'Otel eklemek zorunda değilsin — konaklanacak bölgeyi yazmak yeter '
+            '(taksi/rehber için). Otel ekleyeceksen açık adres gerekir.'),
+
+        PCard(
+          child: PField(
+            label: '🏘️ Konaklanacak bölge (opsiyonel)',
+            hint: const Text(
+                'Otel eklemesen de bu bölge adı taksi/rehberde kullanılır.',
+                style: TextStyle(fontSize: 12, color: PT.textTertiary)),
+            child: PTextField(
+              value: trip.preferences.stayArea ?? '',
+              hint: 'Örn. Shinjuku, Namba, Kyoto istasyon çevresi',
+              onChanged: (v) => widget
+                  .onChange((t) => t.preferences.stayArea = v.trim().isEmpty ? null : v),
+            ),
+          ),
+        ),
 
         if (trip.hotels.isEmpty)
           PCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Henüz otel yok. En az bir konaklama ekleyin.',
+                const Text(
+                    'Otel eklemek istersen aşağıdan ekle — istemiyorsan bölge '
+                    'yazmak yeterli.',
                     style: TextStyle(fontSize: 14, color: PT.textSecondary)),
                 const SizedBox(height: 16),
                 PButton(
