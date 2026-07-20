@@ -106,29 +106,50 @@ def _prompt_keywords(prompt: str) -> list[str]:
     return [w for w in words if len(w) >= 3 and w not in _STOP_WORDS]
 
 
-def _semantic_match(rows: list[dict[str, Any]], prompt: str) -> str | None:
+def _semantic_score_row(r: dict[str, Any], kws: list[str]) -> int:
+    """Bir metadata satırının prompt anahtar kelimeleriyle puanı.
+    sahne_ozeti (Türkçe cümle) + sahne_ogeleri (öge listesi) +
+    sahne_mekan_tahmini alanlarında match arar."""
+    text = " ".join([
+        _norm(r.get("sahne_ozeti", "") or ""),
+        _norm(r.get("sahne_ogeleri", "") or ""),
+        _norm(r.get("sahne_mekan_tahmini", "") or ""),
+    ])
+    if not text.strip():
+        return 0
+    return sum(1 for k in kws if k in text)
+
+
+def _semantic_match(rows: list[dict[str, Any]], prompt: str) -> tuple[str | None, list[dict[str, Any]]]:
     """Sözlük eşleşmediyse veya eşleşen mekana ait klip yoksa devreye girer.
-    metadata.csv'deki `sahne_ozeti` metinlerini prompt anahtar kelimeleriyle
-    puanlar; en yüksek puanlı satırın `mekan_etiketi`'ni döner."""
+
+    Return: (secilen_mekan_etiketi, secilen_satirlar_orijinal_puanla)
+    - secilen_satirlar: puanı > 0 olan satırlar, puana göre azalan sıra
+    - secilen_mekan: en çok puan alan mekan_etiketi (görsel/label için)
+    """
     kws = _prompt_keywords(prompt)
     if not kws:
-        return None
+        return None, []
 
-    # mekan_etiketi başına toplam skor
-    puan: dict[str, int] = {}
+    # her satır için puan hesapla
+    scored: list[tuple[int, dict[str, Any]]] = []
     for r in rows:
-        ozet = _norm(r.get("sahne_ozeti", ""))
-        if not ozet:
-            continue
-        mek = r.get("mekan_etiketi", "") or ""
-        s = sum(1 for k in kws if k in ozet)
+        s = _semantic_score_row(r, kws)
         if s > 0:
-            puan[mek] = puan.get(mek, 0) + s
+            scored.append((s, r))
 
-    if not puan:
-        return None
-    # en yüksek puanlı mekan
-    return max(puan.items(), key=lambda kv: kv[1])[0]
+    if not scored:
+        return None, []
+
+    scored.sort(key=lambda x: (-x[0], -float(x[1].get("sure_sn", 0) or 0)))
+
+    # etiket seçimi: en çok görülen mekan_etiketi
+    from collections import Counter
+    label_counts = Counter(r.get("mekan_etiketi", "") for _, r in scored)
+    best_label = label_counts.most_common(1)[0][0]
+
+    # dönen satırlar: sadece puan sırasına göre
+    return best_label, [r for _, r in scored]
 
 
 # --- Klip seçimi -----------------------------------------------------------
@@ -141,6 +162,28 @@ def _read_metadata(csv_path: Path) -> list[dict[str, Any]]:
 
 def _usable(dur: float, cap: float) -> float:
     return min(max(dur, 0.0), cap)
+
+
+def _pick_from_scored(scored_rows: list[dict[str, Any]], sure_modu: str
+                      ) -> tuple[list[dict[str, Any]], float]:
+    """Semantic search sonucu puanı > 0 satırlardan süre moduna göre klip seçer.
+    scored_rows önceden puana göre sıralı olmalı (en yüksek puan başta)."""
+    mode = SURE_MODU.get(sure_modu, SURE_MODU["orta"])
+    picked: list[dict[str, Any]] = []
+    total = 0.0
+    for r in scored_rows:
+        if len(picked) >= mode["klip_max"]:
+            break
+        dur = _usable(float(r.get("sure_sn", 0) or 0), mode["per_clip_cap"])
+        picked.append(r)
+        total += dur
+        if total >= mode["hedef"] and len(picked) >= mode["klip_min"]:
+            break
+    if len(picked) < mode["klip_min"] and scored_rows:
+        picked = scored_rows[: mode["klip_min"]]
+        total = sum(_usable(float(r.get("sure_sn", 0) or 0), mode["per_clip_cap"]) for r in picked)
+    hedef_toplam = min(mode["max"], max(mode["min"], total)) if total > 0 else mode["hedef"]
+    return picked, hedef_toplam
 
 
 def select_clips(rows: list[dict[str, Any]], mekan_etiketi: str, sure_modu: str
@@ -298,22 +341,23 @@ def run_from_prompt(
         picked, hedef_sn = select_clips(rows, mekan, sure_modu)
 
     # 2) Klip yoksa (sözlük yakaladı ama arşivde etiketli klip yok, ya da hiç
-    #    eşleşme olmadı) → sahne_ozeti üzerinde semantic search
+    #    eşleşme olmadı) → sahne_ozeti + sahne_ogeleri üzerinde semantic search.
+    #    Bu kez mekan_etiketi ile filter yerine puanı > 0 olan spesifik satırları
+    #    doğrudan klip listesi olarak kullanıyoruz — böylece aynı mekan altındaki
+    #    farklı konulu videolarda doğru olanı seçebiliyoruz.
     if not picked:
         emit("   Sözlük yolu boş — sahne özetlerinde anahtar kelime araması yapılıyor…", "log")
-        alt_mekan = _semantic_match(rows, prompt)
-        if alt_mekan:
-            emit(f"   → semantic hit: {alt_mekan}", "info")
-            picked, hedef_sn = select_clips(rows, alt_mekan, sure_modu)
+        alt_mekan, alt_rows = _semantic_match(rows, prompt)
+        if alt_rows:
+            emit(f"   → semantic hit: {len(alt_rows)} klip puanlandı, en yaygın etiket: {alt_mekan}", "info")
+            # süre moduna göre puanı en yüksek olanlardan alt kümeyi al
+            picked, hedef_sn = _pick_from_scored(alt_rows, sure_modu)
             if picked:
-                mekan = alt_mekan
+                mekan = alt_mekan or "Karışık"
+                # kategori/sehir devral
                 if not parsed["kategori"]:
-                    # ilk match'ten kategoriyi devral
-                    for r in rows:
-                        if r.get("mekan_etiketi") == alt_mekan:
-                            parsed["kategori"] = r.get("kategori", "")
-                            parsed["sehir"] = r.get("sehir", "")
-                            break
+                    parsed["kategori"] = picked[0].get("kategori", "")
+                    parsed["sehir"] = picked[0].get("sehir", "")
 
     if not mekan:
         emit("✖ Prompt'tan tanınabilir bir mekan çıkaramadım ve sahne özetlerinde de "
