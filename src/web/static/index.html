@@ -103,6 +103,40 @@
     padding:9px 12px;font-size:11px;color:var(--muted);max-height:70px;overflow-y:auto;white-space:pre-wrap}
 
   .empty{color:var(--muted);font-style:italic;text-align:center;padding:30px}
+
+  /* Reels fikirleri — hazır prompt kartları */
+  .idea-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+  .idea-card{position:relative;background:linear-gradient(135deg,var(--panel2),#1a1f2b);
+    border:1px solid var(--line);border-radius:12px;padding:0;overflow:hidden;
+    cursor:pointer;transition:transform .18s,border-color .18s,box-shadow .18s;
+    display:flex;flex-direction:column;min-height:200px}
+  .idea-card:hover{transform:translateY(-2px);border-color:var(--accent);
+    box-shadow:0 8px 24px rgba(255,59,92,.18)}
+  .idea-card:active{transform:translateY(0)}
+  .idea-thumb{width:100%;aspect-ratio:16/10;background:#000 center/cover no-repeat;
+    position:relative;flex:0 0 auto}
+  .idea-thumb::after{content:"";position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(0,0,0,0) 40%,rgba(0,0,0,.65) 100%)}
+  .idea-thumb.no-img{background:linear-gradient(135deg,#2a2f3d,#1e2330);
+    display:flex;align-items:center;justify-content:center;font-size:44px}
+  .idea-icon-badge{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.55);
+    backdrop-filter:blur(6px);width:32px;height:32px;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;font-size:18px;z-index:2}
+  .idea-count{position:absolute;top:8px;right:8px;background:rgba(255,59,92,.9);
+    color:#fff;padding:3px 8px;border-radius:20px;font-size:11px;
+    font-weight:600;z-index:2}
+  .idea-body{padding:11px 13px;display:flex;flex-direction:column;gap:5px;flex:1}
+  .idea-title{font-weight:600;font-size:13px;line-height:1.35;color:var(--txt)}
+  .idea-hook{color:var(--muted);font-size:11px;line-height:1.4;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .idea-meta{display:flex;justify-content:space-between;align-items:center;
+    margin-top:auto;padding-top:6px;font-size:10px;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.5px}
+  .idea-meta .idea-mode{background:var(--panel);padding:2px 7px;border-radius:12px;
+    color:var(--accent2);font-weight:600}
+  .idea-refresh{background:transparent;border:1px solid var(--line);padding:5px 10px;
+    font-size:12px;border-radius:8px;color:var(--muted)}
+  .idea-refresh:hover{color:var(--txt);border-color:var(--accent)}
 </style>
 </head>
 <body>
@@ -115,6 +149,22 @@
 </header>
 
 <main>
+  <!-- Reels Fikirleri — arşive göre hazır promptlar -->
+  <section class="card" id="ideasCard">
+    <h2>
+      💡 Reels Fikirleri
+      <span class="h2-actions">
+        <button class="idea-refresh" onclick="loadSuggestions()" title="Arşive göre yeniden hesapla">🔄 Yenile</button>
+      </span>
+    </h2>
+    <div id="ideasHint" style="font-size:12px;color:var(--muted);margin-bottom:12px">
+      Elindeki videolara göre otomatik üretildi. Bir karta tıkla, alttaki form dolsun.
+    </div>
+    <div id="ideasGrid" class="idea-grid">
+      <div class="empty">Öneriler yükleniyor…</div>
+    </div>
+  </section>
+
   <!-- Ana input: prompt formu -->
   <section class="card">
     <h2>Reels Üretimi</h2>
@@ -407,9 +457,63 @@ async function reject(name){
 }
 async function unpublish(name){ await fetch(`/api/ready/${encodeURIComponent(name)}/unpublish`, {method:"POST"}); pollReels(); }
 
+// --- Reels Fikirleri --------------------------------------------------
+async function loadSuggestions(){
+  const grid = $("ideasGrid");
+  grid.innerHTML = `<div class="empty">Öneriler hesaplanıyor…</div>`;
+  try{
+    const r = await fetch("/api/suggestions");
+    if(!r.ok){ grid.innerHTML = `<div class="empty">Öneri yüklenemedi.</div>`; return; }
+    const {suggestions} = await r.json();
+    if(!suggestions || !suggestions.length){
+      grid.innerHTML = `<div class="empty">Henüz öneri yok. Önce '🔍 Yeni Videoları Analiz Et' butonunu çalıştır.</div>`;
+      return;
+    }
+    grid.innerHTML = "";
+    for(const s of suggestions){
+      const card = document.createElement("div");
+      card.className = "idea-card";
+      card.onclick = () => useIdea(s);
+      const thumb = s.thumb
+        ? `<div class="idea-thumb" style="background-image:url('${s.thumb}')"></div>`
+        : `<div class="idea-thumb no-img">${s.icon}</div>`;
+      card.innerHTML = `
+        ${thumb}
+        <div class="idea-icon-badge">${s.icon}</div>
+        <div class="idea-count">${s.klip_sayisi} klip</div>
+        <div class="idea-body">
+          <div class="idea-title">${escapeHtml(s.baslik)}</div>
+          <div class="idea-hook">"${escapeHtml(s.hook)}"</div>
+          <div class="idea-meta">
+            <span>${escapeHtml(s.id)}</span>
+            <span class="idea-mode">${s.sure_modu}</span>
+          </div>
+        </div>`;
+      grid.appendChild(card);
+    }
+  }catch(e){
+    grid.innerHTML = `<div class="empty">Öneri yüklenemedi.</div>`;
+  }
+}
+
+function useIdea(s){
+  $("prompt").value = s.prompt;
+  $("hook").value = s.hook;
+  const radio = document.querySelector(`input[name="sure_modu"][value="${s.sure_modu}"]`);
+  if(radio) radio.checked = true;
+  // scroll to form + focus
+  $("prompt").scrollIntoView({behavior:"smooth", block:"center"});
+  setTimeout(() => $("prompt").focus(), 400);
+  // hafif blink efekti
+  const promptEl = $("prompt");
+  promptEl.style.transition = "border-color .3s";
+  promptEl.style.borderColor = "var(--accent)";
+  setTimeout(() => promptEl.style.borderColor = "", 800);
+}
+
 setInterval(() => { pollStatus(); pollLogs(); }, 1000);
 setInterval(pollReels, 4000);
-pollStatus(); pollLogs(); pollReels();
+pollStatus(); pollLogs(); pollReels(); loadSuggestions();
 </script>
 </body>
 </html>
