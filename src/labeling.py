@@ -43,35 +43,117 @@ _CEKIM_TIPLERI = [
     (["yakin cekim", "yakin", "dipten"], "yakin"),
 ]
 
-# (aranan alt-dizeler, mekan_etiketi, kategori, sehir) — SPESİFİKTEN GENELE sıralı
+# (aranan alt-dizeler, mekan_etiketi, kategori, sehir) — SPESİFİKTEN GENELE sıralı.
+# Kural sırası kritik: bir dosya/prompt birden fazla anahtara uyabilir, ilk match kazanır.
+# Bu yüzden SPESİFİK (todai-ji, kinkaku-ji, fushimi) mutlaka GENEL (tapinak, kyoto, nara)
+# kurallarından ÖNCE gelmeli.
 _KURALLAR: list[tuple[list[str], str, str, str]] = [
-    (["fushimi", "fusimi", "inari"], "Kyoto Fushimi Inari", "Fushimi Inari", "Kyoto"),
-    (["kyoto tapinak", "tapinak"], "Kyoto Tapınakları", "Tapınak", "Kyoto"),
-    (["kyoto"], "Kyoto", "Kyoto", "Kyoto"),
-    (["nara", "geyik"], "Nara Geyikleri", "Nara", "Nara"),
-    (["disneyland", "disney", "prenses"], "Tokyo Disneyland", "Disneyland", "Tokyo"),
-    (["nintendo", "mario", "yoshi"], "Universal - Nintendo World", "Universal", "Osaka"),
-    (["waterworld", "universal"], "Universal Studios Japan", "Universal", "Osaka"),
-    (["dotonbori"], "Dotonbori", "Dotonbori", "Osaka"),
-    (["osaka castle", "castle", "osaka kale"], "Osaka Kalesi", "Osaka Kalesi", "Osaka"),
-    (["umeda"], "Umeda Sky", "Umeda", "Osaka"),
-    (["shinsekai"], "Shinsekai", "Shinsekai", "Osaka"),
-    (["kuromon"], "Kuromon Market", "Yemek", "Osaka"),
-    (["osaka"], "Osaka Havadan", "Havadan", "Osaka"),
-    (["shibuya"], "Shibuya Meydanı", "Shibuya", "Tokyo"),
-    (["shinjuku", "yodobashi"], "Shinjuku", "Shinjuku", "Tokyo"),
-    (["tokyo tower"], "Tokyo Tower", "Tokyo Tower", "Tokyo"),
-    (["skytree"], "Tokyo Skytree", "Skytree", "Tokyo"),
-    (["asakusa", "senso"], "Asakusa Senso-ji", "Tapınak", "Tokyo"),
-    (["teamlab"], "teamLab Planets", "teamLab", "Tokyo"),
-    (["odaiba", "gundam"], "Odaiba", "Odaiba", "Tokyo"),
-    (["ueno"], "Ueno", "Müze", "Tokyo"),
-    (["shinkansen", "fuji"], "Shinkansen & Fuji", "Shinkansen", ""),
-    (["pokemon"], "Pokemon Center", "Pokemon", ""),
-    (["7 eleven", "7eleven", "konbini", "seven eleven"], "Konbini (7-Eleven)", "Konbini", ""),
-    (["uniqlo"], "Uniqlo Alışveriş", "Alışveriş", ""),
-    (["lavabo", "tuvalet", "wc"], "Japon Tuvaletleri", "Kültür", ""),
-    (["tokyo"], "Tokyo Havadan", "Havadan", "Tokyo"),
+    # ---- Nara: spesifik tapınak/mekan ----
+    (["todai", "todaiji", "todai-ji", "buddha", "budist", "buda heykel", "dev buda"],
+                                       "Nara Todai-ji",         "Tapınak",     "Nara"),
+    (["kasuga", "taisha"],             "Kasuga Taisha",         "Tapınak",     "Nara"),
+    (["nara park", "nara-park"],       "Nara Parkı",            "Park",        "Nara"),
+    (["nara", "geyik", "deer"],        "Nara Geyikleri",        "Nara",        "Nara"),
+
+    # ---- Kyoto: spesifik tapınak/bölge ----
+    (["fushimi", "fusimi", "inari", "torii", "kırmızı kapı"],
+                                       "Kyoto Fushimi Inari",   "Fushimi Inari", "Kyoto"),
+    (["kinkaku", "kinkakuji", "altın", "altin pavilion"],
+                                       "Kyoto Kinkaku-ji",      "Tapınak",     "Kyoto"),
+    (["ginkaku", "ginkakuji", "gümüş", "gumus pavilion"],
+                                       "Kyoto Ginkaku-ji",      "Tapınak",     "Kyoto"),
+    (["kiyomizu", "kiyomizudera"],     "Kyoto Kiyomizu-dera",   "Tapınak",     "Kyoto"),
+    (["ryoan", "ryoanji", "kaya bahce", "zen bahce"],
+                                       "Kyoto Ryoan-ji",        "Tapınak",     "Kyoto"),
+    (["yasaka", "gion"],               "Kyoto Gion / Yasaka",   "Tarihi Sokak", "Kyoto"),
+    (["arashiyama", "bambu"],          "Kyoto Arashiyama Bambu", "Doğa",       "Kyoto"),
+    (["nishiki", "nishiki market"],    "Kyoto Nishiki Market",  "Yemek",       "Kyoto"),
+    (["kyoto tapinak"],                "Kyoto Tapınakları",     "Tapınak",     "Kyoto"),
+    (["kyoto"],                        "Kyoto",                 "Kyoto",       "Kyoto"),
+
+    # ---- Osaka: park + kültür ----
+    (["dotonbori", "glico"],           "Dotonbori",             "Dotonbori",   "Osaka"),
+    (["osaka castle", "castle", "osaka kale"],
+                                       "Osaka Kalesi",          "Osaka Kalesi", "Osaka"),
+    (["umeda"],                        "Umeda Sky",             "Umeda",       "Osaka"),
+    (["shinsekai", "tsutenkaku"],      "Shinsekai",             "Shinsekai",   "Osaka"),
+    (["kuromon"],                      "Kuromon Market",        "Yemek",       "Osaka"),
+    (["abeno", "harukas"],             "Abeno Harukas",         "Manzara",     "Osaka"),
+    (["namba"],                        "Namba",                 "Osaka",       "Osaka"),
+    (["kobe beef", "kobe biftek"],     "Kobe Beef",             "Yemek",       "Osaka"),
+    (["takoyaki"],                     "Osaka Takoyaki",        "Yemek",       "Osaka"),
+    (["okonomiyaki"],                  "Osaka Okonomiyaki",     "Yemek",       "Osaka"),
+
+    # ---- Tema parkları ----
+    (["nintendo", "mario", "yoshi", "super nintendo world"],
+                                       "Universal - Nintendo World", "Universal", "Osaka"),
+    (["harry potter", "hogwarts", "butterbeer"],
+                                       "Universal - Harry Potter",   "Universal", "Osaka"),
+    (["waterworld", "universal", "usj"],
+                                       "Universal Studios Japan",    "Universal", "Osaka"),
+    (["disneyland", "disney", "prenses", "cinderella", "space mountain", "electrical parade"],
+                                       "Tokyo Disneyland",      "Disneyland",  "Tokyo"),
+    (["disneysea", "disney sea"],      "Tokyo DisneySea",       "DisneySea",   "Tokyo"),
+
+    # ---- Tokyo: spesifik tapınak/bölge ----
+    (["asakusa", "senso", "kaminarimon", "nakamise"],
+                                       "Asakusa Senso-ji",      "Tapınak",     "Tokyo"),
+    (["meiji jingu", "meiji shrine", "meiji ormani"],
+                                       "Meiji Jingu",           "Tapınak",     "Tokyo"),
+    (["yasukuni"],                     "Yasukuni",              "Tapınak",     "Tokyo"),
+    (["shibuya crossing", "shibuya", "hachiko", "shibuya sky"],
+                                       "Shibuya Meydanı",       "Shibuya",     "Tokyo"),
+    (["shinjuku gyoen"],               "Shinjuku Gyoen",        "Park",        "Tokyo"),
+    (["shinjuku", "yodobashi", "bic camera"],
+                                       "Shinjuku",              "Shinjuku",    "Tokyo"),
+    (["akihabara", "elektronik"],      "Akihabara",             "Alışveriş",   "Tokyo"),
+    (["ginza"],                        "Ginza",                 "Alışveriş",   "Tokyo"),
+    (["tokyo tower"],                  "Tokyo Tower",           "Tokyo Tower", "Tokyo"),
+    (["skytree"],                      "Tokyo Skytree",         "Skytree",     "Tokyo"),
+    (["teamlab"],                      "teamLab Planets",       "teamLab",     "Tokyo"),
+    (["odaiba", "gundam", "rainbow bridge"],
+                                       "Odaiba",                "Odaiba",      "Tokyo"),
+    (["ueno", "spinosaurus", "t-rex", "doga bilim", "muze"],
+                                       "Ueno Doğa Bilimleri",   "Müze",        "Tokyo"),
+    (["harajuku", "takeshita"],        "Harajuku",              "Alışveriş",   "Tokyo"),
+    (["roppongi"],                     "Roppongi",              "Tokyo",       "Tokyo"),
+    (["tsukiji"],                      "Tsukiji",               "Yemek",       "Tokyo"),
+
+    # ---- Ulaşım & lojistik ----
+    (["shinkansen", "fuji", "nozomi", "hikari"],
+                                       "Shinkansen & Fuji",     "Shinkansen",  ""),
+    (["takkyubin", "yamato", "valiz kargo"],
+                                       "Takkyubin (bavul kargo)", "Ulaşım",    ""),
+    (["jr pass", "ic card", "suica", "pasmo", "icoca"],
+                                       "JR & IC Card",          "Ulaşım",      ""),
+    (["metro", "istasyon"],            "Metro & İstasyon",      "Ulaşım",      ""),
+
+    # ---- Kültür / gündelik ----
+    (["ryokan", "tatami"],             "Ryokan Deneyimi",       "Kültür",      ""),
+    (["onsen", "kaplica"],             "Onsen",                 "Kültür",      ""),
+    (["sushi"],                        "Sushi",                 "Yemek",       ""),
+    (["ramen"],                        "Ramen",                 "Yemek",       ""),
+    (["pokemon"],                      "Pokemon Center",        "Pokemon",     ""),
+    (["7 eleven", "7eleven", "konbini", "seven eleven", "familymart", "lawson"],
+                                       "Konbini (7-Eleven)",    "Konbini",     ""),
+    (["uniqlo"],                       "Uniqlo Alışveriş",      "Alışveriş",   ""),
+    (["lavabo", "tuvalet", "wc", "washlet"],
+                                       "Japon Tuvaletleri",     "Kültür",      ""),
+    (["sumo"],                         "Sumo",                  "Kültür",      ""),
+    (["kimono", "yukata"],             "Kimono / Yukata",       "Kültür",      ""),
+    (["sakura", "cherry blossom", "kiraz cicek"],
+                                       "Sakura",                "Doğa",        ""),
+    (["sake"],                         "Sake",                  "Yemek",       ""),
+    (["matcha"],                       "Matcha",                "Yemek",       ""),
+
+    # ---- Genel şehir fallback'leri (spesifikler yakalanmadıysa) ----
+    (["nara"],                         "Nara Havadan",          "Havadan",     "Nara"),
+    (["osaka"],                        "Osaka Havadan",         "Havadan",     "Osaka"),
+    (["tokyo"],                        "Tokyo Havadan",         "Havadan",     "Tokyo"),
+
+    # ---- En genel: tapınak/shrine ----
+    (["jinja", "shrine", "temple", "tapinak"],
+                                       "Genel Tapınak",         "Tapınak",     ""),
 ]
 
 # DJI drone dosya tarihinden şehir tahmini (Mayıs 2026 rotası):
