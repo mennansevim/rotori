@@ -402,7 +402,7 @@ def _prepare_wordmark(img_w: int) -> dict[str, Any]:
     sub_bb = sub_font.getbbox(sub_text)
     big_vh = big_bb[3] - big_bb[1]
     sub_vh = sub_bb[3] - sub_bb[1]
-    gap = 14
+    gap = 8   # RÜYASI JAPONYA'ya yakın otursun (referanstaki NEWS proximity)
     return {"big_font": big_font, "sub_font": sub_font,
             "big_text": big_text, "sub_text": sub_text,
             "big_sp": big_sp, "sub_sp": sub_sp,
@@ -429,12 +429,12 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
                 out_path: Path) -> Path:
     """Explore-Japan-News stili tasarım:
         - Tam-kadraj (full-bleed) arka plan foto
-        - Sol üst: dairesel Hinomaru bayrak rozeti (gölge + halka)
         - Altta foto → siyah YUMUŞAK gradient; metnin hemen üstünde tam
           siyaha ulaşır → yazı her zaman okunur
-        - Büyük beyaz başlık (Impact, gölgeli, ortalı)
-        - Okunur beyaz alt açıklama (Arial Bold, ortalı)
-      (Not: logo/wordmark kaldırıldı — kullanıcı isteği.)
+        - Ortalı wordmark: JAPONYA (ChunkFive) / RÜYASI (altın)
+        - Ana metin (açıklama): Oswald Medium, ortalı — tek metin bloğu
+      (Not: sol üst bayrak rozeti + ayrı büyük başlık kaldırıldı —
+       kullanıcı isteği; referanstaki gibi wordmark + tek metin.)
     """
     if cfg.stories is None:
         raise RuntimeError("stories config yok")
@@ -444,7 +444,6 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
     padding_x = int(W * 0.055)
     content_w = W - 2 * padding_x
 
-    baslik = _tr_upper(kart["baslik"].strip())
     aciklama = _tr_upper(kart["aciklama"].strip())
 
     # === 1) Tam-kadraj foto ===
@@ -457,21 +456,10 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
         except Exception as exc:
             log.warning(f"  foto yüklenemedi ({bg_path.name}): {exc}")
 
-    # === 2) Metin bloklarını ölç (gradient konumu + dikey yerleşim için) ===
-    # Oswald condensed — Impact'e göre daha zarif, letter-spacing az yeter
-    TITLE_LSP, BODY_LSP = 1, 1
-    # Başlık — Oswald SemiBold, 1-3 satır, otomatik küçültme
-    title_size = 100
-    title_font = _load_oswald(title_size, "SemiBold")
-    title_lines = _wrap_words(baslik, title_font, content_w, TITLE_LSP)
-    while len(title_lines) > 3 and title_size > 60:
-        title_size = int(title_size * 0.93)
-        title_font = _load_oswald(title_size, "SemiBold")
-        title_lines = _wrap_words(baslik, title_font, content_w, TITLE_LSP)
-    title_line_h = int(title_size * 1.04)   # Oswald uzun ascender'lı — biraz nefes
-    title_h = title_line_h * len(title_lines)
-
-    # Alt açıklama — Oswald Medium (okunur, başlıktan hafif); 5 satırdan fazlaysa küçült
+    # === 2) Metin bloğunu ölç (gradient konumu + dikey yerleşim için) ===
+    # Oswald condensed — letter-spacing az yeter
+    BODY_LSP = 1
+    # Ana metin (açıklama) — Oswald Medium; 5 satırdan fazlaysa küçült
     body_size = 48
     body_font = _load_oswald(body_size, "Medium")
     body_lines = _wrap_words(aciklama, body_font, content_w, BODY_LSP)
@@ -479,16 +467,15 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
         body_size -= 3
         body_font = _load_oswald(body_size, "Medium")
         body_lines = _wrap_words(aciklama, body_font, content_w, BODY_LSP)
-    _b_asc, _b_desc = body_font.getmetrics()
     body_line_h = int(body_size * 1.28)
     body_h = body_line_h * len(body_lines)
 
-    # Wordmark (JAPONYA / RÜYASI) — başlığın üstünde
+    # Wordmark (JAPONYA / RÜYASI) — metnin üstünde
     wm = _prepare_wordmark(W)
     wm_h = wm["h"]
 
-    gap_wm_title, gap_title_body, bottom_pad = 46, 40, 62
-    block_h = wm_h + gap_wm_title + title_h + gap_title_body + body_h
+    gap_wm_body, bottom_pad = 42, 62
+    block_h = wm_h + gap_wm_body + body_h
     block_top = H - bottom_pad - block_h
     # metin çok uzunsa fotoyu tamamen yeme — en az ~%28 foto kalsın
     block_top = max(block_top, int(H * 0.28))
@@ -509,22 +496,11 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
     bg = Image.alpha_composite(bg, grad)
     d = ImageDraw.Draw(bg)
 
-    # === 4) Sol üst dairesel bayrak rozeti ===
-    badge_r, badge_margin = 84, 46
-    _draw_flag_badge(bg, badge_margin + badge_r, badge_margin + badge_r, badge_r)
-    d = ImageDraw.Draw(bg)   # alpha_composite (gölge) sonrası handle tazele
-
-    # === 5) Bottom-anchored blok: wordmark → başlık → açıklama ===
+    # === 4) Bottom-anchored blok: wordmark → ana metin ===
     y = block_top
     _draw_wordmark(bg, cx, y, wm)
     d = ImageDraw.Draw(bg)
-    y += wm_h + gap_wm_title
-
-    for line in title_lines:
-        _draw_line_center(d, cx, y, line, title_font, (255, 255, 255, 255),
-                          spacing=TITLE_LSP, shadow=((0, 0, 0, 170), (0, 3)))
-        y += title_line_h
-    y += gap_title_body
+    y += wm_h + gap_wm_body
 
     for line in body_lines:
         _draw_line_center(d, cx, y, line, body_font, (238, 238, 242, 255),
