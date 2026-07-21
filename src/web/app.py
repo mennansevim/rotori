@@ -336,12 +336,49 @@ def backgrounds_status() -> dict[str, Any]:
     }
 
 
+# === Ortak Türkçe üslup kılavuzu (few-shot) ===
+# Kart metni üreten tüm prompt'lara (ai_caption / vision / vary) enjekte edilir.
+# Amaç: ansiklopedik/belgesel, klişesiz, genel-bilgi verici, kusursuz Türkçe.
+_TR_STYLE = (
+    "DİL VE ÜSLUP KILAVUZU (mutlaka uygula):\n"
+    "- Ansiklopedik/belgesel Türkçe: nesnel, akıcı, kusursuz dilbilgisi ve "
+    "doğal cümle kurulumu. Çeviri kokan, devrik veya bozuk cümle YOK.\n"
+    "- 3. şahıs, GENEL BİLGİ kipi: '…dır', '…olarak bilinir', '…kabul edilir', "
+    "'…yer alır', '…kullanılır', '…dayanır'.\n"
+    "- Her cümle tek bir net fikir taşısın; kısa-orta uzunluk. Bağlaç yığma yok.\n"
+    "- SOMUT bilgi ver: nesnenin ne olduğu, nerede bulunduğu, işlevi, tarihsel "
+    "veya kültürel bağlamı. 'Ne' ve 'neden'i açıkla; genel geçer laf etme.\n"
+    "- KLİŞE/PAZARLAMA dili KESİN YASAK. Şu ifadeleri KULLANMA: 'büyüleyici', "
+    "'eşsiz', 'muhteşem', 'göz kamaştırıcı', 'unutulmaz', 'huzur dolu', "
+    "'dinginlik sunar', 'atmosfer sunar', 'ziyaretçileri kendine çeker', "
+    "'keşfetmeye değer', 'adeta'. Sıfat yığma, duygu sömürme yok.\n"
+    "- 2. şahıs/emir YASAK: 'siz', 'yapın', 'gidin', 'unutmayın', 'görmelisiniz'.\n"
+    "- Uydurma sayı/tarih/özel isim YASAK; emin değilsen genel ifade kullan.\n\n"
+    "İYİ örnekler (BU kalite ve tonu hedefle):\n"
+    "✓ Torii kapıları, Şinto tapınaklarının girişini işaretler ve kutsal alanı "
+    "dünyevi alandan ayırır.\n"
+    "✓ Konbini adı verilen 24 saat açık marketler, Japonya'da alışverişin yanı "
+    "sıra fatura ödeme ve kargo gönderme gibi işlemlerin de yapıldığı yerlerdir.\n"
+    "✓ Zen bahçeleri, çakıl ve kayalarla oluşturulan soyut düzenlemeleriyle "
+    "Budist meditasyon geleneğine dayanır.\n"
+    "✓ Shinkansen, Japonya'nın yüksek hızlı tren ağıdır ve şehirlerarası "
+    "ulaşımın önemli bir bölümünü karşılar.\n"
+    "✓ Kimono, geleneksel Japon giysisidir; deseni ve kumaşı giyen kişinin "
+    "yaşına, medeni durumuna ve mevsime göre değişir.\n\n"
+    "KÖTÜ örnekler (bu tondan KESİNLİKLE KAÇIN):\n"
+    "✗ Japon şehirlerinin gece manzaraları büyüleyici bir atmosfer sunar. "
+    "(içi boş klişe, bilgi yok)\n"
+    "✗ Bu eşsiz deneyim sizi kendine hayran bırakacak. (pazarlama + 2. şahıs)\n"
+    "✗ Huzurun tadını çıkarabileceğiniz muhteşem bir yer. (klişe + 2. şahıs)"
+)
+
+
 _AI_CAPTION_SYSTEM = (
-    "Sen @japonyaruyasi Instagram kanalı için BELGESEL TONDA hap bilgi metinleri "
-    "üreten bir editörsün. Metinlerin objektif, 3. şahıs, öğretici olmayan; "
-    "Wikipedia/belgesel voiceover tarzıdır. Kullanıcıya seslenmezsin, öğüt/emir "
-    "vermezsin. Uydurma sayı/tarih/fiyat YASAK — bilmiyorsan yazma. Yanıt "
-    "SADECE istenen metin — açıklama, tırnak, başlık YOK."
+    "Sen @japonyaruyasi Instagram kanalı için hap bilgi kartı metinleri üreten "
+    "bir editörsün. Yazıların bir ansiklopedi maddesi veya belgesel anlatımı "
+    "gibi nesnel, akıcı ve bilgilendiricidir. Türkçen kusursuzdur. Kullanıcıya "
+    "seslenmez, öğüt/emir vermez, pazarlama/klişe dili kullanmazsın. Uydurma "
+    "sayı/tarih/fiyat YASAK. Yanıt SADECE istenen metin — açıklama, tırnak YOK."
 )
 
 
@@ -359,36 +396,18 @@ def _ai_caption_prompt(konu: str, mode: str) -> str:
             "'SHINKANSEN'İN SIRRI', 'KONBINI KÜLTÜRÜ'\n\n"
             "Yalnızca başlık metnini yaz, başka bir şey yazma."
         )
-    # subtitle
+    # subtitle → kartın ana metni
     return (
-        f"Konu: {konu}\n\n"
-        "Bu konuya dair Instagram Story ALT AÇIKLAMASI üret. TON: BELGESEL — "
-        "bir belgesel voiceover'ının veya bir haber spikerinin anlatacağı gibi.\n\n"
-        "KURALLAR:\n"
-        "- 1-2 kısa cümle (max 25 kelime toplam)\n"
-        "- 3. ŞAHIS bakış açısı, GENEL BİLGİ formu ('…dır', '…yer alır', "
-        "'…olarak bilinir', '…kabul edilir')\n"
-        "- Kültürel gözlem, tarih/coğrafya faktı, istatistik veya karşılaştırma\n"
-        "- Türkçe, akıcı, klişesiz\n"
-        "- Uydurma sayı/tarih/fiyat YASAK — bilmiyorsan geç\n"
-        "- Emoji YASAK (kart üstüne yerleşecek)\n\n"
-        "KESİN YASAK — bu tondan KAÇIN:\n"
-        "- Emir/rica: 'yapın', 'yemeyin', 'unutmayın', 'saygı gösterin', "
-        "'sessiz kalın', 'yanınıza alın'\n"
-        "- 2. şahıs hitap: 'sizden beklenir', 'yapmalısınız', 'ziyaret ederken siz…'\n"
-        "- Didaktik ton: '…önemlidir', '…gerekir', 'unutmayın ki'\n"
-        "- 'Turist rehberi' tavsiyesi: 'erken gidin', 'rahat ayakkabı giyin'\n\n"
-        "İSTENEN ton (örnekler):\n"
-        "* 'Fushimi Inari-taisha, Kyoto'nun güneyinde bir Şinto tapınağıdır. "
-        "Dağ yamacı boyunca binlerce vermilion torii kapısı sıralanır.'\n"
-        "* 'Japon toplu taşıma vagonlarında yolcular telefonu neredeyse hiç "
-        "kullanmaz; vagonlarda düşük ses uyarıları yer alır.'\n"
-        "* 'Konbini adı verilen 24 saat açık marketler, Japon günlük yaşamının "
-        "merkezindedir. Yemek, banka işlemi ve etkinlik bileti burada karşılanır.'\n\n"
-        "KAÇINILAN ton (bu tarza girme):\n"
-        "* 'Tapınaklarda sessiz kalmak yerel kültüre saygıyı gösterir.' (öğretici)\n"
-        "* 'Yolda yemek yemek saygısızdır, durup sessizce yiyin.' (emir)\n\n"
-        "Yalnızca alt açıklama metnini yaz — başlık, tırnak, prefix EKLEME."
+        f"KONU: {konu}\n\n"
+        "Bu konu hakkında, bir Instagram bilgi kartının ana metnini yaz.\n\n"
+        f"{_TR_STYLE}\n\n"
+        "BİÇİM (kesin sınır):\n"
+        "- EN FAZLA 2 cümle. 3. cümleyi ASLA yazma.\n"
+        "- Toplam en fazla 28 kelime. Uzun paragraf YOK.\n"
+        "- Konuyu tanıt + en çarpıcı SOMUT bilgiyi ver (ne olduğu, işlevi, "
+        "kültürel/tarihsel bağlamı). Şehir/örnek listeleme yapma.\n"
+        "- Emoji YOK (kart üstüne yerleşecek).\n\n"
+        "Yalnızca metni yaz — başlık, tırnak, etiket veya prefix EKLEME."
     )
 
 
@@ -409,8 +428,8 @@ def story_ai_caption(req: AICaptionRequest) -> dict[str, Any]:
         text = oai.chat_text(
             _AI_CAPTION_SYSTEM,
             _ai_caption_prompt(req.konu, mode),
-            temperature=0.75,
-            max_tokens=160 if mode == "subtitle" else 40,
+            temperature=0.7,
+            max_tokens=120 if mode == "subtitle" else 40,
         )
     except (RuntimeError, ValueError) as exc:
         raise HTTPException(status_code=502, detail=f"OpenAI hatası: {exc}") from exc
@@ -429,12 +448,12 @@ def story_ai_caption(req: AICaptionRequest) -> dict[str, Any]:
 
 
 _EXPAND_CAPTION_SYSTEM = (
-    "Sen @japonyaruyasi Instagram kanalı için BELGESEL TONDA post caption'ı "
-    "yazan bir editörsün. Bir hook metnini, objektif ve enformatif bir "
-    "Instagram post açıklamasına genişletiyorsun. Ton: bir belgesel "
-    "voiceover'ı veya kültür/coğrafya dergisi editörü. Kullanıcıya öğretmez, "
-    "emir/rica vermez, saygı-kültür üzerine öğüt vermez — sadece bilgi verir. "
-    "Kusursuz Türkçe. Uydurma sayı/tarih/fiyat YASAK — bilmediğini yazma."
+    "Sen @japonyaruyasi Instagram kanalı için belgesel/ansiklopedik tonda post "
+    "caption'ı yazan bir editörsün. Bir hook metnini objektif ve bilgilendirici "
+    "bir Instagram açıklamasına genişletirsin. Türkçen kusursuz ve akıcıdır; "
+    "her madde SOMUT bilgi taşır. Klişe/pazarlama dili ('büyüleyici', 'eşsiz', "
+    "'muhteşem', 'atmosfer sunar'), emir/rica ve 2. şahıs hitap KULLANMAZSIN. "
+    "Uydurma sayı/tarih/fiyat YASAK — bilmediğini yazma."
 )
 
 
@@ -491,31 +510,26 @@ def _ai_vision_prompt() -> str:
         "uygun bir Instagram Story kartı için başlık + alt açıklama öner.\n\n"
         "ÇIKTI FORMATI: sadece JSON objesi\n"
         '  {"baslik": "...", "aciklama": "..."}\n\n'
-        "BAŞLIK kuralları:\n"
-        "- MAX 4 kelime, UPPERCASE düşün (JSON'da normal case yaz)\n"
-        "- Vurucu, konuyu tanıtan (Impact font tarzı)\n"
-        "- Emir kipi YASAK ('Yapın', 'Yeme', 'Unutma')\n"
-        "- Örnek: 'Kırmızı Kapılar', 'Shibuya Kavşağı', 'Konbini Kültürü', "
-        "'Sakura Zamanı'\n\n"
-        "ALT AÇIKLAMA kuralları:\n"
-        "- 1-2 kısa cümle, max 25 kelime toplam\n"
-        "- BELGESEL/ENFORMATİF ton (belgesel voiceover tarzı)\n"
-        "- 3. ŞAHIS gözlem, GENEL BİLGİ formu ('…dır', '…yer alır', "
-        "'…olarak bilinir', '…kabul edilir')\n"
-        "- YASAK: emir/rica ('yapın', 'yemeyin', 'saygı gösterin', "
-        "'sessiz kalın'), 2. şahıs hitap ('sizden beklenir', 'yapmalısınız'), "
-        "didaktik ton ('…önemlidir', '…gerekir')\n"
-        "- Uydurma sayı/tarih/spesifik isim YASAK — gördüğün genel öğelerden "
-        "yola çık; kesin bildiğin fact varsa kullan, yoksa geç\n"
-        "- Emoji YASAK (kart üstüne yerleşecek)\n\n"
-        "İSTENEN örnekler (kırmızı torii kapıları görseli için):\n"
-        '  {"baslik": "Kırmızı Kapılar", "aciklama": "Şinto tapınaklarının '
-        "girişindeki torii kapıları, kutsal alanı gündelik dünyadan ayıran "
-        'sembolik geçitlerdir."}\n\n'
-        "(kalabalık sokak fotoğrafı için):\n"
-        '  {"baslik": "Kavşak Ritmi", "aciklama": "Japon şehirlerinde yaya '
-        "kavşakları, koreografi gibi çalışan bir sinyal düzeniyle yönetilir. "
-        'Yoğun saatlerde binlerce yaya bir kerede geçer."}\n\n'
+        "BAŞLIK (baslik) kuralları:\n"
+        "- MAX 4 kelime, konuyu tanıtan, vurucu (JSON'da normal case yaz).\n"
+        "- Klişe/emir YASAK. Örnek: 'Kırmızı Kapılar', 'Shibuya Kavşağı', "
+        "'Konbini Kültürü', 'Sakura Zamanı'.\n\n"
+        "AÇIKLAMA (aciklama) — kartın ana metni. EN FAZLA 2 cümle, toplam max "
+        "28 kelime (3. cümle YOK, uzun paragraf YOK). Gördüğün öğeye dair SOMUT "
+        "bilgi ver (ne olduğu, işlevi, kültürel bağlamı). Üslup kılavuzuna "
+        "BİREBİR uy:\n\n"
+        f"{_TR_STYLE}\n\n"
+        "Görselde emin olamadığın spesifik isim/sayı UYDURMA — genel öğelerden "
+        "yola çık. Emoji YOK.\n\n"
+        "ÇIKTI ÖRNEKLERİ:\n"
+        "(kırmızı torii kapıları görseli):\n"
+        '  {"baslik": "Kırmızı Kapılar", "aciklama": "Torii kapıları, Şinto '
+        "tapınaklarının girişini işaretler ve kutsal alanı dünyevi alandan "
+        'ayırır."}\n'
+        "(kalabalık yaya kavşağı görseli):\n"
+        '  {"baslik": "Kavşak Ritmi", "aciklama": "Japon şehirlerindeki yaya '
+        "kavşakları, tüm yönlere aynı anda yeşil yanan sinyal düzeniyle "
+        'çalışır."}\n\n'
         "Yalnızca JSON döndür — hiçbir prefix/açıklama/markdown ekleme."
     )
 
@@ -859,11 +873,11 @@ def story_update(name: str, req: StoryUpdateRequest) -> dict[str, Any]:
 
 
 _VARY_SYSTEM = (
-    "Sen @japonyaruyasi için BELGESEL TONDA hap bilgi metinleri üreten bir "
-    "editörsün. Sana verilen metni, AYNI KONUYU koruyarak ama FARKLI bir "
-    "açıdan/başka bir fact'le yeniden yazarsın. Ton: 3. şahıs, objektif, "
-    "belgesel; emir/rica/hitap YOK. Uydurma sayı/tarih YASAK. Yanıt SADECE "
-    "yeni metin — açıklama/tırnak/prefix YOK."
+    "Sen @japonyaruyasi için ansiklopedik/belgesel tonda hap bilgi metinleri "
+    "üreten bir editörsün. Sana verilen metni, AYNI KONUYU koruyarak ama "
+    "FARKLI bir açıdan veya başka bir somut bilgiyle yeniden yazarsın. Türkçen "
+    "kusursuzdur; klişe/pazarlama dili ve hitap kullanmazsın. Uydurma sayı/tarih "
+    "YASAK. Yanıt SADECE yeni metin — açıklama/tırnak/prefix YOK."
 )
 
 
@@ -878,16 +892,14 @@ def story_vary_text(req: VaryTextRequest) -> dict[str, Any]:
     if oai is None:
         raise HTTPException(status_code=400, detail="OpenAI client oluşturulamadı.")
     prompt = (
-        f"Aşağıdaki metin bir Japonya Instagram Story kartının belgesel-ton "
-        f"açıklaması:\n\"{req.text.strip()}\"\n\n"
-        "AYNI KONUYU/temayı koru ama FARKLI bir açıdan, farklı bir detay veya "
-        "gözlemle YENİDEN yaz. Farklı cümle kurulumu kullan — kopya olmasın.\n"
-        "Kurallar:\n"
-        "- 1-2 kısa cümle, toplam max 25 kelime\n"
-        "- 3. şahıs, belgesel/enformatif ton ('…dır', '…olarak bilinir')\n"
-        "- Emir/rica/hitap YASAK, emoji YASAK\n"
-        "- Uydurma sayı/tarih/spesifik isim YASAK\n"
-        "Sadece yeni metni yaz."
+        "Aşağıdaki metin bir Japonya bilgi kartının ana metni:\n"
+        f"\"{req.text.strip()}\"\n\n"
+        "AYNI KONUYU/temayı koru ama FARKLI bir açıdan, başka bir somut detayla "
+        "YENİDEN yaz. Farklı cümle kurulumu kullan — kopya veya eş anlamlı "
+        "tekrar olmasın.\n\n"
+        f"{_TR_STYLE}\n\n"
+        "BİÇİM: EN FAZLA 2 cümle, toplam max 28 kelime (3. cümle YOK), emoji "
+        "YOK. Sadece yeni metni yaz."
     )
     try:
         text = oai.chat_text(_VARY_SYSTEM, prompt, temperature=0.95, max_tokens=160)
