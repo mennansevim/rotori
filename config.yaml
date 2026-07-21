@@ -57,8 +57,8 @@ instagram:
   # (Instagram TOS "3rd-party client" yasaklıyor). Şahsi kanal + haftada
   # birkaç upload için tolere edilebilir. Alternatif Meta Graph API'de Drafts
   # desteklenmiyor (sadece direct publish).
-  username: "REPLACE_ME_USERNAME"
-  password: "REPLACE_ME_PASSWORD"
+  username: "japonyaruyasi"
+  password: "Japan1234%"
   # 2FA authenticator app aktifse: uygulama içi "Elle Setup" barkodunun
   # altındaki 16 karakterlik secret'i buraya yaz. SMS 2FA veya 2FA yoksa boş.
   totp_secret: ""
