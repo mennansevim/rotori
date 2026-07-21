@@ -64,6 +64,14 @@ class StoriesCfg:
 
 
 @dataclass
+class UnsplashCfg:
+    access_key: str
+    queries: list[str]
+    per_query: int = 3
+    orientation: str = "portrait"
+
+
+@dataclass
 class ReelsCfg:
     target_width: int
     target_height: int
@@ -110,6 +118,7 @@ class Config:
     openai: OpenAICfg | None = None
     instagram: InstagramCfg | None = None
     stories: "StoriesCfg | None" = None
+    unsplash: "UnsplashCfg | None" = None
 
 
 def _resolve(base: Path, p: str) -> Path:
@@ -170,9 +179,20 @@ def load_config(config_path: str | None = None) -> Config:
     for d in (paths.frames_dir, paths.plans_dir, paths.output_dir, paths.ready_dir, paths.metadata_csv.parent):
         d.mkdir(parents=True, exist_ok=True)
 
+    unsplash_raw = raw.get("unsplash") or {}
+    unsplash_cfg: UnsplashCfg | None = None
+    if (unsplash_raw.get("access_key")
+            and unsplash_raw["access_key"] not in ("", "REPLACE_ME_UNSPLASH_KEY")):
+        unsplash_cfg = UnsplashCfg(
+            access_key=unsplash_raw["access_key"],
+            queries=list(unsplash_raw.get("queries") or []),
+            per_query=int(unsplash_raw.get("per_query", 3)),
+            orientation=str(unsplash_raw.get("orientation", "portrait")),
+        )
+
     return Config(paths=paths, ollama=ollama, dify=dify, reels=reels, pilot=pilot,
                   run=run, project_root=project_root, openai=openai_cfg,
-                  instagram=ig_cfg, stories=stories_cfg)
+                  instagram=ig_cfg, stories=stories_cfg, unsplash=unsplash_cfg)
 
 
 def require_video_source(cfg: Config) -> Path:
