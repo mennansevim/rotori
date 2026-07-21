@@ -904,13 +904,58 @@ async function pollIgStatus(){
   }catch(e){}
 }
 
+// ---------- Instagram hata handler ----------
+// Multiline mesajları alert() ile göster + checkpoint durumunda
+// "Session sıfırla + tekrar dene" teklifi
+async function resetIgSession(){
+  try{
+    const r = await fetch("/api/instagram/reset_session", {method:"POST"});
+    if(!r.ok){
+      let msg = r.statusText;
+      try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+      toast("Session sıfırlanamadı: " + msg, "err");
+      return false;
+    }
+    const data = await r.json();
+    toast(data.removed ? "Instagram session silindi ✓ — tekrar denenebilir"
+                       : "Session zaten yoktu — tekrar denenebilir", "ok", 3000);
+    return true;
+  }catch(e){
+    toast("Bağlantı hatası (session reset).", "err");
+    return false;
+  }
+}
+
+function handleIgError(msg, retryFn){
+  // Multiline (\n içeren) → native alert (satırlar korunur)
+  const multiline = msg.includes("\n");
+  if(multiline){
+    alert("Instagram Hatası\n\n" + msg);
+  } else {
+    toast("Instagram hatası: " + msg, "err", 5000);
+  }
+  // Checkpoint/challenge ipuçları varsa session sıfırlama teklif et
+  const s = msg.toLowerCase();
+  const isCheckpoint = s.includes("checkpoint") || s.includes("challenge") ||
+    s.includes("we can send you an email") || s.includes("session") ||
+    s.includes("get back into your account");
+  if(isCheckpoint && retryFn){
+    setTimeout(async () => {
+      if(!confirm("Session'ı sıfırlayıp tekrar denemek ister misin?\n\n" +
+                  "(data/instagram_session.json silinir; sonraki denemede sıfırdan login.)")) return;
+      const ok = await resetIgSession();
+      if(ok) retryFn();
+    }, 200);
+  }
+}
+
 async function sendToInstagram(name){
   if(!confirm(`"${name}" reel'ini Instagram Drafts sekmesine göndermek istiyor musun?\n\nİlk kez gönderiyorsan Instagram sana e-posta/SMS ile onay kodu isteyebilir — terminal loglarını takip et.`)) return;
   const r = await fetch(`/api/instagram/draft/${encodeURIComponent(name)}`, {method:"POST"});
   if(!r.ok){
     let msg = r.statusText;
     try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
-    toast("Instagram Draft başarısız: " + msg, "err");
+    handleIgError(msg, () => sendToInstagram(name));
     return;
   }
   logSeq = 0;
@@ -1478,7 +1523,7 @@ async function storyToInstagram(name){
   if(!r.ok){
     let msg = r.statusText;
     try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
-    toast("Instagram gönderim başlatılamadı: " + msg, "err");
+    handleIgError(msg, () => storyToInstagram(name));
     return;
   }
   toast("Instagram upload başladı — logları izle 📤", "info", 3500);

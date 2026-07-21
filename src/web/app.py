@@ -927,11 +927,28 @@ def unpublish(name: str) -> dict[str, Any]:
 def instagram_status() -> dict[str, Any]:
     """Instagram entegrasyonu aktif mi + hangi reel'ler drafts'a gönderildi?"""
     from src import instagram_publisher as ig
+    session_exists = False
+    if cfg.instagram is not None:
+        session_path = cfg.project_root / cfg.instagram.session_file
+        session_exists = session_path.exists()
     return {
         "enabled": cfg.instagram is not None,
         "username": cfg.instagram.username if cfg.instagram else "",
+        "session_exists": session_exists,
         "uploads": ig.read_upload_log(cfg),
     }
+
+
+@app.post("/api/instagram/reset_session")
+def instagram_reset_session() -> dict[str, Any]:
+    """data/instagram_session.json'ı sil — checkpoint/challenge sonrası
+    temiz login denemesi için. Session yoksa da OK döner."""
+    if cfg.instagram is None:
+        raise HTTPException(status_code=400,
+                            detail="Instagram config yok — config.yaml → instagram bölümünü doldur.")
+    from src import instagram_publisher as ig
+    removed = ig.logout(cfg)
+    return {"ok": True, "removed": removed}
 
 
 @app.post("/api/instagram/draft/{name}")

@@ -25,6 +25,49 @@ from src.utils.logging import get_logger
 log = get_logger("instagram")
 
 
+_CHALLENGE_HELP = (
+    "Instagram bu login'i şüpheli buldu (yeni cihaz / farklı IP / bot koruma). "
+    "Çözüm sırası:\n"
+    "  1) Instagram mobil uygulamasında bildirimlerden 'Yes, it was me' onayla "
+    "(Settings → Security → Login activity → son giriş → 'This was me')\n"
+    "  2) rm data/instagram_session.json — session'ı sıfırla\n"
+    "  3) instagram.com'a bilgisayardan login ol → checkpoint kodunu gir → "
+    "'Trust this device'\n"
+    "  4) 2FA Authenticator app aç → 32 karakterlik secret'i config.yaml → "
+    "instagram.totp_secret alanına yaz\n"
+    "  5) Aynı WiFi (Instagram mobilinle) + VPN kapalı\n"
+    "  6) Hâlâ olmuyorsa 6-12 saat bekle (Instagram cooldown)"
+)
+
+
+def _wrap_instagram_error(exc: Exception) -> RuntimeError:
+    """instagrapi hatalarını (challenge/checkpoint dâhil) kullanıcı için
+    talimatlı bir RuntimeError'a çevir. Orjinal mesaj korunur."""
+    msg = str(exc)
+    lower = msg.lower()
+    if any(k in lower for k in (
+            "we can send you an email", "challenge_required", "checkpoint_required",
+            "help you get back into your account", "verify it's you", "unusual login",
+    )):
+        return RuntimeError(
+            f"Instagram checkpoint/challenge tetiklendi.\n{_CHALLENGE_HELP}\n\n"
+            f"[Orijinal hata] {msg}"
+        )
+    if "bad_password" in lower or "incorrect password" in lower:
+        return RuntimeError(
+            f"Instagram şifresi yanlış — config.yaml → instagram.password kontrol et.\n"
+            f"[Orijinal hata] {msg}"
+        )
+    if "two_factor" in lower or "two-factor" in lower or "verification_code" in lower:
+        return RuntimeError(
+            f"2FA aktif ama config.yaml → instagram.totp_secret boş.\n"
+            f"Instagram → Settings → Two-factor auth → Authenticator app → 'Set up "
+            f"manually' ekranındaki 32 karakter secret'i yaz.\n"
+            f"[Orijinal hata] {msg}"
+        )
+    return RuntimeError(msg)
+
+
 def get_client(cfg: Config):
     """instagrapi Client — session cache varsa yükle, yoksa login."""
     from instagrapi import Client
@@ -57,11 +100,14 @@ def get_client(cfg: Config):
 
     # 2) Sıfırdan login
     log.info(f"  Instagram login: {ig.username}")
-    if ig.totp_secret:
-        # 2FA authenticator: instagrapi otomatik challenge çözer
-        cl.login(ig.username, ig.password, verification_code=_totp(ig.totp_secret))
-    else:
-        cl.login(ig.username, ig.password)
+    try:
+        if ig.totp_secret:
+            # 2FA authenticator: instagrapi otomatik challenge çözer
+            cl.login(ig.username, ig.password, verification_code=_totp(ig.totp_secret))
+        else:
+            cl.login(ig.username, ig.password)
+    except Exception as exc:
+        raise _wrap_instagram_error(exc) from exc
 
     session_path.parent.mkdir(parents=True, exist_ok=True)
     cl.dump_settings(session_path)
