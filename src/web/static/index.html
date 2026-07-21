@@ -820,14 +820,13 @@ async function pollBackgrounds(){
 
 let _pickerQuery = "";
 let _pickerResults = [];
-let _pickerSelected = new Set();
+let _pickerSelectedIdx = null;   // tek seçim
 
 async function downloadBackgrounds(){
   const query = prompt(
-    "Ne tür arka plan görsel arayalım?\n\n" +
+    "Ne konuda arka plan görsel arayalım?\n\n" +
     "Örn: 'japanese train station', 'ryokan interior', 'osaka night neon', 'mt fuji sunset'\n\n" +
-    "İngilizce öneriyoruz — Unsplash sonuçları daha zengin.\n" +
-    "Sonuçları göreceksin, kabul ettiklerini indireceğiz.",
+    "İngilizce yaz — Unsplash sonuçları daha zengin.",
     ""
   );
   if(!query || !query.trim()) return;
@@ -836,7 +835,7 @@ async function downloadBackgrounds(){
 
 async function openBgPicker(query){
   _pickerQuery = query;
-  _pickerSelected = new Set();
+  _pickerSelectedIdx = null;
   toast(`"${query}" için Unsplash aranıyor…`, "info", 2000);
   const r = await fetch("/api/backgrounds/preview", {
     method:"POST", headers:{"Content-Type":"application/json"},
@@ -867,7 +866,7 @@ function renderPickerModal(){
   back.onclick = (e) => { if(e.target === back) closeBgPicker(); };
 
   const cards = _pickerResults.map((p, idx) => `
-    <div class="picker-card" data-idx="${idx}" onclick="togglePicker(${idx})">
+    <div class="picker-card" data-idx="${idx}" onclick="selectPicker(${idx})">
       <img src="${p.thumb}" alt="${escapeHtml(p.photographer_name || p.photographer)}" loading="lazy" />
       <div class="picker-check">+</div>
       <div class="picker-caption">@${escapeHtml(p.photographer)}</div>
@@ -877,21 +876,41 @@ function renderPickerModal(){
   back.innerHTML = `
     <div class="modal-content" onclick="event.stopPropagation()">
       <div class="modal-head">
-        <h3 class="modal-title">🖼 Görsel Seçici <small>— "${escapeHtml(_pickerQuery)}" · ${_pickerResults.length} sonuç</small></h3>
+        <h3 class="modal-title">🖼 Görsel Seçici <small>— "${escapeHtml(_pickerQuery)}" · ${_pickerResults.length} sonuç · <strong>1 tane seç</strong></small></h3>
         <button class="ghost sm" onclick="closeBgPicker()">✕ Kapat</button>
       </div>
       <div class="modal-body">
         <div class="picker-grid">${cards}</div>
+
+        <div id="cardFormPanel" style="display:none;margin-top:20px;padding:16px;
+          background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg)">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:12px">
+            ✏️ Kart yazısı — Instagram Story standardı
+          </div>
+          <div class="field" style="margin-bottom:12px">
+            <label>Başlık <span style="color:var(--muted);font-weight:400">— MAX 4 kelime, uppercase, Impact font</span></label>
+            <input type="text" id="cardTitle" maxlength="60"
+              placeholder="Örn: YÜRÜRKEN YEMEK YEMEMELİSİN" />
+          </div>
+          <div class="field" style="margin-bottom:12px">
+            <label>Alt açıklama <span style="color:var(--muted);font-weight:400">— 1-2 cümle, Arial Bold</span></label>
+            <textarea id="cardSubtitle" rows="2" maxlength="220"
+              placeholder="Örn: Tren veya otobüslerde telefonla konuşmak büyük bir nezaketsizliktir. Japon toplu taşımasında sessizlik esastır."></textarea>
+          </div>
+          <div class="field" style="margin-bottom:12px">
+            <label>Sarı vurgu kelimeleri <span style="color:var(--muted);font-weight:400">— virgülle ayır, opsiyonel (boşsa otomatik seçilir)</span></label>
+            <input type="text" id="cardHighlight"
+              placeholder="Örn: SESSİZLİK, nezaketsizlik" />
+          </div>
+        </div>
       </div>
       <div class="modal-foot">
         <div>
-          <button class="sm ghost" onclick="pickerSelectAll()">Tümünü Seç</button>
-          <button class="sm ghost" onclick="pickerClear()">Temizle</button>
           <button class="sm ghost" onclick="reloadPicker()">🔄 Farklı Sonuçlar</button>
         </div>
         <div style="display:flex;gap:10px;align-items:center">
-          <span style="color:var(--muted);font-size:12px" id="pickerCount">0 seçili</span>
-          <button class="primary" id="btn-picker-save" onclick="savePicker()" disabled>Seçilenleri İndir</button>
+          <span style="color:var(--muted);font-size:12px" id="pickerCount">Görsel seç</span>
+          <button class="primary" id="btn-picker-render" onclick="renderPickerCard()" disabled>🎨 Kartı Oluştur</button>
         </div>
       </div>
     </div>
@@ -899,45 +918,28 @@ function renderPickerModal(){
   document.body.appendChild(back);
 }
 
-function togglePicker(idx){
-  const card = document.querySelector(`.picker-card[data-idx="${idx}"]`);
-  if(!card) return;
-  if(_pickerSelected.has(idx)){
-    _pickerSelected.delete(idx);
-    card.classList.remove("selected");
-    card.querySelector(".picker-check").textContent = "+";
-  }else{
-    _pickerSelected.add(idx);
-    card.classList.add("selected");
-    card.querySelector(".picker-check").textContent = "✓";
-  }
-  updatePickerButton();
-}
-
-function updatePickerButton(){
-  const c = _pickerSelected.size;
-  const btn = $("btn-picker-save");
-  const label = $("pickerCount");
-  if(btn) btn.disabled = c === 0;
-  if(label) label.textContent = `${c} seçili`;
-}
-
-function pickerSelectAll(){
-  _pickerSelected = new Set(_pickerResults.map((_, i) => i));
-  document.querySelectorAll(".picker-card").forEach(c => {
-    c.classList.add("selected");
-    c.querySelector(".picker-check").textContent = "✓";
-  });
-  updatePickerButton();
-}
-
-function pickerClear(){
-  _pickerSelected.clear();
+function selectPicker(idx){
+  _pickerSelectedIdx = idx;
+  // tüm kartlardan seçili sınıfı kaldır, sadece bunda göster
   document.querySelectorAll(".picker-card").forEach(c => {
     c.classList.remove("selected");
     c.querySelector(".picker-check").textContent = "+";
   });
-  updatePickerButton();
+  const card = document.querySelector(`.picker-card[data-idx="${idx}"]`);
+  if(card){
+    card.classList.add("selected");
+    card.querySelector(".picker-check").textContent = "✓";
+  }
+  // form panelini göster
+  const panel = $("cardFormPanel");
+  if(panel) panel.style.display = "block";
+  $("pickerCount").textContent = "1 görsel seçildi";
+  $("btn-picker-render").disabled = false;
+  // form panele smooth scroll
+  setTimeout(() => {
+    const el = $("cardTitle");
+    if(el){ el.scrollIntoView({behavior:"smooth", block:"center"}); el.focus(); }
+  }, 100);
 }
 
 async function reloadPicker(){
@@ -949,24 +951,53 @@ function closeBgPicker(){
   if(m) m.remove();
 }
 
-async function savePicker(){
-  if(_pickerSelected.size === 0) return;
-  const items = [..._pickerSelected].map(i => _pickerResults[i]);
-  const r = await fetch("/api/backgrounds/save", {
-    method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({query: _pickerQuery, items})
-  });
-  if(!r.ok){
-    let msg = r.statusText;
-    try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
-    toast("İndirme başarısız: " + msg, "err");
-    return;
+async function renderPickerCard(){
+  if(_pickerSelectedIdx === null){
+    toast("Önce bir görsel seç.", "warn"); return;
   }
-  closeBgPicker();
-  logSeq = 0;
-  $("logbox").innerHTML = "";
-  toast(`${items.length} görsel indiriliyor — canlı log'u izle.`, "ok");
-  pollStatus(); pollLogs();
+  const baslik = $("cardTitle").value.trim();
+  const aciklama = $("cardSubtitle").value.trim();
+  if(baslik.length < 3){ toast("Başlık gerekli (en az 3 karakter).", "err"); return; }
+  if(aciklama.length < 8){ toast("Alt açıklama gerekli (en az 8 karakter).", "err"); return; }
+
+  const vurguRaw = $("cardHighlight").value.trim();
+  const vurgu = vurguRaw ? vurguRaw.split(/[,;]+/).map(v => v.trim()).filter(Boolean) : [];
+
+  const bg = _pickerResults[_pickerSelectedIdx];
+  const btn = $("btn-picker-render");
+  btn.disabled = true;
+  btn.textContent = "⏳ Render ediliyor…";
+
+  try{
+    const r = await fetch("/api/story/render_direct", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        query: _pickerQuery,
+        background_url: bg.download_url,
+        background_id: bg.id,
+        photographer: bg.photographer,
+        baslik, aciklama, vurgu_kelimeler: vurgu,
+      })
+    });
+    if(!r.ok){
+      let msg = r.statusText;
+      try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+      toast("Render başarısız: " + msg, "err");
+      return;
+    }
+    const data = await r.json();
+    toast("Kart oluşturuldu ✓", "ok");
+    closeBgPicker();
+    // üretilen kartı story grid'inin başına ekle
+    renderStories([{ ...data, icon: "🎨" }]);
+    // ana story grid'in üstüne scroll
+    document.getElementById("storyCard").scrollIntoView({behavior:"smooth", block:"start"});
+  }catch(e){
+    toast("Bağlantı hatası.", "err");
+  }finally{
+    btn.disabled = false;
+    btn.textContent = "🎨 Kartı Oluştur";
+  }
 }
 
 // ---------- Hikaye Görselleri ----------
