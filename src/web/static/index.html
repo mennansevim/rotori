@@ -888,27 +888,28 @@ function renderPickerModal(){
             ✏️ Kart yazısı — Instagram Story standardı
           </div>
           <div class="field" style="margin-bottom:12px">
+            <label>Üst rozet <span style="color:var(--muted);font-weight:400">— sol üst köşede küçük sarı badge</span></label>
+            <input type="text" id="cardUstTag" maxlength="40"
+              value="İLGİNÇ BİLGİ!"
+              placeholder="Örn: İLGİNÇ BİLGİ!, GEZİ TÜYOSU!, DİKKAT!" />
+          </div>
+          <div class="field" style="margin-bottom:12px">
             <label style="display:flex;justify-content:space-between;align-items:center">
-              <span>Başlık <span style="color:var(--muted);font-weight:400">— MAX 4 kelime, uppercase, Impact font</span></span>
+              <span>Başlık <span style="color:var(--muted);font-weight:400">— MAX 4 kelime, beyaz Impact, siyah bant üstünde</span></span>
               <button type="button" class="sm ghost" style="padding:4px 10px;font-size:11px"
                 onclick="aiFillCaption('title')" title="Konu ver, GPT başlık üretsin">✨ AI Yaz</button>
             </label>
             <input type="text" id="cardTitle" maxlength="60"
-              placeholder="Örn: YÜRÜRKEN YEMEK YEMEMELİSİN" />
+              placeholder="Örn: JAPONYA'DA MENOPOZ" />
           </div>
           <div class="field" style="margin-bottom:12px">
             <label style="display:flex;justify-content:space-between;align-items:center">
-              <span>Alt açıklama <span style="color:var(--muted);font-weight:400">— 1-2 cümle, Arial Bold</span></span>
+              <span>Alt açıklama <span style="color:var(--muted);font-weight:400">— her satır sarı highlight; Impact uppercase</span></span>
               <button type="button" class="sm ghost" style="padding:4px 10px;font-size:11px"
                 onclick="aiFillCaption('subtitle')" title="Konu ver, GPT açıklama üretsin">✨ AI Yaz</button>
             </label>
-            <textarea id="cardSubtitle" rows="2" maxlength="220"
-              placeholder="Örn: Tren veya otobüslerde telefonla konuşmak büyük bir nezaketsizliktir. Japon toplu taşımasında sessizlik esastır."></textarea>
-          </div>
-          <div class="field" style="margin-bottom:12px">
-            <label>Sarı vurgu kelimeleri <span style="color:var(--muted);font-weight:400">— virgülle ayır, opsiyonel (boşsa otomatik seçilir)</span></label>
-            <input type="text" id="cardHighlight"
-              placeholder="Örn: SESSİZLİK, nezaketsizlik" />
+            <textarea id="cardSubtitle" rows="3" maxlength="220"
+              placeholder="Örn: Bilgeliğe geçiş dönemi olarak kabul edilir ve kadınlar bu döneme geçişi kutlarlar."></textarea>
           </div>
         </div>
       </div>
@@ -1008,8 +1009,7 @@ async function renderPickerCard(){
   if(baslik.length < 3){ toast("Başlık gerekli (en az 3 karakter).", "err"); return; }
   if(aciklama.length < 8){ toast("Alt açıklama gerekli (en az 8 karakter).", "err"); return; }
 
-  const vurguRaw = $("cardHighlight").value.trim();
-  const vurgu = vurguRaw ? vurguRaw.split(/[,;]+/).map(v => v.trim()).filter(Boolean) : [];
+  const ustTag = ($("cardUstTag").value || "").trim() || "İLGİNÇ BİLGİ!";
 
   const bg = _pickerResults[_pickerSelectedIdx];
   const btn = $("btn-picker-render");
@@ -1024,7 +1024,7 @@ async function renderPickerCard(){
         background_url: bg.download_url,
         background_id: bg.id,
         photographer: bg.photographer,
-        baslik, aciklama, vurgu_kelimeler: vurgu,
+        baslik, aciklama, ust_tag: ustTag,
       })
     });
     if(!r.ok){

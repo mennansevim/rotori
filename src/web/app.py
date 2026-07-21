@@ -121,8 +121,8 @@ class RenderFromSelectionRequest(BaseModel):
     photographer: str = ""     # attribution
     baslik: str = Field(..., min_length=2, max_length=80)
     aciklama: str = Field(..., min_length=5, max_length=280)
-    vurgu_kelimeler: list[str] = []   # sarıya boyanacak kelimeler (boşsa
-                                       #   ilk 2 anlamlı kelime otomatik seçilir)
+    ust_tag: str = "İLGİNÇ BİLGİ!"   # sol üst köşedeki küçük sarı rozet
+    vurgu_kelimeler: list[str] = []   # (yeni tasarımda kullanılmıyor — bwd compat)
 
 
 class AICaptionRequest(BaseModel):
@@ -384,7 +384,8 @@ def story_ai_caption(req: AICaptionRequest) -> dict[str, Any]:
         if text.lower().startswith(prefix):
             text = text[len(prefix):].strip()
     if mode == "title":
-        text = text.upper()
+        # Türkçe-aware uppercase: 'i'yi 'İ' yapmak için .upper()'dan önce dönüştür
+        text = text.replace("i", "İ").replace("ı", "I").upper()
 
     return {"text": text, "mode": mode}
 
@@ -398,12 +399,6 @@ def story_render_direct(req: RenderFromSelectionRequest) -> dict[str, Any]:
 
     from src import story_generator
 
-    # Vurgu kelimeleri boşsa: başlığın ilk 1-2 anlamlı kelimesini otomatik seç
-    vurgu = [v.strip() for v in req.vurgu_kelimeler if v.strip()]
-    if not vurgu:
-        words = [w for w in req.baslik.split() if len(w) >= 3][:2]
-        vurgu = words
-
     try:
         out = story_generator.render_from_url(
             cfg,
@@ -412,8 +407,9 @@ def story_render_direct(req: RenderFromSelectionRequest) -> dict[str, Any]:
             bg_query=req.query or "custom",
             baslik=req.baslik,
             aciklama=req.aciklama,
-            vurgu=vurgu,
+            vurgu=None,
             photographer=req.photographer,
+            ust_tag=req.ust_tag or "İLGİNÇ BİLGİ!",
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Render hatası: {exc}") from exc
