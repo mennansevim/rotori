@@ -121,7 +121,7 @@ class RenderFromSelectionRequest(BaseModel):
     photographer: str = ""     # attribution
     baslik: str = Field(..., min_length=2, max_length=80)
     aciklama: str = Field(..., min_length=5, max_length=280)
-    ust_tag: str = "İLGİNÇ BİLGİ"   # sol üst köşedeki küçük sarı rozet
+    ust_tag: str = "GEZİ DEFTERİ"   # sol üst köşedeki küçük sarı rozet
     post_caption: str = ""     # Instagram post caption — üretilirse JPG yanına
                                 #   aynı basename ile .txt olarak kaydedilir
     vurgu_kelimeler: list[str] = []   # (yeni tasarımda kullanılmıyor — bwd compat)
@@ -135,6 +135,10 @@ class AICaptionRequest(BaseModel):
 class ExpandCaptionRequest(BaseModel):
     aciklama: str = Field(..., min_length=8)
     baslik: str = ""
+
+
+class AIFromImageRequest(BaseModel):
+    image_url: str = Field(..., min_length=8)   # public URL veya data: URI
 
 
 # ---------------- endpoint'ler ----------------
@@ -459,6 +463,106 @@ def _expand_caption_prompt(baslik: str, aciklama: str) -> str:
     )
 
 
+_AI_VISION_SYSTEM = (
+    "Sen @japonyaruyasi Instagram kanalı için görsel analiz eden bir editörsün. "
+    "Verilen fotoğrafı (Japonya ile ilgili — tapınak, sokak, yemek, manzara, "
+    "kültür, teknoloji vs.) inceleyip, görselle uyumlu bir Story kartı için "
+    "başlık ve alt açıklama önerirsin. TON: BELGESEL — 3. şahıs, öğretici "
+    "değil, hitap yok. Uydurma sayı/tarih/spesifik isim YASAK — bilmediğini "
+    "yazma. Yanıt YALNIZCA istenen JSON — açıklama, prefix, markdown YOK."
+)
+
+
+def _ai_vision_prompt() -> str:
+    return (
+        "Bu fotoğrafı analiz et. Fotoğraf Japonya ile ilgili (veya öyle "
+        "yorumlanabilir). Gördüğün konu, mekân, kültürel öğe veya atmosfere "
+        "uygun bir Instagram Story kartı için başlık + alt açıklama öner.\n\n"
+        "ÇIKTI FORMATI: sadece JSON objesi\n"
+        '  {"baslik": "...", "aciklama": "..."}\n\n'
+        "BAŞLIK kuralları:\n"
+        "- MAX 4 kelime, UPPERCASE düşün (JSON'da normal case yaz)\n"
+        "- Vurucu, konuyu tanıtan (Impact font tarzı)\n"
+        "- Emir kipi YASAK ('Yapın', 'Yeme', 'Unutma')\n"
+        "- Örnek: 'Kırmızı Kapılar', 'Shibuya Kavşağı', 'Konbini Kültürü', "
+        "'Sakura Zamanı'\n\n"
+        "ALT AÇIKLAMA kuralları:\n"
+        "- 1-2 kısa cümle, max 25 kelime toplam\n"
+        "- BELGESEL/ENFORMATİF ton (belgesel voiceover tarzı)\n"
+        "- 3. ŞAHIS gözlem, GENEL BİLGİ formu ('…dır', '…yer alır', "
+        "'…olarak bilinir', '…kabul edilir')\n"
+        "- YASAK: emir/rica ('yapın', 'yemeyin', 'saygı gösterin', "
+        "'sessiz kalın'), 2. şahıs hitap ('sizden beklenir', 'yapmalısınız'), "
+        "didaktik ton ('…önemlidir', '…gerekir')\n"
+        "- Uydurma sayı/tarih/spesifik isim YASAK — gördüğün genel öğelerden "
+        "yola çık; kesin bildiğin fact varsa kullan, yoksa geç\n"
+        "- Emoji YASAK (kart üstüne yerleşecek)\n\n"
+        "İSTENEN örnekler (kırmızı torii kapıları görseli için):\n"
+        '  {"baslik": "Kırmızı Kapılar", "aciklama": "Şinto tapınaklarının '
+        "girişindeki torii kapıları, kutsal alanı gündelik dünyadan ayıran "
+        'sembolik geçitlerdir."}\n\n'
+        "(kalabalık sokak fotoğrafı için):\n"
+        '  {"baslik": "Kavşak Ritmi", "aciklama": "Japon şehirlerinde yaya '
+        "kavşakları, koreografi gibi çalışan bir sinyal düzeniyle yönetilir. "
+        'Yoğun saatlerde binlerce yaya bir kerede geçer."}\n\n'
+        "Yalnızca JSON döndür — hiçbir prefix/açıklama/markdown ekleme."
+    )
+
+
+@app.post("/api/story/ai_from_image")
+def story_ai_from_image(req: AIFromImageRequest) -> dict[str, Any]:
+    """Verilen görseli GPT-4o vision ile analiz eder, başlık + alt açıklama önerir.
+    Uzak URL'yi bizim sunucumuz indirip base64 data URI olarak OpenAI'ye
+    gönderir — OpenAI bazı CDN'lere erişemediği için (401/403/timeout) daha
+    güvenilir."""
+    if cfg.openai is None:
+        raise HTTPException(status_code=400,
+                            detail="OpenAI key gerekli. config.yaml → openai.api_key.")
+
+    from src.openai_client import OpenAIClient
+    oai = OpenAIClient.from_config(cfg)
+    if oai is None:
+        raise HTTPException(status_code=400, detail="OpenAI client oluşturulamadı.")
+
+    # Görseli fetch et → base64 data URI
+    src_url = req.image_url
+    if src_url.startswith("data:"):
+        data_uri = src_url
+    else:
+        import base64
+        import requests as _req
+        try:
+            r = _req.get(src_url, timeout=15,
+                         headers={"User-Agent": "japan-reels-maker/1.0"})
+            r.raise_for_status()
+        except _req.RequestException as exc:
+            raise HTTPException(status_code=502,
+                                detail=f"Görsel indirilemedi: {exc}") from exc
+        mime = r.headers.get("Content-Type", "image/jpeg").split(";")[0].strip()
+        if not mime.startswith("image/"):
+            mime = "image/jpeg"
+        b64 = base64.b64encode(r.content).decode("ascii")
+        data_uri = f"data:{mime};base64,{b64}"
+
+    try:
+        out = oai.chat_vision_json(
+            _AI_VISION_SYSTEM,
+            _ai_vision_prompt(),
+            image_url=data_uri,
+            detail="auto",
+            temperature=0.6,
+            max_tokens=400,
+        )
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail=f"OpenAI hatası: {exc}") from exc
+
+    title = (out.get("baslik") or "").strip().strip('"').strip("'").strip()
+    subtitle = (out.get("aciklama") or "").strip().strip('"').strip("'").strip()
+    if not title and not subtitle:
+        raise HTTPException(status_code=502, detail="AI boş yanıt döndürdü")
+    return {"title": title, "subtitle": subtitle}
+
+
 @app.post("/api/story/expand_caption")
 def story_expand_caption(req: ExpandCaptionRequest) -> dict[str, Any]:
     """Kart alt açıklamasını Instagram POST caption'ına genişlet (emoji +
@@ -509,7 +613,7 @@ def story_render_direct(req: RenderFromSelectionRequest) -> dict[str, Any]:
             aciklama=req.aciklama,
             vurgu=None,
             photographer=req.photographer,
-            ust_tag=req.ust_tag or "İLGİNÇ BİLGİ",
+            ust_tag=req.ust_tag or "GEZİ DEFTERİ",
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Render hatası: {exc}") from exc

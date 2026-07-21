@@ -1024,14 +1024,24 @@ function renderPickerModal(){
 
         <div id="cardFormPanel" style="display:none;margin-top:20px;padding:16px;
           background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg)">
-          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:12px">
-            ✏️ Kart yazısı — Instagram Story standardı
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;flex-wrap:wrap">
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600">
+              ✏️ Kart yazısı — Instagram Story standardı
+            </div>
+            <button type="button" class="sm" id="btn-ai-from-image"
+              style="padding:6px 14px;font-size:12px;font-weight:600;
+                background:linear-gradient(135deg,#fbbf24,#f59e0b);
+                color:#1a1408;border:none;border-radius:var(--r-sm);cursor:pointer"
+              onclick="aiFillFromImage()"
+              title="Seçili görseli GPT vision ile analiz et — başlık + alt açıklama öner">
+              🖼️ Görselden AI Önerisi
+            </button>
           </div>
           <div class="field" style="margin-bottom:12px">
             <label>Üst rozet <span style="color:var(--muted);font-weight:400">— sol üst köşede küçük sarı badge</span></label>
             <input type="text" id="cardUstTag" maxlength="40"
-              value="İLGİNÇ BİLGİ"
-              placeholder="Örn: İLGİNÇ BİLGİ, GEZİ TÜYOSU, GÜNLÜK BİLGİ" />
+              value="GEZİ DEFTERİ"
+              placeholder="Örn: GEZİ DEFTERİ, KÜLTÜR NOTU, GÜNLÜK BİLGİ" />
           </div>
           <div class="field" style="margin-bottom:12px">
             <label style="display:flex;justify-content:space-between;align-items:center">
@@ -1116,6 +1126,54 @@ async function reloadPicker(){
 function closeBgPicker(){
   const m = document.getElementById("bgPickerModal");
   if(m) m.remove();
+}
+
+async function aiFillFromImage(){
+  if(_pickerSelectedIdx === null){
+    toast("Önce bir görsel seç.", "warn");
+    return;
+  }
+  const bg = _pickerResults[_pickerSelectedIdx];
+  const image_url = bg && (bg.preview_url || bg.download_url);
+  if(!image_url){
+    toast("Seçili görselin URL'si bulunamadı.", "err");
+    return;
+  }
+  const titleEl = $("cardTitle");
+  const subEl = $("cardSubtitle");
+  const btn = $("btn-ai-from-image");
+  const oldT = titleEl.value, oldS = subEl.value;
+  titleEl.value = "⏳ Görsel analiz ediliyor…";
+  subEl.value = "";
+  titleEl.disabled = true; subEl.disabled = true;
+  if(btn){ btn.disabled = true; btn.style.opacity = "0.6"; }
+  try{
+    const r = await fetch("/api/story/ai_from_image", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({image_url})
+    });
+    if(!r.ok){
+      let msg = r.statusText;
+      try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+      toast("Vision hatası: " + msg, "err");
+      titleEl.value = oldT; subEl.value = oldS;
+      return;
+    }
+    const data = await r.json();
+    titleEl.value = data.title || "";
+    subEl.value = data.subtitle || "";
+    toast("Görselden öneri hazırlandı ✓ — başlık + alt açıklama dolduruldu", "ok", 3000);
+    // subtitle geçerliyse post caption'ı da otomatik hazırla
+    if((data.subtitle || "").trim().length >= 8){
+      setTimeout(() => expandCaptionAI({auto: true}), 400);
+    }
+  }catch(e){
+    toast("Bağlantı hatası.", "err");
+    titleEl.value = oldT; subEl.value = oldS;
+  }finally{
+    titleEl.disabled = false; subEl.disabled = false;
+    if(btn){ btn.disabled = false; btn.style.opacity = "1"; }
+  }
 }
 
 async function aiFillCaption(mode){
@@ -1253,7 +1311,7 @@ async function renderPickerCard(){
   if(baslik.length < 3){ toast("Başlık gerekli (en az 3 karakter).", "err"); return; }
   if(aciklama.length < 8){ toast("Alt açıklama gerekli (en az 8 karakter).", "err"); return; }
 
-  const ustTag = ($("cardUstTag").value || "").trim() || "İLGİNÇ BİLGİ";
+  const ustTag = ($("cardUstTag").value || "").trim() || "GEZİ DEFTERİ";
   const postCaption = ($("cardPostCaption").value || "").trim();
 
   const bg = _pickerResults[_pickerSelectedIdx];
