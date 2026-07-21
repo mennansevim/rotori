@@ -150,6 +150,7 @@ class VaryTextRequest(BaseModel):
 
 class AIFromImageRequest(BaseModel):
     image_url: str = Field(..., min_length=8)   # public URL veya data: URI
+    konu: str = ""   # kullanıcının arattığı kelime — vision bu konuya odaklanır
 
 
 # ---------------- endpoint'ler ----------------
@@ -503,21 +504,39 @@ _AI_VISION_SYSTEM = (
 )
 
 
-def _ai_vision_prompt() -> str:
+def _ai_vision_prompt(konu: str = "") -> str:
+    konu = (konu or "").strip()
+    # "japan" öneki arama için ekleniyor; asıl konu odağı bu (japan'ı at)
+    konu_odak = konu
+    for pre in ("japan ", "japonya "):
+        if konu_odak.lower().startswith(pre):
+            konu_odak = konu_odak[len(pre):].strip()
+    if konu_odak:
+        odak_blok = (
+            f"ÖNEMLİ — KONU ODAĞI: Kullanıcı '{konu_odak}' aradı ve bu görseli "
+            f"seçti. Görselde birden fazla öğe olabilir (örn. hem dağ hem tren), "
+            f"AMA senin üreteceğin metin MUTLAKA '{konu_odak}' konusu hakkında "
+            f"olmalı. Görseli, bu konuyu desteklemek için yorumla; görselde "
+            f"başka baskın bir öğe olsa bile ONA KAYMA. Konu Japonya "
+            f"bağlamındadır.\n\n"
+        )
+    else:
+        odak_blok = ""
     return (
-        "Bu fotoğrafı analiz et. Fotoğraf Japonya ile ilgili (veya öyle "
-        "yorumlanabilir). Gördüğün konu, mekân, kültürel öğe veya atmosfere "
-        "uygun bir Instagram Story kartı için başlık + alt açıklama öner.\n\n"
+        "Bu fotoğrafı analiz et (Japonya ile ilgili).\n\n"
+        f"{odak_blok}"
+        "Konuya uygun bir Instagram Story kartı için başlık + açıklama öner.\n\n"
         "ÇIKTI FORMATI: sadece JSON objesi\n"
         '  {"baslik": "...", "aciklama": "..."}\n\n'
         "BAŞLIK (baslik) kuralları:\n"
-        "- MAX 4 kelime, konuyu tanıtan, vurucu (JSON'da normal case yaz).\n"
+        "- MAX 4 kelime, KONU ODAĞINI yansıtan, vurucu (JSON'da normal case).\n"
         "- Klişe/emir YASAK. Örnek: 'Kırmızı Kapılar', 'Shibuya Kavşağı', "
         "'Konbini Kültürü', 'Sakura Zamanı'.\n\n"
         "AÇIKLAMA (aciklama) — kartın ana metni. EN FAZLA 2 cümle, toplam max "
-        "28 kelime (3. cümle YOK, uzun paragraf YOK). Gördüğün öğeye dair SOMUT "
+        "28 kelime (3. cümle YOK, uzun paragraf YOK). KONU ODAĞINA dair SOMUT "
         "bilgi ver (ne olduğu, işlevi, kültürel bağlamı). Üslup kılavuzuna "
         "BİREBİR uy:\n\n"
+        f"{_TR_STYLE}\n\n"
         f"{_TR_STYLE}\n\n"
         "Görselde emin olamadığın spesifik isim/sayı UYDURMA — genel öğelerden "
         "yola çık. Emoji YOK.\n\n"
@@ -572,7 +591,7 @@ def story_ai_from_image(req: AIFromImageRequest) -> dict[str, Any]:
     try:
         out = oai.chat_vision_json(
             _AI_VISION_SYSTEM,
-            _ai_vision_prompt(),
+            _ai_vision_prompt(req.konu),
             image_url=data_uri,
             # detail="low": görsel tek 512px bloğa indirilir → sabit ~2833
             # image token (gpt-4o-mini). high/auto'ya göre ~10x ucuz. Story

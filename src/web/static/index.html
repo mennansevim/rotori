@@ -1181,12 +1181,6 @@ function renderPickerModal(){
             </button>
           </div>
           <div class="field" style="margin-bottom:12px">
-            <label>Üst rozet <span style="color:var(--muted);font-weight:400">— sol üst köşede küçük sarı badge</span></label>
-            <input type="text" id="cardUstTag" maxlength="40"
-              value="GEZİ DEFTERİ"
-              placeholder="Örn: GEZİ DEFTERİ, KÜLTÜR NOTU, GÜNLÜK BİLGİ" />
-          </div>
-          <div class="field" style="margin-bottom:12px">
             <label style="display:flex;justify-content:space-between;align-items:center">
               <span>Kart metni <span style="color:var(--muted);font-weight:400">— kartın ana yazısı; Oswald, ortalı</span></span>
               <button type="button" class="sm ghost" style="padding:4px 10px;font-size:11px"
@@ -1342,10 +1336,6 @@ async function openEditModal(name){
       </div>
       <div class="modal-body">
         <div class="field" style="margin-bottom:12px">
-          <label>Üst rozet <span style="color:var(--muted);font-weight:400">— sol üst köşe badge</span></label>
-          <input type="text" id="cardUstTag" maxlength="40" value="${escapeHtml(meta.ust_tag || 'GEZİ DEFTERİ')}" />
-        </div>
-        <div class="field" style="margin-bottom:12px">
           <label style="display:flex;justify-content:space-between;align-items:center">
             <span>Kart metni <span style="color:var(--muted);font-weight:400">— kartın ana yazısı</span></span>
             <button type="button" class="sm ghost" style="padding:4px 10px;font-size:11px"
@@ -1389,7 +1379,7 @@ function closeEditModal(){
 async function saveEdit(name){
   const aciklama = ($("cardSubtitle").value || "").trim();
   if(aciklama.length < 5){ toast("Kart metni gerekli (en az 5 karakter).", "err"); return; }
-  const ustTag = ($("cardUstTag").value || "").trim() || "GEZİ DEFTERİ";
+  const ustTag = "GEZİ DEFTERİ";   // üst rozet alanı kaldırıldı (render'da kullanılmıyor)
   const postCaption = ($("cardPostCaption").value || "").trim();
   const btn = $("btn-edit-save");
   btn.disabled = true; btn.textContent = "⏳ Güncelleniyor…";
@@ -1432,7 +1422,9 @@ async function aiFillFromImage(){
   try{
     const r = await fetch("/api/story/ai_from_image", {
       method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({image_url})
+      // konu = arattığın kelime — vision bu konuya ODAKLANIR (görselde başka
+      // öğe olsa bile). Boşsa görseli serbest yorumlar.
+      body: JSON.stringify({image_url, konu: _pickerRawQuery || ""})
     });
     if(!r.ok){
       let msg = r.statusText;
@@ -1591,7 +1583,7 @@ async function renderPickerCard(){
   const aciklama = $("cardSubtitle").value.trim();
   if(aciklama.length < 8){ toast("Kart metni gerekli (en az 8 karakter).", "err"); return; }
 
-  const ustTag = ($("cardUstTag").value || "").trim() || "GEZİ DEFTERİ";
+  const ustTag = "GEZİ DEFTERİ";   // üst rozet alanı kaldırıldı (render'da kullanılmıyor)
   const postCaption = ($("cardPostCaption").value || "").trim();
 
   const bg = _pickerResults[_pickerSelectedIdx];
