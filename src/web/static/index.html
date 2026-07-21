@@ -367,8 +367,9 @@
     padding:10px 10px 12px;display:grid;grid-template-rows:auto auto;gap:6px}
   .story-actions .primary-row{display:block}
   .story-actions .secondary-row{
-    display:grid;grid-template-columns:1fr 44px;gap:6px}
-  .story-actions .secondary-row.solo{grid-template-columns:1fr}
+    display:flex;gap:6px}
+  .story-actions .secondary-row .story-btn{flex:1}
+  .story-actions .secondary-row .icon-only{flex:0 0 44px}
   .story-btn{
     padding:10px 12px;font-size:12px;font-weight:600;
     border-radius:var(--r-sm);color:var(--txt);
@@ -1188,7 +1189,7 @@ function renderPickerModal(){
             <label style="display:flex;justify-content:space-between;align-items:center">
               <span>Kart metni <span style="color:var(--muted);font-weight:400">— kartın ana yazısı; Oswald, ortalı</span></span>
               <button type="button" class="sm ghost" style="padding:4px 10px;font-size:11px"
-                onclick="aiFillCaption('subtitle')" title="Konu ver, GPT metni üretsin">✨ AI Yaz</button>
+                onclick="randomCardText()" title="Aynı konuda farklı bir yorum üret">🎲 Random</button>
             </label>
             <textarea id="cardSubtitle" rows="3" maxlength="220"
               placeholder="Örn: Bilgeliğe geçiş dönemi olarak kabul edilir ve kadınlar bu döneme geçişi kutlarlar."></textarea>
@@ -1199,14 +1200,14 @@ function renderPickerModal(){
               <span>Post açıklaması <span style="color:var(--muted);font-weight:400">— Instagram caption (emoji + madde + hashtag)</span></span>
               <span style="display:flex;gap:6px">
                 <button type="button" class="sm ghost" style="padding:4px 10px;font-size:11px"
-                  onclick="expandCaptionAI()" title="Alt açıklamayı GPT ile detaylı Instagram caption'ına genişlet">✨ AI ile Genişlet</button>
+                  onclick="randomCaption()" title="Kart metninden farklı bir caption üret">🎲 Random</button>
                 <button type="button" class="sm ghost" style="padding:4px 10px;font-size:11px"
                   onclick="copyCaption()" title="Caption'ı panoya kopyala">📋 Kopyala</button>
               </span>
             </label>
             <textarea id="cardPostCaption" rows="9" maxlength="2200"
               oninput="updateCaptionCharCount()"
-              placeholder="Alt açıklamayı doldurduktan sonra '✨ AI ile Genişlet' butonuna bas — GPT sana emoji + maddelendirme + hashtag'li post caption üretsin. Kart oluşturulunca .txt olarak da JPG yanına kaydedilir."></textarea>
+              placeholder="Kart metninden otomatik hazırlanır. '🎲 Random' ile farklı bir caption üret. Kart oluşturulunca .txt olarak da JPG yanına kaydedilir."></textarea>
             <div style="font-size:11px;color:var(--muted);margin-top:4px;text-align:right">
               <span id="captionCharCount">0</span> / 2200 · Instagram limiti 2200
             </div>
@@ -1265,6 +1266,149 @@ async function reloadPicker(){
 function closeBgPicker(){
   const m = document.getElementById("bgPickerModal");
   if(m) m.remove();
+}
+
+// ---------- Random üretim (kart metni + caption) ----------
+// Kart metni Random: mevcut metin varsa aynı konuda FARKLI yorum; boşsa
+// seçili görselden vision; o da yoksa uyarı.
+async function randomCardText(){
+  const sub = document.getElementById("cardSubtitle");
+  if(!sub) return;
+  const cur = sub.value.trim();
+  if(cur.length < 8){
+    // metin yok → görselden üret (create akışında görsel seçili olur)
+    if(typeof _pickerSelectedIdx !== "undefined" && _pickerSelectedIdx !== null){
+      return aiFillFromImage();
+    }
+    toast("Önce bir metin yaz ya da görsel seç.", "warn");
+    return;
+  }
+  const old = sub.value;
+  sub.value = "🎲 Farklı bir yorum üretiliyor…";
+  sub.disabled = true;
+  try{
+    const r = await fetch("/api/story/vary_text", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({text: cur})
+    });
+    if(!r.ok){
+      let msg = r.statusText;
+      try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+      toast("Random başarısız: " + msg, "err");
+      sub.value = old;
+      return;
+    }
+    const data = await r.json();
+    sub.value = data.text || old;
+    toast("Farklı bir yorum hazır 🎲", "ok", 2000);
+  }catch(e){
+    toast("Bağlantı hatası.", "err");
+    sub.value = old;
+  }finally{
+    sub.disabled = false;
+  }
+}
+
+// Caption Random: kart metninden yeni (farklı) caption üret — expandCaptionAI
+// her çağrıda temperature ile varyasyon verir.
+function randomCaption(){
+  expandCaptionAI();
+}
+
+// ---------- Kartı Düzenle (mevcut kartın metinlerini güncelle + re-render) ----------
+async function openEditModal(name){
+  let meta;
+  try{
+    const r = await fetch(`/api/story/meta/${encodeURIComponent(name)}`);
+    if(!r.ok){
+      let m = r.statusText; try{ const j = await r.json(); m = j.detail || m; }catch(e){}
+      toast("Kart bilgisi alınamadı: " + m, "err"); return;
+    }
+    meta = (await r.json()).meta || {};
+  }catch(e){ toast("Bağlantı hatası.", "err"); return; }
+  if(meta.editable === false){
+    toast("Bu eski bir kart — arka plan bilgisi yok, düzenlenemiyor. Yeniden üret.", "warn");
+    return;
+  }
+  const back = document.createElement("div");
+  back.id = "editModal";
+  back.className = "modal-backdrop";
+  back.innerHTML = `
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <h3 class="modal-title">✏️ Kartı Düzenle <small>— metinleri güncelle</small></h3>
+        <button class="ghost sm" onclick="closeEditModal()">✕ Kapat</button>
+      </div>
+      <div class="modal-body">
+        <div class="field" style="margin-bottom:12px">
+          <label>Üst rozet <span style="color:var(--muted);font-weight:400">— sol üst köşe badge</span></label>
+          <input type="text" id="cardUstTag" maxlength="40" value="${escapeHtml(meta.ust_tag || 'GEZİ DEFTERİ')}" />
+        </div>
+        <div class="field" style="margin-bottom:12px">
+          <label style="display:flex;justify-content:space-between;align-items:center">
+            <span>Kart metni <span style="color:var(--muted);font-weight:400">— kartın ana yazısı</span></span>
+            <button type="button" class="sm ghost" style="padding:4px 10px;font-size:11px"
+              onclick="randomCardText()" title="Aynı konuda farklı bir yorum üret">🎲 Random</button>
+          </label>
+          <textarea id="cardSubtitle" rows="3" maxlength="220">${escapeHtml(meta.aciklama || '')}</textarea>
+        </div>
+        <div class="field" style="margin-bottom:8px;padding-top:14px;border-top:1px solid var(--line)">
+          <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+            <span>Post açıklaması <span style="color:var(--muted);font-weight:400">— Instagram caption</span></span>
+            <span style="display:flex;gap:6px">
+              <button type="button" class="sm ghost" style="padding:4px 10px;font-size:11px"
+                onclick="randomCaption()" title="Kart metninden farklı bir caption üret">🎲 Random</button>
+              <button type="button" class="sm ghost" style="padding:4px 10px;font-size:11px"
+                onclick="copyCaption()" title="Caption'ı panoya kopyala">📋 Kopyala</button>
+            </span>
+          </label>
+          <textarea id="cardPostCaption" rows="8" maxlength="2200"
+            oninput="updateCaptionCharCount()">${escapeHtml(meta.post_caption || '')}</textarea>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;text-align:right">
+            <span id="captionCharCount">0</span> / 2200
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <div></div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button class="primary" id="btn-edit-save" onclick="saveEdit('${name}')">💾 Güncelle</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(back);
+  updateCaptionCharCount();
+}
+
+function closeEditModal(){
+  const m = document.getElementById("editModal");
+  if(m) m.remove();
+}
+
+async function saveEdit(name){
+  const aciklama = ($("cardSubtitle").value || "").trim();
+  if(aciklama.length < 5){ toast("Kart metni gerekli (en az 5 karakter).", "err"); return; }
+  const ustTag = ($("cardUstTag").value || "").trim() || "GEZİ DEFTERİ";
+  const postCaption = ($("cardPostCaption").value || "").trim();
+  const btn = $("btn-edit-save");
+  btn.disabled = true; btn.textContent = "⏳ Güncelleniyor…";
+  try{
+    const r = await fetch(`/api/story/update/${encodeURIComponent(name)}`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({aciklama, ust_tag: ustTag, post_caption: postCaption})
+    });
+    if(!r.ok){
+      let m = r.statusText; try{ const j = await r.json(); m = j.detail || m; }catch(e){}
+      toast("Güncelleme başarısız: " + m, "err"); return;
+    }
+    toast("Kart güncellendi ✓", "ok");
+    closeEditModal();
+    await loadRecentStories();
+  }catch(e){
+    toast("Bağlantı hatası.", "err");
+  }finally{
+    btn.disabled = false; btn.textContent = "💾 Güncelle";
+  }
 }
 
 async function aiFillFromImage(){
@@ -1526,14 +1670,18 @@ function renderStories(cards){
         title="Yayına Hazır olarak işaretle">✅ Yayına Hazır Yap</button>`;
       // ready değil → secondary'de undo yok, sadece indir
     }
-    const secondaryClass = undoBtn ? "" : " solo";
+    const editBtn = `<button class="story-btn ghost" onclick="openEditModal('${c.file}')"
+        title="Metinleri düzenle + yeniden render">✏️ Düzenle</button>`;
+    // cache-bust: güncelleme sonrası mtime değişir → taze görsel gelir
+    const imgUrl = `${c.url}?v=${Math.floor(c.mtime || 0)}`;
     card.innerHTML = `
-      <img src="${c.url}" alt="${escapeHtml(c.baslik || '')}" onclick="openLightbox('${c.url}')" />
+      <img src="${imgUrl}" alt="${escapeHtml(c.baslik || '')}" onclick="openLightbox('${imgUrl}')" />
       <div class="story-badges">${badges.join('')}</div>
       <div class="story-actions">
         <div class="primary-row">${primaryBtn}</div>
-        <div class="secondary-row${secondaryClass}">
+        <div class="secondary-row">
           ${undoBtn}
+          ${editBtn}
           <a class="story-btn icon-only" href="${c.url}" download="${c.file}" title="Görseli indir">⬇</a>
         </div>
       </div>`;

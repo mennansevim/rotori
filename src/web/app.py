@@ -138,6 +138,16 @@ class ExpandCaptionRequest(BaseModel):
     baslik: str = ""
 
 
+class StoryUpdateRequest(BaseModel):
+    aciklama: str = Field(..., min_length=5, max_length=280)
+    ust_tag: str = "GEZİ DEFTERİ"
+    post_caption: str = ""
+
+
+class VaryTextRequest(BaseModel):
+    text: str = Field(..., min_length=8)
+
+
 class AIFromImageRequest(BaseModel):
     image_url: str = Field(..., min_length=8)   # public URL veya data: URI
 
@@ -633,6 +643,20 @@ def story_render_direct(req: RenderFromSelectionRequest) -> dict[str, Any]:
         except OSError as exc:
             log.warning(f"caption .txt kaydedilemedi: {exc}")
 
+    # Sidecar JSON — kartı sonradan DÜZENLEYEBİLMEK için kaynak veriyi sakla
+    slug_q = story_generator._slugify(req.query or "custom")
+    bg_local = f"unsplash-{slug_q}-{req.background_id}.jpg"
+    _write_story_meta(out, {
+        "background_url": req.background_url,
+        "background_id": req.background_id,
+        "query": req.query,
+        "photographer": req.photographer,
+        "bg_local": bg_local,
+        "aciklama": req.aciklama,
+        "ust_tag": req.ust_tag or "GEZİ DEFTERİ",
+        "post_caption": (req.post_caption or "").strip(),
+    })
+
     return {
         "ok": True,
         "file": out.name,
@@ -641,6 +665,28 @@ def story_render_direct(req: RenderFromSelectionRequest) -> dict[str, Any]:
         "aciklama": req.aciklama,
         "caption_file": caption_file,
     }
+
+
+def _write_story_meta(jpg_path: Path, meta: dict[str, Any]) -> None:
+    """Kart JPG'sinin yanına .json sidecar yaz — düzenleme için kaynak veri."""
+    try:
+        jpg_path.with_suffix(".json").write_text(
+            json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    except OSError as exc:
+        log.warning(f"story meta sidecar yazılamadı: {exc}")
+
+
+def _find_story_jpg(name: str) -> tuple[Path, bool] | None:
+    """Kartı top-level veya ready/ altında bul. (jpg_path, is_ready) döner."""
+    if cfg.stories is None:
+        return None
+    top = cfg.stories.output_dir / name
+    if top.exists():
+        return top, False
+    rdy = cfg.stories.output_dir / "ready" / name
+    if rdy.exists():
+        return rdy, True
+    return None
 
 
 def _story_ready_dir() -> Path:
@@ -705,6 +751,154 @@ def story_list() -> dict[str, Any]:
     return {"cards": cards}
 
 
+@app.get("/api/story/meta/{name}")
+def story_meta(name: str) -> dict[str, Any]:
+    """Kartın kaynak verisini döndür (düzenleme formu için). Sidecar .json
+    varsa ondan; yoksa .txt'ten post_caption fallback."""
+    name = _safe_story_name(name)
+    found = _find_story_jpg(name)
+    if found is None:
+        raise HTTPException(status_code=404, detail="Kart bulunamadı.")
+    jpg, is_ready = found
+    meta: dict[str, Any] = {}
+    sc = jpg.with_suffix(".json")
+    if sc.exists():
+        try:
+            meta = json.loads(sc.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            meta = {}
+    if not meta.get("post_caption"):
+        txt = jpg.with_suffix(".txt")
+        if txt.exists():
+            try:
+                meta["post_caption"] = txt.read_text(encoding="utf-8")
+            except OSError:
+                pass
+    meta.setdefault("ust_tag", "GEZİ DEFTERİ")
+    meta.setdefault("aciklama", "")
+    meta.setdefault("post_caption", "")
+    # eski kart (sidecar yok) → bg bilgisi eksik, düzenlenemez uyarısı için
+    meta["editable"] = bool(meta.get("bg_local") or meta.get("background_url"))
+    return {"ok": True, "name": name, "ready": is_ready, "meta": meta}
+
+
+@app.post("/api/story/update/{name}")
+def story_update(name: str, req: StoryUpdateRequest) -> dict[str, Any]:
+    """Mevcut kartı yeni metinlerle AYNI dosyaya yeniden render et (overwrite).
+    Arka plan görseli sidecar'daki bg_local'den (yoksa background_url'den indirilerek)
+    kullanılır."""
+    name = _safe_story_name(name)
+    if cfg.stories is None:
+        raise HTTPException(status_code=400, detail="stories config yok.")
+    found = _find_story_jpg(name)
+    if found is None:
+        raise HTTPException(status_code=404, detail="Kart bulunamadı.")
+    jpg, _is_ready = found
+
+    sc = jpg.with_suffix(".json")
+    meta: dict[str, Any] = {}
+    if sc.exists():
+        try:
+            meta = json.loads(sc.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            meta = {}
+
+    # arka plan görselini çöz
+    from src import story_generator
+    bg_dir = cfg.stories.backgrounds_dir
+    bg_path: Path | None = None
+    bg_local = meta.get("bg_local")
+    if bg_local and bg_dir is not None:
+        cand = bg_dir / bg_local
+        if cand.exists():
+            bg_path = cand
+    if bg_path is None and meta.get("background_url") and bg_dir is not None:
+        # cache'te yok → indir
+        try:
+            bg_dir.mkdir(parents=True, exist_ok=True)
+            fname = bg_local or f"unsplash-edit-{meta.get('background_id','x')}.jpg"
+            cand = bg_dir / fname
+            r = requests.get(meta["background_url"], timeout=60, stream=True)
+            r.raise_for_status()
+            with cand.open("wb") as fh:
+                for chunk in r.iter_content(chunk_size=8192):
+                    fh.write(chunk)
+            bg_path = cand
+        except requests.RequestException as exc:
+            raise HTTPException(status_code=502,
+                                detail=f"Arka plan indirilemedi: {exc}") from exc
+    if bg_path is None:
+        raise HTTPException(status_code=400,
+                            detail="Bu kartın arka plan bilgisi yok (eski kart) — düzenlenemiyor.")
+
+    kart = {"aciklama": req.aciklama, "ust_tag": req.ust_tag or "GEZİ DEFTERİ"}
+    try:
+        story_generator.render_card(cfg, kart, bg_path, jpg)   # AYNI path → overwrite
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Render hatası: {exc}") from exc
+
+    # .txt caption güncelle
+    txt = jpg.with_suffix(".txt")
+    pc = (req.post_caption or "").strip()
+    try:
+        if pc:
+            txt.write_text(pc, encoding="utf-8")
+        elif txt.exists():
+            txt.unlink()
+    except OSError as exc:
+        log.warning(f"caption .txt güncellenemedi: {exc}")
+
+    # sidecar güncelle
+    meta.update({"aciklama": req.aciklama, "ust_tag": req.ust_tag or "GEZİ DEFTERİ",
+                 "post_caption": pc})
+    _write_story_meta(jpg, meta)
+
+    rel = "ready/" if _is_ready else ""
+    return {"ok": True, "file": name,
+            "url": f"/media/stories/{rel}{quote(name)}"}
+
+
+_VARY_SYSTEM = (
+    "Sen @japonyaruyasi için BELGESEL TONDA hap bilgi metinleri üreten bir "
+    "editörsün. Sana verilen metni, AYNI KONUYU koruyarak ama FARKLI bir "
+    "açıdan/başka bir fact'le yeniden yazarsın. Ton: 3. şahıs, objektif, "
+    "belgesel; emir/rica/hitap YOK. Uydurma sayı/tarih YASAK. Yanıt SADECE "
+    "yeni metin — açıklama/tırnak/prefix YOK."
+)
+
+
+@app.post("/api/story/vary_text")
+def story_vary_text(req: VaryTextRequest) -> dict[str, Any]:
+    """Verilen kart metnini aynı konuda FARKLI bir yorumla yeniden üret (Random)."""
+    if cfg.openai is None:
+        raise HTTPException(status_code=400,
+                            detail="OpenAI key gerekli. config.yaml → openai.api_key.")
+    from src.openai_client import OpenAIClient
+    oai = OpenAIClient.from_config(cfg)
+    if oai is None:
+        raise HTTPException(status_code=400, detail="OpenAI client oluşturulamadı.")
+    prompt = (
+        f"Aşağıdaki metin bir Japonya Instagram Story kartının belgesel-ton "
+        f"açıklaması:\n\"{req.text.strip()}\"\n\n"
+        "AYNI KONUYU/temayı koru ama FARKLI bir açıdan, farklı bir detay veya "
+        "gözlemle YENİDEN yaz. Farklı cümle kurulumu kullan — kopya olmasın.\n"
+        "Kurallar:\n"
+        "- 1-2 kısa cümle, toplam max 25 kelime\n"
+        "- 3. şahıs, belgesel/enformatif ton ('…dır', '…olarak bilinir')\n"
+        "- Emir/rica/hitap YASAK, emoji YASAK\n"
+        "- Uydurma sayı/tarih/spesifik isim YASAK\n"
+        "Sadece yeni metni yaz."
+    )
+    try:
+        text = oai.chat_text(_VARY_SYSTEM, prompt, temperature=0.95, max_tokens=160)
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail=f"OpenAI hatası: {exc}") from exc
+    text = text.strip().strip('"').strip("'").strip()
+    if not text:
+        raise HTTPException(status_code=502, detail="AI boş yanıt döndürdü")
+    return {"text": text}
+
+
 @app.post("/api/story/mark_ready/{name}")
 def story_mark_ready(name: str) -> dict[str, Any]:
     """Kartı 'Yayına Hazır' olarak işaretle — output/stories/<name>.jpg'yi
@@ -724,11 +918,11 @@ def story_mark_ready(name: str) -> dict[str, Any]:
     dst = _story_ready_dir() / name
     src.rename(dst)
 
-    # .txt caption dosyası varsa onu da taşı
-    cap_src = src.with_suffix(".txt")
-    cap_dst = dst.with_suffix(".txt")
-    if cap_src.exists():
-        cap_src.rename(cap_dst)
+    # .txt + .json sidecar dosyaları varsa onları da taşı
+    for suf in (".txt", ".json"):
+        s = src.with_suffix(suf)
+        if s.exists():
+            s.rename(dst.with_suffix(suf))
 
     return {"ok": True, "path": str(dst.relative_to(cfg.project_root))}
 
@@ -748,10 +942,10 @@ def story_unmark_ready(name: str) -> dict[str, Any]:
     dst = cfg.stories.output_dir / name
     src.rename(dst)
 
-    cap_src = src.with_suffix(".txt")
-    cap_dst = dst.with_suffix(".txt")
-    if cap_src.exists():
-        cap_src.rename(cap_dst)
+    for suf in (".txt", ".json"):
+        s = src.with_suffix(suf)
+        if s.exists():
+            s.rename(dst.with_suffix(suf))
 
     return {"ok": True}
 
