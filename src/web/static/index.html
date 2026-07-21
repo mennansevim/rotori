@@ -1033,51 +1033,75 @@ async function pollBackgrounds(){
   }catch(e){}
 }
 
-let _pickerQuery = "";
+let _pickerQuery = "";        // API'ye giden final sorgu (japan + ham)
+let _pickerRawQuery = "";     // kullanıcının yazdığı ham metin
 let _pickerResults = [];
 let _pickerSelectedIdx = null;   // tek seçim
 let _pickerPage = 1;             // Unsplash search sayfa — Farklı Sonuçlar her tıklamada +1
 
-async function openStoryCreator(){
-  const query = prompt(
-    "Ne konuda görsel arayalım?\n\n" +
-    "Örn: 'japanese train station', 'ryokan interior', 'osaka night neon', 'mt fuji sunset', 'sakura park'\n\n" +
-    "İngilizce yaz — Unsplash sonuçları daha zengin.",
-    ""
-  );
-  if(!query || !query.trim()) return;
-  await openBgPicker(query.trim());
+function openStoryCreator(){
+  // Modal direkt açılır — sadece arama kutusu (Chrome prompt YOK)
+  _pickerRawQuery = "";
+  _pickerResults = [];
+  _pickerSelectedIdx = null;
+  _pickerPage = 1;
+  renderPickerModal();
+  setTimeout(() => { const s = document.getElementById("pickerSearchInput"); if(s) s.focus(); }, 60);
 }
 
-async function openBgPicker(query, page = 1){
+function pickerFinalQuery(raw){
+  const q = (raw || "").trim();
+  if(!q) return "";
+  // başına otomatik "japan" ekle (zaten varsa tekrar ekleme)
+  return /\bjapan\b/i.test(q) ? q : ("japan " + q);
+}
+
+async function doPickerSearch(){
+  const s = document.getElementById("pickerSearchInput");
+  const raw = s ? s.value.trim() : "";
+  if(!raw){ toast("Bir konu yaz.", "warn"); if(s) s.focus(); return; }
+  _pickerRawQuery = raw;
+  await openBgPicker(1);
+}
+
+async function openBgPicker(page = 1){
+  const query = pickerFinalQuery(_pickerRawQuery);
+  if(!query){ toast("Bir konu yaz.", "warn"); return; }
   _pickerQuery = query;
   _pickerPage = page;
   _pickerSelectedIdx = null;
-  const label = page > 1 ? `sayfa ${page}` : "aranıyor";
-  toast(`"${query}" · ${label}…`, "info", 1800);
-  const r = await fetch("/api/backgrounds/preview", {
-    method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({query, count: 10, page})
-  });
-  if(!r.ok){
-    let msg = r.statusText;
-    try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
-    toast("Arama başarısız: " + msg, "err");
-    return;
-  }
-  const data = await r.json();
-  const results = data.results || [];
-  if(!results.length){
-    if(page > 1){
-      // sayfa tükendi — başa dön
-      toast(`Sayfa ${page} boş — baştan alıyorum.`, "info");
-      return openBgPicker(query, 1);
+  const btn = document.getElementById("pickerSearchBtn");
+  if(btn){ btn.disabled = true; btn.textContent = "Aranıyor…"; }
+  try{
+    const r = await fetch("/api/backgrounds/preview", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({query, count: 10, page})
+    });
+    if(!r.ok){
+      let msg = r.statusText;
+      try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+      toast("Arama başarısız: " + msg, "err");
+      if(btn){ btn.disabled = false; btn.textContent = "Ara"; }
+      return;
     }
-    toast("Bu sorgu için sonuç bulunamadı.", "warn");
-    return;
+    const data = await r.json();
+    const results = data.results || [];
+    if(!results.length){
+      if(page > 1){
+        toast(`Sayfa ${page} boş — baştan alıyorum.`, "info");
+        return openBgPicker(1);
+      }
+      _pickerResults = [];
+      renderPickerModal();
+      toast("Bu sorgu için sonuç bulunamadı.", "warn");
+      return;
+    }
+    _pickerResults = results;
+    renderPickerModal();
+  }catch(e){
+    toast("Bağlantı hatası.", "err");
+    if(btn){ btn.disabled = false; btn.textContent = "Ara"; }
   }
-  _pickerResults = results;
-  renderPickerModal();
 }
 
 function renderPickerModal(){
@@ -1091,6 +1115,7 @@ function renderPickerModal(){
   // yanlışlıkla kapatıyordu. Kapanma sadece "✕ Kapat" butonu veya başarılı
   // render sonrası (closeBgPicker) ile olur.
 
+  const hasResults = _pickerResults.length > 0;
   const cards = _pickerResults.map((p, idx) => `
     <div class="picker-card" data-idx="${idx}" onclick="selectPicker(${idx})">
       <img src="${p.thumb}" alt="${escapeHtml(p.photographer_name || p.photographer)}" loading="lazy" />
@@ -1099,14 +1124,44 @@ function renderPickerModal(){
     </div>
   `).join("");
 
+  const resultsHtml = hasResults
+    ? `<div class="picker-grid">${cards}</div>`
+    : `<div style="padding:44px 20px;text-align:center;color:var(--muted);font-size:14px;
+         border:1px dashed var(--line);border-radius:var(--r-lg);margin-top:4px">
+         🔍 Yukarıya bir konu yaz, <strong>Ara</strong>'ya bas — görseller burada listelensin.
+       </div>`;
+
+  // Arama bölümü — modal'ın en üstünde (Chrome prompt yerine)
+  const searchSection = `
+    <div style="background:var(--surface);border:1px solid var(--line);
+      border-radius:var(--r-lg);padding:16px 18px;margin-bottom:16px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:6px">Ne konuda görsel arayalım?</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:3px">
+        Örn: <em>train station, ryokan interior, osaka night neon, mt fuji sunset, sakura park</em>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+        🇯🇵 Başına otomatik <strong style="color:var(--gold)">"japan"</strong> ekleniyor — sadece konuyu yaz.
+      </div>
+      <div style="display:flex;gap:8px">
+        <input id="pickerSearchInput" type="text" value="${escapeHtml(_pickerRawQuery)}"
+          placeholder="örn: sakura park"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();doPickerSearch();}"
+          style="flex:1;padding:11px 14px;font-size:14px;background:var(--bg);
+            color:var(--txt);border:1px solid var(--line);border-radius:var(--r-sm);outline:none" />
+        <button id="pickerSearchBtn" class="primary" onclick="doPickerSearch()"
+          style="padding:11px 22px;font-size:14px;font-weight:600;white-space:nowrap">Ara</button>
+      </div>
+    </div>`;
+
   back.innerHTML = `
     <div class="modal-content" onclick="event.stopPropagation()">
       <div class="modal-head">
-        <h3 class="modal-title">🖼 Görsel Seçici <small>— "${escapeHtml(_pickerQuery)}" · ${_pickerResults.length} sonuç · <strong>1 tane seç</strong></small></h3>
+        <h3 class="modal-title">🖼 Görsel Seçici${hasResults ? ` <small>— ${_pickerResults.length} sonuç · <strong>1 tane seç</strong></small>` : ""}</h3>
         <button class="ghost sm" onclick="closeBgPicker()">✕ Kapat</button>
       </div>
       <div class="modal-body">
-        <div class="picker-grid">${cards}</div>
+        ${searchSection}
+        ${resultsHtml}
 
         <div id="cardFormPanel" style="display:none;margin-top:20px;padding:16px;
           background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg)">
@@ -1160,10 +1215,10 @@ function renderPickerModal(){
       </div>
       <div class="modal-foot">
         <div>
-          <button class="sm ghost" onclick="reloadPicker()">🔄 Farklı Sonuçlar</button>
+          ${hasResults ? `<button class="sm ghost" onclick="reloadPicker()">🔄 Farklı Sonuçlar</button>` : ""}
         </div>
         <div style="display:flex;gap:10px;align-items:center">
-          <span style="color:var(--muted);font-size:12px" id="pickerCount">Görsel seç</span>
+          <span style="color:var(--muted);font-size:12px" id="pickerCount">${hasResults ? "Görsel seç" : ""}</span>
           <button class="primary" id="btn-picker-render" onclick="renderPickerCard()" disabled>🎨 Kartı Oluştur</button>
         </div>
       </div>
@@ -1198,7 +1253,7 @@ function selectPicker(idx){
 
 async function reloadPicker(){
   // her tıklamada bir sonraki Unsplash sayfası — Farklı 10 görsel
-  await openBgPicker(_pickerQuery, _pickerPage + 1);
+  await openBgPicker(_pickerPage + 1);
 }
 
 function closeBgPicker(){
