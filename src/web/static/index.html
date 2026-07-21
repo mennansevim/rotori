@@ -227,6 +227,44 @@
     font-size:11px;padding:8px 14px 0;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
+  /* --- Canlı Süreç: sabit alt footer, sürüklenebilir --- */
+  body{padding-bottom:210px}   /* footer için yer aç (JS runtime'da günceller) */
+  .livelog-footer{
+    position:fixed;left:0;right:0;bottom:0;z-index:100;
+    background:var(--surface);border-top:1px solid var(--line);
+    display:flex;flex-direction:column;
+    height:200px;min-height:60px;
+    box-shadow:0 -12px 32px rgba(0,0,0,.45);
+    transition:height .15s var(--ease);backdrop-filter:blur(8px)}
+  .livelog-footer.dragging{transition:none;user-select:none}
+  .livelog-footer.collapsed{height:60px !important}
+  .livelog-footer.collapsed .livelog-body{display:none}
+  .livelog-handle{
+    position:absolute;top:-5px;left:0;right:0;height:10px;
+    cursor:ns-resize;z-index:2}
+  .livelog-handle::before{
+    content:"";position:absolute;left:50%;top:4px;
+    transform:translateX(-50%);width:44px;height:3px;
+    background:var(--line);border-radius:2px;
+    transition:background var(--dur) var(--ease)}
+  .livelog-handle:hover::before,
+  .livelog-footer.dragging .livelog-handle::before{background:var(--gold)}
+  .livelog-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 20px;flex-shrink:0;
+    border-bottom:1px solid var(--line)}
+  .livelog-header .title{
+    display:flex;gap:6px;align-items:center;
+    font-weight:700;text-transform:uppercase;
+    letter-spacing:.08em;font-size:11px;color:var(--muted)}
+  .livelog-body{
+    flex:1;min-height:0;
+    border:none;border-radius:0;padding:10px 20px;
+    max-height:none}
+  .livelog-progress{
+    flex-shrink:0;border-top:1px solid var(--line);
+    padding:6px 20px}
+
   /* Reel grid */
   .reel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));
     gap:14px}
@@ -521,14 +559,6 @@
     </div>
   </details>
 
-  <!-- Canlı Süreç -->
-  <section class="section">
-    <div class="section-head">
-      <h2 class="section-title">📊 Canlı Süreç</h2>
-    </div>
-    <div id="logbox" class="logbox"><div class="empty" data-icon="⏳">Log henüz yok.</div></div>
-    <div id="progressLine" class="progress-line" style="display:none"></div>
-  </section>
 
   <!-- Onay Bekleyen -->
   <section class="section">
@@ -556,6 +586,20 @@
     </div>
   </section>
 </main>
+
+<!-- Canlı Süreç — sabit footer, sürüklenebilir -->
+<div id="livelogFooter" class="livelog-footer" role="region" aria-label="Canlı süreç günlükleri">
+  <div id="livelogHandle" class="livelog-handle" title="Sürükle — yüksekliği değiştir"></div>
+  <div class="livelog-header">
+    <div class="title">📊 Canlı Süreç <span id="livelogHint" style="color:var(--muted);font-weight:400;font-size:10.5px;margin-left:8px">— üst kenardan sürükle</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <button id="livelogCollapseBtn" class="sm ghost" style="padding:3px 10px;font-size:11px" onclick="toggleLivelogCollapse()" title="Sadece progress bar göster/gizle">⏵ Küçült</button>
+      <button class="sm ghost" style="padding:3px 10px;font-size:11px" onclick="$('logbox').innerHTML=''" title="Log geçmişini temizle">✕ Temizle</button>
+    </div>
+  </div>
+  <div id="logbox" class="logbox livelog-body"><div class="empty" data-icon="⏳">Log henüz yok.</div></div>
+  <div id="progressLine" class="progress-line livelog-progress" style="display:none"></div>
+</div>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -1320,6 +1364,78 @@ async function unpublish(name){
   toast("Onay bekleyene geri alındı.", "info");
   pollReels();
 }
+
+// ---------- Canlı Süreç sabit footer — drag ile yükseklik ayarı ----------
+(function setupLivelog(){
+  const footer = document.getElementById("livelogFooter");
+  const handle = document.getElementById("livelogHandle");
+  if(!footer || !handle) return;
+
+  const MIN_H = 60;              // collapsed state
+  const DEFAULT_H = 200;
+  const maxH = () => Math.floor(window.innerHeight * 0.70);
+
+  function setHeight(h, save = true){
+    const clamped = Math.max(MIN_H, Math.min(h, maxH()));
+    footer.style.height = clamped + "px";
+    document.body.style.paddingBottom = (clamped + 10) + "px";
+    if(save) localStorage.setItem("livelog-height", String(clamped));
+    footer.classList.toggle("collapsed", clamped <= MIN_H + 2);
+    const btn = document.getElementById("livelogCollapseBtn");
+    if(btn) btn.textContent = footer.classList.contains("collapsed") ? "⏶ Büyüt" : "⏵ Küçült";
+  }
+
+  // ilk yükleme
+  const savedRaw = localStorage.getItem("livelog-height");
+  const savedH = savedRaw ? parseInt(savedRaw, 10) : DEFAULT_H;
+  setHeight(isFinite(savedH) && savedH > 0 ? savedH : DEFAULT_H, false);
+
+  // mouse drag
+  let dragging = false, startY = 0, startH = 0;
+  handle.addEventListener("mousedown", (e) => {
+    dragging = true; startY = e.clientY; startH = footer.offsetHeight;
+    footer.classList.add("dragging");
+    document.body.style.cursor = "ns-resize";
+    e.preventDefault();
+  });
+  document.addEventListener("mousemove", (e) => {
+    if(!dragging) return;
+    setHeight(startH + (startY - e.clientY));
+  });
+  document.addEventListener("mouseup", () => {
+    if(!dragging) return;
+    dragging = false;
+    footer.classList.remove("dragging");
+    document.body.style.cursor = "";
+  });
+
+  // touch (mobil)
+  handle.addEventListener("touchstart", (e) => {
+    if(!e.touches[0]) return;
+    dragging = true; startY = e.touches[0].clientY; startH = footer.offsetHeight;
+    footer.classList.add("dragging");
+    e.preventDefault();
+  }, {passive: false});
+  document.addEventListener("touchmove", (e) => {
+    if(!dragging || !e.touches[0]) return;
+    setHeight(startH + (startY - e.touches[0].clientY));
+  }, {passive: true});
+  document.addEventListener("touchend", () => {
+    if(!dragging) return;
+    dragging = false; footer.classList.remove("dragging");
+  });
+
+  // window resize
+  window.addEventListener("resize", () => {
+    if(footer.offsetHeight > maxH()) setHeight(maxH());
+  });
+
+  // toggle
+  window.toggleLivelogCollapse = function(){
+    if(footer.classList.contains("collapsed")) setHeight(DEFAULT_H);
+    else setHeight(MIN_H);
+  };
+})();
 
 // ---------- loop ----------
 setInterval(() => { pollStatus(); pollLogs(); }, 1000);
