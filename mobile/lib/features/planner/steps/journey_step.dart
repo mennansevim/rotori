@@ -164,10 +164,11 @@ class _JourneyStepState extends State<JourneyStep> {
 
         if (widget.onLoadJapanPlan != null) _japanBanner(),
 
-        // Gidiş bacağı (tek durak — çoklu durak Plan/rota editörü sonraki iterasyon)
-        for (var i = 0; i < (dests.isEmpty ? 1 : dests.length); i++)
-          _flightLeg(i, dests.isEmpty ? null : dests[i]),
+        // Gidiş uçuşu SADECE ilk destinasyona. Ara şehirler Shinkansen/tren
+        // ile — her seçilen şehir için ayrı uçuş kartı çıkarmıyoruz.
+        _flightLeg(0, dests.isEmpty ? null : dests.first),
 
+        // Dönüş uçuşu son destinasyondan (varsa).
         if (showReturn) _returnLeg(lastDest!),
 
         if (destCount >= 2) _shinkansenReminder(),
