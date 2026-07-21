@@ -478,28 +478,52 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
     _draw_spaced(d, (tag_x, y), tag_text, tag_font,
                  (0, 0, 0, 255), spacing=TAG_LSP)
 
-    # === Alt orta: kırmızı daire + handle ===
-    handle_font = _load_font(FONT_BOLD, 34)
-    circle_r = 22
-    gap = 12
-    hbb = handle_font.getbbox(handle)
-    handle_tw = hbb[2] - hbb[0]
-    total_w = circle_r * 2 + gap + handle_tw
-    row_center_y = H - 60
-    start_x = (W - total_w) // 2
+    # === Alt orta: LOGO (transparent PNG) veya fallback (kırmızı daire + @handle) ===
+    logo_path = Path("assets/logo_japonya_ruyasi.png")
+    logo_ok = False
+    if logo_path.exists() and logo_path.is_file():
+        try:
+            logo = Image.open(logo_path).convert("RGBA")
+            # Hedef genişlik: kart genişliğinin ~%50'si; yükseklik oranlı
+            # (max 200px yükseklikte kırp — dikey logolar için)
+            target_w = int(W * 0.50)
+            ratio = logo.height / max(logo.width, 1)
+            target_h = int(target_w * ratio)
+            max_h = 200
+            if target_h > max_h:
+                target_h = max_h
+                target_w = int(target_h / max(ratio, 0.01))
+            logo = logo.resize((target_w, target_h), Image.LANCZOS)
+            lx = (W - target_w) // 2
+            ly = H - target_h - 40   # alt kenardan 40px içeride
+            bg.alpha_composite(logo, (lx, ly))
+            logo_ok = True
+        except (OSError, ValueError) as exc:
+            log.warning(f"Logo yüklenemedi ({logo_path}): {exc} — @handle fallback")
 
-    circle_cx = start_x + circle_r
-    d.ellipse(
-        (circle_cx - circle_r, row_center_y - circle_r,
-         circle_cx + circle_r, row_center_y + circle_r),
-        fill=(220, 30, 40, 255),
-    )
+    if not logo_ok:
+        # Fallback: eski kırmızı Hinomaru + beyaz @handle
+        handle_font = _load_font(FONT_BOLD, 34)
+        circle_r = 22
+        gap = 12
+        hbb = handle_font.getbbox(handle)
+        handle_tw = hbb[2] - hbb[0]
+        total_w = circle_r * 2 + gap + handle_tw
+        row_center_y = H - 60
+        start_x = (W - total_w) // 2
 
-    text_x = start_x + circle_r * 2 + gap
-    tmp_bb = d.textbbox((text_x, 0), handle, font=handle_font)
-    text_h = tmp_bb[3] - tmp_bb[1]
-    text_y = row_center_y - text_h // 2 - tmp_bb[1]
-    d.text((text_x, text_y), handle, font=handle_font, fill=(255, 255, 255, 255))
+        circle_cx = start_x + circle_r
+        d.ellipse(
+            (circle_cx - circle_r, row_center_y - circle_r,
+             circle_cx + circle_r, row_center_y + circle_r),
+            fill=(220, 30, 40, 255),
+        )
+
+        text_x = start_x + circle_r * 2 + gap
+        tmp_bb = d.textbbox((text_x, 0), handle, font=handle_font)
+        text_h = tmp_bb[3] - tmp_bb[1]
+        text_y = row_center_y - text_h // 2 - tmp_bb[1]
+        d.text((text_x, text_y), handle, font=handle_font, fill=(255, 255, 255, 255))
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     bg.convert("RGB").save(out_path, "JPEG", quality=92, optimize=True)
