@@ -436,9 +436,9 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
         - Sol üst: dairesel Hinomaru bayrak rozeti (gölge + halka)
         - Altta foto → siyah YUMUŞAK gradient; metnin hemen üstünde tam
           siyaha ulaşır → yazı her zaman okunur
-        - Ortalanmış wordmark (logo PNG varsa o; yoksa kicker/JAPONYA/RÜYASI)
         - Büyük beyaz başlık (Impact, gölgeli, ortalı)
         - Okunur beyaz alt açıklama (Arial Bold, ortalı)
+      (Not: logo/wordmark kaldırıldı — kullanıcı isteği.)
     """
     if cfg.stories is None:
         raise RuntimeError("stories config yok")
@@ -450,7 +450,6 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
 
     baslik = _tr_upper(kart["baslik"].strip())
     aciklama = _tr_upper(kart["aciklama"].strip())
-    ust_tag = _tr_upper((kart.get("ust_tag") or "GEZİ DEFTERİ").strip())
 
     # === 1) Tam-kadraj foto ===
     bg = Image.new("RGBA", (W, H), (0, 0, 0, 255))
@@ -487,12 +486,8 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
     body_line_h = _b_asc + _b_desc + 8
     body_h = body_line_h * len(body_lines)
 
-    # Wordmark
-    wm = _prepare_wordmark(W, ust_tag)
-    wm_h = wm["h"]
-
-    gap_wm_title, gap_title_body, bottom_pad = 38, 40, 62
-    block_h = wm_h + gap_wm_title + title_h + gap_title_body + body_h
+    gap_title_body, bottom_pad = 40, 62
+    block_h = title_h + gap_title_body + body_h
     block_top = H - bottom_pad - block_h
     # metin çok uzunsa fotoyu tamamen yeme — en az ~%28 foto kalsın
     block_top = max(block_top, int(H * 0.28))
@@ -518,12 +513,8 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
     _draw_flag_badge(bg, badge_margin + badge_r, badge_margin + badge_r, badge_r)
     d = ImageDraw.Draw(bg)   # alpha_composite (gölge) sonrası handle tazele
 
-    # === 5) Bottom-anchored blok: wordmark → başlık → açıklama ===
+    # === 5) Bottom-anchored blok: başlık → açıklama ===
     y = block_top
-    _draw_wordmark(bg, cx, y, wm)
-    d = ImageDraw.Draw(bg)
-    y += wm_h + gap_wm_title
-
     for line in title_lines:
         _draw_line_center(d, cx, y, line, title_font, (255, 255, 255, 255),
                           spacing=TITLE_LSP, shadow=((0, 0, 0, 170), (0, 3)))
