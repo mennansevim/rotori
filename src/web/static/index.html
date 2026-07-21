@@ -853,7 +853,9 @@ function renderPickerModal(){
   const back = document.createElement("div");
   back.id = "bgPickerModal";
   back.className = "modal-backdrop";
-  back.onclick = (e) => { if(e.target === back) closeBgPicker(); };
+  // NOT: backdrop tıklaması bilerek kapatmıyor — kullanıcı form doldururken
+  // yanlışlıkla kapatıyordu. Kapanma sadece "✕ Kapat" butonu veya başarılı
+  // render sonrası (closeBgPicker) ile olur.
 
   const cards = _pickerResults.map((p, idx) => `
     <div class="picker-card" data-idx="${idx}" onclick="selectPicker(${idx})">
