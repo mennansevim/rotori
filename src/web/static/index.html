@@ -270,9 +270,6 @@
     border-color:var(--line)}
 
   /* Story kartları — 1080x1920 preview grid */
-  .story-input-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
-  .story-input-row input[type="text"]{flex:1;min-width:280px}
-  .story-input-row button{white-space:nowrap}
   .story-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
   .story-card{background:var(--surface);border:1px solid var(--line);
     border-radius:var(--r-lg);overflow:hidden;display:flex;flex-direction:column;
@@ -379,21 +376,15 @@
   <!-- Hikaye Görsel Üreticisi -->
   <section class="section" id="storyCard">
     <div class="section-head">
-      <h2 class="section-title">🎨 Hikaye Görsel Üreticisi <span class="count" id="bgCount" title="Kayıtlı arka plan sayısı">0 bg</span></h2>
-      <button class="sm" id="btn-bg-download" onclick="downloadBackgrounds()"
-        title="Unsplash'ten Japan temalı görselleri assets/story_backgrounds/'a indir">📥 Arka Plan İndir</button>
+      <h2 class="section-title">🎨 Hikaye Görsel Üreticisi</h2>
+      <button class="primary" id="btn-story-create" onclick="openStoryCreator()"
+        title="Görsel ara, seç, başlık + alt açıklama yaz, kart üret">🎨 Görsel Üret</button>
     </div>
     <p class="section-hint">
-      Bir konu ver — GPT sana 3 farklı Instagram Story kartı üretsin (1080×1920 JPG). Impact başlık + sarı vurgu + Japan temalı arka plan. Her seferinde 3 varyant. Arka planlar <code>assets/story_backgrounds/</code>'dan seçilir — Unsplash'ten otomatik doldurabilirsin.
+      Tek butonla akış — bir konu yaz, Unsplash'ten görsel seç, başlık + alt açıklama gir (ya da <strong>✨ AI Yaz</strong> ile GPT'ye ürettir), 1080×1920 Instagram Story kartı çıksın. Foto <code>assets/story_backgrounds/</code>'a cache'lenir; aynı görsel bir daha indirilmez.
     </p>
-    <form onsubmit="event.preventDefault(); generateStories();">
-      <div class="story-input-row">
-        <input type="text" id="story-konu" required placeholder="Örn: Japonya'da kredi kartı nasıl kullanılır — Konbini'de neyi al — Sumo hakkında bilinmeyenler…" />
-        <button type="submit" class="primary" id="btn-story">🎬 3 Görsel Üret</button>
-      </div>
-    </form>
     <div id="storyGrid" class="story-grid">
-      <div class="empty" data-icon="🎨">Konu gir, 3 varyant çıkar…</div>
+      <div class="empty" data-icon="🎨">Butona bas — ilk kart burada belirsin.</div>
     </div>
   </section>
 
@@ -803,15 +794,14 @@ function useIdea(s){
 }
 
 // ---------- analyze ----------
-// ---------- Arka Plan İndirici ----------
+// ---------- Story Görsel Üreticisi ----------
 async function pollBackgrounds(){
   try{
     const r = await fetch("/api/backgrounds/status");
     if(!r.ok) return;
     const s = await r.json();
-    $("bgCount").textContent = `${s.count} bg`;
-    const btn = $("btn-bg-download");
-    if(!s.unsplash_enabled){
+    const btn = $("btn-story-create");
+    if(btn && !s.unsplash_enabled){
       btn.disabled = true;
       btn.title = "config.yaml → unsplash.access_key doldur";
     }
@@ -822,10 +812,10 @@ let _pickerQuery = "";
 let _pickerResults = [];
 let _pickerSelectedIdx = null;   // tek seçim
 
-async function downloadBackgrounds(){
+async function openStoryCreator(){
   const query = prompt(
-    "Ne konuda arka plan görsel arayalım?\n\n" +
-    "Örn: 'japanese train station', 'ryokan interior', 'osaka night neon', 'mt fuji sunset'\n\n" +
+    "Ne konuda görsel arayalım?\n\n" +
+    "Örn: 'japanese train station', 'ryokan interior', 'osaka night neon', 'mt fuji sunset', 'sakura park'\n\n" +
     "İngilizce yaz — Unsplash sonuçları daha zengin.",
     ""
   );
@@ -1049,36 +1039,6 @@ async function renderPickerCard(){
 }
 
 // ---------- Hikaye Görselleri ----------
-async function generateStories(){
-  const konu = $("story-konu").value.trim();
-  if(!konu){ toast("Konu gerekli.", "err"); return; }
-  const btn = $("btn-story");
-  btn.disabled = true;
-  const grid = $("storyGrid");
-  grid.innerHTML = `<div class="empty" data-icon="⏳">GPT çalışıyor + 3 görsel render ediliyor… (~5-8 saniye)</div>`;
-  try{
-    const r = await fetch("/api/story/generate", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({konu, count: 3})
-    });
-    if(!r.ok){
-      let msg = r.statusText;
-      try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
-      toast("Görsel üretim başarısız: " + msg, "err");
-      grid.innerHTML = `<div class="empty" data-icon="⚠">Hata: ${escapeHtml(msg)}</div>`;
-      return;
-    }
-    const data = await r.json();
-    renderStories(data.cards);
-    toast(`${data.cards.length} görsel üretildi.`, "ok");
-  }catch(e){
-    toast("Bağlantı hatası.", "err");
-    grid.innerHTML = `<div class="empty" data-icon="⚠">Bağlantı hatası.</div>`;
-  }finally{
-    btn.disabled = false;
-  }
-}
-
 function renderStories(cards){
   const grid = $("storyGrid");
   if(!cards || !cards.length){
