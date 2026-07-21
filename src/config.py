@@ -57,6 +57,7 @@ class InstagramCfg:
 @dataclass
 class StoriesCfg:
     output_dir: Path
+    backgrounds_dir: Path | None = None    # kullanıcının yüklediği Japan görseller
     width: int = 1080
     height: int = 1920
     handle: str = "@mennansjapan"
@@ -154,8 +155,13 @@ def load_config(config_path: str | None = None) -> Config:
         stories_output = _resolve(project_root,
                                   stories_raw.get("output_dir", "output/stories"))
         stories_output.mkdir(parents=True, exist_ok=True)
+        bg_dir = None
+        if stories_raw.get("backgrounds_dir"):
+            bg_dir = _resolve(project_root, stories_raw["backgrounds_dir"])
+            bg_dir.mkdir(parents=True, exist_ok=True)
         stories_cfg = StoriesCfg(
             output_dir=stories_output,
+            backgrounds_dir=bg_dir,
             width=int(stories_raw.get("width", 1080)),
             height=int(stories_raw.get("height", 1920)),
             handle=str(stories_raw.get("handle", "@mennansjapan")),
