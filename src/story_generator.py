@@ -327,19 +327,19 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
     if cfg.stories is None:
         raise RuntimeError("stories config yok")
 
-    W, H = cfg.stories.width, cfg.stories.height
-    split_y = int(H * 0.55)   # foto/siyah nominal ayrım noktası
+    W, H = cfg.stories.width, cfg.stories.height  # 1080 × 1350 (Instagram Post 4:5)
+    split_y = int(H * 0.50)   # foto/siyah nominal ayrım (4:5 için biraz daha kompakt)
 
     # Letter-spacing sabitleri (Impact kalın, sıkı yerleşir — açalım)
-    UST_LSP = 3
-    TITLE_LSP = 5
-    BODY_LSP = 4
+    UST_LSP = 2
+    TITLE_LSP = 4
+    BODY_LSP = 3
     TAG_LSP = 2
 
     # === Zemin: siyah dolgu; foto split_y'den daha uzun paste, üstüne
     # yumuşak gradient (foto siyaha yavaş yavaş erisin) ===
     bg = Image.new("RGBA", (W, H), (0, 0, 0, 255))
-    photo_h = split_y + 90   # foto biraz daha uzansın, gradient içinde erisin
+    photo_h = split_y + 70   # foto biraz daha uzansın, gradient içinde erisin
     if bg_path and bg_path.exists():
         try:
             photo = Image.open(bg_path).convert("RGB")
@@ -348,9 +348,8 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
         except Exception as exc:
             log.warning(f"  foto yüklenemedi ({bg_path.name}): {exc}")
 
-    # Gradient overlay: split_y-140 → photo_h arası; üstte 0 alpha (foto net),
-    # altta 255 alpha (tam siyah)
-    grad_start = max(0, split_y - 140)
+    # Gradient overlay: yumuşak foto → siyah geçiş
+    grad_start = max(0, split_y - 100)
     grad_end = photo_h
     grad = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     gd = ImageDraw.Draw(grad)
@@ -371,12 +370,11 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
     caption_w = W - 2 * padding_x
 
     # === Üst rozet — gradient bandın içinde, sol tarafta ===
-    ust_font = _load_font(FONT_IMPACT, 44)
-    ust_pad_x, ust_pad_y = 16, 8
+    ust_font = _load_font(FONT_IMPACT, 36)   # 4:5 için biraz küçük
+    ust_pad_x, ust_pad_y = 14, 6
     ust_x_text = padding_x + ust_pad_x
-    ust_y_text = split_y - 60
+    ust_y_text = split_y - 50
     ust_tw = _spaced_width(ust_tag, ust_font, UST_LSP)
-    # dikey ölçü için normal textbbox (yükseklik letter-spacing'den etkilenmez)
     ust_bb = d.textbbox((ust_x_text, ust_y_text), ust_tag, font=ust_font)
     d.rectangle(
         (ust_bb[0] - ust_pad_x, ust_bb[1] - ust_pad_y,
@@ -387,35 +385,35 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
                  (0, 0, 0, 255), spacing=UST_LSP)
 
     # === Alt yarı: başlık ===
-    title_size = 96
+    title_size = 80   # 96 → 80 (4:5 için)
     title_font = _load_font(FONT_IMPACT, title_size)
     title_lines = _wrap_words(baslik, title_font, caption_w, TITLE_LSP)
-    while len(title_lines) > 2 and title_size > 70:
+    while len(title_lines) > 2 and title_size > 58:
         title_size = int(title_size * 0.92)
         title_font = _load_font(FONT_IMPACT, title_size)
         title_lines = _wrap_words(baslik, title_font, caption_w, TITLE_LSP)
-    line_h_title = int(title_size * 1.10)   # %10 artırılmış satır aralığı
+    line_h_title = int(title_size * 1.10)
 
     # === Alt açıklama — sarı highlight ===
-    body_size = 72
+    body_size = 58    # 72 → 58 (4:5 için)
     body_font = _load_font(FONT_IMPACT, body_size)
-    hi_pad_x, hi_pad_y = 12, 5
+    hi_pad_x, hi_pad_y = 10, 4
     body_max_w = caption_w - hi_pad_x * 2
     body_lines = _wrap_words(aciklama, body_font, body_max_w, BODY_LSP)
-    while len(body_lines) > 4 and body_size > 48:
+    while len(body_lines) > 4 and body_size > 40:
         body_size = int(body_size * 0.92)
         body_font = _load_font(FONT_IMPACT, body_size)
         body_lines = _wrap_words(aciklama, body_font, body_max_w, BODY_LSP)
-    line_h_body = int(body_size * 1.25)     # 1.14 → 1.25 (%10 artırıldı)
+    line_h_body = int(body_size * 1.25)
 
     # === Tag (DETAYLAR AÇIKLAMADA) ===
-    tag_size = 32
+    tag_size = 26   # 32 → 26
     tag_font = _load_font(FONT_IMPACT, tag_size)
     tag_text = "DETAYLAR AÇIKLAMADA"
-    tag_pad_x, tag_pad_y = 10, 4
+    tag_pad_x, tag_pad_y = 8, 3
 
     # === Layout: gradient sonrası ===
-    y = split_y + 60   # gradient'in bitişinden biraz sonra
+    y = split_y + 50
 
     for line in title_lines:
         _draw_spaced(d, (padding_x, y), line, title_font,
@@ -454,13 +452,13 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
                  (0, 0, 0, 255), spacing=TAG_LSP)
 
     # === Alt orta: kırmızı daire + handle ===
-    handle_font = _load_font(FONT_BOLD, 40)
-    circle_r = 28
-    gap = 14
+    handle_font = _load_font(FONT_BOLD, 34)
+    circle_r = 22
+    gap = 12
     hbb = handle_font.getbbox(handle)
     handle_tw = hbb[2] - hbb[0]
     total_w = circle_r * 2 + gap + handle_tw
-    row_center_y = H - 80
+    row_center_y = H - 60
     start_x = (W - total_w) // 2
 
     circle_cx = start_x + circle_r

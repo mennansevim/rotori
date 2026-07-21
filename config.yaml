@@ -66,19 +66,16 @@ instagram:
   uploads_log: "data/instagram_uploads.jsonl"
 
 stories:
-  # Hikaye Görsel Üreticisi (Instagram Story kartları). GPT ile 3 farklı
-  # varyant üretir, önceden konulmuş Japan temalı blurlu arka planlardan
-  # birini seçer (dosya adına göre match), PIL ile render.
+  # Hikaye/Post Görsel Üreticisi. Instagram Post 4:5 formatı (1080×1350) —
+  # feed'de tam görünür, kesilmez. Aynı görsel Story'e "share to story"
+  # ile de atılabilir.
   output_dir: "output/stories"
-  # Arka plan görselleri klasörü. JPG/PNG/WEBP ekleyebilirsin. Dosya adına
-  # anahtar kelime yazarsan (örn subway-blur.jpg, konbini-night.jpg) GPT'nin
-  # konusuna göre eşleştirilir. Genel görseller de olabilir (örn
-  # japan-generic-blur.jpg) — hiç match yoksa random seçilir.
-  # Boşsa: eski davranış (arşiv video frame'lerini kullanır).
+  # Arka plan görselleri klasörü. Unsplash search+seç akışında görseller
+  # otomatik buraya cache'lenir (unsplash-<query-slug>-<id>.jpg).
   backgrounds_dir: "assets/story_backgrounds"
   width: 1080
-  height: 1920
-  handle: "@japonyaruyasi"        # her karta alt-üst köşede sabit badge
+  height: 1350                    # Instagram Post 4:5 formatı
+  handle: "@japonyaruyasi"        # alt orta konumdaki kırmızı daire + handle
 
 reels:
   target_width: 1080
