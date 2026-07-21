@@ -24,7 +24,7 @@ import unicodedata
 from pathlib import Path
 from typing import Any
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 from src.config import Config
 from src.utils.logging import get_logger
@@ -252,6 +252,64 @@ def _draw_spaced(draw: ImageDraw.ImageDraw, xy: tuple[int, int], text: str,
         x += (cbb[2] - cbb[0]) + spacing
 
 
+def _draw_ust_rozet(img: Image.Image, tag: str, x_left: int, y_top: int,
+                    font: ImageFont.FreeTypeFont, spacing: int = 2) -> None:
+    """Modern editorial pill rozet:
+        - Tam yuvarlatılmış köşeler (border-radius = height/2)
+        - Sol tarafta 4px kalın siyah dikey accent bar (magazin başlığı hissi)
+        - Altında yumuşak drop shadow (blur ile) — sayfa üzerinde yüzüyor gibi
+        - Sarı zemin + siyah Impact metin
+    (x_left, y_top) rozetin sol-üst köşe koordinatıdır.
+    """
+    W, H = img.size
+    pad_x_left = 22
+    pad_x_right = 20
+    pad_y = 10
+    bar_w = 4        # sol accent bar kalınlığı
+    bar_gap = 12     # bar ile metin arası
+
+    ascent, descent = font.getmetrics()
+    inner_h = ascent + descent
+    text_w = _spaced_width(tag, font, spacing)
+    rozet_w = pad_x_left + bar_w + bar_gap + text_w + pad_x_right
+    rozet_h = inner_h + pad_y * 2
+    radius = rozet_h // 2
+
+    # 1) Drop shadow — ayrı katman + Gaussian blur
+    shadow_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(shadow_layer)
+    sd.rounded_rectangle(
+        (x_left + 2, y_top + 6, x_left + rozet_w + 2, y_top + rozet_h + 6),
+        radius=radius, fill=(0, 0, 0, 150),
+    )
+    shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(radius=7))
+    img.alpha_composite(shadow_layer)
+
+    d = ImageDraw.Draw(img)
+
+    # 2) Ana pill rozet — sarı
+    d.rounded_rectangle(
+        (x_left, y_top, x_left + rozet_w, y_top + rozet_h),
+        radius=radius, fill=COLOR_ACCENT,
+    )
+
+    # 3) Sol accent bar — siyah dikey çubuk (pill'in iç kenarında)
+    bar_x = x_left + pad_x_left
+    bar_top = y_top + int(rozet_h * 0.22)
+    bar_bot = y_top + int(rozet_h * 0.78)
+    d.rounded_rectangle(
+        (bar_x, bar_top, bar_x + bar_w, bar_bot),
+        radius=bar_w // 2, fill=(15, 15, 22, 255),
+    )
+
+    # 4) Metin — accent bar'ın sağında, dikey merkezli
+    text_x = bar_x + bar_w + bar_gap
+    text_bb = font.getbbox(tag)
+    band_center = y_top + rozet_h // 2
+    text_y = band_center - (text_bb[3] - text_bb[1]) // 2 - text_bb[1]
+    _draw_spaced(d, (text_x, text_y), tag, font, (18, 18, 26, 255), spacing=spacing)
+
+
 def _wrap_words(text: str, font: ImageFont.FreeTypeFont, max_width: int,
                 letter_spacing: int = 0) -> list[str]:
     """Metni verilen genişliğe göre satırlara böl (letter-spacing'e duyarlı)."""
@@ -369,20 +427,15 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
     padding_x = int(W * 0.05)
     caption_w = W - 2 * padding_x
 
-    # === Üst rozet — gradient bandın içinde, sol tarafta ===
-    ust_font = _load_font(FONT_IMPACT, 36)   # 4:5 için biraz küçük
-    ust_pad_x, ust_pad_y = 14, 6
-    ust_x_text = padding_x + ust_pad_x
-    ust_y_text = split_y - 50
-    ust_tw = _spaced_width(ust_tag, ust_font, UST_LSP)
-    ust_bb = d.textbbox((ust_x_text, ust_y_text), ust_tag, font=ust_font)
-    d.rectangle(
-        (ust_bb[0] - ust_pad_x, ust_bb[1] - ust_pad_y,
-         ust_x_text + ust_tw + ust_pad_x, ust_bb[3] + ust_pad_y),
-        fill=COLOR_ACCENT,
-    )
-    _draw_spaced(d, (ust_x_text, ust_y_text), ust_tag, ust_font,
-                 (0, 0, 0, 255), spacing=UST_LSP)
+    # === Üst rozet — editorial pill (rounded + shadow + accent bar) ===
+    ust_font = _load_font(FONT_IMPACT, 34)
+    # rozetin yüksekliğini önden hesaplayıp y_top'ı ayarla — split_y sınırının
+    # biraz üstünde konumlansın
+    _asc_ust, _desc_ust = ust_font.getmetrics()
+    _rozet_h_est = _asc_ust + _desc_ust + 20   # pad_y*2 = 20
+    _draw_ust_rozet(bg, ust_tag, padding_x, split_y - _rozet_h_est - 14,
+                    ust_font, spacing=UST_LSP)
+    d = ImageDraw.Draw(bg)   # alpha_composite (shadow) sonrası draw handle'ı tazele
 
     # === Alt yarı: başlık ===
     # Önce tek satıra sığdırmayı dene (min 54pt'ye kadar). Sığmıyorsa 2 satır.
