@@ -62,7 +62,17 @@ class OpenAIClient:
         for attempt in range(2):
             try:
                 r = requests.post(url, headers=headers, json=payload, timeout=self.timeout)
-                r.raise_for_status()
+                if not r.ok:
+                    # hata gövdesini de göster (OpenAI hata mesajları çok bilgilendirici)
+                    body_msg = ""
+                    try:
+                        err = r.json().get("error", {})
+                        body_msg = err.get("message") or str(err)
+                    except Exception:
+                        body_msg = r.text[:400]
+                    raise requests.HTTPError(
+                        f"{r.status_code} {r.reason} — {body_msg}", response=r,
+                    )
                 data = r.json()
                 return data["choices"][0]["message"]["content"]
             except (requests.RequestException, KeyError, ValueError) as exc:
@@ -86,6 +96,26 @@ class OpenAIClient:
         raw = self._chat(
             [{"role": "system", "content": system},
              {"role": "user", "content": user}],
+            response_format={"type": "json_object"},
+            temperature=temperature, max_tokens=max_tokens,
+        )
+        return json.loads(raw)
+
+    def chat_vision_json(self, system: str, user_text: str, image_url: str,
+                         detail: str = "auto", temperature: float = 0.6,
+                         max_tokens: int = 400) -> dict[str, Any]:
+        """Vision + JSON — verilen image_url'yi analiz eder, JSON döner.
+        image_url public bir URL olabilir (Unsplash gibi) veya data:image/... URI."""
+        messages = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": [
+                {"type": "text", "text": user_text},
+                {"type": "image_url",
+                 "image_url": {"url": image_url, "detail": detail}},
+            ]},
+        ]
+        raw = self._chat(
+            messages,
             response_format={"type": "json_object"},
             temperature=temperature, max_tokens=max_tokens,
         )

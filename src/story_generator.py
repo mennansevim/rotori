@@ -298,7 +298,7 @@ def _wrap_words(text: str, font: ImageFont.FreeTypeFont, max_width: int,
 def render_from_url(cfg: Config, bg_url: str, bg_id: str, bg_query: str,
                     baslik: str, aciklama: str, vurgu: list[str] | None = None,
                     photographer: str = "",
-                    ust_tag: str = "İLGİNÇ BİLGİ") -> Path:
+                    ust_tag: str = "GEZİ DEFTERİ") -> Path:
     """Unsplash'tan gelen bir görseli indir + kart render et. Foto kartın üst
     %55'ine yerleşir, altında siyah bant + başlık + sarı highlight açıklama.
     """
@@ -328,7 +328,7 @@ def render_from_url(cfg: Config, bg_url: str, bg_id: str, bg_query: str,
     kart = {
         "baslik": baslik.strip(),
         "aciklama": aciklama.strip(),
-        "ust_tag": (ust_tag or "İLGİNÇ BİLGİ").strip(),
+        "ust_tag": (ust_tag or "GEZİ DEFTERİ").strip(),
     }
     ts = int(time.time())
     out_slug = _slugify(baslik) or "kart"
@@ -342,7 +342,7 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
                 out_path: Path) -> Path:
     """Kullanıcı referansına göre yeni tasarım:
         [ÜST ~%55]  foto arka plan
-        [SOL, sınırda]  küçük SARI "İLGİNÇ BİLGİ" tag
+        [SOL, sınırda]  küçük SARI "GEZİ DEFTERİ" tag
         [ALT ~%45]  siyah bant:
             - başlık: beyaz Impact, sol-yaslı
             - alt açıklama satırları: her biri sarı highlight bloğu, siyah yazı
@@ -388,7 +388,7 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
 
     baslik = _tr_upper(kart["baslik"].strip())
     aciklama = _tr_upper(kart["aciklama"].strip())
-    ust_tag = _tr_upper((kart.get("ust_tag") or "İLGİNÇ BİLGİ").strip())
+    ust_tag = _tr_upper((kart.get("ust_tag") or "GEZİ DEFTERİ").strip())
     handle = cfg.stories.handle
 
     padding_x = int(W * 0.05)
