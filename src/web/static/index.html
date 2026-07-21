@@ -486,7 +486,8 @@
     <div class="logo-mark">🎬</div>
     <div class="logo-text"><span class="jp">Japan</span> Reels Maker</div>
   </div>
-  <div class="pills">
+  <!-- Reels pipeline durum pill'leri — şimdilik gizli (reels modülleri kapalı) -->
+  <div class="pills" style="display:none">
     <span class="pill"><span id="pill-ollama" class="dot"></span> Ollama</span>
     <span class="pill"><span id="pill-source" class="dot"></span> Kaynak <span id="pill-source-txt">?</span></span>
     <span class="pill" id="pill-count" style="color:var(--txt-dim)"><span id="pill-count-num">0</span> video</span>
@@ -511,8 +512,8 @@
     </div>
   </section>
 
-  <!-- Reels Fikirleri -->
-  <section class="section" id="ideasCard">
+  <!-- Reels Fikirleri — şimdilik gizli (reels modülleri kapalı) -->
+  <section class="section" id="ideasCard" style="display:none">
     <div class="section-head">
       <h2 class="section-title">
         💡 Reels Fikirleri
@@ -526,8 +527,8 @@
     </div>
   </section>
 
-  <!-- Analiz -->
-  <section class="section">
+  <!-- Analiz — şimdilik gizli (reels modülleri kapalı) -->
+  <section class="section" style="display:none">
     <div class="section-head">
       <h2 class="section-title">🔍 Video Analizi</h2>
       <div style="display:flex;gap:8px">
@@ -540,8 +541,8 @@
     <p class="section-hint">Kaynak klasöründe yeni video varsa etiketler + sahne özetlerini üretir. Her yeni video için ~10-15 saniye.</p>
   </section>
 
-  <!-- Arşivi Reels'e Dönüştür — asıl akış -->
-  <section class="section">
+  <!-- Arşivi Reels'e Dönüştür — şimdilik gizli (reels modülleri kapalı) -->
+  <section class="section" style="display:none">
     <div class="section-head">
       <h2 class="section-title">🎞 Arşivi Reels'e Dönüştür</h2>
       <div style="display:flex;gap:8px">
@@ -561,8 +562,8 @@
     </p>
   </section>
 
-  <!-- Reels Üretimi (Advanced — prompt bazlı tek video) -->
-  <details class="section" id="promptSection" style="padding:0">
+  <!-- Reels Üretimi (Advanced) — şimdilik gizli (reels modülleri kapalı) -->
+  <details class="section" id="promptSection" style="padding:0;display:none">
     <summary style="padding:22px;cursor:pointer;list-style:none;
       display:flex;align-items:center;gap:8px">
       <span class="section-title" style="margin:0">✏️ Tek Reels — Prompt Bazlı</span>
@@ -633,8 +634,8 @@
   </details>
 
 
-  <!-- Onay Bekleyen -->
-  <section class="section">
+  <!-- Onay Bekleyen — şimdilik gizli (reels modülleri kapalı) -->
+  <section class="section" style="display:none">
     <div class="section-head">
       <h2 class="section-title">
         ⏳ Onay Bekleyen
@@ -646,8 +647,8 @@
     </div>
   </section>
 
-  <!-- Yayına Hazır -->
-  <section class="section">
+  <!-- Yayına Hazır — şimdilik gizli (reels modülleri kapalı) -->
+  <section class="section" style="display:none">
     <div class="section-head">
       <h2 class="section-title">
         ✅ Yayına Hazır
@@ -1934,10 +1935,13 @@ async function unpublish(name){
 })();
 
 // ---------- loop ----------
+// Reels modülleri gizli — pollReels + loadSuggestions çağrılmıyor.
+// pollStatus/pollLogs footer için, pollIgStatus story Instagram için,
+// pollBackgrounds story arka plan indirme durumu için tutuldu.
 setInterval(() => { pollStatus(); pollLogs(); }, 1000);
-setInterval(() => { pollIgStatus().then(() => pollReels()); }, 4000);
+setInterval(() => { pollIgStatus(); }, 4000);
 setInterval(pollBackgrounds, 6000);
-pollStatus(); pollLogs(); pollIgStatus().then(() => pollReels()); loadSuggestions();
+pollStatus(); pollLogs(); pollIgStatus();
 loadRecentStories(); pollBackgrounds();
 </script>
 </body>
