@@ -42,7 +42,15 @@ class _PlanStepState extends State<PlanStep> {
   bool _planRevealed = false;
   bool _generating = false;
 
+  /// Kullanıcı bir öneri kartında "Ulaşım değiştir" ile mod seçtiğinde,
+  /// öneri kartı yeniden hesaplansa da seçim kalıcı kalsın diye
+  /// fromDay|toDay anahtarı ile mode saklıyoruz.
+  final Map<String, String> _transitionModeOverrides = {};
+
   Trip get trip => widget.trip;
+
+  String _transitionKey(CityTransitionSuggestion s) =>
+      '${s.fromDayNumber}|${s.toDayNumber}';
 
   @override
   void initState() {
@@ -227,6 +235,23 @@ class _PlanStepState extends State<PlanStep> {
       }
       final generated = generateItineraryFromTrip(t);
       t.days = fillEmptyDays(generated, _destinations);
+
+      // BUG 2: Şehirler arası geçişleri otomatik ekle — kullanıcı her öneri için
+      // ayrıca "Ekle"ye dokunmak zorunda kalmasın. Aynı gün hâlâ manuel
+      // eklendiyse dokunulmaz (hasExistingTransferTo koruması).
+      final transitions = detectCityTransitions(t.days, _destinations);
+      var updated = t.days;
+      for (final s in transitions) {
+        final target = updated.firstWhere(
+          (d) => d.dayNumber == s.toDayNumber,
+          orElse: () => DayPlan(dayNumber: s.toDayNumber, date: '', theme: ''),
+        );
+        if (target.date.isEmpty) continue;
+        if (!hasExistingTransferTo(target, s.toCity)) {
+          updated = insertCityTransfer(updated, s.toDayNumber, s);
+        }
+      }
+      t.days = updated;
     });
 
     if (!mounted) return;
@@ -271,9 +296,19 @@ class _PlanStepState extends State<PlanStep> {
     }
   }
 
+  /// Kullanıcının seçtiği mode override'ını uygula (varsa) — öneri kartındaki
+  /// picker seçimi eklenirken de kullanılsın diye tek noktada yapılıyor.
+  CityTransitionSuggestion _effectiveSuggestion(CityTransitionSuggestion s) {
+    final override = _transitionModeOverrides[_transitionKey(s)];
+    if (override == null) return s;
+    return suggestionForMode(
+        override, s.fromCity, s.toCity, s.fromDayNumber, s.toDayNumber);
+  }
+
   void _addTransition(CityTransitionSuggestion s) {
+    final eff = _effectiveSuggestion(s);
     widget.onChange((t) {
-      t.days = insertCityTransfer(t.days, s.toDayNumber, s);
+      t.days = insertCityTransfer(t.days, eff.toDayNumber, eff);
     });
   }
 
@@ -281,9 +316,128 @@ class _PlanStepState extends State<PlanStep> {
     widget.onChange((t) {
       var days = t.days;
       for (final s in list) {
-        days = insertCityTransfer(days, s.toDayNumber, s);
+        final eff = _effectiveSuggestion(s);
+        days = insertCityTransfer(days, eff.toDayNumber, eff);
       }
       t.days = days;
+    });
+  }
+
+  /// Ulaşım modu seçimi — bottom sheet ile 4 seçenek. Seçim tamamlanmazsa null.
+  Future<String?> _pickTransportMode(
+      BuildContext context, String current) async {
+    return showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: PT.bgElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(PT.radiusLg)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: PT.borderStrong,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const Text('Ulaşım modunu seç',
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: PT.text)),
+              const SizedBox(height: 12),
+              for (final m in const [
+                (
+                  id: 'shinkansen',
+                  emoji: '🚄',
+                  label: 'Shinkansen',
+                  note: 'Yüksek hızlı tren — en hızlı, konforlu.'
+                ),
+                (
+                  id: 'train',
+                  emoji: '🚆',
+                  label: 'Yerel / hızlı tren',
+                  note: 'Daha ucuz, sürelidir. IC kart yeter.'
+                ),
+                (
+                  id: 'bus',
+                  emoji: '🚌',
+                  label: 'Gecelik otobüs',
+                  note: 'Ucuz ama 8+ saat sürer. Willer Express popüler.'
+                ),
+                (
+                  id: 'car',
+                  emoji: '🚗',
+                  label: 'Kiralık araç',
+                  note: 'Uluslararası ehliyet gerekir. Kırsalda mantıklı.'
+                ),
+              ])
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => Navigator.pop(ctx, m.id),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: current == m.id ? PT.accentSoft : PT.bgSubtle,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: current == m.id ? PT.accent : PT.border),
+                      ),
+                      child: Row(
+                        children: [
+                          Text(m.emoji, style: const TextStyle(fontSize: 24)),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(m.label,
+                                    style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        color: PT.text)),
+                                const SizedBox(height: 2),
+                                Text(m.note,
+                                    style: const TextStyle(
+                                        fontSize: 12, color: PT.textSecondary)),
+                              ],
+                            ),
+                          ),
+                          if (current == m.id)
+                            const Icon(Icons.check_circle,
+                                size: 20, color: PT.accent),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Öneri kartındaki "Ulaşım değiştir" tetikleyicisi.
+  void _onChangeTransitionMode(CityTransitionSuggestion s) async {
+    final key = _transitionKey(s);
+    final current = _transitionModeOverrides[key] ?? 'shinkansen';
+    final picked = await _pickTransportMode(context, current);
+    if (picked == null) return;
+    setState(() {
+      _transitionModeOverrides[key] = picked;
     });
   }
 
@@ -498,8 +652,9 @@ class _PlanStepState extends State<PlanStep> {
                 const SizedBox(height: 12),
                 for (final s in transitions)
                   _TransitionRow(
-                    suggestion: s,
+                    suggestion: _effectiveSuggestion(s),
                     onAdd: () => _addTransition(s),
+                    onChangeMode: () => _onChangeTransitionMode(s),
                   ),
               ],
             ),
@@ -577,9 +732,14 @@ class _PlanStepState extends State<PlanStep> {
 // ---------------------------------------------------------------------------
 
 class _TransitionRow extends StatelessWidget {
-  const _TransitionRow({required this.suggestion, required this.onAdd});
+  const _TransitionRow({
+    required this.suggestion,
+    required this.onAdd,
+    required this.onChangeMode,
+  });
   final CityTransitionSuggestion suggestion;
   final VoidCallback onAdd;
+  final VoidCallback onChangeMode;
 
   @override
   Widget build(BuildContext context) {
@@ -618,6 +778,37 @@ class _TransitionRow extends StatelessWidget {
             Text('💡 ${t.tip}',
                 style: const TextStyle(fontSize: 12, color: PT.textTertiary)),
           ],
+          const SizedBox(height: 8),
+          // "Ulaşım değiştir" chip — kullanıcı Shinkansen dışı bir seçenek istese
+          // burada moda geçer; onAdd sonrasında bu mod ile ekleme yapılır.
+          Align(
+            alignment: Alignment.centerLeft,
+            child: InkWell(
+              onTap: onChangeMode,
+              borderRadius: BorderRadius.circular(100),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: PT.bgElevated,
+                  borderRadius: BorderRadius.circular(100),
+                  border: Border.all(color: PT.borderStrong),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.swap_horiz, size: 14, color: PT.textSecondary),
+                    SizedBox(width: 6),
+                    Text('Ulaşım değiştir',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: PT.textSecondary)),
+                  ],
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: 10),
           Align(
             alignment: Alignment.centerRight,
@@ -627,6 +818,58 @@ class _TransitionRow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Şehir-arası transfer eklenmiş gün altında gösterilen küçük Yamato Takkyubin
+/// ipucu kartı — kullanıcıya valizini otele önceden gönderebileceğini hatırlatır.
+class _YamatoTip extends StatelessWidget {
+  const _YamatoTip();
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: PT.accentSoft,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: PT.accent.withValues(alpha: 0.35)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('🐈', style: TextStyle(fontSize: 20)),
+          SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Yamato Takkyubin — valiz transferi',
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: PT.accent)),
+                SizedBox(height: 4),
+                Text(
+                    'Valizini Yamato Takkyubin ile otele önceden gönderebilirsin — '
+                    '~2000¥/parça, 1 gün sürer. Otel resepsiyonuna "takkyubin" '
+                    'de yeter.',
+                    style: TextStyle(
+                        fontSize: 12, color: PT.text, height: 1.35)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Bir günde şehir-arası transfer öğesi (transport + title'da "→") var mı?
+bool _dayHasCityTransition(DayPlan day) {
+  return day.items.any(
+    (it) =>
+        it.kind == TimelineItemKind.transport && it.title.contains('→'),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -815,7 +1058,11 @@ class _DayCard extends StatelessWidget {
                     'Bu güne aktivite ekleyin veya başka günden taşıyın.',
                     style: TextStyle(fontSize: 13, color: PT.textTertiary)),
               )
-            else
+            else ...[
+              if (_dayHasCityTransition(day)) ...[
+                const SizedBox(height: 4),
+                const _YamatoTip(),
+              ],
               ReorderableListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -837,6 +1084,7 @@ class _DayCard extends StatelessWidget {
                   );
                 },
               ),
+            ],
 
             const SizedBox(height: 12),
             Row(

@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:japan_trip/domain/city_transfers.dart';
 import 'package:japan_trip/domain/day_optimizer.dart';
 import 'package:japan_trip/domain/trip_factory.dart';
 import 'package:japan_trip/domain/types.dart';
@@ -99,6 +100,94 @@ void main() {
     final afterCount =
         t.days.fold<int>(0, (n, d) => n + d.items.length);
     expect(afterCount, greaterThan(0));
+  });
+
+  testWidgets(
+      'Bug 2 — çoklu şehir rotasında _generate şehir geçişlerini otomatik ekler',
+      (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(800, 3000);
+    addTearDown(tester.view.reset);
+
+    final t = createEmptyTrip();
+    // 15 günlük aralık: 2026-05-01 → 2026-05-15
+    t.preferences.travelDates
+      ..start = '2026-05-01'
+      ..end = '2026-05-15';
+    t.tripStart = '2026-05-01T08:00:00';
+    t.tripEnd = '2026-05-15T20:00:00';
+    // Osaka + Tokyo + Nara — distributeDates tarihleri ayırır.
+    final dests = [
+      TripDestination(
+        id: 'd1',
+        countryCode: 'JP',
+        countryName: 'Japonya',
+        city: 'Osaka',
+        airport: 'KIX',
+        arrivalDate: '2026-05-01',
+        departureDate: '2026-05-01',
+        order: 0,
+      ),
+      TripDestination(
+        id: 'd2',
+        countryCode: 'JP',
+        countryName: 'Japonya',
+        city: 'Tokyo',
+        airport: 'HND',
+        arrivalDate: '2026-05-01',
+        departureDate: '2026-05-01',
+        order: 1,
+      ),
+      TripDestination(
+        id: 'd3',
+        countryCode: 'JP',
+        countryName: 'Japonya',
+        city: 'Nara',
+        arrivalDate: '2026-05-01',
+        departureDate: '2026-05-01',
+        order: 2,
+      ),
+    ];
+    distributeDates(dests, '2026-05-01', '2026-05-15');
+    t.preferences.destinations = dests;
+    t.days = generateDaysBetween('2026-05-01', '2026-05-15');
+
+    await tester.pumpWidget(harness(t));
+    await tester.tap(find.text('✨ Gezi planı oluştur'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // En az bir gün "→" içeren transport item taşımalı (auto-inserted transitions).
+    final transitionCount = t.days.fold<int>(0, (n, d) {
+      return n +
+          d.items
+              .where((it) =>
+                  it.kind == TimelineItemKind.transport &&
+                  it.title.contains('→'))
+              .length;
+    });
+    expect(transitionCount, greaterThan(0),
+        reason: 'Bug 2 — _generate şehir geçişlerini otomatik eklemedi');
+  });
+
+  test('Bug 3 — suggestionForMode her mod için geçerli transfer üretir', () {
+    for (final mode in kTransportModes) {
+      final s =
+          suggestionForMode(mode, 'Tokyo', 'Osaka', 3, 4);
+      expect(s.fromCity, 'Tokyo');
+      expect(s.toCity, 'Osaka');
+      expect(s.transfer.mode, isNotEmpty);
+      expect(s.transfer.emoji, isNotEmpty);
+      expect(s.fromDayNumber, 3);
+      expect(s.toDayNumber, 4);
+    }
+    // shinkansen + bilinen çift → gerçek süre/ücret korunur (Tokyo→Osaka Nozomi).
+    final sk = suggestionForMode('shinkansen', 'Tokyo', 'Osaka', 3, 4);
+    expect(sk.transfer.duration, contains('2s'));
+    // bus modu → bus emojisi & Willer tip
+    final sb = suggestionForMode('bus', 'Tokyo', 'Osaka', 3, 4);
+    expect(sb.transfer.emoji, '🚌');
+    expect(sb.transfer.tip, contains('Willer'));
   });
 
   test('reorder resequenceTimes ile saatleri kronolojik dizer', () {

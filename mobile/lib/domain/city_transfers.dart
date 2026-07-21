@@ -204,6 +204,86 @@ List<DayPlan> insertCityTransfer(
   }).toList();
 }
 
+/// Ulaşım modu kimliği (picker sonucu). API stringleri sabit — enum yerine
+/// String kullanıyoruz ki UI serialize/kompare basit kalsın.
+const List<String> kTransportModes = [
+  'shinkansen',
+  'train',
+  'bus',
+  'car',
+];
+
+/// Verilen ulaşım modu için jenerik bir `CityTransfer` üretir.
+/// (Bilinen çift olmasa da picker'dan seçilen bir moda geçmek için kullanılır.)
+CityTransfer transferForMode(String mode) {
+  switch (mode) {
+    case 'train':
+      return const CityTransfer(
+        emoji: '🚆',
+        mode: 'Yerel/hızlı tren',
+        duration: 'Değişken',
+        fare: 'Ucuz',
+        tip: 'Daha ucuz, sürelidir. IC kart yeter.',
+      );
+    case 'bus':
+      return const CityTransfer(
+        emoji: '🚌',
+        mode: 'Gecelik/otobüs',
+        duration: '8+ saat',
+        fare: 'Ekonomik',
+        tip: 'Ucuz ama 8+ saat sürer. Willer Express popüler.',
+      );
+    case 'car':
+      return const CityTransfer(
+        emoji: '🚗',
+        mode: 'Kiralık araç',
+        duration: 'Değişken',
+        fare: 'Yakıt + kira',
+        tip: 'Uluslararası ehliyet gerekir. Kırsalda mantıklı.',
+      );
+    case 'shinkansen':
+    default:
+      return const CityTransfer(
+        emoji: '🚄',
+        mode: 'Shinkansen Nozomi',
+        duration: 'Yaklaşık 2-3 saat',
+        fare: '~10-15,000 ¥',
+        tip: "JR Pass geçmez Nozomi'de; Smart-EX kullan.",
+      );
+  }
+}
+
+/// Seçilen mode + şehir/gün bilgileriyle yeni bir `CityTransitionSuggestion` üretir.
+CityTransitionSuggestion suggestionForMode(
+  String mode,
+  String fromCity,
+  String toCity,
+  int fromDayNumber,
+  int toDayNumber,
+) {
+  // Shinkansen için bilinen çift varsa (Tokyo→Osaka gibi) gerçek süre/ücreti
+  // koru — sadece tip'i mode ile hizala.
+  if (mode == 'shinkansen') {
+    final known = lookupTransfer(fromCity, toCity);
+    if (known != null) {
+      return CityTransitionSuggestion(
+        fromDayNumber: fromDayNumber,
+        toDayNumber: toDayNumber,
+        fromCity: fromCity,
+        toCity: toCity,
+        transfer: known,
+      );
+    }
+  }
+  return CityTransitionSuggestion(
+    fromDayNumber: fromDayNumber,
+    toDayNumber: toDayNumber,
+    fromCity: fromCity,
+    toCity: toCity,
+    transfer: transferForMode(mode),
+  );
+}
+
 /// Aynı transferin bu güne zaten eklendiğini kontrol et.
 bool hasExistingTransferTo(DayPlan day, String toCity) {
   final norm = _normCity(toCity);

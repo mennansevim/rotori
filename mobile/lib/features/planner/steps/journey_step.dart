@@ -69,6 +69,15 @@ class _JourneyStepState extends State<JourneyStep> {
     var end = t.preferences.travelDates.end;
     final lastArrival = dests.isNotEmpty ? dests.last.arrivalDate : start;
     if (end.compareTo(lastArrival) < 0) end = lastArrival;
+
+    // BUG 1: Yeni eklenen destinasyonlar hep `start` ile geliyor — hepsi aynı
+    // güne çökmesin diye tarih aralığını eşit dağıt. Heuristik: tüm arrivalDate
+    // değerleri `start`'a eşitse → kullanıcı elle düzenlememiş, güvenle dağıt.
+    // Aksi halde kullanıcının elle koyduğu tarihleri koru.
+    if (dests.length >= 2 && dests.every((d) => d.arrivalDate == start)) {
+      distributeDates(dests, start, end);
+    }
+
     for (var i = 0; i < dests.length; i++) {
       dests[i].departureDate = i + 1 < dests.length ? dests[i + 1].arrivalDate : end;
     }

@@ -54,6 +54,45 @@ List<DayPlan> generateDaysBetween(String startYmd, String endYmd) {
   return days;
 }
 
+/// Destinasyonlara tarih aralığını eşit dağıtır (pure, mutasyon: arrival+departure).
+///
+/// Toplam gün = daysBetween(start, end) + 1.
+/// - slice = max(1, totalDays ÷ destCount)  (tam bölüm)
+/// - remainder = totalDays - slice * destCount → son destinasyona eklenir
+/// - dest[i].arrivalDate = start + Σ(önceki slice'lar)
+/// - dest[i].departureDate = dest[i+1].arrivalDate (son için end)
+///
+/// Kullanıcı elle tarih düzenlediyse (heuristik: hepsi identik start değil)
+/// çağıran taraf bu fonksiyonu skip etmeli. Fonksiyonun kendisi always dağıtır.
+List<TripDestination> distributeDates(
+  List<TripDestination> sorted,
+  String start,
+  String end,
+) {
+  if (sorted.isEmpty || start.isEmpty || end.isEmpty) return sorted;
+  final s = DateTime.tryParse(start);
+  final e = DateTime.tryParse(end);
+  if (s == null || e == null || e.isBefore(s)) return sorted;
+  final totalDays = e.difference(s).inDays + 1;
+  final count = sorted.length;
+  final rawSlice = totalDays ~/ count;
+  final slice = rawSlice < 1 ? 1 : rawSlice;
+  var remainder = totalDays - slice * count;
+  if (remainder < 0) remainder = 0;
+
+  var cursor = 0;
+  for (var i = 0; i < count; i++) {
+    final isLast = i == count - 1;
+    final thisSlice = slice + (isLast ? remainder : 0);
+    final arrival = _addDays(s, cursor);
+    sorted[i].arrivalDate = _ymd(arrival);
+    cursor += thisSlice;
+    final depDate = isLast ? e : _addDays(s, cursor);
+    sorted[i].departureDate = _ymd(depDate);
+  }
+  return sorted;
+}
+
 /// 7 günlük boş Trip, tarih bugünden 14 gün sonra başlar.
 Trip createEmptyTrip({Trip? overrides}) {
   final now = DateTime.now();
