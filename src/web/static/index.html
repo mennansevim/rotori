@@ -991,6 +991,7 @@ async function pollBackgrounds(){
 let _pickerQuery = "";
 let _pickerResults = [];
 let _pickerSelectedIdx = null;   // tek seçim
+let _pickerPage = 1;             // Unsplash search sayfa — Farklı Sonuçlar her tıklamada +1
 
 async function openStoryCreator(){
   const query = prompt(
@@ -1003,13 +1004,15 @@ async function openStoryCreator(){
   await openBgPicker(query.trim());
 }
 
-async function openBgPicker(query){
+async function openBgPicker(query, page = 1){
   _pickerQuery = query;
+  _pickerPage = page;
   _pickerSelectedIdx = null;
-  toast(`"${query}" için Unsplash aranıyor…`, "info", 2000);
+  const label = page > 1 ? `sayfa ${page}` : "aranıyor";
+  toast(`"${query}" · ${label}…`, "info", 1800);
   const r = await fetch("/api/backgrounds/preview", {
     method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({query, count: 10})
+    body: JSON.stringify({query, count: 10, page})
   });
   if(!r.ok){
     let msg = r.statusText;
@@ -1018,11 +1021,17 @@ async function openBgPicker(query){
     return;
   }
   const data = await r.json();
-  _pickerResults = data.results || [];
-  if(!_pickerResults.length){
+  const results = data.results || [];
+  if(!results.length){
+    if(page > 1){
+      // sayfa tükendi — başa dön
+      toast(`Sayfa ${page} boş — baştan alıyorum.`, "info");
+      return openBgPicker(query, 1);
+    }
     toast("Bu sorgu için sonuç bulunamadı.", "warn");
     return;
   }
+  _pickerResults = results;
   renderPickerModal();
 }
 
@@ -1152,7 +1161,8 @@ function selectPicker(idx){
 }
 
 async function reloadPicker(){
-  await openBgPicker(_pickerQuery);
+  // her tıklamada bir sonraki Unsplash sayfası — Farklı 10 görsel
+  await openBgPicker(_pickerQuery, _pickerPage + 1);
 }
 
 function closeBgPicker(){
