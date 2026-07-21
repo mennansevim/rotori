@@ -142,6 +142,87 @@ def upload_draft(cfg: Config, mp4_path: Path, caption: str,
     return result
 
 
+def upload_photo_draft(cfg: Config, jpg_path: Path, caption: str,
+                       emit: Callable[..., None], cancel: Event) -> dict[str, Any]:
+    """photo_upload(save_to_draft=True) — foto Instagram sunucularına yüklenir,
+    mobil uygulamanın Drafts sekmesinde görünür. Post olarak paylaşımı kullanıcı
+    telefondan elle yapar.
+
+    NOT: instagrapi'nin photo_upload'ında draft desteği clip_upload kadar
+    olgun değil. Önce `save_to_draft` kwarg dener, TypeError alırsa
+    `extra_data={'save_to_draft': True}` ile dener. İkisi de tutmazsa
+    RuntimeError fırlatır (direct paylaşıma DÜŞMEZ — kullanıcıyı yanıltmamak
+    için, "taslak" beklerken feed'e post koymamak lazım).
+
+    Returns: {"media_id": str, "uploaded_at": iso timestamp, "name": stem, "type": "photo"}
+    """
+    if cfg.instagram is None:
+        raise RuntimeError("Instagram config yok.")
+
+    if not jpg_path.exists():
+        raise FileNotFoundError(f"JPG bulunamadı: {jpg_path}")
+
+    emit("① Instagram client hazırlanıyor…", "log")
+    cl = get_client(cfg)
+
+    if cancel.is_set():
+        emit("⏹ İptal edildi.", "warn")
+        raise RuntimeError("cancelled")
+
+    caption = (caption or "").strip()
+    if len(caption) > 2200:
+        caption = caption[:2197] + "..."
+        emit("  ⚠ caption 2200 karakter üstündeydi, kırpıldı", "warn")
+
+    emit(f"② Photo upload başlıyor ({jpg_path.name}, save_to_draft=True)…", "log")
+    emit(f"   caption: {caption[:80]}{'…' if len(caption) > 80 else ''}", "log")
+
+    media = None
+    last_err: Exception | None = None
+    # Deneme 1: save_to_draft kwarg
+    try:
+        media = cl.photo_upload(
+            path=str(jpg_path),
+            caption=caption,
+            extra_data={"save_to_draft": True, "disable_comments": 0},
+        )
+    except TypeError as e:
+        last_err = e
+        emit(f"  save_to_draft desteklenmiyor ({e}); extra_data ile deniyoruz…", "warn")
+    except Exception as e:  # noqa: BLE001 — instagrapi hataları çeşitli
+        last_err = e
+
+    if media is None:
+        # Deneme 2: sadece extra_data (bazı sürümler save_to_draft'ı yakalıyor)
+        try:
+            media = cl.photo_upload(
+                path=str(jpg_path),
+                caption=caption,
+            )
+        except Exception as e:  # noqa: BLE001
+            last_err = e
+
+    if media is None:
+        raise RuntimeError(
+            f"photo_upload başarısız — Instagram fotoğraf draft desteği "
+            f"eksik olabilir. Son hata: {last_err}"
+        )
+
+    media_id = str(getattr(media, "pk", "") or getattr(media, "id", "") or "")
+    uploaded_at = time.strftime("%Y-%m-%dT%H:%M:%S")
+
+    result = {
+        "name": jpg_path.stem,
+        "media_id": media_id,
+        "uploaded_at": uploaded_at,
+        "status": "draft",
+        "type": "photo",
+    }
+    emit(f"✓ Photo draft gönderildi (media_id={media_id})", "info")
+    _append_upload_log(cfg, result)
+    return result
+
+
 def _append_upload_log(cfg: Config, entry: dict[str, Any]) -> None:
     """Her upload sonrası uploads_log dosyasına JSON line ekler."""
     if cfg.instagram is None:

@@ -504,23 +504,157 @@ def story_render_direct(req: RenderFromSelectionRequest) -> dict[str, Any]:
     }
 
 
+def _story_ready_dir() -> Path:
+    """Yayına hazır işaretlenmiş story kartlarının klasörü."""
+    if cfg.stories is None:
+        raise HTTPException(status_code=400, detail="stories config yok.")
+    d = cfg.stories.output_dir / "ready"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _safe_story_name(name: str) -> str:
+    """Path traversal koruması — sadece basename, JPG uzantısı zorunlu."""
+    if "/" in name or "\\" in name or ".." in name:
+        raise HTTPException(status_code=400, detail="Geçersiz dosya adı.")
+    if not name.lower().endswith(".jpg"):
+        raise HTTPException(status_code=400, detail="Sadece .jpg dosyaları.")
+    return name
+
+
 @app.get("/api/story/list")
 def story_list() -> dict[str, Any]:
-    """Üretilmiş tüm story kartlarını en yeniye göre listele."""
+    """Üretilmiş tüm story kartlarını en yeniye göre listele + durumları:
+    ready (yayına hazır klasöründe mi) + draft (Instagram'a gönderilmiş mi)."""
     if cfg.stories is None or not cfg.stories.output_dir.exists():
         return {"cards": []}
-    jpgs = sorted(cfg.stories.output_dir.glob("*.jpg"),
-                  key=lambda p: p.stat().st_mtime, reverse=True)
-    return {
-        "cards": [
-            {
+
+    ready_dir = cfg.stories.output_dir / "ready"
+
+    # Instagram upload log'undan gönderilenler
+    from src import instagram_publisher as ig
+    uploads = ig.read_upload_log(cfg) if cfg.instagram is not None else {}
+
+    cards = []
+    # 1) ready/ altındaki (yayına hazır)
+    if ready_dir.exists():
+        for p in ready_dir.glob("*.jpg"):
+            stem = p.stem
+            cards.append({
                 "file": p.name,
-                "url": f"/media/stories/{quote(p.name)}",
+                "url": f"/media/stories/ready/{quote(p.name)}",
                 "mtime": p.stat().st_mtime,
-            }
-            for p in jpgs
-        ]
-    }
+                "ready": True,
+                "draft": stem in uploads,
+                "draft_info": uploads.get(stem),
+                "has_caption": p.with_suffix(".txt").exists(),
+            })
+    # 2) top-level (henüz hazır işaretlenmemiş)
+    for p in cfg.stories.output_dir.glob("*.jpg"):
+        stem = p.stem
+        cards.append({
+            "file": p.name,
+            "url": f"/media/stories/{quote(p.name)}",
+            "mtime": p.stat().st_mtime,
+            "ready": False,
+            "draft": stem in uploads,
+            "draft_info": uploads.get(stem),
+            "has_caption": p.with_suffix(".txt").exists(),
+        })
+
+    cards.sort(key=lambda c: c["mtime"], reverse=True)
+    return {"cards": cards}
+
+
+@app.post("/api/story/mark_ready/{name}")
+def story_mark_ready(name: str) -> dict[str, Any]:
+    """Kartı 'Yayına Hazır' olarak işaretle — output/stories/<name>.jpg'yi
+    output/stories/ready/<name>.jpg'ye taşı. Varsa .txt caption dosyası da
+    birlikte taşınır."""
+    name = _safe_story_name(name)
+    if cfg.stories is None:
+        raise HTTPException(status_code=400, detail="stories config yok.")
+
+    src = cfg.stories.output_dir / name
+    if not src.exists():
+        # zaten ready'de mi?
+        if (cfg.stories.output_dir / "ready" / name).exists():
+            return {"ok": True, "already_ready": True}
+        raise HTTPException(status_code=404, detail="Kart bulunamadı.")
+
+    dst = _story_ready_dir() / name
+    src.rename(dst)
+
+    # .txt caption dosyası varsa onu da taşı
+    cap_src = src.with_suffix(".txt")
+    cap_dst = dst.with_suffix(".txt")
+    if cap_src.exists():
+        cap_src.rename(cap_dst)
+
+    return {"ok": True, "path": str(dst.relative_to(cfg.project_root))}
+
+
+@app.post("/api/story/unmark_ready/{name}")
+def story_unmark_ready(name: str) -> dict[str, Any]:
+    """Yayına Hazır'dan geri al — output/stories/ready/<name>.jpg'yi geri taşı."""
+    name = _safe_story_name(name)
+    if cfg.stories is None:
+        raise HTTPException(status_code=400, detail="stories config yok.")
+
+    ready_dir = cfg.stories.output_dir / "ready"
+    src = ready_dir / name
+    if not src.exists():
+        raise HTTPException(status_code=404, detail="Yayına Hazır'da bulunamadı.")
+
+    dst = cfg.stories.output_dir / name
+    src.rename(dst)
+
+    cap_src = src.with_suffix(".txt")
+    cap_dst = dst.with_suffix(".txt")
+    if cap_src.exists():
+        cap_src.rename(cap_dst)
+
+    return {"ok": True}
+
+
+@app.post("/api/instagram/story-draft/{name}")
+def instagram_story_draft(name: str) -> dict[str, Any]:
+    """Yayına Hazır'daki JPG'yi Instagram Photo Drafts'a gönder.
+    Yanındaki .txt caption dosyasını caption olarak kullanır."""
+    name = _safe_story_name(name)
+    if cfg.stories is None:
+        raise HTTPException(status_code=400, detail="stories config yok.")
+    if cfg.instagram is None:
+        raise HTTPException(status_code=400,
+                            detail="Instagram config yok. config.yaml içindeki instagram bölümünü doldur.")
+
+    jpg = cfg.stories.output_dir / "ready" / name
+    if not jpg.exists():
+        raise HTTPException(status_code=404,
+                            detail="Kart Yayına Hazır'da değil. Önce 'Yayına Hazır' yap.")
+
+    stem = jpg.stem
+    from src import instagram_publisher as ig
+    existing = ig.read_upload_log(cfg).get(stem)
+    if existing:
+        raise HTTPException(status_code=409,
+                            detail=f"Bu kart zaten drafts'a gönderilmiş (media_id={existing.get('media_id')})")
+
+    txt = jpg.with_suffix(".txt")
+    caption = txt.read_text(encoding="utf-8") if txt.exists() else ""
+
+    def target(emit: Callable[..., None], cancel_ev: Event) -> None:
+        try:
+            ig.upload_photo_draft(cfg, jpg, caption, emit, cancel_ev)
+        except Exception as exc:
+            emit(f"✖ Instagram photo upload hatası: {exc}", "error")
+            raise
+
+    try:
+        manager.start_callable(f"Instagram Photo Draft: {name}", target)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"ok": True, "job": manager.state}
 
 
 @app.post("/api/batch/generate")
