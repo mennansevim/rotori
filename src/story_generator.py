@@ -232,15 +232,35 @@ def _cover_resize(img: Image.Image, target_w: int, target_h: int) -> Image.Image
         return img.crop((0, y1, target_w, y1 + target_h))
 
 
-def _wrap_words(text: str, font: ImageFont.FreeTypeFont, max_width: int) -> list[str]:
-    """Metni verilen genişliğe göre satırlara böl."""
+def _spaced_width(text: str, font: ImageFont.FreeTypeFont, spacing: int = 0) -> int:
+    """Letter-spacing uygulanmış toplam pixel genişliği."""
+    if not text:
+        return 0
+    total = sum((font.getbbox(ch)[2] - font.getbbox(ch)[0]) for ch in text)
+    return total + spacing * max(0, len(text) - 1)
+
+
+def _draw_spaced(draw: ImageDraw.ImageDraw, xy: tuple[int, int], text: str,
+                 font: ImageFont.FreeTypeFont,
+                 fill: tuple[int, int, int] | tuple[int, int, int, int],
+                 spacing: int = 0) -> None:
+    """Letter-spacing ile harfleri tek tek çiz (Pillow'da native letter-spacing yok)."""
+    x, y = xy
+    for ch in text:
+        draw.text((x, y), ch, font=font, fill=fill)
+        cbb = font.getbbox(ch)
+        x += (cbb[2] - cbb[0]) + spacing
+
+
+def _wrap_words(text: str, font: ImageFont.FreeTypeFont, max_width: int,
+                letter_spacing: int = 0) -> list[str]:
+    """Metni verilen genişliğe göre satırlara böl (letter-spacing'e duyarlı)."""
     words = text.split()
     lines: list[str] = []
     cur: list[str] = []
     for w in words:
         test = " ".join(cur + [w])
-        bbox = font.getbbox(test)
-        if (bbox[2] - bbox[0]) <= max_width or not cur:
+        if _spaced_width(test, font, letter_spacing) <= max_width or not cur:
             cur.append(w)
         else:
             lines.append(" ".join(cur))
@@ -308,18 +328,38 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
         raise RuntimeError("stories config yok")
 
     W, H = cfg.stories.width, cfg.stories.height
-    split_y = int(H * 0.55)   # foto/siyah geçiş noktası
+    split_y = int(H * 0.55)   # foto/siyah nominal ayrım noktası
 
-    # === Zemin: siyah dolgu, foto üst yarıya paste ===
+    # Letter-spacing sabitleri (Impact kalın, sıkı yerleşir — açalım)
+    UST_LSP = 3
+    TITLE_LSP = 5
+    BODY_LSP = 4
+    TAG_LSP = 2
+
+    # === Zemin: siyah dolgu; foto split_y'den daha uzun paste, üstüne
+    # yumuşak gradient (foto siyaha yavaş yavaş erisin) ===
     bg = Image.new("RGBA", (W, H), (0, 0, 0, 255))
+    photo_h = split_y + 90   # foto biraz daha uzansın, gradient içinde erisin
     if bg_path and bg_path.exists():
         try:
             photo = Image.open(bg_path).convert("RGB")
-            photo = _cover_resize(photo, W, split_y)
+            photo = _cover_resize(photo, W, photo_h)
             bg.paste(photo, (0, 0))
         except Exception as exc:
             log.warning(f"  foto yüklenemedi ({bg_path.name}): {exc}")
 
+    # Gradient overlay: split_y-140 → photo_h arası; üstte 0 alpha (foto net),
+    # altta 255 alpha (tam siyah)
+    grad_start = max(0, split_y - 140)
+    grad_end = photo_h
+    grad = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(grad)
+    span = max(1, grad_end - grad_start)
+    for gy in range(grad_start, min(H, grad_end)):
+        t = (gy - grad_start) / span
+        alpha = int(255 * min(1.0, t ** 1.6))
+        gd.line([(0, gy), (W, gy)], fill=(0, 0, 0, alpha))
+    bg = Image.alpha_composite(bg, grad)
     d = ImageDraw.Draw(bg)
 
     baslik = _tr_upper(kart["baslik"].strip())
@@ -330,40 +370,43 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
     padding_x = int(W * 0.05)
     caption_w = W - 2 * padding_x
 
-    # === Üst rozet — foto ile siyah bant sınırında, sol tarafta ===
+    # === Üst rozet — gradient bandın içinde, sol tarafta ===
     ust_font = _load_font(FONT_IMPACT, 44)
     ust_pad_x, ust_pad_y = 16, 8
     ust_x_text = padding_x + ust_pad_x
-    ust_y_text = split_y - 68  # sınırın biraz üstünde
-    tbb = d.textbbox((ust_x_text, ust_y_text), ust_tag, font=ust_font)
+    ust_y_text = split_y - 60
+    ust_tw = _spaced_width(ust_tag, ust_font, UST_LSP)
+    # dikey ölçü için normal textbbox (yükseklik letter-spacing'den etkilenmez)
+    ust_bb = d.textbbox((ust_x_text, ust_y_text), ust_tag, font=ust_font)
     d.rectangle(
-        (tbb[0] - ust_pad_x, tbb[1] - ust_pad_y,
-         tbb[2] + ust_pad_x, tbb[3] + ust_pad_y),
+        (ust_bb[0] - ust_pad_x, ust_bb[1] - ust_pad_y,
+         ust_x_text + ust_tw + ust_pad_x, ust_bb[3] + ust_pad_y),
         fill=COLOR_ACCENT,
     )
-    d.text((ust_x_text, ust_y_text), ust_tag, font=ust_font, fill=(0, 0, 0, 255))
+    _draw_spaced(d, (ust_x_text, ust_y_text), ust_tag, ust_font,
+                 (0, 0, 0, 255), spacing=UST_LSP)
 
     # === Alt yarı: başlık ===
     title_size = 96
     title_font = _load_font(FONT_IMPACT, title_size)
-    title_lines = _wrap_words(baslik, title_font, caption_w)
+    title_lines = _wrap_words(baslik, title_font, caption_w, TITLE_LSP)
     while len(title_lines) > 2 and title_size > 70:
         title_size = int(title_size * 0.92)
         title_font = _load_font(FONT_IMPACT, title_size)
-        title_lines = _wrap_words(baslik, title_font, caption_w)
-    line_h_title = int(title_size * 1.00)
+        title_lines = _wrap_words(baslik, title_font, caption_w, TITLE_LSP)
+    line_h_title = int(title_size * 1.10)   # %10 artırılmış satır aralığı
 
     # === Alt açıklama — sarı highlight ===
     body_size = 72
     body_font = _load_font(FONT_IMPACT, body_size)
     hi_pad_x, hi_pad_y = 12, 5
     body_max_w = caption_w - hi_pad_x * 2
-    body_lines = _wrap_words(aciklama, body_font, body_max_w)
+    body_lines = _wrap_words(aciklama, body_font, body_max_w, BODY_LSP)
     while len(body_lines) > 4 and body_size > 48:
         body_size = int(body_size * 0.92)
         body_font = _load_font(FONT_IMPACT, body_size)
-        body_lines = _wrap_words(aciklama, body_font, caption_w - hi_pad_x * 2)
-    line_h_body = int(body_size * 1.14)
+        body_lines = _wrap_words(aciklama, body_font, body_max_w, BODY_LSP)
+    line_h_body = int(body_size * 1.25)     # 1.14 → 1.25 (%10 artırıldı)
 
     # === Tag (DETAYLAR AÇIKLAMADA) ===
     tag_size = 32
@@ -371,38 +414,44 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
     tag_text = "DETAYLAR AÇIKLAMADA"
     tag_pad_x, tag_pad_y = 10, 4
 
-    # === Layout: siyah bandın içinde ===
-    y = split_y + 34
+    # === Layout: gradient sonrası ===
+    y = split_y + 60   # gradient'in bitişinden biraz sonra
 
     for line in title_lines:
-        d.text((padding_x, y), line, font=title_font, fill=(255, 255, 255, 255))
+        _draw_spaced(d, (padding_x, y), line, title_font,
+                     (255, 255, 255, 255), spacing=TITLE_LSP)
         y += line_h_title
 
-    y += 14
+    y += 16
 
     for line in body_lines:
         text_x = padding_x + hi_pad_x
         text_y = y
-        tbb = d.textbbox((text_x, text_y), line, font=body_font)
+        # sarı rect için yatay tam genişlik letter-spacing ile
+        line_tw = _spaced_width(line, body_font, BODY_LSP)
+        line_bb = d.textbbox((text_x, text_y), line, font=body_font)
         d.rectangle(
-            (tbb[0] - hi_pad_x, tbb[1] - hi_pad_y,
-             tbb[2] + hi_pad_x, tbb[3] + hi_pad_y),
+            (line_bb[0] - hi_pad_x, line_bb[1] - hi_pad_y,
+             text_x + line_tw + hi_pad_x, line_bb[3] + hi_pad_y),
             fill=COLOR_ACCENT,
         )
-        d.text((text_x, text_y), line, font=body_font, fill=(0, 0, 0, 255))
+        _draw_spaced(d, (text_x, text_y), line, body_font,
+                     (0, 0, 0, 255), spacing=BODY_LSP)
         y += line_h_body
 
-    y += 12
+    y += 14
 
     # DETAYLAR AÇIKLAMADA
     tag_x = padding_x + tag_pad_x
-    tbb = d.textbbox((tag_x, y), tag_text, font=tag_font)
+    tag_tw = _spaced_width(tag_text, tag_font, TAG_LSP)
+    tag_bb = d.textbbox((tag_x, y), tag_text, font=tag_font)
     d.rectangle(
-        (tbb[0] - tag_pad_x, tbb[1] - tag_pad_y,
-         tbb[2] + tag_pad_x, tbb[3] + tag_pad_y),
+        (tag_bb[0] - tag_pad_x, tag_bb[1] - tag_pad_y,
+         tag_x + tag_tw + tag_pad_x, tag_bb[3] + tag_pad_y),
         fill=COLOR_ACCENT,
     )
-    d.text((tag_x, y), tag_text, font=tag_font, fill=(0, 0, 0, 255))
+    _draw_spaced(d, (tag_x, y), tag_text, tag_font,
+                 (0, 0, 0, 255), spacing=TAG_LSP)
 
     # === Alt orta: kırmızı daire + handle ===
     handle_font = _load_font(FONT_BOLD, 40)
