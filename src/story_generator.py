@@ -391,9 +391,12 @@ def _prepare_wordmark(img_w: int) -> dict[str, Any]:
     big_sp = 1
 
     big_w = _spaced_width(big_text, big_font, big_sp)
-    # RÜYASI'yi JAPONYA genişliğine yay (harfler arası eşit boşluk)
+    # RÜYASI dar kalsın (başlıktan küçük) — JAPONYA'nın ~%52'si genişlik hedefi,
+    # harf aralığı makul sınırda [4, 16]. Tam genişliğe YAYMA (çok geniş durur).
     sub_natural = _spaced_width(sub_text, sub_font, 0)
-    sub_sp = max(3, int((big_w - sub_natural) / max(1, len(sub_text) - 1)))
+    target_sub_w = int(big_w * 0.52)
+    sub_sp = int((target_sub_w - sub_natural) / max(1, len(sub_text) - 1))
+    sub_sp = max(4, min(16, sub_sp))
 
     big_bb = big_font.getbbox(big_text)     # görsel dikey sınırlar
     sub_bb = sub_font.getbbox(sub_text)
