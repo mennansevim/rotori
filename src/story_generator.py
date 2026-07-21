@@ -41,6 +41,8 @@ FONT_MEDIUM = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
 # Oswald variable font (OFL, ticari OK) — story kartı başlık/açıklama.
 # Referans tasarımdaki font. Ağırlıklar: ExtraLight/Light/Regular/Medium/SemiBold/Bold
 FONT_OSWALD = str(Path(__file__).resolve().parent.parent / "assets/fonts/Oswald-VariableFont.ttf")
+# ChunkFive (OFL, The League of Moveable Type) — ağır slab display, wordmark için
+FONT_CHUNK = str(Path(__file__).resolve().parent.parent / "assets/fonts/ChunkFive.otf")
 
 def _norm(text: str) -> str:
     text = (text or "").lower()
@@ -229,6 +231,14 @@ def _load_oswald(size: int, weight: str = "SemiBold") -> ImageFont.FreeTypeFont:
         return _load_font(FONT_IMPACT, size)
 
 
+def _load_chunk(size: int) -> ImageFont.FreeTypeFont:
+    """ChunkFive slab display font — wordmark büyük kelimesi için."""
+    try:
+        return ImageFont.truetype(FONT_CHUNK, size)
+    except OSError:
+        return _load_font(FONT_IMPACT, size)
+
+
 def _cover_resize(img: Image.Image, target_w: int, target_h: int) -> Image.Image:
     """Foto'yu target boyuta CROP-COVER şekilde uydur (aspect ratio bozulmadan)."""
     src_w, src_h = img.size
@@ -369,82 +379,47 @@ def _draw_flag_badge(img: Image.Image, cx: int, cy: int, r: int) -> None:
     d.ellipse((cx - rr, cy - rr, cx + rr, cy + rr), fill=_FLAG_RED)
 
 
-def _load_logo_main_block(logo_path: Path) -> Image.Image | None:
-    """Logo PNG'yi aç, ana (en yoğun) içerik bloğuna kırp. Bazı logolar
-    canvas'ta ayrık öğeler taşır (alt köşede damga/imza gibi) — düz alpha
-    bbox bunları da kapsayıp logoyu küçültür + fazladan kutu gösterir.
-    Bu fn satır-yoğunluğuyla blokları ayırır, en yoğun bloğu döndürür."""
-    import numpy as np
-    logo = Image.open(logo_path).convert("RGBA")
-    a = np.array(logo.split()[-1])
-    H = a.shape[0]
-    row_has = (a > 20).sum(axis=1)
-    rows = [y for y in range(H) if row_has[y] > 3]
-    if not rows:
-        return logo
-    # 30px'den büyük dikey boşluklarla blokları ayır
-    blocks: list[tuple[int, int]] = []
-    start = prev = rows[0]
-    for y in rows[1:]:
-        if y - prev > 30:
-            blocks.append((start, prev))
-            start = y
-        prev = y
-    blocks.append((start, prev))
-    # en yüksek pik yoğunluklu blok = ana lockup
-    best = max(blocks, key=lambda b: int(row_has[b[0]:b[1] + 1].max()))
-    y0, y1 = best
-    strip = logo.crop((0, y0, logo.width, y1 + 1))
-    hb = strip.split()[-1].getbbox()   # yatay boşlukları da kırp
-    if hb:
-        strip = strip.crop(hb)
-    return strip
+def _prepare_wordmark(img_w: int) -> dict[str, Any]:
+    """Wordmark lockup — referanstaki JAPAN/NEWS gibi:
+        büyük 'JAPONYA' (ChunkFive slab) + hemen altında küçük, ALTIN,
+        geniş harf-aralıklı 'RÜYASI'. RÜYASI'nin harf aralığı, tam JAPONYA
+        genişliğine oturacak şekilde otomatik hesaplanır (optik hizalama).
+    Ölçüler görsel bbox'a göre → satırlar sıkı ve dengeli oturur."""
+    big_text, sub_text = "JAPONYA", "RÜYASI"
+    big_font = _load_chunk(72)
+    sub_font = _load_oswald(30, "SemiBold")
+    big_sp = 1
 
+    big_w = _spaced_width(big_text, big_font, big_sp)
+    # RÜYASI'yi JAPONYA genişliğine yay (harfler arası eşit boşluk)
+    sub_natural = _spaced_width(sub_text, sub_font, 0)
+    sub_sp = max(3, int((big_w - sub_natural) / max(1, len(sub_text) - 1)))
 
-def _prepare_wordmark(img_w: int, ust_tag: str) -> dict[str, Any]:
-    """Wordmark ölçüsünü + payload'ını önceden hesapla (blok yüksekliği için).
-    Logo PNG (assets/logo_japonya_ruyasi.png) varsa onu; yoksa 3-satır text
-    wordmark (kicker / JAPONYA / RÜYASI — referanstaki EXPLORE/JAPAN/NEWS gibi)."""
-    logo_path = Path("assets/logo_japonya_ruyasi.png")
-    if logo_path.exists() and logo_path.is_file():
-        try:
-            logo = _load_logo_main_block(logo_path)
-            if logo is not None:
-                tw = int(img_w * 0.58)
-                ratio = logo.height / max(logo.width, 1)
-                th = int(tw * ratio)
-                max_h = 210
-                if th > max_h:
-                    th = max_h
-                    tw = int(th / max(ratio, 0.01))
-                logo = logo.resize((tw, th), Image.LANCZOS)
-                return {"kind": "logo", "h": th, "w": tw, "logo": logo}
-        except (OSError, ValueError):
-            pass
-    kf = _load_font(FONT_BOLD, 25)
-    bf = _load_font(FONT_IMPACT, 62)
-    sf = _load_font(FONT_BOLD, 25)
-    kh, sh = sum(kf.getmetrics()), sum(sf.getmetrics())
-    bh = int(62 * 0.96)
-    gap1, gap2 = 12, 8
-    return {"kind": "text", "h": kh + gap1 + bh + gap2 + sh,
-            "kf": kf, "bf": bf, "sf": sf, "kh": kh, "bh": bh,
-            "gap1": gap1, "gap2": gap2, "kicker": ust_tag}
+    big_bb = big_font.getbbox(big_text)     # görsel dikey sınırlar
+    sub_bb = sub_font.getbbox(sub_text)
+    big_vh = big_bb[3] - big_bb[1]
+    sub_vh = sub_bb[3] - sub_bb[1]
+    gap = 14
+    return {"big_font": big_font, "sub_font": sub_font,
+            "big_text": big_text, "sub_text": sub_text,
+            "big_sp": big_sp, "sub_sp": sub_sp,
+            "big_bb": big_bb, "sub_bb": sub_bb,
+            "big_vh": big_vh, "sub_vh": sub_vh, "gap": gap,
+            "h": big_vh + gap + sub_vh}
 
 
 def _draw_wordmark(img: Image.Image, cx: int, y_top: int, wm: dict[str, Any]) -> None:
-    """_prepare_wordmark payload'ını y_top'tan itibaren çiz."""
-    if wm["kind"] == "logo":
-        img.alpha_composite(wm["logo"], (cx - wm["w"] // 2, y_top))
-        return
+    """Wordmark'ı y_top'tan itibaren çiz — görsel bbox offset'iyle sıkı stack."""
     d = ImageDraw.Draw(img)
     y = y_top
-    _draw_line_center(d, cx, y, wm["kicker"], wm["kf"], (232, 232, 238, 255), spacing=7)
-    y += wm["kh"] + wm["gap1"]
-    _draw_line_center(d, cx, y, "JAPONYA", wm["bf"], (255, 255, 255, 255), spacing=4,
-                      shadow=((0, 0, 0, 150), (0, 2)))
-    y += wm["bh"] + wm["gap2"]
-    _draw_line_center(d, cx, y, "RÜYASI", wm["sf"], COLOR_ACCENT, spacing=10)
+    # büyük JAPONYA (beyaz, hafif gölge) — görsel tepe y_top'a otursun
+    _draw_line_center(d, cx, y - wm["big_bb"][1], wm["big_text"], wm["big_font"],
+                      (255, 255, 255, 255), spacing=wm["big_sp"],
+                      shadow=((0, 0, 0, 150), (0, 3)))
+    y += wm["big_vh"] + wm["gap"]
+    # küçük RÜYASI (altın, geniş aralık)
+    _draw_line_center(d, cx, y - wm["sub_bb"][1], wm["sub_text"], wm["sub_font"],
+                      COLOR_ACCENT, spacing=wm["sub_sp"])
 
 
 def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
@@ -505,8 +480,12 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
     body_line_h = int(body_size * 1.28)
     body_h = body_line_h * len(body_lines)
 
-    gap_title_body, bottom_pad = 40, 62
-    block_h = title_h + gap_title_body + body_h
+    # Wordmark (JAPONYA / RÜYASI) — başlığın üstünde
+    wm = _prepare_wordmark(W)
+    wm_h = wm["h"]
+
+    gap_wm_title, gap_title_body, bottom_pad = 46, 40, 62
+    block_h = wm_h + gap_wm_title + title_h + gap_title_body + body_h
     block_top = H - bottom_pad - block_h
     # metin çok uzunsa fotoyu tamamen yeme — en az ~%28 foto kalsın
     block_top = max(block_top, int(H * 0.28))
@@ -532,8 +511,12 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
     _draw_flag_badge(bg, badge_margin + badge_r, badge_margin + badge_r, badge_r)
     d = ImageDraw.Draw(bg)   # alpha_composite (gölge) sonrası handle tazele
 
-    # === 5) Bottom-anchored blok: başlık → açıklama ===
+    # === 5) Bottom-anchored blok: wordmark → başlık → açıklama ===
     y = block_top
+    _draw_wordmark(bg, cx, y, wm)
+    d = ImageDraw.Draw(bg)
+    y += wm_h + gap_wm_title
+
     for line in title_lines:
         _draw_line_center(d, cx, y, line, title_font, (255, 255, 255, 255),
                           spacing=TITLE_LSP, shadow=((0, 0, 0, 170), (0, 3)))
