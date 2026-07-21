@@ -888,12 +888,20 @@ function renderPickerModal(){
             ✏️ Kart yazısı — Instagram Story standardı
           </div>
           <div class="field" style="margin-bottom:12px">
-            <label>Başlık <span style="color:var(--muted);font-weight:400">— MAX 4 kelime, uppercase, Impact font</span></label>
+            <label style="display:flex;justify-content:space-between;align-items:center">
+              <span>Başlık <span style="color:var(--muted);font-weight:400">— MAX 4 kelime, uppercase, Impact font</span></span>
+              <button type="button" class="sm ghost" style="padding:4px 10px;font-size:11px"
+                onclick="aiFillCaption('title')" title="Konu ver, GPT başlık üretsin">✨ AI Yaz</button>
+            </label>
             <input type="text" id="cardTitle" maxlength="60"
               placeholder="Örn: YÜRÜRKEN YEMEK YEMEMELİSİN" />
           </div>
           <div class="field" style="margin-bottom:12px">
-            <label>Alt açıklama <span style="color:var(--muted);font-weight:400">— 1-2 cümle, Arial Bold</span></label>
+            <label style="display:flex;justify-content:space-between;align-items:center">
+              <span>Alt açıklama <span style="color:var(--muted);font-weight:400">— 1-2 cümle, Arial Bold</span></span>
+              <button type="button" class="sm ghost" style="padding:4px 10px;font-size:11px"
+                onclick="aiFillCaption('subtitle')" title="Konu ver, GPT açıklama üretsin">✨ AI Yaz</button>
+            </label>
             <textarea id="cardSubtitle" rows="2" maxlength="220"
               placeholder="Örn: Tren veya otobüslerde telefonla konuşmak büyük bir nezaketsizliktir. Japon toplu taşımasında sessizlik esastır."></textarea>
           </div>
@@ -949,6 +957,46 @@ async function reloadPicker(){
 function closeBgPicker(){
   const m = document.getElementById("bgPickerModal");
   if(m) m.remove();
+}
+
+async function aiFillCaption(mode){
+  const label = mode === "title" ? "başlık" : "alt açıklama";
+  const konu = prompt(
+    `Ne ile ilgili bir ${label} istiyorsun?\n\n` +
+    `Örn: 'sakura zamanı Japonya', 'kedi kafeleri', 'Todai-ji büyük buda', 'matcha çayı seremonisi'\n\n` +
+    `GPT senin adına Japon gezi rehberi tonunda üretecek.`
+  );
+  if(!konu || !konu.trim()) return;
+
+  const targetId = mode === "title" ? "cardTitle" : "cardSubtitle";
+  const target = document.getElementById(targetId);
+  if(!target) return;
+  const oldValue = target.value;
+  target.value = "⏳ AI üretiyor…";
+  target.disabled = true;
+
+  try{
+    const r = await fetch("/api/story/ai_caption", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({konu: konu.trim(), mode})
+    });
+    if(!r.ok){
+      let msg = r.statusText;
+      try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+      toast("AI üretim başarısız: " + msg, "err");
+      target.value = oldValue;
+      return;
+    }
+    const data = await r.json();
+    target.value = data.text || "";
+    toast(`${mode === "title" ? "Başlık" : "Alt açıklama"} üretildi ✓`, "ok", 2000);
+    target.focus();
+  }catch(e){
+    toast("Bağlantı hatası.", "err");
+    target.value = oldValue;
+  }finally{
+    target.disabled = false;
+  }
 }
 
 async function renderPickerCard(){

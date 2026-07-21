@@ -78,7 +78,7 @@ stories:
   backgrounds_dir: "assets/story_backgrounds"
   width: 1080
   height: 1920
-  handle: "@mennansjapan"        # her karta alt-üst köşede sabit badge
+  handle: "@japonyaruyasi"        # her karta alt-üst köşede sabit badge
 
 reels:
   target_width: 1080
