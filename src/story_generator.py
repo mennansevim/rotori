@@ -24,7 +24,7 @@ import unicodedata
 from pathlib import Path
 from typing import Any
 
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageDraw, ImageFont
 
 from src.config import Config
 from src.utils.logging import get_logger
@@ -254,60 +254,27 @@ def _draw_spaced(draw: ImageDraw.ImageDraw, xy: tuple[int, int], text: str,
 
 def _draw_ust_rozet(img: Image.Image, tag: str, x_left: int, y_top: int,
                     font: ImageFont.FreeTypeFont, spacing: int = 2) -> None:
-    """Modern editorial pill rozet:
-        - Tam yuvarlatılmış köşeler (border-radius = height/2)
-        - Sol tarafta 4px kalın siyah dikey accent bar (magazin başlığı hissi)
-        - Altında yumuşak drop shadow (blur ile) — sayfa üzerinde yüzüyor gibi
-        - Sarı zemin + siyah Impact metin
-    (x_left, y_top) rozetin sol-üst köşe koordinatıdır.
-    """
-    W, H = img.size
-    pad_x_left = 22
-    pad_x_right = 20
-    pad_y = 10
-    bar_w = 4        # sol accent bar kalınlığı
-    bar_gap = 12     # bar ile metin arası
-
+    """Sade köşeli üst rozet: sarı keskin dikdörtgen + siyah Impact metin.
+    Efekt yok — düz ve temiz. (x_left, y_top) rozetin sol-üst köşesi."""
+    pad_x, pad_y = 14, 8
     ascent, descent = font.getmetrics()
     inner_h = ascent + descent
     text_w = _spaced_width(tag, font, spacing)
-    rozet_w = pad_x_left + bar_w + bar_gap + text_w + pad_x_right
+    rozet_w = pad_x * 2 + text_w
     rozet_h = inner_h + pad_y * 2
-    radius = rozet_h // 2
-
-    # 1) Drop shadow — ayrı katman + Gaussian blur
-    shadow_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    sd = ImageDraw.Draw(shadow_layer)
-    sd.rounded_rectangle(
-        (x_left + 2, y_top + 6, x_left + rozet_w + 2, y_top + rozet_h + 6),
-        radius=radius, fill=(0, 0, 0, 150),
-    )
-    shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(radius=7))
-    img.alpha_composite(shadow_layer)
 
     d = ImageDraw.Draw(img)
-
-    # 2) Ana pill rozet — sarı
-    d.rounded_rectangle(
+    # Keskin dikdörtgen
+    d.rectangle(
         (x_left, y_top, x_left + rozet_w, y_top + rozet_h),
-        radius=radius, fill=COLOR_ACCENT,
+        fill=COLOR_ACCENT,
     )
-
-    # 3) Sol accent bar — siyah dikey çubuk (pill'in iç kenarında)
-    bar_x = x_left + pad_x_left
-    bar_top = y_top + int(rozet_h * 0.22)
-    bar_bot = y_top + int(rozet_h * 0.78)
-    d.rounded_rectangle(
-        (bar_x, bar_top, bar_x + bar_w, bar_bot),
-        radius=bar_w // 2, fill=(15, 15, 22, 255),
-    )
-
-    # 4) Metin — accent bar'ın sağında, dikey merkezli
-    text_x = bar_x + bar_w + bar_gap
+    # Metin — dikey merkezli
+    text_x = x_left + pad_x
     text_bb = font.getbbox(tag)
     band_center = y_top + rozet_h // 2
     text_y = band_center - (text_bb[3] - text_bb[1]) // 2 - text_bb[1]
-    _draw_spaced(d, (text_x, text_y), tag, font, (18, 18, 26, 255), spacing=spacing)
+    _draw_spaced(d, (text_x, text_y), tag, font, (0, 0, 0, 255), spacing=spacing)
 
 
 def _wrap_words(text: str, font: ImageFont.FreeTypeFont, max_width: int,
@@ -331,7 +298,7 @@ def _wrap_words(text: str, font: ImageFont.FreeTypeFont, max_width: int,
 def render_from_url(cfg: Config, bg_url: str, bg_id: str, bg_query: str,
                     baslik: str, aciklama: str, vurgu: list[str] | None = None,
                     photographer: str = "",
-                    ust_tag: str = "İLGİNÇ BİLGİ!") -> Path:
+                    ust_tag: str = "İLGİNÇ BİLGİ") -> Path:
     """Unsplash'tan gelen bir görseli indir + kart render et. Foto kartın üst
     %55'ine yerleşir, altında siyah bant + başlık + sarı highlight açıklama.
     """
@@ -361,7 +328,7 @@ def render_from_url(cfg: Config, bg_url: str, bg_id: str, bg_query: str,
     kart = {
         "baslik": baslik.strip(),
         "aciklama": aciklama.strip(),
-        "ust_tag": (ust_tag or "İLGİNÇ BİLGİ!").strip(),
+        "ust_tag": (ust_tag or "İLGİNÇ BİLGİ").strip(),
     }
     ts = int(time.time())
     out_slug = _slugify(baslik) or "kart"
@@ -375,7 +342,7 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
                 out_path: Path) -> Path:
     """Kullanıcı referansına göre yeni tasarım:
         [ÜST ~%55]  foto arka plan
-        [SOL, sınırda]  küçük SARI "İLGİNÇ BİLGİ!" tag
+        [SOL, sınırda]  küçük SARI "İLGİNÇ BİLGİ" tag
         [ALT ~%45]  siyah bant:
             - başlık: beyaz Impact, sol-yaslı
             - alt açıklama satırları: her biri sarı highlight bloğu, siyah yazı
@@ -421,21 +388,18 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
 
     baslik = _tr_upper(kart["baslik"].strip())
     aciklama = _tr_upper(kart["aciklama"].strip())
-    ust_tag = _tr_upper((kart.get("ust_tag") or "İLGİNÇ BİLGİ!").strip())
+    ust_tag = _tr_upper((kart.get("ust_tag") or "İLGİNÇ BİLGİ").strip())
     handle = cfg.stories.handle
 
     padding_x = int(W * 0.05)
     caption_w = W - 2 * padding_x
 
-    # === Üst rozet — editorial pill (rounded + shadow + accent bar) ===
-    ust_font = _load_font(FONT_IMPACT, 34)
-    # rozetin yüksekliğini önden hesaplayıp y_top'ı ayarla — split_y sınırının
-    # biraz üstünde konumlansın
+    # === Üst rozet — sade köşeli sarı dikdörtgen ===
+    ust_font = _load_font(FONT_IMPACT, 36)
     _asc_ust, _desc_ust = ust_font.getmetrics()
-    _rozet_h_est = _asc_ust + _desc_ust + 20   # pad_y*2 = 20
+    _rozet_h_est = _asc_ust + _desc_ust + 16   # pad_y*2 = 16
     _draw_ust_rozet(bg, ust_tag, padding_x, split_y - _rozet_h_est - 14,
                     ust_font, spacing=UST_LSP)
-    d = ImageDraw.Draw(bg)   # alpha_composite (shadow) sonrası draw handle'ı tazele
 
     # === Alt yarı: başlık ===
     # Önce tek satıra sığdırmayı dene (min 54pt'ye kadar). Sığmıyorsa 2 satır.
@@ -449,10 +413,11 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
     # 2 satıra düşse bile satır aralığı sıkı olsun (Impact zaten uzun ascender'lı)
     line_h_title = int(title_size * 1.00)
 
-    # === Alt açıklama — sarı highlight (SABİT band yüksekliği, satırlar bitişik) ===
+    # === Alt açıklama — sarı highlight (SABİT band yüksekliği, satır arası küçük gap) ===
     body_size = 58
     body_font = _load_font(FONT_IMPACT, body_size)
     hi_pad_x, hi_pad_y = 10, 6
+    body_row_gap = 8   # satır band'leri arasında yumuşak dikey boşluk
     body_max_w = caption_w - hi_pad_x * 2
     body_lines = _wrap_words(aciklama, body_font, body_max_w, BODY_LSP)
     while len(body_lines) > 4 and body_size > 40:
@@ -482,10 +447,10 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
 
     y += 16
 
-    # Her satır SABİT band yüksekliğinde, aralarında sıfır boşluk (bitişik).
+    # Her satır SABİT band yüksekliğinde, aralarına küçük dikey gap.
     # Sarı rect her satır için AYNI yükseklikte — descender (Y, G, Ğ) olan
     # satırlarla olmayanlar aynı görünür.
-    for line in body_lines:
+    for i, line in enumerate(body_lines):
         line_tw = _spaced_width(line, body_font, BODY_LSP)
         rect_x1 = padding_x
         rect_x2 = padding_x + hi_pad_x * 2 + line_tw
@@ -496,6 +461,8 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
         _draw_spaced(d, (padding_x + hi_pad_x, y + body_text_off),
                      line, body_font, (0, 0, 0, 255), spacing=BODY_LSP)
         y += body_row_h
+        if i < len(body_lines) - 1:
+            y += body_row_gap   # satırlar arası nefes
 
     y += 14
 
