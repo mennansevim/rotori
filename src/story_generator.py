@@ -396,17 +396,22 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
     # 2 satıra düşse bile satır aralığı sıkı olsun (Impact zaten uzun ascender'lı)
     line_h_title = int(title_size * 1.00)
 
-    # === Alt açıklama — sarı highlight ===
-    body_size = 58    # 72 → 58 (4:5 için)
+    # === Alt açıklama — sarı highlight (SABİT band yüksekliği, satırlar bitişik) ===
+    body_size = 58
     body_font = _load_font(FONT_IMPACT, body_size)
-    hi_pad_x, hi_pad_y = 10, 4
+    hi_pad_x, hi_pad_y = 10, 6
     body_max_w = caption_w - hi_pad_x * 2
     body_lines = _wrap_words(aciklama, body_font, body_max_w, BODY_LSP)
     while len(body_lines) > 4 and body_size > 40:
         body_size = int(body_size * 0.92)
         body_font = _load_font(FONT_IMPACT, body_size)
         body_lines = _wrap_words(aciklama, body_font, body_max_w, BODY_LSP)
-    line_h_body = int(body_size * 1.25)
+    # font metrics — descender'lı ve descender'sız satırlar aynı yükseklikte
+    # olsun diye her satır için SABİT band yüksekliği kullanılır
+    _asc, _desc = body_font.getmetrics()
+    body_row_h = _asc + _desc + hi_pad_y * 2
+    # metnin band içindeki dikey konumu (descender'lar bandın alt padding'ine düşer)
+    body_text_off = hi_pad_y
 
     # === Tag (DETAYLAR AÇIKLAMADA) ===
     tag_size = 26   # 32 → 26
@@ -424,20 +429,20 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
 
     y += 16
 
+    # Her satır SABİT band yüksekliğinde, aralarında sıfır boşluk (bitişik).
+    # Sarı rect her satır için AYNI yükseklikte — descender (Y, G, Ğ) olan
+    # satırlarla olmayanlar aynı görünür.
     for line in body_lines:
-        text_x = padding_x + hi_pad_x
-        text_y = y
-        # sarı rect için yatay tam genişlik letter-spacing ile
         line_tw = _spaced_width(line, body_font, BODY_LSP)
-        line_bb = d.textbbox((text_x, text_y), line, font=body_font)
+        rect_x1 = padding_x
+        rect_x2 = padding_x + hi_pad_x * 2 + line_tw
         d.rectangle(
-            (line_bb[0] - hi_pad_x, line_bb[1] - hi_pad_y,
-             text_x + line_tw + hi_pad_x, line_bb[3] + hi_pad_y),
+            (rect_x1, y, rect_x2, y + body_row_h),
             fill=COLOR_ACCENT,
         )
-        _draw_spaced(d, (text_x, text_y), line, body_font,
-                     (0, 0, 0, 255), spacing=BODY_LSP)
-        y += line_h_body
+        _draw_spaced(d, (padding_x + hi_pad_x, y + body_text_off),
+                     line, body_font, (0, 0, 0, 255), spacing=BODY_LSP)
+        y += body_row_h
 
     y += 14
 
