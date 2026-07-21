@@ -59,6 +59,9 @@ reels:
   # Footer: her reel'de sabit alt imza. Video boyunca sabittir, küçük punto,
   # alta yakın konum. Kanal handle'ı için idealdir. Boş bırakırsan footer basılmaz.
   footer_text: "@mennansjapan"
+  # Video üzerine yazı basılsın mı? False = temiz video (kullanıcı Instagram'da
+  # yazı kendi ekler). True = hook + footer video'ya gömülür.
+  add_overlays: false
 
 pilot:
   pilot_mode: false

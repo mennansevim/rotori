@@ -87,6 +87,11 @@ class AnalyzeRequest(BaseModel):
     enrich: bool = True   # sahne özetlerini de üret
 
 
+class BatchRequest(BaseModel):
+    limit: int | None = None
+    overwrite: bool = False
+
+
 # ---------------- endpoint'ler ----------------
 @app.get("/")
 def index() -> FileResponse:
@@ -164,6 +169,23 @@ def analyze(req: AnalyzeRequest) -> dict[str, Any]:
         analyze_pipeline.run_analyze(cfg, emit, cancel_ev, enrich=req.enrich)
 
     label = "Videoları Analiz Et" + (" (sahne özetiyle)" if req.enrich else "")
+    try:
+        manager.start_callable(label, target)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"ok": True, "job": manager.state}
+
+
+@app.post("/api/batch/generate")
+def batch_generate(req: BatchRequest) -> dict[str, Any]:
+    """Arşivi süpür → her videoyu Reels havuzuna dönüştür (temiz video + GPT caption).
+    Yazı VİDEO ÜZERİNE BASILMAZ — kullanıcı Instagram'da caption'ı yapıştırır."""
+    from src import batch_pipeline
+
+    def target(emit: Callable[..., None], cancel_ev: Event) -> None:
+        batch_pipeline.run_batch(cfg, emit, cancel_ev, limit=req.limit, overwrite=req.overwrite)
+
+    label = f"Arşivi Reels'e Dönüştür{f' (limit={req.limit})' if req.limit else ''}"
     try:
         manager.start_callable(label, target)
     except RuntimeError as exc:
