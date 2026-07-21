@@ -205,6 +205,43 @@ def story_generate(req: StoryRequest) -> dict[str, Any]:
     return {"ok": True, "cards": cards, "konu": req.konu}
 
 
+@app.post("/api/backgrounds/download")
+def backgrounds_download() -> dict[str, Any]:
+    """Unsplash'ten config.unsplash.queries için görselleri toplu indir."""
+    if cfg.unsplash is None:
+        raise HTTPException(status_code=400,
+                            detail="Unsplash config yok. config.yaml → unsplash.access_key doldur.")
+    if cfg.stories is None or cfg.stories.backgrounds_dir is None:
+        raise HTTPException(status_code=400,
+                            detail="stories.backgrounds_dir yok.")
+
+    from src import downloader
+
+    def target(emit: Callable[..., None], cancel_ev: Event) -> None:
+        downloader.download_backgrounds(cfg, emit, cancel_ev)
+
+    try:
+        manager.start_callable("Unsplash arka plan indirici", target)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"ok": True, "job": manager.state}
+
+
+@app.get("/api/backgrounds/status")
+def backgrounds_status() -> dict[str, Any]:
+    """Kaç arka plan görseli var, Unsplash config'i aktif mi?"""
+    count = 0
+    if cfg.stories and cfg.stories.backgrounds_dir and cfg.stories.backgrounds_dir.exists():
+        exts = {".jpg", ".jpeg", ".png", ".webp"}
+        count = sum(1 for p in cfg.stories.backgrounds_dir.iterdir()
+                    if p.is_file() and p.suffix.lower() in exts)
+    return {
+        "count": count,
+        "unsplash_enabled": cfg.unsplash is not None,
+        "queries": cfg.unsplash.queries if cfg.unsplash else [],
+    }
+
+
 @app.get("/api/story/list")
 def story_list() -> dict[str, Any]:
     """Üretilmiş tüm story kartlarını en yeniye göre listele."""

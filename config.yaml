@@ -27,6 +27,30 @@ openai:
   base_url: "https://api.openai.com/v1"
   timeout_sn: 60
 
+unsplash:
+  # Story kartları için Japan temalı arka plan otomatik indirici.
+  # 1) unsplash.com/developers → "Your apps" → "New Application" → 5 dk
+  # 2) "Access Key" alanını kopyala, aşağıya yapıştır (sk-... değil, düz metin)
+  # 3) UI'da "📥 Arka Plan İndir" butonuna bas → assets/story_backgrounds/'a
+  #    30-40 görsel iner (CC0, ticari OK, Getty-benzeri kalite)
+  # Free tier: 50 istek/saat — bu ayar altında bol.
+  access_key: "REPLACE_ME_UNSPLASH_KEY"
+  # Her tetiklemede indirilecek anahtar kelimeler (İngilizce, story kartı
+  # dosya adı da bunlardan üretilir → GPT'nin arka_plan_anahtarlar'ıyla match)
+  queries:
+    - "japan blur"
+    - "tokyo neon night"
+    - "sakura park pink"
+    - "temple torii red"
+    - "shibuya crossing"
+    - "konbini convenience store"
+    - "japanese ryokan tatami"
+    - "osaka dotonbori"
+    - "shinkansen train"
+    - "kyoto street bamboo"
+  per_query: 3          # her sorguda kaç görsel
+  orientation: "portrait"
+
 instagram:
   # Yayına Hazır reel'lerini Instagram uygulaması Drafts sekmesine gönderir.
   # instagrapi kullanır (unofficial Python client) — hesabı riske sokabilir

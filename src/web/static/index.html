@@ -346,10 +346,12 @@
   <!-- Hikaye Görsel Üreticisi -->
   <section class="section" id="storyCard">
     <div class="section-head">
-      <h2 class="section-title">🎨 Hikaye Görsel Üreticisi</h2>
+      <h2 class="section-title">🎨 Hikaye Görsel Üreticisi <span class="count" id="bgCount" title="Kayıtlı arka plan sayısı">0 bg</span></h2>
+      <button class="sm" id="btn-bg-download" onclick="downloadBackgrounds()"
+        title="Unsplash'ten Japan temalı görselleri assets/story_backgrounds/'a indir">📥 Arka Plan İndir</button>
     </div>
     <p class="section-hint">
-      Bir konu ver — GPT sana 3 farklı Instagram Story kartı üretsin (1080×1920 JPG). Impact başlık + sarı vurgu + arşivden mekana özel arka plan. Her seferinde 3 varyant.
+      Bir konu ver — GPT sana 3 farklı Instagram Story kartı üretsin (1080×1920 JPG). Impact başlık + sarı vurgu + Japan temalı arka plan. Her seferinde 3 varyant. Arka planlar <code>assets/story_backgrounds/</code>'dan seçilir — Unsplash'ten otomatik doldurabilirsin.
     </p>
     <form onsubmit="event.preventDefault(); generateStories();">
       <div class="story-input-row">
@@ -768,6 +770,36 @@ function useIdea(s){
 }
 
 // ---------- analyze ----------
+// ---------- Arka Plan İndirici ----------
+async function pollBackgrounds(){
+  try{
+    const r = await fetch("/api/backgrounds/status");
+    if(!r.ok) return;
+    const s = await r.json();
+    $("bgCount").textContent = `${s.count} bg`;
+    const btn = $("btn-bg-download");
+    if(!s.unsplash_enabled){
+      btn.disabled = true;
+      btn.title = "config.yaml → unsplash.access_key doldur";
+    }
+  }catch(e){}
+}
+
+async function downloadBackgrounds(){
+  if(!confirm("Unsplash'ten Japan temalı arka plan görselleri indirilecek (~30 dosya, birkaç MB). Devam?")) return;
+  const r = await fetch("/api/backgrounds/download", {method: "POST"});
+  if(!r.ok){
+    let msg = r.statusText;
+    try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+    toast("İndirme başlatılamadı: " + msg, "err");
+    return;
+  }
+  logSeq = 0;
+  $("logbox").innerHTML = "";
+  toast("Unsplash'ten arka planlar indiriliyor — canlı log'u izle.", "ok");
+  pollStatus(); pollLogs();
+}
+
 // ---------- Hikaye Görselleri ----------
 async function generateStories(){
   const konu = $("story-konu").value.trim();
@@ -931,8 +963,9 @@ async function unpublish(name){
 // ---------- loop ----------
 setInterval(() => { pollStatus(); pollLogs(); }, 1000);
 setInterval(() => { pollIgStatus().then(() => pollReels()); }, 4000);
+setInterval(pollBackgrounds, 6000);
 pollStatus(); pollLogs(); pollIgStatus().then(() => pollReels()); loadSuggestions();
-loadRecentStories();
+loadRecentStories(); pollBackgrounds();
 </script>
 </body>
 </html>
