@@ -126,22 +126,50 @@ KURALLAR:
     return out
 
 
-# --- 2) Arşivden arka plan foto seçici ---
-def _pick_background(cfg: Config, anahtarlar: list[str]) -> Path | None:
-    """metadata.csv'deki sahne_ogeleri'nde en yüksek puan alan videonun frame'ini
-    döndür. anahtarlar boş veya match yoksa random frame."""
+# --- 2) Arka plan foto seçici (assets öncelik, frames fallback) ---
+_IMG_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
+
+
+def _pick_from_assets(bg_dir: Path, anahtarlar: list[str]) -> Path | None:
+    """Kullanıcının yüklediği assets/story_backgrounds/ klasöründen dosya adı
+    match'i ile seç. Match yoksa random. Klasör boşsa None."""
+    if not bg_dir.exists():
+        return None
+    all_imgs = [p for p in bg_dir.iterdir()
+                if p.is_file() and p.suffix.lower() in _IMG_EXTS]
+    if not all_imgs:
+        return None
+
+    kws_norm = [_norm(k) for k in anahtarlar if k]
+    if kws_norm:
+        # dosya adında (basename, uzantısız) anahtar kelime match'i
+        scored: list[tuple[int, Path]] = []
+        for p in all_imgs:
+            name_norm = _norm(p.stem.replace("-", " ").replace("_", " "))
+            s = sum(1 for k in kws_norm if k in name_norm)
+            if s > 0:
+                scored.append((s, p))
+        if scored:
+            scored.sort(key=lambda x: -x[0])
+            # top 3'ten rastgele → çeşitlilik
+            top = [p for _, p in scored[:3]]
+            return random.choice(top)
+
+    # match yok veya anahtar yok → random
+    return random.choice(all_imgs)
+
+
+def _pick_from_frames(cfg: Config, anahtarlar: list[str]) -> Path | None:
+    """Eski davranış: metadata.csv sahne_ogeleri match'i → data/frames/*.jpg."""
     frames_dir = cfg.paths.frames_dir
     if not cfg.paths.metadata_csv.exists():
-        # metadata yok: frames'ten rastgele
         candidates = list(frames_dir.glob("*.jpg"))
         return random.choice(candidates) if candidates else None
 
     with cfg.paths.metadata_csv.open("r", encoding="utf-8") as fh:
         rows = list(csv.DictReader(fh))
 
-    # anahtarları normalize et
     kws_norm = [_norm(k) for k in anahtarlar if k]
-
     scored: list[tuple[int, Path]] = []
     for r in rows:
         if not kws_norm:
@@ -156,7 +184,6 @@ def _pick_background(cfg: Config, anahtarlar: list[str]) -> Path | None:
         if s == 0:
             continue
         stem = Path(r.get("dosya_adi", "")).stem
-        # multi-frame varsa random, yoksa tek frame
         cand = list(frames_dir.glob(f"{stem}_f*.jpg")) or [frames_dir / f"{stem}.jpg"]
         cand = [p for p in cand if p.exists()]
         if cand:
@@ -164,12 +191,20 @@ def _pick_background(cfg: Config, anahtarlar: list[str]) -> Path | None:
 
     if scored:
         scored.sort(key=lambda x: -x[0])
-        # top 3 arasında rastgele (çeşitlilik)
         return random.choice([p for _, p in scored[:3]])
 
-    # fallback: rastgele frame
     candidates = list(frames_dir.glob("*.jpg"))
     return random.choice(candidates) if candidates else None
+
+
+def _pick_background(cfg: Config, anahtarlar: list[str]) -> Path | None:
+    """Öncelik: 1) cfg.stories.backgrounds_dir (kullanıcının Japon görselleri)
+    2) data/frames/*.jpg (arşiv video frame'leri) — fallback."""
+    if cfg.stories and cfg.stories.backgrounds_dir:
+        pick = _pick_from_assets(cfg.stories.backgrounds_dir, anahtarlar)
+        if pick is not None:
+            return pick
+    return _pick_from_frames(cfg, anahtarlar)
 
 
 # --- 3) PIL render ---

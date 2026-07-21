@@ -43,8 +43,15 @@ instagram:
 
 stories:
   # Hikaye Görsel Üreticisi (Instagram Story kartları). GPT ile 3 farklı
-  # varyant üretir, arşivden mekana uygun arka plan seçer, PIL ile render.
+  # varyant üretir, önceden konulmuş Japan temalı blurlu arka planlardan
+  # birini seçer (dosya adına göre match), PIL ile render.
   output_dir: "output/stories"
+  # Arka plan görselleri klasörü. JPG/PNG/WEBP ekleyebilirsin. Dosya adına
+  # anahtar kelime yazarsan (örn subway-blur.jpg, konbini-night.jpg) GPT'nin
+  # konusuna göre eşleştirilir. Genel görseller de olabilir (örn
+  # japan-generic-blur.jpg) — hiç match yoksa random seçilir.
+  # Boşsa: eski davranış (arşiv video frame'lerini kullanır).
+  backgrounds_dir: "assets/story_backgrounds"
   width: 1080
   height: 1920
   handle: "@mennansjapan"        # her karta alt-üst köşede sabit badge
