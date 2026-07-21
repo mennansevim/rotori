@@ -385,14 +385,16 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
                  (0, 0, 0, 255), spacing=UST_LSP)
 
     # === Alt yarı: başlık ===
-    title_size = 80   # 96 → 80 (4:5 için)
+    # Önce tek satıra sığdırmayı dene (min 54pt'ye kadar). Sığmıyorsa 2 satır.
+    title_size = 78
     title_font = _load_font(FONT_IMPACT, title_size)
     title_lines = _wrap_words(baslik, title_font, caption_w, TITLE_LSP)
-    while len(title_lines) > 2 and title_size > 58:
-        title_size = int(title_size * 0.92)
+    while len(title_lines) > 1 and title_size > 54:
+        title_size = int(title_size * 0.94)
         title_font = _load_font(FONT_IMPACT, title_size)
         title_lines = _wrap_words(baslik, title_font, caption_w, TITLE_LSP)
-    line_h_title = int(title_size * 1.10)
+    # 2 satıra düşse bile satır aralığı sıkı olsun (Impact zaten uzun ascender'lı)
+    line_h_title = int(title_size * 1.00)
 
     # === Alt açıklama — sarı highlight ===
     body_size = 58    # 72 → 58 (4:5 için)

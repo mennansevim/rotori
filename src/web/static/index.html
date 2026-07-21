@@ -903,6 +903,24 @@ function renderPickerModal(){
             <textarea id="cardSubtitle" rows="3" maxlength="220"
               placeholder="Örn: Bilgeliğe geçiş dönemi olarak kabul edilir ve kadınlar bu döneme geçişi kutlarlar."></textarea>
           </div>
+
+          <div class="field" style="margin-bottom:8px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
+            <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+              <span>Post açıklaması <span style="color:var(--muted);font-weight:400">— Instagram caption (emoji + madde + hashtag)</span></span>
+              <span style="display:flex;gap:6px">
+                <button type="button" class="sm ghost" style="padding:4px 10px;font-size:11px"
+                  onclick="expandCaptionAI()" title="Alt açıklamayı GPT ile detaylı Instagram caption'ına genişlet">✨ AI ile Genişlet</button>
+                <button type="button" class="sm ghost" style="padding:4px 10px;font-size:11px"
+                  onclick="copyCaption()" title="Caption'ı panoya kopyala">📋 Kopyala</button>
+              </span>
+            </label>
+            <textarea id="cardPostCaption" rows="9" maxlength="2200"
+              oninput="updateCaptionCharCount()"
+              placeholder="Alt açıklamayı doldurduktan sonra '✨ AI ile Genişlet' butonuna bas — GPT sana emoji + maddelendirme + hashtag'li post caption üretsin. Kart oluşturulunca .txt olarak da JPG yanına kaydedilir."></textarea>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;text-align:right">
+              <span id="captionCharCount">0</span> / 2200 · Instagram limiti 2200
+            </div>
+          </div>
         </div>
       </div>
       <div class="modal-foot">
@@ -992,6 +1010,67 @@ async function aiFillCaption(mode){
   }
 }
 
+async function expandCaptionAI(){
+  const aciklama = ($("cardSubtitle").value || "").trim();
+  if(aciklama.length < 8){
+    toast("Önce 'Alt açıklama'yı doldur (en az 8 karakter).", "warn");
+    return;
+  }
+  const baslik = ($("cardTitle").value || "").trim();
+  const target = $("cardPostCaption");
+  if(!target) return;
+  const oldValue = target.value;
+  target.value = "⏳ AI genişletiyor — emoji + madde + hashtag üretiliyor…";
+  target.disabled = true;
+  updateCaptionCharCount();
+  try{
+    const r = await fetch("/api/story/expand_caption", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({baslik, aciklama})
+    });
+    if(!r.ok){
+      let msg = r.statusText;
+      try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+      toast("AI genişletme başarısız: " + msg, "err");
+      target.value = oldValue;
+      return;
+    }
+    const data = await r.json();
+    target.value = data.text || "";
+    toast(`Post caption üretildi ✓ (${data.chars || (data.text||"").length} karakter)`, "ok", 3000);
+  }catch(e){
+    toast("Bağlantı hatası.", "err");
+    target.value = oldValue;
+  }finally{
+    target.disabled = false;
+    updateCaptionCharCount();
+  }
+}
+
+async function copyCaption(){
+  const text = ($("cardPostCaption").value || "").trim();
+  if(!text){ toast("Kopyalanacak caption boş.", "warn"); return; }
+  try{
+    await navigator.clipboard.writeText(text);
+    toast("Panoya kopyalandı ✓", "ok", 2000);
+  }catch(e){
+    // fallback — textarea select
+    const ta = $("cardPostCaption");
+    ta.select();
+    document.execCommand("copy");
+    toast("Panoya kopyalandı ✓", "ok", 2000);
+  }
+}
+
+function updateCaptionCharCount(){
+  const ta = $("cardPostCaption");
+  const counter = $("captionCharCount");
+  if(!ta || !counter) return;
+  const n = (ta.value || "").length;
+  counter.textContent = n;
+  counter.style.color = n > 2000 ? "var(--danger)" : "var(--muted)";
+}
+
 async function renderPickerCard(){
   if(_pickerSelectedIdx === null){
     toast("Önce bir görsel seç.", "warn"); return;
@@ -1002,6 +1081,7 @@ async function renderPickerCard(){
   if(aciklama.length < 8){ toast("Alt açıklama gerekli (en az 8 karakter).", "err"); return; }
 
   const ustTag = ($("cardUstTag").value || "").trim() || "İLGİNÇ BİLGİ!";
+  const postCaption = ($("cardPostCaption").value || "").trim();
 
   const bg = _pickerResults[_pickerSelectedIdx];
   const btn = $("btn-picker-render");
@@ -1017,6 +1097,7 @@ async function renderPickerCard(){
         background_id: bg.id,
         photographer: bg.photographer,
         baslik, aciklama, ust_tag: ustTag,
+        post_caption: postCaption,
       })
     });
     if(!r.ok){
