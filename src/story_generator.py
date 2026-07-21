@@ -38,6 +38,9 @@ COLOR_ACCENT = (255, 214, 61)   # altın sarı (highlight blokları, üst rozet)
 FONT_IMPACT = "/System/Library/Fonts/Supplemental/Impact.ttf"
 FONT_BOLD = "/System/Library/Fonts/Supplemental/Arial Black.ttf"
 FONT_MEDIUM = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
+# Oswald variable font (OFL, ticari OK) — story kartı başlık/açıklama.
+# Referans tasarımdaki font. Ağırlıklar: ExtraLight/Light/Regular/Medium/SemiBold/Bold
+FONT_OSWALD = str(Path(__file__).resolve().parent.parent / "assets/fonts/Oswald-VariableFont.ttf")
 
 def _norm(text: str) -> str:
     text = (text or "").lower()
@@ -209,6 +212,21 @@ def _load_font(path: str, size: int) -> ImageFont.FreeTypeFont:
         return ImageFont.truetype(path, size)
     except OSError:
         return ImageFont.truetype(FONT_MEDIUM, size)
+
+
+def _load_oswald(size: int, weight: str = "SemiBold") -> ImageFont.FreeTypeFont:
+    """Oswald variable font'u verilen ağırlıkta yükle (SemiBold/Medium/Bold…).
+    Font yoksa Impact'e düşer. Auto-shrink döngüsünde her boyut için yeni
+    obje döner (variation her seferinde set edilir)."""
+    try:
+        f = ImageFont.truetype(FONT_OSWALD, size)
+        try:
+            f.set_variation_by_name(weight)
+        except (OSError, ValueError):
+            pass
+        return f
+    except OSError:
+        return _load_font(FONT_IMPACT, size)
 
 
 def _cover_resize(img: Image.Image, target_w: int, target_h: int) -> Image.Image:
@@ -462,28 +480,29 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
             log.warning(f"  foto yüklenemedi ({bg_path.name}): {exc}")
 
     # === 2) Metin bloklarını ölç (gradient konumu + dikey yerleşim için) ===
-    TITLE_LSP, BODY_LSP = 3, 1
-    # Başlık — Impact, 1-2 satır, otomatik küçültme
-    title_size = 104
-    title_font = _load_font(FONT_IMPACT, title_size)
+    # Oswald condensed — Impact'e göre daha zarif, letter-spacing az yeter
+    TITLE_LSP, BODY_LSP = 1, 1
+    # Başlık — Oswald SemiBold, 1-3 satır, otomatik küçültme
+    title_size = 100
+    title_font = _load_oswald(title_size, "SemiBold")
     title_lines = _wrap_words(baslik, title_font, content_w, TITLE_LSP)
-    while len(title_lines) > 2 and title_size > 64:
+    while len(title_lines) > 3 and title_size > 60:
         title_size = int(title_size * 0.93)
-        title_font = _load_font(FONT_IMPACT, title_size)
+        title_font = _load_oswald(title_size, "SemiBold")
         title_lines = _wrap_words(baslik, title_font, content_w, TITLE_LSP)
-    title_line_h = int(title_size * 0.98)
+    title_line_h = int(title_size * 1.04)   # Oswald uzun ascender'lı — biraz nefes
     title_h = title_line_h * len(title_lines)
 
-    # Alt açıklama — Arial Bold (okunur); 4 satırdan fazlaysa küçült
-    body_size = 46
-    body_font = _load_font(FONT_MEDIUM, body_size)
+    # Alt açıklama — Oswald Medium (okunur, başlıktan hafif); 5 satırdan fazlaysa küçült
+    body_size = 48
+    body_font = _load_oswald(body_size, "Medium")
     body_lines = _wrap_words(aciklama, body_font, content_w, BODY_LSP)
-    while len(body_lines) > 4 and body_size > 32:
+    while len(body_lines) > 5 and body_size > 32:
         body_size -= 3
-        body_font = _load_font(FONT_MEDIUM, body_size)
+        body_font = _load_oswald(body_size, "Medium")
         body_lines = _wrap_words(aciklama, body_font, content_w, BODY_LSP)
     _b_asc, _b_desc = body_font.getmetrics()
-    body_line_h = _b_asc + _b_desc + 8
+    body_line_h = int(body_size * 1.28)
     body_h = body_line_h * len(body_lines)
 
     gap_title_body, bottom_pad = 40, 62
@@ -492,9 +511,9 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
     # metin çok uzunsa fotoyu tamamen yeme — en az ~%28 foto kalsın
     block_top = max(block_top, int(H * 0.28))
 
-    # === 3) Yumuşak gradient — metnin hemen üstünde tam siyaha ulaşır ===
-    grad_full_y = max(1, block_top - 26)                     # buradan aşağısı tam siyah
-    grad_start_y = max(int(H * 0.24), grad_full_y - 280)     # 280px yumuşak geçiş
+    # === 3) Yumuşak gradient — foto → siyah, metnin üstünde tam siyaha ulaşır ===
+    grad_full_y = max(1, block_top - 30)                     # buradan aşağısı tam siyah
+    grad_start_y = max(int(H * 0.20), grad_full_y - 360)     # 360px hafif/uzun geçiş
     grad = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     gd = ImageDraw.Draw(grad)
     span = max(1, grad_full_y - grad_start_y)
@@ -503,7 +522,7 @@ def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
             alpha = 255
         else:
             t = (gy - grad_start_y) / span
-            alpha = int(255 * (t ** 1.5))
+            alpha = int(255 * (t ** 1.35))   # daha yumuşak eğri
         gd.line([(0, gy), (W, gy)], fill=(0, 0, 0, alpha))
     bg = Image.alpha_composite(bg, grad)
     d = ImageDraw.Draw(bg)
