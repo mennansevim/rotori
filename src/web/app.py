@@ -125,6 +125,11 @@ class RenderFromSelectionRequest(BaseModel):
                                        #   ilk 2 anlamlı kelime otomatik seçilir)
 
 
+class AICaptionRequest(BaseModel):
+    konu: str = Field(..., min_length=2)
+    mode: str = "subtitle"   # "title" | "subtitle"
+
+
 # ---------------- endpoint'ler ----------------
 @app.get("/")
 def index() -> FileResponse:
@@ -307,6 +312,81 @@ def backgrounds_status() -> dict[str, Any]:
         "unsplash_enabled": cfg.unsplash is not None,
         "queries": cfg.unsplash.queries if cfg.unsplash else [],
     }
+
+
+_AI_CAPTION_SYSTEM = (
+    "Sen bir Japon gezi rehberi hazırlayan Türk gezginsin. Kanalın Instagram'da "
+    "'@japonyaruyasi'. Story kartları için kısa metinler üretiyorsun. "
+    "Kusursuz Türkçe, klişesiz, samimi ama otoriter. Uydurma sayı/saat/fiyat "
+    "YASAK — bilmiyorsan yazma. Yanıt SADECE istenen metin — açıklama, tırnak, "
+    "başlık YOK."
+)
+
+
+def _ai_caption_prompt(konu: str, mode: str) -> str:
+    if mode == "title":
+        return (
+            f"Konu: {konu}\n\n"
+            "Bu konuya uygun bir Instagram Story BAŞLIĞI üret.\n"
+            "Kurallar:\n"
+            "- MAX 4 KELİME\n"
+            "- Büyük harflerle (UPPERCASE)\n"
+            "- Vurucu, dikkat çekici (Impact font tarzı)\n"
+            "- Türkçe\n"
+            "- Örnek: 'YÜRÜRKEN YEMEK YEMEMELİSİN', 'IC CARD ŞART', 'SAKURA'NIN SIRRI'\n\n"
+            "Yalnızca başlık metnini yaz, başka bir şey yazma."
+        )
+    # subtitle
+    return (
+        f"Konu: {konu}\n\n"
+        "Bu konuyla ilgili Instagram Story ALT AÇIKLAMASI üret. "
+        "Bu bir JAPON GEZİ REHBERİ kanalı için — turistlere pratik bilgi/tüyo veren tonda.\n\n"
+        "Kurallar:\n"
+        "- 1-2 kısa cümle (max 25 kelime toplam)\n"
+        "- Türkçe, akıcı, klişesiz\n"
+        "- Somut fact/ipucu içersin (örn 'saygısız görülür', 'sessizlik esastır')\n"
+        "- Uydurma sayı/saat/fiyat YOK\n"
+        "- Emoji YOK (kart üstüne yerleşecek)\n"
+        "- Örnekler:\n"
+        "  * 'Tren veya otobüslerde telefonla konuşmak büyük bir nezaketsizliktir. Japon toplu taşımasında sessizlik esastır.'\n"
+        "  * 'Yolda yemek yemek saygısız bir hareket olarak kabul edilir. Bir yerde durup sessizce yemeniz beklenir.'\n\n"
+        "Yalnızca alt açıklama metnini yaz, başlık veya başka bir şey ekleme."
+    )
+
+
+@app.post("/api/story/ai_caption")
+def story_ai_caption(req: AICaptionRequest) -> dict[str, Any]:
+    """Bir konudan Japon gezi rehberi tonunda başlık veya alt açıklama üret."""
+    if cfg.openai is None:
+        raise HTTPException(status_code=400,
+                            detail="OpenAI key gerekli. config.yaml → openai.api_key.")
+    mode = req.mode if req.mode in ("title", "subtitle") else "subtitle"
+
+    from src.openai_client import OpenAIClient
+    oai = OpenAIClient.from_config(cfg)
+    if oai is None:
+        raise HTTPException(status_code=400, detail="OpenAI client oluşturulamadı.")
+
+    try:
+        text = oai.chat_text(
+            _AI_CAPTION_SYSTEM,
+            _ai_caption_prompt(req.konu, mode),
+            temperature=0.75,
+            max_tokens=160 if mode == "subtitle" else 40,
+        )
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail=f"OpenAI hatası: {exc}") from exc
+
+    # temiz normalize: tırnak, emoji, prefix "Başlık:" gibi kalıntılar
+    text = text.strip().strip('"').strip("'").strip()
+    # "başlık:", "alt açıklama:" gibi label kalıntıları
+    for prefix in ("başlık:", "alt açıklama:", "açıklama:", "title:", "subtitle:"):
+        if text.lower().startswith(prefix):
+            text = text[len(prefix):].strip()
+    if mode == "title":
+        text = text.upper()
+
+    return {"text": text, "mode": mode}
 
 
 @app.post("/api/story/render_direct")
