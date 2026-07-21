@@ -1030,8 +1030,8 @@ function renderPickerModal(){
           <div class="field" style="margin-bottom:12px">
             <label>Üst rozet <span style="color:var(--muted);font-weight:400">— sol üst köşede küçük sarı badge</span></label>
             <input type="text" id="cardUstTag" maxlength="40"
-              value="İLGİNÇ BİLGİ!"
-              placeholder="Örn: İLGİNÇ BİLGİ!, GEZİ TÜYOSU!, DİKKAT!" />
+              value="İLGİNÇ BİLGİ"
+              placeholder="Örn: İLGİNÇ BİLGİ, GEZİ TÜYOSU, GÜNLÜK BİLGİ" />
           </div>
           <div class="field" style="margin-bottom:12px">
             <label style="display:flex;justify-content:space-between;align-items:center">
@@ -1253,7 +1253,7 @@ async function renderPickerCard(){
   if(baslik.length < 3){ toast("Başlık gerekli (en az 3 karakter).", "err"); return; }
   if(aciklama.length < 8){ toast("Alt açıklama gerekli (en az 8 karakter).", "err"); return; }
 
-  const ustTag = ($("cardUstTag").value || "").trim() || "İLGİNÇ BİLGİ!";
+  const ustTag = ($("cardUstTag").value || "").trim() || "İLGİNÇ BİLGİ";
   const postCaption = ($("cardPostCaption").value || "").trim();
 
   const bg = _pickerResults[_pickerSelectedIdx];

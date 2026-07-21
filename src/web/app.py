@@ -121,7 +121,7 @@ class RenderFromSelectionRequest(BaseModel):
     photographer: str = ""     # attribution
     baslik: str = Field(..., min_length=2, max_length=80)
     aciklama: str = Field(..., min_length=5, max_length=280)
-    ust_tag: str = "İLGİNÇ BİLGİ!"   # sol üst köşedeki küçük sarı rozet
+    ust_tag: str = "İLGİNÇ BİLGİ"   # sol üst köşedeki küçük sarı rozet
     post_caption: str = ""     # Instagram post caption — üretilirse JPG yanına
                                 #   aynı basename ile .txt olarak kaydedilir
     vurgu_kelimeler: list[str] = []   # (yeni tasarımda kullanılmıyor — bwd compat)
@@ -509,7 +509,7 @@ def story_render_direct(req: RenderFromSelectionRequest) -> dict[str, Any]:
             aciklama=req.aciklama,
             vurgu=None,
             photographer=req.photographer,
-            ust_tag=req.ust_tag or "İLGİNÇ BİLGİ!",
+            ust_tag=req.ust_tag or "İLGİNÇ BİLGİ",
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Render hatası: {exc}") from exc
