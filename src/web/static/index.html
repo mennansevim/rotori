@@ -1247,8 +1247,14 @@ function selectPicker(idx){
   // form panele smooth scroll
   setTimeout(() => {
     const el = $("cardSubtitle");
-    if(el){ el.scrollIntoView({behavior:"smooth", block:"center"}); el.focus(); }
+    if(el) el.scrollIntoView({behavior:"smooth", block:"center"});
   }, 100);
+  // Görsel seçilir seçilmez otomatik AI: vision → kart metni → post caption.
+  // Sadece kart metni boşsa tetikle (kullanıcının yazdığını ezme).
+  const sub = $("cardSubtitle");
+  if(sub && sub.value.trim().length === 0){
+    setTimeout(() => aiFillFromImage(), 250);
+  }
 }
 
 async function reloadPicker(){
