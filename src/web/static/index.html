@@ -297,6 +297,39 @@
     box-shadow:0 24px 60px rgba(0,0,0,.6)}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
+  /* Background picker modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:150;
+    display:flex;align-items:center;justify-content:center;padding:24px;
+    animation:fadeIn .2s var(--ease)}
+  .modal-content{background:var(--bg-elev);border:1px solid var(--line);
+    border-radius:var(--r-xl);max-width:1100px;width:100%;max-height:90vh;
+    display:flex;flex-direction:column;box-shadow:var(--sh-3)}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;
+    padding:18px 22px;border-bottom:1px solid var(--line);gap:12px;flex-wrap:wrap}
+  .modal-title{font-size:16px;font-weight:700;color:var(--txt);margin:0}
+  .modal-title small{color:var(--muted);font-weight:400;font-size:12px;margin-left:8px}
+  .modal-body{padding:16px 22px;overflow-y:auto;flex:1}
+  .modal-foot{padding:14px 22px;border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+  .picker-card{position:relative;background:var(--surface);border:2px solid var(--line);
+    border-radius:var(--r-md);overflow:hidden;cursor:pointer;
+    transition:border-color var(--dur) var(--ease),transform var(--dur) var(--ease)}
+  .picker-card:hover{transform:translateY(-2px);border-color:var(--line-strong)}
+  .picker-card.selected{border-color:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-soft)}
+  .picker-card img{width:100%;aspect-ratio:9/16;object-fit:cover;background:#000;
+    display:block}
+  .picker-check{position:absolute;top:8px;right:8px;width:26px;height:26px;
+    background:rgba(0,0,0,.6);backdrop-filter:blur(6px);border-radius:50%;
+    display:flex;align-items:center;justify-content:center;color:#fff;
+    font-size:14px;font-weight:700;border:2px solid rgba(255,255,255,.4);
+    transition:all var(--dur) var(--ease)}
+  .picker-card.selected .picker-check{background:var(--accent);
+    border-color:var(--accent);color:#fff}
+  .picker-caption{padding:6px 8px;font-size:10.5px;color:var(--muted);
+    text-align:center}
+
   /* Toast bildirimleri */
   .toast-host{position:fixed;top:76px;right:20px;z-index:100;
     display:flex;flex-direction:column;gap:8px;pointer-events:none}
@@ -785,18 +818,154 @@ async function pollBackgrounds(){
   }catch(e){}
 }
 
+let _pickerQuery = "";
+let _pickerResults = [];
+let _pickerSelected = new Set();
+
 async function downloadBackgrounds(){
-  if(!confirm("Unsplash'ten Japan temalı arka plan görselleri indirilecek (~30 dosya, birkaç MB). Devam?")) return;
-  const r = await fetch("/api/backgrounds/download", {method: "POST"});
+  const query = prompt(
+    "Ne tür arka plan görsel arayalım?\n\n" +
+    "Örn: 'japanese train station', 'ryokan interior', 'osaka night neon', 'mt fuji sunset'\n\n" +
+    "İngilizce öneriyoruz — Unsplash sonuçları daha zengin.\n" +
+    "Sonuçları göreceksin, kabul ettiklerini indireceğiz.",
+    ""
+  );
+  if(!query || !query.trim()) return;
+  await openBgPicker(query.trim());
+}
+
+async function openBgPicker(query){
+  _pickerQuery = query;
+  _pickerSelected = new Set();
+  toast(`"${query}" için Unsplash aranıyor…`, "info", 2000);
+  const r = await fetch("/api/backgrounds/preview", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({query, count: 10})
+  });
   if(!r.ok){
     let msg = r.statusText;
     try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
-    toast("İndirme başlatılamadı: " + msg, "err");
+    toast("Arama başarısız: " + msg, "err");
     return;
   }
+  const data = await r.json();
+  _pickerResults = data.results || [];
+  if(!_pickerResults.length){
+    toast("Bu sorgu için sonuç bulunamadı.", "warn");
+    return;
+  }
+  renderPickerModal();
+}
+
+function renderPickerModal(){
+  const existing = document.getElementById("bgPickerModal");
+  if(existing) existing.remove();
+
+  const back = document.createElement("div");
+  back.id = "bgPickerModal";
+  back.className = "modal-backdrop";
+  back.onclick = (e) => { if(e.target === back) closeBgPicker(); };
+
+  const cards = _pickerResults.map((p, idx) => `
+    <div class="picker-card" data-idx="${idx}" onclick="togglePicker(${idx})">
+      <img src="${p.thumb}" alt="${escapeHtml(p.photographer_name || p.photographer)}" loading="lazy" />
+      <div class="picker-check">+</div>
+      <div class="picker-caption">@${escapeHtml(p.photographer)}</div>
+    </div>
+  `).join("");
+
+  back.innerHTML = `
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <h3 class="modal-title">🖼 Görsel Seçici <small>— "${escapeHtml(_pickerQuery)}" · ${_pickerResults.length} sonuç</small></h3>
+        <button class="ghost sm" onclick="closeBgPicker()">✕ Kapat</button>
+      </div>
+      <div class="modal-body">
+        <div class="picker-grid">${cards}</div>
+      </div>
+      <div class="modal-foot">
+        <div>
+          <button class="sm ghost" onclick="pickerSelectAll()">Tümünü Seç</button>
+          <button class="sm ghost" onclick="pickerClear()">Temizle</button>
+          <button class="sm ghost" onclick="reloadPicker()">🔄 Farklı Sonuçlar</button>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <span style="color:var(--muted);font-size:12px" id="pickerCount">0 seçili</span>
+          <button class="primary" id="btn-picker-save" onclick="savePicker()" disabled>Seçilenleri İndir</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(back);
+}
+
+function togglePicker(idx){
+  const card = document.querySelector(`.picker-card[data-idx="${idx}"]`);
+  if(!card) return;
+  if(_pickerSelected.has(idx)){
+    _pickerSelected.delete(idx);
+    card.classList.remove("selected");
+    card.querySelector(".picker-check").textContent = "+";
+  }else{
+    _pickerSelected.add(idx);
+    card.classList.add("selected");
+    card.querySelector(".picker-check").textContent = "✓";
+  }
+  updatePickerButton();
+}
+
+function updatePickerButton(){
+  const c = _pickerSelected.size;
+  const btn = $("btn-picker-save");
+  const label = $("pickerCount");
+  if(btn) btn.disabled = c === 0;
+  if(label) label.textContent = `${c} seçili`;
+}
+
+function pickerSelectAll(){
+  _pickerSelected = new Set(_pickerResults.map((_, i) => i));
+  document.querySelectorAll(".picker-card").forEach(c => {
+    c.classList.add("selected");
+    c.querySelector(".picker-check").textContent = "✓";
+  });
+  updatePickerButton();
+}
+
+function pickerClear(){
+  _pickerSelected.clear();
+  document.querySelectorAll(".picker-card").forEach(c => {
+    c.classList.remove("selected");
+    c.querySelector(".picker-check").textContent = "+";
+  });
+  updatePickerButton();
+}
+
+async function reloadPicker(){
+  await openBgPicker(_pickerQuery);
+}
+
+function closeBgPicker(){
+  const m = document.getElementById("bgPickerModal");
+  if(m) m.remove();
+}
+
+async function savePicker(){
+  if(_pickerSelected.size === 0) return;
+  const items = [..._pickerSelected].map(i => _pickerResults[i]);
+  const r = await fetch("/api/backgrounds/save", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({query: _pickerQuery, items})
+  });
+  if(!r.ok){
+    let msg = r.statusText;
+    try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+    toast("İndirme başarısız: " + msg, "err");
+    return;
+  }
+  closeBgPicker();
   logSeq = 0;
   $("logbox").innerHTML = "";
-  toast("Unsplash'ten arka planlar indiriliyor — canlı log'u izle.", "ok");
+  toast(`${items.length} görsel indiriliyor — canlı log'u izle.`, "ok");
   pollStatus(); pollLogs();
 }
 

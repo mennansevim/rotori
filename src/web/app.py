@@ -99,6 +99,21 @@ class StoryRequest(BaseModel):
     count: int = 3
 
 
+class BackgroundDownloadRequest(BaseModel):
+    query: str = ""       # boşsa config queries; doluysa sadece bu sorgu
+    count: int = 8        # tek sorgu modunda kaç görsel
+
+
+class BackgroundPreviewRequest(BaseModel):
+    query: str = Field(..., min_length=2)
+    count: int = 10
+
+
+class BackgroundSaveRequest(BaseModel):
+    query: str = Field(..., min_length=2)
+    items: list[dict[str, Any]] = Field(..., min_length=1)
+
+
 # ---------------- endpoint'ler ----------------
 @app.get("/")
 def index() -> FileResponse:
@@ -206,8 +221,10 @@ def story_generate(req: StoryRequest) -> dict[str, Any]:
 
 
 @app.post("/api/backgrounds/download")
-def backgrounds_download() -> dict[str, Any]:
-    """Unsplash'ten config.unsplash.queries için görselleri toplu indir."""
+def backgrounds_download(req: BackgroundDownloadRequest = BackgroundDownloadRequest()) -> dict[str, Any]:
+    """Unsplash'ten görsel indirir.
+    query verilirse: sadece o sorgu için count adet.
+    query boş: config.unsplash.queries listesi × per_query."""
     if cfg.unsplash is None:
         raise HTTPException(status_code=400,
                             detail="Unsplash config yok. config.yaml → unsplash.access_key doldur.")
@@ -218,10 +235,49 @@ def backgrounds_download() -> dict[str, Any]:
     from src import downloader
 
     def target(emit: Callable[..., None], cancel_ev: Event) -> None:
-        downloader.download_backgrounds(cfg, emit, cancel_ev)
+        downloader.download_backgrounds(cfg, emit, cancel_ev,
+                                        custom_query=req.query,
+                                        custom_count=req.count if req.query else None)
+
+    label = f"Unsplash: '{req.query}'" if req.query else "Unsplash toplu indirici"
+    try:
+        manager.start_callable(label, target)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"ok": True, "job": manager.state}
+
+
+@app.post("/api/backgrounds/preview")
+def backgrounds_preview(req: BackgroundPreviewRequest) -> dict[str, Any]:
+    """Sorguya göre 10 görsel URL'i döndür (indirmez, kullanıcı modal'da seçsin)."""
+    if cfg.unsplash is None:
+        raise HTTPException(status_code=400, detail="Unsplash config yok.")
+    from src import downloader
+    try:
+        results = downloader.search_only(cfg, req.query, count=req.count)
+    except requests.HTTPError as exc:
+        raise HTTPException(status_code=exc.response.status_code,
+                            detail=f"Unsplash hatası: {exc.response.text[:200]}") from exc
+    except requests.RequestException as exc:
+        raise HTTPException(status_code=502, detail=f"Unsplash erişim hatası: {exc}") from exc
+    return {"query": req.query, "results": results}
+
+
+@app.post("/api/backgrounds/save")
+def backgrounds_save(req: BackgroundSaveRequest) -> dict[str, Any]:
+    """Modal'da kullanıcının seçtiği görselleri assets/story_backgrounds'a indir."""
+    if cfg.unsplash is None:
+        raise HTTPException(status_code=400, detail="Unsplash config yok.")
+    if cfg.stories is None or cfg.stories.backgrounds_dir is None:
+        raise HTTPException(status_code=400, detail="stories.backgrounds_dir yok.")
+
+    from src import downloader
+
+    def target(emit: Callable[..., None], cancel_ev: Event) -> None:
+        downloader.download_selected(cfg, req.query, req.items, emit, cancel_ev)
 
     try:
-        manager.start_callable("Unsplash arka plan indirici", target)
+        manager.start_callable(f"Unsplash seçim indir: '{req.query}' × {len(req.items)}", target)
     except RuntimeError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     return {"ok": True, "job": manager.state}
