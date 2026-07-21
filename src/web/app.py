@@ -120,7 +120,7 @@ class RenderFromSelectionRequest(BaseModel):
     background_url: str        # Unsplash regular URL
     background_id: str         # Unsplash photo ID (cache anahtarı)
     photographer: str = ""     # attribution
-    baslik: str = Field(..., min_length=2, max_length=80)
+    baslik: str = ""           # başlık alanı UI'dan kaldırıldı — opsiyonel
     aciklama: str = Field(..., min_length=5, max_length=280)
     ust_tag: str = "GEZİ DEFTERİ"   # sol üst köşedeki küçük sarı rozet
     post_caption: str = ""     # Instagram post caption — üretilirse JPG yanına
