@@ -334,6 +334,49 @@ def _draw_handle_badge(img: Image.Image, handle: str, W: int, H: int) -> None:
            fill=COLOR_HANDLE_TEXT, anchor="mm")
 
 
+def render_from_url(cfg: Config, bg_url: str, bg_id: str, bg_query: str,
+                    baslik: str, aciklama: str, vurgu: list[str],
+                    photographer: str = "") -> Path:
+    """Unsplash'tan gelen bir görseli indir + kart render et. Görseli
+    assets/story_backgrounds/ altına kaydeder (cache — aynı ID tekrar
+    indirilmez). Render output'u output/stories/<slug>_<ts>.jpg.
+    """
+    if cfg.stories is None:
+        raise RuntimeError("stories config yok")
+
+    import requests as _rq
+
+    # 1) görseli indir (idempotent — aynı id varsa atlar)
+    bg_dir = cfg.stories.backgrounds_dir
+    if bg_dir is None:
+        raise RuntimeError("stories.backgrounds_dir yok")
+    bg_dir.mkdir(parents=True, exist_ok=True)
+    slug_q = _slugify(bg_query)
+    bg_path = bg_dir / f"unsplash-{slug_q}-{bg_id}.jpg"
+    if not bg_path.exists():
+        r = _rq.get(bg_url, timeout=60, stream=True)
+        r.raise_for_status()
+        with bg_path.open("wb") as fh:
+            for chunk in r.iter_content(chunk_size=8192):
+                fh.write(chunk)
+        log.info(f"  bg indirildi: {bg_path.name} ({bg_path.stat().st_size // 1024} KB)")
+    else:
+        log.info(f"  bg cache'ten: {bg_path.name}")
+
+    # 2) kart dict + render
+    kart = {
+        "baslik": baslik.strip(),
+        "aciklama": aciklama.strip(),
+        "vurgu_kelimeler": vurgu or [],
+    }
+    ts = int(time.time())
+    out_slug = _slugify(baslik) or "kart"
+    out_path = cfg.stories.output_dir / f"{out_slug}_{ts}.jpg"
+    render_card(cfg, kart, bg_path, out_path)
+    log.info(f"  ✓ kart: {out_path.name}")
+    return out_path
+
+
 def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
                 out_path: Path) -> Path:
     """Bir kartı renderla + jpg olarak kaydet."""

@@ -114,6 +114,17 @@ class BackgroundSaveRequest(BaseModel):
     items: list[dict[str, Any]] = Field(..., min_length=1)
 
 
+class RenderFromSelectionRequest(BaseModel):
+    query: str = ""            # dosya adı slug için (opsiyonel)
+    background_url: str        # Unsplash regular URL
+    background_id: str         # Unsplash photo ID (cache anahtarı)
+    photographer: str = ""     # attribution
+    baslik: str = Field(..., min_length=2, max_length=80)
+    aciklama: str = Field(..., min_length=5, max_length=280)
+    vurgu_kelimeler: list[str] = []   # sarıya boyanacak kelimeler (boşsa
+                                       #   ilk 2 anlamlı kelime otomatik seçilir)
+
+
 # ---------------- endpoint'ler ----------------
 @app.get("/")
 def index() -> FileResponse:
@@ -295,6 +306,44 @@ def backgrounds_status() -> dict[str, Any]:
         "count": count,
         "unsplash_enabled": cfg.unsplash is not None,
         "queries": cfg.unsplash.queries if cfg.unsplash else [],
+    }
+
+
+@app.post("/api/story/render_direct")
+def story_render_direct(req: RenderFromSelectionRequest) -> dict[str, Any]:
+    """Seçilen bir Unsplash görseli + kullanıcının başlık/açıklamasıyla
+    direkt tek kart render eder — GPT çağırmaz."""
+    if cfg.stories is None:
+        raise HTTPException(status_code=400, detail="stories config yok.")
+
+    from src import story_generator
+
+    # Vurgu kelimeleri boşsa: başlığın ilk 1-2 anlamlı kelimesini otomatik seç
+    vurgu = [v.strip() for v in req.vurgu_kelimeler if v.strip()]
+    if not vurgu:
+        words = [w for w in req.baslik.split() if len(w) >= 3][:2]
+        vurgu = words
+
+    try:
+        out = story_generator.render_from_url(
+            cfg,
+            bg_url=req.background_url,
+            bg_id=req.background_id,
+            bg_query=req.query or "custom",
+            baslik=req.baslik,
+            aciklama=req.aciklama,
+            vurgu=vurgu,
+            photographer=req.photographer,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Render hatası: {exc}") from exc
+
+    return {
+        "ok": True,
+        "file": out.name,
+        "url": f"/media/stories/{quote(out.name)}",
+        "baslik": req.baslik,
+        "aciklama": req.aciklama,
     }
 
 
