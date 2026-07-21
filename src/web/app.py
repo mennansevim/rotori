@@ -550,7 +550,10 @@ def story_ai_from_image(req: AIFromImageRequest) -> dict[str, Any]:
             _AI_VISION_SYSTEM,
             _ai_vision_prompt(),
             image_url=data_uri,
-            detail="auto",
+            # detail="low": görsel tek 512px bloğa indirilir → sabit ~2833
+            # image token (gpt-4o-mini). high/auto'ya göre ~10x ucuz. Story
+            # kartı için sahne tanıma (torii/dağ/sokak/yemek) fazlasıyla yeter.
+            detail="low",
             temperature=0.6,
             max_tokens=400,
         )
