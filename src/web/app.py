@@ -122,12 +122,19 @@ class RenderFromSelectionRequest(BaseModel):
     baslik: str = Field(..., min_length=2, max_length=80)
     aciklama: str = Field(..., min_length=5, max_length=280)
     ust_tag: str = "İLGİNÇ BİLGİ!"   # sol üst köşedeki küçük sarı rozet
+    post_caption: str = ""     # Instagram post caption — üretilirse JPG yanına
+                                #   aynı basename ile .txt olarak kaydedilir
     vurgu_kelimeler: list[str] = []   # (yeni tasarımda kullanılmıyor — bwd compat)
 
 
 class AICaptionRequest(BaseModel):
     konu: str = Field(..., min_length=2)
     mode: str = "subtitle"   # "title" | "subtitle"
+
+
+class ExpandCaptionRequest(BaseModel):
+    aciklama: str = Field(..., min_length=8)
+    baslik: str = ""
 
 
 # ---------------- endpoint'ler ----------------
@@ -390,6 +397,68 @@ def story_ai_caption(req: AICaptionRequest) -> dict[str, Any]:
     return {"text": text, "mode": mode}
 
 
+_EXPAND_CAPTION_SYSTEM = (
+    "Sen @japonyaruyasi Instagram kanalı için post caption'ı yazan bir Japon "
+    "gezi rehberisin. Kart görselinin altındaki kısa hook metnini, detaylı "
+    "ama okunaklı bir Instagram post caption'ına dönüştürüyorsun. "
+    "Kusursuz Türkçe, samimi ama bilgili. Uydurma sayı/tarih/fiyat YASAK — "
+    "bilmediğini yazma."
+)
+
+
+def _expand_caption_prompt(baslik: str, aciklama: str) -> str:
+    baslik_line = f"Kart başlığı: {baslik.strip()}\n" if baslik.strip() else ""
+    return (
+        f"{baslik_line}"
+        f"Kart alt açıklaması (kısa hook):\n\"{aciklama.strip()}\"\n\n"
+        "Bunu Instagram post CAPTION'ına genişlet. Format şu şekilde olsun:\n\n"
+        "1. AÇILIŞ (1 cümle): dikkat çekici hook + 1-2 emoji. "
+        "Örnek: '🇯🇵 Japonya'da metroya bindiğinde ilk fark ettiğin şey: sessizlik.'\n"
+        "2. DETAYLAR (3-5 madde): her satır bir emoji ile başlar (🗾 🍜 ⛩️ 🚄 🎋 "
+        "🌸 💴 🎌 vb.), 1 kısa cümle bilgi/tüyo verir. Türkçe, klişesiz, "
+        "somut fact.\n"
+        "3. KAPANIŞ (1 cümle): call-to-action. Örnek: 'Kaydet, Japonya'ya "
+        "gitmeden önce oku 📌', 'Daha fazlası için takipte kal 🇯🇵'\n"
+        "4. Boş satır, sonra 10-15 hashtag: Türkçe ve İngilizce karışık. "
+        "Örnek: #japonya #japan #tokyo #kyoto #osaka #geziblog #japanguide "
+        "#japonyagezi #travel #sakura #reels\n\n"
+        "TOPLAM 500-1500 karakter. Sade metin — markdown/başlık işareti YOK. "
+        "Emoji + kısa satırlar + hashtagler. Instagram'a olduğu gibi "
+        "yapıştırılacak. Meta yorum veya 'İşte caption:' gibi prefix YAZMA."
+    )
+
+
+@app.post("/api/story/expand_caption")
+def story_expand_caption(req: ExpandCaptionRequest) -> dict[str, Any]:
+    """Kart alt açıklamasını Instagram POST caption'ına genişlet (emoji +
+    madde + hashtag)."""
+    if cfg.openai is None:
+        raise HTTPException(status_code=400,
+                            detail="OpenAI key gerekli. config.yaml → openai.api_key.")
+
+    from src.openai_client import OpenAIClient
+    oai = OpenAIClient.from_config(cfg)
+    if oai is None:
+        raise HTTPException(status_code=400, detail="OpenAI client oluşturulamadı.")
+
+    try:
+        text = oai.chat_text(
+            _EXPAND_CAPTION_SYSTEM,
+            _expand_caption_prompt(req.baslik, req.aciklama),
+            temperature=0.8,
+            max_tokens=900,
+        )
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail=f"OpenAI hatası: {exc}") from exc
+
+    text = text.strip().strip('"').strip("'").strip()
+    # olası prefix'ler
+    for prefix in ("caption:", "post caption:", "instagram:", "işte caption:"):
+        if text.lower().startswith(prefix):
+            text = text[len(prefix):].strip()
+    return {"text": text, "chars": len(text)}
+
+
 @app.post("/api/story/render_direct")
 def story_render_direct(req: RenderFromSelectionRequest) -> dict[str, Any]:
     """Seçilen bir Unsplash görseli + kullanıcının başlık/açıklamasıyla
@@ -414,12 +483,24 @@ def story_render_direct(req: RenderFromSelectionRequest) -> dict[str, Any]:
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Render hatası: {exc}") from exc
 
+    # Post caption verilmişse JPG yanına .txt olarak kaydet — Instagram
+    # upload'ta hazır kullanılır.
+    caption_file: str | None = None
+    if req.post_caption and req.post_caption.strip():
+        cap_path = out.with_suffix(".txt")
+        try:
+            cap_path.write_text(req.post_caption.strip(), encoding="utf-8")
+            caption_file = cap_path.name
+        except OSError as exc:
+            log.warning(f"caption .txt kaydedilemedi: {exc}")
+
     return {
         "ok": True,
         "file": out.name,
         "url": f"/media/stories/{quote(out.name)}",
         "baslik": req.baslik,
         "aciklama": req.aciklama,
+        "caption_file": caption_file,
     }
 
 
