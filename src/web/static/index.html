@@ -269,6 +269,34 @@
   button.ig:disabled{background:var(--surface);color:var(--muted);
     border-color:var(--line)}
 
+  /* Story kartları — 1080x1920 preview grid */
+  .story-input-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .story-input-row input[type="text"]{flex:1;min-width:280px}
+  .story-input-row button{white-space:nowrap}
+  .story-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+  .story-card{background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--r-lg);overflow:hidden;display:flex;flex-direction:column;
+    transition:transform var(--dur) var(--ease),border-color var(--dur) var(--ease)}
+  .story-card:hover{transform:translateY(-2px);border-color:var(--gold)}
+  .story-card img{width:100%;aspect-ratio:9/16;object-fit:cover;background:#000;
+    display:block;cursor:pointer}
+  .story-card .actions{padding:10px 12px;display:flex;gap:6px}
+  .story-card .actions a,
+  .story-card .actions button{flex:1;padding:7px 8px;font-size:12px;
+    justify-content:center;text-align:center;text-decoration:none;
+    border-radius:var(--r-sm);color:var(--txt);
+    background:var(--surface-2);border:1px solid var(--line);
+    display:inline-flex;align-items:center;justify-content:center;
+    transition:all var(--dur) var(--ease)}
+  .story-card .actions a:hover{border-color:var(--gold);color:var(--gold)}
+  /* Lightbox */
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:200;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    animation:fadeIn .2s var(--ease)}
+  .lightbox img{max-height:92vh;max-width:92vw;border-radius:12px;
+    box-shadow:0 24px 60px rgba(0,0,0,.6)}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
   /* Toast bildirimleri */
   .toast-host{position:fixed;top:76px;right:20px;z-index:100;
     display:flex;flex-direction:column;gap:8px;pointer-events:none}
@@ -315,6 +343,25 @@
 <div class="toast-host" id="toastHost"></div>
 
 <main>
+  <!-- Hikaye Görsel Üreticisi -->
+  <section class="section" id="storyCard">
+    <div class="section-head">
+      <h2 class="section-title">🎨 Hikaye Görsel Üreticisi</h2>
+    </div>
+    <p class="section-hint">
+      Bir konu ver — GPT sana 3 farklı Instagram Story kartı üretsin (1080×1920 JPG). Impact başlık + sarı vurgu + arşivden mekana özel arka plan. Her seferinde 3 varyant.
+    </p>
+    <form onsubmit="event.preventDefault(); generateStories();">
+      <div class="story-input-row">
+        <input type="text" id="story-konu" required placeholder="Örn: Japonya'da kredi kartı nasıl kullanılır — Konbini'de neyi al — Sumo hakkında bilinmeyenler…" />
+        <button type="submit" class="primary" id="btn-story">🎬 3 Görsel Üret</button>
+      </div>
+    </form>
+    <div id="storyGrid" class="story-grid">
+      <div class="empty" data-icon="🎨">Konu gir, 3 varyant çıkar…</div>
+    </div>
+  </section>
+
   <!-- Reels Fikirleri -->
   <section class="section" id="ideasCard">
     <div class="section-head">
@@ -721,6 +768,76 @@ function useIdea(s){
 }
 
 // ---------- analyze ----------
+// ---------- Hikaye Görselleri ----------
+async function generateStories(){
+  const konu = $("story-konu").value.trim();
+  if(!konu){ toast("Konu gerekli.", "err"); return; }
+  const btn = $("btn-story");
+  btn.disabled = true;
+  const grid = $("storyGrid");
+  grid.innerHTML = `<div class="empty" data-icon="⏳">GPT çalışıyor + 3 görsel render ediliyor… (~5-8 saniye)</div>`;
+  try{
+    const r = await fetch("/api/story/generate", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({konu, count: 3})
+    });
+    if(!r.ok){
+      let msg = r.statusText;
+      try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+      toast("Görsel üretim başarısız: " + msg, "err");
+      grid.innerHTML = `<div class="empty" data-icon="⚠">Hata: ${escapeHtml(msg)}</div>`;
+      return;
+    }
+    const data = await r.json();
+    renderStories(data.cards);
+    toast(`${data.cards.length} görsel üretildi.`, "ok");
+  }catch(e){
+    toast("Bağlantı hatası.", "err");
+    grid.innerHTML = `<div class="empty" data-icon="⚠">Bağlantı hatası.</div>`;
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+function renderStories(cards){
+  const grid = $("storyGrid");
+  if(!cards || !cards.length){
+    grid.innerHTML = `<div class="empty" data-icon="✨">Kart üretilemedi.</div>`;
+    return;
+  }
+  grid.innerHTML = "";
+  for(const c of cards){
+    const card = document.createElement("div");
+    card.className = "story-card";
+    card.innerHTML = `
+      <img src="${c.url}" alt="${escapeHtml(c.baslik || '')}" onclick="openLightbox('${c.url}')" />
+      <div class="actions">
+        <a href="${c.url}" download="${c.file}">⬇ İndir</a>
+        <a href="${c.url}" target="_blank">🔍 Aç</a>
+      </div>`;
+    grid.appendChild(card);
+  }
+}
+
+function openLightbox(url){
+  const box = document.createElement("div");
+  box.className = "lightbox";
+  box.innerHTML = `<img src="${url}">`;
+  box.onclick = () => box.remove();
+  document.body.appendChild(box);
+}
+
+async function loadRecentStories(){
+  try{
+    const r = await fetch("/api/story/list");
+    if(!r.ok) return;
+    const data = await r.json();
+    if(data.cards && data.cards.length){
+      renderStories(data.cards.slice(0, 6));  // en son 6'sını göster
+    }
+  }catch(e){}
+}
+
 async function runBatch(){
   const limitInput = $("batch-limit").value.trim();
   const limit = limitInput ? parseInt(limitInput, 10) : null;
@@ -815,6 +932,7 @@ async function unpublish(name){
 setInterval(() => { pollStatus(); pollLogs(); }, 1000);
 setInterval(() => { pollIgStatus().then(() => pollReels()); }, 4000);
 pollStatus(); pollLogs(); pollIgStatus().then(() => pollReels()); loadSuggestions();
+loadRecentStories();
 </script>
 </body>
 </html>

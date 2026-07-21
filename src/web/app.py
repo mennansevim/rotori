@@ -30,6 +30,8 @@ app = FastAPI(title="Japan Reels Maker", docs_url=None, redoc_url=None)
 app.mount("/media/reels", StaticFiles(directory=str(cfg.paths.output_dir)), name="reels")
 app.mount("/media/ready", StaticFiles(directory=str(cfg.paths.ready_dir)), name="ready")
 app.mount("/media/frames", StaticFiles(directory=str(cfg.paths.frames_dir)), name="frames")
+if cfg.stories:
+    app.mount("/media/stories", StaticFiles(directory=str(cfg.stories.output_dir)), name="stories")
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
@@ -90,6 +92,11 @@ class AnalyzeRequest(BaseModel):
 class BatchRequest(BaseModel):
     limit: int | None = None
     overwrite: bool = False
+
+
+class StoryRequest(BaseModel):
+    konu: str = Field(..., min_length=5)
+    count: int = 3
 
 
 # ---------------- endpoint'ler ----------------
@@ -174,6 +181,47 @@ def analyze(req: AnalyzeRequest) -> dict[str, Any]:
     except RuntimeError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     return {"ok": True, "job": manager.state}
+
+
+@app.post("/api/story/generate")
+def story_generate(req: StoryRequest) -> dict[str, Any]:
+    """Konudan 3 farklı Instagram Story kartı üret. GPT + PIL, senkron çalışır
+    (~5sn) — küçük iş, JobManager gerekmez."""
+    if cfg.stories is None:
+        raise HTTPException(status_code=400, detail="stories config yok.")
+    if cfg.openai is None:
+        raise HTTPException(status_code=400,
+                            detail="OpenAI key gerekli. config.yaml → openai.api_key.")
+
+    from src import story_generator
+    try:
+        cards = story_generator.run_story_generation(cfg, req.konu, count=req.count)
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    # her kartın URL'sini oluştur
+    for c in cards:
+        c["url"] = f"/media/stories/{quote(c['file'])}"
+    return {"ok": True, "cards": cards, "konu": req.konu}
+
+
+@app.get("/api/story/list")
+def story_list() -> dict[str, Any]:
+    """Üretilmiş tüm story kartlarını en yeniye göre listele."""
+    if cfg.stories is None or not cfg.stories.output_dir.exists():
+        return {"cards": []}
+    jpgs = sorted(cfg.stories.output_dir.glob("*.jpg"),
+                  key=lambda p: p.stat().st_mtime, reverse=True)
+    return {
+        "cards": [
+            {
+                "file": p.name,
+                "url": f"/media/stories/{quote(p.name)}",
+                "mtime": p.stat().st_mtime,
+            }
+            for p in jpgs
+        ]
+    }
 
 
 @app.post("/api/batch/generate")

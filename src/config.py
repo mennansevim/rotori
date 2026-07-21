@@ -55,6 +55,14 @@ class InstagramCfg:
 
 
 @dataclass
+class StoriesCfg:
+    output_dir: Path
+    width: int = 1080
+    height: int = 1920
+    handle: str = "@mennansjapan"
+
+
+@dataclass
 class ReelsCfg:
     target_width: int
     target_height: int
@@ -100,6 +108,7 @@ class Config:
     project_root: Path
     openai: OpenAICfg | None = None
     instagram: InstagramCfg | None = None
+    stories: "StoriesCfg | None" = None
 
 
 def _resolve(base: Path, p: str) -> Path:
@@ -139,11 +148,25 @@ def load_config(config_path: str | None = None) -> Config:
             and ig_raw.get("password") and ig_raw["password"] not in ("", "REPLACE_ME_PASSWORD")):
         ig_cfg = InstagramCfg(**ig_raw)
 
+    stories_raw = raw.get("stories") or {}
+    stories_cfg: StoriesCfg | None = None
+    if stories_raw:
+        stories_output = _resolve(project_root,
+                                  stories_raw.get("output_dir", "output/stories"))
+        stories_output.mkdir(parents=True, exist_ok=True)
+        stories_cfg = StoriesCfg(
+            output_dir=stories_output,
+            width=int(stories_raw.get("width", 1080)),
+            height=int(stories_raw.get("height", 1920)),
+            handle=str(stories_raw.get("handle", "@mennansjapan")),
+        )
+
     for d in (paths.frames_dir, paths.plans_dir, paths.output_dir, paths.ready_dir, paths.metadata_csv.parent):
         d.mkdir(parents=True, exist_ok=True)
 
     return Config(paths=paths, ollama=ollama, dify=dify, reels=reels, pilot=pilot,
-                  run=run, project_root=project_root, openai=openai_cfg, instagram=ig_cfg)
+                  run=run, project_root=project_root, openai=openai_cfg,
+                  instagram=ig_cfg, stories=stories_cfg)
 
 
 def require_video_source(cfg: Config) -> Path:

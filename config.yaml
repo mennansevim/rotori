@@ -41,6 +41,14 @@ instagram:
   session_file: "data/instagram_session.json"
   uploads_log: "data/instagram_uploads.jsonl"
 
+stories:
+  # Hikaye Görsel Üreticisi (Instagram Story kartları). GPT ile 3 farklı
+  # varyant üretir, arşivden mekana uygun arka plan seçer, PIL ile render.
+  output_dir: "output/stories"
+  width: 1080
+  height: 1920
+  handle: "@mennansjapan"        # her karta alt-üst köşede sabit badge
+
 reels:
   target_width: 1080
   target_height: 1920
