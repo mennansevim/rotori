@@ -24,7 +24,7 @@ import unicodedata
 from pathlib import Path
 from typing import Any
 
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageDraw, ImageFont
 
 from src.config import Config
 from src.utils.logging import get_logger
@@ -32,21 +32,12 @@ from src.utils.logging import get_logger
 log = get_logger("story")
 
 
-# --- Yazı stili sabitleri (klasik/tutarlı) ---
-COLOR_TEXT = (255, 255, 255)          # beyaz gövde
-COLOR_ACCENT = (255, 214, 61)         # altın sarı (kullanıcı örneklerinden)
-COLOR_SHADOW = (0, 0, 0, 180)         # koyu shadow
-COLOR_HANDLE_BG = (0, 0, 0, 200)      # handle badge arka planı
-COLOR_HANDLE_TEXT = (255, 255, 255)   # handle text
-GRADIENT_ALPHA_TOP = 0                # üstte transparan
-GRADIENT_ALPHA_BOTTOM = 235           # altta neredeyse opak
+# --- Renk sabitleri ---
+COLOR_ACCENT = (255, 214, 61)   # altın sarı (highlight blokları, üst rozet)
 
 FONT_IMPACT = "/System/Library/Fonts/Supplemental/Impact.ttf"
 FONT_BOLD = "/System/Library/Fonts/Supplemental/Arial Black.ttf"
 FONT_MEDIUM = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
-
-_ANAHTAR_RE = re.compile(r"[a-zçğıöşü0-9]+", re.IGNORECASE)
-
 
 def _norm(text: str) -> str:
     text = (text or "").lower()
@@ -54,6 +45,11 @@ def _norm(text: str) -> str:
         text = text.replace(a, b)
     return "".join(c for c in unicodedata.normalize("NFKD", text)
                    if not unicodedata.combining(c))
+
+
+def _tr_upper(s: str) -> str:
+    """Türkçe-aware uppercase — Python'un .upper()'ı 'i'yi 'İ' yapmaz."""
+    return (s or "").replace("i", "İ").replace("ı", "I").upper()
 
 
 def _slugify(text: str, max_len: int = 40) -> str:
@@ -236,20 +232,6 @@ def _cover_resize(img: Image.Image, target_w: int, target_h: int) -> Image.Image
         return img.crop((0, y1, target_w, y1 + target_h))
 
 
-def _draw_gradient(img: Image.Image, gradient_top_frac: float = 0.35) -> Image.Image:
-    """Alt %65'e karanlık gradient (metnin okunması için)."""
-    W, H = img.size
-    grad = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    d = ImageDraw.Draw(grad)
-    top_y = int(H * gradient_top_frac)
-    span = H - top_y
-    for y in range(top_y, H):
-        t = (y - top_y) / span
-        alpha = int(GRADIENT_ALPHA_TOP + (GRADIENT_ALPHA_BOTTOM - GRADIENT_ALPHA_TOP) * (t ** 1.5))
-        d.line([(0, y), (W, y)], fill=(0, 0, 0, alpha))
-    return Image.alpha_composite(img.convert("RGBA"), grad)
-
-
 def _wrap_words(text: str, font: ImageFont.FreeTypeFont, max_width: int) -> list[str]:
     """Metni verilen genişliğe göre satırlara böl."""
     words = text.split()
@@ -268,85 +250,20 @@ def _wrap_words(text: str, font: ImageFont.FreeTypeFont, max_width: int) -> list
     return lines
 
 
-def _text_with_shadow(img: Image.Image, xy: tuple[int, int], text: str,
-                     font: ImageFont.FreeTypeFont, fill: tuple[int, int, int],
-                     stroke_w: int = 3, anchor: str = "mm") -> None:
-    """Text + shadow draw. anchor 'mm' = ortalanmış."""
-    d = ImageDraw.Draw(img)
-    # gölge (2px offset)
-    d.text((xy[0] + 3, xy[1] + 3), text, font=font, fill=(0, 0, 0, 180),
-           anchor=anchor, stroke_width=stroke_w, stroke_fill=(0, 0, 0))
-    d.text(xy, text, font=font, fill=fill, anchor=anchor,
-           stroke_width=stroke_w, stroke_fill=(0, 0, 0))
-
-
-def _draw_line_with_accents(img: Image.Image, line: str, y: int, W: int,
-                            font: ImageFont.FreeTypeFont, vurgu_norm: set[str],
-                            stroke_w: int = 3) -> None:
-    """Bir satırdaki kelimeleri tek tek çiz — vurgu olanlar sarı, diğerleri beyaz.
-    Satırın toplam genişliğine göre center'la."""
-    words = line.split()
-    # gap width
-    space_bbox = font.getbbox(" ")
-    space_w = space_bbox[2] - space_bbox[0]
-    # kelime genişliklerini ölç
-    word_widths = []
-    for w in words:
-        bb = font.getbbox(w)
-        word_widths.append(bb[2] - bb[0])
-    total_w = sum(word_widths) + space_w * max(0, len(words) - 1)
-    x = (W - total_w) // 2
-
-    d = ImageDraw.Draw(img)
-    for i, w in enumerate(words):
-        # normalize edip vurgu setinde mi kontrol
-        w_clean = re.sub(r"[^\wçğıöşüÇĞİÖŞÜ]", "", w).lower()
-        w_norm = _norm(w_clean)
-        is_accent = any(vn == w_norm or (vn and vn in w_norm) for vn in vurgu_norm)
-        color = COLOR_ACCENT if is_accent else COLOR_TEXT
-        # shadow
-        d.text((x + 3, y + 3), w, font=font, fill=(0, 0, 0),
-               stroke_width=stroke_w, stroke_fill=(0, 0, 0))
-        d.text((x, y), w, font=font, fill=color,
-               stroke_width=stroke_w, stroke_fill=(0, 0, 0))
-        x += word_widths[i] + space_w
-
-
-def _draw_handle_badge(img: Image.Image, handle: str, W: int, H: int) -> None:
-    """Alt orta konumda handle badge — pill şeklinde."""
-    d = ImageDraw.Draw(img)
-    font = _load_font(FONT_MEDIUM, 30)
-    bb = font.getbbox(handle)
-    tw = bb[2] - bb[0]
-    th = bb[3] - bb[1]
-    pad_x, pad_y = 22, 12
-    badge_w = tw + pad_x * 2
-    badge_h = th + pad_y * 2
-    bx = (W - badge_w) // 2
-    by = H - 90
-    # arka plan yuvarlak dikdörtgen
-    overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    od = ImageDraw.Draw(overlay)
-    od.rounded_rectangle((bx, by, bx + badge_w, by + badge_h),
-                         radius=badge_h // 2, fill=COLOR_HANDLE_BG)
-    img.alpha_composite(overlay)
-    d.text((W // 2, by + badge_h // 2), handle, font=font,
-           fill=COLOR_HANDLE_TEXT, anchor="mm")
-
-
 def render_from_url(cfg: Config, bg_url: str, bg_id: str, bg_query: str,
-                    baslik: str, aciklama: str, vurgu: list[str],
-                    photographer: str = "") -> Path:
-    """Unsplash'tan gelen bir görseli indir + kart render et. Görseli
-    assets/story_backgrounds/ altına kaydeder (cache — aynı ID tekrar
-    indirilmez). Render output'u output/stories/<slug>_<ts>.jpg.
+                    baslik: str, aciklama: str, vurgu: list[str] | None = None,
+                    photographer: str = "",
+                    ust_tag: str = "İLGİNÇ BİLGİ!") -> Path:
+    """Unsplash'tan gelen bir görseli indir + kart render et. Foto kartın üst
+    %55'ine yerleşir, altında siyah bant + başlık + sarı highlight açıklama.
     """
+    del vurgu, photographer  # yeni tasarımda vurgu kelimesi yok
+
     if cfg.stories is None:
         raise RuntimeError("stories config yok")
 
     import requests as _rq
 
-    # 1) görseli indir (idempotent — aynı id varsa atlar)
     bg_dir = cfg.stories.backgrounds_dir
     if bg_dir is None:
         raise RuntimeError("stories.backgrounds_dir yok")
@@ -363,11 +280,10 @@ def render_from_url(cfg: Config, bg_url: str, bg_id: str, bg_query: str,
     else:
         log.info(f"  bg cache'ten: {bg_path.name}")
 
-    # 2) kart dict + render
     kart = {
         "baslik": baslik.strip(),
         "aciklama": aciklama.strip(),
-        "vurgu_kelimeler": vurgu or [],
+        "ust_tag": (ust_tag or "İLGİNÇ BİLGİ!").strip(),
     }
     ts = int(time.time())
     out_slug = _slugify(baslik) or "kart"
@@ -379,83 +295,138 @@ def render_from_url(cfg: Config, bg_url: str, bg_id: str, bg_query: str,
 
 def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
                 out_path: Path) -> Path:
-    """Bir kartı renderla + jpg olarak kaydet."""
+    """Kullanıcı referansına göre yeni tasarım:
+        [ÜST ~%55]  foto arka plan
+        [SOL, sınırda]  küçük SARI "İLGİNÇ BİLGİ!" tag
+        [ALT ~%45]  siyah bant:
+            - başlık: beyaz Impact, sol-yaslı
+            - alt açıklama satırları: her biri sarı highlight bloğu, siyah yazı
+            - "DETAYLAR AÇIKLAMADA" küçük sarı tag
+            - En altta orta: kırmızı Japon-bayrağı dairesi + handle beyaz yazı
+    """
     if cfg.stories is None:
         raise RuntimeError("stories config yok")
 
     W, H = cfg.stories.width, cfg.stories.height
+    split_y = int(H * 0.55)   # foto/siyah geçiş noktası
 
-    # arka plan
+    # === Zemin: siyah dolgu, foto üst yarıya paste ===
+    bg = Image.new("RGBA", (W, H), (0, 0, 0, 255))
     if bg_path and bg_path.exists():
         try:
-            bg = Image.open(bg_path).convert("RGB")
-            bg = _cover_resize(bg, W, H)
+            photo = Image.open(bg_path).convert("RGB")
+            photo = _cover_resize(photo, W, split_y)
+            bg.paste(photo, (0, 0))
         except Exception as exc:
-            log.warning(f"  arka plan yüklenemedi ({bg_path.name}): {exc}, siyah fallback")
-            bg = Image.new("RGB", (W, H), (26, 30, 40))
-    else:
-        # koyu gradient default
-        bg = Image.new("RGB", (W, H), (26, 30, 40))
+            log.warning(f"  foto yüklenemedi ({bg_path.name}): {exc}")
 
-    # gradient overlay
-    bg = _draw_gradient(bg, gradient_top_frac=0.30)
+    d = ImageDraw.Draw(bg)
 
-    # metin: başlık + açıklama
-    baslik = kart["baslik"].upper()
-    aciklama = kart["aciklama"]
-    vurgu = kart.get("vurgu_kelimeler", [])
-    vurgu_norm = {_norm(v).replace(" ", "") for v in vurgu}
-    # ayrıca çok kelimeli vurguları da her kelime bazında ekleyelim
-    for v in vurgu:
-        for word in v.split():
-            vurgu_norm.add(_norm(word).replace(" ", ""))
+    baslik = _tr_upper(kart["baslik"].strip())
+    aciklama = _tr_upper(kart["aciklama"].strip())
+    ust_tag = _tr_upper((kart.get("ust_tag") or "İLGİNÇ BİLGİ!").strip())
+    handle = cfg.stories.handle
 
-    # başlık font size — uzun başlıklar için otomatik küçült
-    base_title = 96
-    max_word_len = max((len(w) for w in baslik.split()), default=0)
-    if max_word_len >= 14 or len(baslik) > 40:
-        title_size = int(base_title * 0.72)
-    elif max_word_len >= 11 or len(baslik) > 28:
-        title_size = int(base_title * 0.85)
-    else:
-        title_size = base_title
+    padding_x = int(W * 0.05)
+    caption_w = W - 2 * padding_x
+
+    # === Üst rozet — foto ile siyah bant sınırında, sol tarafta ===
+    ust_font = _load_font(FONT_IMPACT, 44)
+    ust_pad_x, ust_pad_y = 16, 8
+    ust_x_text = padding_x + ust_pad_x
+    ust_y_text = split_y - 68  # sınırın biraz üstünde
+    tbb = d.textbbox((ust_x_text, ust_y_text), ust_tag, font=ust_font)
+    d.rectangle(
+        (tbb[0] - ust_pad_x, tbb[1] - ust_pad_y,
+         tbb[2] + ust_pad_x, tbb[3] + ust_pad_y),
+        fill=COLOR_ACCENT,
+    )
+    d.text((ust_x_text, ust_y_text), ust_tag, font=ust_font, fill=(0, 0, 0, 255))
+
+    # === Alt yarı: başlık ===
+    title_size = 96
     title_font = _load_font(FONT_IMPACT, title_size)
-
-    # açıklama font size
-    subtitle_size = 40
-    subtitle_font = _load_font(FONT_MEDIUM, subtitle_size)
-
-    caption_w = int(W * 0.85)
-
-    # başlık satırlarını hazırla
     title_lines = _wrap_words(baslik, title_font, caption_w)
-    subtitle_lines = _wrap_words(aciklama, subtitle_font, caption_w)
+    while len(title_lines) > 2 and title_size > 70:
+        title_size = int(title_size * 0.92)
+        title_font = _load_font(FONT_IMPACT, title_size)
+        title_lines = _wrap_words(baslik, title_font, caption_w)
+    line_h_title = int(title_size * 1.00)
 
-    # y-layout: alt %55'e yerleştir. Başlık üstte, açıklama altta
-    line_h_title = int(title_size * 1.1)
-    line_h_sub = int(subtitle_size * 1.35)
-    total_title_h = line_h_title * len(title_lines)
-    total_sub_h = line_h_sub * len(subtitle_lines)
-    gap = 40
+    # === Alt açıklama — sarı highlight ===
+    body_size = 72
+    body_font = _load_font(FONT_IMPACT, body_size)
+    hi_pad_x, hi_pad_y = 12, 5
+    body_max_w = caption_w - hi_pad_x * 2
+    body_lines = _wrap_words(aciklama, body_font, body_max_w)
+    while len(body_lines) > 4 and body_size > 48:
+        body_size = int(body_size * 0.92)
+        body_font = _load_font(FONT_IMPACT, body_size)
+        body_lines = _wrap_words(aciklama, body_font, caption_w - hi_pad_x * 2)
+    line_h_body = int(body_size * 1.14)
 
-    # başlığın merkez y'si — H'nin %65'i civarında (alt-ortada)
-    base_y = int(H * 0.63)
-    title_start_y = base_y - total_title_h // 2 - gap // 2 - total_sub_h // 2
+    # === Tag (DETAYLAR AÇIKLAMADA) ===
+    tag_size = 32
+    tag_font = _load_font(FONT_IMPACT, tag_size)
+    tag_text = "DETAYLAR AÇIKLAMADA"
+    tag_pad_x, tag_pad_y = 10, 4
 
-    y = title_start_y
+    # === Layout: siyah bandın içinde ===
+    y = split_y + 34
+
     for line in title_lines:
-        _draw_line_with_accents(bg, line, y, W, title_font, vurgu_norm, stroke_w=5)
+        d.text((padding_x, y), line, font=title_font, fill=(255, 255, 255, 255))
         y += line_h_title
 
-    y += gap
-    for line in subtitle_lines:
-        _draw_line_with_accents(bg, line, y, W, subtitle_font, vurgu_norm, stroke_w=2)
-        y += line_h_sub
+    y += 14
 
-    # handle badge
-    _draw_handle_badge(bg, cfg.stories.handle, W, H)
+    for line in body_lines:
+        text_x = padding_x + hi_pad_x
+        text_y = y
+        tbb = d.textbbox((text_x, text_y), line, font=body_font)
+        d.rectangle(
+            (tbb[0] - hi_pad_x, tbb[1] - hi_pad_y,
+             tbb[2] + hi_pad_x, tbb[3] + hi_pad_y),
+            fill=COLOR_ACCENT,
+        )
+        d.text((text_x, text_y), line, font=body_font, fill=(0, 0, 0, 255))
+        y += line_h_body
 
-    # JPG olarak kaydet
+    y += 12
+
+    # DETAYLAR AÇIKLAMADA
+    tag_x = padding_x + tag_pad_x
+    tbb = d.textbbox((tag_x, y), tag_text, font=tag_font)
+    d.rectangle(
+        (tbb[0] - tag_pad_x, tbb[1] - tag_pad_y,
+         tbb[2] + tag_pad_x, tbb[3] + tag_pad_y),
+        fill=COLOR_ACCENT,
+    )
+    d.text((tag_x, y), tag_text, font=tag_font, fill=(0, 0, 0, 255))
+
+    # === Alt orta: kırmızı daire + handle ===
+    handle_font = _load_font(FONT_BOLD, 40)
+    circle_r = 28
+    gap = 14
+    hbb = handle_font.getbbox(handle)
+    handle_tw = hbb[2] - hbb[0]
+    total_w = circle_r * 2 + gap + handle_tw
+    row_center_y = H - 80
+    start_x = (W - total_w) // 2
+
+    circle_cx = start_x + circle_r
+    d.ellipse(
+        (circle_cx - circle_r, row_center_y - circle_r,
+         circle_cx + circle_r, row_center_y + circle_r),
+        fill=(220, 30, 40, 255),
+    )
+
+    text_x = start_x + circle_r * 2 + gap
+    tmp_bb = d.textbbox((text_x, 0), handle, font=handle_font)
+    text_h = tmp_bb[3] - tmp_bb[1]
+    text_y = row_center_y - text_h // 2 - tmp_bb[1]
+    d.text((text_x, text_y), handle, font=handle_font, fill=(255, 255, 255, 255))
+
     out_path.parent.mkdir(parents=True, exist_ok=True)
     bg.convert("RGB").save(out_path, "JPEG", quality=92, optimize=True)
     return out_path
