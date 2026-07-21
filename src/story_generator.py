@@ -24,7 +24,7 @@ import unicodedata
 from pathlib import Path
 from typing import Any
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 from src.config import Config
 from src.utils.logging import get_logger
@@ -252,31 +252,6 @@ def _draw_spaced(draw: ImageDraw.ImageDraw, xy: tuple[int, int], text: str,
         x += (cbb[2] - cbb[0]) + spacing
 
 
-def _draw_ust_rozet(img: Image.Image, tag: str, x_left: int, y_top: int,
-                    font: ImageFont.FreeTypeFont, spacing: int = 2) -> None:
-    """Sade köşeli üst rozet: sarı keskin dikdörtgen + siyah Impact metin.
-    Efekt yok — düz ve temiz. (x_left, y_top) rozetin sol-üst köşesi."""
-    pad_x, pad_y = 14, 8
-    ascent, descent = font.getmetrics()
-    inner_h = ascent + descent
-    text_w = _spaced_width(tag, font, spacing)
-    rozet_w = pad_x * 2 + text_w
-    rozet_h = inner_h + pad_y * 2
-
-    d = ImageDraw.Draw(img)
-    # Keskin dikdörtgen
-    d.rectangle(
-        (x_left, y_top, x_left + rozet_w, y_top + rozet_h),
-        fill=COLOR_ACCENT,
-    )
-    # Metin — dikey merkezli
-    text_x = x_left + pad_x
-    text_bb = font.getbbox(tag)
-    band_center = y_top + rozet_h // 2
-    text_y = band_center - (text_bb[3] - text_bb[1]) // 2 - text_bb[1]
-    _draw_spaced(d, (text_x, text_y), tag, font, (0, 0, 0, 255), spacing=spacing)
-
-
 def _wrap_words(text: str, font: ImageFont.FreeTypeFont, max_width: int,
                 letter_spacing: int = 0) -> list[str]:
     """Metni verilen genişliğe göre satırlara böl (letter-spacing'e duyarlı)."""
@@ -338,192 +313,227 @@ def render_from_url(cfg: Config, bg_url: str, bg_id: str, bg_query: str,
     return out_path
 
 
+# --- yeni tasarım yardımcıları (Explore-Japan-News stili) ---
+_FLAG_RED = (188, 0, 45, 255)   # resmî Hinomaru kırmızısı (#BC002D)
+
+
+def _draw_line_center(d: ImageDraw.ImageDraw, cx: int, y_top: int, text: str,
+                      font: ImageFont.FreeTypeFont, fill, spacing: int = 0,
+                      shadow=None) -> None:
+    """Metni yatayda cx'e ortalayarak (letter-spacing ile) çiz.
+    shadow: (fill, (ox, oy)) verilirse önce offsetli gölge çizilir."""
+    w = _spaced_width(text, font, spacing)
+    x = cx - w // 2
+    if shadow is not None:
+        sfill, (ox, oy) = shadow
+        _draw_spaced(d, (x + ox, y_top + oy), text, font, sfill, spacing)
+    _draw_spaced(d, (x, y_top), text, font, fill, spacing)
+
+
+def _draw_flag_badge(img: Image.Image, cx: int, cy: int, r: int) -> None:
+    """Sol üst dairesel Hinomaru rozeti: yumuşak gölge + beyaz alan + ince
+    halka + kırmızı disk. Görselin parlak bölgesinde bile ayrışsın diye
+    gölge + halka var."""
+    W, H = img.size
+    # 1) yumuşak gölge (ayrı katman + blur)
+    shadow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(shadow)
+    sd.ellipse((cx - r + 4, cy - r + 9, cx + r + 4, cy + r + 9), fill=(0, 0, 0, 130))
+    shadow = shadow.filter(ImageFilter.GaussianBlur(11))
+    img.alpha_composite(shadow)
+    d = ImageDraw.Draw(img)
+    # 2) beyaz alan (bayrak zemini)
+    d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=(255, 255, 255, 255))
+    # 3) ince halka
+    d.ellipse((cx - r, cy - r, cx + r, cy + r), outline=(228, 228, 232, 255), width=3)
+    # 4) kırmızı disk (Hinomaru; çap ≈ %60)
+    rr = int(r * 0.60)
+    d.ellipse((cx - rr, cy - rr, cx + rr, cy + rr), fill=_FLAG_RED)
+
+
+def _load_logo_main_block(logo_path: Path) -> Image.Image | None:
+    """Logo PNG'yi aç, ana (en yoğun) içerik bloğuna kırp. Bazı logolar
+    canvas'ta ayrık öğeler taşır (alt köşede damga/imza gibi) — düz alpha
+    bbox bunları da kapsayıp logoyu küçültür + fazladan kutu gösterir.
+    Bu fn satır-yoğunluğuyla blokları ayırır, en yoğun bloğu döndürür."""
+    import numpy as np
+    logo = Image.open(logo_path).convert("RGBA")
+    a = np.array(logo.split()[-1])
+    H = a.shape[0]
+    row_has = (a > 20).sum(axis=1)
+    rows = [y for y in range(H) if row_has[y] > 3]
+    if not rows:
+        return logo
+    # 30px'den büyük dikey boşluklarla blokları ayır
+    blocks: list[tuple[int, int]] = []
+    start = prev = rows[0]
+    for y in rows[1:]:
+        if y - prev > 30:
+            blocks.append((start, prev))
+            start = y
+        prev = y
+    blocks.append((start, prev))
+    # en yüksek pik yoğunluklu blok = ana lockup
+    best = max(blocks, key=lambda b: int(row_has[b[0]:b[1] + 1].max()))
+    y0, y1 = best
+    strip = logo.crop((0, y0, logo.width, y1 + 1))
+    hb = strip.split()[-1].getbbox()   # yatay boşlukları da kırp
+    if hb:
+        strip = strip.crop(hb)
+    return strip
+
+
+def _prepare_wordmark(img_w: int, ust_tag: str) -> dict[str, Any]:
+    """Wordmark ölçüsünü + payload'ını önceden hesapla (blok yüksekliği için).
+    Logo PNG (assets/logo_japonya_ruyasi.png) varsa onu; yoksa 3-satır text
+    wordmark (kicker / JAPONYA / RÜYASI — referanstaki EXPLORE/JAPAN/NEWS gibi)."""
+    logo_path = Path("assets/logo_japonya_ruyasi.png")
+    if logo_path.exists() and logo_path.is_file():
+        try:
+            logo = _load_logo_main_block(logo_path)
+            if logo is not None:
+                tw = int(img_w * 0.58)
+                ratio = logo.height / max(logo.width, 1)
+                th = int(tw * ratio)
+                max_h = 210
+                if th > max_h:
+                    th = max_h
+                    tw = int(th / max(ratio, 0.01))
+                logo = logo.resize((tw, th), Image.LANCZOS)
+                return {"kind": "logo", "h": th, "w": tw, "logo": logo}
+        except (OSError, ValueError):
+            pass
+    kf = _load_font(FONT_BOLD, 25)
+    bf = _load_font(FONT_IMPACT, 62)
+    sf = _load_font(FONT_BOLD, 25)
+    kh, sh = sum(kf.getmetrics()), sum(sf.getmetrics())
+    bh = int(62 * 0.96)
+    gap1, gap2 = 12, 8
+    return {"kind": "text", "h": kh + gap1 + bh + gap2 + sh,
+            "kf": kf, "bf": bf, "sf": sf, "kh": kh, "bh": bh,
+            "gap1": gap1, "gap2": gap2, "kicker": ust_tag}
+
+
+def _draw_wordmark(img: Image.Image, cx: int, y_top: int, wm: dict[str, Any]) -> None:
+    """_prepare_wordmark payload'ını y_top'tan itibaren çiz."""
+    if wm["kind"] == "logo":
+        img.alpha_composite(wm["logo"], (cx - wm["w"] // 2, y_top))
+        return
+    d = ImageDraw.Draw(img)
+    y = y_top
+    _draw_line_center(d, cx, y, wm["kicker"], wm["kf"], (232, 232, 238, 255), spacing=7)
+    y += wm["kh"] + wm["gap1"]
+    _draw_line_center(d, cx, y, "JAPONYA", wm["bf"], (255, 255, 255, 255), spacing=4,
+                      shadow=((0, 0, 0, 150), (0, 2)))
+    y += wm["bh"] + wm["gap2"]
+    _draw_line_center(d, cx, y, "RÜYASI", wm["sf"], COLOR_ACCENT, spacing=10)
+
+
 def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
                 out_path: Path) -> Path:
-    """Kullanıcı referansına göre yeni tasarım:
-        [ÜST ~%55]  foto arka plan
-        [SOL, sınırda]  küçük SARI "GEZİ DEFTERİ" tag
-        [ALT ~%45]  siyah bant:
-            - başlık: beyaz Impact, sol-yaslı
-            - alt açıklama satırları: her biri sarı highlight bloğu, siyah yazı
-            - "DETAYLAR AÇIKLAMADA" küçük sarı tag
-            - En altta orta: kırmızı Japon-bayrağı dairesi + handle beyaz yazı
+    """Explore-Japan-News stili tasarım:
+        - Tam-kadraj (full-bleed) arka plan foto
+        - Sol üst: dairesel Hinomaru bayrak rozeti (gölge + halka)
+        - Altta foto → siyah YUMUŞAK gradient; metnin hemen üstünde tam
+          siyaha ulaşır → yazı her zaman okunur
+        - Ortalanmış wordmark (logo PNG varsa o; yoksa kicker/JAPONYA/RÜYASI)
+        - Büyük beyaz başlık (Impact, gölgeli, ortalı)
+        - Okunur beyaz alt açıklama (Arial Bold, ortalı)
     """
     if cfg.stories is None:
         raise RuntimeError("stories config yok")
 
     W, H = cfg.stories.width, cfg.stories.height  # 1080 × 1350 (Instagram Post 4:5)
-    split_y = int(H * 0.50)   # foto/siyah nominal ayrım (4:5 için biraz daha kompakt)
-
-    # Letter-spacing sabitleri (Impact kalın, sıkı yerleşir — açalım)
-    UST_LSP = 2
-    TITLE_LSP = 4
-    BODY_LSP = 3
-    TAG_LSP = 2
-
-    # === Zemin: siyah dolgu; foto split_y'den daha uzun paste, üstüne
-    # yumuşak gradient (foto siyaha yavaş yavaş erisin) ===
-    bg = Image.new("RGBA", (W, H), (0, 0, 0, 255))
-    photo_h = split_y + 70   # foto biraz daha uzansın, gradient içinde erisin
-    if bg_path and bg_path.exists():
-        try:
-            photo = Image.open(bg_path).convert("RGB")
-            photo = _cover_resize(photo, W, photo_h)
-            bg.paste(photo, (0, 0))
-        except Exception as exc:
-            log.warning(f"  foto yüklenemedi ({bg_path.name}): {exc}")
-
-    # Gradient overlay: yumuşak foto → siyah geçiş
-    grad_start = max(0, split_y - 100)
-    grad_end = photo_h
-    grad = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    gd = ImageDraw.Draw(grad)
-    span = max(1, grad_end - grad_start)
-    for gy in range(grad_start, min(H, grad_end)):
-        t = (gy - grad_start) / span
-        alpha = int(255 * min(1.0, t ** 1.6))
-        gd.line([(0, gy), (W, gy)], fill=(0, 0, 0, alpha))
-    bg = Image.alpha_composite(bg, grad)
-    d = ImageDraw.Draw(bg)
+    cx = W // 2
+    padding_x = int(W * 0.055)
+    content_w = W - 2 * padding_x
 
     baslik = _tr_upper(kart["baslik"].strip())
     aciklama = _tr_upper(kart["aciklama"].strip())
     ust_tag = _tr_upper((kart.get("ust_tag") or "GEZİ DEFTERİ").strip())
-    handle = cfg.stories.handle
 
-    padding_x = int(W * 0.05)
-    caption_w = W - 2 * padding_x
+    # === 1) Tam-kadraj foto ===
+    bg = Image.new("RGBA", (W, H), (0, 0, 0, 255))
+    if bg_path and bg_path.exists():
+        try:
+            photo = Image.open(bg_path).convert("RGB")
+            photo = _cover_resize(photo, W, H)
+            bg.paste(photo, (0, 0))
+        except Exception as exc:
+            log.warning(f"  foto yüklenemedi ({bg_path.name}): {exc}")
 
-    # === Üst rozet — sade köşeli sarı dikdörtgen ===
-    ust_font = _load_font(FONT_IMPACT, 36)
-    _asc_ust, _desc_ust = ust_font.getmetrics()
-    _rozet_h_est = _asc_ust + _desc_ust + 16   # pad_y*2 = 16
-    _draw_ust_rozet(bg, ust_tag, padding_x, split_y - _rozet_h_est - 14,
-                    ust_font, spacing=UST_LSP)
-
-    # === Alt yarı: başlık ===
-    # Önce tek satıra sığdırmayı dene (min 54pt'ye kadar). Sığmıyorsa 2 satır.
-    title_size = 78
+    # === 2) Metin bloklarını ölç (gradient konumu + dikey yerleşim için) ===
+    TITLE_LSP, BODY_LSP = 3, 1
+    # Başlık — Impact, 1-2 satır, otomatik küçültme
+    title_size = 104
     title_font = _load_font(FONT_IMPACT, title_size)
-    title_lines = _wrap_words(baslik, title_font, caption_w, TITLE_LSP)
-    while len(title_lines) > 1 and title_size > 54:
-        title_size = int(title_size * 0.94)
+    title_lines = _wrap_words(baslik, title_font, content_w, TITLE_LSP)
+    while len(title_lines) > 2 and title_size > 64:
+        title_size = int(title_size * 0.93)
         title_font = _load_font(FONT_IMPACT, title_size)
-        title_lines = _wrap_words(baslik, title_font, caption_w, TITLE_LSP)
-    # 2 satıra düşse bile satır aralığı sıkı olsun (Impact zaten uzun ascender'lı)
-    line_h_title = int(title_size * 1.00)
+        title_lines = _wrap_words(baslik, title_font, content_w, TITLE_LSP)
+    title_line_h = int(title_size * 0.98)
+    title_h = title_line_h * len(title_lines)
 
-    # === Alt açıklama — sarı highlight (SABİT band yüksekliği, satır arası küçük gap) ===
-    body_size = 58
-    body_font = _load_font(FONT_IMPACT, body_size)
-    hi_pad_x, hi_pad_y = 10, 6
-    body_row_gap = 8   # satır band'leri arasında yumuşak dikey boşluk
-    body_max_w = caption_w - hi_pad_x * 2
-    body_lines = _wrap_words(aciklama, body_font, body_max_w, BODY_LSP)
-    while len(body_lines) > 4 and body_size > 40:
-        body_size = int(body_size * 0.92)
-        body_font = _load_font(FONT_IMPACT, body_size)
-        body_lines = _wrap_words(aciklama, body_font, body_max_w, BODY_LSP)
-    # font metrics — descender'lı ve descender'sız satırlar aynı yükseklikte
-    # olsun diye her satır için SABİT band yüksekliği kullanılır
-    _asc, _desc = body_font.getmetrics()
-    body_row_h = _asc + _desc + hi_pad_y * 2
-    # metnin band içindeki dikey konumu (descender'lar bandın alt padding'ine düşer)
-    body_text_off = hi_pad_y
+    # Alt açıklama — Arial Bold (okunur); 4 satırdan fazlaysa küçült
+    body_size = 46
+    body_font = _load_font(FONT_MEDIUM, body_size)
+    body_lines = _wrap_words(aciklama, body_font, content_w, BODY_LSP)
+    while len(body_lines) > 4 and body_size > 32:
+        body_size -= 3
+        body_font = _load_font(FONT_MEDIUM, body_size)
+        body_lines = _wrap_words(aciklama, body_font, content_w, BODY_LSP)
+    _b_asc, _b_desc = body_font.getmetrics()
+    body_line_h = _b_asc + _b_desc + 8
+    body_h = body_line_h * len(body_lines)
 
-    # === Tag (DETAYLAR AÇIKLAMADA) ===
-    tag_size = 26   # 32 → 26
-    tag_font = _load_font(FONT_IMPACT, tag_size)
-    tag_text = "DETAYLAR AÇIKLAMADA"
-    tag_pad_x, tag_pad_y = 8, 3
+    # Wordmark
+    wm = _prepare_wordmark(W, ust_tag)
+    wm_h = wm["h"]
 
-    # === Layout: gradient sonrası ===
-    y = split_y + 50
+    gap_wm_title, gap_title_body, bottom_pad = 38, 40, 62
+    block_h = wm_h + gap_wm_title + title_h + gap_title_body + body_h
+    block_top = H - bottom_pad - block_h
+    # metin çok uzunsa fotoyu tamamen yeme — en az ~%28 foto kalsın
+    block_top = max(block_top, int(H * 0.28))
+
+    # === 3) Yumuşak gradient — metnin hemen üstünde tam siyaha ulaşır ===
+    grad_full_y = max(1, block_top - 26)                     # buradan aşağısı tam siyah
+    grad_start_y = max(int(H * 0.24), grad_full_y - 280)     # 280px yumuşak geçiş
+    grad = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(grad)
+    span = max(1, grad_full_y - grad_start_y)
+    for gy in range(grad_start_y, H):
+        if gy >= grad_full_y:
+            alpha = 255
+        else:
+            t = (gy - grad_start_y) / span
+            alpha = int(255 * (t ** 1.5))
+        gd.line([(0, gy), (W, gy)], fill=(0, 0, 0, alpha))
+    bg = Image.alpha_composite(bg, grad)
+    d = ImageDraw.Draw(bg)
+
+    # === 4) Sol üst dairesel bayrak rozeti ===
+    badge_r, badge_margin = 84, 46
+    _draw_flag_badge(bg, badge_margin + badge_r, badge_margin + badge_r, badge_r)
+    d = ImageDraw.Draw(bg)   # alpha_composite (gölge) sonrası handle tazele
+
+    # === 5) Bottom-anchored blok: wordmark → başlık → açıklama ===
+    y = block_top
+    _draw_wordmark(bg, cx, y, wm)
+    d = ImageDraw.Draw(bg)
+    y += wm_h + gap_wm_title
 
     for line in title_lines:
-        _draw_spaced(d, (padding_x, y), line, title_font,
-                     (255, 255, 255, 255), spacing=TITLE_LSP)
-        y += line_h_title
+        _draw_line_center(d, cx, y, line, title_font, (255, 255, 255, 255),
+                          spacing=TITLE_LSP, shadow=((0, 0, 0, 170), (0, 3)))
+        y += title_line_h
+    y += gap_title_body
 
-    y += 16
-
-    # Her satır SABİT band yüksekliğinde, aralarına küçük dikey gap.
-    # Sarı rect her satır için AYNI yükseklikte — descender (Y, G, Ğ) olan
-    # satırlarla olmayanlar aynı görünür.
-    for i, line in enumerate(body_lines):
-        line_tw = _spaced_width(line, body_font, BODY_LSP)
-        rect_x1 = padding_x
-        rect_x2 = padding_x + hi_pad_x * 2 + line_tw
-        d.rectangle(
-            (rect_x1, y, rect_x2, y + body_row_h),
-            fill=COLOR_ACCENT,
-        )
-        _draw_spaced(d, (padding_x + hi_pad_x, y + body_text_off),
-                     line, body_font, (0, 0, 0, 255), spacing=BODY_LSP)
-        y += body_row_h
-        if i < len(body_lines) - 1:
-            y += body_row_gap   # satırlar arası nefes
-
-    y += 14
-
-    # DETAYLAR AÇIKLAMADA
-    tag_x = padding_x + tag_pad_x
-    tag_tw = _spaced_width(tag_text, tag_font, TAG_LSP)
-    tag_bb = d.textbbox((tag_x, y), tag_text, font=tag_font)
-    d.rectangle(
-        (tag_bb[0] - tag_pad_x, tag_bb[1] - tag_pad_y,
-         tag_x + tag_tw + tag_pad_x, tag_bb[3] + tag_pad_y),
-        fill=COLOR_ACCENT,
-    )
-    _draw_spaced(d, (tag_x, y), tag_text, tag_font,
-                 (0, 0, 0, 255), spacing=TAG_LSP)
-
-    # === Alt orta: LOGO (transparent PNG) veya fallback (kırmızı daire + @handle) ===
-    logo_path = Path("assets/logo_japonya_ruyasi.png")
-    logo_ok = False
-    if logo_path.exists() and logo_path.is_file():
-        try:
-            logo = Image.open(logo_path).convert("RGBA")
-            # Hedef genişlik: kart genişliğinin ~%50'si; yükseklik oranlı
-            # (max 200px yükseklikte kırp — dikey logolar için)
-            target_w = int(W * 0.50)
-            ratio = logo.height / max(logo.width, 1)
-            target_h = int(target_w * ratio)
-            max_h = 200
-            if target_h > max_h:
-                target_h = max_h
-                target_w = int(target_h / max(ratio, 0.01))
-            logo = logo.resize((target_w, target_h), Image.LANCZOS)
-            lx = (W - target_w) // 2
-            ly = H - target_h - 40   # alt kenardan 40px içeride
-            bg.alpha_composite(logo, (lx, ly))
-            logo_ok = True
-        except (OSError, ValueError) as exc:
-            log.warning(f"Logo yüklenemedi ({logo_path}): {exc} — @handle fallback")
-
-    if not logo_ok:
-        # Fallback: eski kırmızı Hinomaru + beyaz @handle
-        handle_font = _load_font(FONT_BOLD, 34)
-        circle_r = 22
-        gap = 12
-        hbb = handle_font.getbbox(handle)
-        handle_tw = hbb[2] - hbb[0]
-        total_w = circle_r * 2 + gap + handle_tw
-        row_center_y = H - 60
-        start_x = (W - total_w) // 2
-
-        circle_cx = start_x + circle_r
-        d.ellipse(
-            (circle_cx - circle_r, row_center_y - circle_r,
-             circle_cx + circle_r, row_center_y + circle_r),
-            fill=(220, 30, 40, 255),
-        )
-
-        text_x = start_x + circle_r * 2 + gap
-        tmp_bb = d.textbbox((text_x, 0), handle, font=handle_font)
-        text_h = tmp_bb[3] - tmp_bb[1]
-        text_y = row_center_y - text_h // 2 - tmp_bb[1]
-        d.text((text_x, text_y), handle, font=handle_font, fill=(255, 255, 255, 255))
+    for line in body_lines:
+        _draw_line_center(d, cx, y, line, body_font, (238, 238, 242, 255),
+                          spacing=BODY_LSP, shadow=((0, 0, 0, 130), (0, 2)))
+        y += body_line_h
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     bg.convert("RGB").save(out_path, "JPEG", quality=92, optimize=True)
