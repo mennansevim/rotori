@@ -68,10 +68,99 @@ def _track_download(access_key: str, download_link: str) -> None:
         pass  # tracking non-critical
 
 
+def search_only(cfg: Config, query: str, count: int = 10) -> list[dict[str, Any]]:
+    """Sorgu yap, download etmeden liste döndür — preview için."""
+    if cfg.unsplash is None:
+        raise RuntimeError("Unsplash config yok")
+    photos = _search_photos(cfg.unsplash.access_key, query,
+                            per_page=count, orientation=cfg.unsplash.orientation)
+    out = []
+    for p in photos:
+        urls = p.get("urls", {})
+        out.append({
+            "id": p.get("id", ""),
+            "photographer": p.get("user", {}).get("username", "unknown"),
+            "photographer_name": p.get("user", {}).get("name", ""),
+            "thumb": urls.get("small") or urls.get("thumb", ""),
+            "download_url": urls.get("regular") or urls.get("full", ""),
+            "download_track": p.get("links", {}).get("download_location", ""),
+            "width": p.get("width", 0),
+            "height": p.get("height", 0),
+        })
+    return out
+
+
+def download_selected(cfg: Config, query: str, items: list[dict[str, Any]],
+                      emit: Callable[..., None], cancel: Event) -> None:
+    """Kullanıcının modal'dan seçtiği görselleri indir."""
+    if cfg.unsplash is None:
+        emit("✖ Unsplash config yok.", "error")
+        return
+    if cfg.stories is None or cfg.stories.backgrounds_dir is None:
+        emit("✖ stories.backgrounds_dir yok.", "error")
+        return
+
+    dst_dir = cfg.stories.backgrounds_dir
+    dst_dir.mkdir(parents=True, exist_ok=True)
+    slug = _slugify(query)
+
+    emit(f"① Seçilen {len(items)} görsel indirilecek — '{query}'", "info")
+    total_ok = 0
+    total_skip = 0
+    total_fail = 0
+
+    for i, it in enumerate(items, 1):
+        if cancel.is_set():
+            emit("⏹ İptal edildi.", "warn")
+            break
+        pid = it.get("id", "?")
+        url = it.get("download_url", "")
+        track = it.get("download_track", "")
+        photographer = it.get("photographer", "unknown")
+
+        if not url:
+            emit(f"  [{i}/{len(items)}] ✗ URL yok ({pid})", "warn")
+            total_fail += 1
+            continue
+
+        filename = f"unsplash-{slug}-{pid}.jpg"
+        dst = dst_dir / filename
+        if dst.exists():
+            total_skip += 1
+            emit(f"  [{i}/{len(items)}] ⤵ zaten var: {filename}", "log")
+            continue
+
+        try:
+            r = requests.get(url, timeout=60, stream=True)
+            r.raise_for_status()
+            with dst.open("wb") as fh:
+                for chunk in r.iter_content(chunk_size=8192):
+                    fh.write(chunk)
+            kb = dst.stat().st_size // 1024
+            total_ok += 1
+            emit(f"  [{i}/{len(items)}] ✓ {filename} ({kb} KB) — @{photographer}", "log")
+            if track:
+                _track_download(cfg.unsplash.access_key, track)
+            time.sleep(0.2)
+        except (requests.RequestException, OSError) as exc:
+            total_fail += 1
+            emit(f"  [{i}/{len(items)}] ✗ indirme hatası: {exc}", "error")
+            if dst.exists():
+                dst.unlink()
+
+    emit(f"② Bitti — kaydedilen: {total_ok} · atlanan: {total_skip} · başarısız: {total_fail}",
+         "info")
+
+
 def download_backgrounds(cfg: Config, emit: Callable[..., None],
-                         cancel: Event) -> None:
+                         cancel: Event, custom_query: str = "",
+                         custom_count: int | None = None) -> None:
     """Config'deki tüm query'ler için görsel indir. Idempotent (var olanı
-    atlar), iptal edilebilir."""
+    atlar), iptal edilebilir.
+
+    custom_query verilirse: sadece o sorgu için indirir (custom_count kadar,
+    default 8). Config'deki queries listesi göz ardı edilir.
+    """
     if cfg.unsplash is None:
         emit("✖ Unsplash config yok. config.yaml → unsplash.access_key doldur.", "error")
         return
@@ -82,12 +171,18 @@ def download_backgrounds(cfg: Config, emit: Callable[..., None],
     dst_dir = cfg.stories.backgrounds_dir
     dst_dir.mkdir(parents=True, exist_ok=True)
 
-    queries = cfg.unsplash.queries or []
-    if not queries:
-        emit("⚠ unsplash.queries listesi boş.", "warn")
-        return
+    if custom_query and custom_query.strip():
+        queries = [custom_query.strip()]
+        per_query = custom_count if custom_count and custom_count > 0 else 8
+        emit(f"① Unsplash özel sorgu — '{custom_query.strip()}' × {per_query} görsel", "info")
+    else:
+        queries = cfg.unsplash.queries or []
+        per_query = cfg.unsplash.per_query
+        if not queries:
+            emit("⚠ unsplash.queries listesi boş.", "warn")
+            return
+        emit(f"① Unsplash indirici başlıyor — {len(queries)} sorgu × {per_query} görsel", "info")
 
-    emit(f"① Unsplash indirici başlıyor — {len(queries)} sorgu × {cfg.unsplash.per_query} görsel", "info")
     emit(f"   klasör: {dst_dir}", "log")
 
     total_downloaded = 0
@@ -105,7 +200,7 @@ def download_backgrounds(cfg: Config, emit: Callable[..., None],
         try:
             photos = _search_photos(
                 cfg.unsplash.access_key, query,
-                per_page=cfg.unsplash.per_query,
+                per_page=per_query,
                 orientation=cfg.unsplash.orientation,
             )
         except requests.HTTPError as exc:
@@ -119,8 +214,8 @@ def download_backgrounds(cfg: Config, emit: Callable[..., None],
             emit(f"  ✗ ağ hatası: {exc}", "error")
             continue
 
-        emit(f"  {len(photos)} sonuç bulundu, ilk {cfg.unsplash.per_query} indirilecek", "log")
-        for photo in photos[: cfg.unsplash.per_query]:
+        emit(f"  {len(photos)} sonuç bulundu, ilk {per_query} indirilecek", "log")
+        for photo in photos[: per_query]:
             if cancel.is_set():
                 break
             pid = photo.get("id", "unknown")

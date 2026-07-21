@@ -34,7 +34,7 @@ unsplash:
   # 3) UI'da "📥 Arka Plan İndir" butonuna bas → assets/story_backgrounds/'a
   #    30-40 görsel iner (CC0, ticari OK, Getty-benzeri kalite)
   # Free tier: 50 istek/saat — bu ayar altında bol.
-  access_key: "REPLACE_ME_UNSPLASH_KEY"
+  access_key: "U1mvYGla52N0d1McWMxDpF9wj7vKLVlJFMDd1sxlv7w"
   # Her tetiklemede indirilecek anahtar kelimeler (İngilizce, story kartı
   # dosya adı da bunlardan üretilir → GPT'nin arka_plan_anahtarlar'ıyla match)
   queries:
