@@ -8,6 +8,9 @@ data/kurgu_planlari/
 data/raw_videos/
 output/reels/
 config.local.yaml
+# Secret'lı ana config — repo'ya girmesin (secret'lar plaintext).
+# Yeni kurulumda config.yaml.example → kopyala config.yaml → değerleri doldur.
+config.yaml
 data/cleaned/
 data/metadata.csv.*.bak
 output/ready_to_publish/
