@@ -37,7 +37,7 @@ def _slugify(text: str) -> str:
 
 
 def _search_photos(access_key: str, query: str, per_page: int,
-                   orientation: str) -> list[dict[str, Any]]:
+                   orientation: str, page: int = 1) -> list[dict[str, Any]]:
     r = requests.get(
         "https://api.unsplash.com/search/photos",
         headers={
@@ -49,6 +49,7 @@ def _search_photos(access_key: str, query: str, per_page: int,
             "per_page": max(per_page, 5),
             "orientation": orientation,
             "content_filter": "high",
+            "page": max(1, page),
         },
         timeout=30,
     )
@@ -68,12 +69,15 @@ def _track_download(access_key: str, download_link: str) -> None:
         pass  # tracking non-critical
 
 
-def search_only(cfg: Config, query: str, count: int = 10) -> list[dict[str, Any]]:
-    """Sorgu yap, download etmeden liste döndür — preview için."""
+def search_only(cfg: Config, query: str, count: int = 10,
+                page: int = 1) -> list[dict[str, Any]]:
+    """Sorgu yap, download etmeden liste döndür — preview için.
+    page: 1'den başlar; her artışta Unsplash search'in sonraki sayfası."""
     if cfg.unsplash is None:
         raise RuntimeError("Unsplash config yok")
     photos = _search_photos(cfg.unsplash.access_key, query,
-                            per_page=count, orientation=cfg.unsplash.orientation)
+                            per_page=count, orientation=cfg.unsplash.orientation,
+                            page=page)
     out = []
     for p in photos:
         urls = p.get("urls", {})

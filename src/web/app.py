@@ -107,6 +107,7 @@ class BackgroundDownloadRequest(BaseModel):
 class BackgroundPreviewRequest(BaseModel):
     query: str = Field(..., min_length=2)
     count: int = 10
+    page: int = 1     # Unsplash search sayfası (Farklı Sonuçlar için)
 
 
 class BackgroundSaveRequest(BaseModel):
@@ -281,7 +282,7 @@ def backgrounds_preview(req: BackgroundPreviewRequest) -> dict[str, Any]:
         raise HTTPException(status_code=400, detail="Unsplash config yok.")
     from src import downloader
     try:
-        results = downloader.search_only(cfg, req.query, count=req.count)
+        results = downloader.search_only(cfg, req.query, count=req.count, page=req.page)
     except requests.HTTPError as exc:
         raise HTTPException(status_code=exc.response.status_code,
                             detail=f"Unsplash hatası: {exc.response.text[:200]}") from exc
