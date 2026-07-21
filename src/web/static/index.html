@@ -1131,18 +1131,9 @@ function renderPickerModal(){
           </div>
           <div class="field" style="margin-bottom:12px">
             <label style="display:flex;justify-content:space-between;align-items:center">
-              <span>Başlık <span style="color:var(--muted);font-weight:400">— MAX 4 kelime, beyaz Impact, siyah bant üstünde</span></span>
+              <span>Kart metni <span style="color:var(--muted);font-weight:400">— kartın ana yazısı; Oswald, ortalı</span></span>
               <button type="button" class="sm ghost" style="padding:4px 10px;font-size:11px"
-                onclick="aiFillCaption('title')" title="Konu ver, GPT başlık üretsin">✨ AI Yaz</button>
-            </label>
-            <input type="text" id="cardTitle" maxlength="60"
-              placeholder="Örn: JAPONYA'DA MENOPOZ" />
-          </div>
-          <div class="field" style="margin-bottom:12px">
-            <label style="display:flex;justify-content:space-between;align-items:center">
-              <span>Alt açıklama <span style="color:var(--muted);font-weight:400">— her satır sarı highlight; Impact uppercase</span></span>
-              <button type="button" class="sm ghost" style="padding:4px 10px;font-size:11px"
-                onclick="aiFillCaption('subtitle')" title="Konu ver, GPT açıklama üretsin">✨ AI Yaz</button>
+                onclick="aiFillCaption('subtitle')" title="Konu ver, GPT metni üretsin">✨ AI Yaz</button>
             </label>
             <textarea id="cardSubtitle" rows="3" maxlength="220"
               placeholder="Örn: Bilgeliğe geçiş dönemi olarak kabul edilir ve kadınlar bu döneme geçişi kutlarlar."></textarea>
@@ -1200,7 +1191,7 @@ function selectPicker(idx){
   $("btn-picker-render").disabled = false;
   // form panele smooth scroll
   setTimeout(() => {
-    const el = $("cardTitle");
+    const el = $("cardSubtitle");
     if(el){ el.scrollIntoView({behavior:"smooth", block:"center"}); el.focus(); }
   }, 100);
 }
@@ -1226,13 +1217,11 @@ async function aiFillFromImage(){
     toast("Seçili görselin URL'si bulunamadı.", "err");
     return;
   }
-  const titleEl = $("cardTitle");
   const subEl = $("cardSubtitle");
   const btn = $("btn-ai-from-image");
-  const oldT = titleEl.value, oldS = subEl.value;
-  titleEl.value = "⏳ Görsel analiz ediliyor…";
-  subEl.value = "";
-  titleEl.disabled = true; subEl.disabled = true;
+  const oldS = subEl.value;
+  subEl.value = "⏳ Görsel analiz ediliyor…";
+  subEl.disabled = true;
   if(btn){ btn.disabled = true; btn.style.opacity = "0.6"; }
   try{
     const r = await fetch("/api/story/ai_from_image", {
@@ -1243,37 +1232,36 @@ async function aiFillFromImage(){
       let msg = r.statusText;
       try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
       toast("Vision hatası: " + msg, "err");
-      titleEl.value = oldT; subEl.value = oldS;
+      subEl.value = oldS;
       return;
     }
     const data = await r.json();
-    titleEl.value = data.title || "";
-    subEl.value = data.subtitle || "";
-    toast("Görselden öneri hazırlandı ✓ — başlık + alt açıklama dolduruldu", "ok", 3000);
-    // subtitle geçerliyse post caption'ı da otomatik hazırla
-    if((data.subtitle || "").trim().length >= 8){
+    // Kart metni = subtitle (title alanı kaldırıldı); subtitle boşsa title'a düş
+    subEl.value = (data.subtitle || data.title || "").trim();
+    toast("Görselden metin hazırlandı ✓", "ok", 3000);
+    // metin geçerliyse post caption'ı da otomatik hazırla
+    if(subEl.value.length >= 8){
       setTimeout(() => expandCaptionAI({auto: true}), 400);
     }
   }catch(e){
     toast("Bağlantı hatası.", "err");
-    titleEl.value = oldT; subEl.value = oldS;
+    subEl.value = oldS;
   }finally{
-    titleEl.disabled = false; subEl.disabled = false;
+    subEl.disabled = false;
     if(btn){ btn.disabled = false; btn.style.opacity = "1"; }
   }
 }
 
 async function aiFillCaption(mode){
-  const label = mode === "title" ? "başlık" : "alt açıklama";
+  // Not: başlık alanı kaldırıldı — sadece kart metni (subtitle) üretilir.
   const konu = prompt(
-    `Ne ile ilgili bir ${label} istiyorsun?\n\n` +
+    `Ne ile ilgili bir kart metni istiyorsun?\n\n` +
     `Örn: 'sakura zamanı Japonya', 'kedi kafeleri', 'Todai-ji büyük buda', 'matcha çayı seremonisi'\n\n` +
-    `GPT senin adına Japon gezi rehberi tonunda üretecek.`
+    `GPT senin adına belgesel tonda üretecek.`
   );
   if(!konu || !konu.trim()) return;
 
-  const targetId = mode === "title" ? "cardTitle" : "cardSubtitle";
-  const target = document.getElementById(targetId);
+  const target = document.getElementById("cardSubtitle");
   if(!target) return;
   const oldValue = target.value;
   target.value = "⏳ AI üretiyor…";
@@ -1282,7 +1270,7 @@ async function aiFillCaption(mode){
   try{
     const r = await fetch("/api/story/ai_caption", {
       method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({konu: konu.trim(), mode})
+      body: JSON.stringify({konu: konu.trim(), mode: "subtitle"})
     });
     if(!r.ok){
       let msg = r.statusText;
@@ -1293,10 +1281,10 @@ async function aiFillCaption(mode){
     }
     const data = await r.json();
     target.value = data.text || "";
-    toast(`${mode === "title" ? "Başlık" : "Alt açıklama"} üretildi ✓`, "ok", 2000);
+    toast("Kart metni üretildi ✓", "ok", 2000);
     target.focus();
-    // subtitle üretildiyse → post caption'ı otomatik hazırla (arka planda)
-    if(mode === "subtitle" && (data.text || "").trim().length >= 8){
+    // post caption'ı otomatik hazırla (arka planda)
+    if((data.text || "").trim().length >= 8){
       setTimeout(() => expandCaptionAI({auto: true}), 400);
     }
   }catch(e){
@@ -1318,7 +1306,7 @@ async function expandCaptionAI(opts){
     if(!auto) toast("Önce 'Alt açıklama'yı doldur (en az 8 karakter).", "warn");
     return;
   }
-  const baslik = ($("cardTitle").value || "").trim();
+  const baslik = "";   // başlık alanı kaldırıldı — post caption sadece metinden
   const target = $("cardPostCaption");
   if(!target) return;
   // auto modda: post caption zaten doluysa yeniden üretme
@@ -1393,10 +1381,9 @@ async function renderPickerCard(){
   if(_pickerSelectedIdx === null){
     toast("Önce bir görsel seç.", "warn"); return;
   }
-  const baslik = $("cardTitle").value.trim();
+  const baslik = "";   // başlık alanı kaldırıldı
   const aciklama = $("cardSubtitle").value.trim();
-  if(baslik.length < 3){ toast("Başlık gerekli (en az 3 karakter).", "err"); return; }
-  if(aciklama.length < 8){ toast("Alt açıklama gerekli (en az 8 karakter).", "err"); return; }
+  if(aciklama.length < 8){ toast("Kart metni gerekli (en az 8 karakter).", "err"); return; }
 
   const ustTag = ($("cardUstTag").value || "").trim() || "GEZİ DEFTERİ";
   const postCaption = ($("cardPostCaption").value || "").trim();

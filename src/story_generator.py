@@ -334,7 +334,8 @@ def render_from_url(cfg: Config, bg_url: str, bg_id: str, bg_query: str,
         "ust_tag": (ust_tag or "GEZİ DEFTERİ").strip(),
     }
     ts = int(time.time())
-    out_slug = _slugify(baslik) or "kart"
+    # başlık alanı kaldırıldı — slug boşsa açıklamadan üret
+    out_slug = _slugify(baslik) or _slugify(aciklama) or "kart"
     out_path = cfg.stories.output_dir / f"{out_slug}_{ts}.jpg"
     render_card(cfg, kart, bg_path, out_path)
     log.info(f"  ✓ kart: {out_path.name}")
@@ -402,7 +403,7 @@ def _prepare_wordmark(img_w: int) -> dict[str, Any]:
     sub_bb = sub_font.getbbox(sub_text)
     big_vh = big_bb[3] - big_bb[1]
     sub_vh = sub_bb[3] - sub_bb[1]
-    gap = 8   # RÜYASI JAPONYA'ya yakın otursun (referanstaki NEWS proximity)
+    gap = 3   # RÜYASI JAPONYA'ya çok yakın otursun (referanstaki NEWS proximity)
     return {"big_font": big_font, "sub_font": sub_font,
             "big_text": big_text, "sub_text": sub_text,
             "big_sp": big_sp, "sub_sp": sub_sp,
