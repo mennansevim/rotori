@@ -71,6 +71,10 @@ class ReelsCfg:
     shadow_offset: int = 6
     stroke_width: int = 8
     footer_text: str = ""   # her reel'de sabit alt imza; boşsa footer basılmaz
+    # False (default): video temiz kalır — hook, overlay, footer ekrana BASILMAZ.
+    # Kullanıcı Instagram uygulamasında caption'ı kendi yazar/düzenler.
+    # True: eski davranış — hook + footer video üzerine gömülür.
+    add_overlays: bool = False
 
 
 @dataclass

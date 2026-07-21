@@ -344,11 +344,37 @@
     <p class="section-hint">Kaynak klasöründe yeni video varsa etiketler + sahne özetlerini üretir. Her yeni video için ~10-15 saniye.</p>
   </section>
 
-  <!-- Reels Üretimi -->
-  <section class="section" id="promptSection">
+  <!-- Arşivi Reels'e Dönüştür — asıl akış -->
+  <section class="section">
     <div class="section-head">
-      <h2 class="section-title">✏️ Reels Üretimi</h2>
+      <h2 class="section-title">🎞 Arşivi Reels'e Dönüştür</h2>
+      <div style="display:flex;gap:8px">
+        <input type="number" id="batch-limit" min="1" placeholder="limit"
+          style="width:80px;padding:6px 10px;font-size:12px" title="Sadece ilk N videoyu işle (test için)">
+        <label class="sm" style="display:flex;align-items:center;gap:5px;color:var(--muted);font-size:12px;padding:6px 10px">
+          <input type="checkbox" id="batch-overwrite" style="accent-color:var(--accent)">
+          Var olanı yeniden yap
+        </label>
+        <button class="sm primary" id="btn-batch" onclick="runBatch()"
+          style="padding:8px 16px">🎬 Reels Havuzu Oluştur</button>
+      </div>
     </div>
+    <p class="section-hint">
+      metadata.csv'deki her videoyu 9:16 kırpar, uygun süreye trim eder ve <strong>videonun üstüne hiçbir yazı basmaz</strong> (temiz Reels).
+      GPT sahne özetine göre Türkçe caption + hashtag'leri <code>.txt</code> olarak yanına yazar — sen Instagram'da yapıştırırsın.
+    </p>
+  </section>
+
+  <!-- Reels Üretimi (Advanced — prompt bazlı tek video) -->
+  <details class="section" id="promptSection" style="padding:0">
+    <summary style="padding:22px;cursor:pointer;list-style:none;
+      display:flex;align-items:center;gap:8px">
+      <span class="section-title" style="margin:0">✏️ Tek Reels — Prompt Bazlı</span>
+      <span style="font-size:11px;color:var(--muted);font-weight:normal">
+        (Advanced: prompt yazıp tek özel Reels üretmek için)
+      </span>
+    </summary>
+    <div style="padding:0 22px 22px">
     <form id="promptForm" onsubmit="event.preventDefault(); submitPrompt();">
       <div class="field">
         <label for="prompt">Prompt</label>
@@ -407,7 +433,8 @@
         <div class="job-status" id="jobStatus">Hazır — prompt gir ve üretimi başlat.</div>
       </div>
     </form>
-  </section>
+    </div>
+  </details>
 
   <!-- Canlı Süreç -->
   <section class="section">
@@ -496,24 +523,25 @@ function updateJobStatus(job){
     gen: $("btn-generate"),
     can: $("btn-cancel"),
     ana: $("btn-analyze"),
-    fast: $("btn-analyze-fast")
+    fast: $("btn-analyze-fast"),
+    batch: $("btn-batch")
   };
-  if(job && job.running){
+  const disable = job && job.running;
+  if(btns.gen) btns.gen.disabled = disable;
+  if(btns.can) btns.can.disabled = !disable;
+  if(btns.ana) btns.ana.disabled = disable;
+  if(btns.fast) btns.fast.disabled = disable;
+  if(btns.batch) btns.batch.disabled = disable;
+  if(disable){
     s.className = "job-status running";
     s.textContent = `⏳ ${job.label || "Çalışıyor…"}`;
-    btns.gen.disabled = true; btns.can.disabled = false;
-    if(btns.ana) btns.ana.disabled = true;
-    if(btns.fast) btns.fast.disabled = true;
   }else{
-    btns.gen.disabled = false; btns.can.disabled = true;
-    if(btns.ana) btns.ana.disabled = false;
-    if(btns.fast) btns.fast.disabled = false;
     if(job && job.error){
       s.className = "job-status error"; s.textContent = "✗ " + job.error;
     }else if(job && job.finished_at){
       s.className = "job-status done"; s.textContent = "✓ Son iş bitti.";
     }else{
-      s.className = "job-status"; s.textContent = "Hazır — prompt gir ve üretimi başlat.";
+      s.className = "job-status"; s.textContent = "Hazır — bir işlem başlat.";
     }
   }
 }
@@ -693,6 +721,28 @@ function useIdea(s){
 }
 
 // ---------- analyze ----------
+async function runBatch(){
+  const limitInput = $("batch-limit").value.trim();
+  const limit = limitInput ? parseInt(limitInput, 10) : null;
+  const overwrite = $("batch-overwrite").checked;
+  const body = {limit: (limit && limit > 0 ? limit : null), overwrite};
+  if(!confirm(`Arşivdeki${limit ? ` ilk ${limit}` : ' tüm'} video Reels havuzuna dönüştürülecek. Her video için GPT caption üretilir. Devam?`)) return;
+  const r = await fetch("/api/batch/generate", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(body)
+  });
+  if(!r.ok){
+    let msg = r.statusText;
+    try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+    toast("Batch başlatılamadı: " + msg, "err");
+    return;
+  }
+  logSeq = 0;
+  $("logbox").innerHTML = "";
+  toast("Arşiv dönüştürme başladı — canlı log'u izle.", "ok");
+  pollStatus(); pollLogs();
+}
+
 async function analyzeSources(enrich){
   const r = await fetch("/api/analyze", {
     method:"POST", headers:{"Content-Type":"application/json"},

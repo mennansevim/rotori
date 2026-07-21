@@ -191,6 +191,84 @@ _OPENAI_SYSTEM = (
     "otoriter. Uydurma sayı/saat/fiyat YASAK — bilmiyorsan hiç yazma."
 )
 
+_OPENAI_CAPTION_SYSTEM = (
+    "Sen Japonya'yı ailesiyle 13 gün gezmiş bir Türk gezginsin (Mayıs 2026, "
+    "Tokyo/Osaka/Kyoto/Nara). Kanalın 'Mennan'ın Japonya Günlüğü'. Sadece "
+    "Instagram description ve hashtagler üretiyorsun — video ÜZERİNE hiçbir "
+    "metin gitmiyor, kullanıcı yazıyı kendi ekler. Türkçen kusursuz, klişesiz. "
+    "Uydurma sayı/saat/fiyat YASAK. Yanıt SADECE JSON."
+)
+
+
+def generate_caption_only(cfg: Config, row: dict[str, Any]) -> dict[str, Any]:
+    """metadata.csv satırından o videoya özel Instagram caption + hashtagler üret.
+
+    row: metadata.csv'den bir video satırı — dosya_adi, mekan_etiketi, kategori,
+    sehir, sahne_ozeti, sahne_ogeleri, sahne_mekan_tahmini, sure_sn içerir.
+    Return: {"aciklama": str, "hashtagler": [str, ...]}
+
+    OpenAI yoksa persona seed'den fallback (deterministik).
+    """
+    from src.openai_client import OpenAIClient
+
+    dosya = row.get("dosya_adi", "")
+    mekan = row.get("mekan_etiketi", "")
+    kategori = row.get("kategori", "")
+    sehir = row.get("sehir", "")
+    sahne_ozeti = (row.get("sahne_ozeti") or "").strip()
+    sahne_ogeleri = (row.get("sahne_ogeleri") or "").strip()
+    sahne_mekan = (row.get("sahne_mekan_tahmini") or "").strip()
+
+    oai = OpenAIClient.from_config(cfg)
+    if oai is not None:
+        # OpenAI ile üret
+        user = f"""Bir Reels için Instagram caption'ı üret.
+
+VİDEO METADATA:
+- Mekan: {mekan}
+- Kategori: {kategori}
+- Şehir: {sehir}
+- Sahne özeti (llava vision): {sahne_ozeti or 'yok'}
+- Sahnede görünen ögeler: {sahne_ogeleri or 'yok'}
+- Model'in mekan tahmini: {sahne_mekan or 'yok'}
+- Süre: {row.get('sure_sn', '?')} sn
+
+Çıktı JSON:
+{{
+  "aciklama": "3-5 kısa Türkçe cümle, birinci çoğul (biz/ailemle),
+    somut bir gözlem/tüyo, 2-4 emoji. Videoyu ÖZETLEME — mekan/konu
+    hakkında bilgi ver. Sonuna kısa kanal hatırlatması ekle (opsiyonel).",
+  "hashtagler": ["japonya", "gezi", "reels", ...]  // 8-12 tag, # olmadan
+}}
+
+KURALLAR:
+- SADECE sahne özetinde/mekan bilgisinde açıkça geçen bilgiye dayan
+- Uydurma fiyat/saat/tarih/sayı YASAK
+- Klişe cümle YASAK ("büyülü ülke", "erken git", "rahat ayakkabı")
+- Cümleler kusursuz Türkçe olmalı
+- Yalnızca JSON döndür"""
+
+        try:
+            data = oai.chat_json(_OPENAI_CAPTION_SYSTEM, user, temperature=0.7, max_tokens=800)
+        except (RuntimeError, ValueError) as exc:
+            log.warning(f"OpenAI caption başarısız, seed fallback: {exc}")
+            data = None
+
+        if data:
+            aciklama = _sanitize_aciklama(str(data.get("aciklama", "")),
+                                          mekan, [sahne_ozeti])
+            hashtagler = _clean_hashtags(data.get("hashtagler"), [])
+            if aciklama and hashtagler:
+                log.info(f"  ↳ GPT caption ({oai.model}): {aciklama[:50]}…")
+                return {"aciklama": aciklama, "hashtagler": hashtagler}
+
+    # Fallback: persona seed'den
+    seed = persona.seed_for(mekan, kategori)
+    aciklama = seed.get("aciklama") or _aciklama_fallback(mekan,
+                                                          [sahne_ozeti] if sahne_ozeti else seed.get("tips", []))
+    hashtagler = _clean_hashtags(None, seed.get("hashtags", persona.GENERIC["hashtags"]))
+    return {"aciklama": aciklama, "hashtagler": hashtagler}
+
 
 def _openai_generate(cfg: Config, group: dict[str, Any]) -> dict[str, Any] | None:
     """OpenAI (gpt-4o-mini) ile Türkçe kaliteli metin üret. Key yoksa None."""

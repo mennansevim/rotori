@@ -308,29 +308,31 @@ def render_reel(final_json: Path, cfg: Config, source_dir: Path, name_index: dic
         ).with_fps(cfg.reels.fps)
         base = concatenate_videoclips([base, pad])
 
-    log.info("  overlay'ler ekleniyor (hook + lokasyon)…")
     overlay_clips: list[Any] = []
 
-    # 1) HOOK: büyük/vurgulu, yalnızca girişte görünür (sonra kaybolur).
-    hook_text = str(plan.get("hook", "")).strip()
-    if hook_text:
-        hook_start = min(HOOK_START_SN, max(0.0, base.duration - 0.5))
-        hook_dur = max(0.5, min(HOOK_VISIBLE_SN, base.duration - hook_start))
-        for c in make_overlay(hook_text, cfg, "hook", "beyaz"):
-            overlay_clips.append(c.with_start(hook_start).with_duration(hook_dur))
-        log.info(f"    hook: \"{hook_text[:60]}\" ({hook_dur:.1f}s)")
+    if cfg.reels.add_overlays:
+        # add_overlays=True: eski davranış — hook + footer video'ya gömülür.
+        log.info("  overlay'ler ekleniyor (hook + footer)…")
 
-    # 2) FOOTER: cfg.reels.footer_text (ör "@mennansjapan") — video boyunca
-    #    altta sabit kalıcı kanal imzası. Mekan etiketi ("Doğa" vb.) artık
-    #    ekrana basılmıyor — metadata.csv'de kalır, semantic search için yeter.
-    footer_text = str(cfg.reels.footer_text or "").strip()
-    if footer_text:
-        for c in make_overlay(footer_text, cfg, "footer", "beyaz", upper=False):
-            overlay_clips.append(c.with_start(0.0).with_duration(base.duration))
-        log.info(f"    footer: \"{footer_text}\"")
+        # 1) HOOK: büyük/vurgulu, yalnızca girişte görünür (sonra kaybolur).
+        hook_text = str(plan.get("hook", "")).strip()
+        if hook_text:
+            hook_start = min(HOOK_START_SN, max(0.0, base.duration - 0.5))
+            hook_dur = max(0.5, min(HOOK_VISIBLE_SN, base.duration - hook_start))
+            for c in make_overlay(hook_text, cfg, "hook", "beyaz"):
+                overlay_clips.append(c.with_start(hook_start).with_duration(hook_dur))
+            log.info(f"    hook: \"{hook_text[:60]}\" ({hook_dur:.1f}s)")
 
-    # 3) Aradaki overlay'ler ve 4) sondaki CTA artık ekrana basılmıyor
-    #    (bu bilgiler açıklama/.txt içinde korunuyor).
+        # 2) FOOTER: cfg.reels.footer_text video boyunca altta sabit.
+        footer_text = str(cfg.reels.footer_text or "").strip()
+        if footer_text:
+            for c in make_overlay(footer_text, cfg, "footer", "beyaz", upper=False):
+                overlay_clips.append(c.with_start(0.0).with_duration(base.duration))
+            log.info(f"    footer: \"{footer_text}\"")
+    else:
+        # add_overlays=False (default): video TEMİZ kalır. Yazılar sadece
+        # .txt caption dosyasında; kullanıcı Instagram'da caption'ı ekler.
+        log.info("  overlay YOK — video temiz kalıyor (add_overlays=False)")
 
     final = CompositeVideoClip(
         [base, *overlay_clips],
