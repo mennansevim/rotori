@@ -1,0 +1,116 @@
+## japan-reels-maker konfigürasyon — ÖRNEK/TEMPLATE
+## Kurulum:
+##   1) cp config.yaml.example config.yaml
+##   2) Aşağıdaki YOUR_* placeholder'ları gerçek değerlerinle değiştir
+##   3) config.yaml .gitignore'lu — secret'lar repo'ya girmez
+##
+## Rotate/revoke uyarıları:
+##   - OpenAI API key: platform.openai.com/api-keys — para yakma riski, kritik
+##   - Instagram şifresi: Instagram uygulaması → Settings → Password
+##   - Unsplash access key: unsplash.com/oauth/applications
+##   - Dify API key: kendi Dify sunucun
+
+paths:
+  video_source_dir: "/path/to/your/video/source"
+  frames_dir: "data/frames"
+  metadata_csv: "data/metadata.csv"
+  plans_dir: "data/kurgu_planlari"
+  output_dir: "output/reels"
+  ready_dir: "output/ready_to_publish"
+
+ollama:
+  base_url: "http://localhost:11434"
+  vision_model: "llava:7b"
+  text_model: "qwen2.5:3b"
+  request_timeout_sn: 240
+  vision_concurrency: 1
+
+dify:
+  base_url: "http://your-dify-host:5001"
+  api_key: "YOUR_DIFY_API_KEY"    # app-xxx ile başlar (Dify workflow app key)
+  workflow_endpoint: "/v1/workflows/run"
+  concurrency: 2
+  timeout_sn: 180
+  aciklama_tipi: "aciklayici"    # aciklayici | bolgeyi_tanit | merak_uyandir
+
+openai:
+  # platform.openai.com/api-keys → Create new secret key
+  # gpt-4o-mini kullanıyoruz — story kartı başına ~$0.001, ucuz
+  api_key: "sk-YOUR_OPENAI_API_KEY"
+  model: "gpt-4o-mini"                # gpt-4o-mini | gpt-4o | gpt-4.1-mini
+  base_url: "https://api.openai.com/v1"
+  timeout_sn: 60
+
+unsplash:
+  # Story kartları için Japan temalı arka plan otomatik indirici.
+  # 1) unsplash.com/developers → "Your apps" → "New Application" → 5 dk
+  # 2) "Access Key" alanını kopyala, aşağıya yapıştır
+  # Free tier: 50 istek/saat — bu ayar altında bol.
+  access_key: "YOUR_UNSPLASH_ACCESS_KEY"
+  queries:
+    - "japan blur"
+    - "tokyo neon night"
+    - "sakura park pink"
+    - "temple torii red"
+    - "shibuya crossing"
+    - "konbini convenience store"
+    - "japanese ryokan tatami"
+    - "osaka dotonbori"
+    - "shinkansen train"
+    - "kyoto street bamboo"
+  per_query: 3          # her sorguda kaç görsel
+  orientation: "portrait"
+
+instagram:
+  # Yayına Hazır reel'lerini Instagram uygulaması Drafts sekmesine gönderir.
+  # instagrapi kullanır (unofficial Python client) — hesabı riske sokabilir
+  # (Instagram TOS "3rd-party client" yasaklıyor). Şahsi kanal + haftada
+  # birkaç upload için tolere edilebilir.
+  username: "your_instagram_handle"     # @'sız
+  password: "YOUR_INSTAGRAM_PASSWORD"
+  # 2FA authenticator app aktifse: Instagram → Settings → Security →
+  # Two-factor auth → Authenticator app → "Set up manually" ekranındaki
+  # 32-karakter secret'i (boşluksuz) buraya yaz.
+  # SMS 2FA veya 2FA yoksa boş bırak.
+  totp_secret: ""
+  session_file: "data/instagram_session.json"    # login sonrası otomatik oluşur
+  uploads_log: "data/instagram_uploads.jsonl"    # upload log'u
+
+stories:
+  # Hikaye/Post Görsel Üreticisi. Instagram Post 4:5 formatı (1080×1350) —
+  # feed'de tam görünür, kesilmez. Aynı görsel Story'e "share to story"
+  # ile de atılabilir.
+  output_dir: "output/stories"
+  # Arka plan görselleri klasörü. Unsplash search+seç akışında görseller
+  # otomatik buraya cache'lenir (unsplash-<query-slug>-<id>.jpg).
+  backgrounds_dir: "assets/story_backgrounds"
+  width: 1080
+  height: 1350                    # Instagram Post 4:5 formatı
+  handle: "@your_instagram_handle"
+
+reels:
+  target_width: 1080
+  target_height: 1920
+  fps: 30
+  min_duration_sn: 30
+  max_duration_sn: 60
+  clip_per_reel: 4
+  crossfade_sn: 0.3
+  hook_duration_sn: 3.0
+  cta_duration_sn: 3.0
+  cta_text: "Takip et 👉 @your_instagram_handle"
+  font: "/System/Library/Fonts/Supplemental/Impact.ttf"
+  font_alt: "/System/Library/Fonts/Supplemental/Arial Black.ttf"
+  shadow_offset: 6
+  stroke_width: 8
+  footer_text: "@your_instagram_handle"
+  add_overlays: false
+
+pilot:
+  pilot_mode: false
+  pilot_count: 10
+  random_seed: 42
+
+run:
+  # Tek çalıştırmada işlenecek MAKSİMUM video sayısı (güvenlik sınırı).
+  max_videos_per_run: 10
