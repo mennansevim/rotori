@@ -334,8 +334,9 @@ def render_from_url(cfg: Config, bg_url: str, bg_id: str, bg_query: str,
         "ust_tag": (ust_tag or "GEZİ DEFTERİ").strip(),
     }
     ts = int(time.time())
-    # başlık alanı kaldırıldı — slug boşsa açıklamadan üret
-    out_slug = _slugify(baslik) or _slugify(aciklama) or "kart"
+    # başlık alanı kaldırıldı — slug'ı açıklamadan üret (başlık boşsa)
+    # Not: _slugify("") "story" döndürür (falsy değil), o yüzden strip ile kontrol
+    out_slug = _slugify(baslik if baslik.strip() else aciklama)
     out_path = cfg.stories.output_dir / f"{out_slug}_{ts}.jpg"
     render_card(cfg, kart, bg_path, out_path)
     log.info(f"  ✓ kart: {out_path.name}")
