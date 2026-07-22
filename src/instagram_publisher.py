@@ -25,44 +25,55 @@ from src.utils.logging import get_logger
 log = get_logger("instagram")
 
 
-_CHALLENGE_HELP = (
-    "Instagram bu login'i şüpheli buldu (yeni cihaz / farklı IP / bot koruma). "
-    "Çözüm sırası:\n"
-    "  1) Instagram mobil uygulamasında bildirimlerden 'Yes, it was me' onayla "
-    "(Settings → Security → Login activity → son giriş → 'This was me')\n"
-    "  2) rm data/instagram_session.json — session'ı sıfırla\n"
-    "  3) instagram.com'a bilgisayardan login ol → checkpoint kodunu gir → "
-    "'Trust this device'\n"
-    "  4) 2FA Authenticator app aç → 32 karakterlik secret'i config.yaml → "
-    "instagram.totp_secret alanına yaz\n"
-    "  5) Aynı WiFi (Instagram mobilinle) + VPN kapalı\n"
-    "  6) Hâlâ olmuyorsa 6-12 saat bekle (Instagram cooldown)"
+_SESSIONID_HELP = (
+    "EN GÜVENİLİR ÇÖZÜM — sessionid ile giriş (login akışını tamamen atlar):\n"
+    "  1) Bu bilgisayarda Chrome/Safari ile instagram.com'a japonyaruyasi\n"
+    "     hesabıyla giriş yap.\n"
+    "  2) F12 → Application/Storage → Cookies → https://www.instagram.com →\n"
+    "     'sessionid' satırının VALUE'sunu kopyala (…%3A… içeren uzun metin).\n"
+    "  3) config.yaml → instagram.sessionid: \"KOPYALADIĞIN_DEĞER\"\n"
+    "  4) rm data/instagram_session.json → UI'dan tekrar dene.\n"
+    "  (sessionid ~90 gün geçerli; düşerse 1-2'yi tekrarla.)"
 )
 
 
 def _wrap_instagram_error(exc: Exception) -> RuntimeError:
-    """instagrapi hatalarını (challenge/checkpoint dâhil) kullanıcı için
-    talimatlı bir RuntimeError'a çevir. Orjinal mesaj korunur."""
+    """instagrapi hatalarını kullanıcı için talimatlı RuntimeError'a çevir.
+    Orijinal mesaj her zaman korunur."""
     msg = str(exc)
     lower = msg.lower()
+    # CAA/Bloks — Instagram yeni login akışı; instagrapi 2FA'yı otomatik
+    # tamamlayamıyor. (Bu mesaj 'two-factor' içeriyor ama sorun totp değil,
+    # o yüzden totp kontrolünden ÖNCE yakala.)
+    if "caa" in lower or "bloks" in lower or "two_step_verification_context" in lower \
+            or "legacy login endpoint" in lower:
+        return RuntimeError(
+            "Instagram yeni login akışına (CAA/Bloks) geçti; instagrapi bu akışta "
+            "2FA'yı otomatik tamamlayamıyor (kütüphane sınırı — şifre/TOTP doğru "
+            "olsa bile).\n\n"
+            f"{_SESSIONID_HELP}\n\n"
+            f"[Orijinal hata] {msg}"
+        )
     if any(k in lower for k in (
             "we can send you an email", "challenge_required", "checkpoint_required",
             "help you get back into your account", "verify it's you", "unusual login",
     )):
         return RuntimeError(
-            f"Instagram checkpoint/challenge tetiklendi.\n{_CHALLENGE_HELP}\n\n"
+            "Instagram checkpoint/challenge tetiklendi (şüpheli login).\n\n"
+            f"{_SESSIONID_HELP}\n\n"
             f"[Orijinal hata] {msg}"
         )
     if "bad_password" in lower or "incorrect password" in lower:
         return RuntimeError(
-            f"Instagram şifresi yanlış — config.yaml → instagram.password kontrol et.\n"
+            "Instagram şifresi yanlış — config.yaml → instagram.password kontrol et.\n"
             f"[Orijinal hata] {msg}"
         )
     if "two_factor" in lower or "two-factor" in lower or "verification_code" in lower:
         return RuntimeError(
-            f"2FA aktif ama config.yaml → instagram.totp_secret boş.\n"
-            f"Instagram → Settings → Two-factor auth → Authenticator app → 'Set up "
-            f"manually' ekranındaki 32 karakter secret'i yaz.\n"
+            "2FA doğrulaması tamamlanamadı. config.yaml → instagram.totp_secret "
+            "dolu mu ve Google Authenticator'daki kodla eşleşiyor mu kontrol et. "
+            "Sorun sürerse sessionid yöntemini dene:\n\n"
+            f"{_SESSIONID_HELP}\n\n"
             f"[Orijinal hata] {msg}"
         )
     return RuntimeError(msg)
@@ -131,7 +142,23 @@ def get_client(cfg: Config):
             # session ayarları cihazı değiştirmiş olabilir → kanonik cihaza dön
             _load_or_make_device()
 
-    # 2) Sıfırdan login — SABİT cihazla
+    # 2) sessionid varsa → login akışını (CAA/Bloks + 2FA + checkpoint) ATLA.
+    #    Instagram login endpoint'i sürekli reddediyorsa en güvenilir yol:
+    #    tarayıcıdaki oturumun sessionid cookie'siyle direkt oturum aç.
+    sessionid = (getattr(ig, "sessionid", "") or "").strip()
+    if sessionid:
+        log.info("  Instagram: sessionid ile oturum açılıyor (login akışı atlanıyor)")
+        try:
+            cl.login_by_sessionid(sessionid)
+            cl.get_timeline_feed()   # geçerli mi doğrula
+        except Exception as exc:
+            raise _wrap_instagram_error(exc) from exc
+        session_path.parent.mkdir(parents=True, exist_ok=True)
+        cl.dump_settings(session_path)
+        log.info(f"  Session (sessionid'den) yazıldı → {session_path.name}")
+        return cl
+
+    # 3) Sıfırdan login — SABİT cihazla (kullanıcı adı + şifre + TOTP)
     log.info(f"  Instagram login: {ig.username}")
     try:
         if ig.totp_secret:
