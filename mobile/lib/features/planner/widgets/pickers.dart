@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/l10n.dart';
 import '../data/airlines.dart';
 import '../data/airports.dart';
 import '../planner_theme.dart';
@@ -24,11 +25,12 @@ class AirportPickerField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return _PickerButton(
       icon: '✈️',
       label: valueLabel,
       code: valueCode,
-      placeholder: placeholder ?? 'Havaalanı, şehir veya ülke',
+      placeholder: placeholder ?? s.s('pickers.airportPlaceholder'),
       onTap: () async {
         final picked = await showModalBottomSheet<Airport>(
           context: context,
@@ -59,11 +61,12 @@ class AirlinePickerField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return _PickerButton(
       icon: '🛫',
       label: valueLabel,
       code: valueCode,
-      placeholder: 'Havayolu (örn. Turkish Airlines, TK)',
+      placeholder: s.s('pickers.airlinePlaceholder'),
       onTap: () async {
         final picked = await showModalBottomSheet<Airline>(
           context: context,
@@ -155,10 +158,11 @@ class _AirportSearchSheetState extends State<_AirportSearchSheet> {
   String _q = '';
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     final results = searchAirports(_q, limit: 20, countryCodes: widget.countryCodes);
     return _SheetScaffold(
-      title: 'Havaalanı seç',
-      hint: 'IATA, şehir veya ülke',
+      title: s.s('pickers.pickAirport'),
+      hint: s.s('pickers.airportSearchHint'),
       onQuery: (v) => setState(() => _q = v),
       itemCount: results.length,
       itemBuilder: (context, i) {
@@ -184,10 +188,11 @@ class _AirlineSearchSheetState extends State<_AirlineSearchSheet> {
   String _q = '';
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     final results = searchAirlines(_q, limit: 20);
     return _SheetScaffold(
-      title: 'Havayolu seç',
-      hint: 'Ad veya kod (TK, JL…)',
+      title: s.s('pickers.pickAirline'),
+      hint: s.s('pickers.airlineSearchHint'),
       onQuery: (v) => setState(() => _q = v),
       itemCount: results.length,
       itemBuilder: (context, i) {
@@ -219,6 +224,7 @@ class _SheetScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
@@ -245,7 +251,7 @@ class _SheetScaffold extends StatelessWidget {
                   const Spacer(),
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Kapat'),
+                    child: Text(s.s('pickers.close')),
                   ),
                 ],
               ),

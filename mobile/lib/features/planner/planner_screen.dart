@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/l10n.dart';
+import '../../data/language_store.dart';
 import '../../data/plans_repository.dart';
 import '../../domain/types.dart';
 import '../plans/plan_providers.dart';
@@ -155,6 +157,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
   @override
   Widget build(BuildContext context) {
     final planAsync = ref.watch(planByIdProvider(widget.planId));
+    final lang = ref.watch(appLangProvider);
+    final s = LanguageScope.of(context);
 
     // İlk yüklemede local trip'i kur.
     planAsync.whenData((t) {
@@ -193,9 +197,12 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
         body: Column(
           children: [
             TopNav(
+              lang: lang.code.toUpperCase(),
               onNewPlan: () => context.go('/plans'),
               onGuide: () => context.go('/plans/${widget.planId}/view'),
-              onLang: () {},
+              onLang: () => ref.read(appLangProvider.notifier).set(
+                    lang == AppLang.tr ? AppLang.en : AppLang.tr,
+                  ),
             ),
             StepNav(
               current: _step,
@@ -219,7 +226,8 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
               BottomBar(
                 showBack: i > 0,
                 onBack: _goPrev,
-                continueLabel: i < kSteps.length - 1 ? 'Devam' : 'Rehber',
+                continueLabel:
+                    s.s(i < kSteps.length - 1 ? 'shell.continue' : 'shell.guide'),
                 continueEnabled: continueEnabled,
                 onContinue: i < kSteps.length - 1
                     ? _goNext

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/l10n.dart';
 import '../../../domain/types.dart';
 import '../planner_theme.dart';
 
@@ -10,15 +11,16 @@ class TitleStep extends StatelessWidget {
   final Trip trip;
   final void Function(void Function(Trip)) onChange;
 
-  String _autoTitle() {
+  String _autoTitle(BuildContext context) {
     final src = trip.tripStart.isNotEmpty ? trip.tripStart : trip.preferences.travelDates.start;
     final year = src.length >= 4 ? src.substring(0, 4) : '${DateTime.now().year}';
-    return 'Japonya $year';
+    return LanguageScope.of(context).p('title.autoTitle', {'year': year});
   }
 
   @override
   Widget build(BuildContext context) {
-    final computed = _autoTitle();
+    final s = LanguageScope.of(context);
+    final computed = _autoTitle(context);
     final route = (trip.preferences.originCity?.isNotEmpty ?? false) &&
             (trip.preferences.destinationCity?.isNotEmpty ?? false)
         ? '${trip.preferences.originCity} → ${trip.preferences.destinationCity}'
@@ -27,35 +29,37 @@ class TitleStep extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 120),
       children: [
-        const PageHeadline('Planına isim ver'),
-        PageSub(route != null ? 'Rotanız: $route · ${trip.days.length} gün' : 'Önce Rota adımında rotayı tamamlayın.'),
+        PageHeadline(s.s('title.headline')),
+        PageSub(route != null
+            ? s.p('title.routeSummary', {'route': route, 'n': '${trip.days.length}'})
+            : s.s('title.routeIncomplete')),
         PCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const PCardTitle('Görünen ad'),
+              PCardTitle(s.s('title.displayName')),
               PField(
-                label: 'Başlık',
+                label: s.s('title.field.title'),
                 child: PTextField(
                   value: trip.title,
                   hint: computed,
                   onChanged: (v) => onChange((t) => t.title = v),
                 ),
                 hint: Text(
-                  'Gezinin yılına göre otomatik belirlenir (örn. $computed). İstersen elle değiştirebilirsin.',
+                  s.p('title.titleHint', {'sample': computed}),
                   style: const TextStyle(fontSize: 13, color: PT.textTertiary),
                 ),
               ),
               PField(
-                label: 'Açıklama (opsiyonel)',
+                label: s.s('title.field.subtitle'),
                 child: PTextField(
                   value: trip.subtitle ?? '',
-                  hint: 'Kısa bir not',
+                  hint: s.s('title.subtitleHint'),
                   onChanged: (v) => onChange((t) => t.subtitle = v),
                 ),
               ),
               PField(
-                label: 'Tempo',
+                label: s.s('title.field.pace'),
                 child: _PaceDropdown(
                   value: trip.preferences.pace,
                   onChanged: (p) => onChange((t) => t.preferences.pace = p),
@@ -75,6 +79,7 @@ class _PaceDropdown extends StatelessWidget {
   final ValueChanged<Pace> onChanged;
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
@@ -86,10 +91,10 @@ class _PaceDropdown extends StatelessWidget {
         child: DropdownButton<Pace>(
           value: value,
           isExpanded: true,
-          items: const [
-            DropdownMenuItem(value: Pace.relaxed, child: Text('Rahat')),
-            DropdownMenuItem(value: Pace.moderate, child: Text('Dengeli')),
-            DropdownMenuItem(value: Pace.intense, child: Text('Yoğun')),
+          items: [
+            DropdownMenuItem(value: Pace.relaxed, child: Text(s.s('title.pace.relaxed'))),
+            DropdownMenuItem(value: Pace.moderate, child: Text(s.s('title.pace.moderate'))),
+            DropdownMenuItem(value: Pace.intense, child: Text(s.s('title.pace.intense'))),
           ],
           onChanged: (v) => v != null ? onChanged(v) : null,
         ),

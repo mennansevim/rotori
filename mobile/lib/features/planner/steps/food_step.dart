@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/l10n.dart';
 import '../../../domain/destination_profiles.dart';
 import '../../../domain/dietary.dart';
 import '../../../domain/types.dart';
@@ -14,23 +15,24 @@ class FoodStep extends StatelessWidget {
   final Trip trip;
   final void Function(void Function(Trip)) onChange;
 
+  // `label` alanları L10n anahtarıdır; build içinde s(opt.label) ile çözülür.
   static const List<({FoodSensitivity id, String label, String emoji})>
       _sensitivityOptions = [
-    (id: FoodSensitivity.noPork, label: 'Domuz eti istemiyorum', emoji: '🚫🐖'),
+    (id: FoodSensitivity.noPork, label: 'food.sens.noPork', emoji: '🚫🐖'),
     (
       id: FoodSensitivity.noPorkDerivatives,
-      label: 'Domuz yağı / jelatin yok',
+      label: 'food.sens.noPorkDerivatives',
       emoji: '🚫🥓'
     ),
-    (id: FoodSensitivity.noSeafood, label: 'Deniz ürünü istemiyorum', emoji: '🚫🐟'),
-    (id: FoodSensitivity.halalOnly, label: 'Helal seçenek istiyorum', emoji: '🕌'),
-    (id: FoodSensitivity.vegetarian, label: 'Vejetaryen', emoji: '🥗'),
-    (id: FoodSensitivity.chickenFocus, label: 'Tavuk ağırlıklı', emoji: '🍗'),
-    (id: FoodSensitivity.noFattyMeat, label: 'Yağlı et sevmiyorum', emoji: '🚫🥩'),
-    (id: FoodSensitivity.kidFriendly, label: 'Çocuk dostu restoran', emoji: '🧒'),
+    (id: FoodSensitivity.noSeafood, label: 'food.sens.noSeafood', emoji: '🚫🐟'),
+    (id: FoodSensitivity.halalOnly, label: 'food.sens.halal', emoji: '🕌'),
+    (id: FoodSensitivity.vegetarian, label: 'food.sens.vegetarian', emoji: '🥗'),
+    (id: FoodSensitivity.chickenFocus, label: 'food.sens.chicken', emoji: '🍗'),
+    (id: FoodSensitivity.noFattyMeat, label: 'food.sens.noFattyMeat', emoji: '🚫🥩'),
+    (id: FoodSensitivity.kidFriendly, label: 'food.sens.kidFriendly', emoji: '🧒'),
     (
       id: FoodSensitivity.turkishPalate,
-      label: 'Türk damak tadına yakın',
+      label: 'food.sens.turkishPalate',
       emoji: '🇹🇷'
     ),
   ];
@@ -65,15 +67,16 @@ class FoodStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     final destinations = [...trip.preferences.destinations]
       ..sort((a, b) => a.order.compareTo(b.order));
 
     if (destinations.isEmpty) {
       return ListView(
         padding: const EdgeInsets.fromLTRB(20, 28, 20, 120),
-        children: const [
-          PageHeadline('Yemek'),
-          PageSub('Önce Rota adımında durak ekleyin.'),
+        children: [
+          PageHeadline(s.s('food.title')),
+          PageSub(s.s('food.emptyStops')),
         ],
       );
     }
@@ -87,33 +90,32 @@ class FoodStep extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 120),
       children: [
-        const PageHeadline('Yemek tercihleri'),
-        const PageSub(
-            'Hassasiyetlerini seç — plan ve restoran önerileri buna göre filtrelenir.'),
+        PageHeadline(s.s('food.prefsTitle')),
+        PageSub(s.s('food.prefsSub')),
 
         // Global hassasiyet kartı
         PCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const PCardTitle('🍽️ Yemek hassasiyetleri'),
+              PCardTitle(s.s('food.sensTitle')),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
                   for (final opt in _sensitivityOptions)
                     PChip(
-                      label: '${opt.emoji} ${opt.label}',
+                      label: '${opt.emoji} ${s.s(opt.label)}',
                       active: sensitivities.contains(opt.id),
                       onTap: () => _toggleSensitivity(opt.id),
                     ),
                 ],
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Bu seçimler tüm gezi için geçerlidir; viewer\'da hap bilgi ve '
-                'fraz kartlarına yansır.',
-                style: TextStyle(fontSize: 13, color: PT.textSecondary, height: 1.4),
+              Text(
+                s.s('food.sensNote'),
+                style: const TextStyle(
+                    fontSize: 13, color: PT.textSecondary, height: 1.4),
               ),
             ],
           ),
@@ -129,7 +131,7 @@ class FoodStep extends StatelessWidget {
                 children: [
                   Expanded(
                     child: PField(
-                      label: 'Kişi başı öğün ($currency)',
+                      label: s.p('food.mealPerPerson', {'currency': currency}),
                       child: PTextField(
                         value: '${trip.preferences.mealBudgetPerPerson ?? 50}',
                         keyboardType: TextInputType.number,
@@ -141,7 +143,7 @@ class FoodStep extends StatelessWidget {
                   const SizedBox(width: 14),
                   Expanded(
                     child: PField(
-                      label: 'Para birimi',
+                      label: s.s('food.currency'),
                       child: PTextField(
                         value: trip.preferences.mealBudgetCurrency ?? currency,
                         onChanged: (v) => onChange(
@@ -155,20 +157,19 @@ class FoodStep extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Öğünleri plana ekle',
-                            style: TextStyle(
+                        Text(s.s('food.addMeals'),
+                            style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                                 color: PT.text)),
-                        SizedBox(height: 2),
-                        Text(
-                            'Gezi planı oluşturulurken öğle/akşam yemeği durakları eklenir.',
-                            style:
-                                TextStyle(fontSize: 12, color: PT.textTertiary)),
+                        const SizedBox(height: 2),
+                        Text(s.s('food.addMealsHint'),
+                            style: const TextStyle(
+                                fontSize: 12, color: PT.textTertiary)),
                       ],
                     ),
                   ),
@@ -185,12 +186,12 @@ class FoodStep extends StatelessWidget {
           ),
         ),
 
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
           child: Text(
-            'Yemek önerileri Rehber\'de (viewer) — bu hassasiyetlere göre '
-            'restoranları orada listeliyoruz.',
-            style: TextStyle(fontSize: 12, color: PT.textTertiary, height: 1.4),
+            s.s('food.viewerNote'),
+            style: const TextStyle(
+                fontSize: 12, color: PT.textTertiary, height: 1.4),
           ),
         ),
       ],

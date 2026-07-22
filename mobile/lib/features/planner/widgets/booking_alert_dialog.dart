@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/l10n.dart';
 import '../../../data/reminders_store.dart';
 import '../../../domain/booking_windows.dart';
 import '../../notifications/notifications_service.dart';
@@ -58,6 +59,7 @@ class _BookingAlertsSheetState extends State<_BookingAlertsSheet> {
 
   Future<void> _confirm() async {
     if (_busy) return;
+    final s = LanguageScope.of(context);
     setState(() => _busy = true);
     final store = widget.container.read(remindersProvider.notifier);
     final svc = widget.container.read(notificationsServiceProvider);
@@ -75,8 +77,8 @@ class _BookingAlertsSheetState extends State<_BookingAlertsSheet> {
         id: '${a.window.id}-${widget.tripId}',
         windowId: a.window.id,
         title: a.window.title,
-        subtitle:
-            'Bilet bugün satışa açıldı — ${_formatDate(a.eventOn)} planı için.',
+        subtitle: s.p('booking.reminderSubtitle',
+            {'date': _formatDate(a.eventOn, s.lang)}),
         icon: a.window.icon,
         fireAt: fireAt,
         tip: a.window.tip,
@@ -99,6 +101,7 @@ class _BookingAlertsSheetState extends State<_BookingAlertsSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final s = LanguageScope.of(context);
     return AlertDialog(
       titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
       contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
@@ -107,7 +110,7 @@ class _BookingAlertsSheetState extends State<_BookingAlertsSheet> {
           const Text('🎟️', style: TextStyle(fontSize: 22)),
           const SizedBox(width: 8),
           Expanded(
-            child: Text('Bilet açılış tarihleri',
+            child: Text(s.s('booking.title'),
                 style: theme.textTheme.titleMedium
                     ?.copyWith(fontWeight: FontWeight.w700)),
           ),
@@ -121,9 +124,7 @@ class _BookingAlertsSheetState extends State<_BookingAlertsSheet> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Planına eklenen aşağıdaki deneyimlerin biletleri sınırlı '
-                'süreyle satışa açılıyor. Hatırlatma açarsan bilet satışa '
-                'çıktığı gün sabah 09:00\'da bildirim geleceğim.',
+                s.s('booking.body'),
                 style: theme.textTheme.bodySmall,
               ),
               const SizedBox(height: 12),
@@ -141,11 +142,12 @@ class _BookingAlertsSheetState extends State<_BookingAlertsSheet> {
       actions: [
         TextButton(
           onPressed: _busy ? null : () => Navigator.pop(context),
-          child: const Text('Şimdi değil'),
+          child: Text(s.s('booking.notNow')),
         ),
         FilledButton(
           onPressed: _busy ? null : _confirm,
-          child: Text(_busy ? 'Ekleniyor…' : 'Hatırlatmaları ekle'),
+          child: Text(
+              _busy ? s.s('booking.adding') : s.s('booking.addReminders')),
         ),
       ],
     );
@@ -165,6 +167,7 @@ class _AlertTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final s = LanguageScope.of(context);
     final now = DateTime.now();
     final opens = alert.opensOn;
     final daysUntil = opens.difference(DateTime(now.year, now.month, now.day)).inDays;
@@ -207,17 +210,20 @@ class _AlertTile extends StatelessWidget {
             runSpacing: 4,
             children: [
               _Pill(
-                text:
-                    'Satış: ${_formatDate(alert.opensOn)} · ${alert.window.opensBeforeDays} gün önce',
+                text: s.p('booking.salePill', {
+                  'date': _formatDate(alert.opensOn, s.lang),
+                  'days': '${alert.window.opensBeforeDays}',
+                }),
                 color: passed ? Colors.orange : theme.colorScheme.primary,
               ),
               _Pill(
-                text: 'Plan günü: ${_formatDate(alert.eventOn)}',
+                text: s.p('booking.planDayPill',
+                    {'date': _formatDate(alert.eventOn, s.lang)}),
                 color: theme.colorScheme.secondary,
               ),
               if (passed)
-                const _Pill(
-                    text: 'Satış penceresi geçti / bugün',
+                _Pill(
+                    text: s.s('booking.windowPassed'),
                     color: Colors.deepOrange),
             ],
           ),
@@ -252,8 +258,8 @@ class _Pill extends StatelessWidget {
   }
 }
 
-String _formatDate(DateTime d) {
-  const months = [
+String _formatDate(DateTime d, AppLang lang) {
+  const tr = [
     'Oca',
     'Şub',
     'Mar',
@@ -267,5 +273,20 @@ String _formatDate(DateTime d) {
     'Kas',
     'Ara'
   ];
+  const en = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec'
+  ];
+  final months = lang == AppLang.en ? en : tr;
   return '${d.day.toString().padLeft(2, '0')} ${months[d.month - 1]} ${d.year}';
 }

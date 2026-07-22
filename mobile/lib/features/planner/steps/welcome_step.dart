@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/l10n.dart';
 import '../../../domain/types.dart';
 import '../planner_theme.dart';
 
@@ -69,11 +70,12 @@ class _WelcomeStepState extends State<WelcomeStep> {
   Widget _buildChoose() {
     return LayoutBuilder(
       builder: (context, c) {
+        final s = LanguageScope.of(context);
         final twoCol = c.maxWidth >= 560;
         final card0 = _WelcomeCard(
           icon: '✈️',
-          title: 'Biletim var',
-          desc: 'Uçuş bilgilerini gir ya da bilet fotoğrafını yükle',
+          title: s.s('welcome.choose.ticket.title'),
+          desc: s.s('welcome.choose.ticket.desc'),
           onTap: () {
             widget.onChange((t) => t.preferences.hasTicket = true);
             setState(() => _view = _View.ticket);
@@ -81,8 +83,8 @@ class _WelcomeStepState extends State<WelcomeStep> {
         );
         final card1 = _WelcomeCard(
           icon: '📅',
-          title: 'Gezi planla',
-          desc: 'Sana en uygun tarihleri birlikte seçelim',
+          title: s.s('welcome.choose.plan.title'),
+          desc: s.s('welcome.choose.plan.desc'),
           onTap: () {
             widget.onChange((t) => t.preferences.hasTicket = false);
             setState(() => _view = _View.plan);
@@ -114,10 +116,10 @@ class _WelcomeStepState extends State<WelcomeStep> {
             children: [
               const Text('🇯🇵', style: TextStyle(fontSize: 48)),
               const SizedBox(height: 10),
-              const Text(
-                "Japonya'yı planlayalım",
+              Text(
+                s.s('welcome.choose.heading'),
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 27,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.5,
@@ -125,10 +127,10 @@ class _WelcomeStepState extends State<WelcomeStep> {
                 ),
               ),
               const SizedBox(height: 6),
-              const Text(
-                'Nereden başlayalım?',
+              Text(
+                s.s('welcome.choose.subheading'),
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: PT.textSecondary),
+                style: const TextStyle(fontSize: 16, color: PT.textSecondary),
               ),
               const SizedBox(height: 18),
               // Kartlar kalan alanı doldurur (maks ~380px, dikey ortalı).
@@ -149,6 +151,7 @@ class _WelcomeStepState extends State<WelcomeStep> {
 
   // ---- ticket ----------------------------------------------------------
   Widget _buildTicket() {
+    final s = LanguageScope.of(context);
     final tooLong = _outboundDate.isNotEmpty &&
         _returnDate.isNotEmpty &&
         _daysBetween(_outboundDate, _returnDate) > kMaxTripDays;
@@ -156,13 +159,12 @@ class _WelcomeStepState extends State<WelcomeStep> {
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
       children: [
         _BackButton(onTap: () => setState(() => _view = _View.choose)),
-        const Text('Bilet bilgilerin',
-            style: TextStyle(
+        Text(s.s('welcome.ticket.title'),
+            style: const TextStyle(
                 fontSize: 26, fontWeight: FontWeight.w700, color: PT.text)),
         const SizedBox(height: 4),
         Text(
-          'Sadece tarihler zorunlu — diğer alanları boş bırakabilirsin. '
-          'En fazla $kMaxTripDays günlük plan oluşturuyoruz.',
+          s.p('welcome.ticket.sub', {'n': '$kMaxTripDays'}),
           style: const TextStyle(fontSize: 15, color: PT.textSecondary),
         ),
         const SizedBox(height: 24),
@@ -175,7 +177,7 @@ class _WelcomeStepState extends State<WelcomeStep> {
                 children: [
                   Expanded(
                     child: _DateField(
-                      label: 'Gidiş tarihi',
+                      label: s.s('welcome.ticket.outDate'),
                       value: _outboundDate,
                       onPick: (v) => setState(() => _outboundDate = v),
                     ),
@@ -183,7 +185,7 @@ class _WelcomeStepState extends State<WelcomeStep> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: _DateField(
-                      label: 'Dönüş tarihi',
+                      label: s.s('welcome.ticket.retDate'),
                       value: _returnDate,
                       minDate: _outboundDate.isEmpty ? null : _outboundDate,
                       maxDate: _outboundDate.isEmpty
@@ -198,8 +200,10 @@ class _WelcomeStepState extends State<WelcomeStep> {
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
-                    'En fazla $kMaxTripDays günlük plan oluşturuyoruz — '
-                    '${_daysBetween(_outboundDate, _returnDate)} gün seçildi, otomatik kısaltılacak.',
+                    s.p('welcome.ticket.tooLong', {
+                      'max': '$kMaxTripDays',
+                      'sel': '${_daysBetween(_outboundDate, _returnDate)}',
+                    }),
                     style: const TextStyle(
                         fontSize: 12, color: Color(0xFFB45309), height: 1.4),
                   ),
@@ -209,7 +213,7 @@ class _WelcomeStepState extends State<WelcomeStep> {
                 children: [
                   Expanded(
                     child: _TextField(
-                      label: 'Havayolu',
+                      label: s.s('welcome.ticket.airline'),
                       hint: 'THY, JAL…',
                       onChanged: (v) => _airline = v,
                     ),
@@ -217,7 +221,7 @@ class _WelcomeStepState extends State<WelcomeStep> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: _TextField(
-                      label: 'Uçuş no (gidiş)',
+                      label: s.s('welcome.ticket.outFlightNo'),
                       hint: 'TK198',
                       onChanged: (v) => _outFlightNo = v,
                     ),
@@ -229,7 +233,7 @@ class _WelcomeStepState extends State<WelcomeStep> {
                 children: [
                   Expanded(
                     child: _TextField(
-                      label: 'Uçuş no (dönüş)',
+                      label: s.s('welcome.ticket.retFlightNo'),
                       hint: 'TK199',
                       onChanged: (v) => _retFlightNo = v,
                     ),
@@ -244,13 +248,12 @@ class _WelcomeStepState extends State<WelcomeStep> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: PButton(
-                  label: '📷 Bilet fotoğrafı yükle',
+                  label: s.s('welcome.ticket.upload'),
                   primary: false,
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                            'Bilet OCR (AI) sonraki iterasyonda bağlanacak.'),
+                      SnackBar(
+                        content: Text(s.s('welcome.ticket.ocrSoon')),
                       ),
                     );
                   },
@@ -263,7 +266,7 @@ class _WelcomeStepState extends State<WelcomeStep> {
         Align(
           alignment: Alignment.centerRight,
           child: PButton(
-            label: 'Devam',
+            label: s.s('welcome.continue'),
             onPressed: _ticketReady
                 ? () {
                     final start = _outboundDate;
@@ -291,6 +294,7 @@ class _WelcomeStepState extends State<WelcomeStep> {
   // Her kartta hero görsel + 3 önerilen tarih aralığı; tıklayınca
   // Google Flights deep-link açılır (GERÇEK fiyata orada bakılır).
   Widget _buildPlan() {
+    final s = LanguageScope.of(context);
     final trip = widget.trip;
     final origin = _resolveOrigin(trip);
     final year = _resolveYear(trip);
@@ -299,13 +303,13 @@ class _WelcomeStepState extends State<WelcomeStep> {
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
       children: [
         _BackButton(onTap: () => setState(() => _view = _View.choose)),
-        const Text("Japonya'da esnek gezi",
-            style: TextStyle(
+        Text(s.s('welcome.plan.title'),
+            style: const TextStyle(
                 fontSize: 22, fontWeight: FontWeight.w700, color: PT.text)),
         const SizedBox(height: 4),
-        const Text(
-          'Bir tarih aralığı seç — otomatik gidiş-dönüş olarak Rota adımına geçelim.',
-          style: TextStyle(fontSize: 14, color: PT.textSecondary),
+        Text(
+          s.s('welcome.plan.sub'),
+          style: const TextStyle(fontSize: 14, color: PT.textSecondary),
         ),
         const SizedBox(height: 12),
         _OriginPill(
@@ -326,7 +330,7 @@ class _WelcomeStepState extends State<WelcomeStep> {
         // Öneriler dışında kendi tarih aralığını seçmek isteyene çıkış:
         // native date-range picker → gidiş-dönüş olarak doldur + Rota'ya geç.
         PButton(
-          label: '📅 Kendim seçmek istiyorum',
+          label: s.s('welcome.plan.customRange'),
           block: true,
           primary: false,
           onPressed: _pickCustomRange,
@@ -338,6 +342,7 @@ class _WelcomeStepState extends State<WelcomeStep> {
   /// Native date-range picker; kullanıcı gidiş-dönüş seçer, tarihler
   /// otomatik doldurulur ve Rota adımına geçilir.
   Future<void> _pickCustomRange() async {
+    final s = LanguageScope.of(context);
     final now = DateTime.now();
     final trip = widget.trip;
     final existingStart = DateTime.tryParse(trip.preferences.travelDates.start);
@@ -350,10 +355,10 @@ class _WelcomeStepState extends State<WelcomeStep> {
       firstDate: DateTime(now.year, now.month, now.day),
       lastDate: DateTime(now.year + 2, 12, 31),
       initialDateRange: DateTimeRange(start: initialStart, end: initialEnd),
-      helpText: 'Gidiş — Dönüş tarihlerini seç',
-      cancelText: 'Vazgeç',
-      confirmText: 'Uygula',
-      saveText: 'Kaydet',
+      helpText: s.s('welcome.range.help'),
+      cancelText: s.s('welcome.range.cancel'),
+      confirmText: s.s('welcome.range.confirm'),
+      saveText: s.s('welcome.save'),
       currentDate: now,
     );
     if (picked == null) return;
@@ -378,6 +383,7 @@ class _WelcomeStepState extends State<WelcomeStep> {
   }
 
   Future<void> _editOrigin(String current) async {
+    final s = LanguageScope.of(context);
     final controller = TextEditingController(text: current);
     final result = await showModalBottomSheet<String>(
       context: context,
@@ -394,8 +400,8 @@ class _WelcomeStepState extends State<WelcomeStep> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('Kalkış şehri',
-                  style: TextStyle(
+              Text(s.s('welcome.origin.title'),
+                  style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: PT.text)),
@@ -426,7 +432,7 @@ class _WelcomeStepState extends State<WelcomeStep> {
               Align(
                 alignment: Alignment.centerRight,
                 child: PButton(
-                  label: 'Kaydet',
+                  label: s.s('welcome.save'),
                   onPressed: () =>
                       Navigator.of(ctx).pop(controller.text.trim()),
                 ),
@@ -476,6 +482,11 @@ String _isoDate(DateTime d) =>
 /// "23 Ağu Paz" biçimi — Google Flights satırındaki tarih etiketi.
 String formatTrShortDate(DateTime d) =>
     '${d.day} ${_trShortMonths[d.month]} ${_trShortWeekdays[d.weekday]}';
+
+/// Aktif dile göre kısa tarih etiketi ("23 Ağu Paz" / "23 Aug Sun").
+String _formatShortDate(DateTime d, AppLang lang) => lang == AppLang.en
+    ? '${d.day} ${_enShortMonths[d.month]} ${_enShortWeekdays[d.weekday]}'
+    : formatTrShortDate(d);
 
 /// Google Flights derin bağlantısı. GERÇEK fiyata orada bakılır — sahte
 /// fiyat üretmiyoruz.
@@ -529,21 +540,21 @@ class _JpRange {
     return (start, end);
   }
 
-  String durationLabel() {
+  String durationLabel(LanguageScope s) {
     if (lengthDays % 7 == 0) {
       final wk = lengthDays ~/ 7;
-      return '~$wk hafta';
+      return s.p(wk == 1 ? 'welcome.range.week' : 'welcome.range.weeks', {'n': '$wk'});
     }
-    return '~$lengthDays gün';
+    return s.p('welcome.range.days', {'n': '$lengthDays'});
   }
 }
 
 List<_JpDest> _japanDestinations() => const [
       _JpDest(
         city: 'Tokyo',
-        country: 'Japonya',
+        country: 'welcome.dest.country',
         emoji: '🗼',
-        tag: 'Meiji, İmparatorluk Sarayı ve müzeler',
+        tag: 'welcome.dest.tokyo.tag',
         imageUrl:
             'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&q=60',
         iataHint: 'NRT',
@@ -552,24 +563,24 @@ List<_JpDest> _japanDestinations() => const [
               monthStart: 3,
               startDay: 26,
               lengthDays: 10,
-              label: '🌸 Sakura zirvesi'),
+              label: 'welcome.range.tokyo.sakuraPeak'),
           _JpRange(
               monthStart: 4,
               startDay: 20,
               lengthDays: 7,
-              label: '🌸 Geç sakura, ılıman'),
+              label: 'welcome.range.tokyo.lateSakura'),
           _JpRange(
               monthStart: 11,
               startDay: 8,
               lengthDays: 10,
-              label: '🍁 Sonbahar renkleri'),
+              label: 'welcome.range.tokyo.autumn'),
         ],
       ),
       _JpDest(
         city: 'Osaka',
-        country: 'Japonya',
+        country: 'welcome.dest.country',
         emoji: '🏯',
-        tag: "Osaka Kalesi'nin bulunduğu liman şehri",
+        tag: 'welcome.dest.osaka.tag',
         imageUrl:
             'https://images.unsplash.com/photo-1590559899731-a382839e5549?w=800&q=60',
         iataHint: 'KIX',
@@ -578,17 +589,17 @@ List<_JpDest> _japanDestinations() => const [
               monthStart: 3,
               startDay: 28,
               lengthDays: 8,
-              label: '🌸 Sakura + Kansai'),
+              label: 'welcome.range.osaka.sakuraKansai'),
           _JpRange(
               monthStart: 5,
               startDay: 3,
               lengthDays: 7,
-              label: 'Ilıman, kalabalık az'),
+              label: 'welcome.range.osaka.mild'),
           _JpRange(
               monthStart: 11,
               startDay: 12,
               lengthDays: 10,
-              label: '🍁 Sonbahar + gastronomi'),
+              label: 'welcome.range.osaka.autumnFood'),
         ],
       ),
     ];
@@ -618,6 +629,33 @@ const _trShortWeekdays = [
   'Cum',
   'Cmt',
   'Paz',
+];
+
+const _enShortMonths = [
+  '',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+const _enShortWeekdays = [
+  '',
+  'Mon',
+  'Tue',
+  'Wed',
+  'Thu',
+  'Fri',
+  'Sat',
+  'Sun',
 ];
 
 // ===========================================================================
@@ -681,17 +719,20 @@ class _BackButton extends StatelessWidget {
   const _BackButton({required this.onTap});
   final VoidCallback onTap;
   @override
-  Widget build(BuildContext context) => Align(
-        alignment: Alignment.centerLeft,
-        child: TextButton(
-          onPressed: onTap,
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            foregroundColor: PT.accent,
-          ),
-          child: const Text('← Geri', style: TextStyle(fontSize: 14)),
+  Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton(
+        onPressed: onTap,
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          foregroundColor: PT.accent,
         ),
-      );
+        child: Text(s.s('welcome.back'), style: const TextStyle(fontSize: 14)),
+      ),
+    );
+  }
 }
 
 /// "Kalkış: {city} ✎" — küçük kalem ikonu ile origin değiştirme pili.
@@ -701,6 +742,7 @@ class _OriginPill extends StatelessWidget {
   final VoidCallback onEdit;
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return Align(
       alignment: Alignment.centerLeft,
       child: Material(
@@ -719,7 +761,7 @@ class _OriginPill extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Kalkış: $city',
+                Text(s.p('welcome.originPill', {'city': city}),
                     style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
@@ -752,6 +794,7 @@ class _DestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return Container(
       decoration: BoxDecoration(
         color: PT.bgElevated,
@@ -762,11 +805,11 @@ class _DestCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _DestHero(city: dest.city, country: dest.country,
+          _DestHero(city: dest.city, country: s.s(dest.country),
               emoji: dest.emoji, imageUrl: dest.imageUrl),
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
-            child: Text(dest.tag,
+            child: Text(s.s(dest.tag),
                 style: const TextStyle(
                     fontSize: 13,
                     color: PT.textSecondary,
@@ -895,9 +938,10 @@ class _RangeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     final (start, end) = range.dates(year);
-    final startLabel = formatTrShortDate(start);
-    final endLabel = formatTrShortDate(end);
+    final startLabel = _formatShortDate(start, s.lang);
+    final endLabel = _formatShortDate(end, s.lang);
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -920,7 +964,7 @@ class _RangeRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${range.durationLabel()} · ${range.label}',
+                    '${range.durationLabel(s)} · ${s.s(range.label)}',
                     style: const TextStyle(
                         fontSize: 12,
                         color: PT.textSecondary,
@@ -960,6 +1004,7 @@ class _DateField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -996,7 +1041,7 @@ class _DateField extends StatelessWidget {
               border: Border.all(color: PT.borderStrong),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Text(value.isEmpty ? 'gg.aa.yyyy' : value,
+            child: Text(value.isEmpty ? s.s('welcome.date.placeholder') : value,
                 style: TextStyle(
                     fontSize: 15,
                     color: value.isEmpty ? PT.textTertiary : PT.text)),

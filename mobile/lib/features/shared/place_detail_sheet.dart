@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/l10n.dart';
 import '../../domain/city_places.dart';
 import '../../domain/destination_profiles.dart';
 import '../../domain/explore.dart';
@@ -70,31 +71,29 @@ Future<void> showPlaceDetailSheet({
   );
 }
 
-// Türkçe uzun tarih (viewer'daki formatla tutarlı) — bilet ziyaret tarihi için.
-const List<String> _kTrMonths = [
-  '', 'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-  'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık', //
-];
-
-String _formatVisitDate(String iso) {
+// Uzun tarih (viewer'daki formatla tutarlı) — bilet ziyaret tarihi için.
+// Ay adları core/l10n.dart'tan aktif dile göre alınır.
+String _formatVisitDate(String iso, AppLang lang) {
   final d = DateTime.tryParse(iso);
   if (d == null) return iso;
-  return '${d.day} ${_kTrMonths[d.month]} ${d.year}';
+  final months = L10n.monthsFor(lang);
+  return '${d.day} ${months[d.month]} ${d.year}';
 }
 
-const Map<String, String> _kCategoryLabels = {
-  'temple': 'Tapınak',
-  'shrine': 'Tapınak',
-  'view': 'Manzara',
-  'city': 'Şehir',
-  'museum': 'Müze',
-  'park': 'Park',
-  'shopping': 'Alışveriş',
-  'fun': 'Eğlence',
-  'nature': 'Doğa',
-  'food': 'Yemek',
-  'culture': 'Kültür',
-  'landmark': 'Simge yapı',
+// Kategori anahtarı → l10n anahtarı; etiket aktif dile göre çözülür.
+const Map<String, String> _kCategoryLabelKeys = {
+  'temple': 'placeDetail.category.temple',
+  'shrine': 'placeDetail.category.shrine',
+  'view': 'placeDetail.category.view',
+  'city': 'placeDetail.category.city',
+  'museum': 'placeDetail.category.museum',
+  'park': 'placeDetail.category.park',
+  'shopping': 'placeDetail.category.shopping',
+  'fun': 'placeDetail.category.fun',
+  'nature': 'placeDetail.category.nature',
+  'food': 'placeDetail.category.food',
+  'culture': 'placeDetail.category.culture',
+  'landmark': 'placeDetail.category.landmark',
 };
 
 /// Başlıktan emoji/işaret temizleyip karşılaştırma için normalize eder.
@@ -131,13 +130,15 @@ int _estimateItemSteps(TimelineItem item, PlaceSuggestion? match) {
   }
 }
 
-String _formatSteps(int steps) {
-  if (steps < 1000) return '~$steps adım';
+String _formatSteps(int steps, LanguageScope s) {
+  if (steps < 1000) return s.p('placeDetail.steps', {'n': '$steps'});
   final k = steps / 1000;
-  final s = k == k.roundToDouble()
+  final n = k == k.roundToDouble()
       ? k.toStringAsFixed(0)
-      : k.toStringAsFixed(1).replaceAll('.', ',');
-  return '~$s bin adım';
+      : (s.lang == AppLang.en
+          ? k.toStringAsFixed(1)
+          : k.toStringAsFixed(1).replaceAll('.', ','));
+  return s.p('placeDetail.stepsThousand', {'n': n});
 }
 
 IconData _kindIcon(TimelineItemKind? k) => switch (k) {
@@ -197,6 +198,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
       url = googleReviewsUrl(q.isEmpty ? item.title : q);
     }
     final messenger = ScaffoldMessenger.of(context);
+    final s = LanguageScope.of(context);
     final uri = Uri.parse(url);
     var launched = false;
     try {
@@ -206,8 +208,8 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
     }
     if (!launched) {
       await Clipboard.setData(ClipboardData(text: url));
-      messenger.showSnackBar(const SnackBar(
-        content: Text('Harita açılamadı — bağlantı panoya kopyalandı'),
+      messenger.showSnackBar(SnackBar(
+        content: Text(s.s('placeDetail.mapOpenFailed')),
       ));
     }
   }
@@ -229,10 +231,11 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
       lat: item.lat,
       lng: item.lng,
     );
+    final lang = LanguageScope.of(context).lang;
     for (final n in near) {
       out.add((
         n.place.emoji,
-        '${n.place.name} · ${n.place.category} · ${_formatDistance(n.distanceM)}',
+        '${n.place.name} · ${n.place.category} · ${_formatDistance(n.distanceM, lang)}',
       ));
     }
     return out;
@@ -243,6 +246,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
   /// "Bilet ekle" → Kamera / Galeri / Vazgeç seçenekli küçük bir sheet açar.
   Future<void> _startAddTicket() async {
     if (_pickingTicket) return;
+    final s = LanguageScope.of(context);
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -257,17 +261,17 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
             const SizedBox(height: 8),
             ListTile(
               leading: const Text('📷', style: TextStyle(fontSize: 22)),
-              title: const Text('Kamera'),
+              title: Text(s.s('placeDetail.camera')),
               onTap: () => Navigator.pop(ctx, ImageSource.camera),
             ),
             ListTile(
               leading: const Text('🖼️', style: TextStyle(fontSize: 22)),
-              title: const Text('Galeri'),
+              title: Text(s.s('placeDetail.gallery')),
               onTap: () => Navigator.pop(ctx, ImageSource.gallery),
             ),
             ListTile(
               leading: const Icon(Icons.close),
-              title: const Text('Vazgeç'),
+              title: Text(s.s('placeDetail.cancel')),
               onTap: () => Navigator.pop(ctx, null),
             ),
             const SizedBox(height: 4),
@@ -281,6 +285,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
 
   Future<void> _pickAndAddTicket(ImageSource source) async {
     final messenger = ScaffoldMessenger.of(context);
+    final s = LanguageScope.of(context);
     setState(() => _pickingTicket = true);
     try {
       final picker = ImagePicker();
@@ -320,15 +325,15 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
         _added = ticket;
         _pickingTicket = false;
       });
-      messenger.showSnackBar(const SnackBar(
+      messenger.showSnackBar(SnackBar(
         content: Text(kIsWeb
-            ? '🎫 Bilet eklendi · Otomatik metin çıkarımı cihazda (iOS) çalışır'
-            : '🎫 Bilet eklendi'),
+            ? s.s('placeDetail.ticketAddedWeb')
+            : s.s('placeDetail.ticketAdded')),
       ));
     } catch (e) {
       if (mounted) setState(() => _pickingTicket = false);
       messenger.showSnackBar(
-        const SnackBar(content: Text('Bilet eklenemedi — tekrar deneyin')),
+        SnackBar(content: Text(s.s('placeDetail.ticketAddFailed'))),
       );
     }
   }
@@ -340,6 +345,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
     required Color secondary,
     required Color subtleBg,
   }) {
+    final s = LanguageScope.of(context);
     Widget? image;
     final dataUrl = ticket.imageDataUrl;
     if (dataUrl != null && dataUrl.contains(',')) {
@@ -375,7 +381,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('🎫 Bilet',
+          Text(s.s('placeDetail.ticketCardTitle'),
               style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
@@ -385,11 +391,11 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
             image,
             const SizedBox(height: 10),
           ],
-          const Row(
+          Row(
             children: [
-              Text('✓ ', style: TextStyle(color: Color(0xFF16A34A))),
-              Text('Bilet eklendi',
-                  style: TextStyle(
+              const Text('✓ ', style: TextStyle(color: Color(0xFF16A34A))),
+              Text(s.s('placeDetail.ticketAddedStatus'),
+                  style: const TextStyle(
                       color: Color(0xFF16A34A),
                       fontWeight: FontWeight.w600,
                       fontSize: 13)),
@@ -397,12 +403,14 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
           ),
           if (ticket.visitDate != null) ...[
             const SizedBox(height: 4),
-            Text('Ziyaret: ${_formatVisitDate(ticket.visitDate!)}',
+            Text(
+                s.p('placeDetail.visitDate',
+                    {'date': _formatVisitDate(ticket.visitDate!, s.lang)}),
                 style: TextStyle(fontSize: 13, color: secondary)),
           ],
           if (preview != null) ...[
             const SizedBox(height: 8),
-            Text('📄 Okunan metin',
+            Text(s.s('placeDetail.scannedText'),
                 style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -432,6 +440,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final s = LanguageScope.of(context);
     final onSurface = cs.onSurface;
     final secondary = onSurface.withValues(alpha: 0.65);
     final tertiary = onSurface.withValues(alpha: 0.45);
@@ -441,9 +450,11 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
     final steps = _estimateItemSteps(item, match);
     final time = item.time ?? item.scheduledTime ?? '';
     final categoryKey = match?.category;
-    final categoryLabel = categoryKey != null
-        ? (_kCategoryLabels[categoryKey] ?? categoryKey)
-        : null;
+    String? categoryLabel;
+    if (categoryKey != null) {
+      final labelKey = _kCategoryLabelKeys[categoryKey];
+      categoryLabel = labelKey != null ? s.s(labelKey) : categoryKey;
+    }
     final guide = matchPlaceGuide(item.title);
 
     final String intro;
@@ -456,7 +467,8 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
         if (categoryLabel != null) categoryLabel,
         if (city.isNotEmpty) city,
       ];
-      intro = parts.isNotEmpty ? parts.join(' · ') : 'Planınızdaki bir durak.';
+      intro =
+          parts.isNotEmpty ? parts.join(' · ') : s.s('placeDetail.defaultIntro');
     }
 
     final recs = _recommendations();
@@ -520,8 +532,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
                         [
                           if (time.isNotEmpty) time,
                           if (rating != null)
-                            '★ ${rating.toStringAsFixed(1).replaceAll('.', ',')}'
-                                '${guide?.reviewCount != null ? ' (${_formatReviewCount(guide!.reviewCount!)} yorum)' : ''}',
+                            _formatRatingLabel(rating, guide?.reviewCount, s),
                         ].join(' · '),
                         style: TextStyle(fontSize: 12.5, color: secondary),
                       ),
@@ -565,10 +576,19 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
         _StatBar(
           cells: [
             if (guide != null)
-              ('⏱', 'Süre', _formatDuration(guide.visitDurationMin)),
-            ('👣', 'Yürüme', _formatSteps(steps)),
+              (
+                '⏱',
+                s.s('placeDetail.duration'),
+                _formatDuration(guide.visitDurationMin, s)
+              ),
+            ('👣', s.s('placeDetail.walking'), _formatSteps(steps, s)),
             if (guide?.advanceBookingDays != null)
-              ('🎟', 'Bilet', '${guide!.advanceBookingDays} gün önce'),
+              (
+                '🎟',
+                s.s('placeDetail.ticketLabel'),
+                s.p('placeDetail.daysBefore',
+                    {'n': '${guide!.advanceBookingDays}'})
+              ),
           ],
           subtleBg: subtleBg,
           onSurface: onSurface,
@@ -594,7 +614,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
         // Ziyaretçi ipuçları
         if (guide != null && guide.tips.isNotEmpty) ...[
           const SizedBox(height: 14),
-          Text('İpuçları',
+          Text(s.s('placeDetail.tips'),
               style: TextStyle(
                   fontSize: 13, fontWeight: FontWeight.w700, color: onSurface)),
           const SizedBox(height: 6),
@@ -629,7 +649,9 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
         if (recs.isNotEmpty) ...[
           const SizedBox(height: 14),
           Text(
-            item.kind == TimelineItemKind.meal ? 'Ne yenir' : 'Yakınlarda',
+            item.kind == TimelineItemKind.meal
+                ? s.s('placeDetail.whatToEat')
+                : s.s('placeDetail.nearby'),
             style: TextStyle(
                 fontSize: 13, fontWeight: FontWeight.w700, color: onSurface),
           ),
@@ -668,7 +690,9 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Text('🎫'),
-              label: Text(_pickingTicket ? 'Ekleniyor…' : 'Bilet ekle'),
+              label: Text(_pickingTicket
+                  ? s.s('placeDetail.adding')
+                  : s.s('placeDetail.addTicket')),
               onPressed: _pickingTicket ? null : _startAddTicket,
             ),
           ),
@@ -682,7 +706,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
             Expanded(
               child: FilledButton.icon(
                 icon: const Text('🗺️'),
-                label: const Text('Haritada aç'),
+                label: Text(s.s('placeDetail.openMap')),
                 onPressed: () => _openMap(context),
               ),
             ),
@@ -691,7 +715,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
               Expanded(
                 child: OutlinedButton.icon(
                   icon: const Text('✏️'),
-                  label: const Text('Düzenle'),
+                  label: Text(s.s('placeDetail.edit')),
                   onPressed: onEdit,
                 ),
               ),
@@ -759,33 +783,45 @@ class _StatBar extends StatelessWidget {
 }
 
 /// Kuş uçuşu mesafeyi okunur yapar: 50 m'ye yuvarlanmış metre ya da km.
-String _formatDistance(double m) {
+String _formatDistance(double m, AppLang lang) {
   if (m < 950) {
     final r = (m / 50).round() * 50;
     return '${r < 50 ? 50 : r} m';
   }
   final km = m / 1000;
   final s = km < 10
-      ? km.toStringAsFixed(1).replaceAll('.', ',')
+      ? (lang == AppLang.en
+          ? km.toStringAsFixed(1)
+          : km.toStringAsFixed(1).replaceAll('.', ','))
       : km.toStringAsFixed(0);
   return '$s km';
 }
 
-String _formatDuration(int minutes) {
-  if (minutes < 60) return '$minutes dk';
+String _formatDuration(int minutes, LanguageScope s) {
+  if (minutes < 60) return s.p('placeDetail.durationMin', {'n': '$minutes'});
   final h = minutes ~/ 60;
   final m = minutes % 60;
-  if (m == 0) return '$h saat';
-  return '$h sa $m dk';
+  if (m == 0) return s.p('placeDetail.durationHour', {'n': '$h'});
+  return s.p('placeDetail.durationHourMin', {'h': '$h', 'm': '$m'});
 }
 
-String _formatReviewCount(int n) {
+String _formatReviewCount(int n, LanguageScope s) {
   if (n >= 1000) {
     final k = n / 1000;
-    if (k >= 10) return '${k.toStringAsFixed(0)}bin';
-    return '${k.toStringAsFixed(1).replaceAll('.0', '')}bin';
+    final suffix = s.s('placeDetail.thousandShort');
+    if (k >= 10) return '${k.toStringAsFixed(0)}$suffix';
+    return '${k.toStringAsFixed(1).replaceAll('.0', '')}$suffix';
   }
   return '$n';
+}
+
+/// Puan + (yorum sayısı) etiketi — ör. "★ 4,5 (1.2bin yorum)".
+String _formatRatingLabel(double rating, int? reviewCount, LanguageScope s) {
+  final r = s.lang == AppLang.en
+      ? rating.toStringAsFixed(1)
+      : rating.toStringAsFixed(1).replaceAll('.', ',');
+  if (reviewCount == null) return '★ $r';
+  return '★ $r ${s.p('placeDetail.reviewCount', {'n': _formatReviewCount(reviewCount, s)})}';
 }
 
 /// Yerin görsellerini kaydırılabilir bir carousel'de gösterir.

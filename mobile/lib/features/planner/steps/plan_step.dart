@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/l10n.dart';
 import '../../../domain/booking_windows.dart';
 import '../../../domain/city_transfers.dart';
 import '../../../domain/day_optimizer.dart';
@@ -199,6 +200,7 @@ class _PlanStepState extends State<PlanStep> {
 
   Future<void> _generate() async {
     if (_generating) return;
+    final s = LanguageScope.of(context);
 
     // Zaten dolu bir plan varsa yeniden üretmeden önce onay al —
     // aksi halde elle yapılan düzenlemeler sessizce silinir.
@@ -207,17 +209,15 @@ class _PlanStepState extends State<PlanStep> {
       final ok = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Planı yeniden oluştur'),
-          content: const Text(
-              'Mevcut plan küratörlü şablonlardan yeniden üretilecek. '
-              'Elle yaptığınız düzenlemeler değişebilir. Devam edilsin mi?'),
+          title: Text(s.s('plan.regenConfirmTitle')),
+          content: Text(s.s('plan.regenConfirmBody')),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Vazgeç')),
+                child: Text(s.s('plan.cancel'))),
             TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Yeniden oluştur')),
+                child: Text(s.s('plan.regenConfirm'))),
           ],
         ),
       );
@@ -263,8 +263,8 @@ class _PlanStepState extends State<PlanStep> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(hasPlan
-            ? '✨ Plan yeniden oluşturuldu'
-            : '✨ Gezi planı oluşturuldu'),
+            ? s.s('plan.regenerated')
+            : s.s('plan.generated')),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -286,10 +286,11 @@ class _PlanStepState extends State<PlanStep> {
       tripId: trip.id,
     );
     if (result != null && result.addedCount > 0 && mounted) {
+      final s = LanguageScope.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content:
-              Text('🔔 ${result.addedCount} hatırlatma eklendi'),
+          content: Text(
+              s.p('plan.remindersAdded', {'n': '${result.addedCount}'})),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -326,6 +327,7 @@ class _PlanStepState extends State<PlanStep> {
   /// Ulaşım modu seçimi — bottom sheet ile 4 seçenek. Seçim tamamlanmazsa null.
   Future<String?> _pickTransportMode(
       BuildContext context, String current) async {
+    final s = LanguageScope.of(context);
     return showModalBottomSheet<String>(
       context: context,
       backgroundColor: PT.bgElevated,
@@ -350,36 +352,36 @@ class _PlanStepState extends State<PlanStep> {
                   ),
                 ),
               ),
-              const Text('Ulaşım modunu seç',
-                  style: TextStyle(
+              Text(s.s('plan.pickTransportTitle'),
+                  style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       color: PT.text)),
               const SizedBox(height: 12),
-              for (final m in const [
+              for (final m in [
                 (
                   id: 'shinkansen',
                   emoji: '🚄',
                   label: 'Shinkansen',
-                  note: 'Yüksek hızlı tren — en hızlı, konforlu.'
+                  note: s.s('plan.mode.shinkansenNote'),
                 ),
                 (
                   id: 'train',
                   emoji: '🚆',
-                  label: 'Yerel / hızlı tren',
-                  note: 'Daha ucuz, sürelidir. IC kart yeter.'
+                  label: s.s('plan.mode.trainLabel'),
+                  note: s.s('plan.mode.trainNote'),
                 ),
                 (
                   id: 'bus',
                   emoji: '🚌',
-                  label: 'Gecelik otobüs',
-                  note: 'Ucuz ama 8+ saat sürer. Willer Express popüler.'
+                  label: s.s('plan.mode.busLabel'),
+                  note: s.s('plan.mode.busNote'),
                 ),
                 (
                   id: 'car',
                   emoji: '🚗',
-                  label: 'Kiralık araç',
-                  note: 'Uluslararası ehliyet gerekir. Kırsalda mantıklı.'
+                  label: s.s('plan.mode.carLabel'),
+                  note: s.s('plan.mode.carNote'),
                 ),
               ])
                 Padding(
@@ -520,13 +522,14 @@ class _PlanStepState extends State<PlanStep> {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     final destinations = _destinations;
     if (destinations.isEmpty) {
       return ListView(
         padding: const EdgeInsets.fromLTRB(20, 28, 20, 120),
-        children: const [
-          PageHeadline('Plan'),
-          PageSub('Önce Rota adımında havaalanı/durak ekleyin.'),
+        children: [
+          const PageHeadline('Plan'),
+          PageSub(s.s('plan.emptyRouteSub')),
         ],
       );
     }
@@ -555,8 +558,11 @@ class _PlanStepState extends State<PlanStep> {
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 120),
       children: [
         const PageHeadline('Plan'),
-        PageSub('${trip.days.length} gün · $routeLabel'
-            '${childCount > 0 ? ' · $childCount çocuk' : ''}'),
+        PageSub(s.p('plan.daysRoute',
+                {'n': '${trip.days.length}', 'route': routeLabel}) +
+            (childCount > 0
+                ? s.p('plan.childrenSuffix', {'n': '$childCount'})
+                : '')),
 
         // Toolbar: tempo pilleri + toplam adım + oluştur
         PCard(
@@ -565,16 +571,16 @@ class _PlanStepState extends State<PlanStep> {
             children: [
               Row(
                 children: [
-                  const Text('Tempo',
-                      style: TextStyle(
+                  Text(s.s('plan.pace'),
+                      style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: PT.textTertiary)),
                   const SizedBox(width: 12),
                   ...[
-                    (Pace.relaxed, 'Rahat'),
-                    (Pace.moderate, 'Dengeli'),
-                    (Pace.intense, 'Yoğun'),
+                    (Pace.relaxed, s.s('plan.pace.relaxed')),
+                    (Pace.moderate, s.s('plan.pace.moderate')),
+                    (Pace.intense, s.s('plan.pace.intense')),
                   ].map((e) => Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: PChip(
@@ -588,7 +594,7 @@ class _PlanStepState extends State<PlanStep> {
               ),
               if (totalSteps > 0) ...[
                 const SizedBox(height: 12),
-                Text('👣 ${(totalSteps / 1000).round()}k adım',
+                Text(s.p('plan.stepsK', {'n': '${(totalSteps / 1000).round()}'}),
                     style: const TextStyle(
                         fontSize: 13, color: PT.textSecondary)),
               ],
@@ -603,13 +609,14 @@ class _PlanStepState extends State<PlanStep> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text('✨ Plan oluşturuluyor…',
-                    style: TextStyle(fontSize: 13, color: PT.textSecondary)),
+                Text(s.s('plan.generating'),
+                    style: const TextStyle(
+                        fontSize: 13, color: PT.textSecondary)),
               ] else
                 PButton(
                   label: trip.days.any((d) => d.items.isNotEmpty)
-                      ? '✨ Planı yeniden oluştur'
-                      : '✨ Gezi planı oluştur',
+                      ? s.s('plan.regenerate')
+                      : s.s('plan.generate'),
                   block: true,
                   onPressed: _generate,
                 ),
@@ -617,12 +624,12 @@ class _PlanStepState extends State<PlanStep> {
           ),
         ),
 
-        const Padding(
-          padding: EdgeInsets.only(bottom: 16),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
           child: Text(
-            'Saat saat aktivite, ulaşım, restoran ve ipuçları küratörlü '
-            'şablonlardan üretilir. Günleri sürükleyerek düzenleyebilirsiniz.',
-            style: TextStyle(fontSize: 13, color: PT.textSecondary, height: 1.4),
+            s.s('plan.introBlurb'),
+            style: const TextStyle(
+                fontSize: 13, color: PT.textSecondary, height: 1.4),
           ),
         ),
 
@@ -634,16 +641,17 @@ class _PlanStepState extends State<PlanStep> {
               children: [
                 Row(
                   children: [
-                    const Expanded(
-                      child: Text('🚄 Şehirler arası geçiş önerisi',
-                          style: TextStyle(
+                    Expanded(
+                      child: Text(s.s('plan.transitionsTitle'),
+                          style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
                               color: PT.text)),
                     ),
                     if (transitions.length > 1)
                       PButton(
-                        label: 'Hepsini ekle (${transitions.length})',
+                        label:
+                            s.p('plan.addAll', {'n': '${transitions.length}'}),
                         primary: false,
                         onPressed: () => _addAllTransitions(transitions),
                       ),
@@ -666,16 +674,16 @@ class _PlanStepState extends State<PlanStep> {
               children: [
                 const Text('🗺️', style: TextStyle(fontSize: 40)),
                 const SizedBox(height: 12),
-                const Text('Henüz plan yok',
-                    style: TextStyle(
+                Text(s.s('plan.noPlanTitle'),
+                    style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
                         color: PT.text)),
                 const SizedBox(height: 8),
-                const Text(
-                  'Yukarıdaki butonla kur — sonra saat saat düzenleyebilirsin.',
+                Text(
+                  s.s('plan.noPlanBody'),
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                       fontSize: 14, color: PT.textSecondary, height: 1.5),
                 ),
               ],
@@ -687,14 +695,14 @@ class _PlanStepState extends State<PlanStep> {
               children: [
                 const Text('🗺️', style: TextStyle(fontSize: 40)),
                 const SizedBox(height: 12),
-                const Text('Gün listesi boş kaldı',
-                    style: TextStyle(
+                Text(s.s('plan.emptyDaysTitle'),
+                    style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
                         color: PT.text)),
                 const SizedBox(height: 8),
                 Text(
-                  'Rota veya tarihleri güncelleyip "Planı yeniden oluştur"a bas.',
+                  s.s('plan.emptyDaysBody'),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                       fontSize: 14, color: PT.textSecondary, height: 1.5),
@@ -743,6 +751,7 @@ class _TransitionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = LanguageScope.of(context);
     final s = suggestion;
     final t = s.transfer;
     return Container(
@@ -771,7 +780,12 @@ class _TransitionRow extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-              'Gün ${s.fromDayNumber} → Gün ${s.toDayNumber} · ${t.duration} · ${t.fare}',
+              loc.p('plan.dayRange', {
+                'from': '${s.fromDayNumber}',
+                'to': '${s.toDayNumber}',
+                'duration': t.duration,
+                'fare': t.fare,
+              }),
               style: const TextStyle(fontSize: 12, color: PT.textSecondary)),
           if (t.tip != null) ...[
             const SizedBox(height: 4),
@@ -794,13 +808,14 @@ class _TransitionRow extends StatelessWidget {
                   borderRadius: BorderRadius.circular(100),
                   border: Border.all(color: PT.borderStrong),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.swap_horiz, size: 14, color: PT.textSecondary),
-                    SizedBox(width: 6),
-                    Text('Ulaşım değiştir',
-                        style: TextStyle(
+                    const Icon(Icons.swap_horiz,
+                        size: 14, color: PT.textSecondary),
+                    const SizedBox(width: 6),
+                    Text(loc.s('plan.changeTransport'),
+                        style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: PT.textSecondary)),
@@ -812,7 +827,7 @@ class _TransitionRow extends StatelessWidget {
           const SizedBox(height: 10),
           Align(
             alignment: Alignment.centerRight,
-            child: PButton(label: '+ Ekle', onPressed: onAdd),
+            child: PButton(label: loc.s('plan.add'), onPressed: onAdd),
           ),
         ],
       ),
@@ -826,6 +841,7 @@ class _YamatoTip extends StatelessWidget {
   const _YamatoTip();
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
@@ -834,26 +850,23 @@ class _YamatoTip extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: PT.accent.withValues(alpha: 0.35)),
       ),
-      child: const Row(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('🐈', style: TextStyle(fontSize: 20)),
-          SizedBox(width: 10),
+          const Text('🐈', style: TextStyle(fontSize: 20)),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Yamato Takkyubin — valiz transferi',
-                    style: TextStyle(
+                Text(s.s('plan.yamatoTitle'),
+                    style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: PT.accent)),
-                SizedBox(height: 4),
-                Text(
-                    'Valizini Yamato Takkyubin ile otele önceden gönderebilirsin — '
-                    '~2000¥/parça, 1 gün sürer. Otel resepsiyonuna "takkyubin" '
-                    'de yeter.',
-                    style: TextStyle(
+                const SizedBox(height: 4),
+                Text(s.s('plan.yamatoBody'),
+                    style: const TextStyle(
                         fontSize: 12, color: PT.text, height: 1.35)),
               ],
             ),
@@ -911,6 +924,7 @@ class _DayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     final dest = getDestinationForDate(destinations, day.date);
     final profile = dest != null ? getDestinationProfile(dest.countryCode) : null;
     final overLimit = suggestTaxiForDay(day, prefs);
@@ -964,7 +978,10 @@ class _DayCard extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 2),
-                        Text(day.theme.isEmpty ? 'Gün ${day.dayNumber}' : day.theme,
+                        Text(
+                            day.theme.isEmpty
+                                ? s.p('plan.dayN', {'n': '${day.dayNumber}'})
+                                : day.theme,
                             style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
@@ -1003,7 +1020,7 @@ class _DayCard extends StatelessWidget {
                           ],
                         ),
                       const SizedBox(height: 4),
-                      Text('${day.items.length} durak',
+                      Text(s.p('plan.stops', {'n': '${day.items.length}'}),
                           style: const TextStyle(
                               fontSize: 12, color: PT.textTertiary)),
                     ],
@@ -1043,20 +1060,21 @@ class _DayCard extends StatelessWidget {
             const SizedBox(height: 12),
             // Tema düzenle
             PField(
-              label: 'Gün teması',
+              label: s.s('plan.dayTheme'),
               child: PTextField(
                 value: day.theme,
-                hint: 'Örn. Asakusa & Skytree',
+                hint: s.s('plan.dayThemeHint'),
                 onChanged: (v) => onUpdateDay((d) => d.theme = v),
               ),
             ),
 
             if (day.items.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Text(
-                    'Bu güne aktivite ekleyin veya başka günden taşıyın.',
-                    style: TextStyle(fontSize: 13, color: PT.textTertiary)),
+                    s.s('plan.dayEmpty'),
+                    style: const TextStyle(
+                        fontSize: 13, color: PT.textTertiary)),
               )
             else ...[
               if (_dayHasCityTransition(day)) ...[
@@ -1091,7 +1109,7 @@ class _DayCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: PButton(
-                    label: '+ Aktivite',
+                    label: s.s('plan.addActivity'),
                     primary: false,
                     onPressed: onAddItem,
                   ),
@@ -1099,7 +1117,7 @@ class _DayCard extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: PButton(
-                    label: '⚡ Optimize et',
+                    label: s.s('plan.optimize'),
                     primary: false,
                     onPressed: day.items.length > 1 ? onOptimize : null,
                   ),
@@ -1109,7 +1127,7 @@ class _DayCard extends StatelessWidget {
             if (dest != null) ...[
               const SizedBox(height: 10),
               PButton(
-                label: '🌍 Yeni durak keşfet',
+                label: s.s('plan.discover'),
                 block: true,
                 onPressed: () => onDiscover(dest),
               ),
@@ -1121,18 +1139,20 @@ class _DayCard extends StatelessWidget {
   }
 
   void _confirmRemove(BuildContext context, TimelineItem it) async {
+    final s = LanguageScope.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Aktiviteyi sil'),
-        content: Text('"${it.title}" silinsin mi?'),
+        title: Text(s.s('plan.removeConfirmTitle')),
+        content: Text(s.p('plan.removeConfirmBody', {'title': it.title})),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Vazgeç')),
+              child: Text(s.s('plan.cancel'))),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Sil', style: TextStyle(color: PT.danger))),
+              child: Text(s.s('plan.delete'),
+                  style: const TextStyle(color: PT.danger))),
         ],
       ),
     );
@@ -1170,6 +1190,7 @@ class _TimelineTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     final time = item.time ?? item.scheduledTime ?? '';
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -1217,7 +1238,9 @@ class _TimelineTile extends StatelessWidget {
                     if (item.movedFromDay != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
-                        child: Text('↕ Gün ${item.movedFromDay}\'den taşındı',
+                        child: Text(
+                            s.p('plan.movedFrom',
+                                {'n': '${item.movedFromDay}'}),
                             style: const TextStyle(
                                 fontSize: 11, color: PT.textTertiary)),
                       ),
@@ -1250,13 +1273,18 @@ class _TimelineTile extends StatelessWidget {
                 PopupMenuButton<int>(
                   icon: const Icon(Icons.swap_vert,
                       size: 20, color: PT.textTertiary),
-                  tooltip: 'Başka güne taşı',
+                  tooltip: s.s('plan.moveToDay'),
                   onSelected: onMoveToDay,
                   itemBuilder: (ctx) => [
                     for (final d in otherDays)
                       PopupMenuItem(
                         value: d.dayNumber,
-                        child: Text('Gün ${d.dayNumber} · ${d.date.length >= 5 ? d.date.substring(5) : d.date}'),
+                        child: Text(s.p('plan.dayWithDate', {
+                          'n': '${d.dayNumber}',
+                          'date': d.date.length >= 5
+                              ? d.date.substring(5)
+                              : d.date,
+                        })),
                       ),
                   ],
                 ),
@@ -1264,7 +1292,7 @@ class _TimelineTile extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
                 icon: const Icon(Icons.close, size: 18, color: PT.textTertiary),
-                tooltip: 'Sil',
+                tooltip: s.s('plan.delete'),
                 onPressed: onRemove,
               ),
             ],
@@ -1343,6 +1371,7 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
@@ -1367,21 +1396,21 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
                   ),
                 ),
               ),
-              const Text('Aktiviteyi düzenle',
-                  style: TextStyle(
+              Text(s.s('plan.editActivity'),
+                  style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
                       color: PT.text)),
               const SizedBox(height: 16),
               PField(
-                label: 'Başlık',
+                label: s.s('plan.fieldTitle'),
                 child: PTextField(
                   value: _title,
                   onChanged: (v) => _title = v,
                 ),
               ),
               PField(
-                label: 'Saat',
+                label: s.s('plan.fieldTime'),
                 child: _ItemTimeBox(value: _time, onTap: _pickTime),
               ),
               Row(
@@ -1389,7 +1418,7 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
                 children: [
                   Expanded(
                     child: PField(
-                      label: 'Süre (dk)',
+                      label: s.s('plan.fieldDuration'),
                       child: PTextField(
                         value: _duration?.toString() ?? '',
                         hint: '90',
@@ -1401,7 +1430,7 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
                   const SizedBox(width: 14),
                   Expanded(
                     child: PField(
-                      label: 'Ücret',
+                      label: s.s('plan.fieldCost'),
                       child: PTextField(
                         value: _cost?.toString() ?? '',
                         hint: '1500',
@@ -1414,7 +1443,7 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
                   SizedBox(
                     width: 80,
                     child: PField(
-                      label: 'Birim',
+                      label: s.s('plan.fieldCurrency'),
                       child: PTextField(
                         value: _costCurrency,
                         onChanged: (v) => _costCurrency = v,
@@ -1424,18 +1453,18 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
                 ],
               ),
               PField(
-                label: 'Açıklama',
+                label: s.s('plan.fieldDescription'),
                 child: PTextField(
                   value: _description,
-                  hint: 'Kısa açıklama',
+                  hint: s.s('plan.fieldDescriptionHint'),
                   onChanged: (v) => _description = v,
                 ),
               ),
               PField(
-                label: 'İpucu',
+                label: s.s('plan.fieldTips'),
                 child: PTextField(
                   value: _tips,
-                  hint: 'Örn. Erken git, sıra uzun olur',
+                  hint: s.s('plan.fieldTipsHint'),
                   onChanged: (v) => _tips = v,
                 ),
               ),
@@ -1444,19 +1473,19 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: PButton(
-                    label: '🗺️ Harita linkini kopyala',
+                    label: s.s('plan.copyMapLink'),
                     primary: false,
                     block: true,
                     onPressed: () {
                       Clipboard.setData(
                           ClipboardData(text: widget.item.mapUrl!));
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Harita linki kopyalandı')),
+                        SnackBar(content: Text(s.s('plan.mapLinkCopied'))),
                       );
                     },
                   ),
                 ),
-              PButton(label: 'Kaydet', block: true, onPressed: _save),
+              PButton(label: s.s('plan.save'), block: true, onPressed: _save),
             ],
           ),
         ),
@@ -1471,6 +1500,7 @@ class _ItemTimeBox extends StatelessWidget {
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: onTap,
@@ -1487,7 +1517,7 @@ class _ItemTimeBox extends StatelessWidget {
           children: [
             const Icon(Icons.schedule, size: 16, color: PT.textSecondary),
             const SizedBox(width: 10),
-            Text(value.isEmpty ? 'Saat seç' : value,
+            Text(value.isEmpty ? s.s('plan.pickTime') : value,
                 style: TextStyle(
                     fontSize: 15,
                     color: value.isEmpty ? PT.textTertiary : PT.text)),
@@ -1525,6 +1555,7 @@ class _DiscoverSheetState extends State<_DiscoverSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     final flag = widget.flag != null ? '${widget.flag} ' : '';
     final headline = widget.city.isNotEmpty && widget.country.isNotEmpty
         ? '$flag${widget.city}, ${widget.country}'
@@ -1555,22 +1586,23 @@ class _DiscoverSheetState extends State<_DiscoverSheet> {
                       ),
                     ),
                   ),
-                  const Text('Keşif portalı',
-                      style: TextStyle(
+                  Text(s.s('plan.discoverPortal'),
+                      style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.5,
                           color: PT.textTertiary)),
                   const SizedBox(height: 4),
-                  Text(headline.isEmpty ? 'Yer önerileri' : headline,
+                  Text(headline.isEmpty ? s.s('plan.placeSuggestions') : headline,
                       style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
                           color: PT.text)),
                   const SizedBox(height: 4),
-                  const Text(
-                      'En çok ziyaret edilen yerler — karta dokununca plana eklenir.',
-                      style: TextStyle(fontSize: 13, color: PT.textSecondary)),
+                  Text(
+                      s.s('plan.discoverSub'),
+                      style: const TextStyle(
+                          fontSize: 13, color: PT.textSecondary)),
                 ],
               ),
             ),
@@ -1598,13 +1630,14 @@ class _DiscoverSheetState extends State<_DiscoverSheet> {
                   Expanded(
                     child: Text(
                         _picked.isEmpty
-                            ? 'Birden fazla seçebilirsin'
-                            : '${_picked.length} yer eklendi',
+                            ? s.s('plan.pickMultiple')
+                            : s.p('plan.placesAdded',
+                                {'n': '${_picked.length}'}),
                         style: const TextStyle(
                             fontSize: 13, color: PT.textSecondary)),
                   ),
                   PButton(
-                      label: 'Bitti',
+                      label: s.s('plan.done'),
                       onPressed: () => Navigator.pop(context)),
                 ],
               ),
@@ -1628,13 +1661,15 @@ class _DiscoverCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     // Küratörlü rehber varsa gerçek puanı ve pratik meta bilgiyi göster.
     final guide = matchPlaceGuide(place.name);
     final rating = guide?.averageRating ?? placeRating(place);
     final meta = [
-      if (guide != null) '⏱ ${_formatGuideDuration(guide.visitDurationMin)}',
+      if (guide != null)
+        '⏱ ${_formatGuideDuration(context, guide.visitDurationMin)}',
       if (guide?.advanceBookingDays != null)
-        '🎟 ${guide!.advanceBookingDays} gün önce bilet',
+        s.p('plan.advanceBooking', {'n': '${guide!.advanceBookingDays}'}),
     ].join(' · ');
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -1677,8 +1712,8 @@ class _DiscoverCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(color: PT.border),
                             ),
-                            child: const Text('🧒 Çocuk dostu',
-                                style: TextStyle(
+                            child: Text(s.s('plan.kidFriendly'),
+                                style: const TextStyle(
                                     fontSize: 11, color: PT.textSecondary)),
                           ),
                         ],
@@ -1703,12 +1738,13 @@ class _DiscoverCard extends StatelessWidget {
   }
 }
 
-String _formatGuideDuration(int minutes) {
-  if (minutes < 60) return '$minutes dk';
+String _formatGuideDuration(BuildContext context, int minutes) {
+  final s = LanguageScope.of(context);
+  if (minutes < 60) return s.p('plan.durMin', {'n': '$minutes'});
   final h = minutes ~/ 60;
   final m = minutes % 60;
-  if (m == 0) return '$h saat';
-  return '$h sa $m dk';
+  if (m == 0) return s.p('plan.durHour', {'n': '$h'});
+  return s.p('plan.durHourMin', {'h': '$h', 'm': '$m'});
 }
 
 // ---------------------------------------------------------------------------
@@ -1737,12 +1773,12 @@ class _AddItemSheetState extends State<_AddItemSheet> {
   late String _time;
   bool _submitted = false;
 
-  static const List<({TimelineItemKind kind, String label, String emoji})>
+  static const List<({TimelineItemKind kind, String labelKey, String emoji})>
       _kindOptions = [
-    (kind: TimelineItemKind.activity, label: 'Aktivite', emoji: '📍'),
-    (kind: TimelineItemKind.meal, label: 'Yemek', emoji: '🍽️'),
-    (kind: TimelineItemKind.transport, label: 'Ulaşım', emoji: '🚆'),
-    (kind: TimelineItemKind.hotel, label: 'Otel', emoji: '🏨'),
+    (kind: TimelineItemKind.activity, labelKey: 'plan.kindActivity', emoji: '📍'),
+    (kind: TimelineItemKind.meal, labelKey: 'plan.kindMeal', emoji: '🍽️'),
+    (kind: TimelineItemKind.transport, labelKey: 'plan.kindTransport', emoji: '🚆'),
+    (kind: TimelineItemKind.hotel, labelKey: 'plan.kindHotel', emoji: '🏨'),
   ];
 
   @override
@@ -1798,6 +1834,7 @@ class _AddItemSheetState extends State<_AddItemSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final noSlots = _slots.isEmpty;
 
@@ -1821,17 +1858,17 @@ class _AddItemSheetState extends State<_AddItemSheet> {
                   ),
                 ),
               ),
-              const Text('Yeni aktivite ekle',
-                  style: TextStyle(
+              Text(s.s('plan.addActivityTitle'),
+                  style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
                       color: PT.text)),
               const SizedBox(height: 16),
               PField(
-                label: 'Yer adı',
+                label: s.s('plan.placeName'),
                 hint: _submitted && _nameCtrl.text.trim().isEmpty
-                    ? const Text('Yer adı gerekli',
-                        style: TextStyle(fontSize: 12, color: PT.danger))
+                    ? Text(s.s('plan.placeNameRequired'),
+                        style: const TextStyle(fontSize: 12, color: PT.danger))
                     : null,
                 child: TextField(
                   controller: _nameCtrl,
@@ -1839,7 +1876,7 @@ class _AddItemSheetState extends State<_AddItemSheet> {
                   onSubmitted: (_) => _submit(),
                   style: const TextStyle(fontSize: 16),
                   decoration: InputDecoration(
-                    hintText: 'Örn. Senso-ji, teamLab, ramen molası',
+                    hintText: s.s('plan.placeNameHint'),
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 12),
@@ -1860,10 +1897,10 @@ class _AddItemSheetState extends State<_AddItemSheet> {
                 ),
               ),
               PField(
-                label: 'Saat',
+                label: s.s('plan.fieldTime'),
                 hint: noSlots
-                    ? const Text('Boş dilim yok — mevcut aktivitelerden birini kaldır.',
-                        style: TextStyle(fontSize: 12, color: PT.danger))
+                    ? Text(s.s('plan.noSlots'),
+                        style: const TextStyle(fontSize: 12, color: PT.danger))
                     : null,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -1878,7 +1915,7 @@ class _AddItemSheetState extends State<_AddItemSheet> {
                           ? _time
                           : (_slots.isNotEmpty ? _slots.first : null),
                       isExpanded: true,
-                      hint: const Text('Saat seç'),
+                      hint: Text(s.s('plan.pickTime')),
                       items: [
                         for (final s in _slots)
                           DropdownMenuItem(value: s, child: Text(s)),
@@ -1893,14 +1930,14 @@ class _AddItemSheetState extends State<_AddItemSheet> {
                 ),
               ),
               PField(
-                label: 'Tür (opsiyonel)',
+                label: s.s('plan.kindOptional'),
                 child: Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
                     for (final opt in _kindOptions)
                       PChip(
-                        label: '${opt.emoji} ${opt.label}',
+                        label: '${opt.emoji} ${s.s(opt.labelKey)}',
                         active: _kind == opt.kind,
                         onTap: () => setState(() => _kind = opt.kind),
                       ),
@@ -1912,7 +1949,7 @@ class _AddItemSheetState extends State<_AddItemSheet> {
                 children: [
                   Expanded(
                     child: PButton(
-                      label: 'Vazgeç',
+                      label: s.s('plan.cancel'),
                       primary: false,
                       block: true,
                       onPressed: () => Navigator.pop(context),
@@ -1921,7 +1958,7 @@ class _AddItemSheetState extends State<_AddItemSheet> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: PButton(
-                      label: 'Ekle',
+                      label: s.s('plan.addPlain'),
                       block: true,
                       onPressed: noSlots ? null : _submit,
                     ),

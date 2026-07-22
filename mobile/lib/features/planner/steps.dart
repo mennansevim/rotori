@@ -1,5 +1,9 @@
 // apps/planner/src/steps.ts birebir karşılığı.
 
+import 'package:flutter/widgets.dart';
+
+import '../../core/l10n.dart';
+
 enum StepId { welcome, journey, explore, title, hotels, food, plan, publish }
 
 class StepDef {
@@ -7,6 +11,11 @@ class StepDef {
   final StepId id;
   final String label;
   final int num;
+
+  /// Aktif dildeki nav etiketi — `steps.<id>` anahtarından çözülür.
+  /// [label] alanı Türkçe yedeği ve veri karşılaştırmaları için korunur.
+  String labelFor(BuildContext context) =>
+      LanguageScope.of(context).s('steps.${id.name}');
 }
 
 /// steps.ts STEPS dizisi — sıra ve etiketler birebir (i18n nav.* Türkçesi).

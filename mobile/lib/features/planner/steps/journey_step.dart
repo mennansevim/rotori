@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/l10n.dart';
 import '../../../domain/city_places.dart';
 import '../../../domain/trip_factory.dart';
 import '../../../domain/types.dart';
@@ -156,6 +157,7 @@ class _JourneyStepState extends State<JourneyStep> {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     final dests = _dests;
     final lastDest = dests.isNotEmpty ? dests.last : null;
     final showReturn = (lastDest?.airport ?? '').isNotEmpty;
@@ -166,10 +168,10 @@ class _JourneyStepState extends State<JourneyStep> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 120),
       children: [
-        const PageHeadline('🇯🇵 Japonya rotası'),
+        PageHeadline(s.s('journey.title')),
         PageSub(_hasTicket
-            ? 'Türkiye\'den Japonya\'ya gidiş ve dönüş uçuşlarını gir. Her uçuş kartında havayolu, uçuş no, tarih ve havaalanları var.'
-            : 'Türkiye\'den nereden kalkacaksın ve Japonya\'da hangi şehre ineceksin? Şimdilik şehir ve tarih yeter.'),
+            ? s.s('journey.sub.ticket')
+            : s.s('journey.sub.plan')),
 
         if (widget.onLoadJapanPlan != null) _japanBanner(),
 
@@ -190,9 +192,9 @@ class _JourneyStepState extends State<JourneyStep> {
               text: TextSpan(
                 style: const TextStyle(fontSize: 14, color: PT.text),
                 children: [
-                  const TextSpan(
-                      text: 'Rota: ',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  TextSpan(
+                      text: s.s('journey.routeLabel'),
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
                   TextSpan(text: routePreview),
                 ],
               ),
@@ -210,9 +212,9 @@ class _JourneyStepState extends State<JourneyStep> {
               color: PT.accentSoft,
               borderRadius: BorderRadius.circular(PT.radius),
             ),
-            child: const Text(
-              'Devam için: kalkış (Türkiye) ve varış (Japonya) havaalanını seç.',
-              style: TextStyle(fontSize: 14, color: PT.accent),
+            child: Text(
+              s.s('journey.continueHint'),
+              style: const TextStyle(fontSize: 14, color: PT.accent),
             ),
           ),
       ],
@@ -237,6 +239,7 @@ class _JourneyStepState extends State<JourneyStep> {
   // ---- parçalar ----
 
   Widget _shinkansenReminder() {
+    final s = LanguageScope.of(context);
     return Container(
       margin: const EdgeInsets.only(top: 6, bottom: 14),
       padding: const EdgeInsets.all(14),
@@ -245,21 +248,21 @@ class _JourneyStepState extends State<JourneyStep> {
         borderRadius: BorderRadius.circular(PT.radius),
         border: Border.all(color: PT.accent.withValues(alpha: 0.4)),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('🚄 Şehirler arası Shinkansen',
-              style: TextStyle(
+          Text(s.s('journey.shinkansen.title'),
+              style: const TextStyle(
                   fontSize: 14, fontWeight: FontWeight.w700, color: PT.accent)),
-          SizedBox(height: 6),
+          const SizedBox(height: 6),
           Text(
-              'Birden fazla şehir gezeceksin → Shinkansen (yüksek hızlı tren) en pratiği.',
+              s.s('journey.shinkansen.body'),
               style:
-                  TextStyle(fontSize: 13, color: PT.text, height: 1.35)),
-          SizedBox(height: 4),
+                  const TextStyle(fontSize: 13, color: PT.text, height: 1.35)),
+          const SizedBox(height: 4),
           Text(
-              'JR Pass / Smart-EX önerilir. Plan adımında otomatik şehir geçiş kartları çıkar.',
-              style: TextStyle(fontSize: 12, color: PT.textSecondary, height: 1.35)),
+              s.s('journey.shinkansen.note'),
+              style: const TextStyle(fontSize: 12, color: PT.textSecondary, height: 1.35)),
         ],
       ),
     );
@@ -269,6 +272,7 @@ class _JourneyStepState extends State<JourneyStep> {
   /// destinasyonlara eklenir/çıkarılır. Shinkansen mantığı zaten
   /// destinations>=2 iken üstteki hatırlatma kartını gösterir.
   Widget _cityPicker(List<TripDestination> dests) {
+    final s = LanguageScope.of(context);
     // Şu an rotadaki şehirleri normalize et — kolay karşılaştırma için.
     final selectedNames = {
       for (final d in dests) d.city.trim().toLowerCase(),
@@ -284,16 +288,15 @@ class _JourneyStepState extends State<JourneyStep> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('🏙️ Gezilecek şehirler',
-              style: TextStyle(
+          Text(s.s('journey.cities.title'),
+              style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: PT.text)),
           const SizedBox(height: 2),
-          const Text(
-              'Listeden seç — rotana eklenir. Tekrar dokun → çıkar. '
-              'İkinci şehri seçtiğinde şehirler arası Shinkansen önerilir.',
-              style: TextStyle(
+          Text(
+              s.s('journey.cities.hint'),
+              style: const TextStyle(
                   fontSize: 12, color: PT.textSecondary, height: 1.35)),
           const SizedBox(height: 10),
           Wrap(
@@ -429,6 +432,7 @@ class _JourneyStepState extends State<JourneyStep> {
   }
 
   Widget _japanBanner() {
+    final s = LanguageScope.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -444,16 +448,16 @@ class _JourneyStepState extends State<JourneyStep> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('🇯🇵 Japonya 14 günlük tam plan',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: PT.text)),
+                Text(s.s('journey.banner.title'),
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: PT.text)),
                 const SizedBox(height: 2),
-                Text('Tokyo → Kyoto → Nara → Osaka rotası; günler, tarihler ve oteller hazır.',
+                Text(s.s('journey.banner.body'),
                     style: const TextStyle(fontSize: 13, color: PT.textSecondary)),
               ],
             ),
           ),
           const SizedBox(width: 12),
-          PButton(label: 'Planı yükle', onPressed: widget.onLoadJapanPlan),
+          PButton(label: s.s('journey.banner.load'), onPressed: widget.onLoadJapanPlan),
         ],
       ),
     );
@@ -497,15 +501,16 @@ class _JourneyStepState extends State<JourneyStep> {
   }
 
   Widget _flightLeg(int index, TripDestination? dest) {
+    final s = LanguageScope.of(context);
     final airline = dest?.airline;
     final airlineSet = airline != null && airline.isNotEmpty;
 
     return _legShell(
-      title: _hasTicket ? '✈︎ Gidiş — Türkiye → Japonya' : '📍 Rota — Türkiye → Japonya',
+      title: _hasTicket ? s.s('journey.leg.outbound') : s.s('journey.leg.route'),
       children: [
         if (_hasTicket)
           _field(
-            'Havayolu',
+            s.s('journey.field.airline'),
             AirlinePickerField(
               valueCode: airline,
               valueLabel: airlineSet ? airlineLabel(airline) : null,
@@ -514,7 +519,7 @@ class _JourneyStepState extends State<JourneyStep> {
           ),
         if (_hasTicket && airlineSet)
           _field(
-            'Uçuş numarası',
+            s.s('journey.field.flightNo'),
             _FlightNoInput(
               prefix: airline,
               value: dest?.flightNo ?? '',
@@ -522,14 +527,14 @@ class _JourneyStepState extends State<JourneyStep> {
             ),
           ),
         _field(
-          'Tarih',
+          s.s('journey.field.date'),
           _DateBox(
             value: dest?.arrivalDate ?? trip.preferences.travelDates.start,
             onPick: (v) => _updateLeg(index, (d) => d.arrivalDate = v),
           ),
         ),
         _field(
-          'Kalkış (Türkiye)',
+          s.s('journey.field.departureTr'),
           index == 0
               ? AirportPickerField(
                   countryCodes: const ['TR'],
@@ -541,7 +546,7 @@ class _JourneyStepState extends State<JourneyStep> {
               : _FixedBox(text: _origin.isEmpty ? '—' : _origin),
         ),
         _field(
-          'Varış (Japonya)',
+          s.s('journey.field.arrivalJp'),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -566,6 +571,7 @@ class _JourneyStepState extends State<JourneyStep> {
   }
 
   Widget _returnLeg(TripDestination lastDest) {
+    final s = LanguageScope.of(context);
     final returnDepIata =
         trip.preferences.returnDepartAirport ?? (lastDest.airport ?? '');
     final returnDep = kAirports.where((a) => a.iata == returnDepIata).toList();
@@ -574,22 +580,22 @@ class _JourneyStepState extends State<JourneyStep> {
     final returnArr = kAirports.where((a) => a.iata == returnArrIata).toList();
     return _legShell(
       isReturn: true,
-      title: '🏠 Dönüş — Japonya → Türkiye',
+      title: s.s('journey.leg.return'),
       children: [
         _field(
-          'Tarih',
+          s.s('journey.field.date'),
           _DateBox(
             value: trip.preferences.travelDates.end,
             onPick: _setReturnDate,
           ),
         ),
         _field(
-          'Kalkış (Japonya)',
+          s.s('journey.field.departureJp'),
           AirportPickerField(
             countryCodes: const ['JP'],
             valueCode: returnDep.isNotEmpty ? returnDep.first.iata : null,
             valueLabel: returnDep.isNotEmpty ? returnDep.first.city : null,
-            placeholder: 'Japonya\'dan kalkış havalimanı',
+            placeholder: s.s('journey.ph.returnDep'),
             onSelect: (a) => widget.onChange((t) {
               t.preferences.returnDepartAirport = a.iata;
               _resync(t);
@@ -597,12 +603,12 @@ class _JourneyStepState extends State<JourneyStep> {
           ),
         ),
         _field(
-          'Varış (Türkiye)',
+          s.s('journey.field.arrivalTr'),
           AirportPickerField(
             countryCodes: const ['TR'],
             valueCode: returnArr.isNotEmpty ? returnArr.first.iata : null,
             valueLabel: returnArr.isNotEmpty ? returnArr.first.city : null,
-            placeholder: 'Türkiye\'ye varış havalimanı',
+            placeholder: s.s('journey.ph.returnArr'),
             onSelect: (a) => widget.onChange((t) {
               t.preferences.returnArrivalAirport = a.iata;
               _resync(t);
@@ -614,6 +620,7 @@ class _JourneyStepState extends State<JourneyStep> {
   }
 
   Widget _passengerOptions() {
+    final s = LanguageScope.of(context);
     final prefs = trip.preferences;
     return Container(
       decoration: BoxDecoration(
@@ -623,12 +630,12 @@ class _JourneyStepState extends State<JourneyStep> {
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
         initiallyExpanded: true,
-        title: const Text('Yolcu & seçenekler',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: PT.text)),
-        subtitle: const Padding(
-          padding: EdgeInsets.only(top: 2),
-          child: Text('Kaç kişi + kaç çocuk?',
-              style: TextStyle(fontSize: 12, color: PT.textSecondary)),
+        title: Text(s.s('journey.pax.title'),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: PT.text)),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Text(s.s('journey.pax.subtitle'),
+              style: const TextStyle(fontSize: 12, color: PT.textSecondary)),
         ),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: [
@@ -636,7 +643,7 @@ class _JourneyStepState extends State<JourneyStep> {
             children: [
               Expanded(
                 child: _DropdownField<int>(
-                  label: 'Yetişkin',
+                  label: s.s('journey.pax.adult'),
                   value: prefs.partySize ?? 2,
                   items: const [1, 2, 3, 4, 5, 6],
                   onChanged: (v) => widget.onChange((t) => t.preferences.partySize = v),
@@ -645,7 +652,7 @@ class _JourneyStepState extends State<JourneyStep> {
               const SizedBox(width: 12),
               Expanded(
                 child: _DropdownField<int>(
-                  label: 'Çocuk',
+                  label: s.s('journey.pax.child'),
                   value: prefs.childrenCount ?? 0,
                   items: const [0, 1, 2, 3, 4],
                   onChanged: (v) => widget.onChange((t) => t.preferences.childrenCount = v),
@@ -654,13 +661,13 @@ class _JourneyStepState extends State<JourneyStep> {
               const SizedBox(width: 12),
               Expanded(
                 child: _DropdownField<Pace>(
-                  label: 'Tempo',
+                  label: s.s('journey.pax.pace'),
                   value: prefs.pace,
                   items: const [Pace.relaxed, Pace.moderate, Pace.intense],
                   labelFor: (p) => switch (p) {
-                    Pace.relaxed => 'Rahat',
-                    Pace.moderate => 'Dengeli',
-                    Pace.intense => 'Yoğun',
+                    Pace.relaxed => s.s('journey.pace.relaxed'),
+                    Pace.moderate => s.s('journey.pace.moderate'),
+                    Pace.intense => s.s('journey.pace.intense'),
                   },
                   onChanged: (v) => widget.onChange((t) => t.preferences.pace = v),
                 ),
@@ -682,6 +689,7 @@ class _FlightNoInput extends StatelessWidget {
   final ValueChanged<String> onChanged;
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return Container(
       decoration: BoxDecoration(
         color: PT.bg,
@@ -702,10 +710,10 @@ class _FlightNoInput extends StatelessWidget {
               initialValue: value,
               keyboardType: TextInputType.number,
               onChanged: onChanged,
-              decoration: const InputDecoration(
-                hintText: 'Uçuş numarası',
+              decoration: InputDecoration(
+                hintText: s.s('journey.field.flightNo'),
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               ),
             ),
           ),
@@ -739,6 +747,7 @@ class _DateBox extends StatelessWidget {
   final ValueChanged<String> onPick;
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return InkWell(
       borderRadius: BorderRadius.circular(10),
       onTap: () async {
@@ -764,7 +773,7 @@ class _DateBox extends StatelessWidget {
           children: [
             const Icon(Icons.calendar_today, size: 16, color: PT.textSecondary),
             const SizedBox(width: 10),
-            Text(value.isEmpty ? 'Tarih seç' : value,
+            Text(value.isEmpty ? s.s('journey.date.pick') : value,
                 style: TextStyle(
                     fontSize: 15, color: value.isEmpty ? PT.textTertiary : PT.text)),
           ],
@@ -948,6 +957,7 @@ class _JpCityPickerField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return InkWell(
       onTap: () async {
         final picked = await showModalBottomSheet<_JpCity>(
@@ -969,20 +979,20 @@ class _JpCityPickerField extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: PT.borderStrong),
         ),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(Icons.add, size: 20, color: PT.accent),
-            SizedBox(width: 10),
+            const Icon(Icons.add, size: 20, color: PT.accent),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
-                '+ Başka şehir',
-                style: TextStyle(
+                s.s('journey.city.other'),
+                style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: PT.text),
               ),
             ),
-            Icon(Icons.chevron_right, color: PT.textSecondary),
+            const Icon(Icons.chevron_right, color: PT.textSecondary),
           ],
         ),
       ),
@@ -1001,6 +1011,7 @@ class _JpCitySearchSheetState extends State<_JpCitySearchSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     final q = _q.trim().toLowerCase();
     final filtered = q.isEmpty
         ? _kJpCities
@@ -1028,17 +1039,17 @@ class _JpCitySearchSheetState extends State<_JpCitySearchSheet> {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Row(
                 children: [
-                  const Expanded(
-                    child: Text('Şehir seç',
-                        style: TextStyle(
+                  Expanded(
+                    child: Text(s.s('journey.city.sheetTitle'),
+                        style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                             color: PT.text)),
                   ),
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Kapat',
-                        style: TextStyle(color: PT.accent)),
+                    child: Text(s.s('journey.city.close'),
+                        style: const TextStyle(color: PT.accent)),
                   ),
                 ],
               ),
@@ -1049,7 +1060,7 @@ class _JpCitySearchSheetState extends State<_JpCitySearchSheet> {
                 autofocus: true,
                 onChanged: (v) => setState(() => _q = v),
                 decoration: InputDecoration(
-                  hintText: 'Şehir ara — Kyoto, Hakone, Nikko…',
+                  hintText: s.s('journey.city.searchHint'),
                   prefixIcon: const Icon(Icons.search, color: PT.textSecondary),
                   filled: true,
                   fillColor: PT.bgSubtle,
@@ -1077,8 +1088,8 @@ class _JpCitySearchSheetState extends State<_JpCitySearchSheet> {
                             color: PT.text)),
                     subtitle: Text(
                       c.iata != null
-                          ? '${c.airportLabel ?? "Havalimanı"} · ${c.iata}'
-                          : 'Shinkansen / tren erişimli',
+                          ? '${c.airportLabel ?? s.s('journey.city.airport')} · ${c.iata}'
+                          : s.s('journey.city.byTrain'),
                       style: const TextStyle(
                           fontSize: 12, color: PT.textSecondary),
                     ),

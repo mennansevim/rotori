@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../core/l10n.dart';
 import '../../data/reminders_store.dart';
 import 'planner_theme.dart';
 import 'steps.dart';
@@ -27,6 +28,7 @@ class TopNav extends ConsumerWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final reminderCount = ref.watch(remindersProvider).length;
+    final s = LanguageScope.of(context);
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xD1FBFBFD), // rgba(251,251,253,0.82)
@@ -54,11 +56,11 @@ class TopNav extends ConsumerWidget implements PreferredSizeWidget {
                   ),
                   const SizedBox(width: 10),
                   // Esnek: dar ekranda kısalır (…), sağdaki aksiyonlar taşmaz.
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Seyahat',
+                      s.s('shell.brand'),
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 17,
                         color: PT.text,
@@ -70,8 +72,8 @@ class TopNav extends ConsumerWidget implements PreferredSizeWidget {
                     onTap: () => context.push('/reminders'),
                   ),
                   _GhostButton(label: '🌐 $lang', onTap: onLang),
-                  _GhostButton(label: 'Yeni plan', onTap: onNewPlan),
-                  _GhostButton(label: 'Rehber', onTap: onGuide),
+                  _GhostButton(label: s.s('shell.newPlan'), onTap: onNewPlan),
+                  _GhostButton(label: s.s('shell.guide'), onTap: onGuide),
                 ],
               ),
             ),
@@ -324,7 +326,7 @@ class _StepNode extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                step.label,
+                step.labelFor(context),
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight:
@@ -379,7 +381,7 @@ class BottomBar extends StatelessWidget {
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 200),
                           child: PButton(
-                            label: 'Geri',
+                            label: LanguageScope.of(context).s('shell.back'),
                             primary: false,
                             block: true,
                             onPressed: onBack,

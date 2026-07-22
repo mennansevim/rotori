@@ -4,6 +4,10 @@
 import 'types.dart';
 
 /// Ülkeye göre genişletilebilir beslenme etiketleri.
+///
+/// i18n: `label` ve `description` alanları L10n anahtarıdır (ör. 'diet.halal.label').
+/// Bir DietaryOption gösterilirken çağrı yeri LanguageScope.of(context).s(opt.label)
+/// ve .s(opt.description) ile çözmelidir. `id`/`emoji`/`countries` çeviri dışıdır.
 class DietaryOption {
   const DietaryOption({
     required this.id,
@@ -14,8 +18,12 @@ class DietaryOption {
   });
 
   final String id;
+
+  /// L10n anahtarı.
   final String label;
   final String emoji;
+
+  /// L10n anahtarı.
   final String description;
 
   /// boş/null = evrensel
@@ -25,86 +33,86 @@ class DietaryOption {
 const List<DietaryOption> kDietaryOptions = [
   DietaryOption(
     id: 'halal',
-    label: 'Helal',
+    label: 'diet.halal.label',
     emoji: '🕌',
-    description: 'Helal sertifikalı veya domuzsuz seçenekler',
+    description: 'diet.halal.desc',
     countries: ['JP', 'TR', 'MY'],
   ),
   DietaryOption(
     id: 'no_pork',
-    label: 'Domuz yok',
+    label: 'diet.noPork.label',
     emoji: '🐷',
-    description: 'Domuz eti ve domuz yağı içermesin',
+    description: 'diet.noPork.desc',
     countries: ['JP', 'TR'],
   ),
   DietaryOption(
     id: 'vegetarian',
-    label: 'Vejetaryen',
+    label: 'diet.vegetarian.label',
     emoji: '🥬',
-    description: 'Et ve balık yok, yumurta/süt olabilir',
+    description: 'diet.vegetarian.desc',
   ),
   DietaryOption(
     id: 'vegan',
-    label: 'Vegan',
+    label: 'diet.vegan.label',
     emoji: '🌱',
-    description: 'Hayvansal ürün yok',
+    description: 'diet.vegan.desc',
   ),
   DietaryOption(
     id: 'low_fat',
-    label: 'Yağsız / hafif',
+    label: 'diet.lowFat.label',
     emoji: '💧',
-    description: 'Kızartma ve ağır soslardan kaçın',
+    description: 'diet.lowFat.desc',
   ),
   DietaryOption(
     id: 'no_alcohol',
-    label: 'Alkolsüz',
+    label: 'diet.noAlcohol.label',
     emoji: '🚫',
-    description: 'Yemeklerde alkol kullanılmasın',
+    description: 'diet.noAlcohol.desc',
   ),
   DietaryOption(
     id: 'bakery_ok',
-    label: 'Hamur işi OK',
+    label: 'diet.bakeryOk.label',
     emoji: '🥐',
-    description: 'Ekmek, noodle, unlu atıştırmalıklar uygun',
+    description: 'diet.bakeryOk.desc',
   ),
   DietaryOption(
     id: 'meat_ok',
-    label: 'Et sever',
+    label: 'diet.meatOk.label',
     emoji: '🥩',
-    description: 'Wagyu, yakiniku, et ağırlıklı menüler',
+    description: 'diet.meatOk.desc',
     countries: ['JP'],
   ),
   DietaryOption(
     id: 'chicken_only',
-    label: 'Tavuk / hindi',
+    label: 'diet.chickenOnly.label',
     emoji: '🍗',
-    description: 'Kırmızı et yerine tavuk tercih',
+    description: 'diet.chickenOnly.desc',
   ),
   DietaryOption(
     id: 'seafood_ok',
-    label: 'Deniz ürünü',
+    label: 'diet.seafoodOk.label',
     emoji: '🐟',
-    description: 'Sushi, sashimi, deniz ürünleri uygun',
+    description: 'diet.seafoodOk.desc',
     countries: ['JP'],
   ),
   DietaryOption(
     id: 'gluten_free',
-    label: 'Glutensiz',
+    label: 'diet.glutenFree.label',
     emoji: '🌾',
-    description: 'Buğday / gluten hassasiyeti',
+    description: 'diet.glutenFree.desc',
   ),
   DietaryOption(
     id: 'spicy_ok',
-    label: 'Acı sever',
+    label: 'diet.spicyOk.label',
     emoji: '🌶️',
-    description: 'Acı ve baharatlı yemekler uygun',
+    description: 'diet.spicyOk.desc',
     countries: ['KR', 'TH', 'MX'],
   ),
   DietaryOption(
     id: 'spicy_avoid',
-    label: 'Acı istemiyorum',
+    label: 'diet.spicyAvoid.label',
     emoji: '🚫🌶️',
-    description: 'Acı sos ve gochujang azaltılsın',
+    description: 'diet.spicyAvoid.desc',
     countries: ['KR'],
   ),
 ];

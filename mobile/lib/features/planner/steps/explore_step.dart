@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/l10n.dart';
 import '../../../domain/destination_profiles.dart';
 import '../../../domain/explore.dart';
 import '../../../domain/japan_suggestions.dart';
@@ -99,6 +100,7 @@ class _ExploreStepState extends State<ExploreStep> {
   }
 
   void _removePlaceByName(String name) {
+    final s = LanguageScope.of(context);
     final target = _normalizeTitle(name);
     widget.onChange((t) {
       t.days = t.days.map((d) {
@@ -111,16 +113,19 @@ class _ExploreStepState extends State<ExploreStep> {
         return d.copyWith(
           items: items,
           tags: tags,
-          theme: themeNorm == target ? 'Gün ${d.dayNumber}' : d.theme,
+          theme: themeNorm == target
+              ? s.p('explore.dayFallback', {'n': '${d.dayNumber}'})
+              : d.theme,
         );
       }).toList();
     });
   }
 
   void _addPlace(TripDestination dest, PlaceSuggestion place) {
+    final s = LanguageScope.of(context);
     if (_planPlaceNames.contains(place.name.toLowerCase().trim())) {
       _removePlaceByName(place.name);
-      _markAdded('${dest.id}:${place.id}', '✓ Plandan çıkarıldı');
+      _markAdded('${dest.id}:${place.id}', s.s('explore.removedFromPlan'));
       return;
     }
     final dests = _destinations;
@@ -143,11 +148,13 @@ class _ExploreStepState extends State<ExploreStep> {
       );
     });
     if (chosenDay > 0) {
-      _markAdded('${dest.id}:${place.id}', "✓ Gün $chosenDay'e eklendi");
+      _markAdded('${dest.id}:${place.id}',
+          s.p('explore.addedToDay', {'day': '$chosenDay'}));
     }
   }
 
   void _suggestKidRoute(TripDestination dest) {
+    final s = LanguageScope.of(context);
     final profile = getDestinationProfile(dest.countryCode);
     if (profile == null) return;
     final kidPlaces = profile.popularPlaces.where(isKidFriendly).toList();
@@ -166,21 +173,24 @@ class _ExploreStepState extends State<ExploreStep> {
       }
       t.days = days;
     });
-    _markAdded('kidroute:${dest.id}',
-        '✓ ${kidPlaces.length} yer ${countryDays.length} güne dağıtıldı');
+    _markAdded('kidroute:${dest.id}', s.p('explore.kidRouteDistributed', {
+      'places': '${kidPlaces.length}',
+      'days': '${countryDays.length}',
+    }));
   }
 
   // ---- build ----
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     final destinations = _destinations;
     if (destinations.isEmpty) {
       return ListView(
         padding: const EdgeInsets.fromLTRB(20, 28, 20, 120),
-        children: const [
-          PageHeadline('Keşfet'),
-          PageSub('Önce Rota adımında varış havaalanlarını seçin.'),
+        children: [
+          PageHeadline(s.s('explore.title')),
+          PageSub(s.s('explore.emptyAirports')),
         ],
       );
     }
@@ -188,11 +198,8 @@ class _ExploreStepState extends State<ExploreStep> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 120),
       children: [
-        const PageHeadline('Keşfet'),
-        const PageSub(
-          'Uçuş güzergahınıza göre popüler yerler ve varışta yapılacaklar. '
-          'Beğendiğinizi tek dokunuşla plana ekleyin.',
-        ),
+        PageHeadline(s.s('explore.title')),
+        PageSub(s.s('explore.sub')),
         _interestsBlock(),
         _travelStyleBlock(),
         _mustSeeBlock(),
@@ -215,20 +222,21 @@ class _ExploreStepState extends State<ExploreStep> {
       );
 
   Widget _interestsBlock() {
+    final s = LanguageScope.of(context);
     final interests = trip.preferences.interests;
     return PCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _blockTitle('🎯 İlgi alanların'),
-          _hint('Birden fazla seç. Plan bunlara göre yönlendirilir.'),
+          _blockTitle(s.s('explore.interests.title')),
+          _hint(s.s('explore.interests.hint')),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
               for (final opt in kInterestOptionsExplore)
                 PChip(
-                  label: '${opt.emoji} ${opt.label}',
+                  label: '${opt.emoji} ${s.s(opt.label)}',
                   active: interests.contains(opt.value),
                   onTap: () => _toggleInterest(opt.value),
                 ),
@@ -240,6 +248,7 @@ class _ExploreStepState extends State<ExploreStep> {
   }
 
   Widget _travelStyleBlock() {
+    final s = LanguageScope.of(context);
     final prefs = trip.preferences;
     final walking = prefs.walkingTarget ?? WalkingTarget.moderate;
     final transport = prefs.transportPreference ?? TransportPreference.transit;
@@ -248,10 +257,10 @@ class _ExploreStepState extends State<ExploreStep> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _blockTitle('🚶 Gezi stili'),
-          _hint('Yürüyüş hedefi, ulaşım ve ödeme tercihini seç.'),
-          const Text('Yürüyüş tempon',
-              style: TextStyle(
+          _blockTitle(s.s('explore.style.title')),
+          _hint(s.s('explore.style.hint')),
+          Text(s.s('explore.style.walkLabel'),
+              style: const TextStyle(
                   fontSize: 13, fontWeight: FontWeight.w600, color: PT.text)),
           const SizedBox(height: 8),
           Wrap(
@@ -260,7 +269,7 @@ class _ExploreStepState extends State<ExploreStep> {
             children: [
               for (final opt in kWalkingOptions)
                 PChip(
-                  label: '${opt.emoji} ${opt.label} · ${opt.hint}',
+                  label: '${opt.emoji} ${s.s(opt.label)} · ${s.s(opt.hint!)}',
                   active: walking == opt.value,
                   onTap: () => widget.onChange(
                       (t) => t.preferences.walkingTarget = opt.value),
@@ -268,8 +277,8 @@ class _ExploreStepState extends State<ExploreStep> {
             ],
           ),
           const SizedBox(height: 14),
-          const Text('Ulaşım tercihi',
-              style: TextStyle(
+          Text(s.s('explore.style.transportLabel'),
+              style: const TextStyle(
                   fontSize: 13, fontWeight: FontWeight.w600, color: PT.text)),
           const SizedBox(height: 8),
           Wrap(
@@ -278,7 +287,7 @@ class _ExploreStepState extends State<ExploreStep> {
             children: [
               for (final opt in kTransportOptions)
                 PChip(
-                  label: '${opt.emoji} ${opt.label}',
+                  label: '${opt.emoji} ${s.s(opt.label)}',
                   active: transport == opt.value,
                   onTap: () => widget.onChange(
                       (t) => t.preferences.transportPreference = opt.value),
@@ -286,8 +295,8 @@ class _ExploreStepState extends State<ExploreStep> {
             ],
           ),
           const SizedBox(height: 14),
-          const Text('Ödeme tercihi',
-              style: TextStyle(
+          Text(s.s('explore.style.paymentLabel'),
+              style: const TextStyle(
                   fontSize: 13, fontWeight: FontWeight.w600, color: PT.text)),
           const SizedBox(height: 8),
           Wrap(
@@ -296,7 +305,7 @@ class _ExploreStepState extends State<ExploreStep> {
             children: [
               for (final opt in kPaymentOptions)
                 PChip(
-                  label: '${opt.emoji} ${opt.label}',
+                  label: '${opt.emoji} ${s.s(opt.label)}',
                   active: payment == opt.value,
                   onTap: () => widget.onChange(
                       (t) => t.preferences.paymentPreference = opt.value),
@@ -309,13 +318,14 @@ class _ExploreStepState extends State<ExploreStep> {
   }
 
   Widget _mustSeeBlock() {
+    final s = LanguageScope.of(context);
     final mustSee = trip.preferences.mustSee;
     return PCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _blockTitle('📌 Mutlaka görmek istediklerin'),
-          _hint('Serbest liste — plan oluştururken önceliklendirilir.'),
+          _blockTitle(s.s('explore.mustSee.title')),
+          _hint(s.s('explore.mustSee.hint')),
           Row(
             children: [
               Expanded(
@@ -343,7 +353,7 @@ class _ExploreStepState extends State<ExploreStep> {
               ),
               const SizedBox(width: 10),
               PButton(
-                label: 'Ekle',
+                label: s.s('common.add'),
                 onPressed: () => _addMustSee(_mustSeeCtrl.text),
               ),
             ],
@@ -369,6 +379,7 @@ class _ExploreStepState extends State<ExploreStep> {
   }
 
   List<Widget> _destinationSections(TripDestination dest) {
+    final s = LanguageScope.of(context);
     final profile = getDestinationProfile(dest.countryCode);
     var places = profile?.popularPlaces ?? const <PlaceSuggestion>[];
     if (_kidsMode) {
@@ -402,9 +413,9 @@ class _ExploreStepState extends State<ExploreStep> {
             children: [
               Row(
                 children: [
-                  const Expanded(
-                    child: Text('⭐ Popüler gezilecek yerler',
-                        style: TextStyle(
+                  Expanded(
+                    child: Text(s.s('explore.popularPlaces'),
+                        style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
                             color: PT.text)),
@@ -412,7 +423,7 @@ class _ExploreStepState extends State<ExploreStep> {
                   if (_kidsMode)
                     PButton(
                       label: _added['kidroute:${dest.id}'] ??
-                          '🧸 Çocuk dostu rota öner',
+                          s.s('explore.suggestKidRoute'),
                       primary: false,
                       onPressed: () => _suggestKidRoute(dest),
                     ),
@@ -445,8 +456,8 @@ class _ExploreStepState extends State<ExploreStep> {
                 ],
               ),
               const SizedBox(height: 10),
-              const Text('Dokunarak ekle · ✓ rozetli karta tekrar dokun → çıkar',
-                  style: TextStyle(fontSize: 12, color: PT.textTertiary)),
+              Text(s.s('explore.tapToAddHint'),
+                  style: const TextStyle(fontSize: 12, color: PT.textTertiary)),
             ],
           ),
         ),

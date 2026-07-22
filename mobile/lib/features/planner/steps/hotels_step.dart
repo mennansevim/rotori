@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/l10n.dart';
 import '../../../domain/trip_factory.dart';
 import '../../../domain/types.dart';
 import '../planner_theme.dart';
@@ -134,19 +135,23 @@ class _HotelsStepState extends State<HotelsStep> {
   }
 
   void _removeHotel(int idx) async {
+    final s = LanguageScope.of(context);
+    final name = trip.hotels[idx].name.isEmpty
+        ? s.p('hotels.hotelN', {'n': '${idx + 1}'})
+        : trip.hotels[idx].name;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Oteli sil'),
-        content: Text(
-            '"${trip.hotels[idx].name.isEmpty ? 'Otel ${idx + 1}' : trip.hotels[idx].name}" silinsin mi?'),
+        title: Text(s.s('hotels.deleteTitle')),
+        content: Text(s.p('hotels.deleteConfirm', {'name': name})),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Vazgeç')),
+              child: Text(s.s('hotels.cancel'))),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Sil', style: TextStyle(color: PT.danger))),
+              child: Text(s.s('hotels.delete'),
+                  style: const TextStyle(color: PT.danger))),
         ],
       ),
     );
@@ -176,23 +181,22 @@ class _HotelsStepState extends State<HotelsStep> {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 120),
       children: [
-        const PageHeadline('Konaklama'),
-        const PageSub(
-            'Otel eklemek zorunda değilsin — konaklanacak bölgeyi yazmak yeter '
-            '(taksi/rehber için). Otel ekleyeceksen açık adres gerekir.'),
+        PageHeadline(s.s('hotels.title')),
+        PageSub(s.s('hotels.subtitle')),
 
         PCard(
           child: PField(
-            label: '🏘️ Konaklanacak bölge (opsiyonel)',
-            hint: const Text(
-                'Otel eklemesen de bu bölge adı taksi/rehberde kullanılır.',
-                style: TextStyle(fontSize: 12, color: PT.textTertiary)),
+            label: s.s('hotels.stayArea'),
+            hint: Text(
+                s.s('hotels.stayAreaHint'),
+                style: const TextStyle(fontSize: 12, color: PT.textTertiary)),
             child: PTextField(
               value: trip.preferences.stayArea ?? '',
-              hint: 'Örn. Shinjuku, Namba, Kyoto istasyon çevresi',
+              hint: s.s('hotels.stayAreaPlaceholder'),
               onChanged: (v) => widget
                   .onChange((t) => t.preferences.stayArea = v.trim().isEmpty ? null : v),
             ),
@@ -204,13 +208,12 @@ class _HotelsStepState extends State<HotelsStep> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                    'Otel eklemek istersen aşağıdan ekle — istemiyorsan bölge '
-                    'yazmak yeterli.',
-                    style: TextStyle(fontSize: 14, color: PT.textSecondary)),
+                Text(
+                    s.s('hotels.emptyHint'),
+                    style: const TextStyle(fontSize: 14, color: PT.textSecondary)),
                 const SizedBox(height: 16),
                 PButton(
-                    label: '+ Otel ekle',
+                    label: s.s('hotels.addHotel'),
                     block: true,
                     onPressed: _addHotel),
               ],
@@ -229,7 +232,7 @@ class _HotelsStepState extends State<HotelsStep> {
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: PButton(
-                label: '+ Başka otel ekle',
+                label: s.s('hotels.addAnother'),
                 primary: false,
                 block: true,
                 onPressed: _addHotel),
@@ -254,6 +257,7 @@ class _HotelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     final addrMissing = hotel.address.trim().isEmpty;
     return PCard(
       padding: const EdgeInsets.all(18),
@@ -267,7 +271,9 @@ class _HotelCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    hotel.name.isEmpty ? 'Otel ${index + 1}' : hotel.name,
+                    hotel.name.isEmpty
+                        ? s.p('hotels.hotelN', {'n': '${index + 1}'})
+                        : hotel.name,
                     style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -279,7 +285,7 @@ class _HotelCard extends StatelessWidget {
                   constraints:
                       const BoxConstraints(minWidth: 44, minHeight: 44),
                   icon: const Icon(Icons.close, size: 20, color: PT.textTertiary),
-                  tooltip: 'Sil',
+                  tooltip: s.s('hotels.delete'),
                   onPressed: onRemove,
                 ),
               ],
@@ -295,13 +301,14 @@ class _HotelCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             if (addrMissing)
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded, size: 15, color: PT.danger),
-                  SizedBox(width: 6),
+                  const Icon(Icons.warning_amber_rounded,
+                      size: 15, color: PT.danger),
+                  const SizedBox(width: 6),
                   Expanded(
-                    child: Text('Taksi ve harita için adres gerekli',
-                        style: TextStyle(fontSize: 12, color: PT.danger)),
+                    child: Text(s.s('hotels.addressRequired'),
+                        style: const TextStyle(fontSize: 12, color: PT.danger)),
                   ),
                 ],
               )
@@ -311,14 +318,14 @@ class _HotelCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 13, color: PT.textTertiary)),
             const SizedBox(height: 6),
-            const Row(
+            Row(
               children: [
-                Text('Düzenle',
-                    style: TextStyle(
+                Text(s.s('hotels.edit'),
+                    style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                         color: PT.accent)),
-                Icon(Icons.chevron_right, size: 16, color: PT.accent),
+                const Icon(Icons.chevron_right, size: 16, color: PT.accent),
               ],
             ),
           ],
@@ -375,6 +382,7 @@ class _HotelEditSheetState extends State<_HotelEditSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
@@ -399,7 +407,7 @@ class _HotelEditSheetState extends State<_HotelEditSheet> {
                   ),
                 ),
               ),
-              Text('Otel ${widget.index + 1}',
+              Text(s.p('hotels.hotelN', {'n': '${widget.index + 1}'}),
                   style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -410,7 +418,7 @@ class _HotelEditSheetState extends State<_HotelEditSheet> {
                 children: [
                   Expanded(
                     child: PField(
-                      label: 'Şehir *',
+                      label: s.s('hotels.city'),
                       child: PTextField(
                         value: h.city,
                         hint: 'Tokyo',
@@ -422,7 +430,7 @@ class _HotelEditSheetState extends State<_HotelEditSheet> {
                   const SizedBox(width: 14),
                   Expanded(
                     child: PField(
-                      label: 'Otel adı *',
+                      label: s.s('hotels.hotelName'),
                       child: PTextField(
                         value: h.name,
                         hint: 'Hotel Grand City',
@@ -438,7 +446,7 @@ class _HotelEditSheetState extends State<_HotelEditSheet> {
                 children: [
                   Expanded(
                     child: PField(
-                      label: 'Giriş *',
+                      label: s.s('hotels.checkIn'),
                       child: _SheetDateBox(
                         value: h.checkIn,
                         onTap: () => _pickDate(
@@ -453,7 +461,7 @@ class _HotelEditSheetState extends State<_HotelEditSheet> {
                   const SizedBox(width: 14),
                   Expanded(
                     child: PField(
-                      label: 'Çıkış *',
+                      label: s.s('hotels.checkOut'),
                       child: _SheetDateBox(
                         value: h.checkOut,
                         onTap: () => _pickDate(
@@ -469,10 +477,10 @@ class _HotelEditSheetState extends State<_HotelEditSheet> {
                 ],
               ),
               PField(
-                label: 'Açık adres (sokak, posta kodu) *',
+                label: s.s('hotels.address'),
                 hint: h.address.trim().isEmpty
-                    ? const Text('Taksi ve harita için adres gerekli',
-                        style: TextStyle(fontSize: 12, color: PT.danger))
+                    ? Text(s.s('hotels.addressRequired'),
+                        style: const TextStyle(fontSize: 12, color: PT.danger))
                     : null,
                 child: PTextField(
                   value: h.address,
@@ -482,9 +490,9 @@ class _HotelEditSheetState extends State<_HotelEditSheet> {
                 ),
               ),
               PField(
-                label: 'Adres (yerel dil)',
-                hint: const Text('Japonca — taksiciye göster',
-                    style: TextStyle(fontSize: 12, color: PT.textTertiary)),
+                label: s.s('hotels.addressLocal'),
+                hint: Text(s.s('hotels.addressLocalHint'),
+                    style: const TextStyle(fontSize: 12, color: PT.textTertiary)),
                 child: PTextField(
                   value: h.addressLocal ?? '',
                   hint: 'ホテルグランドシティ池袋 東京都豊島区...',
@@ -492,7 +500,7 @@ class _HotelEditSheetState extends State<_HotelEditSheet> {
                 ),
               ),
               PField(
-                label: 'Google Maps linki',
+                label: s.s('hotels.mapsUrl'),
                 child: PTextField(
                   value: h.mapsUrl ?? '',
                   hint: 'https://maps.google.com/...',
@@ -500,7 +508,7 @@ class _HotelEditSheetState extends State<_HotelEditSheet> {
                 ),
               ),
               PField(
-                label: 'Telefon',
+                label: s.s('hotels.phone'),
                 child: PTextField(
                   value: h.phone ?? '',
                   hint: '+81 ...',
@@ -509,16 +517,16 @@ class _HotelEditSheetState extends State<_HotelEditSheet> {
                 ),
               ),
               PField(
-                label: 'Notlar',
+                label: s.s('hotels.notes'),
                 child: PTextField(
                   value: h.notes ?? '',
-                  hint: 'Check-in saati, kat, ek notlar',
+                  hint: s.s('hotels.notesPlaceholder'),
                   onChanged: (v) => widget.onPatch((x) => x.notes = v),
                 ),
               ),
               const SizedBox(height: 8),
               PButton(
-                label: 'Bitti',
+                label: s.s('hotels.done'),
                 block: true,
                 onPressed: () => Navigator.pop(context),
               ),
@@ -536,6 +544,7 @@ class _SheetDateBox extends StatelessWidget {
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: onTap,
@@ -552,7 +561,7 @@ class _SheetDateBox extends StatelessWidget {
           children: [
             const Icon(Icons.calendar_today, size: 16, color: PT.textSecondary),
             const SizedBox(width: 10),
-            Text(value.isEmpty ? 'Tarih seç' : value,
+            Text(value.isEmpty ? s.s('hotels.pickDate') : value,
                 style: TextStyle(
                     fontSize: 15,
                     color: value.isEmpty ? PT.textTertiary : PT.text)),
