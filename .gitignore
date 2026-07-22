@@ -23,6 +23,7 @@ output/ready_to_publish/
 output/**/*.txt
 # Instagram publisher artifacts
 data/instagram_session.json
+data/instagram_device.json
 data/instagram_uploads.jsonl
 # Story kartları (üretilen jpg'ler — hızla birikir)
 output/stories/
