@@ -15,7 +15,10 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from src.config import Config, load_config
+from src.utils.logging import get_logger
 from src.web.jobs import JobManager
+
+log = get_logger("web")
 
 VIDEO_EXT = {".mp4", ".mov", ".m4v", ".avi", ".mkv", ".webm"}
 
