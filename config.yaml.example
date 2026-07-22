@@ -73,6 +73,13 @@ instagram:
   # 32-karakter secret'i (boşluksuz) buraya yaz.
   # SMS 2FA veya 2FA yoksa boş bırak.
   totp_secret: ""
+  # EN GÜVENİLİR GİRİŞ — sessionid cookie (login akışını tamamen atlar).
+  # Instagram login'i sürekli checkpoint/CAA/2FA ile reddediyorsa bunu kullan:
+  #   1) instagram.com'a tarayıcıdan giriş yap
+  #   2) F12 → Application → Cookies → instagram.com → 'sessionid' değerini kopyala
+  #   3) buraya yapıştır → rm data/instagram_session.json → tekrar dene
+  # (~90 gün geçerli; düşünce yenile)
+  sessionid: ""
   session_file: "data/instagram_session.json"    # login sonrası otomatik oluşur
   uploads_log: "data/instagram_uploads.jsonl"    # upload log'u
 

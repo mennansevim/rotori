@@ -50,6 +50,10 @@ class InstagramCfg:
     username: str
     password: str
     totp_secret: str = ""    # 2FA aktifse authenticator app "elle setup" secret
+    # Tarayıcıdaki oturumun sessionid cookie'si. Doluysa login akışı (CAA/Bloks
+    # + 2FA + checkpoint) TAMAMEN atlanır — instagrapi bu cookie ile direkt
+    # oturum açar. Instagram login'i sürekli reddediyorsa en güvenilir yol.
+    sessionid: str = ""
     session_file: str = "data/instagram_session.json"
     uploads_log: str = "data/instagram_uploads.jsonl"
 
