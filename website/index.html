@@ -6,155 +6,108 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0A0A0F">
 <title>Tabi — Japonya, kendiliğinden.</title>
-<meta name="description" content="Tabi: Japonya rotanı saniyeler içinde kur, sonra o plan seninle yürüsün. Çevrimdışı planlama, otomatik Shinkansen, GPS keşif rozetleri ve sakura. Japonya, cebinde.">
+<meta name="description" content="Tabi: Japonya rotanı saniyeler içinde kur, sonra o plan seninle yürüsün. Çevrimdışı planlama, otomatik Shinkansen, GPS keşif rozetleri ve sakura.">
 <meta property="og:title" content="Tabi — Japonya, kendiliğinden.">
 <meta property="og:description" content="Rotanı kur. Japonya'ya in. Her durak bir keşfe dönüşsün.">
 <meta property="og:type" content="website">
 <style>
 /* ============================================================
-   TABI — launch site
-   Renk sistemi uygulamanın gerçek tema kodundan alınmıştır:
-   japanDark (hero), appleLight, sakuraSoft. Marka: pembe→mor + sakura.
+   TABI — launch site · TR/EN
+   Renkler uygulamanın gerçek tema kodundan: japanDark + pembe→mor + sakura
    ============================================================ */
 :root{
   --bg:#0A0A0F; --card:#12121A; --card-2:#1A1A25;
   --accent:#7C6AEF; --accent-strong:#5C4DBD;
   --sakura:#FF8FAB; --sakura-soft:#FFC3D7;
-  --gold:#FFD54F;              /* semantik: XP */
-  --matcha:#81C784;           /* semantik: keşif/başarı */
-  --ink:#FFFFFF; --ink-2:#A8A8BE; --ink-3:#8888A0;   /* ink-3 AA-uyumlu */
+  --gold:#FFD54F; --matcha:#81C784;
+  --ink:#FFFFFF; --ink-2:#A8A8BE; --ink-3:#8888A0;
   --line:rgba(255,255,255,.08); --line-2:rgba(255,255,255,.16);
   --torii:#E60033;
-
   --grad-title:linear-gradient(105deg,#FFFFFF 0%,#FF8FAB 52%,#7C6AEF 100%);
   --grad-brand:linear-gradient(135deg,#FF8FAB 0%,#7C6AEF 100%);
   --grad-sakura:linear-gradient(135deg,#FF8FAB,#FFC3D7);
-
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Display","SF Pro Text","Segoe UI", system-ui, "Helvetica Neue", Arial, sans-serif;
-  --maxw:1180px;
-  --ease:cubic-bezier(.22,.61,.36,1);
-  --ease-out:cubic-bezier(.16,1,.3,1);
+  --maxw:1180px; --ease:cubic-bezier(.22,.61,.36,1); --ease-out:cubic-bezier(.16,1,.3,1);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-text-size-adjust:100%}
-body{
-  font-family:var(--font);
-  background:var(--bg); color:var(--ink);
-  line-height:1.5; letter-spacing:-.01em;
-  overflow-x:hidden;
-  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
-}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);line-height:1.5;letter-spacing:-.01em;
+  overflow-x:hidden;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 ::selection{background:rgba(255,143,171,.35);color:#fff}
 a{color:inherit;text-decoration:none}
 img{max-width:100%}
+.i{width:1em;height:1em;display:inline-block;vertical-align:-.12em;stroke:currentColor;stroke-width:1.6;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:none}
+a:focus-visible,button:focus-visible,.btn:focus-visible,.tt:focus-visible,.store-badge:focus-visible,.nav-cta:focus-visible,input:focus-visible{outline:2px solid #b3a6ff;outline-offset:3px;border-radius:8px}
 
-/* inline-svg ikon sistemi (SİTE chrome'u için; uygulama içeriği emoji kalır) */
-.i{width:1em;height:1em;display:inline-block;vertical-align:-.12em;
-  stroke:currentColor;stroke-width:1.6;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:none}
-
-/* focus */
-a:focus-visible,button:focus-visible,.btn:focus-visible,.tt:focus-visible,.store-badge:focus-visible,.nav-cta:focus-visible,input:focus-visible{
-  outline:2px solid #b3a6ff;outline-offset:3px;border-radius:8px}
-
-/* ---------- fixed cinematic layers ---------- */
-#bg-sky{position:fixed;inset:0;z-index:-3;transition:background .8s linear;
-  background:radial-gradient(120% 90% at 50% -10%, #14121f 0%, #0A0A0F 55%, #060609 100%);}
-#bg-glow{position:fixed;inset:0;z-index:-2;pointer-events:none;opacity:.9;
-  background:
-    radial-gradient(40% 30% at 82% 12%, rgba(124,106,239,.22), transparent 70%),
-    radial-gradient(45% 32% at 12% 78%, rgba(255,143,171,.14), transparent 72%);}
+#bg-sky{position:fixed;inset:0;z-index:-3;transition:background .8s linear;background:radial-gradient(120% 90% at 50% -10%, #14121f 0%, #0A0A0F 55%, #060609 100%)}
+#bg-glow{position:fixed;inset:0;z-index:-2;pointer-events:none;opacity:.9;background:radial-gradient(40% 30% at 82% 12%, rgba(124,106,239,.22), transparent 70%),radial-gradient(45% 32% at 12% 78%, rgba(255,143,171,.14), transparent 72%)}
 #stars{position:fixed;inset:0;width:100%;height:100%;z-index:-2;pointer-events:none;opacity:.55;transition:opacity .8s linear}
 #sakura{position:fixed;inset:0;width:100%;height:100%;z-index:40;pointer-events:none;opacity:0;transition:opacity 1.2s ease}
 #sakura.on{opacity:1}
 
-/* ---------- nav ---------- */
-nav{position:fixed;top:0;left:0;right:0;z-index:60;
-  display:flex;align-items:center;justify-content:space-between;
+/* nav */
+nav{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;align-items:center;justify-content:space-between;
   padding:max(13px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 13px max(16px,env(safe-area-inset-left));
   backdrop-filter:saturate(140%) blur(14px);-webkit-backdrop-filter:saturate(140%) blur(14px);
-  background:linear-gradient(180deg, rgba(10,10,15,.72), rgba(10,10,15,0));
-  transition:background .4s var(--ease);}
+  background:linear-gradient(180deg, rgba(10,10,15,.72), rgba(10,10,15,0));transition:background .4s var(--ease)}
 nav.solid{background:rgba(10,10,15,.82);border-bottom:1px solid var(--line)}
 .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:18px;letter-spacing:-.02em;padding:6px 4px;margin:-6px -4px}
-.brand .mark{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;
-  background:var(--grad-brand);font-size:15px;box-shadow:0 6px 18px rgba(124,106,239,.4)}
+.brand .mark{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--grad-brand);font-size:15px;box-shadow:0 6px 18px rgba(124,106,239,.4)}
 .brand .jp{color:var(--ink-3);font-weight:500;font-size:13px;margin-left:2px}
-.nav-cta{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;
-  padding:11px 18px;border-radius:980px;background:var(--ink);color:#0A0A0F;
+.nav-right{display:flex;align-items:center;gap:10px}
+.langtog{display:flex;gap:2px;border:1px solid var(--line-2);border-radius:980px;padding:3px}
+.langtog button{font:inherit;font-size:12px;font-weight:600;padding:6px 11px;border-radius:980px;border:0;background:none;color:var(--ink-2);cursor:pointer;min-width:36px;min-height:32px;transition:.25s var(--ease)}
+.langtog button.on{background:var(--ink);color:#0A0A0F}
+.nav-cta{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;padding:11px 18px;border-radius:980px;background:var(--ink);color:#0A0A0F;
   opacity:0;visibility:hidden;transform:translateY(-6px);transition:.5s var(--ease);pointer-events:none;white-space:nowrap}
 .nav-cta.show{opacity:1;visibility:visible;transform:none;pointer-events:auto}
 .nav-cta:hover{transform:translateY(-1px) scale(1.02)}
 
-/* ---------- layout primitives ---------- */
 section{position:relative;z-index:1}
 .wrap{max-width:var(--maxw);margin:0 auto;padding:0 clamp(18px,4vw,40px)}
-.eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
-  color:var(--sakura);display:inline-flex;align-items:center;gap:9px}
+.eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--sakura);display:inline-flex;align-items:center;gap:9px}
 .eyebrow.violet{color:#b3a6ff}
 .eyebrow::before{content:"";width:22px;height:1.5px;background:currentColor;opacity:.7;border-radius:2px}
 h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 .h-xl{font-size:clamp(40px,8.6vw,104px);font-weight:300;letter-spacing:-.045em;line-height:.98}
 .h-lg{font-size:clamp(30px,5.4vw,62px);font-weight:600}
 .h-md{font-size:clamp(24px,3.4vw,40px);font-weight:600}
-.lead{font-size:clamp(17px,2.1vw,22px);color:var(--ink-2);max-width:38ch;line-height:1.45;font-weight:400}
+.lead{font-size:clamp(17px,2.1vw,22px);color:var(--ink-2);max-width:40ch;line-height:1.45;font-weight:400}
 .muted{color:var(--ink-3)}
 .grad-text{color:var(--ink)}
 @supports ((-webkit-background-clip:text) or (background-clip:text)){
-  .grad-text{background:var(--grad-title);-webkit-background-clip:text;background-clip:text;
-    color:transparent;-webkit-text-fill-color:transparent}}
+  .grad-text{background:var(--grad-title);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}}
 @media (forced-colors: active){.grad-text{-webkit-text-fill-color:currentColor;color:CanvasText;background:none}}
-.pink{color:var(--sakura)} .violet{color:#b3a6ff} .gold{color:var(--gold)} .matcha{color:var(--matcha)}
+.matcha{color:var(--matcha)}
 .tnum{font-variant-numeric:tabular-nums}
-
-/* reveal — progressive enhancement: yalnız JS varken gizle */
 .js .reveal{opacity:0;transform:translateY(28px);transition:opacity .9s var(--ease-out),transform .9s var(--ease-out)}
 .reveal.in{opacity:1;transform:none}
 .reveal.d1{transition-delay:.08s}.reveal.d2{transition-delay:.16s}.reveal.d3{transition-delay:.24s}
 
-/* section rhythm */
 .sec{padding:clamp(84px,13vh,150px) 0}
 .split{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(28px,5vw,72px);align-items:center}
 .split.rev .col-text{order:2}
-@media(max-width:860px){
-  .split{grid-template-columns:1fr;gap:40px}
-  .split.rev .col-text{order:0}
-  .col-phone{order:-1}
-}
+@media(max-width:860px){.split{grid-template-columns:1fr;gap:40px}.split.rev .col-text{order:0}.col-phone{order:-1}}
 
-/* pill list */
 .chips{display:flex;flex-wrap:wrap;gap:9px;margin-top:22px}
-.chip{font-size:13.5px;font-weight:500;padding:8px 14px;border-radius:980px;
-  border:1px solid var(--line-2);background:var(--card);color:var(--ink-2);display:inline-flex;gap:7px;align-items:center}
+.chip{font-size:13.5px;font-weight:500;padding:8px 14px;border-radius:980px;border:1px solid var(--line-2);background:var(--card);color:var(--ink-2);display:inline-flex;gap:7px;align-items:center}
 .chip b{color:var(--ink);font-weight:600}
-
-/* feature bullets */
 .bul{margin-top:26px;display:flex;flex-direction:column;gap:16px}
 .bul li{list-style:none;display:flex;gap:13px;align-items:flex-start}
-.bul .ic{flex:none;width:34px;height:34px;border-radius:10px;background:var(--card-2);
-  border:1px solid var(--line);display:grid;place-items:center;font-size:17px;color:#c9c2ff}
+.bul .ic{flex:none;width:34px;height:34px;border-radius:10px;background:var(--card-2);border:1px solid var(--line);display:grid;place-items:center;font-size:17px;color:#c9c2ff}
 .bul h3{font-size:16px;font-weight:600;letter-spacing:-.01em}
 .bul p{font-size:14.5px;color:var(--ink-2);margin-top:2px;line-height:1.4;max-width:46ch}
 
-/* ============================================================
-   PHONE MOCKUP — içerik uygulamanın gerçek dilini (emoji) taşır
-   ============================================================ */
-.phone{--w:min(300px,82vw);width:var(--w);aspect-ratio:300/626;position:relative;margin:0 auto;
-  border-radius:46px;padding:11px;
-  background:linear-gradient(160deg,#2a2a34,#0d0d13 60%);
-  box-shadow:0 2px 0 rgba(255,255,255,.06) inset,0 40px 90px -30px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.04);}
+/* phone */
+.phone{--w:min(300px,82vw);width:var(--w);aspect-ratio:300/626;position:relative;margin:0 auto;border-radius:46px;padding:11px;
+  background:linear-gradient(160deg,#2a2a34,#0d0d13 60%);box-shadow:0 2px 0 rgba(255,255,255,.06) inset,0 40px 90px -30px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.04)}
 @supports not (aspect-ratio: 1/1){.phone{height:calc(var(--w) * 626 / 300)}}
 .phone.float{animation:float 7s ease-in-out infinite}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
-.phone .screen{position:absolute;inset:11px;border-radius:36px;overflow:hidden;background:var(--card);
-  display:flex;flex-direction:column}
-.phone .island{position:absolute;top:20px;left:50%;transform:translateX(-50%);width:86px;height:26px;
-  background:#000;border-radius:16px;z-index:5}
-.phone .glare{position:absolute;inset:11px;border-radius:36px;pointer-events:none;z-index:6;
-  background:linear-gradient(135deg,rgba(255,255,255,.12),rgba(255,255,255,0) 34%)}
-
-/* screen ui */
+.phone .screen{position:absolute;inset:11px;border-radius:36px;overflow:hidden;background:var(--card);display:flex;flex-direction:column}
+.phone .island{position:absolute;top:20px;left:50%;transform:translateX(-50%);width:86px;height:26px;background:#000;border-radius:16px;z-index:5}
+.phone .glare{position:absolute;inset:11px;border-radius:36px;pointer-events:none;z-index:6;background:linear-gradient(135deg,rgba(255,255,255,.12),rgba(255,255,255,0) 34%)}
 .scr{flex:1;display:flex;flex-direction:column;overflow:hidden;font-size:12px}
-/* planner chrome = restrained dark; viewer/live chrome = marka gradyanı */
 .scr-top{padding:34px 16px 12px;background:var(--card-2);color:#fff;border-bottom:1px solid var(--line);position:relative}
 .scr-top .t-title{font-weight:600;font-size:15px;letter-spacing:-.02em}
 .scr-top .t-sub{font-size:11px;color:var(--ink-2);margin-top:2px}
@@ -162,21 +115,11 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 .scr-top.grad .t-sub{color:rgba(255,255,255,.85)}
 .scr-top .accentline{position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--grad-brand);opacity:.9}
 .scr-body{flex:1;padding:14px;display:flex;flex-direction:column;gap:9px;overflow:hidden;background:var(--card)}
-
-/* route rows */
-.rt{display:flex;align-items:center;gap:11px;background:var(--card-2);border:1px solid var(--line);
-  border-radius:14px;padding:11px 12px}
-.rt .flag{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:16px;
-  background:rgba(124,106,239,.16)}
-.rt .m{flex:1}
-.rt .c{font-weight:600;font-size:13px}
-.rt .a{font-size:10.5px;color:var(--ink-2);margin-top:1px}
-.rt .tag{font-size:10px;font-weight:600;color:var(--sakura);background:rgba(255,143,171,.14);
-  padding:3px 8px;border-radius:980px}
-.hop{display:flex;align-items:center;padding-left:15px}
-.hop .ln{width:1.5px;height:14px;background:linear-gradient(var(--accent),transparent);margin-left:2px}
-
-/* city chips inside screen */
+.rt{display:flex;align-items:center;gap:11px;background:var(--card-2);border:1px solid var(--line);border-radius:14px;padding:11px 12px}
+.rt .flag{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:16px;background:rgba(124,106,239,.16)}
+.rt .m{flex:1}.rt .c{font-weight:600;font-size:13px}.rt .a{font-size:10.5px;color:var(--ink-2);margin-top:1px}
+.rt .tag{font-size:10px;font-weight:600;color:var(--sakura);background:rgba(255,143,171,.14);padding:3px 8px;border-radius:980px}
+.hop{display:flex;align-items:center;padding-left:15px}.hop .ln{width:1.5px;height:14px;background:linear-gradient(var(--accent),transparent);margin-left:2px}
 .mini-chips{display:flex;flex-wrap:wrap;gap:6px}
 .mc{font-size:11px;font-weight:600;padding:6px 10px;border-radius:980px;border:1px solid var(--line-2);color:var(--ink-2)}
 .mc.on{background:rgba(124,106,239,.2);border-color:var(--accent);color:#cfc7ff}
@@ -185,162 +128,104 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 .db .nm{width:52px;color:var(--ink-2)}
 .db .track{flex:1;height:10px;border-radius:6px;background:var(--card-2);overflow:hidden}
 .db .fill{height:100%;border-radius:6px;background:var(--grad-brand);transition:width 1s var(--ease)}
-.db .dd{width:26px;text-align:right;color:var(--ink-2);font-variant-numeric:tabular-nums}
-
-/* timeline items */
-.tl{display:flex;gap:10px;align-items:flex-start;background:var(--card-2);border:1px solid var(--line);
-  border-radius:12px;padding:9px 11px}
+.db .dd{width:30px;text-align:right;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.tl{display:flex;gap:10px;align-items:flex-start;background:var(--card-2);border:1px solid var(--line);border-radius:12px;padding:9px 11px}
 .tl .tm{font-size:10px;color:var(--sakura);font-weight:700;width:34px;font-variant-numeric:tabular-nums}
-.tl .ti{font-weight:500;font-size:12px}
-.tl .td{font-size:10px;color:var(--ink-2)}
-.gen-btn{margin-top:auto;text-align:center;font-weight:600;font-size:12.5px;padding:11px;border-radius:14px;
-  background:var(--grad-brand);color:#fff;box-shadow:0 10px 24px -8px rgba(124,106,239,.6)}
-
-/* transfer card */
-.xfer{background:linear-gradient(135deg,rgba(124,106,239,.2),rgba(255,143,171,.12));
-  border:1px solid var(--line-2);border-radius:14px;padding:12px}
+.tl .ti{font-weight:500;font-size:12px}.tl .td{font-size:10px;color:var(--ink-2)}
+.xfer{background:linear-gradient(135deg,rgba(124,106,239,.2),rgba(255,143,171,.12));border:1px solid var(--line-2);border-radius:14px;padding:12px}
 .xfer .hd{display:flex;align-items:center;gap:8px;font-weight:600;font-size:12.5px}
 .xfer .meta{font-size:11px;color:var(--ink-2);margin-top:6px;font-variant-numeric:tabular-nums}
 .xfer .tip{font-size:10px;color:var(--gold);margin-top:6px;display:flex;gap:5px}
 .modes{display:flex;gap:6px;margin-top:9px}
 .mode{flex:1;text-align:center;font-size:15px;padding:8px 0;border-radius:11px;background:var(--card-2);border:1px solid var(--line)}
 .mode.on{background:rgba(124,106,239,.25);border-color:var(--accent)}
-.cat-card{display:flex;gap:8px;align-items:center;background:rgba(255,213,79,.1);border:1px solid rgba(255,213,79,.3);
-  border-radius:12px;padding:9px 11px;font-size:10.5px;color:#ffe9a8}
+.cat-card{display:flex;gap:8px;align-items:center;background:rgba(255,213,79,.1);border:1px solid rgba(255,213,79,.3);border-radius:12px;padding:9px 11px;font-size:10.5px;color:#ffe9a8}
 .cat-card .cat{font-size:18px}
-.tip-card{display:flex;gap:8px;align-items:center;background:rgba(124,106,239,.12);border:1px solid var(--line-2);
-  border-radius:12px;padding:9px 11px;font-size:10.5px;color:var(--ink-2)}
+.tip-card{display:flex;gap:8px;align-items:center;background:rgba(124,106,239,.12);border:1px solid var(--line-2);border-radius:12px;padding:9px 11px;font-size:10.5px;color:var(--ink-2)}
 .tip-card .cat{font-size:16px}
-
-/* discovery */
-.map-mini{position:relative;flex:1;border-radius:14px;overflow:hidden;min-height:150px;
-  background:radial-gradient(circle at 30% 40%, rgba(124,106,239,.18), transparent 40%),linear-gradient(135deg,#0d1020,#141024);
-  border:1px solid var(--line)}
-.map-mini .grid{position:absolute;inset:0;opacity:.5;
-  background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
-  background-size:26px 26px}
+.map-mini{position:relative;flex:1;border-radius:14px;overflow:hidden;min-height:150px;background:radial-gradient(circle at 30% 40%, rgba(124,106,239,.18), transparent 40%),linear-gradient(135deg,#0d1020,#141024);border:1px solid var(--line)}
+.map-mini .grid{position:absolute;inset:0;opacity:.5;background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);background-size:26px 26px}
 .pin{position:absolute;font-size:15px;filter:drop-shadow(0 3px 4px rgba(0,0,0,.5))}
 .pin.dim{opacity:.4;filter:grayscale(1)}
-.here{position:absolute;width:16px;height:16px;border-radius:50%;background:var(--matcha);
-  box-shadow:0 0 0 4px rgba(129,199,132,.25);}
-.here::after{content:"";position:absolute;inset:-8px;border-radius:50%;border:2px solid rgba(129,199,132,.5);
-  animation:ping 2s var(--ease-out) infinite}
+.here{position:absolute;width:16px;height:16px;border-radius:50%;background:var(--matcha);box-shadow:0 0 0 4px rgba(129,199,132,.25)}
+.here::after{content:"";position:absolute;inset:-8px;border-radius:50%;border:2px solid rgba(129,199,132,.5);animation:ping 2s var(--ease-out) infinite}
 @keyframes ping{0%{transform:scale(.6);opacity:.9}100%{transform:scale(2);opacity:0}}
 .xp{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600}
 .xp .track{flex:1;height:9px;border-radius:6px;background:var(--card-2);overflow:hidden}
 .xp .fill{height:100%;background:linear-gradient(90deg,var(--matcha),var(--gold));border-radius:6px;transition:width 1.2s var(--ease)}
-.toast{background:rgba(129,199,132,.16);border:1px solid rgba(129,199,132,.4);border-radius:12px;
-  padding:9px 11px;font-size:11px;font-weight:600;color:#c5f0c8;display:flex;gap:7px;align-items:center}
-
-/* offline tool grid */
+.toast{background:rgba(129,199,132,.16);border:1px solid rgba(129,199,132,.4);border-radius:12px;padding:9px 11px;font-size:11px;font-weight:600;color:#c5f0c8;display:flex;gap:7px;align-items:center}
 .tool{background:var(--card-2);border:1px solid var(--line);border-radius:12px;padding:10px}
 .tool .lbl{font-size:9.5px;color:var(--ink-3);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
 .tool .big{font-weight:600;font-size:14px;margin-top:3px}
 .tool .sm{font-size:10.5px;color:var(--ink-2);margin-top:2px}
 
-/* ---------- HERO ---------- */
 #hero{min-height:100vh;min-height:100svh;display:flex;align-items:center;padding-top:96px;padding-bottom:40px;position:relative}
 #hero .skyline{position:absolute;bottom:0;left:0;width:100%;height:130px;z-index:0;opacity:.6;pointer-events:none}
 .hero-grid{display:grid;grid-template-columns:1fr .96fr;gap:40px;align-items:center;width:100%}
-@media(max-width:860px){.hero-grid{grid-template-columns:1fr;text-align:center}
-  #hero .lead{margin-left:auto;margin-right:auto}}
+@media(max-width:860px){.hero-grid{grid-template-columns:1fr;text-align:center}#hero .lead{margin-left:auto;margin-right:auto}}
 .hero-line{overflow:hidden}
-.word{display:inline-block;filter:blur(14px);opacity:0;transform:translateY(14px);
-  animation:sharpen 1.1s var(--ease-out) forwards}
+.word{display:inline-block;filter:blur(14px);opacity:0;transform:translateY(14px);animation:sharpen 1.1s var(--ease-out) forwards}
 .word.w2{animation-delay:.5s}
 @keyframes sharpen{to{filter:blur(0);opacity:1;transform:none}}
 .hero-cta{display:flex;gap:14px;margin-top:32px;flex-wrap:wrap;align-items:center}
 @media(max-width:860px){.hero-cta{justify-content:center}}
-.btn{display:inline-flex;align-items:center;gap:9px;font-weight:600;font-size:15.5px;
-  padding:14px 26px;border-radius:980px;cursor:pointer;border:1px solid transparent;transition:.3s var(--ease);white-space:nowrap}
+.btn{display:inline-flex;align-items:center;gap:9px;font-weight:600;font-size:15.5px;padding:14px 26px;border-radius:980px;cursor:pointer;border:1px solid transparent;transition:.3s var(--ease);white-space:nowrap}
 .btn-primary{background:var(--ink);color:#0A0A0F}
 .btn-primary:hover{transform:translateY(-2px);box-shadow:0 16px 34px -14px rgba(255,255,255,.5)}
 .btn-ghost{background:transparent;border-color:var(--line-2);color:var(--ink)}
 .btn-ghost:hover{border-color:var(--ink);background:rgba(255,255,255,.04)}
-.scrollhint{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);z-index:2;
-  font-size:12px;color:var(--ink-2);display:flex;flex-direction:column;align-items:center;gap:6px;animation:bob 2.2s ease-in-out infinite}
+.scrollhint{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);z-index:2;font-size:12px;color:var(--ink-2);display:flex;flex-direction:column;align-items:center;gap:6px;animation:bob 2.2s ease-in-out infinite}
 @keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,7px)}}
-
-/* stat ribbon */
 .ribbon{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:30px}
 .ribbon .st{display:flex;flex-direction:column}
 .ribbon .st b{font-size:clamp(22px,3vw,30px);font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .ribbon .st span{font-size:12px;color:var(--ink-2);letter-spacing:.02em}
 
-/* ---------- act divider ---------- */
 .act{padding:clamp(60px,9vh,110px) 0;text-align:center}
 .act .no{font-size:13px;letter-spacing:.4em;color:var(--ink-3);text-transform:uppercase}
 .act h2{margin-top:14px}
 
-/* ============================================================
-   SIGNATURE BRIDGE (scroll-scrub)
-   ============================================================ */
 #bridge{height:340svh;position:relative}
 #bridge .stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;display:grid;place-items:center}
 #bridge .arc{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-#bridge .arc path{fill:none;stroke:url(#lg);stroke-width:2;stroke-linecap:round;
-  stroke-dasharray:1;stroke-dashoffset:1;filter:drop-shadow(0 0 6px rgba(124,106,239,.6))}
+#bridge .arc path{fill:none;stroke:url(#lg);stroke-width:2;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;filter:drop-shadow(0 0 6px rgba(124,106,239,.6))}
 #bridge .plane{position:absolute;left:0;top:0;font-size:22px;will-change:transform;opacity:0}
 #bridge .b-copy{position:absolute;top:12%;left:0;right:0;text-align:center;padding:0 20px;z-index:3}
 #bridge .b-phone{position:relative;z-index:2;transition:transform .1s linear;margin-top:6%}
 .bridge-screen{position:absolute;inset:0;opacity:0;transition:opacity .5s var(--ease)}
 .bridge-screen.on{opacity:1}
-.badge-pop{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) scale(.4);opacity:0;z-index:8;
-  display:flex;flex-direction:column;align-items:center;gap:8px}
+.badge-pop{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) scale(.4);opacity:0;z-index:8;display:flex;flex-direction:column;align-items:center;gap:8px}
 .badge-pop.on{animation:pop .9s var(--ease-out) forwards}
 @keyframes pop{40%{opacity:1;transform:translate(-50%,-50%) scale(1.12)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
-.badge-pop .b{width:88px;height:88px;border-radius:24px;display:grid;place-items:center;font-size:42px;
-  background:var(--grad-sakura);box-shadow:0 20px 50px -12px rgba(255,143,171,.7)}
+.badge-pop .b{width:88px;height:88px;border-radius:24px;display:grid;place-items:center;font-size:42px;background:var(--grad-sakura);box-shadow:0 20px 50px -12px rgba(255,143,171,.7)}
 .badge-pop .cap{font-weight:600;font-size:15px}
-@media(max-width:600px){
-  #bridge{height:250svh}
-  #bridge .b-phone{--w:210px;margin-top:26%}
-  #bridge .b-copy{top:5%}
-  #bridge .b-copy .h-lg{font-size:clamp(22px,6vw,30px)}
-}
+@media(max-width:600px){#bridge{height:250svh}#bridge .b-phone{--w:210px;margin-top:26%}#bridge .b-copy{top:5%}#bridge .b-copy .h-lg{font-size:clamp(22px,6vw,30px)}}
 
-/* ============================================================
-   BADGE WALL
-   ============================================================ */
 .badgewall{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:12px;margin-top:36px}
-.bw{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 14px;
-  display:flex;flex-direction:column;gap:8px;transition:.5s var(--ease);position:relative;overflow:hidden}
-.bw .em{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;font-size:24px;
-  background:var(--card-2);transition:.5s var(--ease)}
+.bw{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 14px;display:flex;flex-direction:column;gap:8px;transition:.5s var(--ease);position:relative;overflow:hidden}
+.bw .em{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;font-size:24px;background:var(--card-2);transition:.5s var(--ease)}
 .bw h3{font-size:14px;font-weight:600;letter-spacing:-.01em}
 .bw p{font-size:11.5px;color:var(--ink-2);line-height:1.35}
 .bw.locked{filter:grayscale(1);opacity:.42}
 .bw.on{border-color:var(--line-2)}
 .bw.on .em{background:var(--grad-brand);box-shadow:0 10px 24px -10px rgba(124,106,239,.7)}
-.bw .xpv{position:absolute;top:12px;right:12px;font-size:10px;font-weight:700;color:var(--matcha);
-  background:rgba(129,199,132,.14);padding:3px 7px;border-radius:980px}
+.bw .xpv{position:absolute;top:12px;right:12px;font-size:10px;font-weight:700;color:var(--matcha);background:rgba(129,199,132,.14);padding:3px 7px;border-radius:980px}
 .bw.gps{background:linear-gradient(160deg,rgba(129,199,132,.08),var(--card))}
 
-/* ============================================================
-   THEME SWITCHER (interactive)
-   ============================================================ */
 .themebox{border:1px solid var(--line);border-radius:26px;padding:26px;background:var(--card)}
 .theme-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
-.tt{font-size:13px;font-weight:600;padding:11px 15px;min-height:44px;border-radius:980px;cursor:pointer;
-  display:inline-flex;align-items:center;gap:6px;
-  border:1px solid var(--line-2);background:none;color:var(--ink-2);font-family:inherit;transition:.3s var(--ease)}
+.tt{font-size:13px;font-weight:600;padding:11px 15px;min-height:44px;border-radius:980px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-2);background:none;color:var(--ink-2);font-family:inherit;transition:.3s var(--ease)}
 .tt.on{background:var(--accent);border-color:var(--accent);color:#fff}
 .demo{--d-bg:#0A0A0F;--d-card:#12121A;--d-accent:#7C6AEF;--d-ink:#fff;--d-ink2:#A8A8BE;--d-line:rgba(255,255,255,.1);
-  background:var(--d-bg);border:1px solid var(--d-line);border-radius:20px;padding:18px;color:var(--d-ink);
-  transition:background .6s var(--ease),border-color .6s var(--ease),color .6s var(--ease)}
-.demo .dtop{background:linear-gradient(120deg,var(--d-accent),var(--sakura));margin:-18px -18px 14px;padding:16px 18px;
-  border-radius:20px 20px 0 0;color:#fff;font-weight:600;transition:background .6s var(--ease)}
-.demo .drow{display:flex;gap:10px;align-items:center;background:var(--d-card);border:1px solid var(--d-line);
-  border-radius:12px;padding:10px 12px;margin-top:8px;transition:background .6s var(--ease),border-color .6s var(--ease)}
-.demo .drow .de{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:15px;
-  background:rgba(124,106,239,.2);background:color-mix(in srgb,var(--d-accent) 20%,transparent)}
+  background:var(--d-bg);border:1px solid var(--d-line);border-radius:20px;padding:18px;color:var(--d-ink);transition:background .6s var(--ease),border-color .6s var(--ease),color .6s var(--ease)}
+.demo .dtop{background:linear-gradient(120deg,var(--d-accent),var(--sakura));margin:-18px -18px 14px;padding:16px 18px;border-radius:20px 20px 0 0;color:#fff;font-weight:600;transition:background .6s var(--ease)}
+.demo .drow{display:flex;gap:10px;align-items:center;background:var(--d-card);border:1px solid var(--d-line);border-radius:12px;padding:10px 12px;margin-top:8px;transition:background .6s var(--ease),border-color .6s var(--ease)}
+.demo .drow .de{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:15px;background:rgba(124,106,239,.2);background:color-mix(in srgb,var(--d-accent) 20%,transparent)}
 .demo .drow .dm b{font-size:13px;display:block}.demo .drow .dm span{font-size:11px;color:var(--d-ink2)}
 
-/* ---------- final CTA ---------- */
 #final{padding:clamp(90px,15vh,170px) 0;text-align:center;position:relative;overflow:hidden}
 .store{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:34px}
-.store-badge{display:flex;align-items:center;gap:11px;padding:13px 22px;border-radius:16px;
-  border:1px solid var(--line-2);background:var(--card);transition:.3s var(--ease);cursor:pointer}
+.store-badge{display:flex;align-items:center;gap:11px;padding:13px 22px;border-radius:16px;border:1px solid var(--line-2);background:var(--card);transition:.3s var(--ease);cursor:pointer}
 .store-badge:hover{transform:translateY(-2px);border-color:var(--ink)}
 .store-badge.primary{background:var(--ink);color:#0A0A0F;border-color:transparent}
 .store-badge .big{font-size:16px;font-weight:600;line-height:1.1}
@@ -349,36 +234,17 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 .trust span{display:inline-flex;gap:7px;align-items:center}
 .soon{margin-top:20px;font-size:12.5px;color:var(--ink-3)}
 .signup{display:flex;gap:9px;max-width:440px;margin:22px auto 0;flex-wrap:wrap;justify-content:center}
-.signup input{flex:1;min-width:200px;padding:13px 16px;border-radius:12px;border:1px solid var(--line-2);
-  background:var(--card);color:var(--ink);font-size:14px;font-family:var(--font)}
+.signup input{flex:1;min-width:200px;padding:13px 16px;border-radius:12px;border:1px solid var(--line-2);background:var(--card);color:var(--ink);font-size:14px;font-family:var(--font)}
 .signup input:focus{outline:none;border-color:var(--accent)}
 .signup .btn{padding:13px 22px;background:var(--ink);color:#0A0A0F}
 #signupMsg{margin-top:12px;min-height:1.2em;font-size:13.5px}
-
-/* footer */
 footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-inset-bottom));color:var(--ink-3);font-size:13px}
 .foot-grid{display:flex;justify-content:space-between;flex-wrap:wrap;gap:20px;align-items:center}
-.jp-vert{position:absolute;writing-mode:vertical-rl;font-size:64px;color:rgba(255,255,255,.035);
-  font-weight:700;letter-spacing:.1em;user-select:none;pointer-events:none;z-index:0}
-
-/* ---------- small screens ---------- */
-@media(max-width:480px){
-  .ribbon{display:grid;grid-template-columns:1fr 1fr;gap:18px 20px}
-  .hero-cta .btn{flex:1;justify-content:center}
-}
-@media(max-width:430px){
-  .store{flex-direction:column;align-items:stretch}
-  .store-badge{justify-content:center}
-}
+.jp-vert{position:absolute;writing-mode:vertical-rl;font-size:64px;color:rgba(255,255,255,.035);font-weight:700;letter-spacing:.1em;user-select:none;pointer-events:none;z-index:0}
+@media(max-width:480px){.ribbon{display:grid;grid-template-columns:1fr 1fr;gap:18px 20px}.hero-cta .btn{flex:1;justify-content:center}}
+@media(max-width:430px){.store{flex-direction:column;align-items:stretch}.store-badge{justify-content:center}.brand .jp{display:none}}
 @media(max-width:600px){.jp-vert{display:none}}
-
-/* reduced motion */
-@media (prefers-reduced-motion: reduce){
-  *{animation-duration:.001ms !important;animation-iteration-count:1 !important;
-    transition-duration:.15s !important}
-  .word{filter:none;opacity:1;transform:none}
-  .phone.float{animation:none}
-}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.15s !important}.word{filter:none;opacity:1;transform:none}.phone.float{animation:none}}
 </style>
 </head>
 <body>
@@ -388,20 +254,21 @@ footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-in
 <canvas id="stars" aria-hidden="true"></canvas>
 <canvas id="sakura" aria-hidden="true"></canvas>
 
-<!-- ============ NAV ============ -->
 <nav id="nav">
   <a class="brand" href="#hero"><span class="mark" lang="ja">旅</span> Tabi <span class="jp" lang="ja">· 日本</span></a>
-  <a class="nav-cta" id="navCta" href="#final">İndir</a>
+  <div class="nav-right">
+    <div class="langtog" role="group" aria-label="Dil / Language">
+      <button type="button" data-lang="tr" class="on" aria-pressed="true">TR</button>
+      <button type="button" data-lang="en" aria-pressed="false">EN</button>
+    </div>
+    <a class="nav-cta" id="navCta" href="#final" data-i18n="nav.download">İndir</a>
+  </div>
 </nav>
 
-<!-- ============ HERO ============ -->
+<!-- HERO -->
 <section id="hero">
   <svg class="skyline" viewBox="0 0 1440 130" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-    <defs>
-      <linearGradient id="ridge" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#1b1730"/><stop offset="1" stop-color="#0a0710"/>
-      </linearGradient>
-    </defs>
+    <defs><linearGradient id="ridge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1730"/><stop offset="1" stop-color="#0a0710"/></linearGradient></defs>
     <path d="M0 130 L0 96 Q 220 70 430 90 T 720 40 Q 760 30 800 44 T 1080 84 Q 1250 96 1440 78 L1440 130 Z" fill="url(#ridge)"/>
     <path d="M690 130 L720 46 L752 130 Z" fill="rgba(124,106,239,.22)"/>
     <path d="M708 84 L720 46 L732 84 Z" fill="rgba(255,255,255,.10)"/>
@@ -409,393 +276,324 @@ footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-in
   </svg>
   <div class="wrap hero-grid">
     <div>
-      <span class="eyebrow">Planla · Uç · Keşfet</span>
+      <span class="eyebrow" data-i18n="hero.eyebrow">Planla · Uç · Keşfet</span>
       <h1 class="h-xl" style="margin:18px 0 0">
-        <span class="hero-line"><span class="word grad-text">Japonya,</span></span><br>
-        <span class="hero-line"><span class="word w2 grad-text">kendiliğinden.</span></span>
+        <span class="hero-line"><span class="word grad-text" data-i18n="hero.t1">Japonya,</span></span><br>
+        <span class="hero-line"><span class="word w2 grad-text" data-i18n="hero.t2">kendiliğinden.</span></span>
       </h1>
-      <p class="lead" style="margin-top:22px">
-        Rotanı saniyeler içinde kur — sonra o plan seninle yürüsün.
-        Çevrimdışı planlama, otomatik Shinkansen ve gerçekten oraya vardığında açılan keşif rozetleri.
-      </p>
+      <p class="lead" style="margin-top:22px" data-i18n="hero.lead">Rotanı saniyeler içinde kur — sonra o plan seninle yürüsün. Çevrimdışı planlama, otomatik Shinkansen ve gerçekten oraya vardığında açılan keşif rozetleri.</p>
       <div class="hero-cta">
-        <a class="btn btn-primary" href="#planla">Rotanı kur</a>
-        <a class="btn btn-ghost" href="#bridge">Nasıl çalışır? ↓</a>
+        <a class="btn btn-primary" href="#planla" data-i18n="hero.cta1">Rotanı kur</a>
+        <a class="btn btn-ghost" href="#bridge" data-i18n="hero.cta2">Nasıl çalışır? ↓</a>
       </div>
       <div class="ribbon">
-        <div class="st"><b class="tnum">13</b><span>günlük gerçek rota</span></div>
-        <div class="st"><b class="tnum">4</b><span>şehir · tek akış</span></div>
-        <div class="st"><b class="tnum">18</b><span>başarı rozeti</span></div>
-        <div class="st"><b>%100</b><span>çevrimdışı</span></div>
+        <div class="st"><b class="tnum">13</b><span data-i18n="hero.s1">günlük gerçek rota</span></div>
+        <div class="st"><b class="tnum">4</b><span data-i18n="hero.s2">şehir · tek akış</span></div>
+        <div class="st"><b class="tnum">18</b><span data-i18n="hero.s3">başarı rozeti</span></div>
+        <div class="st"><b data-i18n="hero.s4v">%100</b><span data-i18n="hero.s4">çevrimdışı</span></div>
       </div>
     </div>
     <div class="col-phone">
       <div class="phone float" aria-hidden="true">
         <div class="island"></div><div class="glare"></div>
         <div class="screen"><div class="scr">
-          <div class="scr-top"><div class="t-title">🇯🇵 Japonya rotası</div><div class="t-sub">13 gün · 4 şehir · Mayıs 2026</div><span class="accentline"></span></div>
+          <div class="scr-top"><div class="t-title" data-i18n="ph.route.title">🇯🇵 Japonya rotası</div><div class="t-sub" data-i18n="ph.route.sub">13 gün · 4 şehir · Mayıs 2026</div><span class="accentline"></span></div>
           <div class="scr-body">
-            <div class="rt"><span class="flag">🛫</span><div class="m"><div class="c">İstanbul</div><div class="a">IST · kalkış</div></div></div>
+            <div class="rt"><span class="flag">🛫</span><div class="m"><div class="c" data-i18n="city.ist">İstanbul</div><div class="a" data-i18n="ph.ist.sub">IST · kalkış</div></div></div>
             <div class="hop"><span class="ln"></span></div>
-            <div class="rt"><span class="flag">🗼</span><div class="m"><div class="c">Tokyo</div><div class="a">HND · 4 gün</div></div><span class="tag">Gün 1–4</span></div>
-            <div class="rt"><span class="flag">⛩️</span><div class="m"><div class="c">Kyoto</div><div class="a">Shinkansen · 3 gün</div></div><span class="tag">Gün 5–7</span></div>
-            <div class="rt"><span class="flag">🦌</span><div class="m"><div class="c">Nara</div><div class="a">günübirlik</div></div></div>
-            <div class="rt"><span class="flag">🐙</span><div class="m"><div class="c">Osaka</div><div class="a">KIX · dönüş</div></div><span class="tag">Gün 8–13</span></div>
+            <div class="rt"><span class="flag">🗼</span><div class="m"><div class="c">Tokyo</div><div class="a" data-i18n="ph.tokyo.sub">HND · 4 gün</div></div><span class="tag" data-i18n="ph.d14">Gün 1–4</span></div>
+            <div class="rt"><span class="flag">⛩️</span><div class="m"><div class="c">Kyoto</div><div class="a" data-i18n="ph.kyoto.sub">Shinkansen · 3 gün</div></div><span class="tag" data-i18n="ph.d57">Gün 5–7</span></div>
+            <div class="rt"><span class="flag">🦌</span><div class="m"><div class="c">Nara</div><div class="a" data-i18n="ph.daytrip">günübirlik</div></div></div>
+            <div class="rt"><span class="flag">🐙</span><div class="m"><div class="c">Osaka</div><div class="a" data-i18n="ph.osaka.sub">KIX · dönüş</div></div><span class="tag" data-i18n="ph.d813">Gün 8–13</span></div>
           </div>
         </div></div>
       </div>
     </div>
   </div>
-  <a class="scrollhint" href="#act1"><span>yolculuk başlıyor</span><span>↓</span></a>
+  <a class="scrollhint" href="#act1"><span data-i18n="hero.scroll">yolculuk başlıyor</span><span>↓</span></a>
 </section>
 
-<!-- ============ ACT I ============ -->
-<div class="act" id="act1">
-  <div class="wrap reveal">
-    <div class="no">Perde I</div>
-    <h2 class="h-lg grad-text">Planla.</h2>
-    <p class="lead muted" style="margin:16px auto 0;text-align:center;max-width:44ch">
-      Her şey kendiliğinden olur. Tarihler bölünür, tren kartı düşer, boş günler dolar — bulut yok, bekleme yok.
-    </p>
-  </div>
-</div>
+<!-- ACT I -->
+<div class="act" id="act1"><div class="wrap reveal">
+  <div class="no" data-i18n="act1.no">Perde I</div>
+  <h2 class="h-lg grad-text" data-i18n="act1.h">Planla.</h2>
+  <p class="lead muted" style="margin:16px auto 0;text-align:center;max-width:44ch" data-i18n="act1.lead">Her şey kendiliğinden olur. Tarihler bölünür, tren kartı düşer, boş günler dolar — bulut yok, bekleme yok.</p>
+</div></div>
 
-<!-- ---- Planı Kur ---- -->
-<section class="sec" id="planla">
-  <div class="wrap split">
-    <div class="col-text">
-      <span class="eyebrow reveal">Çok şehirli rota</span>
-      <h2 class="h-md reveal d1" style="margin-top:14px">Şehirleri seç.<br>Günleri biz paylaştıralım.</h2>
-      <p class="lead reveal d2" style="margin-top:16px">
-        Rotaya yeni bir şehir eklediğin an, tüm gezi tarihleri eşit ve mantıklı biçimde yeniden bölünür.
-        Son şehir artan günleri toplar; varış-ayrılış kendiliğinden zincirlenir. Elle tarih girdiysen ona hiç dokunmaz.
-      </p>
-      <ul class="bul">
-        <li class="reveal d2"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l6-3v17M11 21V9l8 2.5V21"/><path d="M8 10h0M8 14h0M15 14h0M15 17h0"/></svg></span><div><h3>40+ şehir, tek arama kutusu</h3><p>Hakone'den Yakushima'ya — havalimanlı şehir uçuş bacağı olur, havalimansız şehir trenle gidilen durak.</p></div></li>
-        <li class="reveal d3"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="12" rx="3"/><path d="M5 11h14M8 20l-2 2M16 20l2 2"/><circle cx="8.5" cy="13.5" r=".7" fill="currentColor" stroke="none"/><circle cx="15.5" cy="13.5" r=".7" fill="currentColor" stroke="none"/></svg></span><div><h3>İkinci şehri seçince Shinkansen önerilir</h3><p>Şehir değişimini uygulama kendi yakalar, geçişi kendi düşürür.</p></div></li>
-      </ul>
-    </div>
-    <div class="col-phone">
-      <div class="phone reveal d1" aria-hidden="true">
-        <div class="island"></div><div class="glare"></div>
-        <div class="screen"><div class="scr">
-          <div class="scr-top"><div class="t-title">🏙️ Gezilecek şehirler</div><div class="t-sub">Seçtikçe rotana eklenir</div><span class="accentline"></span></div>
-          <div class="scr-body">
-            <div class="mini-chips">
-              <span class="mc on">Tokyo</span><span class="mc on">Kyoto</span><span class="mc on" id="chipOsaka">Osaka</span>
-              <span class="mc">Nara</span><span class="mc">Hakone</span><span class="mc">+ Başka şehir</span>
-            </div>
-            <div class="daybar" id="dayBars" style="margin-top:16px">
-              <div class="db"><span class="nm">Tokyo</span><div class="track"><div class="fill" data-w2="40" style="width:60%"></div></div><span class="dd" data-c="4">6g</span></div>
-              <div class="db"><span class="nm">Kyoto</span><div class="track"><div class="fill" data-w2="30" style="width:40%"></div></div><span class="dd" data-c="3">4g</span></div>
-              <div class="db" id="osakaBar" style="opacity:.35"><span class="nm">Osaka</span><div class="track"><div class="fill" data-w2="30" style="width:0%"></div></div><span class="dd" data-c="6">–</span></div>
-            </div>
-            <div class="tip-card" style="margin-top:auto"><span class="cat">🧭</span><div>Osaka eklendi — günler yeniden bölündü. Son durak artan günü toplar.</div></div>
-          </div>
-        </div></div>
+<!-- PLANLA -->
+<section class="sec" id="planla"><div class="wrap split">
+  <div class="col-text">
+    <span class="eyebrow reveal" data-i18n="planla.eyebrow">Çok şehirli rota</span>
+    <h2 class="h-md reveal d1" style="margin-top:14px" data-i18n-html="planla.h">Şehirleri seç.<br>Günleri biz paylaştıralım.</h2>
+    <p class="lead reveal d2" style="margin-top:16px" data-i18n="planla.lead">Rotaya yeni bir şehir eklediğin an, tüm gezi tarihleri eşit ve mantıklı biçimde yeniden bölünür. Son şehir artan günleri toplar; varış-ayrılış kendiliğinden zincirlenir. Elle tarih girdiysen ona hiç dokunmaz.</p>
+    <ul class="bul">
+      <li class="reveal d2"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l6-3v17M11 21V9l8 2.5V21"/><path d="M8 10h0M8 14h0M15 14h0M15 17h0"/></svg></span><div><h3 data-i18n="planla.b1h">40+ şehir, tek arama kutusu</h3><p data-i18n="planla.b1p">Hakone'den Yakushima'ya — havalimanlı şehir uçuş bacağı olur, havalimansız şehir trenle gidilen durak.</p></div></li>
+      <li class="reveal d3"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="12" rx="3"/><path d="M5 11h14M8 20l-2 2M16 20l2 2"/><circle cx="8.5" cy="13.5" r=".7" fill="currentColor" stroke="none"/><circle cx="15.5" cy="13.5" r=".7" fill="currentColor" stroke="none"/></svg></span><div><h3 data-i18n="planla.b2h">İkinci şehri seçince Shinkansen önerilir</h3><p data-i18n="planla.b2p">Şehir değişimini uygulama kendi yakalar, geçişi kendi düşürür.</p></div></li>
+    </ul>
+  </div>
+  <div class="col-phone"><div class="phone reveal d1" aria-hidden="true">
+    <div class="island"></div><div class="glare"></div>
+    <div class="screen"><div class="scr">
+      <div class="scr-top"><div class="t-title" data-i18n="planla.ph.title">🏙️ Gezilecek şehirler</div><div class="t-sub" data-i18n="planla.ph.sub">Seçtikçe rotana eklenir</div><span class="accentline"></span></div>
+      <div class="scr-body">
+        <div class="mini-chips">
+          <span class="mc on">Tokyo</span><span class="mc on">Kyoto</span><span class="mc on">Osaka</span>
+          <span class="mc">Nara</span><span class="mc">Hakone</span><span class="mc" data-i18n="planla.morecity">+ Başka şehir</span>
+        </div>
+        <div class="daybar" id="dayBars" style="margin-top:16px">
+          <div class="db"><span class="nm">Tokyo</span><div class="track"><div class="fill" data-w2="40" style="width:60%"></div></div><span class="dd" data-pre="6" data-c="4"></span></div>
+          <div class="db"><span class="nm">Kyoto</span><div class="track"><div class="fill" data-w2="30" style="width:40%"></div></div><span class="dd" data-pre="4" data-c="3"></span></div>
+          <div class="db" id="osakaBar" style="opacity:.35"><span class="nm">Osaka</span><div class="track"><div class="fill" data-w2="30" style="width:0%"></div></div><span class="dd" data-pre="" data-c="6"></span></div>
+        </div>
+        <div class="tip-card" style="margin-top:auto"><span class="cat">🧭</span><div data-i18n="planla.ph.tip">Osaka eklendi — günler yeniden bölündü. Son durak artan günü toplar.</div></div>
       </div>
-    </div>
-  </div>
-</section>
+    </div></div>
+  </div></div>
+</div></section>
 
-<!-- ---- Çevrimdışı güç ---- -->
+<!-- ÇEVRİMDIŞI -->
 <section class="sec" style="position:relative">
   <span class="jp-vert" lang="ja" style="top:6%;right:0">発見</span>
   <div class="wrap split rev">
     <div class="col-text">
-      <span class="eyebrow violet reveal">Çevrimdışı güç</span>
-      <h2 class="h-md reveal d1" style="margin-top:14px">Bulut yok.<br>Bekleme yok.</h2>
-      <p class="lead reveal d2" style="margin-top:16px">
-        Tek dokunuşla, internetsiz, saat saat plan. Rota, tempo ve ilgi alanlarına göre tüm gezi anında kurulur —
-        varış günü check-in, aralar aktivite + yemek, ayrılış günü havaalanı. Yapay zekâ beklemesi bile yok.
-      </p>
+      <span class="eyebrow violet reveal" data-i18n="off.eyebrow">Çevrimdışı güç</span>
+      <h2 class="h-md reveal d1" style="margin-top:14px" data-i18n-html="off.h">Bulut yok.<br>Bekleme yok.</h2>
+      <p class="lead reveal d2" style="margin-top:16px" data-i18n="off.lead">Tek dokunuşla, internetsiz, saat saat plan. Rota, tempo ve ilgi alanlarına göre tüm gezi anında kurulur — varış günü check-in, aralar aktivite + yemek, ayrılış günü havaalanı. Yapay zekâ beklemesi bile yok.</p>
       <div class="chips">
-        <span class="chip">✈️ <b>Uçak modunda</b> çalışır</span>
-        <span class="chip">🔔 <b>Bilet penceresi</b> hatırlatması</span>
-        <span class="chip">👣 <b>~15k adım</b>/gün</span>
+        <span class="chip" data-i18n-html="off.chip1">✈️ <b>Uçak modunda</b> çalışır</span>
+        <span class="chip" data-i18n-html="off.chip2">🔔 <b>Bilet penceresi</b> hatırlatması</span>
+        <span class="chip" data-i18n-html="off.chip3">👣 <b>~15k adım</b>/gün</span>
       </div>
     </div>
-    <div class="col-phone">
-      <div class="phone reveal d1" aria-hidden="true">
-        <div class="island"></div><div class="glare"></div>
-        <div class="screen"><div class="scr">
-          <div class="scr-top"><div class="t-title">✨ Gün 2 · Tokyo</div><div class="t-sub">Asakusa & Skytree · 👣 15k</div><span class="accentline"></span></div>
-          <div class="scr-body">
-            <div class="tl"><span class="tm">09:00</span><div><div class="ti">Senso-ji & Kaminarimon</div><div class="td">🏮 Tapınak · ⏱ 90 dk</div></div></div>
-            <div class="tl"><span class="tm">11:30</span><div><div class="ti">Tokyo Skytree</div><div class="td">🗼 Manzara · ⏱ 2 saat</div></div></div>
-            <div class="tl"><span class="tm">13:30</span><div><div class="ti">🍜 Ramen molası</div><div class="td">Ichiran / Ippudo / Afuri</div></div></div>
-            <div class="tl"><span class="tm">15:00</span><div><div class="ti">teamLab Planets</div><div class="td">🎨 Sanat · 🎟 ~2 ay önce bilet</div></div></div>
-            <div class="toast" style="margin-top:4px">🔔 2 hatırlatma eklendi · USJ & teamLab bilet penceresi</div>
-          </div>
-        </div></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ---- Shinkansen ---- -->
-<section class="sec">
-  <div class="wrap split">
-    <div class="col-text">
-      <span class="eyebrow reveal">Ulaşım zekâsı</span>
-      <h2 class="h-md reveal d1" style="margin-top:14px">İki şehir seçtin —<br>gişeyi biz düşündük.</h2>
-      <p class="lead reveal d2" style="margin-top:16px">
-        Şehir değişen her güne gerçek tren kartı düşer: uydurma değil, gerçek süre ve ücretle.
-        Beğenmedin mi? Dört ulaşım modu arasında geçiş yap — her birinin dürüst artı-eksisi yazılı.
-      </p>
-      <ul class="bul">
-        <li class="reveal d2"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="12" rx="3"/><path d="M5 11h14M8 20l-2 2M16 20l2 2"/><circle cx="8.5" cy="13.5" r=".7" fill="currentColor" stroke="none"/><circle cx="15.5" cy="13.5" r=".7" fill="currentColor" stroke="none"/></svg></span><div><h3>Otomatik Shinkansen</h3><p>Tokyo → Kyoto: Nozomi · 2s 15dk · ~14.170 ¥ + JR Pass/Smart-EX ipucu.</p></div></li>
-        <li class="reveal d3"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="7" width="14" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M9 11v5M15 11v5"/></svg></span><div><h3>Yamato Takkyubin</h3><p>Valizini otele önceden gönder — ~2.000 ¥/parça, 1 gün. Resepsiyona "takkyubin" de yeter.</p></div></li>
-      </ul>
-    </div>
-    <div class="col-phone">
-      <div class="phone reveal d1" aria-hidden="true">
-        <div class="island"></div><div class="glare"></div>
-        <div class="screen"><div class="scr">
-          <div class="scr-top grad"><div class="t-title">🚄 Şehirler arası geçiş</div><div class="t-sub">Gün 4 → Gün 5</div></div>
-          <div class="scr-body">
-            <div class="rt"><span class="flag">🗼</span><div class="m"><div class="c">Tokyo</div><div class="a">Gün 4 · son gece</div></div></div>
-            <div class="xfer">
-              <div class="hd">🚄 Shinkansen Nozomi</div>
-              <div class="meta">Tokyo → Kyoto · 2s 15dk · ~14.170 ¥</div>
-              <div class="tip">💡 Standart JR Pass Nozomi'yi kapsamaz — ek ücret ya da Smart-EX.</div>
-              <div class="modes"><span class="mode on">🚄</span><span class="mode">🚆</span><span class="mode">🚌</span><span class="mode">🚗</span></div>
-            </div>
-            <div class="cat-card"><span class="cat">🐈</span><div><b style="color:#fff">Yamato Takkyubin</b> — valizini Kyoto'daki otele önceden gönder. ~2.000 ¥/parça, 1 gün.</div></div>
-            <div class="rt"><span class="flag">⛩️</span><div class="m"><div class="c">Kyoto</div><div class="a">Gün 5 · varış</div></div></div>
-          </div>
-        </div></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============ SIGNATURE BRIDGE ============ -->
-<section id="bridge">
-  <div class="stage">
-    <svg class="arc" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-      <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#FF8FAB"/><stop offset="1" stop-color="#7C6AEF"/></linearGradient></defs>
-      <path id="arcPath" d="M120 560 C 300 200, 700 200, 880 470"/>
-    </svg>
-    <div class="plane" id="plane" aria-hidden="true">✈️</div>
-
-    <div class="b-copy">
-      <span class="eyebrow" style="justify-content:center">Perde dönüşü</span>
-      <h2 class="h-lg" id="bridgeTitle" style="margin-top:12px">Planladın.<br>Şimdi Japonya seninle yürüsün.</h2>
-    </div>
-
-    <div class="b-phone">
-      <div class="phone" style="--w:min(288px,80vw)" aria-hidden="true">
-        <div class="island"></div><div class="glare"></div>
-        <div class="screen">
-          <div class="bridge-screen on" id="bs1"><div class="scr">
-            <div class="scr-top"><div class="t-title">📖 Rehber · Gün 6</div><div class="t-sub">Kyoto · Fushimi Inari</div><span class="accentline"></span></div>
-            <div class="scr-body">
-              <div class="tl"><span class="tm">07:30</span><div><div class="ti">Fushimi Inari Taisha</div><div class="td">⛩️ 10.000 torii · sabah sakin</div></div></div>
-              <div class="tl"><span class="tm">11:00</span><div><div class="ti">Gion & Hanamikoji</div><div class="td">🎋 Geleneksel sokaklar</div></div></div>
-              <div class="tl"><span class="tm">14:00</span><div><div class="ti">🍜 Ramen molası</div><div class="td">Öğle · yerel</div></div></div>
-            </div>
-          </div></div>
-          <div class="bridge-screen" id="bs2"><div class="scr">
-            <div class="scr-top grad"><div class="t-title">🧭 Canlı harita</div><div class="t-sub">Kyoto · buradasın</div></div>
-            <div class="scr-body" style="padding:10px">
-              <div class="map-mini">
-                <div class="grid"></div>
-                <span class="pin" style="left:20%;top:30%">⛩️</span>
-                <span class="pin dim" style="left:66%;top:24%">🎋</span>
-                <span class="pin dim" style="left:52%;top:66%">🍜</span>
-                <div class="here" id="bHere" style="left:44%;top:52%"></div>
-              </div>
-              <div class="xp" style="margin-top:10px"><span>Lv 3</span><div class="track"><div class="fill" id="bXp" style="width:48%"></div></div><span class="tnum">240 XP</span></div>
-            </div>
-          </div></div>
+    <div class="col-phone"><div class="phone reveal d1" aria-hidden="true">
+      <div class="island"></div><div class="glare"></div>
+      <div class="screen"><div class="scr">
+        <div class="scr-top"><div class="t-title" data-i18n="off.ph.title">✨ Gün 2 · Tokyo</div><div class="t-sub">Asakusa &amp; Skytree · 👣 15k</div><span class="accentline"></span></div>
+        <div class="scr-body">
+          <div class="tl"><span class="tm">09:00</span><div><div class="ti">Senso-ji &amp; Kaminarimon</div><div class="td" data-i18n="off.tl1">🏮 Tapınak · ⏱ 90 dk</div></div></div>
+          <div class="tl"><span class="tm">11:30</span><div><div class="ti">Tokyo Skytree</div><div class="td" data-i18n="off.tl2">🗼 Manzara · ⏱ 2 saat</div></div></div>
+          <div class="tl"><span class="tm">13:30</span><div><div class="ti" data-i18n="off.tl3t">🍜 Ramen molası</div><div class="td">Ichiran / Ippudo / Afuri</div></div></div>
+          <div class="tl"><span class="tm">15:00</span><div><div class="ti">teamLab Planets</div><div class="td" data-i18n="off.tl4">🎨 Sanat · 🎟 ~2 ay önce bilet</div></div></div>
+          <div class="toast" data-i18n="off.toast">🔔 2 hatırlatma eklendi · USJ &amp; teamLab bilet penceresi</div>
         </div>
-      </div>
-    </div>
-
-    <div class="badge-pop" id="badgePop" aria-hidden="true">
-      <div class="b">⛩️</div>
-      <div class="cap">Kyoto Kâşifi <span class="matcha">+25 XP</span></div>
-    </div>
+      </div></div>
+    </div></div>
   </div>
 </section>
 
-<!-- ============ ACT II ============ -->
-<div class="act">
-  <div class="wrap reveal">
-    <div class="no">Perde II</div>
-    <h2 class="h-lg grad-text">Yaşa.</h2>
-    <p class="lead muted" style="margin:16px auto 0;text-align:center;max-width:46ch">
-      Aynı plan artık avucunda canlı bir yol arkadaşı. Bir yere yürü, 10 dakika kal — pin yeşile dönsün, rozet ışıldasın.
-    </p>
+<!-- SHINKANSEN -->
+<section class="sec"><div class="wrap split">
+  <div class="col-text">
+    <span class="eyebrow reveal" data-i18n="shin.eyebrow">Ulaşım zekâsı</span>
+    <h2 class="h-md reveal d1" style="margin-top:14px" data-i18n-html="shin.h">İki şehir seçtin —<br>gişeyi biz düşündük.</h2>
+    <p class="lead reveal d2" style="margin-top:16px" data-i18n="shin.lead">Şehir değişen her güne gerçek tren kartı düşer: uydurma değil, gerçek süre ve ücretle. Beğenmedin mi? Dört ulaşım modu arasında geçiş yap — her birinin dürüst artı-eksisi yazılı.</p>
+    <ul class="bul">
+      <li class="reveal d2"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="12" rx="3"/><path d="M5 11h14M8 20l-2 2M16 20l2 2"/><circle cx="8.5" cy="13.5" r=".7" fill="currentColor" stroke="none"/><circle cx="15.5" cy="13.5" r=".7" fill="currentColor" stroke="none"/></svg></span><div><h3 data-i18n="shin.b1h">Otomatik Shinkansen</h3><p data-i18n="shin.b1p">Tokyo → Kyoto: Nozomi · 2s 15dk · ~14.170 ¥ + JR Pass/Smart-EX ipucu.</p></div></li>
+      <li class="reveal d3"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="7" width="14" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M9 11v5M15 11v5"/></svg></span><div><h3>Yamato Takkyubin</h3><p data-i18n="shin.b2p">Valizini otele önceden gönder — ~2.000 ¥/parça, 1 gün. Resepsiyona "takkyubin" de yeter.</p></div></li>
+    </ul>
   </div>
-</div>
-
-<!-- ---- Keşfet ---- -->
-<section class="sec">
-  <div class="wrap split rev">
-    <div class="col-text">
-      <span class="eyebrow reveal">GPS keşif motoru</span>
-      <h2 class="h-md reveal d1" style="margin-top:14px">Yürü. Keşfet.<br>Kazan.</h2>
-      <p class="lead reveal d2" style="margin-top:16px">
-        Uygulama, rotandaki bir yere gerçekten gidip ~10 dakika kaldığında ziyaretini GPS ile onaylar.
-        Her keşif +25 XP; şehirler doldukça rozetlerin kilidi kendiliğinden açılır. Japonya bir oyuna dönüşür.
-      </p>
-      <div class="chips">
-        <span class="chip">📍 <b>Coğrafi çit</b> · 10 dk bekleme</span>
-        <span class="chip">⚡ <b>+25 XP</b> / keşif</span>
-        <span class="chip">🧪 Uygulama içi <b>GPS simülatörü</b></span>
+  <div class="col-phone"><div class="phone reveal d1" aria-hidden="true">
+    <div class="island"></div><div class="glare"></div>
+    <div class="screen"><div class="scr">
+      <div class="scr-top grad"><div class="t-title" data-i18n="shin.ph.title">🚄 Şehirler arası geçiş</div><div class="t-sub" data-i18n="shin.ph.sub">Gün 4 → Gün 5</div></div>
+      <div class="scr-body">
+        <div class="rt"><span class="flag">🗼</span><div class="m"><div class="c">Tokyo</div><div class="a" data-i18n="shin.tokyo">Gün 4 · son gece</div></div></div>
+        <div class="xfer">
+          <div class="hd">🚄 Shinkansen Nozomi</div>
+          <div class="meta" data-i18n="shin.meta">Tokyo → Kyoto · 2s 15dk · ~14.170 ¥</div>
+          <div class="tip" data-i18n="shin.tip">💡 Standart JR Pass Nozomi'yi kapsamaz — ek ücret ya da Smart-EX.</div>
+          <div class="modes"><span class="mode on">🚄</span><span class="mode">🚆</span><span class="mode">🚌</span><span class="mode">🚗</span></div>
+        </div>
+        <div class="cat-card"><span class="cat">🐈</span><div data-i18n-html="shin.yamato"><b style="color:#fff">Yamato Takkyubin</b> — valizini Kyoto'daki otele önceden gönder. ~2.000 ¥/parça, 1 gün.</div></div>
+        <div class="rt"><span class="flag">⛩️</span><div class="m"><div class="c">Kyoto</div><div class="a" data-i18n="shin.kyoto">Gün 5 · varış</div></div></div>
       </div>
-    </div>
-    <div class="col-phone">
-      <div class="phone reveal d1" aria-hidden="true">
-        <div class="island"></div><div class="glare"></div>
-        <div class="screen"><div class="scr">
-          <div class="scr-top grad"><div class="t-title">🗺️ Keşif haritası</div><div class="t-sub">Lv 4 · 12 yer keşfedildi</div></div>
-          <div class="scr-body" style="padding:10px">
-            <div class="map-mini" style="min-height:170px">
-              <div class="grid"></div>
-              <span class="pin" style="left:22%;top:26%">🏮</span>
-              <span class="pin" style="left:70%;top:34%">🗼</span>
-              <span class="pin dim" style="left:40%;top:64%">🎨</span>
-              <div class="here" style="left:34%;top:40%"></div>
-            </div>
-            <div class="toast" style="margin-top:10px">🎉 Senso-ji keşfedildi! +25 XP</div>
-            <div class="xp"><span>Lv 4</span><div class="track"><div class="fill" style="width:64%"></div></div><span class="tnum">360 XP</span></div>
+    </div></div>
+  </div></div>
+</div></section>
+
+<!-- BRIDGE -->
+<section id="bridge"><div class="stage">
+  <svg class="arc" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+    <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF8FAB"/><stop offset="1" stop-color="#7C6AEF"/></linearGradient></defs>
+    <path id="arcPath" d="M120 560 C 300 200, 700 200, 880 470"/>
+  </svg>
+  <div class="plane" id="plane" aria-hidden="true">✈️</div>
+  <div class="b-copy">
+    <span class="eyebrow" style="justify-content:center" data-i18n="bridge.eyebrow">Perde dönüşü</span>
+    <h2 class="h-lg" id="bridgeTitle" data-i18n-html="bridge.title.plan" style="margin-top:12px">Planladın.<br>Şimdi Japonya seninle yürüsün.</h2>
+  </div>
+  <div class="b-phone"><div class="phone" style="--w:min(288px,80vw)" aria-hidden="true">
+    <div class="island"></div><div class="glare"></div>
+    <div class="screen">
+      <div class="bridge-screen on" id="bs1"><div class="scr">
+        <div class="scr-top"><div class="t-title" data-i18n="bridge.bs1.title">📖 Rehber · Gün 6</div><div class="t-sub">Kyoto · Fushimi Inari</div><span class="accentline"></span></div>
+        <div class="scr-body">
+          <div class="tl"><span class="tm">07:30</span><div><div class="ti">Fushimi Inari Taisha</div><div class="td" data-i18n="bridge.bs1.a">⛩️ 10.000 torii · sabah sakin</div></div></div>
+          <div class="tl"><span class="tm">11:00</span><div><div class="ti">Gion &amp; Hanamikoji</div><div class="td" data-i18n="bridge.bs1.b">🎋 Geleneksel sokaklar</div></div></div>
+          <div class="tl"><span class="tm">14:00</span><div><div class="ti" data-i18n="off.tl3t">🍜 Ramen molası</div><div class="td" data-i18n="bridge.bs1.c">Öğle · yerel</div></div></div>
+        </div>
+      </div></div>
+      <div class="bridge-screen" id="bs2"><div class="scr">
+        <div class="scr-top grad"><div class="t-title" data-i18n="bridge.bs2.title">🧭 Canlı harita</div><div class="t-sub" data-i18n="bridge.bs2.sub">Kyoto · buradasın</div></div>
+        <div class="scr-body" style="padding:10px">
+          <div class="map-mini"><div class="grid"></div>
+            <span class="pin" style="left:20%;top:30%">⛩️</span><span class="pin dim" style="left:66%;top:24%">🎋</span><span class="pin dim" style="left:52%;top:66%">🍜</span>
+            <div class="here" id="bHere" style="left:44%;top:52%"></div>
           </div>
-        </div></div>
-      </div>
+          <div class="xp" style="margin-top:10px"><span>Lv 3</span><div class="track"><div class="fill" id="bXp" style="width:48%"></div></div><span class="tnum">240 XP</span></div>
+        </div>
+      </div></div>
+    </div>
+  </div></div>
+  <div class="badge-pop" id="badgePop" aria-hidden="true">
+    <div class="b">⛩️</div>
+    <div class="cap"><span data-i18n="b.kyoto-roam.t">Kyoto Kâşifi</span> <span class="matcha">+25 XP</span></div>
+  </div>
+</div></section>
+
+<!-- ACT II -->
+<div class="act"><div class="wrap reveal">
+  <div class="no" data-i18n="act2.no">Perde II</div>
+  <h2 class="h-lg grad-text" data-i18n="act2.h">Yaşa.</h2>
+  <p class="lead muted" style="margin:16px auto 0;text-align:center;max-width:46ch" data-i18n="act2.lead">Aynı plan artık avucunda canlı bir yol arkadaşı. Bir yere yürü, 10 dakika kal — pin yeşile dönsün, rozet ışıldasın.</p>
+</div></div>
+
+<!-- KEŞFET -->
+<section class="sec"><div class="wrap split rev">
+  <div class="col-text">
+    <span class="eyebrow reveal" data-i18n="disc.eyebrow">GPS keşif motoru</span>
+    <h2 class="h-md reveal d1" style="margin-top:14px" data-i18n-html="disc.h">Yürü. Keşfet.<br>Kazan.</h2>
+    <p class="lead reveal d2" style="margin-top:16px" data-i18n="disc.lead">Uygulama, rotandaki bir yere gerçekten gidip ~10 dakika kaldığında ziyaretini GPS ile onaylar. Her keşif +25 XP; şehirler doldukça rozetlerin kilidi kendiliğinden açılır. Japonya bir oyuna dönüşür.</p>
+    <div class="chips">
+      <span class="chip" data-i18n-html="disc.chip1">📍 <b>Coğrafi çit</b> · 10 dk bekleme</span>
+      <span class="chip" data-i18n-html="disc.chip2">⚡ <b>+25 XP</b> / keşif</span>
+      <span class="chip" data-i18n-html="disc.chip3">🧪 Uygulama içi <b>GPS simülatörü</b></span>
     </div>
   </div>
-</section>
+  <div class="col-phone"><div class="phone reveal d1" aria-hidden="true">
+    <div class="island"></div><div class="glare"></div>
+    <div class="screen"><div class="scr">
+      <div class="scr-top grad"><div class="t-title" data-i18n="disc.ph.title">🗺️ Keşif haritası</div><div class="t-sub" data-i18n="disc.ph.sub">Lv 4 · 12 yer keşfedildi</div></div>
+      <div class="scr-body" style="padding:10px">
+        <div class="map-mini" style="min-height:170px"><div class="grid"></div>
+          <span class="pin" style="left:22%;top:26%">🏮</span><span class="pin" style="left:70%;top:34%">🗼</span><span class="pin dim" style="left:40%;top:64%">🎨</span>
+          <div class="here" style="left:34%;top:40%"></div>
+        </div>
+        <div class="toast" style="margin-top:10px" data-i18n="disc.toast">🎉 Senso-ji keşfedildi! +25 XP</div>
+        <div class="xp"><span>Lv 4</span><div class="track"><div class="fill" style="width:64%"></div></div><span class="tnum">360 XP</span></div>
+      </div>
+    </div></div>
+  </div></div>
+</div></section>
 
-<!-- ---- Badge wall ---- -->
+<!-- BADGE WALL -->
 <section class="sec" style="position:relative">
   <span class="jp-vert" lang="ja" style="bottom:2%;left:0">収集</span>
   <div class="wrap">
     <div style="text-align:center;max-width:620px;margin:0 auto">
-      <span class="eyebrow" style="justify-content:center">18 gerçek rozet</span>
-      <h2 class="h-lg reveal" style="margin-top:14px">Gezdikçe seviye atla.<br>Rozetler ışıldasın.</h2>
-      <p class="lead reveal d1" style="margin:16px auto 0">
-        Planlarken kazanılan 12 rozet, sahada GPS ile kazanılan 6 keşif rozeti. Kaydır — kilitliler tek tek açılsın.
-      </p>
+      <span class="eyebrow" style="justify-content:center" data-i18n="badges.eyebrow">18 gerçek rozet</span>
+      <h2 class="h-lg reveal" style="margin-top:14px" data-i18n-html="badges.h">Gezdikçe seviye atla.<br>Rozetler ışıldasın.</h2>
+      <p class="lead reveal d1" style="margin:16px auto 0" data-i18n="badges.lead">Planlarken kazanılan 12 rozet, sahada GPS ile kazanılan 6 keşif rozeti. Kaydır — kilitliler tek tek açılsın.</p>
     </div>
     <div class="badgewall" id="badgewall"></div>
-    <p class="muted reveal" style="text-align:center;margin-top:24px;font-size:13.5px">
-      Her level 100 XP · plan rozeti +50 XP · keşif rozeti +25 XP
-    </p>
+    <p class="muted reveal" style="text-align:center;margin-top:24px;font-size:13.5px" data-i18n="badges.legend">Her level 100 XP · plan rozeti +50 XP · keşif rozeti +25 XP</p>
   </div>
 </section>
 
-<!-- ---- Offline tools ---- -->
-<section class="sec">
-  <div class="wrap split">
-    <div class="col-text">
-      <span class="eyebrow violet reveal">Sahada, çevrimdışı</span>
-      <h2 class="h-md reveal d1" style="margin-top:14px">Uçak modunda bile<br>yanında.</h2>
-      <p class="lead reveal d2" style="margin-top:16px">
-        İndirilen haritalar, taksiciye gösterilecek Japonca fraz kartları, güncel kurla JPY→₺ bütçe, hava durumu ve valiz listesi —
-        hepsi internet olmadan, cebinde. Bir de iOS ana ekran widget'ında "sıradaki aktivite".
-      </p>
-      <ul class="bul">
-        <li class="reveal d2"><span class="ic"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2.2 4.8-4.8 2.2 2.2-4.8z" fill="currentColor" stroke="none"/></svg></span><div><h3>Pusula</h3><p>Acil numaralar, otel adresi ve kopyalanabilir Japonca fraz kartları.</p></div></li>
-        <li class="reveal d3"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M12 3v11M8 10.5l4 4 4-4M5 20h14"/></svg></span><div><h3>Çevrimdışı harita</h3><p>Gün rotası numaralı pinlerle — harita karoları cihazda önbelleğe alınır.</p></div></li>
-      </ul>
-    </div>
-    <div class="col-phone">
-      <div class="phone reveal d1" aria-hidden="true">
-        <div class="island"></div><div class="glare"></div>
-        <div class="screen"><div class="scr">
-          <div class="scr-top"><div class="t-title">🎒 Yol arkadaşın</div><div class="t-sub">Uçak modu · çevrimdışı</div><span class="accentline"></span></div>
-          <div class="scr-body" style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
-            <div class="tool"><div class="lbl">Hava · Kyoto</div><div class="big">☀️ 26°</div><div class="sm">↓18° · 💧%10</div></div>
-            <div class="tool"><div class="lbl">Bütçe</div><div class="big tnum">1 ¥ ≈ ₺0,30</div><div class="sm">son senkron</div></div>
-            <div class="tool"><div class="lbl">Pusula 🇯🇵</div><div class="big" style="font-size:12px">"Sumimasen…"</div><div class="sm">📋 Kopyala</div></div>
-            <div class="tool"><div class="lbl">Valiz</div><div class="big" style="font-size:12px">14 / 18 ✓</div><div class="sm">JR Pass · adaptör</div></div>
-            <div class="tool" style="grid-column:1/3;background:linear-gradient(120deg,rgba(124,106,239,.16),rgba(255,143,171,.1))">
-              <div class="lbl">🏠 iOS Widget</div><div class="big" style="font-size:13px">Sıradaki: 15:00 teamLab Planets</div><div class="sm">Ana ekrandan tek bakışta</div></div>
-          </div>
-        </div></div>
+<!-- OFFLINE TOOLS -->
+<section class="sec"><div class="wrap split">
+  <div class="col-text">
+    <span class="eyebrow violet reveal" data-i18n="tools.eyebrow">Sahada, çevrimdışı</span>
+    <h2 class="h-md reveal d1" style="margin-top:14px" data-i18n-html="tools.h">Uçak modunda bile<br>yanında.</h2>
+    <p class="lead reveal d2" style="margin-top:16px" data-i18n="tools.lead">İndirilen haritalar, taksiciye gösterilecek Japonca fraz kartları, güncel kurla JPY→₺ bütçe, hava durumu ve valiz listesi — hepsi internet olmadan, cebinde. Bir de iOS ana ekran widget'ında "sıradaki aktivite".</p>
+    <ul class="bul">
+      <li class="reveal d2"><span class="ic"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2.2 4.8-4.8 2.2 2.2-4.8z" fill="currentColor" stroke="none"/></svg></span><div><h3 data-i18n="tools.b1h">Pusula</h3><p data-i18n="tools.b1p">Acil numaralar, otel adresi ve kopyalanabilir Japonca fraz kartları.</p></div></li>
+      <li class="reveal d3"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M12 3v11M8 10.5l4 4 4-4M5 20h14"/></svg></span><div><h3 data-i18n="tools.b2h">Çevrimdışı harita</h3><p data-i18n="tools.b2p">Gün rotası numaralı pinlerle — harita karoları cihazda önbelleğe alınır.</p></div></li>
+    </ul>
+  </div>
+  <div class="col-phone"><div class="phone reveal d1" aria-hidden="true">
+    <div class="island"></div><div class="glare"></div>
+    <div class="screen"><div class="scr">
+      <div class="scr-top"><div class="t-title" data-i18n="tools.ph.title">🎒 Yol arkadaşın</div><div class="t-sub" data-i18n="tools.ph.sub">Uçak modu · çevrimdışı</div><span class="accentline"></span></div>
+      <div class="scr-body" style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+        <div class="tool"><div class="lbl" data-i18n="tools.w.l">Hava · Kyoto</div><div class="big">☀️ 26°</div><div class="sm" data-i18n="tools.w.s">↓18° · 💧%10</div></div>
+        <div class="tool"><div class="lbl" data-i18n="tools.b.l">Bütçe</div><div class="big tnum" data-i18n="tools.b.v">1 ¥ ≈ ₺0,30</div><div class="sm" data-i18n="tools.b.s">son senkron</div></div>
+        <div class="tool"><div class="lbl" data-i18n="tools.p.l">Pusula 🇯🇵</div><div class="big" style="font-size:12px">"Sumimasen…"</div><div class="sm" data-i18n="tools.p.s">📋 Kopyala</div></div>
+        <div class="tool"><div class="lbl" data-i18n="tools.k.l">Valiz</div><div class="big" style="font-size:12px">14 / 18 ✓</div><div class="sm" data-i18n="tools.k.s">JR Pass · adaptör</div></div>
+        <div class="tool" style="grid-column:1/3;background:linear-gradient(120deg,rgba(124,106,239,.16),rgba(255,143,171,.1))"><div class="lbl">🏠 iOS Widget</div><div class="big" style="font-size:13px" data-i18n="tools.wg.v">Sıradaki: 15:00 teamLab Planets</div><div class="sm" data-i18n="tools.wg.s">Ana ekrandan tek bakışta</div></div>
       </div>
+    </div></div>
+  </div></div>
+</div></section>
+
+<!-- THEME SWITCHER -->
+<section class="sec"><div class="wrap">
+  <div style="text-align:center;max-width:600px;margin:0 auto 40px">
+    <span class="eyebrow" style="justify-content:center" data-i18n="theme.eyebrow">Marka detayı</span>
+    <h2 class="h-lg reveal" style="margin-top:14px" data-i18n="theme.h">Aynı plan. Üç dünya.</h2>
+    <p class="lead reveal d1" style="margin:16px auto 0" data-i18n="theme.lead">Dokun ve gör — uygulamanın üç gerçek teması, canlı geçişle. Sakura'yı seçince yapraklar düşmeye başlar.</p>
+  </div>
+  <div class="themebox reveal d1" id="themebox" style="max-width:560px;margin:0 auto">
+    <div class="theme-tabs" role="group" aria-label="Tema / Theme">
+      <button type="button" class="tt on" data-theme="japanDark" aria-pressed="true" data-i18n="theme.t1">🌙 Japon Gecesi</button>
+      <button type="button" class="tt" data-theme="appleLight" aria-pressed="false" data-i18n="theme.t2">☀️ Apple Aydınlık</button>
+      <button type="button" class="tt" data-theme="sakuraSoft" aria-pressed="false" data-i18n="theme.t3">🌸 Sakura Yumuşak</button>
+    </div>
+    <div class="demo" id="demoCard">
+      <div class="dtop" data-i18n="theme.demo.top">Gün 8 · Osaka 🐙</div>
+      <div class="drow"><span class="de">🐙</span><div class="dm"><b>Dotonbori</b><span data-i18n="theme.demo.r1">Neon &amp; takoyaki · akşam</span></div></div>
+      <div class="drow"><span class="de">🏯</span><div class="dm"><b data-i18n="theme.demo.r2t">Osaka Kalesi</b><span data-i18n="theme.demo.r2">Manzara · ⏱ 2 saat</span></div></div>
+      <div class="drow"><span class="de">🎢</span><div class="dm"><b>Universal Studios</b><span>🎟 Super Nintendo World</span></div></div>
     </div>
   </div>
-</section>
+</div></section>
 
-<!-- ---- Theme switcher ---- -->
-<section class="sec">
-  <div class="wrap">
-    <div style="text-align:center;max-width:600px;margin:0 auto 40px">
-      <span class="eyebrow" style="justify-content:center">Marka detayı</span>
-      <h2 class="h-lg reveal" style="margin-top:14px">Aynı plan. Üç dünya.</h2>
-      <p class="lead reveal d1" style="margin:16px auto 0">Dokun ve gör — uygulamanın üç gerçek teması, canlı geçişle. Sakura'yı seçince yapraklar düşmeye başlar.</p>
-    </div>
-    <div class="themebox reveal d1" id="themebox" style="max-width:560px;margin:0 auto">
-      <div class="theme-tabs" role="group" aria-label="Tema seç">
-        <button type="button" class="tt on" data-theme="japanDark" aria-pressed="true">🌙 Japon Gecesi</button>
-        <button type="button" class="tt" data-theme="appleLight" aria-pressed="false">☀️ Apple Aydınlık</button>
-        <button type="button" class="tt" data-theme="sakuraSoft" aria-pressed="false">🌸 Sakura Yumuşak</button>
-      </div>
-      <div class="demo" id="demoCard">
-        <div class="dtop">Gün 8 · Osaka 🐙</div>
-        <div class="drow"><span class="de">🐙</span><div class="dm"><b>Dotonbori</b><span>Neon & takoyaki · akşam</span></div></div>
-        <div class="drow"><span class="de">🏯</span><div class="dm"><b>Osaka Kalesi</b><span>Manzara · ⏱ 2 saat</span></div></div>
-        <div class="drow"><span class="de">🎢</span><div class="dm"><b>Universal Studios</b><span>🎟 Super Nintendo World</span></div></div>
-      </div>
-    </div>
+<!-- RECAP -->
+<section class="sec" style="text-align:center"><div class="wrap reveal">
+  <span class="eyebrow" style="justify-content:center" data-i18n="recap.eyebrow">Gerçek bir rota</span>
+  <h2 class="h-md" style="margin-top:14px" data-i18n="recap.h">İstanbul → Tokyo → Kyoto → Nara → Osaka</h2>
+  <div class="chips" style="justify-content:center;margin-top:22px">
+    <span class="chip">🏮 Senso-ji</span><span class="chip">🎨 teamLab Planets</span><span class="chip">📸 Shibuya Scramble</span>
+    <span class="chip">⛩️ Fushimi Inari</span><span class="chip" data-i18n="recap.nara">🦌 Nara geyikleri</span><span class="chip">🐙 Dotonbori</span>
+    <span class="chip">🎢 USJ</span><span class="chip">🌆 Umeda Sky</span>
   </div>
-</section>
+</div></section>
 
-<!-- ---- Journey recap ---- -->
-<section class="sec" style="text-align:center">
-  <div class="wrap reveal">
-    <span class="eyebrow" style="justify-content:center">Gerçek bir rota</span>
-    <h2 class="h-md" style="margin-top:14px">İstanbul → Tokyo → Kyoto → Nara → Osaka</h2>
-    <div class="chips" style="justify-content:center;margin-top:22px">
-      <span class="chip">🏮 Senso-ji</span><span class="chip">🎨 teamLab Planets</span><span class="chip">📸 Shibuya Scramble</span>
-      <span class="chip">⛩️ Fushimi Inari</span><span class="chip">🦌 Nara geyikleri</span><span class="chip">🐙 Dotonbori</span>
-      <span class="chip">🎢 USJ</span><span class="chip">🌆 Umeda Sky</span>
-    </div>
-  </div>
-</section>
-
-<!-- ============ FINAL CTA ============ -->
+<!-- FINAL -->
 <section id="final">
   <canvas class="sakura-final" aria-hidden="true"></canvas>
   <div class="wrap reveal">
     <span class="eyebrow" style="justify-content:center"><span lang="ja">旅</span> · Tabi</span>
-    <h2 class="h-xl grad-text" style="margin:16px auto 0;max-width:16ch">Japonya, kendiliğinden.</h2>
-    <p class="lead" style="margin:20px auto 0;text-align:center">Yaprak düşmeden rotanı kur. Gerisini uygulama seninle yaşar.</p>
+    <h2 class="h-xl grad-text" style="margin:16px auto 0;max-width:16ch" data-i18n="final.h">Japonya, kendiliğinden.</h2>
+    <p class="lead" style="margin:20px auto 0;text-align:center" data-i18n="final.lead">Yaprak düşmeden rotanı kur. Gerisini uygulama seninle yaşar.</p>
     <div class="store">
-      <a class="store-badge primary" href="#final" aria-label="App Store'dan indir">
+      <a class="store-badge primary" href="#final" aria-label="App Store">
         <svg width="22" height="26" viewBox="0 0 22 26" fill="currentColor" aria-hidden="true"><path d="M18.3 19.8c-.3.8-.7 1.5-1.2 2.2-.7 1-1.2 1.6-1.7 2-.7.6-1.4.9-2.2.9-.6 0-1.2-.2-2-.5s-1.5-.5-2.1-.5c-.7 0-1.4.2-2.2.5s-1.4.5-1.9.5c-.8 0-1.6-.4-2.3-1.1-.5-.5-1.1-1.2-1.8-2.2-.7-1.1-1.3-2.3-1.8-3.8C.4 16.7 0 15.2 0 13.8c0-1.7.4-3.1 1.1-4.3.6-1 1.3-1.7 2.3-2.3s2-.9 3-.9c.6 0 1.4.2 2.4.6.9.4 1.5.6 1.8.6.2 0 .9-.2 2-.7 1-.4 1.9-.6 2.6-.5 1.9.2 3.4.9 4.3 2.3-1.7 1-2.6 2.5-2.5 4.4 0 1.5.5 2.7 1.6 3.7.5.5 1 .8 1.6 1-.1.4-.3.8-.5 1.1zM14.9.5c0 1.2-.5 2.4-1.4 3.5-1.1 1.3-2.4 2-3.8 1.9 0-.2 0-.3 0-.4 0-1.2.5-2.5 1.4-3.5.5-.5 1-.9 1.7-1.3.7-.3 1.3-.5 1.9-.5 0 .3 0 .5 0 .8z"/></svg>
-        <div style="text-align:left"><div class="sm">İndir</div><div class="big">App Store</div></div></a>
-      <a class="store-badge" href="#final" aria-label="Google Play'de yakında">
+        <div style="text-align:left"><div class="sm" data-i18n="final.get">İndir</div><div class="big">App Store</div></div></a>
+      <a class="store-badge" href="#final" aria-label="Google Play">
         <svg width="20" height="22" viewBox="0 0 20 22" aria-hidden="true"><path d="M1 1.5v19l11-9.5z" fill="#b3a6ff"/><path d="M1 1.5l11 9.5 4-3.5z" fill="#FF8FAB"/><path d="M1 20.5l11-9.5 4 3.5z" fill="#7C6AEF"/><path d="M16 7.5l3 2.6c.8.7.8 1.9 0 2.6l-3 2.6-4-4z" fill="#FFD54F"/></svg>
-        <div style="text-align:left"><div class="sm">Yakında</div><div class="big">Google Play</div></div></a>
+        <div style="text-align:left"><div class="sm" data-i18n="final.soon">Yakında</div><div class="big">Google Play</div></div></a>
     </div>
     <form class="signup" id="signup" onsubmit="return false">
-      <label for="emailInput" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">E-posta adresin</label>
-      <input id="emailInput" type="email" placeholder="ornek@mail.com — çıkınca haber ver" aria-label="E-posta adresin">
-      <button class="btn" type="submit">Haber ver</button>
+      <label for="emailInput" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)" data-i18n="final.emaillabel">E-posta adresin</label>
+      <input id="emailInput" type="email" data-i18n-attr="placeholder:final.ph|aria-label:final.emaillabel" placeholder="ornek@mail.com — çıkınca haber ver">
+      <button class="btn" type="submit" data-i18n="final.notify">Haber ver</button>
     </form>
     <p id="signupMsg" role="status" aria-live="polite" class="muted"></p>
     <div class="trust">
-      <span><svg class="i" viewBox="0 0 24 24" style="font-size:16px"><path d="M2 8.8a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.6" r=".8" fill="currentColor" stroke="none"/><path d="M3 3l18 18"/></svg> Tamamen çevrimdışı çalışır</span>
-      <span><svg class="i" viewBox="0 0 24 24" style="font-size:16px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg> Hesap gerekmez</span>
-      <span><svg class="i" viewBox="0 0 24 24" style="font-size:16px"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg> Yapay zekâ beklemesi yok</span>
+      <span><svg class="i" viewBox="0 0 24 24" style="font-size:16px"><path d="M2 8.8a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.6" r=".8" fill="currentColor" stroke="none"/><path d="M3 3l18 18"/></svg> <span data-i18n="final.trust1">Tamamen çevrimdışı çalışır</span></span>
+      <span><svg class="i" viewBox="0 0 24 24" style="font-size:16px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg> <span data-i18n="final.trust2">Hesap gerekmez</span></span>
+      <span><svg class="i" viewBox="0 0 24 24" style="font-size:16px"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg> <span data-i18n="final.trust3">Yapay zekâ beklemesi yok</span></span>
     </div>
-    <p class="soon">Yakında: bilet fotoğrafından otomatik okuma & akıllı öneriler.</p>
+    <p class="soon" data-i18n="final.soonnote">Yakında: bilet fotoğrafından otomatik okuma &amp; akıllı öneriler.</p>
   </div>
 </section>
 
-<footer>
-  <div class="wrap foot-grid">
-    <div class="brand"><span class="mark" lang="ja">旅</span> Tabi <span class="jp" lang="ja">· 日本 2026</span></div>
-    <div class="muted">Rotanı kur · Japonya'ya in · Her durak bir keşfe dönüşsün</div>
-    <div class="muted">Flutter · iOS · Android yakında · <span lang="ja">さくら</span> 🌸</div>
-  </div>
-</footer>
+<footer><div class="wrap foot-grid">
+  <div class="brand"><span class="mark" lang="ja">旅</span> Tabi <span class="jp" lang="ja">· 日本 2026</span></div>
+  <div class="muted" data-i18n="foot.tag">Rotanı kur · Japonya'ya in · Her durak bir keşfe dönüşsün</div>
+  <div class="muted" data-i18n-html="foot.stack">Flutter · iOS · Android yakında · <span lang="ja">さくら</span> 🌸</div>
+</div></footer>
 
 <script>
 (function(){
@@ -804,66 +602,242 @@ footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-in
   const lerp=(a,b,t)=>a+(b-a)*t;
   const $=(id)=>document.getElementById(id);
 
-  /* ---------- reveals FIRST (never gated behind later code) ---------- */
-  try{
-    const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.16,rootMargin:'0px 0px -8% 0px'});
-    document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
-  }catch(e){document.querySelectorAll('.reveal').forEach(el=>el.classList.add('in'));}
+  /* ===================== i18n dictionary ===================== */
+  const I18N={
+    'meta.title':{tr:'Tabi — Japonya, kendiliğinden.',en:'Tabi — Japan, effortlessly.'},
+    'nav.download':{tr:'İndir',en:'Download'},
+    'hero.eyebrow':{tr:'Planla · Uç · Keşfet',en:'Plan · Fly · Discover'},
+    'hero.t1':{tr:'Japonya,',en:'Japan,'},
+    'hero.t2':{tr:'kendiliğinden.',en:'effortlessly.'},
+    'hero.lead':{tr:'Rotanı saniyeler içinde kur — sonra o plan seninle yürüsün. Çevrimdışı planlama, otomatik Shinkansen ve gerçekten oraya vardığında açılan keşif rozetleri.',en:'Build your route in seconds — then let that plan walk with you. Offline planning, automatic Shinkansen, and discovery badges that unlock when you actually get there.'},
+    'hero.cta1':{tr:'Rotanı kur',en:'Build your route'},
+    'hero.cta2':{tr:'Nasıl çalışır? ↓',en:'How it works? ↓'},
+    'hero.s1':{tr:'günlük gerçek rota',en:'days · real route'},
+    'hero.s2':{tr:'şehir · tek akış',en:'cities · one flow'},
+    'hero.s3':{tr:'başarı rozeti',en:'achievement badges'},
+    'hero.s4v':{tr:'%100',en:'100%'},
+    'hero.s4':{tr:'çevrimdışı',en:'offline'},
+    'hero.scroll':{tr:'yolculuk başlıyor',en:'the journey begins'},
+    'ph.route.title':{tr:'🇯🇵 Japonya rotası',en:'🇯🇵 Japan route'},
+    'ph.route.sub':{tr:'13 gün · 4 şehir · Mayıs 2026',en:'13 days · 4 cities · May 2026'},
+    'city.ist':{tr:'İstanbul',en:'Istanbul'},
+    'ph.ist.sub':{tr:'IST · kalkış',en:'IST · departure'},
+    'ph.tokyo.sub':{tr:'HND · 4 gün',en:'HND · 4 days'},
+    'ph.kyoto.sub':{tr:'Shinkansen · 3 gün',en:'Shinkansen · 3 days'},
+    'ph.daytrip':{tr:'günübirlik',en:'day trip'},
+    'ph.osaka.sub':{tr:'KIX · dönüş',en:'KIX · return'},
+    'ph.d14':{tr:'Gün 1–4',en:'Day 1–4'},
+    'ph.d57':{tr:'Gün 5–7',en:'Day 5–7'},
+    'ph.d813':{tr:'Gün 8–13',en:'Day 8–13'},
+    'act1.no':{tr:'Perde I',en:'Act I'},
+    'act1.h':{tr:'Planla.',en:'Plan.'},
+    'act1.lead':{tr:'Her şey kendiliğinden olur. Tarihler bölünür, tren kartı düşer, boş günler dolar — bulut yok, bekleme yok.',en:'Everything happens on its own. Dates split, the train card drops in, empty days fill up — no cloud, no waiting.'},
+    'planla.eyebrow':{tr:'Çok şehirli rota',en:'Multi-city route'},
+    'planla.h':{tr:'Şehirleri seç.<br>Günleri biz paylaştıralım.',en:"Pick your cities.<br>We'll split the days."},
+    'planla.lead':{tr:'Rotaya yeni bir şehir eklediğin an, tüm gezi tarihleri eşit ve mantıklı biçimde yeniden bölünür. Son şehir artan günleri toplar; varış-ayrılış kendiliğinden zincirlenir. Elle tarih girdiysen ona hiç dokunmaz.',en:"The moment you add a city, all your dates re-split evenly and sensibly. The last stop takes the remaining days; arrival–departure chains itself. Set a date by hand and it's never touched."},
+    'planla.b1h':{tr:'40+ şehir, tek arama kutusu',en:'40+ cities, one search box'},
+    'planla.b1p':{tr:'Hakone\'den Yakushima\'ya — havalimanlı şehir uçuş bacağı olur, havalimansız şehir trenle gidilen durak.',en:'From Hakone to Yakushima — a city with an airport becomes a flight leg, one without becomes a train stop.'},
+    'planla.b2h':{tr:'İkinci şehri seçince Shinkansen önerilir',en:'Pick a second city and Shinkansen is suggested'},
+    'planla.b2p':{tr:'Şehir değişimini uygulama kendi yakalar, geçişi kendi düşürür.',en:'The app catches the city change and drops in the transfer itself.'},
+    'planla.ph.title':{tr:'🏙️ Gezilecek şehirler',en:'🏙️ Cities to visit'},
+    'planla.ph.sub':{tr:'Seçtikçe rotana eklenir',en:'Added to your route as you pick'},
+    'planla.morecity':{tr:'+ Başka şehir',en:'+ Another city'},
+    'planla.ph.tip':{tr:'Osaka eklendi — günler yeniden bölündü. Son durak artan günü toplar.',en:'Osaka added — days re-split. The last stop takes the extra day.'},
+    'off.eyebrow':{tr:'Çevrimdışı güç',en:'Offline power'},
+    'off.h':{tr:'Bulut yok.<br>Bekleme yok.',en:'No cloud.<br>No waiting.'},
+    'off.lead':{tr:'Tek dokunuşla, internetsiz, saat saat plan. Rota, tempo ve ilgi alanlarına göre tüm gezi anında kurulur — varış günü check-in, aralar aktivite + yemek, ayrılış günü havaalanı. Yapay zekâ beklemesi bile yok.',en:'One tap, no internet, an hour-by-hour plan. The whole trip is built instantly from your route, pace and interests — check-in on arrival day, activities + meals in between, airport on departure day. Not even an AI wait.'},
+    'off.chip1':{tr:'✈️ <b>Uçak modunda</b> çalışır',en:'✈️ Works <b>in airplane mode</b>'},
+    'off.chip2':{tr:'🔔 <b>Bilet penceresi</b> hatırlatması',en:'🔔 <b>Ticket window</b> reminder'},
+    'off.chip3':{tr:'👣 <b>~15k adım</b>/gün',en:'👣 <b>~15k steps</b>/day'},
+    'off.ph.title':{tr:'✨ Gün 2 · Tokyo',en:'✨ Day 2 · Tokyo'},
+    'off.tl1':{tr:'🏮 Tapınak · ⏱ 90 dk',en:'🏮 Temple · ⏱ 90 min'},
+    'off.tl2':{tr:'🗼 Manzara · ⏱ 2 saat',en:'🗼 View · ⏱ 2 hrs'},
+    'off.tl3t':{tr:'🍜 Ramen molası',en:'🍜 Ramen break'},
+    'off.tl4':{tr:'🎨 Sanat · 🎟 ~2 ay önce bilet',en:'🎨 Art · 🎟 ticket ~2 months ahead'},
+    'off.toast':{tr:'🔔 2 hatırlatma eklendi · USJ & teamLab bilet penceresi',en:'🔔 2 reminders added · USJ & teamLab ticket window'},
+    'shin.eyebrow':{tr:'Ulaşım zekâsı',en:'Transit intelligence'},
+    'shin.h':{tr:'İki şehir seçtin —<br>gişeyi biz düşündük.',en:'You picked two cities —<br>we handled the ticket.'},
+    'shin.lead':{tr:'Şehir değişen her güne gerçek tren kartı düşer: uydurma değil, gerçek süre ve ücretle. Beğenmedin mi? Dört ulaşım modu arasında geçiş yap — her birinin dürüst artı-eksisi yazılı.',en:"Every day the city changes, a real train card drops in — not made up, with real duration and fare. Don't like it? Switch between four transport modes — each with its honest pros and cons."},
+    'shin.b1h':{tr:'Otomatik Shinkansen',en:'Automatic Shinkansen'},
+    'shin.b1p':{tr:'Tokyo → Kyoto: Nozomi · 2s 15dk · ~14.170 ¥ + JR Pass/Smart-EX ipucu.',en:'Tokyo → Kyoto: Nozomi · 2h 15m · ~¥14,170 + JR Pass/Smart-EX tip.'},
+    'shin.b2p':{tr:'Valizini otele önceden gönder — ~2.000 ¥/parça, 1 gün. Resepsiyona "takkyubin" de yeter.',en:'Send your luggage ahead to the hotel — ~¥2,000/piece, 1 day. Just say "takkyubin" at the front desk.'},
+    'shin.ph.title':{tr:'🚄 Şehirler arası geçiş',en:'🚄 Inter-city transfer'},
+    'shin.ph.sub':{tr:'Gün 4 → Gün 5',en:'Day 4 → Day 5'},
+    'shin.tokyo':{tr:'Gün 4 · son gece',en:'Day 4 · last night'},
+    'shin.meta':{tr:'Tokyo → Kyoto · 2s 15dk · ~14.170 ¥',en:'Tokyo → Kyoto · 2h 15m · ~¥14,170'},
+    'shin.tip':{tr:'💡 Standart JR Pass Nozomi\'yi kapsamaz — ek ücret ya da Smart-EX.',en:"💡 The standard JR Pass doesn't cover Nozomi — pay a supplement or use Smart-EX."},
+    'shin.yamato':{tr:'<b style="color:#fff">Yamato Takkyubin</b> — valizini Kyoto\'daki otele önceden gönder. ~2.000 ¥/parça, 1 gün.',en:'<b style="color:#fff">Yamato Takkyubin</b> — send your luggage ahead to your Kyoto hotel. ~¥2,000/piece, 1 day.'},
+    'shin.kyoto':{tr:'Gün 5 · varış',en:'Day 5 · arrival'},
+    'bridge.eyebrow':{tr:'Perde dönüşü',en:'The turn'},
+    'bridge.title.plan':{tr:'Planladın.<br>Şimdi Japonya seninle yürüsün.',en:"You've planned it.<br>Now let Japan walk with you."},
+    'bridge.title.climax':{tr:'İşte bu yüzden gidiyorsun.',en:'This is why you go.'},
+    'bridge.bs1.title':{tr:'📖 Rehber · Gün 6',en:'📖 Guide · Day 6'},
+    'bridge.bs1.a':{tr:'⛩️ 10.000 torii · sabah sakin',en:'⛩️ 10,000 torii · quiet morning'},
+    'bridge.bs1.b':{tr:'🎋 Geleneksel sokaklar',en:'🎋 Traditional streets'},
+    'bridge.bs1.c':{tr:'Öğle · yerel',en:'Lunch · local'},
+    'bridge.bs2.title':{tr:'🧭 Canlı harita',en:'🧭 Live map'},
+    'bridge.bs2.sub':{tr:'Kyoto · buradasın',en:'Kyoto · you are here'},
+    'act2.no':{tr:'Perde II',en:'Act II'},
+    'act2.h':{tr:'Yaşa.',en:'Live it.'},
+    'act2.lead':{tr:'Aynı plan artık avucunda canlı bir yol arkadaşı. Bir yere yürü, 10 dakika kal — pin yeşile dönsün, rozet ışıldasın.',en:'The same plan is now a living companion in your hand. Walk somewhere, stay 10 minutes — the pin turns green, a badge lights up.'},
+    'disc.eyebrow':{tr:'GPS keşif motoru',en:'GPS discovery engine'},
+    'disc.h':{tr:'Yürü. Keşfet.<br>Kazan.',en:'Walk. Discover.<br>Earn.'},
+    'disc.lead':{tr:'Uygulama, rotandaki bir yere gerçekten gidip ~10 dakika kaldığında ziyaretini GPS ile onaylar. Her keşif +25 XP; şehirler doldukça rozetlerin kilidi kendiliğinden açılır. Japonya bir oyuna dönüşür.',en:'When you actually go to a place on your route and stay ~10 minutes, the app confirms the visit via GPS. Each discovery is +25 XP; as cities fill up, badges unlock on their own. Japan becomes a game.'},
+    'disc.chip1':{tr:'📍 <b>Coğrafi çit</b> · 10 dk bekleme',en:'📍 <b>Geofence</b> · 10-min dwell'},
+    'disc.chip2':{tr:'⚡ <b>+25 XP</b> / keşif',en:'⚡ <b>+25 XP</b> / discovery'},
+    'disc.chip3':{tr:'🧪 Uygulama içi <b>GPS simülatörü</b>',en:'🧪 In-app <b>GPS simulator</b>'},
+    'disc.ph.title':{tr:'🗺️ Keşif haritası',en:'🗺️ Discovery map'},
+    'disc.ph.sub':{tr:'Lv 4 · 12 yer keşfedildi',en:'Lv 4 · 12 places discovered'},
+    'disc.toast':{tr:'🎉 Senso-ji keşfedildi! +25 XP',en:'🎉 Senso-ji discovered! +25 XP'},
+    'badges.eyebrow':{tr:'18 gerçek rozet',en:'18 real badges'},
+    'badges.h':{tr:'Gezdikçe seviye atla.<br>Rozetler ışıldasın.',en:'Level up as you explore.<br>Let the badges shine.'},
+    'badges.lead':{tr:'Planlarken kazanılan 12 rozet, sahada GPS ile kazanılan 6 keşif rozeti. Kaydır — kilitliler tek tek açılsın.',en:'12 badges earned while planning, 6 discovery badges earned in the field via GPS. Scroll — the locked ones open one by one.'},
+    'badges.legend':{tr:'Her level 100 XP · plan rozeti +50 XP · keşif rozeti +25 XP',en:'Every level 100 XP · plan badge +50 XP · discovery badge +25 XP'},
+    'tools.eyebrow':{tr:'Sahada, çevrimdışı',en:'In the field, offline'},
+    'tools.h':{tr:'Uçak modunda bile<br>yanında.',en:'With you even in<br>airplane mode.'},
+    'tools.lead':{tr:'İndirilen haritalar, taksiciye gösterilecek Japonca fraz kartları, güncel kurla JPY→₺ bütçe, hava durumu ve valiz listesi — hepsi internet olmadan, cebinde. Bir de iOS ana ekran widget\'ında "sıradaki aktivite".',en:'Downloaded maps, Japanese phrase cards to show the taxi driver, a JPY→₺ budget at the latest rate, weather and a packing list — all without internet, in your pocket. Plus "next activity" on the iOS home-screen widget.'},
+    'tools.b1h':{tr:'Pusula',en:'Compass'},
+    'tools.b1p':{tr:'Acil numaralar, otel adresi ve kopyalanabilir Japonca fraz kartları.',en:'Emergency numbers, hotel address and copyable Japanese phrase cards.'},
+    'tools.b2h':{tr:'Çevrimdışı harita',en:'Offline map'},
+    'tools.b2p':{tr:'Gün rotası numaralı pinlerle — harita karoları cihazda önbelleğe alınır.',en:"The day's route with numbered pins — map tiles are cached on the device."},
+    'tools.ph.title':{tr:'🎒 Yol arkadaşın',en:'🎒 Your companion'},
+    'tools.ph.sub':{tr:'Uçak modu · çevrimdışı',en:'Airplane mode · offline'},
+    'tools.w.l':{tr:'Hava · Kyoto',en:'Weather · Kyoto'},
+    'tools.w.s':{tr:'↓18° · 💧%10',en:'↓18° · 💧10%'},
+    'tools.b.l':{tr:'Bütçe',en:'Budget'},
+    'tools.b.v':{tr:'1 ¥ ≈ ₺0,30',en:'1 ¥ ≈ ₺0.30'},
+    'tools.b.s':{tr:'son senkron',en:'last sync'},
+    'tools.p.l':{tr:'Pusula 🇯🇵',en:'Compass 🇯🇵'},
+    'tools.p.s':{tr:'📋 Kopyala',en:'📋 Copy'},
+    'tools.k.l':{tr:'Valiz',en:'Packing'},
+    'tools.k.s':{tr:'JR Pass · adaptör',en:'JR Pass · adapter'},
+    'tools.wg.v':{tr:'Sıradaki: 15:00 teamLab Planets',en:'Next: 15:00 teamLab Planets'},
+    'tools.wg.s':{tr:'Ana ekrandan tek bakışta',en:'At a glance from your home screen'},
+    'theme.eyebrow':{tr:'Marka detayı',en:'Brand detail'},
+    'theme.h':{tr:'Aynı plan. Üç dünya.',en:'One plan. Three worlds.'},
+    'theme.lead':{tr:'Dokun ve gör — uygulamanın üç gerçek teması, canlı geçişle. Sakura\'yı seçince yapraklar düşmeye başlar.',en:"Tap and see — the app's three real themes, with a live transition. Pick Sakura and the petals start to fall."},
+    'theme.t1':{tr:'🌙 Japon Gecesi',en:'🌙 Japan Night'},
+    'theme.t2':{tr:'☀️ Apple Aydınlık',en:'☀️ Apple Light'},
+    'theme.t3':{tr:'🌸 Sakura Yumuşak',en:'🌸 Sakura Soft'},
+    'theme.demo.top':{tr:'Gün 8 · Osaka 🐙',en:'Day 8 · Osaka 🐙'},
+    'theme.demo.r1':{tr:'Neon & takoyaki · akşam',en:'Neon & takoyaki · evening'},
+    'theme.demo.r2t':{tr:'Osaka Kalesi',en:'Osaka Castle'},
+    'theme.demo.r2':{tr:'Manzara · ⏱ 2 saat',en:'View · ⏱ 2 hrs'},
+    'recap.eyebrow':{tr:'Gerçek bir rota',en:'A real route'},
+    'recap.h':{tr:'İstanbul → Tokyo → Kyoto → Nara → Osaka',en:'Istanbul → Tokyo → Kyoto → Nara → Osaka'},
+    'recap.nara':{tr:'🦌 Nara geyikleri',en:'🦌 Nara deer'},
+    'final.h':{tr:'Japonya, kendiliğinden.',en:'Japan, effortlessly.'},
+    'final.lead':{tr:'Yaprak düşmeden rotanı kur. Gerisini uygulama seninle yaşar.',en:'Build your route before a petal falls. The app lives the rest with you.'},
+    'final.get':{tr:'İndir',en:'Download'},
+    'final.soon':{tr:'Yakında',en:'Coming soon'},
+    'final.emaillabel':{tr:'E-posta adresin',en:'Your email'},
+    'final.ph':{tr:'ornek@mail.com — çıkınca haber ver',en:'you@email.com — get notified at launch'},
+    'final.notify':{tr:'Haber ver',en:'Notify me'},
+    'final.msg':{tr:'Teşekkürler! Çıkınca ilk sen haberdar olacaksın 🌸',en:"Thanks! You'll be the first to know at launch 🌸"},
+    'final.trust1':{tr:'Tamamen çevrimdışı çalışır',en:'Works fully offline'},
+    'final.trust2':{tr:'Hesap gerekmez',en:'No account needed'},
+    'final.trust3':{tr:'Yapay zekâ beklemesi yok',en:'No AI wait'},
+    'final.soonnote':{tr:'Yakında: bilet fotoğrafından otomatik okuma & akıllı öneriler.',en:'Coming soon: auto-reading tickets from a photo & smart suggestions.'},
+    'foot.tag':{tr:'Rotanı kur · Japonya\'ya in · Her durak bir keşfe dönüşsün',en:'Build your route · Land in Japan · Turn every stop into a discovery'},
+    'foot.stack':{tr:'Flutter · iOS · Android yakında · <span lang="ja">さくら</span> 🌸',en:'Flutter · iOS · Android soon · <span lang="ja">さくら</span> 🌸'},
+    'unit.day':{tr:'g',en:'d'},
+    // ---- badges ----
+    'b.first.t':{tr:'İlk Japonya Planı',en:'First Japan Plan'},'b.first.d':{tr:'Japonya gezi planını oluşturdun.',en:'You created your Japan trip plan.'},
+    'b.osaka-plan.t':{tr:'Osaka Rotada',en:'Osaka on Route'},'b.osaka-plan.d':{tr:'Osaka\'yı rotana ekledin.',en:'You added Osaka to your route.'},
+    'b.kyoto-temple.t':{tr:'Kyoto Tapınak Gezgini',en:'Kyoto Temple Wanderer'},'b.kyoto-temple.d':{tr:'Kyoto\'da tapınak rotası planladın.',en:'You planned a temple route in Kyoto.'},
+    'b.nara.t':{tr:'Nara Geyik Dostu',en:'Nara Deer Friend'},'b.nara.d':{tr:'Nara durağı planına girdi.',en:'A Nara stop entered your plan.'},
+    'b.pokemon.t':{tr:'Pokémon Avcısı',en:'Pokémon Hunter'},'b.pokemon.d':{tr:'Pokémon ilgi alanını açtın.',en:'You turned on the Pokémon interest.'},
+    'b.donki.t':{tr:'Donki Uzmanı',en:'Donki Expert'},'b.donki.d':{tr:'Alışverişe odaklı plan kurdun.',en:'You built a shopping-focused plan.'},
+    'b.kids.t':{tr:'Çocukla Japonya',en:'Japan with Kids'},'b.kids.d':{tr:'Çocuklu bir gezi planladın.',en:'You planned a trip with kids.'},
+    'b.rainy.t':{tr:'Yağmurlu Gün Kurtarıcısı',en:'Rainy Day Saviour'},'b.rainy.d':{tr:'Hava\'ya göre planla\'yı kullandın.',en:'You used plan-by-weather.'},
+    'b.revision.t':{tr:'İlk Plan Revizyonu',en:'First Plan Revision'},'b.revision.d':{tr:'Planını düzenledin.',en:'You edited your plan.'},
+    'b.walk20.t':{tr:'20.000 Adım Günü',en:'20,000-Step Day'},'b.walk20.d':{tr:'Çok yürüyüşlü bir gün koydun.',en:'You added a very walk-heavy day.'},
+    'b.walk10.t':{tr:'10.000 Adım Günü',en:'10,000-Step Day'},'b.walk10.d':{tr:'10.000+ adım hedefli gün.',en:'A day targeting 10,000+ steps.'},
+    'b.community.t':{tr:'Topluluğa Katkı',en:'Community Contributor'},'b.community.d':{tr:'Beta topluluğuna ilgi gösterdin.',en:'You showed interest in the beta community.'},
+    'b.first-disc.t':{tr:'İlk Keşif',en:'First Discovery'},'b.first-disc.d':{tr:'GPS ile ilk yerini keşfettin.',en:'You discovered your first place via GPS.'},
+    'b.explorer5.t':{tr:'Kâşif',en:'Explorer'},'b.explorer5.d':{tr:'GPS ile 5 yer keşfettin.',en:'You discovered 5 places via GPS.'},
+    'b.explorer10.t':{tr:'Japonya Gezgini',en:'Japan Traveler'},'b.explorer10.d':{tr:'GPS ile 10 yer keşfettin.',en:'You discovered 10 places via GPS.'},
+    'b.tokyo-roam.t':{tr:'Tokyo Kâşifi',en:'Tokyo Explorer'},'b.tokyo-roam.d':{tr:'Tokyo\'da 3 yer gezdin.',en:'You visited 3 places in Tokyo.'},
+    'b.kyoto-roam.t':{tr:'Kyoto Kâşifi',en:'Kyoto Explorer'},'b.kyoto-roam.d':{tr:'Kyoto\'da 3 yer gezdin.',en:'You visited 3 places in Kyoto.'},
+    'b.osaka-roam.t':{tr:'Osaka Kâşifi',en:'Osaka Explorer'},'b.osaka-roam.d':{tr:'Osaka\'da 3 yer gezdin.',en:'You visited 3 places in Osaka.'},
+  };
 
-  /* ---------- BADGE WALL (early, so it's never empty) ---------- */
+  let curLang = 'tr';
+  const t=(k)=> (I18N[k] && (I18N[k][curLang]||I18N[k].tr)) || k;
+
+  /* ===================== badges ===================== */
+  const BADGES=[
+    {e:'🇯🇵',k:'b.first',xp:'+50'},{e:'🏯',k:'b.osaka-plan',xp:'+50'},{e:'📿',k:'b.kyoto-temple',xp:'+50'},
+    {e:'🦌',k:'b.nara',xp:'+50'},{e:'⚡',k:'b.pokemon',xp:'+50'},{e:'🛍️',k:'b.donki',xp:'+50'},
+    {e:'🧸',k:'b.kids',xp:'+50'},{e:'🌧️',k:'b.rainy',xp:'+50'},{e:'✨',k:'b.revision',xp:'+50'},
+    {e:'👟',k:'b.walk20',xp:'+50'},{e:'🥾',k:'b.walk10',xp:'+50'},{e:'👥',k:'b.community',xp:'+50'},
+    {e:'🧭',k:'b.first-disc',xp:'+25',gps:1},{e:'🗺️',k:'b.explorer5',xp:'+25',gps:1},{e:'🎌',k:'b.explorer10',xp:'+25',gps:1},
+    {e:'🗼',k:'b.tokyo-roam',xp:'+25',gps:1},{e:'⛩️',k:'b.kyoto-roam',xp:'+25',gps:1},{e:'🐙',k:'b.osaka-roam',xp:'+25',gps:1},
+  ];
   (function(){
-    const badges=[
-      {e:'🇯🇵',t:'İlk Japonya Planı',d:'Japonya gezi planını oluşturdun.',xp:'+50'},
-      {e:'🏯',t:'Osaka Rotada',d:'Osaka\'yı rotana ekledin.',xp:'+50'},
-      {e:'📿',t:'Kyoto Tapınak Gezgini',d:'Kyoto\'da tapınak rotası planladın.',xp:'+50'},
-      {e:'🦌',t:'Nara Geyik Dostu',d:'Nara durağı planına girdi.',xp:'+50'},
-      {e:'⚡',t:'Pokémon Avcısı',d:'Pokémon ilgi alanını açtın.',xp:'+50'},
-      {e:'🛍️',t:'Donki Uzmanı',d:'Alışverişe odaklı plan kurdun.',xp:'+50'},
-      {e:'🧸',t:'Çocukla Japonya',d:'Çocuklu bir gezi planladın.',xp:'+50'},
-      {e:'🌧️',t:'Yağmurlu Gün Kurtarıcısı',d:'Hava\'ya göre planla\'yı kullandın.',xp:'+50'},
-      {e:'✨',t:'İlk Plan Revizyonu',d:'Planını düzenledin.',xp:'+50'},
-      {e:'👟',t:'20.000 Adım Günü',d:'Çok yürüyüşlü bir gün koydun.',xp:'+50'},
-      {e:'🥾',t:'10.000 Adım Günü',d:'10.000+ adım hedefli gün.',xp:'+50'},
-      {e:'👥',t:'Topluluğa Katkı',d:'Beta topluluğuna ilgi gösterdin.',xp:'+50'},
-      {e:'🧭',t:'İlk Keşif',d:'GPS ile ilk yerini keşfettin.',xp:'+25',gps:1},
-      {e:'🗺️',t:'Kâşif',d:'GPS ile 5 yer keşfettin.',xp:'+25',gps:1},
-      {e:'🎌',t:'Japonya Gezgini',d:'GPS ile 10 yer keşfettin.',xp:'+25',gps:1},
-      {e:'🗼',t:'Tokyo Kâşifi',d:'Tokyo\'da 3 yer gezdin.',xp:'+25',gps:1},
-      {e:'⛩️',t:'Kyoto Kâşifi',d:'Kyoto\'da 3 yer gezdin.',xp:'+25',gps:1},
-      {e:'🐙',t:'Osaka Kâşifi',d:'Osaka\'da 3 yer gezdin.',xp:'+25',gps:1},
-    ];
     const wall=$('badgewall');if(!wall)return;
-    badges.forEach((b,i)=>{const el=document.createElement('div');el.className='bw locked'+(b.gps?' gps':'');
-      el.innerHTML='<span class="xpv">'+b.xp+'</span><div class="em">'+b.e+'</div><h3>'+b.t+'</h3><p>'+b.d+'</p>';
+    BADGES.forEach((b,i)=>{const el=document.createElement('div');el.className='bw locked'+(b.gps?' gps':'');
+      el.innerHTML='<span class="xpv">'+b.xp+'</span><div class="em">'+b.e+'</div><h3 data-i18n="'+b.k+'.t"></h3><p data-i18n="'+b.k+'.d"></p>';
       el.style.transitionDelay=(i%6*40)+'ms';wall.appendChild(el);});
     try{new IntersectionObserver((es,ob)=>{es.forEach(e=>{if(e.isIntersecting){
       [...wall.children].forEach((el,i)=>setTimeout(()=>el.classList.remove('locked'),reduce?0:120+i*70));ob.disconnect();
     }});},{threshold:.2}).observe(wall);}catch(e){[...wall.children].forEach(el=>el.classList.remove('locked'));}
   })();
 
-  /* ---------- starfield (static, single paint) ---------- */
-  (function(){
-    const c=$('stars');if(!c)return;const x=c.getContext('2d');const dpr=Math.min(devicePixelRatio||1,2);
-    function draw(){const W=innerWidth,H=innerHeight;c.width=W*dpr;c.height=H*dpr;x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,W,H);
-      const n=Math.min(130,Math.floor(W/10));
-      for(let i=0;i<n;i++){x.globalAlpha=Math.random()*.6+.25;x.fillStyle='#fff';
-        x.beginPath();x.arc(Math.random()*W,Math.random()*H,Math.random()*1.3+.2,0,7);x.fill();}
-      x.globalAlpha=1;}
-    draw();let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(draw,180);});
-  })();
+  /* ===================== reveals ===================== */
+  try{const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.16,rootMargin:'0px 0px -8% 0px'});
+    document.querySelectorAll('.reveal').forEach(el=>io.observe(el));}catch(e){document.querySelectorAll('.reveal').forEach(el=>el.classList.add('in'));}
 
-  /* ---------- sakura petal canvas ---------- */
-  function petalSystem(canvas, count){
+  /* ===================== day-bars ===================== */
+  const dayBars=$('dayBars'); let dayRevealed=false;
+  function renderDayBars(){if(!dayBars)return;dayBars.querySelectorAll('.dd').forEach(d=>{
+    const n = dayRevealed ? d.dataset.c : d.dataset.pre;
+    d.textContent = (n==='' || n==null) ? '–' : n + t('unit.day');});}
+  if(dayBars){try{new IntersectionObserver((es,ob)=>{es.forEach(e=>{if(e.isIntersecting){
+    const ob2=$('osakaBar'); if(ob2)ob2.style.opacity='1';
+    dayBars.querySelectorAll('.fill').forEach(f=>f.style.width=f.dataset.w2+'%');
+    dayRevealed=true; renderDayBars(); ob.disconnect();
+  }});},{threshold:.5}).observe(dayBars);}catch(e){dayRevealed=true;renderDayBars();}}
+
+  /* ===================== i18n apply ===================== */
+  let bridgeTitleState=1; // 1 plan, 2 climax
+  function setBridgeTitle(){const el=$('bridgeTitle');if(!el)return;
+    el.innerHTML = bridgeTitleState===2 ? t('bridge.title.climax') : t('bridge.title.plan');}
+  function applyLang(lang){
+    curLang = (lang==='en')?'en':'tr';
+    document.documentElement.lang = curLang;
+    document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent = t(el.getAttribute('data-i18n'));});
+    document.querySelectorAll('[data-i18n-html]').forEach(el=>{el.innerHTML = t(el.getAttribute('data-i18n-html'));});
+    document.querySelectorAll('[data-i18n-attr]').forEach(el=>{
+      el.getAttribute('data-i18n-attr').split('|').forEach(pair=>{const [a,k]=pair.split(':');if(a&&k)el.setAttribute(a.trim(),t(k.trim()));});});
+    document.title = t('meta.title');
+    setBridgeTitle();
+    renderDayBars();
+    document.querySelectorAll('.langtog button').forEach(b=>{const on=b.dataset.lang===curLang;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false');});
+    try{localStorage.setItem('tabi:lang',curLang);}catch(e){}
+  }
+  document.querySelectorAll('.langtog button').forEach(b=>b.addEventListener('click',()=>applyLang(b.dataset.lang)));
+
+  // init language: kayıtlı seçim > TR (Türkçe varsayılan; EN tek dokunuş uzakta)
+  let initLang='tr';
+  try{const s=localStorage.getItem('tabi:lang');if(s==='tr'||s==='en')initLang=s;}catch(e){}
+  applyLang(initLang);
+
+  /* ===================== starfield ===================== */
+  (function(){const c=$('stars');if(!c)return;const x=c.getContext('2d');const dpr=Math.min(devicePixelRatio||1,2);
+    function draw(){const W=innerWidth,H=innerHeight;c.width=W*dpr;c.height=H*dpr;x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,W,H);
+      const n=Math.min(130,Math.floor(W/10));for(let i=0;i<n;i++){x.globalAlpha=Math.random()*.6+.25;x.fillStyle='#fff';x.beginPath();x.arc(Math.random()*W,Math.random()*H,Math.random()*1.3+.2,0,7);x.fill();}x.globalAlpha=1;}
+    draw();let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(draw,180);});})();
+
+  /* ===================== sakura ===================== */
+  function petalSystem(canvas,count){
     if(!canvas)return{start(){},stop(){},gust(){},get active(){return false;}};
-    const x=canvas.getContext('2d');const dpr=Math.min(devicePixelRatio||1,2);
-    let W,H,petals=[],raf=null,wind=0,active=false;
+    const x=canvas.getContext('2d');const dpr=Math.min(devicePixelRatio||1,2);let W,H,petals=[],raf=null,wind=0,active=false;
     const tones=['#FF8FAB','#FFB3C8','#FFC3D7','#F7C8D2','#FF9AA5'];
-    function size(){const r=canvas.getBoundingClientRect();W=r.width||innerWidth;H=r.height||innerHeight;
-      canvas.width=W*dpr;canvas.height=H*dpr;x.setTransform(dpr,0,0,dpr,0,0);}
+    function size(){const r=canvas.getBoundingClientRect();W=r.width||innerWidth;H=r.height||innerHeight;canvas.width=W*dpr;canvas.height=H*dpr;x.setTransform(dpr,0,0,dpr,0,0);}
     function mk(){return{x:Math.random()*W,y:Math.random()*-H,r:Math.random()*7+5,sp:Math.random()*1.1+.5,sw:Math.random()*1.4+.4,ph:Math.random()*7,rot:Math.random()*7,vr:(Math.random()-.5)*.05,c:tones[(Math.random()*tones.length)|0],o:Math.random()*.4+.55};}
     function reset(){petals=Array.from({length:count},mk);}
-    function petal(p){x.save();x.translate(p.x,p.y);x.rotate(p.rot);x.globalAlpha=p.o;x.fillStyle=p.c;
-      x.beginPath();x.moveTo(0,-p.r);x.bezierCurveTo(p.r*.7,-p.r*.6,p.r*.7,p.r*.5,0,p.r);x.bezierCurveTo(-p.r*.7,p.r*.5,-p.r*.7,-p.r*.6,0,-p.r);x.fill();x.restore();}
+    function petal(p){x.save();x.translate(p.x,p.y);x.rotate(p.rot);x.globalAlpha=p.o;x.fillStyle=p.c;x.beginPath();x.moveTo(0,-p.r);x.bezierCurveTo(p.r*.7,-p.r*.6,p.r*.7,p.r*.5,0,p.r);x.bezierCurveTo(-p.r*.7,p.r*.5,-p.r*.7,-p.r*.6,0,-p.r);x.fill();x.restore();}
     function loop(){x.clearRect(0,0,W,H);for(const p of petals){p.ph+=.02;p.x+=Math.sin(p.ph)*p.sw+wind;p.y+=p.sp;p.rot+=p.vr;if(p.y>H+20){p.y=-20;p.x=Math.random()*W;}if(p.x>W+20)p.x=-20;if(p.x<-20)p.x=W+20;petal(p);}wind*=.94;if(active&&!reduce)raf=requestAnimationFrame(loop);}
     function start(){if(active)return;active=true;size();reset();raf=requestAnimationFrame(loop);}
     function stop(){active=false;if(raf)cancelAnimationFrame(raf);try{x.clearRect(0,0,W,H);}catch(e){}}
@@ -872,30 +846,18 @@ footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-in
   }
   const mainSakura=petalSystem($('sakura'),reduce?8:24);
   const finalCanvas=document.querySelector('.sakura-final');
-  if(finalCanvas){finalCanvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0';}
+  if(finalCanvas)finalCanvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0';
   const finalSakura=petalSystem(finalCanvas,reduce?6:18);
   try{new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting)finalSakura.start();else finalSakura.stop();});},{threshold:.15}).observe($('final'));}catch(e){}
-
   function startSakura(){$('sakura').classList.add('on');mainSakura.start();}
 
-  /* ---------- day-bar redistribution ---------- */
-  const dayBars=$('dayBars');
-  if(dayBars){try{new IntersectionObserver((es,ob)=>{es.forEach(e=>{if(e.isIntersecting){
-    const ob2=$('osakaBar'); if(ob2)ob2.style.opacity='1';
-    dayBars.querySelectorAll('.fill').forEach(f=>f.style.width=f.dataset.w2+'%');
-    dayBars.querySelectorAll('.dd').forEach(d=>{d.textContent=d.dataset.c+'g';});
-    ob.disconnect();
-  }});},{threshold:.5}).observe(dayBars);}catch(e){}}
-
-  /* ---------- THEME SWITCHER ---------- */
-  const themes={
-    japanDark:{bg:'#0A0A0F',card:'#12121A',accent:'#7C6AEF',ink:'#fff',ink2:'#A8A8BE',line:'rgba(255,255,255,.1)'},
+  /* ===================== theme switcher ===================== */
+  const themes={japanDark:{bg:'#0A0A0F',card:'#12121A',accent:'#7C6AEF',ink:'#fff',ink2:'#A8A8BE',line:'rgba(255,255,255,.1)'},
     appleLight:{bg:'#F5F5F7',card:'#fff',accent:'#0071E3',ink:'#1D1D1F',ink2:'#6E6E73',line:'rgba(0,0,0,.1)'},
-    sakuraSoft:{bg:'#FFF5F8',card:'#fff',accent:'#D6477F',ink:'#3D1A2B',ink2:'#6C4253',line:'rgba(214,71,127,.18)'},
-  };
+    sakuraSoft:{bg:'#FFF5F8',card:'#fff',accent:'#D6477F',ink:'#3D1A2B',ink2:'#6C4253',line:'rgba(214,71,127,.18)'}};
   const demo=$('demoCard');
   document.querySelectorAll('.tt').forEach(tab=>tab.addEventListener('click',()=>{
-    document.querySelectorAll('.tt').forEach(t=>{t.classList.remove('on');t.setAttribute('aria-pressed','false');});
+    document.querySelectorAll('.tt').forEach(x=>{x.classList.remove('on');x.setAttribute('aria-pressed','false');});
     tab.classList.add('on');tab.setAttribute('aria-pressed','true');
     const th=themes[tab.dataset.theme];if(!th||!demo)return;
     demo.style.setProperty('--d-bg',th.bg);demo.style.setProperty('--d-card',th.card);demo.style.setProperty('--d-accent',th.accent);
@@ -903,83 +865,63 @@ footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-in
     if(tab.dataset.theme==='sakuraSoft'){startSakura();mainSakura.gust(2);}
   }));
 
-  /* ---------- signup (no backend — honest) ---------- */
+  /* ===================== signup ===================== */
   const signup=$('signup');
-  if(signup)signup.addEventListener('submit',function(){
-    const inp=$('emailInput'),msg=$('signupMsg');
-    if(!inp.value){inp.focus();return;}
-    inp.value='';if(msg)msg.textContent='Teşekkürler! Çıkınca ilk sen haberdar olacaksın 🌸';
-  });
+  if(signup)signup.addEventListener('submit',function(){const inp=$('emailInput'),msg=$('signupMsg');if(!inp.value){inp.focus();return;}inp.value='';if(msg)msg.textContent=t('final.msg');});
 
-  /* ---------- SIGNATURE BRIDGE ---------- */
+  /* ===================== bridge scrub ===================== */
   const bridge=$('bridge'),arcPath=$('arcPath'),plane=$('plane');
-  const bs1=$('bs1'),bs2=$('bs2'),badgePop=$('badgePop'),bXp=$('bXp'),bTitle=$('bridgeTitle');
-  const bPhone=document.querySelector('#bridge .b-phone');
-  const stage=document.querySelector('#bridge .stage');
+  const bs1=$('bs1'),bs2=$('bs2'),badgePop=$('badgePop'),bXp=$('bXp');
+  const bPhone=document.querySelector('#bridge .b-phone'),stage=document.querySelector('#bridge .stage');
   let arcLen=0;try{arcLen=arcPath.getTotalLength();arcPath.style.strokeDasharray=arcLen;arcPath.style.strokeDashoffset=arcLen;}catch(e){}
-  let poppedBadge=false, sakuraStarted=false, titleState=0;
+  let poppedBadge=false,sakuraStarted=false;
   function bridgeScrub(){
     if(!bridge||!stage)return;
     const total=bridge.offsetHeight-innerHeight;
     const prog=clamp((-bridge.getBoundingClientRect().top)/total,0,1);
-    // arc draw 0.12..0.54
     if(arcLen){const dp=clamp((prog-0.12)/0.42,0,1);arcPath.style.strokeDashoffset=arcLen*(1-dp);
-      if(!reduce && dp>0 && dp<1){
-        try{const pt=arcPath.getPointAtLength(arcLen*dp);const pt2=arcPath.getPointAtLength(Math.min(arcLen,arcLen*dp+1));
-          const m=arcPath.getScreenCTM();const sp=new DOMPoint(pt.x,pt.y).matrixTransform(m);const sp2=new DOMPoint(pt2.x,pt2.y).matrixTransform(m);
-          const sr=stage.getBoundingClientRect();const ang=Math.atan2(sp2.y-sp.y,sp2.x-sp.x)*180/Math.PI;
-          plane.style.opacity=1;plane.style.transform='translate('+(sp.x-sr.left-11)+'px,'+(sp.y-sr.top-11)+'px) rotate('+ang+'deg)';
-        }catch(e){}
-      } else plane.style.opacity=0;
-    }
+      if(!reduce && dp>0 && dp<1){try{const pt=arcPath.getPointAtLength(arcLen*dp);const pt2=arcPath.getPointAtLength(Math.min(arcLen,arcLen*dp+1));
+        const m=arcPath.getScreenCTM();const sp=new DOMPoint(pt.x,pt.y).matrixTransform(m);const sp2=new DOMPoint(pt2.x,pt2.y).matrixTransform(m);
+        const sr=stage.getBoundingClientRect();const ang=Math.atan2(sp2.y-sp.y,sp2.x-sp.x)*180/Math.PI;
+        plane.style.opacity=1;plane.style.transform='translate('+(sp.x-sr.left-11)+'px,'+(sp.y-sr.top-11)+'px) rotate('+ang+'deg)';}catch(e){}}
+      else plane.style.opacity=0;}
     if(!reduce){const shrink=1-0.12*clamp((prog-0.15)/0.35,0,1);bPhone.style.transform='scale('+shrink+')';}
     const live=prog>0.55;bs1.classList.toggle('on',!live);bs2.classList.toggle('on',live);
     if(prog>0.6){const d=clamp((prog-0.6)/0.18,0,1);bXp.style.width=(48+42*d)+'%';}
     if(prog>0.74&&!poppedBadge){poppedBadge=true;badgePop.classList.add('on');}
     if(prog<0.6&&poppedBadge){poppedBadge=false;badgePop.classList.remove('on');}
-    if(prog>0.78){if(titleState!==2){titleState=2;bTitle.textContent='İşte bu yüzden gidiyorsun.';}if(!sakuraStarted){sakuraStarted=true;startSakura();}}
-    else if(prog<0.72){if(titleState!==1){titleState=1;bTitle.innerHTML='Planladın.<br>Şimdi Japonya seninle yürüsün.';}}
+    if(prog>0.78){if(bridgeTitleState!==2){bridgeTitleState=2;setBridgeTitle();}if(!sakuraStarted){sakuraStarted=true;startSakura();}}
+    else if(prog<0.72){if(bridgeTitleState!==1){bridgeTitleState=1;setBridgeTitle();}}
   }
 
-  /* ---------- time-of-day background ---------- */
+  /* ===================== bg + scroll engine ===================== */
   const sky=$('bg-sky'),starsEl=$('stars');
-  const phases=[
-    {p:0.00,c:['#14121f','#0A0A0F','#060609'],star:.55},
-    {p:0.22,c:['#2a2740','#171528','#0b0a12'],star:.4},
-    {p:0.42,c:['#3a3560','#211d38','#12101f'],star:.25},
-    {p:0.60,c:['#4a3a6b','#2a2140','#171225'],star:.15},
-    {p:0.80,c:['#3a2540','#241328','#120a14'],star:.25},
-    {p:1.00,c:['#1e1030','#150a1e','#0a0610'],star:.4},
-  ];
+  const phases=[{p:0,c:['#14121f','#0A0A0F','#060609'],star:.55},{p:.22,c:['#2a2740','#171528','#0b0a12'],star:.4},{p:.42,c:['#3a3560','#211d38','#12101f'],star:.25},{p:.6,c:['#4a3a6b','#2a2140','#171225'],star:.15},{p:.8,c:['#3a2540','#241328','#120a14'],star:.25},{p:1,c:['#1e1030','#150a1e','#0a0610'],star:.4}];
   function hx(a,b,t){a=a.replace('#','');b=b.replace('#','');const f=s=>[parseInt(s.slice(0,2),16),parseInt(s.slice(2,4),16),parseInt(s.slice(4,6),16)];const A=f(a),B=f(b);return'rgb('+Math.round(lerp(A[0],B[0],t))+','+Math.round(lerp(A[1],B[1],t))+','+Math.round(lerp(A[2],B[2],t))+')';}
   let maxScroll=Math.max(1,document.body.scrollHeight-innerHeight);
-  function skyAt(prog){let i=0;while(i<phases.length-1&&prog>phases[i+1].p)i++;const a=phases[i],b=phases[Math.min(i+1,phases.length-1)];const t=b.p===a.p?0:(prog-a.p)/(b.p-a.p);
-    if(sky)sky.style.background='radial-gradient(120% 90% at 50% -10%, '+hx(a.c[0],b.c[0],t)+' 0%, '+hx(a.c[1],b.c[1],t)+' 55%, '+hx(a.c[2],b.c[2],t)+' 100%)';
-    if(starsEl)starsEl.style.opacity=lerp(a.star,b.star,t);}
+  function skyAt(prog){let i=0;while(i<phases.length-1&&prog>phases[i+1].p)i++;const a=phases[i],b=phases[Math.min(i+1,phases.length-1)];const tt=b.p===a.p?0:(prog-a.p)/(b.p-a.p);
+    if(sky)sky.style.background='radial-gradient(120% 90% at 50% -10%, '+hx(a.c[0],b.c[0],tt)+' 0%, '+hx(a.c[1],b.c[1],tt)+' 55%, '+hx(a.c[2],b.c[2],tt)+' 100%)';
+    if(starsEl)starsEl.style.opacity=lerp(a.star,b.star,tt);}
+  const nav=$('nav'),navCta=$('navCta');let lastY=scrollY,scheduled=false;
+  function fr(){scheduled=false;const y=scrollY,vel=y-lastY;lastY=y;if(mainSakura.active)mainSakura.gust(vel*.03);if(nav)nav.classList.toggle('solid',y>40);if(navCta)navCta.classList.toggle('show',y>innerHeight*.7);skyAt(clamp(y/maxScroll,0,1));bridgeScrub();}
+  addEventListener('scroll',()=>{if(!scheduled){scheduled=true;requestAnimationFrame(fr);}},{passive:true});
+  addEventListener('resize',()=>{maxScroll=Math.max(1,document.body.scrollHeight-innerHeight);fr();});
+  fr();
 
-  /* ---------- ONE consolidated scroll engine (reads then writes, once/frame) ---------- */
-  const nav=$('nav'),navCta=$('navCta');
-  let lastY=scrollY,scheduled=false;
-  function frame(){
-    scheduled=false;
-    const y=scrollY, vel=y-lastY; lastY=y;
-    // reads batched inside handlers; writes:
-    if(mainSakura.active)mainSakura.gust(vel*.03);
-    if(nav)nav.classList.toggle('solid',y>40);
-    if(navCta)navCta.classList.toggle('show',y>innerHeight*.7);
-    skyAt(clamp(y/maxScroll,0,1));
-    bridgeScrub();
-  }
-  addEventListener('scroll',()=>{if(!scheduled){scheduled=true;requestAnimationFrame(frame);}},{passive:true});
-  addEventListener('resize',()=>{maxScroll=Math.max(1,document.body.scrollHeight-innerHeight);frame();});
-  // initial
-  frame();
+  document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',(e)=>{const id=a.getAttribute('href').slice(1);const el=id?document.getElementById(id):null;if(el){e.preventDefault();el.scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'});}}));
 
-  /* ---------- smooth anchor scroll (JS, so it never blocks) ---------- */
-  document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',(e)=>{
-    const id=a.getAttribute('href').slice(1);const t=id?document.getElementById(id):null;
-    if(t){e.preventDefault();t.scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'});}
-  }));
+  /* expose for audit */
+  window.__i18nAudit=function(){
+    const keys=new Set();
+    document.querySelectorAll('[data-i18n]').forEach(e=>keys.add(e.getAttribute('data-i18n')));
+    document.querySelectorAll('[data-i18n-html]').forEach(e=>keys.add(e.getAttribute('data-i18n-html')));
+    document.querySelectorAll('[data-i18n-attr]').forEach(e=>e.getAttribute('data-i18n-attr').split('|').forEach(p=>keys.add(p.split(':')[1].trim())));
+    BADGES.forEach(b=>{keys.add(b.k+'.t');keys.add(b.k+'.d');});
+    keys.add('meta.title');keys.add('bridge.title.plan');keys.add('bridge.title.climax');keys.add('unit.day');keys.add('final.msg');
+    const missing=[];keys.forEach(k=>{const d=I18N[k];if(!d||!d.tr||!d.en)missing.push(k);});
+    const unused=Object.keys(I18N).filter(k=>!keys.has(k));
+    return {domKeys:keys.size,dictKeys:Object.keys(I18N).length,missing,unused};
+  };
 })();
 </script>
 </body>
