@@ -83,6 +83,13 @@ instagram:
   session_file: "data/instagram_session.json"    # login sonrası otomatik oluşur
   uploads_log: "data/instagram_uploads.jsonl"    # upload log'u
 
+drive:
+  # "☁️ Drive'a Gönder" hedefi — bulut senkronlu YEREL klasör yolu.
+  # Google Drive Desktop (veya OneDrive/Dropbox) klasörü; dosyalar buraya
+  # kopyalanır, uygulama otomatik buluta yükler. Boşsa buton hata verir.
+  # Örn: "/Users/<sen>/Library/CloudStorage/GoogleDrive-<mail>/My Drive/JaponyaReels"
+  folder: ""
+
 stories:
   # Hikaye/Post Görsel Üreticisi. Instagram Post 4:5 formatı (1080×1350) —
   # feed'de tam görünür, kesilmez. Aynı görsel Story'e "share to story"

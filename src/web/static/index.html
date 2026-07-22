@@ -1642,26 +1642,21 @@ function renderStories(cards){
     // durum rozetleri
     const badges = [];
     if(ready) badges.push(`<span class="badge ok">✓ Yayına Hazır</span>`);
-    if(draft) badges.push(`<span class="badge draft">📤 Taslakta</span>`);
     if(hasCaption) badges.push(`<span class="badge muted">📝 Caption</span>`);
     // Buton hierarchy — durum bazlı 2 satır:
     //   primary row = sonraki adım (dominant)
-    //   secondary row = undo (varsa) + indir (küçük ikon)
+    //   secondary row = undo (varsa) + düzenle + indir
     let primaryBtn, undoBtn = "";
-    if(draft){
-      primaryBtn = `<button class="story-btn" disabled
-        title="media_id: ${escapeHtml(c.draft_info?.media_id || '')}">📤 Taslakta ✓</button>`;
-      undoBtn = `<button class="story-btn ghost" onclick="storyUnmarkReady('${c.file}')"
-        title="Yayına Hazır'dan geri al">↺ Geri Al</button>`;
-    } else if(ready){
-      primaryBtn = `<button class="story-btn primary" onclick="storyToInstagram('${c.file}')"
-        title="Instagram Photo Drafts'a yükle (caption dahil)">📤 Instagram Taslak</button>`;
+    if(ready){
+      // Yayına hazır → Drive'a gönder (JPG + caption .txt senkron klasörüne)
+      primaryBtn = `<button class="story-btn primary" onclick="storyToDrive('${c.file}')"
+        title="JPG + caption'ı Google Drive senkron klasörüne kopyala">☁️ Drive'a Gönder</button>`;
       undoBtn = `<button class="story-btn ghost" onclick="storyUnmarkReady('${c.file}')"
         title="Yayına Hazır'dan geri al">↺ Geri Al</button>`;
     } else {
       primaryBtn = `<button class="story-btn ok" onclick="storyMarkReady('${c.file}')"
         title="Yayına Hazır olarak işaretle">✅ Yayına Hazır Yap</button>`;
-      // ready değil → secondary'de undo yok, sadece indir
+      // ready değil → secondary'de undo yok, sadece düzenle + indir
     }
     const editBtn = `<button class="story-btn ghost" onclick="openEditModal('${c.file}')"
         title="Metinleri düzenle + yeniden render">✏️ Düzenle</button>`;
@@ -1704,6 +1699,19 @@ async function storyUnmarkReady(name){
   }
   toast("Geri alındı", "ok", 1500);
   await loadRecentStories();
+}
+
+async function storyToDrive(name){
+  const r = await fetch(`/api/story/drive-upload/${encodeURIComponent(name)}`, {method:"POST"});
+  if(!r.ok){
+    let msg = r.statusText;
+    try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+    toast("Drive'a gönderilemedi: " + msg, "err", 6000);
+    return;
+  }
+  const data = await r.json();
+  const n = (data.copied || []).length;
+  toast(`Drive'a kopyalandı ✓ (${n} dosya) — Drive Desktop buluta yüklüyor`, "ok", 3500);
 }
 
 async function storyToInstagram(name){
