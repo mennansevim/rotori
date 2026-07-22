@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../core/l10n.dart';
 import '../../data/reminders_store.dart';
 import '../notifications/notifications_service.dart';
 
@@ -13,6 +14,7 @@ class RemindersScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final s = LanguageScope.of(context);
     final reminders = ref.watch(remindersProvider);
     final sorted = [...reminders]..sort((a, b) => a.fireAt.compareTo(b.fireAt));
 
@@ -22,11 +24,11 @@ class RemindersScreen extends ConsumerWidget {
           icon: const Icon(LucideIcons.arrowLeft),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: const Text('Hatırlatmalar'),
+        title: Text(s.s('reminders.title')),
         actions: [
           if (sorted.isNotEmpty)
             IconButton(
-              tooltip: 'Tümünü temizle',
+              tooltip: s.s('reminders.clearAll'),
               icon: const Icon(LucideIcons.trash2),
               onPressed: () => _confirmClear(context, ref),
             ),
@@ -44,19 +46,19 @@ class RemindersScreen extends ConsumerWidget {
   }
 
   Future<void> _confirmClear(BuildContext context, WidgetRef ref) async {
+    final s = LanguageScope.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Tümünü sil'),
-        content: const Text(
-            'Tüm hatırlatmalar silinsin mi? Bildirim planlamaları da iptal edilir.'),
+        title: Text(s.s('reminders.clearAllTitle')),
+        content: Text(s.s('reminders.clearAllBody')),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Vazgeç')),
+              child: Text(s.s('reminders.cancel'))),
           FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Sil')),
+              child: Text(s.s('reminders.delete'))),
         ],
       ),
     );
@@ -72,15 +74,16 @@ class _ReminderTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final s = LanguageScope.of(context);
     final theme = Theme.of(context);
     final now = DateTime.now();
     final diff = reminder.fireAt.difference(now);
     final passed = diff.isNegative;
     final label = passed
-        ? 'Bugün / geçti'
+        ? s.s('reminders.passed')
         : diff.inDays >= 1
-            ? '${diff.inDays} gün sonra'
-            : '${diff.inHours} saat sonra';
+            ? s.p('reminders.inDays', {'n': '${diff.inDays}'})
+            : s.p('reminders.inHours', {'n': '${diff.inHours}'});
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -111,7 +114,7 @@ class _ReminderTile extends ConsumerWidget {
                   children: [
                     _Pill(
                       icon: LucideIcons.calendarClock,
-                      text: _formatDate(reminder.fireAt),
+                      text: _formatDate(reminder.fireAt, s),
                       color: passed ? Colors.deepOrange : theme.colorScheme.primary,
                     ),
                     _Pill(
@@ -131,7 +134,7 @@ class _ReminderTile extends ConsumerWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Sil',
+            tooltip: s.s('reminders.delete'),
             icon: const Icon(LucideIcons.x),
             onPressed: () async {
               await ref.read(notificationsServiceProvider).cancel(reminder);
@@ -178,6 +181,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     final theme = Theme.of(context);
     return Center(
       child: Padding(
@@ -188,14 +192,12 @@ class _EmptyState extends StatelessWidget {
             Icon(LucideIcons.bellOff,
                 size: 42, color: theme.colorScheme.outline),
             const SizedBox(height: 12),
-            Text('Henüz hatırlatma yok',
+            Text(s.s('reminders.emptyTitle'),
                 style: theme.textTheme.titleMedium
                     ?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
             Text(
-              'Planına USJ, Tokyo Disney veya Shinkansen eklediğinde '
-              '"Planı yeniden oluştur" adımında sana bilet açılış '
-              'tarihi için hatırlatma teklif edeceğim.',
+              s.s('reminders.emptyBody'),
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall,
             ),
@@ -206,22 +208,9 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-String _formatDate(DateTime d) {
-  const months = [
-    'Oca',
-    'Şub',
-    'Mar',
-    'Nis',
-    'May',
-    'Haz',
-    'Tem',
-    'Ağu',
-    'Eyl',
-    'Eki',
-    'Kas',
-    'Ara'
-  ];
+String _formatDate(DateTime d, LanguageScope s) {
+  final month = s.s('reminders.mon.${d.month}');
   final hh = d.hour.toString().padLeft(2, '0');
   final mm = d.minute.toString().padLeft(2, '0');
-  return '${d.day.toString().padLeft(2, '0')} ${months[d.month - 1]} ${d.year} · $hh:$mm';
+  return '${d.day.toString().padLeft(2, '0')} $month ${d.year} · $hh:$mm';
 }

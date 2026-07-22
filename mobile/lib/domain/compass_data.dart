@@ -4,8 +4,12 @@
 // Kaynak: apps/viewer/src/components/Pusula.tsx (inline PHRASE_CATEGORIES +
 // EMERGENCY_NUMBERS). React'te veriler bileşen içinde tutuluyordu; Flutter'da
 // tek izinli domain veri dosyasına taşındı.
+//
+// i18n: Kullanıcıya görünen etiket/anlam alanları artık düz metin değil,
+// `compassData.*` i18n ANAHTARI tutar; ekranda LanguageScope.of(context).s(key)
+// ile çözülür. Japonca metin, romaji ve telefon numaraları literal kalır.
 
-/// Tek bir Japonca fraz kartı: Japonca metin + (varsa) romaji + Türkçe anlam.
+/// Tek bir Japonca fraz kartı: Japonca metin + (varsa) romaji + anlam anahtarı.
 class CompassPhrase {
   const CompassPhrase({
     required this.jp,
@@ -13,13 +17,13 @@ class CompassPhrase {
     this.romaji,
   });
 
-  /// Japonca metin (kopyalanacak olan).
+  /// Japonca metin (kopyalanacak olan) — literal, çevrilmez.
   final String jp;
 
-  /// Türkçe anlam / etiket.
+  /// Anlam / etiket için i18n anahtarı (LanguageScope.s ile çözülür).
   final String meaning;
 
-  /// Latin harfli okunuş (bazı frazlarda yok).
+  /// Latin harfli okunuş (bazı frazlarda yok) — literal, çevrilmez.
   final String? romaji;
 }
 
@@ -32,7 +36,10 @@ class CompassPhraseCategory {
     required this.phrases,
   });
 
+  /// Kararlı kimlik (i18n değil) — durum/seçim için kullanılır.
   final String id;
+
+  /// Başlık için i18n anahtarı (LanguageScope.s ile çözülür).
   final String title;
   final String emoji;
   final List<CompassPhrase> phrases;
@@ -42,7 +49,10 @@ class CompassPhraseCategory {
 class CompassEmergencyNumber {
   const CompassEmergencyNumber({required this.number, required this.label});
 
+  /// Telefon numarası — literal, çevrilmez.
   final String number;
+
+  /// Etiket için i18n anahtarı (LanguageScope.s ile çözülür).
   final String label;
 }
 
@@ -56,7 +66,11 @@ class CompassInfoCard {
   });
 
   final String emoji;
+
+  /// Başlık için i18n anahtarı.
   final String title;
+
+  /// Alt başlık için i18n anahtarı.
   final String subtitle;
 
   /// Her satır (label, text) çifti — label boş olabilir.
@@ -65,7 +79,11 @@ class CompassInfoCard {
 
 class CompassInfoLine {
   const CompassInfoLine({this.label, required this.text});
+
+  /// Satır etiketi için i18n anahtarı (opsiyonel).
   final String? label;
+
+  /// Satır metni için i18n anahtarı.
   final String text;
 }
 
@@ -73,125 +91,125 @@ class CompassInfoLine {
 const List<CompassPhraseCategory> kCompassPhraseCategories = [
   CompassPhraseCategory(
     id: 'basic',
-    title: 'Temel',
+    title: 'compassData.cat.basic',
     emoji: '🗣️',
     phrases: [
       CompassPhrase(
         jp: 'すみません',
         romaji: 'Sumimasen',
-        meaning: 'Affedersiniz / Pardon',
+        meaning: 'compassData.phrase.basic.excuseMe',
       ),
       CompassPhrase(
         jp: 'ありがとうございます',
         romaji: 'Arigatou gozaimasu',
-        meaning: 'Çok teşekkürler',
+        meaning: 'compassData.phrase.basic.thanks',
       ),
       CompassPhrase(
         jp: '英語が話せますか？',
         romaji: 'Eigo ga hanasemasu ka?',
-        meaning: 'İngilizce biliyor musunuz?',
+        meaning: 'compassData.phrase.basic.english',
       ),
       CompassPhrase(
         jp: 'いくらですか？',
         romaji: 'Ikura desu ka?',
-        meaning: 'Kaç para?',
+        meaning: 'compassData.phrase.basic.howMuch',
       ),
       CompassPhrase(
         jp: 'お手洗いはどこ？',
         romaji: 'Otearai wa doko?',
-        meaning: 'Tuvalet nerede?',
+        meaning: 'compassData.phrase.basic.toilet',
       ),
     ],
   ),
   CompassPhraseCategory(
     id: 'food',
-    title: 'Yemekte sor',
+    title: 'compassData.cat.food',
     emoji: '🍽️',
     phrases: [
       CompassPhrase(
         jp: 'この料理に豚肉は入っていますか？',
-        meaning: 'Bu yemekte domuz eti var mı?',
+        meaning: 'compassData.phrase.food.pork',
       ),
       CompassPhrase(
         jp: 'ラードは使われていますか？',
-        meaning: 'Domuz yağı kullanılıyor mu?',
+        meaning: 'compassData.phrase.food.lard',
       ),
       CompassPhrase(
         jp: 'お酒は入っていますか？',
-        meaning: 'Alkol içeriyor mu?',
+        meaning: 'compassData.phrase.food.alcohol',
       ),
       CompassPhrase(
         jp: '鶏肉のメニューはありますか？',
-        meaning: 'Tavuklu seçenek var mı?',
+        meaning: 'compassData.phrase.food.chicken',
       ),
       CompassPhrase(
         jp: '海鮮は入っていますか？',
-        meaning: 'Deniz ürünü içeriyor mu?',
+        meaning: 'compassData.phrase.food.seafood',
       ),
       CompassPhrase(
         jp: 'お子様用に辛くないものはありますか？',
-        meaning: 'Çocuk için acısız bir seçenek var mı?',
+        meaning: 'compassData.phrase.food.kidMild',
       ),
       CompassPhrase(
         jp: 'ベジタリアンメニューはありますか？',
-        meaning: 'Vejetaryen menü var mı?',
+        meaning: 'compassData.phrase.food.vegetarian',
       ),
     ],
   ),
   CompassPhraseCategory(
     id: 'directions',
-    title: 'Yol sor',
+    title: 'compassData.cat.directions',
     emoji: '🗺️',
     phrases: [
       CompassPhrase(
         jp: '駅はどこですか？',
         romaji: 'Eki wa doko desu ka?',
-        meaning: 'İstasyon nerede?',
+        meaning: 'compassData.phrase.directions.station',
       ),
       CompassPhrase(
         jp: 'この電車は○○行きですか？',
         romaji: 'Kono densha wa __ iki desu ka?',
-        meaning: 'Bu tren __ a gidiyor mu?',
+        meaning: 'compassData.phrase.directions.trainGoes',
       ),
       CompassPhrase(
         jp: '○○まで行ってください',
         romaji: '__ made itte kudasai',
-        meaning: 'Lütfen __ a kadar',
+        meaning: 'compassData.phrase.directions.takeMeTo',
       ),
       CompassPhrase(
         jp: '地図を見せてもらえますか？',
-        meaning: 'Haritayı gösterir misiniz?',
+        meaning: 'compassData.phrase.directions.showMap',
       ),
     ],
   ),
   CompassPhraseCategory(
     id: 'emergency',
-    title: 'Acil',
+    title: 'compassData.cat.emergency',
     emoji: '🚨',
     phrases: [
       CompassPhrase(
         jp: '助けて！',
         romaji: 'Tasukete!',
-        meaning: 'İmdat!',
+        meaning: 'compassData.phrase.emergency.help',
       ),
       CompassPhrase(
         jp: '救急車を呼んでください',
         romaji: 'Kyuukyuusha o yonde kudasai',
-        meaning: 'Ambulans çağırın',
+        meaning: 'compassData.phrase.emergency.ambulance',
       ),
       CompassPhrase(
         jp: '警察を呼んでください',
         romaji: 'Keisatsu o yonde kudasai',
-        meaning: 'Polis çağırın',
+        meaning: 'compassData.phrase.emergency.police',
       ),
       CompassPhrase(
         jp: '気分が悪いです',
         romaji: 'Kibun ga warui desu',
-        meaning: 'Kendimi iyi hissetmiyorum',
+        meaning: 'compassData.phrase.emergency.feelSick',
       ),
       CompassPhrase(
         jp: 'パスポートをなくしました',
-        meaning: 'Pasaportumu kaybettim',
+        meaning: 'compassData.phrase.emergency.lostPassport',
       ),
     ],
   ),
@@ -199,15 +217,18 @@ const List<CompassPhraseCategory> kCompassPhraseCategories = [
 
 /// Acil numaralar — React EMERGENCY_NUMBERS birebir.
 const List<CompassEmergencyNumber> kCompassEmergencyNumbers = [
-  CompassEmergencyNumber(number: '110', label: 'Polis'),
-  CompassEmergencyNumber(number: '119', label: 'Ambulans / İtfaiye'),
+  CompassEmergencyNumber(number: '110', label: 'compassData.emergency.police'),
+  CompassEmergencyNumber(
+    number: '119',
+    label: 'compassData.emergency.ambulanceFire',
+  ),
   CompassEmergencyNumber(
     number: '03-3501-0110',
-    label: 'Yabancı danışma (Tokyo)',
+    label: 'compassData.emergency.foreignHelp',
   ),
   CompassEmergencyNumber(
     number: '+81-3-3470-5131',
-    label: 'TR Tokyo Büyükelçiliği',
+    label: 'compassData.emergency.trEmbassy',
   ),
 ];
 
@@ -215,35 +236,34 @@ const List<CompassEmergencyNumber> kCompassEmergencyNumbers = [
 const List<CompassInfoCard> kCompassInfoCards = [
   CompassInfoCard(
     emoji: '💴',
-    title: 'Para & Döviz',
-    subtitle: 'JPY',
+    title: 'compassData.money.title',
+    subtitle: 'compassData.money.subtitle',
     lines: [
       CompassInfoLine(
-        text: '1.000 ¥ ≈ kur değişir · 7-Eleven ATM yabancı kart kabul · '
-            'Suica/Pasmo IC kart metro + konbini için pratik.',
+        text: 'compassData.money.line',
       ),
     ],
   ),
   CompassInfoCard(
     emoji: '🎌',
-    title: 'Kültür kuralları',
-    subtitle: 'Yerel etiket',
+    title: 'compassData.culture.title',
+    subtitle: 'compassData.culture.subtitle',
     lines: [
       CompassInfoLine(
-        label: 'Metro:',
-        text: 'Sessiz ol, telefonda konuşma; önce inenlere yol ver.',
+        label: 'compassData.culture.metro.label',
+        text: 'compassData.culture.metro.text',
       ),
       CompassInfoLine(
-        label: 'Bahşiş:',
-        text: 'Verilmez — hakaret sayılabilir.',
+        label: 'compassData.culture.tipping.label',
+        text: 'compassData.culture.tipping.text',
       ),
       CompassInfoLine(
-        label: 'Tapınak:',
-        text: 'Bazı yerlerde ayakkabı çıkarılır; çekim yasaklarına dikkat.',
+        label: 'compassData.culture.temple.label',
+        text: 'compassData.culture.temple.text',
       ),
       CompassInfoLine(
-        label: 'Çöp:',
-        text: 'Sokakta çöp kutusu yok; yanında taşı, otele götür.',
+        label: 'compassData.culture.trash.label',
+        text: 'compassData.culture.trash.text',
       ),
     ],
   ),

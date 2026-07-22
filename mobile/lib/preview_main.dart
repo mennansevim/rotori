@@ -214,7 +214,7 @@ class _PreviewApp extends ConsumerWidget {
     return LanguageScope(
       lang: lang,
       child: MaterialApp.router(
-        title: 'Japan-Trip Önizleme',
+        title: L10n.resolve('home.appTitle', lang),
         theme: PT.theme(),
         routerConfig: router,
         debugShowCheckedModeBanner: false,
@@ -244,7 +244,11 @@ class _GpsSimRoute extends ConsumerWidget {
         body: Center(child: CircularProgressIndicator()),
       ),
       error: (e, _) => Scaffold(
-        body: Center(child: Text('Plan yüklenemedi: $e')),
+        body: Center(
+          child: Text(
+            LanguageScope.of(context).p('home.planLoadFailed', {'err': '$e'}),
+          ),
+        ),
       ),
     );
   }
@@ -265,7 +269,11 @@ class _DayMapRoute extends ConsumerWidget {
         body: Center(child: CircularProgressIndicator()),
       ),
       error: (e, _) => Scaffold(
-        body: Center(child: Text('Plan yüklenemedi: $e')),
+        body: Center(
+          child: Text(
+            LanguageScope.of(context).p('home.planLoadFailed', {'err': '$e'}),
+          ),
+        ),
       ),
     );
   }
@@ -285,7 +293,11 @@ class _CompassRoute extends ConsumerWidget {
         body: Center(child: CircularProgressIndicator()),
       ),
       error: (e, _) => Scaffold(
-        body: Center(child: Text('Plan yüklenemedi: $e')),
+        body: Center(
+          child: Text(
+            LanguageScope.of(context).p('home.planLoadFailed', {'err': '$e'}),
+          ),
+        ),
       ),
     );
   }
@@ -305,7 +317,11 @@ class _BudgetRoute extends ConsumerWidget {
         body: Center(child: CircularProgressIndicator()),
       ),
       error: (e, _) => Scaffold(
-        body: Center(child: Text('Plan yüklenemedi: $e')),
+        body: Center(
+          child: Text(
+            LanguageScope.of(context).p('home.planLoadFailed', {'err': '$e'}),
+          ),
+        ),
       ),
     );
   }
@@ -325,7 +341,11 @@ class _ChecklistRoute extends ConsumerWidget {
         body: Center(child: CircularProgressIndicator()),
       ),
       error: (e, _) => Scaffold(
-        body: Center(child: Text('Plan yüklenemedi: $e')),
+        body: Center(
+          child: Text(
+            LanguageScope.of(context).p('home.planLoadFailed', {'err': '$e'}),
+          ),
+        ),
       ),
     );
   }
@@ -345,25 +365,40 @@ class _WeatherRoute extends ConsumerWidget {
         body: Center(child: CircularProgressIndicator()),
       ),
       error: (e, _) => Scaffold(
-        body: Center(child: Text('Plan yüklenemedi: $e')),
+        body: Center(
+          child: Text(
+            LanguageScope.of(context).p('home.planLoadFailed', {'err': '$e'}),
+          ),
+        ),
       ),
     );
   }
 }
 
-class _PreviewHome extends StatelessWidget {
+class _PreviewHome extends ConsumerWidget {
   const _PreviewHome();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     const id = 'demo';
+    final s = LanguageScope.of(context);
+    final lang = ref.watch(appLangProvider);
     return Scaffold(
       backgroundColor: PT.bg,
       appBar: AppBar(
-        title: const Text('Japan-Trip · Önizleme'),
+        title: Text(s.s('home.appBar')),
         backgroundColor: PT.bg,
         foregroundColor: PT.text,
         elevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: _LangToggle(
+              active: lang,
+              onSelect: (l) => ref.read(appLangProvider.notifier).set(l),
+            ),
+          ),
+        ],
       ),
       body: Center(
         child: ConstrainedBox(
@@ -372,39 +407,108 @@ class _PreviewHome extends StatelessWidget {
             shrinkWrap: true,
             padding: const EdgeInsets.all(24),
             children: [
-              const Text(
-                '🇯🇵 Demo veri yüklendi',
-                style: TextStyle(
+              Text(
+                s.s('home.demoLoaded'),
+                style: const TextStyle(
                     fontSize: 22, fontWeight: FontWeight.w700, color: PT.text),
               ),
               const SizedBox(height: 6),
-              const Text(
-                'Tokyo + Kyoto rotalı, dolu günlü örnek plan. '
-                'Supabase/login yok — sadece görsel kontrol.',
-                style: TextStyle(color: PT.textSecondary, height: 1.5),
+              Text(
+                s.s('home.demoSub'),
+                style: const TextStyle(color: PT.textSecondary, height: 1.5),
               ),
               const SizedBox(height: 28),
               _NavCard(
                 emoji: '✨',
-                title: 'Sıfırdan yeni plan',
-                subtitle: 'Boş bir gezi ile Welcome adımından başla',
+                title: s.s('home.card.new.title'),
+                subtitle: s.s('home.card.new.sub'),
                 onTap: () => context.go('/plans/new/edit'),
               ),
               const SizedBox(height: 12),
               _NavCard(
                 emoji: '🗓️',
-                title: 'Planlayıcı (demo)',
-                subtitle: 'Dolu Tokyo+Kyoto demo planında adımları gez',
+                title: s.s('home.card.planner.title'),
+                subtitle: s.s('home.card.planner.sub'),
                 onTap: () => context.go('/plans/$id/edit'),
               ),
               const SizedBox(height: 12),
               _NavCard(
                 emoji: '📖',
-                title: 'Rehber (Viewer)',
-                subtitle: 'Geri sayım, günlük plan, keşif haritası girişi',
+                title: s.s('home.card.viewer.title'),
+                subtitle: s.s('home.card.viewer.sub'),
                 onTap: () => context.go('/plans/$id/view'),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Küçük TR/EN dil seçici — demo home için (planner TopNav'daki onLang
+/// deseninin sadeleştirilmiş, segmentli hali). Etiketler dil kodudur (çeviri
+/// gerektirmez); aktif dili `appLangProvider.notifier.set` ile değiştirir.
+class _LangToggle extends StatelessWidget {
+  const _LangToggle({required this.active, required this.onSelect});
+  final AppLang active;
+  final ValueChanged<AppLang> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: PT.bgSubtle,
+        borderRadius: BorderRadius.circular(PT.radiusPill),
+        border: Border.all(color: PT.border),
+      ),
+      padding: const EdgeInsets.all(2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final l in AppLang.values)
+            _LangChip(
+              label: l.code.toUpperCase(),
+              selected: l == active,
+              onTap: () => onSelect(l),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LangChip extends StatelessWidget {
+  const _LangChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(PT.radiusPill),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          decoration: BoxDecoration(
+            color: selected ? PT.accent : Colors.transparent,
+            borderRadius: BorderRadius.circular(PT.radiusPill),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? Colors.white : PT.textSecondary,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),

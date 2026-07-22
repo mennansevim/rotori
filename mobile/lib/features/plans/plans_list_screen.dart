@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/l10n.dart';
 import '../../data/plans_repository.dart';
 import '../../domain/trip_factory.dart';
 import '../auth/auth_repository.dart';
@@ -25,21 +26,22 @@ class PlansListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final s = LanguageScope.of(context);
     final pull = ref.watch(plansPullProvider);
     final plans = ref.watch(localPlansProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Planlarım'),
+        title: Text(s.s('plans.title')),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Yenile',
+            tooltip: s.s('plans.refresh'),
             onPressed: () => ref.invalidate(plansPullProvider),
           ),
           IconButton(
             icon: const Icon(Icons.logout),
-            tooltip: 'Çıkış yap',
+            tooltip: s.s('plans.signOut'),
             onPressed: () => ref.read(authRepositoryProvider).signOut(),
           ),
         ],
@@ -55,7 +57,7 @@ class PlansListScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _createNew(context, ref),
         icon: const Icon(Icons.add),
-        label: const Text('Yeni plan'),
+        label: Text(s.s('plans.newPlan')),
       ),
     );
   }
@@ -66,6 +68,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -75,13 +78,12 @@ class _EmptyState extends StatelessWidget {
             const Text('🗾', style: TextStyle(fontSize: 64)),
             const SizedBox(height: 16),
             Text(
-              'Henüz planın yok',
+              s.s('plans.emptyTitle'),
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Sağ alttaki "Yeni plan" ile başla — sonra günleri, uçuşları ve '
-              'otelleri ekleriz.',
+            Text(
+              s.s('plans.emptyBody'),
               textAlign: TextAlign.center,
             ),
           ],
@@ -98,6 +100,7 @@ class _PlansList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: plans.length + (offlineHint != null ? 1 : 0),
@@ -106,7 +109,7 @@ class _PlansList extends StatelessWidget {
           return Card(
             child: ListTile(
               leading: const Icon(Icons.cloud_off, color: Colors.orange),
-              title: const Text('Çevrimdışı — yerel kopya gösteriliyor'),
+              title: Text(s.s('plans.offline')),
               subtitle: Text(
                 offlineHint!,
                 maxLines: 2,
@@ -121,21 +124,23 @@ class _PlansList extends StatelessWidget {
             leading: const CircleAvatar(child: Text('🇯🇵')),
             title: Text(trip.title as String),
             subtitle: Text(
-              '${trip.tripStart.toString().substring(0, 10)} → '
-              '${trip.tripEnd.toString().substring(0, 10)}  ·  '
-              '${(trip.days as List).length} gün',
+              s.p('plans.dateRange', {
+                'start': trip.tripStart.toString().substring(0, 10),
+                'end': trip.tripEnd.toString().substring(0, 10),
+                'n': '${(trip.days as List).length}',
+              }),
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
                   icon: const Icon(Icons.visibility),
-                  tooltip: 'Görüntüle',
+                  tooltip: s.s('plans.view'),
                   onPressed: () => context.go('/plans/${trip.id}/view'),
                 ),
                 IconButton(
                   icon: const Icon(Icons.edit),
-                  tooltip: 'Düzenle',
+                  tooltip: s.s('plans.edit'),
                   onPressed: () => context.go('/plans/${trip.id}/edit'),
                 ),
               ],

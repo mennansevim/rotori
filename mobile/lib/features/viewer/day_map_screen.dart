@@ -11,6 +11,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../core/l10n.dart';
 import '../../domain/city_places.dart';
 import '../../domain/destination_profiles.dart';
 import '../../domain/place_coords.dart';
@@ -91,6 +92,7 @@ class _DayMapViewState extends State<_DayMapView> {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     final dests = [...trip.preferences.destinations]
       ..sort((a, b) => a.order.compareTo(b.order));
     final dest =
@@ -121,8 +123,8 @@ class _DayMapViewState extends State<_DayMapView> {
       appBar: AppBar(
         leading: const BackButton(),
         title: Text(
-          '🗺️ Gün ${day?.dayNumber ?? '?'}'
-          '${cityLabel.isNotEmpty ? ' · $cityLabel' : ''}',
+          s.p('map.dayTitle', {'day': '${day?.dayNumber ?? '?'}'}) +
+              (cityLabel.isNotEmpty ? ' · $cityLabel' : ''),
           style: TextStyle(
             color: palette.textPrimary,
             fontWeight: FontWeight.w700,
@@ -146,7 +148,7 @@ class _DayMapViewState extends State<_DayMapView> {
                 size: 18,
               ),
               label: Text(
-                '📥 Çevrimdışı hazırla',
+                s.s('map.prewarm'),
                 style: TextStyle(
                   color: palette.textPrimary,
                   fontWeight: FontWeight.w600,
@@ -211,6 +213,7 @@ class _DayMapViewState extends State<_DayMapView> {
     }
     setState(() => _prewarmProgress = 0.0);
     final messenger = ScaffoldMessenger.of(context);
+    final s = LanguageScope.of(context);
     try {
       final count = await provider.prewarmTiles(
         south: bounds.south,
@@ -229,15 +232,15 @@ class _DayMapViewState extends State<_DayMapView> {
         SnackBar(
           content: Text(
             count > 0
-                ? 'Çevrimdışı hazır — $count kare'
-                : 'Çevrimdışı hazırlama atlandı (alan çok geniş ya da web).',
+                ? s.p('map.prewarmDone', {'count': '$count'})
+                : s.s('map.prewarmSkipped'),
           ),
         ),
       );
     } catch (e) {
       if (!mounted) return;
       messenger.showSnackBar(
-        SnackBar(content: Text('Çevrimdışı hazırlama başarısız: $e')),
+        SnackBar(content: Text(s.p('map.prewarmFailed', {'err': '$e'}))),
       );
     } finally {
       if (mounted) {
@@ -318,7 +321,7 @@ class _DayMapViewState extends State<_DayMapView> {
         RichAttributionWidget(
           attributions: [
             TextSourceAttribution(
-              '© OpenStreetMap katkıda bulunanlar',
+              LanguageScope.of(context).s('map.osmAttribution'),
               onTap: () {},
             ),
           ],
@@ -416,6 +419,7 @@ class _EmptyBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -430,7 +434,7 @@ class _EmptyBanner extends StatelessWidget {
         ],
       ),
       child: Text(
-        'Bu güne haritada gösterilecek konumlu durak yok.',
+        s.s('map.emptyBanner'),
         textAlign: TextAlign.center,
         style: TextStyle(
           color: palette.textSecondary,

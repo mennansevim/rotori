@@ -238,6 +238,7 @@ class _EmergencyRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
@@ -261,7 +262,7 @@ class _EmergencyRow extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    entry.label,
+                    s.s(entry.label),
                     style: TextStyle(
                       color: palette.textPrimary,
                       fontSize: 14,
@@ -440,6 +441,7 @@ class _CategoryTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return Material(
       color: selected
           ? palette.accent.withValues(alpha: 0.18)
@@ -458,7 +460,7 @@ class _CategoryTab extends StatelessWidget {
             ),
           ),
           child: Text(
-            '${category.emoji} ${category.title}',
+            '${category.emoji} ${s.s(category.title)}',
             style: TextStyle(
               color: selected ? palette.accent : palette.textSecondary,
               fontWeight: FontWeight.w600,
@@ -484,6 +486,7 @@ class _PhraseRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
@@ -502,7 +505,7 @@ class _PhraseRow extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        phrase.meaning,
+                        s.s(phrase.meaning),
                         style: TextStyle(
                           color: palette.textSecondary,
                           fontSize: 12,
@@ -556,10 +559,11 @@ class _InfoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return _CompassCard(
       emoji: card.emoji,
-      title: card.title,
-      subtitle: card.subtitle,
+      title: s.s(card.title),
+      subtitle: s.s(card.subtitle),
       accent: palette.matcha,
       palette: palette,
       child: Column(
@@ -578,13 +582,13 @@ class _InfoSection extends StatelessWidget {
                   children: [
                     if (line.label != null && line.label!.isNotEmpty)
                       TextSpan(
-                        text: '${line.label} ',
+                        text: '${s.s(line.label!)} ',
                         style: TextStyle(
                           color: palette.textPrimary,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                    TextSpan(text: line.text),
+                    TextSpan(text: s.s(line.text)),
                   ],
                 ),
               ),

@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/l10n.dart';
 import '../../data/user_stats_store.dart';
 import '../../domain/city_places.dart';
 import '../../domain/geofence.dart';
@@ -25,11 +26,16 @@ class RewardMapScreen extends ConsumerStatefulWidget {
 class _RewardMapScreenState extends ConsumerState<RewardMapScreen> {
   void _showDiscovery(Geofence fence) {
     if (!mounted) return;
+    final s = LanguageScope.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
         content: Text(
-          '🎉 ${fence.emoji} ${fence.name} keşfedildi! +${fence.xp} XP',
+          s.p('reward.discovered', {
+            'emoji': fence.emoji,
+            'name': fence.name,
+            'xp': '${fence.xp}',
+          }),
         ),
       ),
     );
@@ -37,12 +43,16 @@ class _RewardMapScreenState extends ConsumerState<RewardMapScreen> {
 
   void _showBadges(List<BadgeDefinition> newly) {
     if (!mounted || newly.isEmpty) return;
+    final s = LanguageScope.of(context);
     final messenger = ScaffoldMessenger.of(context);
     for (final b in newly) {
       messenger.showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('🎉 ${b.emoji} ${b.title} rozeti kazanıldı!'),
+          content: Text(s.p('reward.badgeEarned', {
+            'emoji': b.emoji,
+            'title': s.s(b.title),
+          })),
         ),
       );
     }
@@ -66,13 +76,14 @@ class _RewardMapScreenState extends ConsumerState<RewardMapScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = ref.watch(geofenceControllerProvider(widget.trip));
+    final s = LanguageScope.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Keşif haritası'),
+        title: Text(s.s('reward.title')),
         actions: [
           IconButton(
-            tooltip: 'GPS Simülatörü (test)',
+            tooltip: s.s('reward.gpsSimTooltip'),
             icon: const Text('🧪', style: TextStyle(fontSize: 20)),
             onPressed: controller == null ? null : _openSimulator,
           ),
@@ -102,6 +113,7 @@ class _RewardMapBody extends StatelessWidget {
       listenable: controller,
       builder: (context, _) {
         final theme = Theme.of(context);
+        final s = LanguageScope.of(context);
         final routeCities = detectTripCities(trip);
         final visits = controller.visits;
         final stats = controller.stats;
@@ -135,14 +147,17 @@ class _RewardMapBody extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Keşif haritası',
+                        s.s('reward.title'),
                         style: theme.textTheme.titleLarge
                             ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       Text(
-                        '${routeCities.length} şehir · '
-                        '$visitedCount/${allPlaces.length} nokta gezildi · '
-                        'Level ${level.level}',
+                        s.p('reward.summary', {
+                          'cities': '${routeCities.length}',
+                          'visited': '$visitedCount',
+                          'total': '${allPlaces.length}',
+                          'level': '${level.level}',
+                        }),
                         style: theme.textTheme.bodySmall,
                       ),
                     ],
@@ -170,9 +185,12 @@ class _RewardMapBody extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Level ${level.level}', style: theme.textTheme.bodySmall),
                 Text(
-                  '${level.nextThreshold} XP sonraki seviyeye',
+                  s.p('reward.level', {'n': '${level.level}'}),
+                  style: theme.textTheme.bodySmall,
+                ),
+                Text(
+                  s.p('reward.xpToNext', {'xp': '${level.nextThreshold}'}),
                   style: theme.textTheme.bodySmall,
                 ),
               ],
@@ -189,9 +207,7 @@ class _RewardMapBody extends StatelessWidget {
                       const Text('🧭', style: TextStyle(fontSize: 36)),
                       const SizedBox(height: 8),
                       Text(
-                        'Rotanda tanıdık bir şehir bulamadık. Planlayıcıda '
-                        'Tokyo, Kyoto, Osaka gibi şehirler eklersen keşif '
-                        'haritası burada belirir.',
+                        s.s('reward.noCities'),
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodyMedium,
                       ),
@@ -201,9 +217,7 @@ class _RewardMapBody extends StatelessWidget {
               )
             else ...[
               Text(
-                'Her şehrin popüler noktaları aşağıda. Konum takibi açıkken '
-                'bir noktada 10 dakikadan fazla kalırsan otomatik yeşillenir '
-                've sana bildirim gelir. 📍',
+                s.s('reward.cityIntro'),
                 style: theme.textTheme.bodySmall,
               ),
               const SizedBox(height: 12),
@@ -222,18 +236,27 @@ class _RewardMapBody extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: _StatBox(label: 'Gezilen', value: '$visitedCount nokta'),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
                   child: _StatBox(
-                    label: 'Toplam',
-                    value: '${allPlaces.length} nokta',
+                    label: s.s('reward.stat.visited'),
+                    value: s.p('reward.stat.pointsValue', {'n': '$visitedCount'}),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _StatBox(label: 'Şehir', value: '${routeCities.length}'),
+                  child: _StatBox(
+                    label: s.s('reward.stat.total'),
+                    value: s.p(
+                      'reward.stat.pointsValue',
+                      {'n': '${allPlaces.length}'},
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _StatBox(
+                    label: s.s('reward.stat.cities'),
+                    value: '${routeCities.length}',
+                  ),
                 ),
               ],
             ),
@@ -244,14 +267,13 @@ class _RewardMapBody extends StatelessWidget {
 
             // Aktivite rozetleri
             Text(
-              '🏅 Aktivite rozetleri',
+              s.s('reward.badgesTitle'),
               style: theme.textTheme.titleMedium
                   ?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 4),
             Text(
-              'Bunlar manuel planlama/kullanım rozetleridir (GPS doğrulaması '
-              'gerekmiyor).',
+              s.s('reward.badgesSubtitle'),
               style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: 12),
@@ -272,6 +294,7 @@ class _RewardsChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final s = LanguageScope.of(context);
     final level = xpToLevel(stats.xp);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -289,8 +312,12 @@ class _RewardsChip extends StatelessWidget {
           const SizedBox(width: 8),
           Flexible(
             child: Text(
-              'Level ${level.level} · ${stats.xp} XP · '
-              '${stats.badgesEarned.length}/${kBadgeDefinitions.length}',
+              s.p('reward.chip', {
+                'level': '${level.level}',
+                'xp': '${stats.xp}',
+                'earned': '${stats.badgesEarned.length}',
+                'total': '${kBadgeDefinitions.length}',
+              }),
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodySmall
                   ?.copyWith(fontWeight: FontWeight.w600),
@@ -337,17 +364,18 @@ class _TrackingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final s = LanguageScope.of(context);
     final status = controller.status;
     final watching = controller.isTracking;
 
     final title = switch (status) {
       GeofencePermissionStatus.unsupported =>
-        '📵 Konum servisleri kullanılamıyor',
-      GeofencePermissionStatus.denied => '🔒 Konum izni reddedildi',
+        s.s('reward.tracking.unsupported'),
+      GeofencePermissionStatus.denied => s.s('reward.tracking.denied'),
       GeofencePermissionStatus.deniedForever =>
-        '🔒 Konum izni kalıcı olarak reddedildi',
-      _ when watching => '📡 Konum takibi açık',
-      _ => '📍 Konum takibini aç',
+        s.s('reward.tracking.deniedForever'),
+      _ when watching => s.s('reward.tracking.on'),
+      _ => s.s('reward.tracking.off'),
     };
 
     return Card(
@@ -363,23 +391,24 @@ class _TrackingCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Noktaların otomatik gezildi olması için konum takibi gerekir. '
-              'Bir yerde 10 dk+ kalınca kendiliğinden yeşillenir ve bildirim '
-              'alırsın. Batarya için uygulama arka plandayken takip '
-              'duraklatılır.',
+              s.s('reward.tracking.body'),
               style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: 12),
             if (status == GeofencePermissionStatus.deniedForever)
               FilledButton(
                 onPressed: controller.openSettings,
-                child: const Text('Ayarlar\'dan konum iznini aç'),
+                child: Text(s.s('reward.tracking.openSettings')),
               )
             else if (status != GeofencePermissionStatus.unsupported &&
                 status != GeofencePermissionStatus.denied)
               FilledButton(
                 onPressed: watching ? controller.stop : controller.start,
-                child: Text(watching ? 'Durdur' : 'Konumu izlemeye başla'),
+                child: Text(
+                  watching
+                      ? s.s('reward.tracking.stop')
+                      : s.s('reward.tracking.start'),
+                ),
               ),
           ],
         ),
@@ -395,6 +424,7 @@ class _BadgeGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final s = LanguageScope.of(context);
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -417,7 +447,7 @@ class _BadgeGrid extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    b.title,
+                    s.s(b.title),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall
@@ -426,7 +456,9 @@ class _BadgeGrid extends StatelessWidget {
                   const SizedBox(height: 2),
                   Expanded(
                     child: Text(
-                      earned.contains(b.id) ? b.description : b.hint,
+                      earned.contains(b.id)
+                          ? s.s(b.description)
+                          : s.s(b.hint),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall,
@@ -434,7 +466,7 @@ class _BadgeGrid extends StatelessWidget {
                   ),
                   if (!earned.contains(b.id))
                     Text(
-                      '🔒 Kilitli',
+                      s.s('reward.locked'),
                       style: theme.textTheme.labelSmall?.copyWith(
                         color:
                             theme.colorScheme.onSurface.withValues(alpha: 0.5),

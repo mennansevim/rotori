@@ -12,6 +12,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/l10n.dart';
 import '../../domain/geofence.dart';
 import '../../domain/types.dart';
 import 'geofence_service.dart';
@@ -45,7 +46,8 @@ class _GpsSimScreenState extends ConsumerState<GpsSimScreen> {
       accuracy: 10,
       timestamp: _simClock,
     ));
-    _snack('📍 ${f.emoji} ${f.name} konumuna gidildi (dwell başladı)');
+    _snack(LanguageScope.of(context)
+        .p('gps.snack.teleport', {'emoji': f.emoji, 'name': f.name}));
   }
 
   /// Fence'te 10 dk kal & onayla. Motor her örnek arası dwell artışını
@@ -76,7 +78,7 @@ class _GpsSimScreenState extends ConsumerState<GpsSimScreen> {
       _simClock = _simClock.add(const Duration(minutes: 5));
     }
     setState(() {});
-    _snack('🎲 Otomatik tur tamamlandı');
+    _snack(LanguageScope.of(context).s('gps.snack.autoTourDone'));
   }
 
   String _fmtClock(DateTime t) {
@@ -87,10 +89,11 @@ class _GpsSimScreenState extends ConsumerState<GpsSimScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final s = LanguageScope.of(context);
     final controller = ref.watch(geofenceControllerProvider(widget.trip));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('GPS Simülatörü (test)')),
+      appBar: AppBar(title: Text(s.s('gps.title'))),
       body: controller == null
           ? const Center(child: CircularProgressIndicator())
           : ListenableBuilder(
@@ -104,9 +107,7 @@ class _GpsSimScreenState extends ConsumerState<GpsSimScreen> {
                   padding: const EdgeInsets.all(16),
                   children: [
                     Text(
-                      'Bu araç sahte konum verisi besler; gerçek GPS '
-                      'gerektirmez. Buradaki keşifler kalıcıdır ve keşif '
-                      'haritasında da görünür.',
+                      s.s('gps.intro'),
                       style: theme.textTheme.bodySmall,
                     ),
                     const SizedBox(height: 16),
@@ -118,7 +119,9 @@ class _GpsSimScreenState extends ConsumerState<GpsSimScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('🕒 Simüle saat: ${_fmtClock(_simClock)}',
+                            Text(
+                                s.p('gps.simClock',
+                                    {'time': _fmtClock(_simClock)}),
                                 style: theme.textTheme.titleSmall?.copyWith(
                                     fontWeight: FontWeight.w700)),
                             const SizedBox(height: 12),
@@ -129,12 +132,12 @@ class _GpsSimScreenState extends ConsumerState<GpsSimScreen> {
                                 OutlinedButton(
                                   onPressed: () =>
                                       _advance(const Duration(minutes: 1)),
-                                  child: const Text('+1 dk'),
+                                  child: Text(s.s('gps.plus1min')),
                                 ),
                                 OutlinedButton(
                                   onPressed: () =>
                                       _advance(const Duration(minutes: 10)),
-                                  child: const Text('+10 dk (bekle)'),
+                                  child: Text(s.s('gps.plus10min')),
                                 ),
                               ],
                             ),
@@ -156,14 +159,14 @@ class _GpsSimScreenState extends ConsumerState<GpsSimScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: _Readout(
-                            label: 'Keşif',
+                            label: s.s('gps.readout.discoveries'),
                             value: '${stats.discoveredPlaceIds.length}',
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: _Readout(
-                            label: 'Rozet',
+                            label: s.s('gps.readout.badges'),
                             value: '${stats.badgesEarned.length}',
                           ),
                         ),
@@ -173,14 +176,13 @@ class _GpsSimScreenState extends ConsumerState<GpsSimScreen> {
 
                     FilledButton(
                       onPressed: () => _autoTour(controller, fences),
-                      child: const Text('🎲 Otomatik tur (ilk 6 nokta)'),
+                      child: Text(s.s('gps.autoTour')),
                     ),
                     const SizedBox(height: 16),
 
                     if (fences.isEmpty)
                       Text(
-                        'Bu rotada küratörlü nokta yok. Planlayıcıda Tokyo, '
-                        'Kyoto, Osaka gibi şehirler ekle.',
+                        s.s('gps.emptyFences'),
                         style: theme.textTheme.bodyMedium,
                       )
                     else
@@ -243,6 +245,7 @@ class _FenceRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final s = LanguageScope.of(context);
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
@@ -265,7 +268,7 @@ class _FenceRow extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             if (discovered)
-              Text('keşfedildi ✓',
+              Text(s.s('gps.fence.discovered'),
                   style: theme.textTheme.labelMedium?.copyWith(
                       color: theme.colorScheme.primary,
                       fontWeight: FontWeight.w700))
@@ -275,12 +278,12 @@ class _FenceRow extends StatelessWidget {
                 children: [
                   OutlinedButton(
                     onPressed: onGo,
-                    child: const Text('📍 Buraya git'),
+                    child: Text(s.s('gps.fence.goHere')),
                   ),
                   const SizedBox(height: 4),
                   FilledButton(
                     onPressed: onDwell,
-                    child: const Text('⏱️ 10 dk kal & onayla'),
+                    child: Text(s.s('gps.fence.dwell')),
                   ),
                 ],
               ),

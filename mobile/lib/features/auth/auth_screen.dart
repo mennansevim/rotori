@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart'
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/l10n.dart';
 import 'auth_repository.dart';
 
 /// Login / Kayıt ekranı — e-posta + şifre + Sign in with Apple (iOS/macOS).
@@ -86,6 +87,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -106,7 +108,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _isRegister ? 'Hesap oluştur' : 'Giriş yap',
+                      _isRegister
+                          ? s.s('auth.createAccount')
+                          : s.s('auth.signIn'),
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
@@ -115,9 +119,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       autofillHints: const [AutofillHints.email],
-                      decoration: const InputDecoration(labelText: 'E-posta'),
+                      decoration:
+                          InputDecoration(labelText: s.s('auth.email')),
                       validator: (v) => (v == null || !v.contains('@'))
-                          ? 'Geçerli bir e-posta gir'
+                          ? s.s('auth.emailInvalid')
                           : null,
                     ),
                     const SizedBox(height: 12),
@@ -125,9 +130,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       controller: _passwordController,
                       obscureText: true,
                       autofillHints: const [AutofillHints.password],
-                      decoration: const InputDecoration(labelText: 'Şifre'),
+                      decoration:
+                          InputDecoration(labelText: s.s('auth.password')),
                       validator: (v) => (v == null || v.length < 6)
-                          ? 'En az 6 karakter'
+                          ? s.s('auth.passwordTooShort')
                           : null,
                     ),
                     if (_error != null) ...[
@@ -149,7 +155,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               height: 20,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : Text(_isRegister ? 'Kayıt ol' : 'Giriş yap'),
+                          : Text(_isRegister
+                              ? s.s('auth.register')
+                              : s.s('auth.signIn')),
                     ),
                     const SizedBox(height: 12),
                     TextButton(
@@ -158,8 +166,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           : () => setState(() => _isRegister = !_isRegister),
                       child: Text(
                         _isRegister
-                            ? 'Zaten hesabın var mı? Giriş yap'
-                            : 'Hesabın yok mu? Kayıt ol',
+                            ? s.s('auth.haveAccount')
+                            : s.s('auth.noAccount'),
                       ),
                     ),
                     // Sign in with Apple — yalnızca iOS/macOS'ta görünür.
@@ -172,7 +180,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             padding:
                                 const EdgeInsets.symmetric(horizontal: 12),
                             child: Text(
-                              'veya',
+                              s.s('auth.or'),
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ),
@@ -187,7 +195,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           foregroundColor: Colors.white,
                           minimumSize: const Size.fromHeight(48),
                         ),
-                        child: const Text('🍎 Apple ile Giriş Yap'),
+                        child: Text(s.s('auth.signInWithApple')),
                       ),
                     ],
                   ],

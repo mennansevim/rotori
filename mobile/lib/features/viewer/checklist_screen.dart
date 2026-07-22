@@ -171,10 +171,13 @@ class _ChecklistView extends ConsumerWidget {
     CategoryGroups groups,
   ) async {
     // Kategori seçenekleri: şablon kategorileri (ilk görülme sırasıyla) + Diğer.
+    // g.key artık i18n anahtarı (packing.cat.*); "Diğer" de anahtarla eklenir.
     final categories = <String>[
       for (final g in groups) g.key,
     ];
-    if (!categories.contains('Diğer')) categories.add('Diğer');
+    if (!categories.contains('packing.cat.other')) {
+      categories.add('packing.cat.other');
+    }
 
     final s = LanguageScope.of(context);
     final labelController = TextEditingController();
@@ -214,7 +217,7 @@ class _ChecklistView extends ConsumerWidget {
                         DropdownMenuItem<String>(
                           value: c,
                           child: Text(
-                            c,
+                            s.s(c),
                             style: TextStyle(color: palette.textPrimary),
                           ),
                         ),
@@ -366,10 +369,13 @@ class _CategoryHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // `title` bir i18n kategori anahtarıdır (packing.cat.*). Bilinmeyen anahtar
+    // (ör. eski kayıtlı özel madde kategorisi) olduğu gibi geri döner.
+    final s = LanguageScope.of(context);
     return Padding(
       padding: const EdgeInsets.only(top: 8, bottom: 8),
       child: Text(
-        title,
+        s.s(title),
         style: TextStyle(
           color: palette.accent,
           fontSize: 14,
@@ -404,6 +410,9 @@ class _ChecklistRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Şablon maddelerinde label/note i18n anahtarıdır; özel maddelerde düz
+    // kullanıcı metnidir — s.s() bilinmeyen anahtarı olduğu gibi döndürür.
+    final s = LanguageScope.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
@@ -433,7 +442,7 @@ class _ChecklistRow extends StatelessWidget {
                         children: [
                           Flexible(
                             child: Text(
-                              item.label,
+                              s.s(item.label),
                               style: TextStyle(
                                 color: checked
                                     ? palette.textMuted
@@ -474,7 +483,7 @@ class _ChecklistRow extends StatelessWidget {
                       if (item.note != null && item.note!.isNotEmpty) ...[
                         const SizedBox(height: 3),
                         Text(
-                          item.note!,
+                          s.s(item.note!),
                           style: TextStyle(
                             color: palette.textMuted,
                             fontSize: 12,
