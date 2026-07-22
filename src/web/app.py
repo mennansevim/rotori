@@ -784,6 +784,49 @@ def story_list() -> dict[str, Any]:
     return {"cards": cards}
 
 
+@app.post("/api/story/drive-upload/{name}")
+def story_drive_upload(name: str) -> dict[str, Any]:
+    """Kart JPG'sini (+ varsa caption .txt) config'deki Drive senkron klasörüne
+    kopyalar. Drive Desktop / OneDrive vb. buluta otomatik yükler."""
+    name = _safe_story_name(name)
+    if cfg.drive_folder is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Drive klasörü ayarlı değil. config.yaml → drive.folder alanına "
+                   "yerel senkron klasör yolunu yaz (Google Drive Desktop klasörü).")
+    found = _find_story_jpg(name)
+    if found is None:
+        raise HTTPException(status_code=404, detail="Kart bulunamadı.")
+    jpg, _is_ready = found
+
+    dest_dir = cfg.drive_folder
+    try:
+        dest_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Drive klasörü oluşturulamadı/erişilemedi: {dest_dir} ({exc}). "
+                   "Yol doğru mu ve Drive Desktop çalışıyor mu?") from exc
+    if not dest_dir.is_dir():
+        raise HTTPException(status_code=400,
+                            detail=f"Drive klasörü bulunamadı: {dest_dir}")
+
+    copied = []
+    try:
+        shutil.copy2(jpg, dest_dir / jpg.name)
+        copied.append(jpg.name)
+        txt = jpg.with_suffix(".txt")
+        if txt.exists():
+            shutil.copy2(txt, dest_dir / txt.name)
+            copied.append(txt.name)
+    except OSError as exc:
+        raise HTTPException(status_code=500,
+                            detail=f"Kopyalama hatası: {exc}") from exc
+
+    log.info(f"  Drive'a kopyalandı: {copied} → {dest_dir}")
+    return {"ok": True, "copied": copied, "dest": str(dest_dir)}
+
+
 @app.get("/api/story/meta/{name}")
 def story_meta(name: str) -> dict[str, Any]:
     """Kartın kaynak verisini döndür (düzenleme formu için). Sidecar .json

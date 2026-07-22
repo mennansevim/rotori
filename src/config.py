@@ -123,6 +123,9 @@ class Config:
     instagram: InstagramCfg | None = None
     stories: "StoriesCfg | None" = None
     unsplash: "UnsplashCfg | None" = None
+    # "Drive'a Gönder" hedefi — yerel senkron klasör yolu (Google Drive Desktop /
+    # OneDrive vb.). Dosyalar buraya kopyalanır, bulut uygulaması otomatik yükler.
+    drive_folder: Path | None = None
 
 
 def _resolve(base: Path, p: str) -> Path:
@@ -194,9 +197,17 @@ def load_config(config_path: str | None = None) -> Config:
             orientation=str(unsplash_raw.get("orientation", "portrait")),
         )
 
+    # Drive'a Gönder hedef klasörü (yerel senkron yolu)
+    drive_raw = raw.get("drive") or {}
+    drive_folder: Path | None = None
+    _df = (drive_raw.get("folder") or "").strip()
+    if _df and _df not in ("", "REPLACE_ME_DRIVE_FOLDER"):
+        drive_folder = _resolve(project_root, _df)
+
     return Config(paths=paths, ollama=ollama, dify=dify, reels=reels, pilot=pilot,
                   run=run, project_root=project_root, openai=openai_cfg,
-                  instagram=ig_cfg, stories=stories_cfg, unsplash=unsplash_cfg)
+                  instagram=ig_cfg, stories=stories_cfg, unsplash=unsplash_cfg,
+                  drive_folder=drive_folder)
 
 
 def require_video_source(cfg: Config) -> Path:
