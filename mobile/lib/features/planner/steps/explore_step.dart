@@ -6,6 +6,7 @@ import '../../../core/l10n.dart';
 import '../../../domain/destination_profiles.dart';
 import '../../../domain/explore.dart';
 import '../../../domain/japan_suggestions.dart';
+import '../../../domain/place_guide.dart';
 import '../../../domain/trip_factory.dart';
 import '../../../domain/types.dart';
 import '../planner_theme.dart';
@@ -447,7 +448,9 @@ class _ExploreStepState extends State<ExploreStep> {
                       city: p.city,
                       rating: placeRating(p),
                       kidFriendly: isKidFriendly(p),
-                      imageUrl: p.imageUrl,
+                      // Görsel place_guide'ın küratörlü (Wikimedia) fotoğrafından
+                      // gelir — mekana birebir uyumlu. Rehber yoksa emoji fallback.
+                      imageUrl: _placeCardImage(p.name),
                       selected:
                           planNames.contains(p.name.toLowerCase().trim()),
                       feedback: _added['${dest.id}:${p.id}'],
@@ -467,6 +470,13 @@ class _ExploreStepState extends State<ExploreStep> {
 
 /// "⭐ Popüler gezilecek yerler" bölümüne özel kompakt kart — 2-sütun grid için.
 /// Emoji + ad (bold 14, 2 satır ellipsis) + puan (12 gold) + şehir (12 muted).
+/// Popüler yer kartının görseli: place_guide'daki gerçek (Wikimedia) fotoğraf.
+/// Eşleşen rehber yoksa null → kart emoji gradient fallback gösterir.
+String? _placeCardImage(String name) {
+  final g = matchPlaceGuide(name);
+  return (g != null && g.imageUrls.isNotEmpty) ? g.imageUrls.first : null;
+}
+
 class _PopularPlaceCard extends StatelessWidget {
   const _PopularPlaceCard({
     required this.emoji,

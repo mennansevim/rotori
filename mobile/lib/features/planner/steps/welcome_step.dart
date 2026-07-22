@@ -412,7 +412,7 @@ class _WelcomeStepState extends State<WelcomeStep> {
                 textInputAction: TextInputAction.done,
                 onSubmitted: (v) => Navigator.of(ctx).pop(v.trim()),
                 decoration: InputDecoration(
-                  hintText: 'İstanbul, İzmir, Ankara…',
+                  hintText: s.s('welcome.origin.hint'),
                   filled: true,
                   fillColor: Colors.white,
                   isDense: true,

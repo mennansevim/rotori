@@ -537,10 +537,10 @@ class _JourneyStepState extends State<JourneyStep> {
           s.s('journey.field.departureTr'),
           index == 0
               ? AirportPickerField(
-                  countryCodes: const ['TR'],
+                  // Dünyanın herhangi bir yerinden kalkış — ülke kısıtı yok.
                   valueCode: _originAirport.isEmpty ? null : _originAirport,
                   valueLabel: _origin.isEmpty ? null : _origin,
-                  placeholder: 'İstanbul (IST), Sabiha (SAW)...',
+                  placeholder: 'IST · LHR · JFK · SIN · DXB…',
                   onSelect: _setOrigin,
                 )
               : _FixedBox(text: _origin.isEmpty ? '—' : _origin),
@@ -605,7 +605,7 @@ class _JourneyStepState extends State<JourneyStep> {
         _field(
           s.s('journey.field.arrivalTr'),
           AirportPickerField(
-            countryCodes: const ['TR'],
+            // Dönüş varış = kalkış ülken (herhangi bir yer) — kısıt yok.
             valueCode: returnArr.isNotEmpty ? returnArr.first.iata : null,
             valueLabel: returnArr.isNotEmpty ? returnArr.first.city : null,
             placeholder: s.s('journey.ph.returnArr'),

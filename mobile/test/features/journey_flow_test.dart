@@ -26,7 +26,7 @@ void main() {
     expect(trip.preferences.destinations.first.city, 'Tokyo');
     // Havayolu / kalkış / varış alanları görünür
     expect(find.text('Havayolu'), findsOneWidget);
-    expect(find.text('Kalkış (Türkiye)'), findsOneWidget);
+    expect(find.text('Kalkış'), findsOneWidget);
     expect(find.text('Varış (Japonya)'), findsOneWidget);
   });
 
@@ -36,8 +36,8 @@ void main() {
     await tester.pumpWidget(harness(trip));
     await tester.pumpAndSettle();
 
-    // Kalkış picker'ına dokun (placeholder metniyle bul)
-    await tester.tap(find.textContaining('İstanbul (IST)').first);
+    // Kalkış picker'ına dokun (dünya geneli placeholder metniyle bul)
+    await tester.tap(find.textContaining('IST · LHR').first);
     await tester.pumpAndSettle();
 
     // Modal açıldı — arama kutusu + IST listesi
