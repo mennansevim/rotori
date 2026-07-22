@@ -96,7 +96,8 @@ class CityCard extends StatelessWidget {
                             ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       Text(
-                        '$visitedCount/${city.places.length} gezildi',
+                        LanguageScope.of(context).p('cityCard.visitedCount',
+                            {'done': '$visitedCount', 'total': '${city.places.length}'}),
                         style: theme.textTheme.bodySmall,
                       ),
                     ],
@@ -163,7 +164,8 @@ class _PlaceRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final lang = LanguageScope.of(context).lang;
+    final loc = LanguageScope.of(context);
+    final lang = loc.lang;
     final isVisited = visited.contains(place.id);
     final isProgress = !isVisited && inProgress.contains(place.id);
     final statusColor = isVisited
@@ -190,9 +192,9 @@ class _PlaceRow extends StatelessWidget {
           ),
           Text(
             isVisited
-                ? 'gezildi'
+                ? loc.s('cityCard.visited')
                 : isProgress
-                    ? 'algılanıyor…'
+                    ? loc.s('cityCard.detecting')
                     : place.category.of(lang),
             style: theme.textTheme.bodySmall?.copyWith(color: statusColor),
           ),

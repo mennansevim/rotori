@@ -1121,4 +1121,9 @@ const Map<String, Map<AppLang, String>> _strings = {
   'wx.showers': {AppLang.tr: 'Sağanak', AppLang.en: 'Showers'},
   'wx.thunderstorm': {AppLang.tr: 'Gök gürültülü', AppLang.en: 'Thunderstorm'},
   'wx.unknown': {AppLang.tr: 'Bilinmiyor', AppLang.en: 'Unknown'},
+
+  // ===== City discovery card (Wave 4 polish) =====
+  'cityCard.visitedCount': {AppLang.tr: '{done}/{total} gezildi', AppLang.en: '{done}/{total} visited'},
+  'cityCard.visited': {AppLang.tr: 'gezildi', AppLang.en: 'visited'},
+  'cityCard.detecting': {AppLang.tr: 'algılanıyor…', AppLang.en: 'detecting…'},
 };
