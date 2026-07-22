@@ -21,10 +21,10 @@ class BookingWindow {
 
   final String id;
 
-  /// Popup başlığı, örn. "USJ Express Pass"
+  /// Popup başlığı — i18n anahtarı (örn. 'bw.usj.title').
   final String title;
 
-  /// Kısa açıklama.
+  /// Kısa açıklama — i18n anahtarı (örn. 'bw.usj.subtitle').
   final String subtitle;
 
   /// Bilet satışa kaç gün önce açılıyor (yaklaşık).
@@ -33,7 +33,7 @@ class BookingWindow {
   /// Popup ve reminder ekranındaki emoji/kısa etiket.
   final String icon;
 
-  /// Kullanıcıya faydalı ipucu ("gişe yerine Smart-EX" vb.)
+  /// Kullanıcıya faydalı ipucu — i18n anahtarı (örn. 'bw.usj.tip').
   final String tip;
 
   /// Bildirimin gün içinde tetikleneceği saat (24h). 09:00 default.
@@ -42,37 +42,31 @@ class BookingWindow {
 
 const _kUsj = BookingWindow(
   id: 'usj-express',
-  title: 'USJ Express Pass',
-  subtitle: 'Universal Studios Japan bilet ve Express Pass',
+  title: 'bw.usj.title',
+  subtitle: 'bw.usj.subtitle',
   opensBeforeDays: 60,
   icon: '🎢',
-  tip:
-      'Express Pass ~2 ay öncesinden satışa açılır ve sezonda hızla tükenir. '
-      'Resmî USJ sitesinden ya da klook üzerinden ayır.',
+  tip: 'bw.usj.tip',
   reminderNoonHour: 9,
 );
 
 const _kDisney = BookingWindow(
   id: 'tokyo-disney',
-  title: 'Tokyo Disney passport + Premier Access',
-  subtitle: 'Tokyo Disneyland / DisneySea giriş bileti',
+  title: 'bw.disney.title',
+  subtitle: 'bw.disney.subtitle',
   opensBeforeDays: 60,
   icon: '🏰',
-  tip:
-      'Giriş biletleri ~2 ay öncesinden Tokyo Disney Resort resmi sitesinden. '
-      'Premier Access uygulama üzerinden gün içi alınır ama giriş bileti şart.',
+  tip: 'bw.disney.tip',
   reminderNoonHour: 9,
 );
 
 const _kShinkansen = BookingWindow(
   id: 'shinkansen-smartex',
-  title: 'Shinkansen (Smart-EX)',
-  subtitle: 'Tokyo ↔ Kyoto / Osaka arası yüksek hızlı tren',
+  title: 'bw.shinkansen.title',
+  subtitle: 'bw.shinkansen.subtitle',
   opensBeforeDays: 30,
   icon: '🚄',
-  tip:
-      'Smart-EX üzerinden 1 ay öncesinden koltuk seçerek ayır. Nozomi için JR '
-      'Pass geçmez. Sabah erken seferler oturmayı kolaylaştırır.',
+  tip: 'bw.shinkansen.tip',
   reminderNoonHour: 9,
 );
 
@@ -160,7 +154,7 @@ List<BookingAlert> detectBookingAlerts(Trip trip, {DateTime? now}) {
       final ref = parseDay(tokyo.departureDate) ??
           parseDay(trip.preferences.travelDates.start) ??
           today;
-      addIfNeeded(_kShinkansen, ref, 'Tokyo → Kansai geçişi');
+      addIfNeeded(_kShinkansen, ref, 'bw.reason.tokyoKansai');
     }
   }
 

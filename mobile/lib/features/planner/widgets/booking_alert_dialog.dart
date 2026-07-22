@@ -193,10 +193,10 @@ class _AlertTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(alert.window.title,
+                    Text(s.s(alert.window.title),
                         style: theme.textTheme.titleSmall
                             ?.copyWith(fontWeight: FontWeight.w700)),
-                    Text(alert.window.subtitle,
+                    Text(s.s(alert.window.subtitle),
                         style: theme.textTheme.bodySmall),
                   ],
                 ),
@@ -228,7 +228,7 @@ class _AlertTile extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          Text('💡 ${alert.window.tip}',
+          Text('💡 ${s.s(alert.window.tip)}',
               style: theme.textTheme.bodySmall
                   ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
         ],

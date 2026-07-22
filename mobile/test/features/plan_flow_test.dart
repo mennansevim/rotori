@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:japan_trip/core/l10n.dart';
 import 'package:japan_trip/domain/city_transfers.dart';
 import 'package:japan_trip/domain/day_optimizer.dart';
 import 'package:japan_trip/domain/trip_factory.dart';
@@ -184,10 +185,10 @@ void main() {
     // shinkansen + bilinen çift → gerçek süre/ücret korunur (Tokyo→Osaka Nozomi).
     final sk = suggestionForMode('shinkansen', 'Tokyo', 'Osaka', 3, 4);
     expect(sk.transfer.duration, contains('2s'));
-    // bus modu → bus emojisi & Willer tip
+    // bus modu → bus emojisi & Willer tip (tip artık i18n anahtarı; TR'ye çöz)
     final sb = suggestionForMode('bus', 'Tokyo', 'Osaka', 3, 4);
     expect(sb.transfer.emoji, '🚌');
-    expect(sb.transfer.tip, contains('Willer'));
+    expect(L10n.resolve('${sb.transfer.tip}', AppLang.tr), contains('Willer'));
   });
 
   test('reorder resequenceTimes ile saatleri kronolojik dizer', () {

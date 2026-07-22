@@ -51,11 +51,15 @@ void main() {
           final g = matchPlaceGuide(p.name)!;
           expect(g.imageUrls, isNotEmpty, reason: '${p.name} görselsiz');
           expect(g.visitDurationMin, greaterThan(0));
-          expect(g.brief.length, greaterThan(40),
-              reason: '${p.name} tanıtımı çok kısa');
+          // brief/bestTimeOfDay artık LText (tr+en); iki dil de dolu olmalı.
+          expect(g.brief.tr.length, greaterThan(40),
+              reason: '${p.name} TR tanıtımı çok kısa');
+          expect(g.brief.en.length, greaterThan(40),
+              reason: '${p.name} EN tanıtımı çok kısa');
           expect(g.tips.length, greaterThanOrEqualTo(3),
               reason: '${p.name} için en az 3 ipucu olmalı');
-          expect(g.bestTimeOfDay, isNotEmpty);
+          expect(g.bestTimeOfDay.tr, isNotEmpty);
+          expect(g.bestTimeOfDay.en, isNotEmpty);
         }
       }
     });

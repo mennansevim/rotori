@@ -8,25 +8,26 @@ import 'package:japan_trip/data/weather_service.dart';
 void main() {
   group('weatherInfo', () {
     test('bilinen kod aralıkları doğru emoji/etiket verir', () {
-      expect(weatherInfo(0), ('☀️', 'Açık'));
-      expect(weatherInfo(1), ('⛅', 'Parçalı bulutlu'));
-      expect(weatherInfo(3), ('⛅', 'Parçalı bulutlu'));
-      expect(weatherInfo(45), ('🌫️', 'Sisli'));
-      expect(weatherInfo(48), ('🌫️', 'Sisli'));
-      expect(weatherInfo(51), ('🌧️', 'Yağmurlu'));
-      expect(weatherInfo(65), ('🌧️', 'Yağmurlu'));
-      expect(weatherInfo(67), ('🌧️', 'Yağmurlu'));
-      expect(weatherInfo(71), ('❄️', 'Karlı'));
-      expect(weatherInfo(77), ('❄️', 'Karlı'));
-      expect(weatherInfo(80), ('🌦️', 'Sağanak'));
-      expect(weatherInfo(82), ('🌦️', 'Sağanak'));
-      expect(weatherInfo(95), ('⛈️', 'Gök gürültülü'));
-      expect(weatherInfo(99), ('⛈️', 'Gök gürültülü'));
+      // weatherInfo artık i18n anahtarı döndürür (etiket LanguageScope ile çözülür).
+      expect(weatherInfo(0), ('☀️', 'wx.clear'));
+      expect(weatherInfo(1), ('⛅', 'wx.partlyCloudy'));
+      expect(weatherInfo(3), ('⛅', 'wx.partlyCloudy'));
+      expect(weatherInfo(45), ('🌫️', 'wx.fog'));
+      expect(weatherInfo(48), ('🌫️', 'wx.fog'));
+      expect(weatherInfo(51), ('🌧️', 'wx.rain'));
+      expect(weatherInfo(65), ('🌧️', 'wx.rain'));
+      expect(weatherInfo(67), ('🌧️', 'wx.rain'));
+      expect(weatherInfo(71), ('❄️', 'wx.snow'));
+      expect(weatherInfo(77), ('❄️', 'wx.snow'));
+      expect(weatherInfo(80), ('🌦️', 'wx.showers'));
+      expect(weatherInfo(82), ('🌦️', 'wx.showers'));
+      expect(weatherInfo(95), ('⛈️', 'wx.thunderstorm'));
+      expect(weatherInfo(99), ('⛈️', 'wx.thunderstorm'));
     });
 
     test('bilinmeyen kod fallback döner', () {
-      expect(weatherInfo(123), ('🌡️', 'Bilinmiyor'));
-      expect(weatherInfo(-1), ('🌡️', 'Bilinmiyor'));
+      expect(weatherInfo(123), ('🌡️', 'wx.unknown'));
+      expect(weatherInfo(-1), ('🌡️', 'wx.unknown'));
     });
   });
 

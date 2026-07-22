@@ -235,7 +235,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
     for (final n in near) {
       out.add((
         n.place.emoji,
-        '${n.place.name} · ${n.place.category} · ${_formatDistance(n.distanceM, lang)}',
+        '${n.place.name} · ${n.place.category.of(lang)} · ${_formatDistance(n.distanceM, lang)}',
       ));
     }
     return out;
@@ -461,7 +461,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
     if (item.description != null && item.description!.trim().isNotEmpty) {
       intro = item.description!.trim();
     } else if (guide != null) {
-      intro = guide.brief;
+      intro = guide.brief.of(s.lang);
     } else {
       final parts = [
         if (categoryLabel != null) categoryLabel,
@@ -604,7 +604,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
               const Text('🌅', style: TextStyle(fontSize: 13)),
               const SizedBox(width: 6),
               Expanded(
-                child: Text(guide.bestTimeOfDay,
+                child: Text(guide.bestTimeOfDay.of(s.lang),
                     style: TextStyle(fontSize: 12.5, color: secondary)),
               ),
             ],
@@ -630,7 +630,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
                             color: cs.primary)),
                     const SizedBox(width: 7),
                     Expanded(
-                      child: Text(t,
+                      child: Text(t.of(s.lang),
                           style: TextStyle(
                               fontSize: 12.5, color: onSurface, height: 1.35)),
                     ),
@@ -640,7 +640,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
           if (guide.bookingHint != null)
             Padding(
               padding: const EdgeInsets.only(top: 2),
-              child: Text('🎟 ${guide.bookingHint}',
+              child: Text('🎟 ${guide.bookingHint!.of(s.lang)}',
                   style: TextStyle(fontSize: 12, color: secondary)),
             ),
         ],

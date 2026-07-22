@@ -76,7 +76,11 @@ class DayTemplate {
   });
 
   final String id;
+
+  /// i18n anahtarı (prefix `tmpl.`) — `L10n.resolve(label, lang)` ile çözülür.
   final String label;
+
+  /// i18n anahtarı (prefix `tmpl.`) — `L10n.resolve(theme, lang)` ile çözülür.
   final String theme;
   final String emoji;
   final List<String> places;
@@ -103,12 +107,15 @@ const List<String> kJapanTips = [
   'Wi-Fi’ı önceden eSIM ile çöz — istasyonlarda ücretsiz olanlar yavaş.',
 ];
 
+// NOT: `label` ve `theme` alanları i18n anahtarıdır (prefix `tmpl.`); generator
+// bunları `L10n.resolve(...)` ile seçili dile çözer. `id`, `emoji`, `places`,
+// `stepsEstimate` sabit kalır. Özel isim içeren temalarda tr==en.
 const List<DayTemplate> kJapanDayTemplates = [
-  DayTemplate(id: 'tokyo-arrival', label: 'Varış günü', theme: "Tokyo'ya varış & check-in", emoji: '🛬', places: [], stepsEstimate: 5000),
-  DayTemplate(id: 'asakusa-skytree', label: 'Asakusa + Skytree', theme: 'Asakusa & Skytree', emoji: '🗼', places: ['sensoji', 'skytree'], stepsEstimate: 15000),
-  DayTemplate(id: 'shibuya', label: 'Shibuya günü', theme: 'Shibuya & Harajuku', emoji: '🌸', places: ['meiji', 'shibuya'], stepsEstimate: 16000),
-  DayTemplate(id: 'disney-day', label: 'Disneyland', theme: 'Tokyo Disneyland', emoji: '🏰', places: ['disney'], stepsEstimate: 22000),
-  DayTemplate(id: 'osaka-move', label: 'Osaka geçiş', theme: 'Shinkansen & Dotonbori', emoji: '🚄', places: ['dotonbori'], stepsEstimate: 11000),
-  DayTemplate(id: 'kyoto-day', label: 'Kyoto günübirlik', theme: 'Kyoto & Fushimi Inari', emoji: '⛩️', places: ['fushimi'], stepsEstimate: 18000),
-  DayTemplate(id: 'nara-day', label: 'Nara günübirlik', theme: 'Nara turu', emoji: '🦌', places: ['nara'], stepsEstimate: 16000),
+  DayTemplate(id: 'tokyo-arrival', label: 'tmpl.tokyoArrival.label', theme: 'tmpl.tokyoArrival.theme', emoji: '🛬', places: [], stepsEstimate: 5000),
+  DayTemplate(id: 'asakusa-skytree', label: 'tmpl.asakusaSkytree.label', theme: 'tmpl.asakusaSkytree.theme', emoji: '🗼', places: ['sensoji', 'skytree'], stepsEstimate: 15000),
+  DayTemplate(id: 'shibuya', label: 'tmpl.shibuya.label', theme: 'tmpl.shibuya.theme', emoji: '🌸', places: ['meiji', 'shibuya'], stepsEstimate: 16000),
+  DayTemplate(id: 'disney-day', label: 'tmpl.disney.label', theme: 'tmpl.disney.theme', emoji: '🏰', places: ['disney'], stepsEstimate: 22000),
+  DayTemplate(id: 'osaka-move', label: 'tmpl.osakaMove.label', theme: 'tmpl.osakaMove.theme', emoji: '🚄', places: ['dotonbori'], stepsEstimate: 11000),
+  DayTemplate(id: 'kyoto-day', label: 'tmpl.kyotoDay.label', theme: 'tmpl.kyotoDay.theme', emoji: '⛩️', places: ['fushimi'], stepsEstimate: 18000),
+  DayTemplate(id: 'nara-day', label: 'tmpl.naraDay.label', theme: 'tmpl.naraDay.theme', emoji: '🦌', places: ['nara'], stepsEstimate: 16000),
 ];

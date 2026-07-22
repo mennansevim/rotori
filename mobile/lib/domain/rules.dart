@@ -1,6 +1,7 @@
 // TypeScript packages/shared/src/rules.ts'in Dart karşılığı.
 // Yayın öncesi uyarı kuralları + gün-arası taşıma.
 
+import '../core/l10n.dart';
 import 'types.dart';
 
 enum TripWarningSeverity { info, warn, urgent }
@@ -9,19 +10,33 @@ class TripWarning {
   const TripWarning({
     required this.id,
     required this.severity,
-    required this.message,
+    required this.messageKey,
+    this.messageParams,
     this.dayNumber,
     this.step,
   });
 
   final String id;
   final TripWarningSeverity severity;
-  final String message;
+
+  /// i18n anahtarı ('rules.*'). Görüntülemede LanguageScope ile çözülür.
+  final String messageKey;
+
+  /// {placeholder} değerleri (varsa) — çözüm anında doldurulur.
+  final Map<String, String>? messageParams;
+
   final int? dayNumber;
 
   /// Yayın adımındaki "adıma dön" butonu için hedef step id.
   /// 'journey' | 'explore' | 'title' | 'hotels' | 'food' | 'plan' | 'calendar'
   final String? step;
+
+  /// Geriye dönük uyumluluk: anahtarı varsayılan dilde (TR) çözer.
+  /// UI i18n için messageKey/messageParams'ı LanguageScope ile kullanmalı.
+  String get message => L10n.parametrize(
+        L10n.resolve(messageKey, AppLang.tr),
+        messageParams ?? const <String, String>{},
+      );
 }
 
 /// 15000 → "15.000" (tr-TR binlik ayırıcı, TS toLocaleString karşılığı).
@@ -37,8 +52,12 @@ TripWarning? checkStepsOverLimit(DayPlan day, int? maxSteps) {
     return TripWarning(
       id: 'steps-${day.dayNumber}',
       severity: TripWarningSeverity.warn,
-      message:
-          'Gün ${day.dayNumber}: tahmini ${_trNumber(estimate)} adım, limit ${_trNumber(maxSteps)}. Taksi veya aktivite azaltmayı düşünün.',
+      messageKey: 'rules.stepsOverLimit',
+      messageParams: {
+        'day': '${day.dayNumber}',
+        'estimate': _trNumber(estimate),
+        'limit': _trNumber(maxSteps),
+      },
       dayNumber: day.dayNumber,
       step: 'plan',
     );
@@ -60,7 +79,8 @@ List<TripWarning> checkUnassignedMustSee(Trip trip) {
       .map((place) => TripWarning(
             id: 'mustsee-$place',
             severity: TripWarningSeverity.info,
-            message: '"$place" henüz günlük plana eklenmemiş.',
+            messageKey: 'rules.mustSeeUnassigned',
+            messageParams: {'place': place},
             step: 'plan',
           ))
       .toList();
@@ -76,14 +96,15 @@ TripWarning? checkShinkansenDeadline(String? deadline, {DateTime? now}) {
     return const TripWarning(
       id: 'shinkansen-urgent',
       severity: TripWarningSeverity.urgent,
-      message: 'Shinkansen rezervasyon penceresi geçti veya bugün son gün.',
+      messageKey: 'rules.shinkansenUrgent',
     );
   }
   if (days <= 30) {
     return TripWarning(
       id: 'shinkansen-soon',
       severity: TripWarningSeverity.warn,
-      message: 'Shinkansen rezervasyonuna $days gün kaldı.',
+      messageKey: 'rules.shinkansenSoon',
+      messageParams: {'days': '$days'},
     );
   }
   return null;
@@ -97,7 +118,7 @@ TripWarning? checkHotelsIncomplete(Trip trip) {
     return const TripWarning(
       id: 'hotels-missing',
       severity: TripWarningSeverity.warn,
-      message: 'Henüz otel eklenmedi. Konaklama adımında en az bir otel ekle.',
+      messageKey: 'rules.hotelsMissing',
       step: 'hotels',
     );
   }
@@ -111,7 +132,8 @@ TripWarning? checkHotelsIncomplete(Trip trip) {
     return TripWarning(
       id: 'hotels-incomplete',
       severity: TripWarningSeverity.warn,
-      message: '$incomplete otel için şehir, ad veya açık adres eksik.',
+      messageKey: 'rules.hotelsIncomplete',
+      messageParams: {'count': '$incomplete'},
       step: 'hotels',
     );
   }
@@ -125,7 +147,7 @@ TripWarning? checkEmptyPlan(Trip trip) {
     return const TripWarning(
       id: 'plan-empty',
       severity: TripWarningSeverity.warn,
-      message: 'Plan günleri tamamen boş. Plan adımından gezi planını oluştur.',
+      messageKey: 'rules.planEmpty',
       step: 'plan',
     );
   }
@@ -138,8 +160,7 @@ TripWarning? checkMissingTitle(Trip trip) {
     return const TripWarning(
       id: 'title-default',
       severity: TripWarningSeverity.info,
-      message:
-          'Plan başlığı varsayılan. Kendi başlığını yazmak istersen Başlık adımına dön.',
+      messageKey: 'rules.titleDefault',
       step: 'title',
     );
   }

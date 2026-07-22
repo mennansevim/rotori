@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/l10n.dart';
+import '../../../data/language_store.dart';
 import '../../../domain/booking_windows.dart';
 import '../../../domain/city_transfers.dart';
 import '../../../domain/day_optimizer.dart';
@@ -49,6 +50,12 @@ class _PlanStepState extends State<PlanStep> {
   final Map<String, String> _transitionModeOverrides = {};
 
   Trip get trip => widget.trip;
+
+  /// O an seçili uygulama dili — üretilen plan içeriği ve eklenen transferler bu
+  /// dile göre metinlenir. (PlanStep düz StatefulWidget; provider'ı container
+  /// üzerinden okuyoruz.)
+  AppLang get _lang =>
+      ProviderScope.containerOf(context, listen: false).read(appLangProvider);
 
   String _transitionKey(CityTransitionSuggestion s) =>
       '${s.fromDayNumber}|${s.toDayNumber}';
@@ -201,6 +208,8 @@ class _PlanStepState extends State<PlanStep> {
   Future<void> _generate() async {
     if (_generating) return;
     final s = LanguageScope.of(context);
+    // Dili await'lerden önce oku — üretim sonrası context defunct olabilir.
+    final lang = _lang;
 
     // Zaten dolu bir plan varsa yeniden üretmeden önce onay al —
     // aksi halde elle yapılan düzenlemeler sessizce silinir.
@@ -233,8 +242,8 @@ class _PlanStepState extends State<PlanStep> {
       if (_kApiEnabled) {
         // TODO: itinerary_lookup.generateItinerary(trip) ile AI dene.
       }
-      final generated = generateItineraryFromTrip(t);
-      t.days = fillEmptyDays(generated, _destinations);
+      final generated = generateItineraryFromTrip(t, lang: lang);
+      t.days = fillEmptyDays(generated, _destinations, lang: lang);
 
       // BUG 2: Şehirler arası geçişleri otomatik ekle — kullanıcı her öneri için
       // ayrıca "Ekle"ye dokunmak zorunda kalmasın. Aynı gün hâlâ manuel
@@ -248,7 +257,7 @@ class _PlanStepState extends State<PlanStep> {
         );
         if (target.date.isEmpty) continue;
         if (!hasExistingTransferTo(target, s.toCity)) {
-          updated = insertCityTransfer(updated, s.toDayNumber, s);
+          updated = insertCityTransfer(updated, s.toDayNumber, s, lang: lang);
         }
       }
       t.days = updated;
@@ -308,17 +317,19 @@ class _PlanStepState extends State<PlanStep> {
 
   void _addTransition(CityTransitionSuggestion s) {
     final eff = _effectiveSuggestion(s);
+    final lang = _lang;
     widget.onChange((t) {
-      t.days = insertCityTransfer(t.days, eff.toDayNumber, eff);
+      t.days = insertCityTransfer(t.days, eff.toDayNumber, eff, lang: lang);
     });
   }
 
   void _addAllTransitions(List<CityTransitionSuggestion> list) {
+    final lang = _lang;
     widget.onChange((t) {
       var days = t.days;
       for (final s in list) {
         final eff = _effectiveSuggestion(s);
-        days = insertCityTransfer(days, eff.toDayNumber, eff);
+        days = insertCityTransfer(days, eff.toDayNumber, eff, lang: lang);
       }
       t.days = days;
     });
@@ -770,7 +781,7 @@ class _TransitionRow extends StatelessWidget {
               Text(t.emoji, style: const TextStyle(fontSize: 18)),
               const SizedBox(width: 8),
               Expanded(
-                child: Text('${s.fromCity} → ${s.toCity} · ${t.mode}',
+                child: Text('${s.fromCity} → ${s.toCity} · ${loc.s(t.mode)}',
                     style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -789,7 +800,7 @@ class _TransitionRow extends StatelessWidget {
               style: const TextStyle(fontSize: 12, color: PT.textSecondary)),
           if (t.tip != null) ...[
             const SizedBox(height: 4),
-            Text('💡 ${t.tip}',
+            Text('💡 ${loc.s(t.tip!)}',
                 style: const TextStyle(fontSize: 12, color: PT.textTertiary)),
           ],
           const SizedBox(height: 8),

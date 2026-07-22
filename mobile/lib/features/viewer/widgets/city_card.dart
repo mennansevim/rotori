@@ -6,6 +6,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../core/l10n.dart';
 import '../../../domain/city_places.dart';
 
 /// React'taki SVG viewBox boyutları — projeksiyon bu mantıksal kutuda yapılır,
@@ -162,6 +163,7 @@ class _PlaceRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final lang = LanguageScope.of(context).lang;
     final isVisited = visited.contains(place.id);
     final isProgress = !isVisited && inProgress.contains(place.id);
     final statusColor = isVisited
@@ -191,7 +193,7 @@ class _PlaceRow extends StatelessWidget {
                 ? 'gezildi'
                 : isProgress
                     ? 'algılanıyor…'
-                    : place.category,
+                    : place.category.of(lang),
             style: theme.textTheme.bodySmall?.copyWith(color: statusColor),
           ),
         ],

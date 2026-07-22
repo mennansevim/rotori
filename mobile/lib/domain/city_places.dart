@@ -4,6 +4,7 @@
 // için kullanılır. Veriler React referansıyla birebir aynıdır.
 
 import 'geofence.dart';
+import 'localized_text.dart';
 import 'types.dart';
 
 /// Geofence yarıçapı (m) — nokta merkezli ziyaret algılama.
@@ -26,8 +27,8 @@ class CityPlace {
   final String name;
   final String emoji;
 
-  /// Kısa kategori etiketi (görsel ipucu).
-  final String category;
+  /// Kısa kategori etiketi (görsel ipucu, TR+EN) — yalnızca gösterim için.
+  final LText category;
   final double lat;
   final double lng;
 }
@@ -58,18 +59,18 @@ const List<CityData> kCityData = [
     emoji: '🗼',
     aliases: ['tokyo', 'tokio'],
     places: [
-      CityPlace(id: 'tk-skytree', name: 'Tokyo Skytree', emoji: '🗼', category: 'Manzara', lat: 35.7101, lng: 139.8107),
-      CityPlace(id: 'tk-sensoji', name: 'Senso-ji (Asakusa)', emoji: '⛩️', category: 'Tapınak', lat: 35.7148, lng: 139.7967),
-      CityPlace(id: 'tk-shibuya', name: 'Shibuya Crossing', emoji: '🚥', category: 'Şehir', lat: 35.6595, lng: 139.7005),
-      CityPlace(id: 'tk-meiji', name: 'Meiji Jingu', emoji: '🌳', category: 'Tapınak', lat: 35.6764, lng: 139.6993),
-      CityPlace(id: 'tk-teamlab', name: 'teamLab Planets', emoji: '✨', category: 'Müze', lat: 35.6486, lng: 139.7869),
-      CityPlace(id: 'tk-shinjuku-gyoen', name: 'Shinjuku Gyoen', emoji: '🌸', category: 'Park', lat: 35.6852, lng: 139.71),
-      CityPlace(id: 'tk-akihabara', name: 'Akihabara', emoji: '🎮', category: 'Alışveriş', lat: 35.7022, lng: 139.7745),
-      CityPlace(id: 'tk-tower', name: 'Tokyo Tower', emoji: '🗼', category: 'Manzara', lat: 35.6586, lng: 139.7454),
-      CityPlace(id: 'tk-ueno', name: 'Ueno Park', emoji: '🦖', category: 'Park', lat: 35.7156, lng: 139.7745),
-      CityPlace(id: 'tk-ginza', name: 'Ginza', emoji: '🛍️', category: 'Alışveriş', lat: 35.6717, lng: 139.765),
-      CityPlace(id: 'tk-tsukiji', name: 'Tsukiji Pazarı', emoji: '🍣', category: 'Yemek', lat: 35.6655, lng: 139.7707),
-      CityPlace(id: 'tk-odaiba', name: 'Odaiba', emoji: '🎡', category: 'Eğlence', lat: 35.6276, lng: 139.7763),
+      CityPlace(id: 'tk-skytree', name: 'Tokyo Skytree', emoji: '🗼', category: LText('Manzara', 'View'), lat: 35.7101, lng: 139.8107),
+      CityPlace(id: 'tk-sensoji', name: 'Senso-ji (Asakusa)', emoji: '⛩️', category: LText('Tapınak', 'Temple'), lat: 35.7148, lng: 139.7967),
+      CityPlace(id: 'tk-shibuya', name: 'Shibuya Crossing', emoji: '🚥', category: LText('Şehir', 'City'), lat: 35.6595, lng: 139.7005),
+      CityPlace(id: 'tk-meiji', name: 'Meiji Jingu', emoji: '🌳', category: LText('Tapınak', 'Temple'), lat: 35.6764, lng: 139.6993),
+      CityPlace(id: 'tk-teamlab', name: 'teamLab Planets', emoji: '✨', category: LText('Müze', 'Museum'), lat: 35.6486, lng: 139.7869),
+      CityPlace(id: 'tk-shinjuku-gyoen', name: 'Shinjuku Gyoen', emoji: '🌸', category: LText('Park', 'Park'), lat: 35.6852, lng: 139.71),
+      CityPlace(id: 'tk-akihabara', name: 'Akihabara', emoji: '🎮', category: LText('Alışveriş', 'Shopping'), lat: 35.7022, lng: 139.7745),
+      CityPlace(id: 'tk-tower', name: 'Tokyo Tower', emoji: '🗼', category: LText('Manzara', 'View'), lat: 35.6586, lng: 139.7454),
+      CityPlace(id: 'tk-ueno', name: 'Ueno Park', emoji: '🦖', category: LText('Park', 'Park'), lat: 35.7156, lng: 139.7745),
+      CityPlace(id: 'tk-ginza', name: 'Ginza', emoji: '🛍️', category: LText('Alışveriş', 'Shopping'), lat: 35.6717, lng: 139.765),
+      CityPlace(id: 'tk-tsukiji', name: 'Tsukiji Pazarı', emoji: '🍣', category: LText('Yemek', 'Food'), lat: 35.6655, lng: 139.7707),
+      CityPlace(id: 'tk-odaiba', name: 'Odaiba', emoji: '🎡', category: LText('Eğlence', 'Entertainment'), lat: 35.6276, lng: 139.7763),
     ],
   ),
   CityData(
@@ -78,16 +79,16 @@ const List<CityData> kCityData = [
     emoji: '⛩️',
     aliases: ['kyoto', 'kioto'],
     places: [
-      CityPlace(id: 'ky-fushimi', name: 'Fushimi Inari', emoji: '⛩️', category: 'Tapınak', lat: 34.9671, lng: 135.7727),
-      CityPlace(id: 'ky-kinkakuji', name: 'Kinkaku-ji', emoji: '🏯', category: 'Tapınak', lat: 35.0394, lng: 135.7292),
-      CityPlace(id: 'ky-arashiyama', name: 'Arashiyama Bambu', emoji: '🎋', category: 'Doğa', lat: 35.017, lng: 135.6716),
-      CityPlace(id: 'ky-kiyomizu', name: 'Kiyomizu-dera', emoji: '🛕', category: 'Tapınak', lat: 34.9948, lng: 135.785),
-      CityPlace(id: 'ky-gion', name: 'Gion', emoji: '🎎', category: 'Tarihi', lat: 35.0036, lng: 135.7752),
-      CityPlace(id: 'ky-nijo', name: 'Nijo Kalesi', emoji: '🏯', category: 'Kale', lat: 35.0142, lng: 135.7483),
-      CityPlace(id: 'ky-ginkakuji', name: 'Ginkaku-ji', emoji: '🏯', category: 'Tapınak', lat: 35.027, lng: 135.7982),
-      CityPlace(id: 'ky-pontocho', name: 'Pontocho', emoji: '🏮', category: 'Yemek', lat: 35.005, lng: 135.7708),
-      CityPlace(id: 'ky-nishiki', name: 'Nishiki Pazarı', emoji: '🍡', category: 'Yemek', lat: 35.005, lng: 135.7649),
-      CityPlace(id: 'ky-tofukuji', name: 'Tofuku-ji', emoji: '🍁', category: 'Tapınak', lat: 34.9766, lng: 135.774),
+      CityPlace(id: 'ky-fushimi', name: 'Fushimi Inari', emoji: '⛩️', category: LText('Tapınak', 'Temple'), lat: 34.9671, lng: 135.7727),
+      CityPlace(id: 'ky-kinkakuji', name: 'Kinkaku-ji', emoji: '🏯', category: LText('Tapınak', 'Temple'), lat: 35.0394, lng: 135.7292),
+      CityPlace(id: 'ky-arashiyama', name: 'Arashiyama Bambu', emoji: '🎋', category: LText('Doğa', 'Nature'), lat: 35.017, lng: 135.6716),
+      CityPlace(id: 'ky-kiyomizu', name: 'Kiyomizu-dera', emoji: '🛕', category: LText('Tapınak', 'Temple'), lat: 34.9948, lng: 135.785),
+      CityPlace(id: 'ky-gion', name: 'Gion', emoji: '🎎', category: LText('Tarihi', 'Historic'), lat: 35.0036, lng: 135.7752),
+      CityPlace(id: 'ky-nijo', name: 'Nijo Kalesi', emoji: '🏯', category: LText('Kale', 'Castle'), lat: 35.0142, lng: 135.7483),
+      CityPlace(id: 'ky-ginkakuji', name: 'Ginkaku-ji', emoji: '🏯', category: LText('Tapınak', 'Temple'), lat: 35.027, lng: 135.7982),
+      CityPlace(id: 'ky-pontocho', name: 'Pontocho', emoji: '🏮', category: LText('Yemek', 'Food'), lat: 35.005, lng: 135.7708),
+      CityPlace(id: 'ky-nishiki', name: 'Nishiki Pazarı', emoji: '🍡', category: LText('Yemek', 'Food'), lat: 35.005, lng: 135.7649),
+      CityPlace(id: 'ky-tofukuji', name: 'Tofuku-ji', emoji: '🍁', category: LText('Tapınak', 'Temple'), lat: 34.9766, lng: 135.774),
     ],
   ),
   CityData(
@@ -96,16 +97,16 @@ const List<CityData> kCityData = [
     emoji: '🍜',
     aliases: ['osaka', 'ōsaka'],
     places: [
-      CityPlace(id: 'os-dotonbori', name: 'Dotonbori', emoji: '🍜', category: 'Yemek', lat: 34.6687, lng: 135.5031),
-      CityPlace(id: 'os-castle', name: 'Osaka Kalesi', emoji: '🏯', category: 'Kale', lat: 34.6873, lng: 135.5259),
-      CityPlace(id: 'os-usj', name: 'Universal Studios', emoji: '🎢', category: 'Eğlence', lat: 34.6654, lng: 135.4323),
-      CityPlace(id: 'os-shinsekai', name: 'Shinsekai · Tsutenkaku', emoji: '🗼', category: 'Şehir', lat: 34.6525, lng: 135.5063),
-      CityPlace(id: 'os-umeda', name: 'Umeda Sky Building', emoji: '🌆', category: 'Manzara', lat: 34.7054, lng: 135.4902),
-      CityPlace(id: 'os-kuromon', name: 'Kuromon Pazarı', emoji: '🐟', category: 'Yemek', lat: 34.6657, lng: 135.506),
-      CityPlace(id: 'os-namba', name: 'Namba', emoji: '🛍️', category: 'Alışveriş', lat: 34.6627, lng: 135.5023),
-      CityPlace(id: 'os-sumiyoshi', name: 'Sumiyoshi Taisha', emoji: '⛩️', category: 'Tapınak', lat: 34.6126, lng: 135.4933),
-      CityPlace(id: 'os-harukas', name: 'Abeno Harukas', emoji: '🏙️', category: 'Manzara', lat: 34.6456, lng: 135.5136),
-      CityPlace(id: 'os-shitennoji', name: 'Shitenno-ji', emoji: '🛕', category: 'Tapınak', lat: 34.6543, lng: 135.5165),
+      CityPlace(id: 'os-dotonbori', name: 'Dotonbori', emoji: '🍜', category: LText('Yemek', 'Food'), lat: 34.6687, lng: 135.5031),
+      CityPlace(id: 'os-castle', name: 'Osaka Kalesi', emoji: '🏯', category: LText('Kale', 'Castle'), lat: 34.6873, lng: 135.5259),
+      CityPlace(id: 'os-usj', name: 'Universal Studios', emoji: '🎢', category: LText('Eğlence', 'Entertainment'), lat: 34.6654, lng: 135.4323),
+      CityPlace(id: 'os-shinsekai', name: 'Shinsekai · Tsutenkaku', emoji: '🗼', category: LText('Şehir', 'City'), lat: 34.6525, lng: 135.5063),
+      CityPlace(id: 'os-umeda', name: 'Umeda Sky Building', emoji: '🌆', category: LText('Manzara', 'View'), lat: 34.7054, lng: 135.4902),
+      CityPlace(id: 'os-kuromon', name: 'Kuromon Pazarı', emoji: '🐟', category: LText('Yemek', 'Food'), lat: 34.6657, lng: 135.506),
+      CityPlace(id: 'os-namba', name: 'Namba', emoji: '🛍️', category: LText('Alışveriş', 'Shopping'), lat: 34.6627, lng: 135.5023),
+      CityPlace(id: 'os-sumiyoshi', name: 'Sumiyoshi Taisha', emoji: '⛩️', category: LText('Tapınak', 'Temple'), lat: 34.6126, lng: 135.4933),
+      CityPlace(id: 'os-harukas', name: 'Abeno Harukas', emoji: '🏙️', category: LText('Manzara', 'View'), lat: 34.6456, lng: 135.5136),
+      CityPlace(id: 'os-shitennoji', name: 'Shitenno-ji', emoji: '🛕', category: LText('Tapınak', 'Temple'), lat: 34.6543, lng: 135.5165),
     ],
   ),
   CityData(
@@ -114,12 +115,12 @@ const List<CityData> kCityData = [
     emoji: '🦌',
     aliases: ['nara'],
     places: [
-      CityPlace(id: 'nr-park', name: 'Nara Parkı (geyikler)', emoji: '🦌', category: 'Park', lat: 34.6851, lng: 135.843),
-      CityPlace(id: 'nr-todaiji', name: 'Todai-ji', emoji: '🛕', category: 'Tapınak', lat: 34.689, lng: 135.8398),
-      CityPlace(id: 'nr-kasuga', name: 'Kasuga Taisha', emoji: '🏮', category: 'Tapınak', lat: 34.6818, lng: 135.8483),
-      CityPlace(id: 'nr-kofukuji', name: 'Kofuku-ji', emoji: '🗼', category: 'Tapınak', lat: 34.6833, lng: 135.8327),
-      CityPlace(id: 'nr-isuien', name: 'Isuien Bahçesi', emoji: '🌳', category: 'Bahçe', lat: 34.6868, lng: 135.8366),
-      CityPlace(id: 'nr-naramachi', name: 'Naramachi', emoji: '🏘️', category: 'Tarihi', lat: 34.6786, lng: 135.8295),
+      CityPlace(id: 'nr-park', name: 'Nara Parkı (geyikler)', emoji: '🦌', category: LText('Park', 'Park'), lat: 34.6851, lng: 135.843),
+      CityPlace(id: 'nr-todaiji', name: 'Todai-ji', emoji: '🛕', category: LText('Tapınak', 'Temple'), lat: 34.689, lng: 135.8398),
+      CityPlace(id: 'nr-kasuga', name: 'Kasuga Taisha', emoji: '🏮', category: LText('Tapınak', 'Temple'), lat: 34.6818, lng: 135.8483),
+      CityPlace(id: 'nr-kofukuji', name: 'Kofuku-ji', emoji: '🗼', category: LText('Tapınak', 'Temple'), lat: 34.6833, lng: 135.8327),
+      CityPlace(id: 'nr-isuien', name: 'Isuien Bahçesi', emoji: '🌳', category: LText('Bahçe', 'Garden'), lat: 34.6868, lng: 135.8366),
+      CityPlace(id: 'nr-naramachi', name: 'Naramachi', emoji: '🏘️', category: LText('Tarihi', 'Historic'), lat: 34.6786, lng: 135.8295),
     ],
   ),
   CityData(
@@ -128,11 +129,11 @@ const List<CityData> kCityData = [
     emoji: '🕊️',
     aliases: ['hiroshima', 'miyajima'],
     places: [
-      CityPlace(id: 'hr-peace', name: 'Barış Anıtı Parkı', emoji: '🕊️', category: 'Anıt', lat: 34.3955, lng: 132.4536),
-      CityPlace(id: 'hr-dome', name: 'Atom Bombası Kubbesi', emoji: '🏛️', category: 'Anıt', lat: 34.3955, lng: 132.4537),
-      CityPlace(id: 'hr-miyajima', name: 'Itsukushima (Miyajima)', emoji: '⛩️', category: 'Tapınak', lat: 34.296, lng: 132.3197),
-      CityPlace(id: 'hr-castle', name: 'Hiroshima Kalesi', emoji: '🏯', category: 'Kale', lat: 34.4026, lng: 132.4593),
-      CityPlace(id: 'hr-shukkeien', name: 'Shukkeien Bahçesi', emoji: '🌳', category: 'Bahçe', lat: 34.4019, lng: 132.4664),
+      CityPlace(id: 'hr-peace', name: 'Barış Anıtı Parkı', emoji: '🕊️', category: LText('Anıt', 'Memorial'), lat: 34.3955, lng: 132.4536),
+      CityPlace(id: 'hr-dome', name: 'Atom Bombası Kubbesi', emoji: '🏛️', category: LText('Anıt', 'Memorial'), lat: 34.3955, lng: 132.4537),
+      CityPlace(id: 'hr-miyajima', name: 'Itsukushima (Miyajima)', emoji: '⛩️', category: LText('Tapınak', 'Temple'), lat: 34.296, lng: 132.3197),
+      CityPlace(id: 'hr-castle', name: 'Hiroshima Kalesi', emoji: '🏯', category: LText('Kale', 'Castle'), lat: 34.4026, lng: 132.4593),
+      CityPlace(id: 'hr-shukkeien', name: 'Shukkeien Bahçesi', emoji: '🌳', category: LText('Bahçe', 'Garden'), lat: 34.4019, lng: 132.4664),
     ],
   ),
   CityData(
@@ -141,11 +142,11 @@ const List<CityData> kCityData = [
     emoji: '❄️',
     aliases: ['sapporo', 'hokkaido', 'hokkaıdo'],
     places: [
-      CityPlace(id: 'sp-odori', name: 'Odori Parkı', emoji: '🌳', category: 'Park', lat: 43.0606, lng: 141.3565),
-      CityPlace(id: 'sp-moiwa', name: 'Moiwa Dağı', emoji: '🚠', category: 'Manzara', lat: 43.0276, lng: 141.3239),
-      CityPlace(id: 'sp-beer', name: 'Sapporo Bira Müzesi', emoji: '🍺', category: 'Müze', lat: 43.0707, lng: 141.3709),
-      CityPlace(id: 'sp-clock', name: 'Saat Kulesi', emoji: '🕰️', category: 'Tarihi', lat: 43.0628, lng: 141.3536),
-      CityPlace(id: 'sp-susukino', name: 'Susukino', emoji: '🏮', category: 'Yemek', lat: 43.0556, lng: 141.3539),
+      CityPlace(id: 'sp-odori', name: 'Odori Parkı', emoji: '🌳', category: LText('Park', 'Park'), lat: 43.0606, lng: 141.3565),
+      CityPlace(id: 'sp-moiwa', name: 'Moiwa Dağı', emoji: '🚠', category: LText('Manzara', 'View'), lat: 43.0276, lng: 141.3239),
+      CityPlace(id: 'sp-beer', name: 'Sapporo Bira Müzesi', emoji: '🍺', category: LText('Müze', 'Museum'), lat: 43.0707, lng: 141.3709),
+      CityPlace(id: 'sp-clock', name: 'Saat Kulesi', emoji: '🕰️', category: LText('Tarihi', 'Historic'), lat: 43.0628, lng: 141.3536),
+      CityPlace(id: 'sp-susukino', name: 'Susukino', emoji: '🏮', category: LText('Yemek', 'Food'), lat: 43.0556, lng: 141.3539),
     ],
   ),
   CityData(
@@ -154,11 +155,11 @@ const List<CityData> kCityData = [
     emoji: '🌿',
     aliases: ['kanazawa'],
     places: [
-      CityPlace(id: 'kz-kenrokuen', name: 'Kenroku-en', emoji: '🌿', category: 'Bahçe', lat: 36.5622, lng: 136.6624),
-      CityPlace(id: 'kz-castle', name: 'Kanazawa Kalesi', emoji: '🏯', category: 'Kale', lat: 36.5653, lng: 136.6592),
-      CityPlace(id: 'kz-higashi', name: 'Higashi Chaya', emoji: '🏮', category: 'Tarihi', lat: 36.5719, lng: 136.6669),
-      CityPlace(id: 'kz-omicho', name: 'Omicho Pazarı', emoji: '🦀', category: 'Yemek', lat: 36.5715, lng: 136.6573),
-      CityPlace(id: 'kz-21c', name: '21. Yüzyıl Müzesi', emoji: '🎨', category: 'Müze', lat: 36.5606, lng: 136.6585),
+      CityPlace(id: 'kz-kenrokuen', name: 'Kenroku-en', emoji: '🌿', category: LText('Bahçe', 'Garden'), lat: 36.5622, lng: 136.6624),
+      CityPlace(id: 'kz-castle', name: 'Kanazawa Kalesi', emoji: '🏯', category: LText('Kale', 'Castle'), lat: 36.5653, lng: 136.6592),
+      CityPlace(id: 'kz-higashi', name: 'Higashi Chaya', emoji: '🏮', category: LText('Tarihi', 'Historic'), lat: 36.5719, lng: 136.6669),
+      CityPlace(id: 'kz-omicho', name: 'Omicho Pazarı', emoji: '🦀', category: LText('Yemek', 'Food'), lat: 36.5715, lng: 136.6573),
+      CityPlace(id: 'kz-21c', name: '21. Yüzyıl Müzesi', emoji: '🎨', category: LText('Müze', 'Museum'), lat: 36.5606, lng: 136.6585),
     ],
   ),
 ];

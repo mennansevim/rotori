@@ -4,6 +4,7 @@
 
 import 'dart:math';
 
+import '../core/l10n.dart';
 import 'destination_profiles.dart';
 import 'trip_factory.dart';
 import 'types.dart';
@@ -14,7 +15,8 @@ class _SlotTemplate {
   final String time;
   final TimelineItemKind kind;
 
-  /// kind=meal ise yemek tipi (Türkçe etiket).
+  /// kind=meal ise yemek tipi — i18n anahtarı (prefix `gen.`), `L10n.resolve`
+  /// ile çözülür.
   final String? mealTag;
 }
 
@@ -22,41 +24,45 @@ const List<_SlotTemplate> _fillSlots = [
   _SlotTemplate(time: '09:00', kind: TimelineItemKind.activity),
   _SlotTemplate(time: '11:00', kind: TimelineItemKind.activity),
   _SlotTemplate(
-      time: '13:00', kind: TimelineItemKind.meal, mealTag: 'Öğle yemeği'),
+      time: '13:00', kind: TimelineItemKind.meal, mealTag: 'gen.meal.lunch'),
   _SlotTemplate(time: '14:30', kind: TimelineItemKind.activity),
   _SlotTemplate(time: '16:30', kind: TimelineItemKind.activity),
   _SlotTemplate(
-      time: '19:00', kind: TimelineItemKind.meal, mealTag: 'Akşam yemeği'),
+      time: '19:00', kind: TimelineItemKind.meal, mealTag: 'gen.meal.dinner'),
 ];
 
 class MealPreset {
   const MealPreset({required this.emoji, required this.name, required this.tip});
   final String emoji;
+
+  /// i18n anahtarı (prefix `gen.`) — `L10n.resolve(name, lang)` ile çözülür.
   final String name;
+
+  /// i18n anahtarı (prefix `gen.`) — `L10n.resolve(tip, lang)` ile çözülür.
   final String tip;
 }
 
 const List<MealPreset> kMealPresets = [
   MealPreset(
       emoji: '🍜',
-      name: 'Ramen molası',
-      tip: 'Tonkotsu veya shoyu — Ichiran, Ippudo, Afuri gibi zincirlerden biri.'),
+      name: 'gen.meal.ramen',
+      tip: 'gen.mealTip.ramen'),
   MealPreset(
       emoji: '🍣',
-      name: 'Conveyor sushi',
-      tip: 'Sushiro / Kura Sushi — uygun fiyatlı, çocuk dostu.'),
+      name: 'gen.meal.conveyorSushi',
+      tip: 'gen.mealTip.conveyorSushi'),
   MealPreset(
       emoji: '🥩',
-      name: 'Yakitori izakaya',
-      tip: 'Tori-kizoku zinciri ya da Omoide Yokocho ara sokakları.'),
+      name: 'gen.meal.yakitori',
+      tip: 'gen.mealTip.yakitori'),
   MealPreset(
       emoji: '🍱',
-      name: 'Konbini bento',
-      tip: 'Family Mart / Lawson — taze onigiri & bento, hızlı seçenek.'),
+      name: 'gen.meal.konbiniBento',
+      tip: 'gen.mealTip.konbiniBento'),
   MealPreset(
       emoji: '🍛',
-      name: 'Japon curry',
-      tip: 'CoCo Ichibanya — acılığı + topping seçilebilir.'),
+      name: 'gen.meal.japaneseCurry',
+      tip: 'gen.mealTip.japaneseCurry'),
 ];
 
 /// Şehir adından (örn "Tokyo (Haneda)") sade şehir döndür.
@@ -77,14 +83,16 @@ TimelineItem _buildItem(
   String city,
   _FillPlace? place,
   MealPreset preset,
+  AppLang lang,
 ) {
   final id = '${newItemId(dayNumber)}-fill-${slot.time.replaceAll(':', '')}';
   if (slot.kind == TimelineItemKind.meal) {
     return TimelineItem(
       id: id,
-      title: '${preset.emoji} ${slot.mealTag} — ${preset.name}',
-      description: 'Hızlı, yerel bir mola.',
-      tips: preset.tip,
+      title: '${preset.emoji} ${L10n.resolve(slot.mealTag!, lang)} — '
+          '${L10n.resolve(preset.name, lang)}',
+      description: L10n.resolve('gen.fill.mealDesc', lang),
+      tips: L10n.resolve(preset.tip, lang),
       kind: TimelineItemKind.meal,
       time: slot.time,
       scheduledTime: slot.time,
@@ -92,14 +100,15 @@ TimelineItem _buildItem(
       cityId: city,
     );
   }
-  final name = place?.name ?? 'Mahalle yürüyüşü';
+  final name = place?.name ?? L10n.resolve('gen.fill.neighborhoodWalk', lang);
   final emoji = place?.emoji ?? '🚶';
   return TimelineItem(
     id: id,
     title: '$emoji $name',
     description: place != null
-        ? '${_cleanCity(city)} bölgesinde popüler durak.'
-        : 'Bölgede serbest keşif.',
+        ? L10n.parametrize(L10n.resolve('gen.fill.popularStop', lang),
+            {'city': _cleanCity(city)})
+        : L10n.resolve('gen.fill.freeExplore', lang),
     kind: TimelineItemKind.activity,
     time: slot.time,
     scheduledTime: slot.time,
@@ -115,8 +124,9 @@ TimelineItem _buildItem(
 /// Destinasyon profilinin popularPlaces listesinden rotasyonla seçer.
 List<DayPlan> fillEmptyDays(
   List<DayPlan> days,
-  List<TripDestination> destinations,
-) {
+  List<TripDestination> destinations, {
+  AppLang lang = AppLang.tr,
+}) {
   // Şehir bazında popularPlace havuzu + rotasyon indeksleri
   final cityPlaces = <String, List<_FillPlace>>{};
   final cityCursors = <String, int>{};
@@ -198,7 +208,8 @@ List<DayPlan> fillEmptyDays(
       }
       final preset = kMealPresets[mealCursor % kMealPresets.length];
       if (slot.kind == TimelineItemKind.meal) mealCursor++;
-      supplements.add(_buildItem(day.dayNumber, slot, cityKey, place, preset));
+      supplements
+          .add(_buildItem(day.dayNumber, slot, cityKey, place, preset, lang));
 
       // Yeterince eklediysek dur
       if (day.items.length + supplements.length >= minItemsPerDay + 1) break;
@@ -216,7 +227,8 @@ List<DayPlan> fillEmptyDays(
             !day.theme.startsWith('Gün ') &&
             !day.theme.contains(' — Gün ')
         ? day.theme
-        : '$cityKey keşif günü';
+        : L10n.parametrize(
+            L10n.resolve('gen.fill.exploreDay', lang), {'city': cityKey});
 
     return day.copyWith(
       theme: theme,

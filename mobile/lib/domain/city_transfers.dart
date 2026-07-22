@@ -1,6 +1,7 @@
 // TypeScript packages/shared/src/cityTransfers.ts'in Dart karşılığı.
 // Şehirler arası bilinen transferler + plan içinde şehir geçişi tespiti.
 
+import '../core/l10n.dart';
 import 'destination_profiles.dart';
 import 'trip_factory.dart';
 import 'types.dart';
@@ -16,7 +17,10 @@ class CityTransfer {
 
   final String emoji;
 
-  /// UI başlığı (ör. "Shinkansen Nozomi")
+  /// UI başlığı. Özel isimler (ör. "Shinkansen Nozomi") düz metindir;
+  /// çevrilebilir mod adları i18n anahtarıdır (ör. "xfer.mode.localTrain").
+  /// Gösterirken `L10n.resolve(mode, lang)` ile çözülür — anahtar değilse
+  /// metin aynen döner.
   final String mode;
 
   /// Yaklaşık süre (ör. "2s 30dk")
@@ -25,7 +29,8 @@ class CityTransfer {
   /// Tek yön yaklaşık ücret (ör. "~14,000 ¥")
   final String fare;
 
-  /// Plan içinde gösterilecek kısa ipucu
+  /// Plan içinde gösterilecek kısa ipucu — i18n anahtarı (ör. "xfer.tip.bus").
+  /// Gösterirken `L10n.resolve(tip, lang)` ile çözülür.
   final String? tip;
 }
 
@@ -35,22 +40,21 @@ const Map<String, CityTransfer> _transfers = {
     mode: 'Shinkansen Nozomi',
     duration: '2s 30dk',
     fare: '~14,720 ¥',
-    tip: 'IC kart yerine gişe/Smart-EX. JR Pass kullanılmaz Nozomi için.',
+    tip: 'xfer.tip.tokyoOsaka',
   ),
   'tokyo|kyoto': CityTransfer(
     emoji: '🚄',
     mode: 'Shinkansen Nozomi',
     duration: '2s 15dk',
     fare: '~14,170 ¥',
-    tip:
-        'Sabah erken Nozomi sefer aralıkları sık, oturma kolaylığı için ayırtılabilir.',
+    tip: 'xfer.tip.tokyoKyoto',
   ),
   'tokyo|hakone': CityTransfer(
     emoji: '🚆',
     mode: 'Odakyu Romance Car',
     duration: '1s 30dk',
     fare: '~2,470 ¥',
-    tip: 'Hakone Free Pass al, gün boyu dağ ulaşımı dahil.',
+    tip: 'xfer.tip.tokyoHakone',
   ),
   'tokyo|nikko': CityTransfer(
     emoji: '🚆',
@@ -69,7 +73,7 @@ const Map<String, CityTransfer> _transfers = {
     mode: 'JR Special Rapid',
     duration: '30dk',
     fare: '~580 ¥',
-    tip: 'IC kart (Suica/Icoca) ile bin, ek bilet gerekmez.',
+    tip: 'xfer.tip.osakaKyoto',
   ),
   'osaka|nara': CityTransfer(
     emoji: '🚆',
@@ -181,20 +185,23 @@ List<CityTransitionSuggestion> detectCityTransitions(
 }
 
 /// Verilen güne, başına şehir-arası transfer öğesi ekle.
+/// [lang] ile transfer mod adı ve ipucu (i18n anahtarları) o an seçili dile
+/// çözülüp öğeye yazılır — böylece plana eklenen metin sabitlenir.
 List<DayPlan> insertCityTransfer(
   List<DayPlan> days,
   int dayNumber,
-  CityTransitionSuggestion suggestion,
-) {
+  CityTransitionSuggestion suggestion, {
+  AppLang lang = AppLang.tr,
+}) {
   return days.map((d) {
     if (d.dayNumber != dayNumber) return d;
     final t = suggestion.transfer;
     final item = TimelineItem(
       id: newItemId(dayNumber),
       title:
-          '${t.emoji} ${suggestion.fromCity} → ${suggestion.toCity} • ${t.mode}',
+          '${t.emoji} ${suggestion.fromCity} → ${suggestion.toCity} • ${L10n.resolve(t.mode, lang)}',
       description: '${t.duration} · ${t.fare}',
-      tips: t.tip,
+      tips: t.tip == null ? null : L10n.resolve(t.tip!, lang),
       kind: TimelineItemKind.transport,
       time: '08:30',
       scheduledTime: '08:30',
@@ -220,26 +227,26 @@ CityTransfer transferForMode(String mode) {
     case 'train':
       return const CityTransfer(
         emoji: '🚆',
-        mode: 'Yerel/hızlı tren',
+        mode: 'xfer.mode.localTrain',
         duration: 'Değişken',
         fare: 'Ucuz',
-        tip: 'Daha ucuz, sürelidir. IC kart yeter.',
+        tip: 'xfer.tip.train',
       );
     case 'bus':
       return const CityTransfer(
         emoji: '🚌',
-        mode: 'Gecelik/otobüs',
+        mode: 'xfer.mode.overnightBus',
         duration: '8+ saat',
         fare: 'Ekonomik',
-        tip: 'Ucuz ama 8+ saat sürer. Willer Express popüler.',
+        tip: 'xfer.tip.bus',
       );
     case 'car':
       return const CityTransfer(
         emoji: '🚗',
-        mode: 'Kiralık araç',
+        mode: 'xfer.mode.rentalCar',
         duration: 'Değişken',
         fare: 'Yakıt + kira',
-        tip: 'Uluslararası ehliyet gerekir. Kırsalda mantıklı.',
+        tip: 'xfer.tip.car',
       );
     case 'shinkansen':
     default:
@@ -248,7 +255,7 @@ CityTransfer transferForMode(String mode) {
         mode: 'Shinkansen Nozomi',
         duration: 'Yaklaşık 2-3 saat',
         fare: '~10-15,000 ¥',
-        tip: "JR Pass geçmez Nozomi'de; Smart-EX kullan.",
+        tip: 'xfer.tip.shinkansen',
       );
   }
 }

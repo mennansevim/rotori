@@ -102,11 +102,11 @@ class _ReminderTile extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(reminder.title,
+                Text(s.s(reminder.title),
                     style: theme.textTheme.titleSmall
                         ?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 2),
-                Text(reminder.subtitle, style: theme.textTheme.bodySmall),
+                Text(s.s(reminder.subtitle), style: theme.textTheme.bodySmall),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 6,
@@ -126,7 +126,7 @@ class _ReminderTile extends ConsumerWidget {
                 ),
                 if (reminder.tip.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  Text('💡 ${reminder.tip}',
+                  Text('💡 ${s.s(reminder.tip)}',
                       style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant)),
                 ],

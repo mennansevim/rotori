@@ -49,15 +49,15 @@ class WeatherException implements Exception {
 ///   80-82    sağanak        🌦️
 ///   95-99    gök gürültülü  ⛈️
 ///   diğer    —              🌡️
-(String emoji, String label) weatherInfo(int code) {
-  if (code == 0) return ('☀️', 'Açık');
-  if (code >= 1 && code <= 3) return ('⛅', 'Parçalı bulutlu');
-  if (code == 45 || code == 48) return ('🌫️', 'Sisli');
-  if (code >= 51 && code <= 67) return ('🌧️', 'Yağmurlu');
-  if (code >= 71 && code <= 77) return ('❄️', 'Karlı');
-  if (code >= 80 && code <= 82) return ('🌦️', 'Sağanak');
-  if (code >= 95 && code <= 99) return ('⛈️', 'Gök gürültülü');
-  return ('🌡️', 'Bilinmiyor');
+(String emoji, String labelKey) weatherInfo(int code) {
+  if (code == 0) return ('☀️', 'wx.clear');
+  if (code >= 1 && code <= 3) return ('⛅', 'wx.partlyCloudy');
+  if (code == 45 || code == 48) return ('🌫️', 'wx.fog');
+  if (code >= 51 && code <= 67) return ('🌧️', 'wx.rain');
+  if (code >= 71 && code <= 77) return ('❄️', 'wx.snow');
+  if (code >= 80 && code <= 82) return ('🌦️', 'wx.showers');
+  if (code >= 95 && code <= 99) return ('⛈️', 'wx.thunderstorm');
+  return ('🌡️', 'wx.unknown');
 }
 
 /// Open-Meteo `daily` yanıtını (ham JSON string) DayForecast listesine çevirir.

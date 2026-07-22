@@ -172,7 +172,7 @@ class PublishStep extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(w.message,
+                Text(s.p(w.messageKey, w.messageParams ?? const {}),
                     style: TextStyle(
                         fontSize: 14,
                         height: 1.4,

@@ -3,6 +3,7 @@
 
 import 'dart:math';
 
+import '../core/l10n.dart';
 import 'destination_profiles.dart';
 import 'explore.dart';
 import 'japan_suggestions.dart';
@@ -118,7 +119,12 @@ List<PlaceSuggestion> _pickPlaces(
   return out;
 }
 
-TimelineItem _makeItem(int dayNumber, String time, PlaceSuggestion place) =>
+TimelineItem _makeItem(
+  int dayNumber,
+  String time,
+  PlaceSuggestion place,
+  AppLang lang,
+) =>
     TimelineItem(
       id: newItemId(dayNumber),
       time: time,
@@ -126,9 +132,9 @@ TimelineItem _makeItem(int dayNumber, String time, PlaceSuggestion place) =>
       title: '${place.emoji} ${place.name}',
       description: '${place.city} · ${place.category}',
       tips: place.category == 'culture'
-          ? 'Sabah erken gitmek kalabalığı azaltır.'
+          ? L10n.resolve('gen.tip.cultureEarly', lang)
           : place.category == 'food'
-              ? 'Öğle veya akşam için ideal.'
+              ? L10n.resolve('gen.tip.foodMeal', lang)
               : null,
       kind: TimelineItemKind.activity,
     );
@@ -147,6 +153,7 @@ DayPlan _buildFromTemplate(
   DayTemplate template,
   List<PlaceSuggestion> places,
   Pace pace,
+  AppLang lang,
 ) {
   final times = _timesForPace(pace);
   final items = <TimelineItem>[];
@@ -156,10 +163,11 @@ DayPlan _buildFromTemplate(
     final place = _placeById(places, template.places[i]);
     if (place == null) continue;
     final time = i < times.length ? times[i] : times.last;
-    items.add(_makeItem(day.dayNumber, time, place));
+    items.add(_makeItem(day.dayNumber, time, place, lang));
     stepSum += place.typicalSteps ?? 8000;
     if (i == 0 && times.length > 1) {
-      items.add(_mealItem(day.dayNumber, times[1], 'Öğle yemeği molası'));
+      items.add(_mealItem(
+          day.dayNumber, times[1], L10n.resolve('gen.meal.lunchBreak', lang)));
     }
   }
 
@@ -168,16 +176,16 @@ DayPlan _buildFromTemplate(
       id: newItemId(day.dayNumber),
       time: '15:00',
       scheduledTime: '15:00',
-      title: '🛬 Varış & check-in',
-      description: 'Otele yerleş, jet lag için hafif tempo.',
+      title: '🛬 ${L10n.resolve('gen.arrival.checkinTitle', lang)}',
+      description: L10n.resolve('gen.arrival.checkinDesc', lang),
       kind: TimelineItemKind.activity,
     ));
     items.add(TimelineItem(
       id: newItemId(day.dayNumber),
       time: '18:00',
       scheduledTime: '18:00',
-      title: '🏪 Çevre keşfi & konbini',
-      description: 'Yakın çevrede kısa yürüyüş, akşam atıştırmalığı.',
+      title: '🏪 ${L10n.resolve('gen.arrival.exploreTitle', lang)}',
+      description: L10n.resolve('gen.arrival.exploreDesc', lang),
       kind: TimelineItemKind.meal,
     ));
     stepSum = template.stepsEstimate;
@@ -188,21 +196,27 @@ DayPlan _buildFromTemplate(
       .whereType<String>()
       .toList();
 
-  final paceLabel = pace == Pace.relaxed
-      ? 'Rahat'
-      : pace == Pace.intense
-          ? 'Yoğun'
-          : 'Dengeli';
+  final paceLabel = L10n.resolve(
+    pace == Pace.relaxed
+        ? 'plan.pace.relaxed'
+        : pace == Pace.intense
+            ? 'plan.pace.intense'
+            : 'plan.pace.moderate',
+    lang,
+  );
+  final templateTheme = L10n.resolve(template.theme, lang);
+  final templateLabel = L10n.resolve(template.label, lang);
   final highlights = [
     DayHighlight(
-      title: template.label,
-      body: '${template.emoji} ${template.theme} — tempo: $paceLabel',
+      title: templateLabel,
+      body: '${template.emoji} $templateTheme — '
+          '${L10n.resolve('gen.tempoLabel', lang)}: $paceLabel',
     ),
   ];
 
   return day.copyWith(
-    theme: '${template.emoji} ${template.theme}',
-    tags: tags.isNotEmpty ? tags : [template.label],
+    theme: '${template.emoji} $templateTheme',
+    tags: tags.isNotEmpty ? tags : [templateLabel],
     stepsEstimate: template.stepsEstimate != 0
         ? template.stepsEstimate
         : (stepSum != 0 ? stepSum : 10000),
@@ -214,39 +228,44 @@ DayPlan _buildFromTemplate(
   );
 }
 
-DayPlan _buildDepartureDay(DayPlan day, String destName, String flag) =>
+DayPlan _buildDepartureDay(
+  DayPlan day,
+  String destName,
+  String flag,
+  AppLang lang,
+) =>
     day.copyWith(
-      theme: '$flag Ayrılış & havaalanı',
-      tags: ['Ayrılış', destName],
+      theme: '$flag ${L10n.resolve('gen.departure.theme', lang)}',
+      tags: [L10n.resolve('gen.departure.tag', lang), destName],
       stepsEstimate: 6000,
       items: [
         TimelineItem(
           id: newItemId(day.dayNumber),
           time: '09:00',
           scheduledTime: '09:00',
-          title: '🧳 Check-out & valiz',
+          title: '🧳 ${L10n.resolve('gen.departure.checkoutTitle', lang)}',
           kind: TimelineItemKind.activity,
         ),
         TimelineItem(
           id: newItemId(day.dayNumber),
           time: '11:00',
           scheduledTime: '11:00',
-          title: '🚕 Havaalanı transferi',
-          description: 'Tren veya taksi — uçuş saatine göre erken çık.',
+          title: '🚕 ${L10n.resolve('gen.departure.transferTitle', lang)}',
+          description: L10n.resolve('gen.departure.transferDesc', lang),
           kind: TimelineItemKind.transport,
         ),
         TimelineItem(
           id: newItemId(day.dayNumber),
           time: '14:00',
           scheduledTime: '14:00',
-          title: '✈️ Dönüş uçuşu',
+          title: '✈️ ${L10n.resolve('gen.departure.flightTitle', lang)}',
           kind: TimelineItemKind.transport,
         ),
       ],
       highlights: [
         DayHighlight(
-          title: 'Ayrılış günü',
-          body: 'Havaalanına en az 2–3 saat önce varın.',
+          title: L10n.resolve('gen.departure.highlightTitle', lang),
+          body: L10n.resolve('gen.departure.highlightBody', lang),
         ),
       ],
     );
@@ -262,6 +281,7 @@ DayPlan _buildFromPlaces(
   int maxSteps,
   String destLabel,
   String flag,
+  AppLang lang,
 ) {
   final count = _activitiesPerDay(pace);
   final picked =
@@ -272,12 +292,13 @@ DayPlan _buildFromPlaces(
 
   for (var i = 0; i < picked.length; i++) {
     final time = i < times.length ? times[i] : times.last;
-    items.add(_makeItem(day.dayNumber, time, picked[i]));
+    items.add(_makeItem(day.dayNumber, time, picked[i], lang));
     stepSum += picked[i].typicalSteps ?? 8000;
   }
 
   if (picked.length >= 2 && times.length > 1) {
-    items.insert(1, _mealItem(day.dayNumber, times[1], 'Öğle molası'));
+    items.insert(1,
+        _mealItem(day.dayNumber, times[1], L10n.resolve('gen.meal.lunchStop', lang)));
   }
 
   final themePlace = picked.isNotEmpty ? picked.first : null;
@@ -294,7 +315,7 @@ DayPlan _buildFromPlaces(
     highlights: picked.isNotEmpty
         ? [
             DayHighlight(
-              title: 'Öne çıkan',
+              title: L10n.resolve('gen.highlight.featured', lang),
               body: picked.map((p) => p.name).join(' · '),
             ),
           ]
@@ -303,7 +324,10 @@ DayPlan _buildFromPlaces(
 }
 
 /// Rota, tempo ve ülke profillerine göre gün-gün plan üretir (AI gerekmez).
-List<DayPlan> generateItineraryFromTrip(Trip trip) {
+/// [lang] üretilen gün temaları, öğün/aktivite başlıkları ve ipuçlarının dilini
+/// belirler; içerik seçili dilde trip'e yazılır (sonradan dil değişimi mevcut
+/// planı yeniden çevirmez).
+List<DayPlan> generateItineraryFromTrip(Trip trip, {AppLang lang = AppLang.tr}) {
   final pace = trip.preferences.pace;
   final childCount = trip.preferences.childProfiles.isNotEmpty
       ? trip.preferences.childProfiles.length
@@ -338,6 +362,7 @@ List<DayPlan> generateItineraryFromTrip(Trip trip) {
         day,
         dest.city.isNotEmpty ? dest.city : profile.name,
         flag,
+        lang,
       );
     }
 
@@ -352,7 +377,8 @@ List<DayPlan> generateItineraryFromTrip(Trip trip) {
       }
       arrival ??= templates.isNotEmpty ? templates.first : null;
       if (arrival != null) {
-        return _buildFromTemplate(day, arrival, profile.popularPlaces, pace);
+        return _buildFromTemplate(
+            day, arrival, profile.popularPlaces, pace, lang);
       }
     }
 
@@ -362,7 +388,7 @@ List<DayPlan> generateItineraryFromTrip(Trip trip) {
       final idx = max(0, dayIndexInSeg - 1) % middleTemplates.length;
       final template = middleTemplates[idx];
       final built =
-          _buildFromTemplate(day, template, profile.popularPlaces, pace);
+          _buildFromTemplate(day, template, profile.popularPlaces, pace, lang);
       usedPlaces.addAll(template.places);
       return built;
     }
@@ -378,6 +404,7 @@ List<DayPlan> generateItineraryFromTrip(Trip trip) {
       maxSteps,
       dest.city.isNotEmpty ? dest.city : profile.name,
       flag,
+      lang,
     );
   }).toList();
 }

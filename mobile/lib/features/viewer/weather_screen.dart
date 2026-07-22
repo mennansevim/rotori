@@ -308,8 +308,9 @@ class _DayRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lang = LanguageScope.of(context).lang;
-    final (emoji, label) = weatherInfo(forecast.code);
+    final s = LanguageScope.of(context);
+    final lang = s.lang;
+    final (emoji, labelKey) = weatherInfo(forecast.code);
     final (dayLabel, weekday) = _formatDay(forecast.date, lang);
     final tempStyle = TextStyle(
       color: palette.textPrimary,
@@ -358,7 +359,7 @@ class _DayRow extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          LanguageScope.of(context).s('weather.today'),
+                          s.s('weather.today'),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 9,
@@ -387,7 +388,7 @@ class _DayRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  label,
+                  s.s(labelKey),
                   style: TextStyle(
                     color: palette.textSecondary,
                     fontSize: 13,
