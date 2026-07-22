@@ -1660,7 +1660,12 @@ class _TimelineRow extends StatelessWidget {
       fontSize: 13,
     );
 
-    final content = InkWell(
+    // Şehir-arası geçiş (Shinkansen vb.) → normal aktiviteden ayrı, gradyanlı bant.
+    final isTransition =
+        item.kind == TimelineItemKind.transport && item.title.contains('→');
+    final Widget content = isTransition
+        ? _transitionBand(context)
+        : InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: onOpen,
       child: Container(
@@ -1798,6 +1803,94 @@ class _TimelineRow extends StatelessWidget {
       return Opacity(opacity: 0.6, child: row);
     }
     return row;
+  }
+
+  /// Şehir-arası geçiş bandı — timeline içinde belirgin, gradyanlı "yolculuk"
+  /// kartı. Normal aktivite satırlarından net biçimde ayrışır.
+  Widget _transitionBand(BuildContext context) {
+    final p = palette;
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onOpen,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          gradient: LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: p.gradientNight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: p.fuji.withValues(alpha: 0.30),
+              blurRadius: 14,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 46,
+              child: Text(
+                item.time ?? item.scheduledTime ?? '',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.95),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12.5,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      height: 1.25,
+                    ),
+                  ),
+                  if (item.description != null && item.description!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: Text(
+                        item.description!,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  if (item.tips != null && item.tips!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 5),
+                      child: Text(
+                        '💡 ${item.tips}',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.85),
+                          fontSize: 11,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.only(top: 2),
+              child: Icon(Icons.chevron_right, size: 16, color: Colors.white70),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

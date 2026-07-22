@@ -2,6 +2,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:japan_trip/domain/city_transfers.dart';
+import 'package:japan_trip/domain/day_optimizer.dart';
 import 'package:japan_trip/domain/types.dart';
 
 DayPlan _day({
@@ -129,6 +130,53 @@ void main() {
       final transitions = detectCityTransitions(days, dests);
       expect(transitions.first.fromCity, 'Tokyo');
       expect(transitions.first.toCity, 'Osaka');
+    });
+  });
+
+  group('insertCityTransfer — saat dağıtımı', () {
+    test('transfer 09:00 kalkar, sonraki aktiviteler varış sonrasına dağıtılır', () {
+      final days = [
+        _day(dayNumber: 2, date: '2026-10-04', items: [
+          TimelineItem(id: 'a', title: 'X', kind: TimelineItemKind.activity, time: '09:00'),
+          TimelineItem(id: 'b', title: 'Y', kind: TimelineItemKind.activity, time: '11:00'),
+        ]),
+      ];
+      final sug = suggestionForMode('shinkansen', 'Tokyo', 'Kyoto', 1, 2);
+      final out = insertCityTransfer(days, 2, sug);
+      final items = out.first.items;
+      // İlk öğe transfer (transport, → içerir) ve 09:00.
+      expect(items.first.kind, TimelineItemKind.transport);
+      expect(items.first.title, contains('→'));
+      expect(items.first.time, '09:00');
+      // Aktiviteler transferden (ve varıştan) sonra, artan sırada.
+      expect(timeToMin(items[1].time!), greaterThan(timeToMin('09:00')));
+      expect(timeToMin(items[2].time!), greaterThan(timeToMin(items[1].time!)));
+    });
+
+    test('applyCityTransitions çoklu şehir günlerine transfer ekler', () {
+      final days = [
+        _day(dayNumber: 1, date: '2026-10-01', items: [
+          TimelineItem(id: 'i1', title: 'Senso-ji', cityId: 'Tokyo'),
+        ]),
+        _day(dayNumber: 2, date: '2026-10-02', items: [
+          TimelineItem(id: 'i2', title: 'Fushimi Inari', cityId: 'Kyoto'),
+        ]),
+      ];
+      final out = applyCityTransitions(days, []);
+      final transfers = out
+          .expand((d) => d.items)
+          .where((it) =>
+              it.kind == TimelineItemKind.transport && it.title.contains('→'))
+          .toList();
+      expect(transfers, hasLength(1));
+      // idempotent: ikinci kez uygulama yeni transfer eklemez.
+      final again = applyCityTransitions(out, []);
+      final transfers2 = again
+          .expand((d) => d.items)
+          .where((it) =>
+              it.kind == TimelineItemKind.transport && it.title.contains('→'))
+          .toList();
+      expect(transfers2, hasLength(1));
     });
   });
 

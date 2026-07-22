@@ -184,7 +184,14 @@ List<CityTransitionSuggestion> detectCityTransitions(
   return out;
 }
 
-/// Verilen güne, başına şehir-arası transfer öğesi ekle.
+/// Verilen güne, başına şehir-arası transfer öğesi ekle ve o günün diğer
+/// aktivitelerinin saatlerini transfere göre yeniden dağıt.
+///
+/// - Transfer 09:00'da kalkar (sabah yola çıkılır).
+/// - Varış saati = kalkış + transfer süresi + 45 dk tampon (süre metninden
+///   çözülür; çözülemezse ~3 saat varsayılır).
+/// - Günün kalan öğeleri varıştan itibaren ~2 saat arayla yeniden zamanlanır —
+///   böylece "önce yolculuk, sonra keşif" akışı ve çakışmasız saatler oluşur.
 /// [lang] ile transfer mod adı ve ipucu (i18n anahtarları) o an seçili dile
 /// çözülüp öğeye yazılır — böylece plana eklenen metin sabitlenir.
 List<DayPlan> insertCityTransfer(
@@ -196,19 +203,65 @@ List<DayPlan> insertCityTransfer(
   return days.map((d) {
     if (d.dayNumber != dayNumber) return d;
     final t = suggestion.transfer;
-    final item = TimelineItem(
+    const depMin = 9 * 60; // 09:00 kalkış
+    final arrMin =
+        (depMin + _transferDurationMin(t.duration) + 45).clamp(depMin + 60, 21 * 60);
+    final transfer = TimelineItem(
       id: newItemId(dayNumber),
       title:
           '${t.emoji} ${suggestion.fromCity} → ${suggestion.toCity} • ${L10n.resolve(t.mode, lang)}',
       description: '${t.duration} · ${t.fare}',
       tips: t.tip == null ? null : L10n.resolve(t.tip!, lang),
       kind: TimelineItemKind.transport,
-      time: '08:30',
-      scheduledTime: '08:30',
+      time: _hhmm(depMin),
+      scheduledTime: _hhmm(depMin),
       cityId: suggestion.toCity,
     );
-    return d.copyWith(items: [item, ...d.items]);
+    // Kalan aktiviteleri varış sonrası sıralı slotlara dağıt (30 dk'ya yuvarla).
+    var slot = ((arrMin + 29) ~/ 30) * 30;
+    final retimed = <TimelineItem>[];
+    for (final it in d.items) {
+      final s = slot.clamp(0, 22 * 60);
+      retimed.add(it.copyWith(time: _hhmm(s), scheduledTime: _hhmm(s)));
+      slot += 120;
+    }
+    return d.copyWith(items: [transfer, ...retimed]);
   }).toList();
+}
+
+/// Tespit edilen tüm şehir geçişlerini günlere ekler (idempotent —
+/// zaten transfer olan güne yeniden eklemez). planner._generate ve demo
+/// aynı pipeline'ı kullanır.
+List<DayPlan> applyCityTransitions(
+  List<DayPlan> days,
+  List<TripDestination> destinations, {
+  AppLang lang = AppLang.tr,
+}) {
+  var out = days;
+  for (final s in detectCityTransitions(out, destinations)) {
+    final target = out.where((d) => d.dayNumber == s.toDayNumber);
+    if (target.isEmpty) continue;
+    if (hasExistingTransferTo(target.first, s.toCity)) continue;
+    out = insertCityTransfer(out, s.toDayNumber, s, lang: lang);
+  }
+  return out;
+}
+
+/// "2s 15dk" / "2h 15m" / "8+ saat" / "Yaklaşık 2-3 saat" gibi süre metninden
+/// dakika çıkarır. Çözülemezse 180 dk (~3 saat) varsayar.
+int _transferDurationMin(String d) {
+  final l = d.toLowerCase();
+  final h = RegExp(r'(\d+)[+\s]*(?:saat|sa|s|hr|h)').firstMatch(l);
+  final m = RegExp(r'(\d+)\s*(?:dk|dak|min|m)\b').firstMatch(l);
+  final total = (h != null ? int.parse(h.group(1)!) * 60 : 0) +
+      (m != null ? int.parse(m.group(1)!) : 0);
+  return total > 0 ? total : 180;
+}
+
+String _hhmm(int min) {
+  final h = (min ~/ 60).clamp(0, 23);
+  final m = min % 60;
+  return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
 }
 
 /// Ulaşım modu kimliği (picker sonucu). API stringleri sabit — enum yerine

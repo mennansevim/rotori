@@ -13,6 +13,7 @@ import 'package:go_router/go_router.dart';
 import 'core/l10n.dart';
 import 'core/supabase_client.dart' show currentUserProvider;
 import 'data/language_store.dart';
+import 'domain/city_transfers.dart';
 import 'domain/fill_empty_days.dart';
 import 'domain/itinerary_generator.dart';
 import 'domain/trip_factory.dart';
@@ -109,6 +110,8 @@ Trip _buildDemoTrip() {
   // Günleri gerçek portlanmış üreticiyle doldur.
   var days = generateItineraryFromTrip(trip);
   days = fillEmptyDays(days, destinations);
+  // Şehir geçişlerini (Shinkansen) ekle — planner._generate ile aynı pipeline.
+  days = applyCityTransitions(days, destinations);
   trip.days = days;
 
   trip.hotels = [
