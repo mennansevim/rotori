@@ -69,7 +69,12 @@ def _wrap_instagram_error(exc: Exception) -> RuntimeError:
 
 
 def get_client(cfg: Config):
-    """instagrapi Client — session cache varsa yükle, yoksa login."""
+    """instagrapi Client — SABİT cihaz kimliğiyle login.
+
+    Kritik: cihaz kimliği (uuid/fingerprint) `data/instagram_device.json`'da
+    KALICI tutulur. Aksi halde her başarısız login yeni rastgele cihaz üretir
+    ve Instagram her seferinde 'yeni cihaz' görüp checkpoint tetikler — sonsuz
+    döngü. Sabit cihaz → 'Yes it was me' onayı o cihaza kalıcı yapışır."""
     from instagrapi import Client
     from instagrapi.exceptions import LoginRequired
 
@@ -78,17 +83,43 @@ def get_client(cfg: Config):
 
     ig = cfg.instagram
     session_path = cfg.project_root / ig.session_file
+    device_path = session_path.parent / "instagram_device.json"
 
     cl = Client()
     # login pace: instagrapi hemen ardışık istekleri şüpheli buluyor
     cl.delay_range = [1, 3]
 
-    # 1) Session cache varsa yükle
+    def _load_or_make_device() -> None:
+        """Kalıcı cihaz kimliğini yükle; yoksa oluştur + kaydet (TR bağlamı)."""
+        if device_path.exists():
+            try:
+                cl.load_settings(device_path)
+                return
+            except Exception:
+                pass
+        # yeni sabit cihaz — Türkiye locale/timezone (IP ile tutarlı görünsün)
+        try:
+            cl.set_locale("tr_TR")
+            cl.set_country("TR")
+            cl.set_country_code(90)
+            cl.set_timezone_offset(3 * 3600)   # UTC+3
+        except Exception:
+            pass
+        try:
+            device_path.parent.mkdir(parents=True, exist_ok=True)
+            cl.dump_settings(device_path)
+            log.info(f"  Sabit Instagram cihaz kimliği oluşturuldu → {device_path.name}")
+        except OSError:
+            pass
+
+    _load_or_make_device()
+
+    # 1) Session cache (auth) varsa yükle + doğrula
     if session_path.exists():
         try:
-            cl.load_settings(session_path)
-            cl.login(ig.username, ig.password)  # settings varsa cookie kullanır
-            cl.get_timeline_feed()  # session hâlâ geçerli mi test et
+            cl.load_settings(session_path)   # device + auth birlikte
+            cl.login(ig.username, ig.password)
+            cl.get_timeline_feed()           # session hâlâ geçerli mi test et
             log.info("  Instagram session cache'den yüklendi ✓")
             return cl
         except (LoginRequired, Exception) as exc:
@@ -97,8 +128,10 @@ def get_client(cfg: Config):
                 session_path.unlink()
             except OSError:
                 pass
+            # session ayarları cihazı değiştirmiş olabilir → kanonik cihaza dön
+            _load_or_make_device()
 
-    # 2) Sıfırdan login
+    # 2) Sıfırdan login — SABİT cihazla
     log.info(f"  Instagram login: {ig.username}")
     try:
         if ig.totp_secret:
