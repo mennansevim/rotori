@@ -5,14 +5,14 @@
 <script>document.documentElement.className='js';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0A0A0F">
-<title>Tabi — Japonya, kendiliğinden.</title>
-<meta name="description" content="Tabi: Japonya rotanı saniyeler içinde kur, sonra o plan seninle yürüsün. Çevrimdışı planlama, otomatik Shinkansen, GPS keşif rozetleri ve sakura.">
-<meta property="og:title" content="Tabi — Japonya, kendiliğinden.">
+<title>Rotori — Japonya, kendiliğinden.</title>
+<meta name="description" content="Rotori: Japonya rotanı saniyeler içinde kur, sonra o plan seninle yürüsün. Çevrimdışı planlama, otomatik Shinkansen, GPS keşif rozetleri ve sakura.">
+<meta property="og:title" content="Rotori — Japonya, kendiliğinden.">
 <meta property="og:description" content="Rotanı kur. Japonya'ya in. Her durak bir keşfe dönüşsün.">
 <meta property="og:type" content="website">
 <style>
 /* ============================================================
-   TABI — launch site · TR/EN
+   ROTORI — launch site · TR/EN
    Renkler uygulamanın gerçek tema kodundan: japanDark + pembe→mor + sakura
    ============================================================ */
 :root{
@@ -87,7 +87,7 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 .sec{padding:clamp(84px,13vh,150px) 0}
 .split{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(28px,5vw,72px);align-items:center}
 .split.rev .col-text{order:2}
-@media(max-width:860px){.split{grid-template-columns:1fr;gap:40px}.split.rev .col-text{order:0}.col-phone{order:-1}}
+@media(max-width:860px){.split{grid-template-columns:1fr;gap:40px}.split.rev .col-text{order:0}.split .col-phone{order:-1}}
 
 .chips{display:flex;flex-wrap:wrap;gap:9px;margin-top:22px}
 .chip{font-size:13.5px;font-weight:500;padding:8px 14px;border-radius:980px;border:1px solid var(--line-2);background:var(--card);color:var(--ink-2);display:inline-flex;gap:7px;align-items:center}
@@ -159,6 +159,20 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 .tool .big{font-weight:600;font-size:14px;margin-top:3px}
 .tool .sm{font-size:10.5px;color:var(--ink-2);margin-top:2px}
 
+/* chat mockup */
+.chat{display:flex;flex-direction:column;gap:8px;flex:1;overflow:hidden}
+.msg{display:flex;gap:8px;align-items:flex-start}
+.msg .av{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;background:var(--card-2);border:1px solid var(--line);flex:none;font-weight:700;color:#c9c2ff}
+.msg .bub{background:var(--card-2);border:1px solid var(--line);border-radius:12px;padding:8px 10px;font-size:11.5px;line-height:1.35;max-width:78%}
+.msg .nm{font-size:9.5px;font-weight:700;color:var(--sakura);margin-bottom:2px;letter-spacing:.02em}
+.msg.me{flex-direction:row-reverse}
+.msg.me .bub{background:linear-gradient(135deg,rgba(124,106,239,.28),rgba(255,143,171,.18));border-color:rgba(124,106,239,.35);color:#fff}
+.msg.me .av{background:var(--grad-brand);border:none;color:#fff}
+.chat-input{display:flex;align-items:center;gap:8px;background:var(--card-2);border:1px solid var(--line);border-radius:20px;padding:7px 8px 7px 12px;margin-top:auto;font-size:11px;color:var(--ink-3)}
+.chat-input .send{width:26px;height:26px;border-radius:50%;background:var(--grad-brand);display:grid;place-items:center;color:#fff;font-size:13px;flex:none;box-shadow:0 4px 12px -4px rgba(124,106,239,.6)}
+.chat-info{display:flex;align-items:center;gap:6px;font-size:10.5px;color:#c5f0c8;background:rgba(129,199,132,.14);border:1px solid rgba(129,199,132,.3);border-radius:11px;padding:7px 10px;font-weight:600}
+.chat-info .dot{width:7px;height:7px;border-radius:50%;background:var(--matcha);box-shadow:0 0 0 3px rgba(129,199,132,.25)}
+
 #hero{min-height:100vh;min-height:100svh;display:flex;align-items:center;padding-top:96px;padding-bottom:40px;position:relative}
 #hero .skyline{position:absolute;bottom:0;left:0;width:100%;height:130px;z-index:0;opacity:.6;pointer-events:none}
 .hero-grid{display:grid;grid-template-columns:1fr .96fr;gap:40px;align-items:center;width:100%}
@@ -186,12 +200,12 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 .act h2{margin-top:14px}
 
 #bridge{height:340svh;position:relative}
-#bridge .stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;display:grid;place-items:center}
+#bridge .stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:8vh 20px 4vh}
 #bridge .arc{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 #bridge .arc path{fill:none;stroke:url(#lg);stroke-width:2;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;filter:drop-shadow(0 0 6px rgba(124,106,239,.6))}
 #bridge .plane{position:absolute;left:0;top:0;font-size:22px;will-change:transform;opacity:0}
-#bridge .b-copy{position:absolute;top:12%;left:0;right:0;text-align:center;padding:0 20px;z-index:3}
-#bridge .b-phone{position:relative;z-index:2;transition:transform .1s linear;margin-top:6%}
+#bridge .b-copy{position:relative;text-align:center;z-index:3;max-width:900px;flex-shrink:0}
+#bridge .b-phone{position:relative;z-index:2;transition:transform .1s linear;margin-top:3vh;flex-shrink:1}
 .bridge-screen{position:absolute;inset:0;opacity:0;transition:opacity .5s var(--ease)}
 .bridge-screen.on{opacity:1}
 .badge-pop{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) scale(.4);opacity:0;z-index:8;display:flex;flex-direction:column;align-items:center;gap:8px}
@@ -199,7 +213,7 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 @keyframes pop{40%{opacity:1;transform:translate(-50%,-50%) scale(1.12)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 .badge-pop .b{width:88px;height:88px;border-radius:24px;display:grid;place-items:center;font-size:42px;background:var(--grad-sakura);box-shadow:0 20px 50px -12px rgba(255,143,171,.7)}
 .badge-pop .cap{font-weight:600;font-size:15px}
-@media(max-width:600px){#bridge{height:250svh}#bridge .b-phone{--w:210px;margin-top:26%}#bridge .b-copy{top:5%}#bridge .b-copy .h-lg{font-size:clamp(22px,6vw,30px)}}
+@media(max-width:600px){#bridge{height:250svh}#bridge .stage{padding-top:5vh}#bridge .b-phone{--w:210px;margin-top:3vh}#bridge .b-copy .h-lg{font-size:clamp(22px,6vw,30px)}}
 
 .badgewall{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:12px;margin-top:36px}
 .bw{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 14px;display:flex;flex-direction:column;gap:8px;transition:.5s var(--ease);position:relative;overflow:hidden}
@@ -255,7 +269,7 @@ footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-in
 <canvas id="sakura" aria-hidden="true"></canvas>
 
 <nav id="nav">
-  <a class="brand" href="#hero"><span class="mark" lang="ja">旅</span> Tabi <span class="jp" lang="ja">· 日本</span></a>
+  <a class="brand" href="#hero"><span class="mark" lang="ja">旅</span> Rotori <span class="jp" lang="ja">· 日本</span></a>
   <div class="nav-right">
     <div class="langtog" role="group" aria-label="Dil / Language">
       <button type="button" data-lang="tr" class="on" aria-pressed="true">TR</button>
@@ -299,11 +313,10 @@ footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-in
         <div class="screen"><div class="scr">
           <div class="scr-top"><div class="t-title" data-i18n="ph.route.title">🇯🇵 Japonya rotası</div><div class="t-sub" data-i18n="ph.route.sub">13 gün · 4 şehir · Mayıs 2026</div><span class="accentline"></span></div>
           <div class="scr-body">
-            <div class="rt"><span class="flag">🛫</span><div class="m"><div class="c" data-i18n="city.ist">İstanbul</div><div class="a" data-i18n="ph.ist.sub">IST · kalkış</div></div></div>
-            <div class="hop"><span class="ln"></span></div>
+            <div class="rt"><span class="flag">🛫</span><div class="m"><div class="c" data-i18n="city.ist">İstanbul</div><div class="a" data-i18n="ph.ist.sub">IST · kalkış</div></div><span class="tag" data-i18n="ph.d0">Gün 0</span></div>
             <div class="rt"><span class="flag">🗼</span><div class="m"><div class="c">Tokyo</div><div class="a" data-i18n="ph.tokyo.sub">HND · 4 gün</div></div><span class="tag" data-i18n="ph.d14">Gün 1–4</span></div>
             <div class="rt"><span class="flag">⛩️</span><div class="m"><div class="c">Kyoto</div><div class="a" data-i18n="ph.kyoto.sub">Shinkansen · 3 gün</div></div><span class="tag" data-i18n="ph.d57">Gün 5–7</span></div>
-            <div class="rt"><span class="flag">🦌</span><div class="m"><div class="c">Nara</div><div class="a" data-i18n="ph.daytrip">günübirlik</div></div></div>
+            <div class="rt"><span class="flag">🦌</span><div class="m"><div class="c">Nara</div><div class="a" data-i18n="ph.nara.sub">Kyoto'dan · geyik parkı</div></div><span class="tag" data-i18n="ph.daytrip">günübirlik</span></div>
             <div class="rt"><span class="flag">🐙</span><div class="m"><div class="c">Osaka</div><div class="a" data-i18n="ph.osaka.sub">KIX · dönüş</div></div><span class="tag" data-i18n="ph.d813">Gün 8–13</span></div>
           </div>
         </div></div>
@@ -526,6 +539,45 @@ footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-in
   </div></div>
 </div></section>
 
+<!-- ACT III -->
+<div class="act" id="act3"><div class="wrap reveal">
+  <div class="no" data-i18n="act3.no">Perde III</div>
+  <h2 class="h-lg grad-text" data-i18n="act3.h">Buluş.</h2>
+  <p class="lead muted" style="margin:16px auto 0;text-align:center;max-width:46ch" data-i18n="act3.lead">Aynı ay Japonya'da olacak gezginler bir odada. Yalnız uçtun — birlikte gez.</p>
+</div></div>
+
+<!-- MEET / CHAT -->
+<section class="sec" id="meet" style="position:relative">
+  <span class="jp-vert" lang="ja" style="top:6%;right:0">出会い</span>
+  <div class="wrap split">
+    <div class="col-text">
+      <span class="eyebrow reveal" data-i18n="meet.eyebrow">Aynı dönem, aynı ada</span>
+      <h2 class="h-md reveal d1" style="margin-top:14px" data-i18n-html="meet.h">Yalnız uçtun.<br>Yalnız gezmeyeceksin.</h2>
+      <p class="lead reveal d2" style="margin-top:16px" data-i18n="meet.lead">Aynı ay Japonya'da olacak gezginler otomatik bir odada. İpuçları paylaş, buluşma ayarla, Shinkansen'i birlikte al — istersen rotanı bir arkadaşınla ortaklaşa planla.</p>
+      <ul class="bul">
+        <li class="reveal d2"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M8 3h8M12 3v3M4.5 21v-8a3 3 0 0 1 3-3h9a3 3 0 0 1 3 3v8"/><path d="M8 14h8M8 17h5"/></svg></span><div><h3 data-i18n="meet.card.room.h">Aynı dönem odası</h3><p data-i18n="meet.card.room.p">Aynı ay Japonya'da olacak gezginlerle otomatik ortak oda. İpuçları paylaş, buluşma ayarla.</p></div></li>
+        <li class="reveal d3"><span class="ic"><svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="10" r="2.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 20c0-2 1-4 3-4.5"/></svg></span><div><h3 data-i18n="meet.card.together.h">Birlikte planla</h3><p data-i18n="meet.card.together.p">Rotanı arkadaşına paylaş, ortak listeye ekleyin. Aynı Shinkansen, aynı otel, aynı akşam yemeği.</p></div></li>
+        <li class="reveal d3"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span><div><h3 data-i18n="meet.card.safe.h">Güvenli topluluk</h3><p data-i18n="meet.card.safe.p">Moderasyon, rapor, blok tek dokunuşta. Kişisel bilgin gizli — sadece takma adın ve dönemin görünür.</p></div></li>
+      </ul>
+    </div>
+    <div class="col-phone"><div class="phone reveal d1" aria-hidden="true">
+      <div class="island"></div><div class="glare"></div>
+      <div class="screen"><div class="scr">
+        <div class="scr-top grad"><div class="t-title" data-i18n="meet.ph.title">💬 Mayıs 2026 · Japonya</div><div class="t-sub" data-i18n="meet.ph.sub">24 gezgin · aktif oda</div></div>
+        <div class="scr-body">
+          <div class="chat-info"><span class="dot"></span><span data-i18n="meet.ph.info">Kyoto'da aynı gün 6 kişi</span></div>
+          <div class="chat">
+            <div class="msg"><span class="av">A</span><div><div class="nm">Aiko · Tokyo</div><div class="bub" data-i18n="meet.ph.m1">Sabah 07:00 Fushimi Inari, birlikte gidelim mi? Kalabalık olmadan yakalayalım 🌅</div></div></div>
+            <div class="msg"><span class="av">K</span><div><div class="nm">Kenji · Osaka</div><div class="bub" data-i18n="meet.ph.m2">USJ'e 5 kişi olduk, grup indirimi çıktı. Katılan?</div></div></div>
+            <div class="msg me"><span class="av">S</span><div><div class="bub" data-i18n="meet.ph.m3">teamLab için 4 kişilik bilet aldım — 1 boş var 🎨</div></div></div>
+          </div>
+          <div class="chat-input"><span data-i18n="meet.ph.ph">Mesaj yaz…</span><span class="send" aria-hidden="true">➤</span></div>
+        </div>
+      </div></div>
+    </div></div>
+  </div>
+</section>
+
 <!-- THEME SWITCHER -->
 <section class="sec"><div class="wrap">
   <div style="text-align:center;max-width:600px;margin:0 auto 40px">
@@ -563,7 +615,7 @@ footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-in
 <section id="final">
   <canvas class="sakura-final" aria-hidden="true"></canvas>
   <div class="wrap reveal">
-    <span class="eyebrow" style="justify-content:center"><span lang="ja">旅</span> · Tabi</span>
+    <span class="eyebrow" style="justify-content:center"><span lang="ja">旅</span> · Rotori</span>
     <h2 class="h-xl grad-text" style="margin:16px auto 0;max-width:16ch" data-i18n="final.h">Japonya, kendiliğinden.</h2>
     <p class="lead" style="margin:20px auto 0;text-align:center" data-i18n="final.lead">Yaprak düşmeden rotanı kur. Gerisini uygulama seninle yaşar.</p>
     <div class="store">
@@ -590,7 +642,7 @@ footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-in
 </section>
 
 <footer><div class="wrap foot-grid">
-  <div class="brand"><span class="mark" lang="ja">旅</span> Tabi <span class="jp" lang="ja">· 日本 2026</span></div>
+  <div class="brand"><span class="mark" lang="ja">旅</span> Rotori <span class="jp" lang="ja">· 日本 2026</span></div>
   <div class="muted" data-i18n="foot.tag">Rotanı kur · Japonya'ya in · Her durak bir keşfe dönüşsün</div>
   <div class="muted" data-i18n-html="foot.stack">Flutter · iOS · Android yakında · <span lang="ja">さくら</span> 🌸</div>
 </div></footer>
@@ -604,7 +656,7 @@ footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-in
 
   /* ===================== i18n dictionary ===================== */
   const I18N={
-    'meta.title':{tr:'Tabi — Japonya, kendiliğinden.',en:'Tabi — Japan, effortlessly.'},
+    'meta.title':{tr:'Rotori — Japonya, kendiliğinden.',en:'Rotori — Japan, effortlessly.'},
     'nav.download':{tr:'İndir',en:'Download'},
     'hero.eyebrow':{tr:'Planla · Uç · Keşfet',en:'Plan · Fly · Discover'},
     'hero.t1':{tr:'Japonya,',en:'Japan,'},
@@ -626,9 +678,11 @@ footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-in
     'ph.kyoto.sub':{tr:'Shinkansen · 3 gün',en:'Shinkansen · 3 days'},
     'ph.daytrip':{tr:'günübirlik',en:'day trip'},
     'ph.osaka.sub':{tr:'KIX · dönüş',en:'KIX · return'},
+    'ph.d0':{tr:'Gün 0',en:'Day 0'},
     'ph.d14':{tr:'Gün 1–4',en:'Day 1–4'},
     'ph.d57':{tr:'Gün 5–7',en:'Day 5–7'},
     'ph.d813':{tr:'Gün 8–13',en:'Day 8–13'},
+    'ph.nara.sub':{tr:'Kyoto\'dan · geyikler',en:'From Kyoto · deer'},
     'act1.no':{tr:'Perde I',en:'Act I'},
     'act1.h':{tr:'Planla.',en:'Plan.'},
     'act1.lead':{tr:'Her şey kendiliğinden olur. Tarihler bölünür, tren kartı düşer, boş günler dolar — bulut yok, bekleme yok.',en:'Everything happens on its own. Dates split, the train card drops in, empty days fill up — no cloud, no waiting.'},
@@ -680,6 +734,25 @@ footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-in
     'act2.no':{tr:'Perde II',en:'Act II'},
     'act2.h':{tr:'Yaşa.',en:'Live it.'},
     'act2.lead':{tr:'Aynı plan artık avucunda canlı bir yol arkadaşı. Bir yere yürü, 10 dakika kal — pin yeşile dönsün, rozet ışıldasın.',en:'The same plan is now a living companion in your hand. Walk somewhere, stay 10 minutes — the pin turns green, a badge lights up.'},
+    'act3.no':{tr:'Perde III',en:'Act III'},
+    'act3.h':{tr:'Buluş.',en:'Meet.'},
+    'act3.lead':{tr:'Aynı ay Japonya\'da olacak gezginler bir odada. Yalnız uçtun — birlikte gez.',en:"Travelers headed to Japan in the same month, in one room. You flew alone — explore together."},
+    'meet.eyebrow':{tr:'Aynı dönem, aynı ada',en:'Same season, same island'},
+    'meet.h':{tr:'Yalnız uçtun.<br>Yalnız gezmeyeceksin.',en:"Flew alone.<br>Won't wander alone."},
+    'meet.lead':{tr:'Aynı ay Japonya\'da olacak gezginler otomatik bir odada. İpuçları paylaş, buluşma ayarla, Shinkansen\'i birlikte al — istersen rotanı bir arkadaşınla ortaklaşa planla.',en:"Travelers heading to Japan in the same month land in one auto-room. Swap tips, meet up, take the Shinkansen together — or co-plan a route with a friend."},
+    'meet.card.room.h':{tr:'Aynı dönem odası',en:'Same-month room'},
+    'meet.card.room.p':{tr:'Aynı ay Japonya\'da olacak gezginlerle otomatik ortak oda. İpuçları paylaş, buluşma ayarla.',en:'An auto-shared room with everyone in Japan the same month. Trade tips, arrange meetups.'},
+    'meet.card.together.h':{tr:'Birlikte planla',en:'Plan together'},
+    'meet.card.together.p':{tr:'Rotanı arkadaşına paylaş, ortak listeye ekleyin. Aynı Shinkansen, aynı otel, aynı akşam yemeği.',en:'Share your route with a friend, add to a joint list. Same Shinkansen, same hotel, same dinner.'},
+    'meet.card.safe.h':{tr:'Güvenli topluluk',en:'Safe community'},
+    'meet.card.safe.p':{tr:'Moderasyon, rapor, blok tek dokunuşta. Kişisel bilgin gizli — sadece takma adın ve dönemin görünür.',en:'One-tap moderation, report and block. Your personal info stays private — only your handle and month are visible.'},
+    'meet.ph.title':{tr:'💬 Mayıs 2026 · Japonya',en:'💬 May 2026 · Japan'},
+    'meet.ph.sub':{tr:'24 gezgin · aktif oda',en:'24 travelers · active room'},
+    'meet.ph.info':{tr:'Kyoto\'da aynı gün 6 kişi',en:'6 people in Kyoto same day'},
+    'meet.ph.m1':{tr:'Sabah 07:00 Fushimi Inari, birlikte gidelim mi? Kalabalık olmadan yakalayalım 🌅',en:'Fushimi Inari at 07:00, want to go together? Beat the crowd 🌅'},
+    'meet.ph.m2':{tr:'USJ\'e 5 kişi olduk, grup indirimi çıktı. Katılan?',en:'We\'re 5 to USJ — group discount unlocked. Anyone in?'},
+    'meet.ph.m3':{tr:'teamLab için 4 kişilik bilet aldım — 1 boş var 🎨',en:'Got a 4-person teamLab ticket — 1 slot open 🎨'},
+    'meet.ph.ph':{tr:'Mesaj yaz…',en:'Type a message…'},
     'disc.eyebrow':{tr:'GPS keşif motoru',en:'GPS discovery engine'},
     'disc.h':{tr:'Yürü. Keşfet.<br>Kazan.',en:'Walk. Discover.<br>Earn.'},
     'disc.lead':{tr:'Uygulama, rotandaki bir yere gerçekten gidip ~10 dakika kaldığında ziyaretini GPS ile onaylar. Her keşif +25 XP; şehirler doldukça rozetlerin kilidi kendiliğinden açılır. Japonya bir oyuna dönüşür.',en:'When you actually go to a place on your route and stay ~10 minutes, the app confirms the visit via GPS. Each discovery is +25 XP; as cities fill up, badges unlock on their own. Japan becomes a game.'},
@@ -814,13 +887,13 @@ footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-in
     setBridgeTitle();
     renderDayBars();
     document.querySelectorAll('.langtog button').forEach(b=>{const on=b.dataset.lang===curLang;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false');});
-    try{localStorage.setItem('tabi:lang',curLang);}catch(e){}
+    try{localStorage.setItem('rotori:lang',curLang);}catch(e){}
   }
   document.querySelectorAll('.langtog button').forEach(b=>b.addEventListener('click',()=>applyLang(b.dataset.lang)));
 
   // init language: kayıtlı seçim > TR (Türkçe varsayılan; EN tek dokunuş uzakta)
   let initLang='tr';
-  try{const s=localStorage.getItem('tabi:lang');if(s==='tr'||s==='en')initLang=s;}catch(e){}
+  try{const s=localStorage.getItem('rotori:lang');if(s==='tr'||s==='en')initLang=s;}catch(e){}
   applyLang(initLang);
 
   /* ===================== starfield ===================== */
