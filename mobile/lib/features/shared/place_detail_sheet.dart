@@ -38,19 +38,17 @@ Future<void> showPlaceDetailSheet({
 }) {
   final profile =
       countryCode != null ? getDestinationProfile(countryCode) : null;
-  final hasGuide = matchPlaceGuide(item.title) != null;
+  // Content-fit sheet: kısa içerikte alt boşluk kalmaz, uzunda %90'a kadar
+  // büyür ve kendi içinde scroll eder.
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: Colors.transparent,
-    builder: (ctx) => DraggableScrollableSheet(
-      // Rehberli yerlerde biraz daha yüksek başlar; asla tam ekran kaplamaz.
-      initialChildSize: hasGuide ? 0.68 : 0.5,
-      minChildSize: 0.4,
-      maxChildSize: 0.92,
-      expand: false,
-      builder: (ctx, scrollController) => Container(
+    builder: (ctx) {
+      final maxH = MediaQuery.of(ctx).size.height * 0.9;
+      return Container(
+        constraints: BoxConstraints(maxHeight: maxH),
         decoration: BoxDecoration(
           color: Theme.of(ctx).colorScheme.surface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -64,10 +62,10 @@ Future<void> showPlaceDetailSheet({
           onEdit: onEdit,
           existingTicket: existingTicket,
           onAddTicket: onAddTicket,
-          scrollController: scrollController,
+          scrollController: null,
         ),
-      ),
-    ),
+      );
+    },
   );
 }
 
@@ -157,7 +155,7 @@ class _PlaceDetailSheet extends StatefulWidget {
     required this.onEdit,
     required this.existingTicket,
     required this.onAddTicket,
-    required this.scrollController,
+    this.scrollController,
   });
 
   final TimelineItem item;
@@ -167,7 +165,7 @@ class _PlaceDetailSheet extends StatefulWidget {
   final VoidCallback? onEdit;
   final Ticket? existingTicket;
   final void Function(Ticket)? onAddTicket;
-  final ScrollController scrollController;
+  final ScrollController? scrollController;
 
   @override
   State<_PlaceDetailSheet> createState() => _PlaceDetailSheetState();
@@ -481,6 +479,8 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
 
     return ListView(
       controller: widget.scrollController,
+      shrinkWrap: true,
+      physics: const ClampingScrollPhysics(),
       padding: EdgeInsets.only(
         left: 20,
         right: 20,

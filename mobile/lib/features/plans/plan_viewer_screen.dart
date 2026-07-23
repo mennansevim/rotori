@@ -20,6 +20,7 @@ import '../../core/l10n.dart';
 import '../../data/language_store.dart';
 import '../../data/plans_repository.dart';
 import '../../data/reminders_store.dart';
+import '../../domain/city_palette.dart';
 import '../../domain/destination_profiles.dart';
 import '../../domain/types.dart';
 import '../shared/place_detail_sheet.dart';
@@ -281,6 +282,13 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                       dest: getDestinationForDate(
                         _sortedDestinations,
                         days[i].date,
+                      ),
+                      bubbleColor: cityColorFor(
+                        _sortedDestinations,
+                        getDestinationForDate(
+                          _sortedDestinations,
+                          days[i].date,
+                        )?.id,
                       ),
                       isPast: i < activeIndex,
                       isActive: i == activeIndex,
@@ -1350,6 +1358,7 @@ class _DayCard extends StatefulWidget {
     required this.day,
     required this.palette,
     required this.dest,
+    required this.bubbleColor,
     required this.isPast,
     required this.isActive,
     required this.onOpenItem,
@@ -1358,6 +1367,7 @@ class _DayCard extends StatefulWidget {
   final DayPlan day;
   final ViewerPalette palette;
   final TripDestination? dest;
+  final Color bubbleColor;
   final bool isPast;
   final bool isActive;
   final void Function(TimelineItem item, TripDestination? dest) onOpenItem;
@@ -1435,7 +1445,7 @@ class _DayCardState extends State<_DayCard> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _DayBadge(day: day, palette: p),
+                  _DayBadge(day: day, palette: p, bubbleColor: widget.bubbleColor),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -1559,9 +1569,11 @@ class _DayCardState extends State<_DayCard> {
 }
 
 class _DayBadge extends StatelessWidget {
-  const _DayBadge({required this.day, required this.palette});
+  const _DayBadge(
+      {required this.day, required this.palette, required this.bubbleColor});
   final DayPlan day;
   final ViewerPalette palette;
+  final Color bubbleColor;
 
   @override
   Widget build(BuildContext context) {
@@ -1575,7 +1587,7 @@ class _DayBadge extends StatelessWidget {
       width: 54,
       height: 54,
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: palette.gradientNight),
+        color: bubbleColor,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/l10n.dart';
 import '../../../domain/city_places.dart';
-import '../../../domain/trip_factory.dart';
+import '../../../domain/japan_suggestions.dart';
 import '../../../domain/types.dart';
 import '../data/airlines.dart';
 import '../data/airports.dart';
@@ -28,6 +28,9 @@ class JourneyStep extends StatefulWidget {
 }
 
 class _JourneyStepState extends State<JourneyStep> {
+  /// Aktif şehir sekmesi (order index). Silme sonrası clamp'lenir.
+  int _activeTab = 0;
+
   @override
   void initState() {
     super.initState();
@@ -55,12 +58,10 @@ class _JourneyStepState extends State<JourneyStep> {
 
   Trip get trip => widget.trip;
 
-  String _addDays(String iso, int days) {
-    final d = DateTime.parse('${iso}T00:00:00Z').add(Duration(days: days));
-    return d.toIso8601String().substring(0, 10);
-  }
-
-  /// Tarih/gün senkronu — React commitDests'in hafif karşılığı.
+  /// Uçuş/varış düzenlemeleri sonrası hafif senkron. Yalnızca order normalize +
+  /// travelDates.start/end + tripStart/End senkronu yapar. Gün dağıtımı (tarih
+  /// blokları + t.days üretimi) artık Plan adımına ait — burada TARİHLERE ve
+  /// GÜNLERE dokunulmaz, böylece rota/sekmeler titremez.
   void _resync(Trip t) {
     final dests = [...t.preferences.destinations]..sort((a, b) => a.order.compareTo(b.order));
     for (var i = 0; i < dests.length; i++) {
@@ -71,14 +72,6 @@ class _JourneyStepState extends State<JourneyStep> {
     final lastArrival = dests.isNotEmpty ? dests.last.arrivalDate : start;
     if (end.compareTo(lastArrival) < 0) end = lastArrival;
 
-    // BUG 1: Yeni eklenen destinasyonlar hep `start` ile geliyor — hepsi aynı
-    // güne çökmesin diye tarih aralığını eşit dağıt. Heuristik: tüm arrivalDate
-    // değerleri `start`'a eşitse → kullanıcı elle düzenlememiş, güvenle dağıt.
-    // Aksi halde kullanıcının elle koyduğu tarihleri koru.
-    if (dests.length >= 2 && dests.every((d) => d.arrivalDate == start)) {
-      distributeDates(dests, start, end);
-    }
-
     for (var i = 0; i < dests.length; i++) {
       dests[i].departureDate = i + 1 < dests.length ? dests[i + 1].arrivalDate : end;
     }
@@ -87,8 +80,18 @@ class _JourneyStepState extends State<JourneyStep> {
       ..end = end;
     t.tripStart = '${start}T08:00:00';
     t.tripEnd = '${end}T20:00:00';
-    // Günleri tarih aralığından üret (boş iskelet — Plan adımı doldurur).
-    t.days = generateDaysBetween(start, end);
+  }
+
+  /// Silme/ekleme sonrası aktif sekmeyi güvenli aralığa çeker.
+  void _clampActiveTab() {
+    final n = trip.preferences.destinations.length;
+    if (n == 0) {
+      _activeTab = 0;
+    } else if (_activeTab >= n) {
+      _activeTab = n - 1;
+    } else if (_activeTab < 0) {
+      _activeTab = 0;
+    }
   }
 
   bool get _hasTicket => trip.preferences.hasTicket != false;
@@ -101,6 +104,95 @@ class _JourneyStepState extends State<JourneyStep> {
   List<TripDestination> get _dests {
     final d = [...trip.preferences.destinations]..sort((a, b) => a.order.compareTo(b.order));
     return d;
+  }
+
+  /// Bir şehrin gezilecek yerleri: önce kCityData'da alias/label ile bul → .places;
+  /// yoksa kJapanPopular'dan p.city eşleşenler. (name + emoji minimal kaydı.)
+  List<({String name, String emoji})> _placesForCity(String city) {
+    // "Osaka (Kansai)" → "osaka": havaalanı/bölge ekini at ki kCityData eşleşsin.
+    final key = city
+        .replaceAll(RegExp(r'\s*\(.*\)\s*$'), '')
+        .trim()
+        .toLowerCase();
+    if (key.isEmpty) return const [];
+    for (final c in kCityData) {
+      if (c.label.toLowerCase() == key || c.aliases.contains(key)) {
+        return [for (final p in c.places) (name: p.name, emoji: p.emoji)];
+      }
+    }
+    return [
+      for (final p in kJapanPopular)
+        if (p.city
+                .replaceAll(RegExp(r'\s*\(.*\)\s*$'), '')
+                .trim()
+                .toLowerCase() ==
+            key)
+          (name: p.name, emoji: p.emoji),
+    ];
+  }
+
+  /// Sekmeler için görüntü sırası: iniş şehri EN BAŞTA, dönüş şehri EN SONDA,
+  /// diğerleri arada. Model sırası (destinations[].order) aynen kalır — bu
+  /// yalnızca sekme/rota çubuğu gösterimini etkiler.
+  ///
+  /// Örnek: dests = [Tokyo(0), Kyoto(1), Osaka(2), Nara(3)], returnDepart=KIX
+  /// → ordered = [Tokyo, Kyoto, Nara, Osaka] (Osaka dönüş olarak sona alınır).
+  List<TripDestination> _orderedForTabs(List<TripDestination> dests) {
+    if (dests.length <= 1) return dests;
+    final arr = dests.first; // order 0 = iniş (outbound arrival)
+    final retIata = (trip.preferences.returnDepartAirport ?? '').trim();
+    TripDestination? ret;
+    final middle = <TripDestination>[];
+    for (var i = 1; i < dests.length; i++) {
+      final d = dests[i];
+      if (retIata.isNotEmpty && d.airport == retIata && ret == null) {
+        ret = d;
+      } else {
+        middle.add(d);
+      }
+    }
+    return [arr, ...middle, if (ret != null) ret];
+  }
+
+  /// Dönüş şehri iniş şehrinden farklı mı? (Aksi halde round-trip aynı şehir,
+  /// dönüş rozeti gerekmez.)
+  bool get _hasDistinctReturn {
+    final r = (trip.preferences.returnDepartAirport ?? '').trim();
+    if (r.isEmpty) return false;
+    final arrIata = _dests.isEmpty ? '' : (_dests.first.airport ?? '');
+    return r != arrIata;
+  }
+
+  /// Dönüş tarihini günceller — travelDates.end + tripEnd + son destinasyonun
+  /// departureDate'i.
+  void _setReturnDate(String v) {
+    widget.onChange((t) {
+      t.preferences.travelDates.end = v;
+      t.tripEnd = '${v}T20:00:00';
+      if (t.preferences.destinations.isNotEmpty) {
+        final sorted = [...t.preferences.destinations]
+          ..sort((a, b) => a.order.compareTo(b.order));
+        sorted.last.departureDate = v;
+        t.preferences.destinations = sorted;
+      }
+    });
+  }
+
+  bool _isMustSee(String name) => trip.preferences.mustSee
+      .any((m) => m.trim().toLowerCase() == name.trim().toLowerCase());
+
+  /// Yer adını mustSee listesine ekler/çıkarır. Rota/tarihlere dokunmaz.
+  void _toggleMustSee(String name) {
+    widget.onChange((t) {
+      final idx = t.preferences.mustSee
+          .indexWhere((m) => m.trim().toLowerCase() == name.trim().toLowerCase());
+      if (idx >= 0) {
+        t.preferences.mustSee.removeAt(idx);
+      } else {
+        t.preferences.mustSee.add(name);
+      }
+    });
+    setState(() {});
   }
 
   void _setOrigin(Airport a) {
@@ -146,24 +238,16 @@ class _JourneyStepState extends State<JourneyStep> {
     });
   }
 
-  void _setReturnDate(String date) {
-    widget.onChange((t) {
-      final start = t.preferences.travelDates.start;
-      final maxEnd = start.isNotEmpty ? _addDays(start, kMaxTripDays - 1) : date;
-      t.preferences.travelDates.end = date.compareTo(maxEnd) > 0 ? maxEnd : date;
-      _resync(t);
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final s = LanguageScope.of(context);
     final dests = _dests;
-    final lastDest = dests.isNotEmpty ? dests.last : null;
-    final showReturn = (lastDest?.airport ?? '').isNotEmpty;
-    final routePreview = _routePreview();
-
     final destCount = dests.length;
+    // Görüntü sırası — iniş şehri BAŞTA, dönüş şehri SONDA. Model sırası
+    // (destinations[].order) aynen kalır; bu sadece sekme/rota gösterimi için.
+    final ordered = _orderedForTabs(dests);
+    final displayActive =
+        ordered.isEmpty ? 0 : _activeTab.clamp(0, ordered.length - 1);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 120),
@@ -175,35 +259,29 @@ class _JourneyStepState extends State<JourneyStep> {
 
         if (widget.onLoadJapanPlan != null) _japanBanner(),
 
-        // Gidiş uçuşu SADECE ilk destinasyona. Ara şehirler Shinkansen/tren
-        // ile — her seçilen şehir için ayrı uçuş kartı çıkarmıyoruz.
+        // Gidiş uçuşu — uçağın indiği ilk Japon şehri (iniş).
         _flightLeg(0, dests.isEmpty ? null : dests.first),
 
-        // Dönüş uçuşu son destinasyondan (varsa).
-        if (showReturn) _returnLeg(lastDest!),
+        // Dönüş uçuşu — iniş şehrinden farklı bir şehirden de kalkabilirsin
+        // (ör. Tokyo iniş, Osaka dönüş).
+        _returnLeg(),
 
         if (destCount >= 2) _shinkansenReminder(),
+
+        // Gezilecek şehirler — INERT chip listesi (seçmek yalnızca ekler).
         _cityPicker(dests),
 
-        if (routePreview.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: RichText(
-              text: TextSpan(
-                style: const TextStyle(fontSize: 14, color: PT.text),
-                children: [
-                  TextSpan(
-                      text: s.s('journey.routeLabel'),
-                      style: const TextStyle(fontWeight: FontWeight.w700)),
-                  TextSpan(text: routePreview),
-                ],
-              ),
-            ),
-          ),
+        // Şehir sekmeleri + aktif şehrin gezilecek yerleri (ordered).
+        if (destCount > 0) _cityTabs(ordered, displayActive),
+        if (destCount > 0) _cityPlaces(ordered[displayActive]),
 
-        if (!_canContinue())
+        // Sabit ROTA çubuğu — her zaman görünür (ordered).
+        _routeBar(ordered),
+
+        // Devam ipucu — yalnızca gerçekten eksikse.
+        if (_originAirport.isEmpty || dests.isEmpty)
           Container(
-            margin: const EdgeInsets.only(top: 12),
+            margin: const EdgeInsets.only(top: 4),
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: PT.accentSoft,
@@ -218,19 +296,121 @@ class _JourneyStepState extends State<JourneyStep> {
     );
   }
 
-  bool _canContinue() =>
-      _originAirport.isNotEmpty &&
-      _dests.isNotEmpty &&
-      _dests.every((d) => d.city.trim().isNotEmpty);
+  /// display-order[0] → "iniş"; ayrı dönüş şehri varsa display-order[son] →
+  /// "dönüş"; aksi durumda dönüş rozeti yok (round-trip aynı şehir).
+  String? _badgeFor(int i, int count, LanguageScope s) {
+    if (i == 0) return s.s('journey.badge.arrival');
+    if (i == count - 1 && count > 1 && _hasDistinctReturn) {
+      return s.s('journey.badge.return');
+    }
+    return null;
+  }
 
-  String _routePreview() {
-    final dests = _dests;
-    if (dests.isEmpty || _origin.isEmpty) return '';
-    final parts = <String>[
-      '$_origin${_originAirport.isNotEmpty ? ' ($_originAirport)' : ''}',
-      ...dests.map((d) => '${d.city}${(d.airport ?? '').isNotEmpty ? ' (${d.airport})' : ''}'),
-    ];
-    return parts.join(' → ');
+  /// Seçili destinasyonlar order sırasıyla yatay pill sekmeler.
+  Widget _cityTabs(List<TripDestination> dests, int active) {
+    final s = LanguageScope.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            for (var i = 0; i < dests.length; i++)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: _CityTab(
+                  label: dests[i].city.isNotEmpty
+                      ? dests[i].city
+                      : dests[i].countryName,
+                  badge: _badgeFor(i, dests.length, s),
+                  active: i == active,
+                  onTap: () => setState(() => _activeTab = i),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Aktif şehrin gezilecek yerleri — minimal check-row listesi.
+  Widget _cityPlaces(TripDestination dest) {
+    final s = LanguageScope.of(context);
+    final city = dest.city.isNotEmpty ? dest.city : dest.countryName;
+    final places = _placesForCity(city);
+    final selected = places.where((p) => _isMustSee(p.name)).length;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+      decoration: BoxDecoration(
+        color: PT.bgElevated,
+        borderRadius: BorderRadius.circular(PT.radius),
+        border: Border.all(color: PT.borderStrong),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  s.p('journey.cityPlaces.title', {'city': city}),
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w600, color: PT.text),
+                ),
+              ),
+              Text(
+                s.p('journey.cityPlaces.selected', {'n': '$selected'}),
+                style: const TextStyle(fontSize: 12, color: PT.textSecondary),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          for (final p in places)
+            _PlaceCheckRow(
+              emoji: p.emoji,
+              name: p.name,
+              checked: _isMustSee(p.name),
+              onTap: () => _toggleMustSee(p.name),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Sabit rota çubuğu: origin → dest1 (iniş) → … → son (dönüş).
+  Widget _routeBar(List<TripDestination> dests) {
+    final s = LanguageScope.of(context);
+    final origin = _origin;
+    return Container(
+      margin: const EdgeInsets.only(top: 2, bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: PT.accentSoft,
+        borderRadius: BorderRadius.circular(PT.radius),
+        border: Border.all(color: PT.accent.withValues(alpha: 0.25)),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _RouteNode(label: origin.isEmpty ? '—' : origin, muted: origin.isEmpty),
+            for (var i = 0; i < dests.length; i++) ...[
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: Icon(Icons.arrow_forward, size: 14, color: PT.accent),
+              ),
+              _RouteNode(
+                label: dests[i].city.isNotEmpty
+                    ? dests[i].city
+                    : dests[i].countryName,
+                badge: _badgeFor(i, dests.length, s),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   // ---- parçalar ----
@@ -292,7 +472,7 @@ class _JourneyStepState extends State<JourneyStep> {
                   color: PT.text)),
           const SizedBox(height: 2),
           Text(
-              s.s('journey.cities.hint'),
+              s.s('journey.cities.inertHint'),
               style: const TextStyle(
                   fontSize: 12, color: PT.textSecondary, height: 1.35)),
           const SizedBox(height: 10),
@@ -362,13 +542,17 @@ class _JourneyStepState extends State<JourneyStep> {
         airport: c.iata ?? '',
         lat: c.lat,
         lng: c.lng,
+        // Placeholder tarihler — gerçek gün dağılımı Plan adımından gelir.
         arrivalDate: t.preferences.travelDates.start,
         departureDate: t.preferences.travelDates.end,
         order: list.length,
       ));
+      for (var i = 0; i < list.length; i++) {
+        list[i].order = i;
+      }
       t.preferences.destinations = list;
-      _resync(t);
     });
+    setState(_clampActiveTab);
   }
 
   void _removeCustomCity(TripDestination target) {
@@ -380,8 +564,8 @@ class _JourneyStepState extends State<JourneyStep> {
         list[i].order = i;
       }
       t.preferences.destinations = list;
-      _resync(t);
     });
+    setState(_clampActiveTab);
   }
 
   /// Şehir chip'ine tıklanınca: rotada yoksa yeni destinasyon (ilk havalimanı
@@ -394,9 +578,6 @@ class _JourneyStepState extends State<JourneyStep> {
           list.indexWhere((d) => d.city.trim().toLowerCase() == city.label.toLowerCase());
       if (existingIdx >= 0) {
         list.removeAt(existingIdx);
-        for (var i = 0; i < list.length; i++) {
-          list[i].order = i;
-        }
       } else {
         final ap = kAirports.firstWhere(
           (a) => a.countryCode == 'JP' &&
@@ -418,14 +599,20 @@ class _JourneyStepState extends State<JourneyStep> {
           airport: ap.iata,
           lat: ap.iata.isNotEmpty ? ap.lat : null,
           lng: ap.iata.isNotEmpty ? ap.lng : null,
+          // Placeholder tarihler — gerçek gün dağılımı Plan adımından gelir.
           arrivalDate: t.preferences.travelDates.start,
           departureDate: t.preferences.travelDates.end,
           order: list.length,
         ));
       }
+      // Order'ları 0..n normalize et. travelDates/tripStart/End ve t.days'e
+      // DOKUNMA — şehir seçimi inert; rota/tarih/sekmeler titremez.
+      for (var i = 0; i < list.length; i++) {
+        list[i].order = i;
+      }
       t.preferences.destinations = list;
-      _resync(t);
     });
+    setState(_clampActiveTab);
   }
 
   Widget _japanBanner() {
@@ -563,18 +750,43 @@ class _JourneyStepState extends State<JourneyStep> {
             ],
           ),
         ),
+        // İniş saati — varış günü akışı (havaalanı → transfer → check-in) bu
+        // saate göre kurulur.
+        _field(
+          s.s('journey.field.arrivalTime'),
+          _TimeBox(
+            value: trip.preferences.outboundArrivalTime ?? '',
+            onPick: (v) => widget.onChange((t) {
+              t.preferences.outboundArrivalTime = v;
+            }),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _returnLeg(TripDestination lastDest) {
+  /// Dönüş uçuşu — Google Flights tarzı 3 alan:
+  ///  • Dönüş tarihi
+  ///  • Japonya'da kalkış havaalanı (iniş şehrinden farklı olabilir)
+  ///  • Kalkış ülkende varış havaalanı (varsayılan: gidiş kalkış havaalanı)
+  Widget _returnLeg() {
     final s = LanguageScope.of(context);
+    final dests = _dests;
+    // Varsayılan: iniş şehrinin havaalanı (round-trip aynı yerden dönüş).
+    final defaultDepIata =
+        dests.isNotEmpty ? (dests.first.airport ?? '') : '';
     final returnDepIata =
-        trip.preferences.returnDepartAirport ?? (lastDest.airport ?? '');
-    final returnDep = kAirports.where((a) => a.iata == returnDepIata).toList();
+        (trip.preferences.returnDepartAirport ?? '').isNotEmpty
+            ? trip.preferences.returnDepartAirport!
+            : defaultDepIata;
+    final returnDep =
+        kAirports.where((a) => a.iata == returnDepIata).toList();
     final returnArrIata =
-        trip.preferences.returnArrivalAirport ?? _originAirport;
-    final returnArr = kAirports.where((a) => a.iata == returnArrIata).toList();
+        (trip.preferences.returnArrivalAirport ?? '').isNotEmpty
+            ? trip.preferences.returnArrivalAirport!
+            : _originAirport;
+    final returnArr =
+        kAirports.where((a) => a.iata == returnArrIata).toList();
     return _legShell(
       isReturn: true,
       title: s.s('journey.leg.return'),
@@ -592,23 +804,31 @@ class _JourneyStepState extends State<JourneyStep> {
             countryCodes: const ['JP'],
             valueCode: returnDep.isNotEmpty ? returnDep.first.iata : null,
             valueLabel: returnDep.isNotEmpty ? returnDep.first.city : null,
-            placeholder: s.s('journey.ph.returnDep'),
+            placeholder: 'Tokyo (HND) · Osaka (KIX) · Fukuoka (FUK)…',
             onSelect: (a) => widget.onChange((t) {
               t.preferences.returnDepartAirport = a.iata;
-              _resync(t);
+            }),
+          ),
+        ),
+        // Kalkış saati — ayrılış günü akışı (check-out → transfer → uçuş) bu
+        // saate göre kurulur.
+        _field(
+          s.s('journey.field.departureTime'),
+          _TimeBox(
+            value: trip.preferences.returnDepartTime ?? '',
+            onPick: (v) => widget.onChange((t) {
+              t.preferences.returnDepartTime = v;
             }),
           ),
         ),
         _field(
           s.s('journey.field.arrivalTr'),
           AirportPickerField(
-            // Dönüş varış = kalkış ülken (herhangi bir yer) — kısıt yok.
             valueCode: returnArr.isNotEmpty ? returnArr.first.iata : null,
             valueLabel: returnArr.isNotEmpty ? returnArr.first.city : null,
-            placeholder: s.s('journey.ph.returnArr'),
+            placeholder: 'IST · LHR · JFK · DXB…',
             onSelect: (a) => widget.onChange((t) {
               t.preferences.returnArrivalAirport = a.iata;
-              _resync(t);
             }),
           ),
         ),
@@ -721,6 +941,59 @@ class _DateBox extends StatelessWidget {
   }
 }
 
+/// Saat picker'ı (HH:MM). Boşsa placeholder gösterir.
+class _TimeBox extends StatelessWidget {
+  const _TimeBox({required this.value, required this.onPick});
+  final String value;
+  final ValueChanged<String> onPick;
+  @override
+  Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
+    TimeOfDay initial;
+    if (value.isNotEmpty && value.contains(':')) {
+      final parts = value.split(':');
+      initial = TimeOfDay(
+          hour: int.tryParse(parts[0]) ?? 10,
+          minute: int.tryParse(parts[1]) ?? 0);
+    } else {
+      initial = const TimeOfDay(hour: 10, minute: 0);
+    }
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: () async {
+        final picked = await showTimePicker(
+          context: context,
+          initialTime: initial,
+        );
+        if (picked != null) {
+          final hh = picked.hour.toString().padLeft(2, '0');
+          final mm = picked.minute.toString().padLeft(2, '0');
+          onPick('$hh:$mm');
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: PT.bgSubtle,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: PT.borderStrong),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.access_time, size: 16, color: PT.textSecondary),
+            const SizedBox(width: 10),
+            Text(value.isEmpty ? s.s('journey.time.pick') : value,
+                style: TextStyle(
+                    fontSize: 15,
+                    color: value.isEmpty ? PT.textTertiary : PT.text)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Şehir chip'i — aktifse dolgulu, değilse çerçeveli. 44pt tap hedefi.
 class _CityChip extends StatelessWidget {
   const _CityChip({
@@ -765,6 +1038,151 @@ class _CityChip extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Şehir sekmesi — aktifse accent dolgulu. Opsiyonel iniş/dönüş rozeti.
+class _CityTab extends StatelessWidget {
+  const _CityTab({
+    required this.label,
+    required this.active,
+    required this.onTap,
+    this.badge,
+  });
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  final String? badge;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(100),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: active ? PT.accent : PT.bgSubtle,
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(color: active ? PT.accent : PT.borderStrong),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label,
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: active ? Colors.white : PT.text)),
+            if (badge != null) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(
+                  color: active
+                      ? Colors.white.withValues(alpha: 0.22)
+                      : PT.accentSoft,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(badge!,
+                    style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: active ? Colors.white : PT.accent)),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Şehir-içi gezilecek yer satırı — sağda yuvarlak seçim işareti.
+class _PlaceCheckRow extends StatelessWidget {
+  const _PlaceCheckRow({
+    required this.emoji,
+    required this.name,
+    required this.checked,
+    required this.onTap,
+  });
+  final String emoji;
+  final String name;
+  final bool checked;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 9),
+        child: Row(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 16)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(name,
+                  style: const TextStyle(fontSize: 14, color: PT.text)),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: checked ? PT.accent : Colors.transparent,
+                border: Border.all(
+                    color: checked ? PT.accent : PT.borderStrong, width: 2),
+              ),
+              child: checked
+                  ? const Icon(Icons.check, size: 14, color: Colors.white)
+                  : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Rota çubuğu düğümü — şehir adı + opsiyonel iniş/dönüş rozeti.
+class _RouteNode extends StatelessWidget {
+  const _RouteNode({required this.label, this.badge, this.muted = false});
+  final String label;
+  final String? badge;
+  final bool muted;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(label,
+            style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: muted ? PT.textTertiary : PT.text)),
+        if (badge != null) ...[
+          const SizedBox(width: 5),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(
+              color: PT.bgElevated,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: PT.accent.withValues(alpha: 0.4)),
+            ),
+            child: Text(badge!,
+                style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: PT.accent)),
+          ),
+        ],
+      ],
     );
   }
 }

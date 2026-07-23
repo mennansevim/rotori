@@ -535,7 +535,16 @@ class _JpRange {
   });
 
   (DateTime, DateTime) dates(int year) {
-    final start = DateTime(year, monthStart, startDay);
+    // Önerilen aralık her zaman bugünden EN AZ 1 AY sonrası olmalı. Mevsimi
+    // (ay/gün) koruyup en yakın gelecekteki yıla yuvarla.
+    final now = DateTime.now();
+    final minStart = DateTime(now.year, now.month + 1, now.day);
+    var y = year < now.year ? now.year : year;
+    var start = DateTime(y, monthStart, startDay);
+    while (start.isBefore(minStart)) {
+      y++;
+      start = DateTime(y, monthStart, startDay);
+    }
     final end = start.add(Duration(days: lengthDays - 1));
     return (start, end);
   }

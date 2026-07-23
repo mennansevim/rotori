@@ -264,6 +264,7 @@ class TripDestination {
     this.lng,
     this.airline,
     this.flightNo,
+    this.days,
   });
   final String id;
   String countryCode;
@@ -278,6 +279,10 @@ class TripDestination {
   String? airline;
   String? flightNo;
 
+  /// Bu şehirde geçirilecek gün sayısı (Plan adımı gün dağılımı yazar).
+  /// null = kullanıcı elle belirlemedi → otomatik/eşit dağıtım kullanılır.
+  int? days;
+
   factory TripDestination.fromJson(Map<String, dynamic> j) => TripDestination(
         id: j['id'] as String,
         countryCode: (j['countryCode'] as String?) ?? '',
@@ -291,6 +296,7 @@ class TripDestination {
         order: ((j['order'] as num?) ?? 0).toInt(),
         airline: j['airline'] as String?,
         flightNo: j['flightNo'] as String?,
+        days: (j['days'] as num?)?.toInt(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -306,6 +312,7 @@ class TripDestination {
         'order': order,
         if (airline != null) 'airline': airline,
         if (flightNo != null) 'flightNo': flightNo,
+        if (days != null) 'days': days,
       };
 }
 
@@ -386,6 +393,8 @@ class TripPreferences {
     this.returnFlightNo,
     this.returnDepartAirport,
     this.returnArrivalAirport,
+    this.outboundArrivalTime,
+    this.returnDepartTime,
     this.destinationCity,
     this.destinationCountry,
     this.mealBudgetJpyPerPerson,
@@ -427,6 +436,12 @@ class TripPreferences {
   String? returnDepartAirport;
   /// Dönüş uçuşunda Türkiye tarafına iniş havalimanı IATA.
   String? returnArrivalAirport;
+  /// Gidiş uçuşunun Japonya'ya iniş saati (HH:MM). Varış günü akışı bu
+  /// saate göre kurulur (havaalanı → immigration → transfer → check-in).
+  String? outboundArrivalTime;
+  /// Dönüş uçuşunun Japonya'dan kalkış saati (HH:MM). Ayrılış günü akışı
+  /// bu saate göre kurulur (check-out → transfer → havaalanı → uçuş).
+  String? returnDepartTime;
   String? destinationCity;
   String? destinationCountry;
   List<TripDestination> destinations;
@@ -530,6 +545,8 @@ class TripPreferences {
         returnFlightNo: j['returnFlightNo'] as String?,
         returnDepartAirport: j['returnDepartAirport'] as String?,
         returnArrivalAirport: j['returnArrivalAirport'] as String?,
+        outboundArrivalTime: j['outboundArrivalTime'] as String?,
+        returnDepartTime: j['returnDepartTime'] as String?,
         destinationCity: j['destinationCity'] as String?,
         destinationCountry: j['destinationCountry'] as String?,
         mealBudgetJpyPerPerson: (j['mealBudgetJpyPerPerson'] as num?)?.toInt(),
@@ -597,6 +614,8 @@ class TripPreferences {
         if (returnFlightNo != null) 'returnFlightNo': returnFlightNo,
         if (returnDepartAirport != null) 'returnDepartAirport': returnDepartAirport,
         if (returnArrivalAirport != null) 'returnArrivalAirport': returnArrivalAirport,
+        if (outboundArrivalTime != null) 'outboundArrivalTime': outboundArrivalTime,
+        if (returnDepartTime != null) 'returnDepartTime': returnDepartTime,
         if (destinationCity != null) 'destinationCity': destinationCity,
         if (destinationCountry != null)
           'destinationCountry': destinationCountry,

@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/l10n.dart';
 import '../../../data/language_store.dart';
+import '../../../data/weather_service.dart';
 import '../../../domain/booking_windows.dart';
+import '../../../domain/city_palette.dart';
 import '../../../domain/city_transfers.dart';
 import '../../../domain/day_optimizer.dart';
 import '../../../domain/destination_profiles.dart';
@@ -19,7 +21,6 @@ import '../../../domain/types.dart';
 import '../../shared/place_detail_sheet.dart';
 import '../planner_theme.dart';
 import '../widgets/booking_alert_dialog.dart';
-import '../widgets/popular_places_dialog.dart';
 
 /// AI plan servisi (POST /api/itinerary) mobil derlemede yapılandırılmadı.
 /// Bu bayrak false iken doğrudan kural tabanlı üretici çalışır:
@@ -28,10 +29,18 @@ import '../widgets/popular_places_dialog.dart';
 /// lib/features/planner/itinerary_lookup.dart:generateItinerary'yi kullan.
 const bool _kApiEnabled = false;
 
-/// "Osaka (Kansai)" → "osaka" — parantez içeriğini at, küçük harfe indir.
-/// Popup'tan gelen şehir adlarını rota şehirleriyle karşılaştırmak için.
-String _normCityName(String c) =>
-    c.replaceAll(RegExp(r'\(.*?\)'), '').toLowerCase().trim();
+/// YYYY-MM-DD biçimlendirici (gün dağılımı tarih blokları için).
+String _ymd(DateTime d) => '${d.year.toString().padLeft(4, '0')}-'
+    '${d.month.toString().padLeft(2, '0')}-'
+    '${d.day.toString().padLeft(2, '0')}';
+
+/// start..end (dahil) toplam gün sayısı. Geçersizse 0.
+int _inclusiveDays(String start, String end) {
+  final s = DateTime.tryParse(start);
+  final e = DateTime.tryParse(end);
+  if (s == null || e == null || e.isBefore(s)) return 0;
+  return e.difference(s).inDays + 1;
+}
 
 /// apps/planner/src/components/steps/PlanStep.tsx + DayPlanCard.tsx portu.
 /// Genişleyen gün kartları, saatli zaman çizelgesi, sürükle-sırala,
@@ -66,18 +75,171 @@ class _PlanStepState extends State<PlanStep> {
   String _transitionKey(CityTransitionSuggestion s) =>
       '${s.fromDayNumber}|${s.toDayNumber}';
 
+  /// Tarih (YYYY-MM-DD) → o günün hava tahmini. Open-Meteo'dan bir kez çekilir.
+  Map<String, DayForecast> _forecast = const {};
+
   @override
   void initState() {
     super.initState();
     // İlk 2 gün açık başlar (React slice(0,2)).
     _expanded = trip.days.take(2).map((d) => d.dayNumber).toSet();
+    // Hava tahminini arka planda çek (ağ hatası sessizce yutulur).
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadForecast());
     // Plan listesi yalnızca "Gezi planı oluştur" tetiklendikten sonra açılır.
     // (Trip zaten dolu gelse bile başta gizli kalır — kullanıcı önce toolbar'ı
     // görsün, sonra açıkça istesin.)
   }
 
+  /// Destinasyon-id → paletteki renk (shared city_palette.dart).
+  Color _cityColor(String? destId) => cityColorFor(_destinations, destId);
+
+  /// Her destinasyon için Open-Meteo'dan 16 günlük tahmin çek. Bir günün
+  /// forecast'i, o tarihte hangi şehre ait olduğuna göre eşleştirilir —
+  /// böylece Kyoto gününe Tokyo hava tahmini düşmez.
+  Future<void> _loadForecast() async {
+    final dests = _destinations;
+    if (dests.isEmpty) return;
+    final result = <String, DayForecast>{};
+    final seenLatLng = <String>{};
+    for (final d in dests) {
+      final lat = d.lat, lng = d.lng;
+      if (lat == null || lng == null) continue;
+      final key = '$lat,$lng';
+      if (!seenLatLng.add(key)) continue;
+      try {
+        final list = await fetchForecast(lat, lng);
+        for (final f in list) {
+          final match = getDestinationForDate(dests, f.date);
+          if (match?.id == d.id) result[f.date] = f;
+        }
+      } catch (_) {
+        // Ağ hatası — sessizce geç, hava badge'i o gün için gösterilmez.
+      }
+    }
+    if (!mounted || result.isEmpty) return;
+    setState(() => _forecast = result);
+  }
+
   List<TripDestination> get _destinations =>
       [...trip.preferences.destinations]..sort((a, b) => a.order.compareTo(b.order));
+
+  /// Her destinasyon için görüntülenecek gün sayısı: dest.days doluysa onu,
+  /// yoksa eşit dağıtım (total ~/ n, kalan son destinasyona) kullanır.
+  List<int> _effectiveDayAlloc(List<TripDestination> dests, int total) {
+    final n = dests.length;
+    if (n == 0) return const [];
+    final base = total > 0 ? total ~/ n : 1;
+    final safeBase = base < 1 ? 1 : base;
+    final rem = total > 0 ? total - safeBase * n : 0;
+    return [
+      for (var i = 0; i < n; i++)
+        dests[i].days ?? (safeBase + (i == n - 1 ? rem : 0)),
+    ];
+  }
+
+  /// Bir destinasyonun gün sayısını [newVal] yapar. İlk dokunuşta tüm
+  /// destinasyonların days'i (görüntülenen değerlerle) somutlaşır ki _generate
+  /// "tümü dolu" koşulunu değerlendirebilsin.
+  void _setDayAlloc(int index, int newVal) {
+    final dests = _destinations;
+    final total = _inclusiveDays(
+        trip.preferences.travelDates.start, trip.preferences.travelDates.end);
+    final eff = _effectiveDayAlloc(dests, total);
+    widget.onChange((t) {
+      final sorted = [...t.preferences.destinations]
+        ..sort((a, b) => a.order.compareTo(b.order));
+      for (var i = 0; i < sorted.length && i < eff.length; i++) {
+        sorted[i].days = i == index ? newVal : eff[i];
+      }
+    });
+    setState(() {});
+  }
+
+  /// Tek destinasyon satırı: şehir adı (+ iniş/dönüş rozeti) + − N + stepper.
+  Widget _dayAllocRow(List<TripDestination> dests, int i, List<int> eff,
+      int left, LanguageScope s) {
+    final d = dests[i];
+    final count = dests.length;
+    final val = i < eff.length ? eff[i] : 1;
+    final cityName = d.city.isNotEmpty ? d.city : d.countryName;
+    String? badge;
+    if (i == 0) {
+      badge = s.s('journey.badge.arrival');
+    } else if (i == count - 1 && count > 1) {
+      badge = s.s('journey.badge.return');
+    }
+    final canInc = left > 0;
+    final canDec = val > 1;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(cityName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: PT.text)),
+                ),
+                if (badge != null) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: PT.accentSoft,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(badge,
+                        style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: PT.accent)),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          _stepperBtn(
+              Icons.remove, canDec ? () => _setDayAlloc(i, val - 1) : null),
+          SizedBox(
+            width: 40,
+            child: Text('$val',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.w700, color: PT.text)),
+          ),
+          _stepperBtn(
+              Icons.add, canInc ? () => _setDayAlloc(i, val + 1) : null),
+        ],
+      ),
+    );
+  }
+
+  Widget _stepperBtn(IconData icon, VoidCallback? onTap) {
+    final enabled = onTap != null;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 34,
+        height: 34,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: PT.bgSubtle,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: PT.borderStrong),
+        ),
+        child: Icon(icon,
+            size: 18, color: enabled ? PT.accent : PT.textTertiary),
+      ),
+    );
+  }
 
   void _toggleExpanded(int dayNumber) {
     setState(() {
@@ -240,79 +402,58 @@ class _PlanStepState extends State<PlanStep> {
     }
     if (!mounted) return;
 
-    // Popüler yerler popup'ı — kullanıcı plan üretmeden önce eklemek istediği
-    // yerleri seçer. null döndürürse (Atla) üretim yine devam eder; popup
-    // üretimi iptal etmez.
-    final popResult = await showDialog<PopularPlacesResult?>(
-      context: context,
-      builder: (_) => PopularPlacesDialog(trip: trip),
-    );
-    if (!mounted) return;
-
     setState(() => _generating = true);
     // Loading bar'ın görünmesi için bir kare bekle (üretim senkron ve hızlı).
     await Future<void>.delayed(const Duration(milliseconds: 400));
 
     widget.onChange((t) {
-      // Popup sonucu (seçilen popüler yerler) — üretimden ÖNCE uygulanır ki
-      // mustSee sinyali generator'a girsin ve eklenen şehirler günlere yansısın.
-      if (popResult != null) {
-        for (final name in popResult.mustSeeNames) {
-          if (!t.preferences.mustSee.contains(name)) {
-            t.preferences.mustSee.add(name);
-          }
-        }
-        if (popResult.citiesToAdd.isNotEmpty) {
-          final start = t.preferences.travelDates.start;
-          final end = t.preferences.travelDates.end;
-          for (final city in popResult.citiesToAdd) {
-            final exists = t.preferences.destinations
-                .any((d) => _normCityName(d.city) == _normCityName(city));
-            if (exists) continue;
-            t.preferences.destinations.add(TripDestination(
-              id: newDestinationId(),
-              countryCode: 'JP',
-              countryName: 'Japonya',
-              city: city,
-              airport: '',
-              arrivalDate: start,
-              departureDate: end,
-              order: t.preferences.destinations.length,
-            ));
-          }
-          // Sıralamayı normalize et, tarihleri yeniden dağıt, günleri yeniden kur.
-          final sorted = [...t.preferences.destinations]
-            ..sort((a, b) => a.order.compareTo(b.order));
-          for (var i = 0; i < sorted.length; i++) {
-            sorted[i].order = i;
-          }
-          distributeDates(sorted, start, end);
-          t.preferences.destinations = sorted;
-          t.days = generateDaysBetween(start, end);
-        }
-      }
-
-      // GEÇİŞ GARANTİSİ: her seçili şehir en az bir gün almalı. Kayıtlı
-      // tarihler bozuksa (bir şehir hiçbir güne denk gelmiyorsa) tarihleri
-      // eşit yeniden dağıt — böylece hiçbir şehir plandan düşmez ve şehirler
-      // arası geçişler doğru kurulur.
+      // GÜN DAĞILIMI: Kullanıcı her şehrin gün sayısını (Gün dağılımı
+      // stepper'ları) elle belirlediyse — yani TÜM dest.days dolu ve toplamları
+      // toplam güne eşitse — ardışık tarih blokları ata. Aksi halde MEVCUT
+      // coverage-guard davranışını koru: bir şehir hiç güne düşmüyorsa
+      // distributeDates ile yeniden dağıt (testler açık tarih verir; korunur).
       {
         final start = t.preferences.travelDates.start;
         final end = t.preferences.travelDates.end;
-        final destsCheck = [...t.preferences.destinations]
+        final total = _inclusiveDays(start, end);
+        final destsSorted = [...t.preferences.destinations]
           ..sort((a, b) => a.order.compareTo(b.order));
-        if (destsCheck.length >= 2 && start.isNotEmpty && end.isNotEmpty) {
+        final allSet = destsSorted.isNotEmpty &&
+            destsSorted.every((d) => (d.days ?? 0) > 0);
+        final sumDays = destsSorted.fold<int>(0, (n, d) => n + (d.days ?? 0));
+        if (allSet && total > 0 && sumDays == total && start.isNotEmpty) {
+          // Ardışık tarih blokları: her şehir dest.days kadar ardışık gün alır.
+          for (var i = 0; i < destsSorted.length; i++) {
+            destsSorted[i].order = i;
+          }
+          final startDt = DateTime.parse(start);
+          var cursor = 0;
+          for (var i = 0; i < destsSorted.length; i++) {
+            final d = destsSorted[i];
+            final isLast = i == destsSorted.length - 1;
+            d.arrivalDate = _ymd(startDt.add(Duration(days: cursor)));
+            var depOffset = cursor + d.days! - 1;
+            if (isLast || depOffset > total - 1) depOffset = total - 1;
+            d.departureDate = _ymd(startDt.add(Duration(days: depOffset)));
+            cursor = depOffset + 1;
+          }
+          t.preferences.destinations = destsSorted;
+          t.days = generateDaysBetween(start, end);
+        } else if (destsSorted.length >= 2 &&
+            start.isNotEmpty &&
+            end.isNotEmpty) {
+          // Coverage-guard: bir şehir hiç güne düşmüyorsa yeniden dağıt.
           final covered = <String>{};
           for (final d in t.days) {
-            final dd = getDestinationForDate(destsCheck, d.date);
+            final dd = getDestinationForDate(destsSorted, d.date);
             if (dd != null) covered.add(dd.id);
           }
-          if (!destsCheck.every((d) => covered.contains(d.id))) {
-            for (var i = 0; i < destsCheck.length; i++) {
-              destsCheck[i].order = i;
+          if (!destsSorted.every((d) => covered.contains(d.id))) {
+            for (var i = 0; i < destsSorted.length; i++) {
+              destsSorted[i].order = i;
             }
-            distributeDates(destsCheck, start, end);
-            t.preferences.destinations = destsCheck;
+            distributeDates(destsSorted, start, end);
+            t.preferences.destinations = destsSorted;
             t.days = generateDaysBetween(start, end);
           }
         }
@@ -639,6 +780,12 @@ class _PlanStepState extends State<PlanStep> {
     final allDaysEmpty =
         trip.days.isNotEmpty && trip.days.every((d) => d.items.isEmpty);
 
+    // Gün dağılımı — her şehir için görüntülenecek gün adedi + kalan.
+    final totalDays = _inclusiveDays(
+        trip.preferences.travelDates.start, trip.preferences.travelDates.end);
+    final dayAlloc = _effectiveDayAlloc(destinations, totalDays);
+    final allocLeft = totalDays - dayAlloc.fold<int>(0, (n, v) => n + v);
+
     final transitions = _planRevealed
         ? detectCityTransitions(trip.days, destinations).where((s) {
             final day = trip.days
@@ -716,6 +863,24 @@ class _PlanStepState extends State<PlanStep> {
                     style: const TextStyle(
                         fontSize: 13, color: PT.textSecondary)),
               ],
+
+              // Gün dağılımı — her şehir için gün adedi stepper'ı.
+              const SizedBox(height: 16),
+              Text(s.s('plan.dayAlloc.title'),
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: PT.textTertiary)),
+              const SizedBox(height: 4),
+              Text(
+                  s.p('plan.dayAlloc.summary',
+                      {'total': '$totalDays', 'left': '$allocLeft'}),
+                  style:
+                      const TextStyle(fontSize: 12, color: PT.textSecondary)),
+              const SizedBox(height: 8),
+              for (var i = 0; i < destinations.length; i++)
+                _dayAllocRow(destinations, i, dayAlloc, allocLeft, s),
+
               const SizedBox(height: 16),
               if (_generating) ...[
                 const ClipRRect(
@@ -837,6 +1002,9 @@ class _PlanStepState extends State<PlanStep> {
               prefs: trip.preferences,
               allDays: trip.days,
               expanded: _expanded.contains(day.dayNumber),
+              bubbleColor:
+                  _cityColor(getDestinationForDate(destinations, day.date)?.id),
+              forecast: _forecast[day.date],
               onToggle: () => _toggleExpanded(day.dayNumber),
               onUpdateDay: (m) => _updateDay(day.dayNumber, m),
               onOpenDetail: (it) => _openDetail(day, it),
@@ -1015,6 +1183,8 @@ class _DayCard extends StatelessWidget {
     required this.prefs,
     required this.allDays,
     required this.expanded,
+    required this.bubbleColor,
+    this.forecast,
     required this.onToggle,
     required this.onUpdateDay,
     required this.onOpenDetail,
@@ -1030,6 +1200,8 @@ class _DayCard extends StatelessWidget {
   final TripPreferences prefs;
   final List<DayPlan> allDays;
   final bool expanded;
+  final Color bubbleColor;
+  final DayForecast? forecast;
   final VoidCallback onToggle;
   final void Function(void Function(DayPlan)) onUpdateDay;
   final ValueChanged<TimelineItem> onOpenDetail;
@@ -1039,6 +1211,72 @@ class _DayCard extends StatelessWidget {
   final void Function(String itemId, int toDay) onMoveItemToDay;
   final VoidCallback onOptimize;
   final ValueChanged<TripDestination> onDiscover;
+
+  void _showWeatherDialog(BuildContext context, DayForecast f) {
+    final s = LanguageScope.of(context);
+    final info = weatherInfo(f.code);
+    final emoji = info.$1;
+    final label = s.s(info.$2);
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(PT.radius)),
+        title: Row(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 32)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: const TextStyle(
+                          fontSize: 17, fontWeight: FontWeight.w700)),
+                  Text(f.date,
+                      style: const TextStyle(
+                          fontSize: 12, color: PT.textSecondary)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _wxDialogRow(s.s('wx.high'), '${f.tempMax.round()}°C'),
+            const SizedBox(height: 6),
+            _wxDialogRow(s.s('wx.low'), '${f.tempMin.round()}°C'),
+            if (f.precipProb != null) ...[
+              const SizedBox(height: 6),
+              _wxDialogRow(s.s('wx.precip'), '%${f.precipProb}'),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(s.s('wx.close')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _wxDialogRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label,
+            style: const TextStyle(fontSize: 14, color: PT.textSecondary)),
+        Text(value,
+            style: const TextStyle(
+                fontSize: 15, fontWeight: FontWeight.w700, color: PT.text)),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1066,7 +1304,7 @@ class _DayCard extends StatelessWidget {
                     height: 34,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      gradient: PT.brandGradient,
+                      color: bubbleColor,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text('${day.dayNumber}',
@@ -1092,6 +1330,30 @@ class _DayCard extends StatelessWidget {
                               Text(day.weekday!,
                                   style: const TextStyle(
                                       fontSize: 12, color: PT.textTertiary)),
+                            ],
+                            if (forecast != null) ...[
+                              const SizedBox(width: 8),
+                              InkWell(
+                                onTap: () =>
+                                    _showWeatherDialog(context, forecast!),
+                                borderRadius: BorderRadius.circular(999),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: PT.bgSubtle,
+                                    borderRadius: BorderRadius.circular(999),
+                                    border: Border.all(color: PT.border),
+                                  ),
+                                  child: Text(
+                                    '${weatherInfo(forecast!.code).$1} ${forecast!.tempMax.round()}°',
+                                    style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: PT.text),
+                                  ),
+                                ),
+                              ),
                             ],
                           ],
                         ),

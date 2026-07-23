@@ -237,50 +237,71 @@ DayPlan _buildFromTemplate(
   );
 }
 
+/// Gezinin son günü — check-out → havaalanına transfer → uçuş. Saatler
+/// [returnTime] verilmişse geriye doğru hesaplanır; havaalanına özel transfer
+/// süresi + 2 saat check-in buffer'ı hesaba katılır.
 DayPlan _buildDepartureDay(
   DayPlan day,
   String destName,
   String flag,
-  AppLang lang,
-) =>
-    day.copyWith(
-      theme: '$flag ${L10n.resolve('gen.departure.theme', lang)}',
-      tags: [L10n.resolve('gen.departure.tag', lang), destName],
-      stepsEstimate: 6000,
-      items: [
-        TimelineItem(
-          id: newItemId(day.dayNumber),
-          time: '09:00',
-          scheduledTime: '09:00',
-          title: '🧳 ${L10n.resolve('gen.departure.checkoutTitle', lang)}',
-          kind: TimelineItemKind.activity,
-          cityId: destName,
-        ),
-        TimelineItem(
-          id: newItemId(day.dayNumber),
-          time: '11:00',
-          scheduledTime: '11:00',
-          title: '🚕 ${L10n.resolve('gen.departure.transferTitle', lang)}',
-          description: L10n.resolve('gen.departure.transferDesc', lang),
-          kind: TimelineItemKind.transport,
-          cityId: destName,
-        ),
-        TimelineItem(
-          id: newItemId(day.dayNumber),
-          time: '14:00',
-          scheduledTime: '14:00',
-          title: '✈️ ${L10n.resolve('gen.departure.flightTitle', lang)}',
-          kind: TimelineItemKind.transport,
-          cityId: destName,
-        ),
-      ],
-      highlights: [
-        DayHighlight(
-          title: L10n.resolve('gen.departure.highlightTitle', lang),
-          body: L10n.resolve('gen.departure.highlightBody', lang),
-        ),
-      ],
-    );
+  AppLang lang, {
+  String? returnTime,
+  String? airportIata,
+}) {
+  final flightMin = _parseHhmm(returnTime) ?? (14 * 60);
+  final atAirportMin = flightMin - _kAirportPreDepartureBufferMin;
+  final transferMin = _hotelTransferMinutes(airportIata);
+  final hotelDepartMin = atAirportMin - transferMin;
+  final checkOutMin = hotelDepartMin - _kCheckoutBufferMin;
+  int safe(int v) => v < 0 ? 0 : v;
+  return day.copyWith(
+    theme: '$flag ${L10n.resolve('gen.departure.theme', lang)}',
+    tags: [L10n.resolve('gen.departure.tag', lang), destName],
+    stepsEstimate: 6000,
+    items: [
+      TimelineItem(
+        id: newItemId(day.dayNumber),
+        time: _fmtHhmm(safe(checkOutMin)),
+        scheduledTime: _fmtHhmm(safe(checkOutMin)),
+        title: '🧳 ${L10n.resolve('gen.departure.checkoutTitle', lang)}',
+        kind: TimelineItemKind.activity,
+        cityId: destName,
+      ),
+      TimelineItem(
+        id: newItemId(day.dayNumber),
+        time: _fmtHhmm(safe(hotelDepartMin)),
+        scheduledTime: _fmtHhmm(safe(hotelDepartMin)),
+        title: '🚕 ${L10n.resolve('gen.departure.transferTitle', lang)}',
+        description: L10n.resolve('gen.departure.transferDesc', lang),
+        kind: TimelineItemKind.transport,
+        cityId: destName,
+      ),
+      TimelineItem(
+        id: newItemId(day.dayNumber),
+        time: _fmtHhmm(safe(atAirportMin)),
+        scheduledTime: _fmtHhmm(safe(atAirportMin)),
+        title: '🛄 ${L10n.resolve('gen.departure.atAirportTitle', lang)}',
+        description: L10n.resolve('gen.departure.atAirportDesc', lang),
+        kind: TimelineItemKind.transport,
+        cityId: destName,
+      ),
+      TimelineItem(
+        id: newItemId(day.dayNumber),
+        time: _fmtHhmm(flightMin),
+        scheduledTime: _fmtHhmm(flightMin),
+        title: '✈️ ${L10n.resolve('gen.departure.flightTitle', lang)}',
+        kind: TimelineItemKind.transport,
+        cityId: destName,
+      ),
+    ],
+    highlights: [
+      DayHighlight(
+        title: L10n.resolve('gen.departure.highlightTitle', lang),
+        body: L10n.resolve('gen.departure.highlightBody', lang),
+      ),
+    ],
+  );
+}
 
 DayPlan _buildFromPlaces(
   DayPlan day,
@@ -387,36 +408,264 @@ List<PlaceSuggestion> _cityPool(DestinationProfile profile, String city) {
 
 /// Gezinin ilk günü — şehre özel varış & yerleşme (şablondan bağımsız, böylece
 /// başka bir şehre "Tokyo'ya varış" yazılmaz).
-DayPlan _buildArrivalDay(DayPlan day, String city, String flag, AppLang lang) =>
+/// Japon havaalanından şehir merkezindeki otele ortalama transfer süresi (dk).
+/// Kullanıcının seçtiği JP havaalanı IATA'sına göre kaba tahmin.
+int _hotelTransferMinutes(String? iata) {
+  switch ((iata ?? '').toUpperCase()) {
+    case 'HND':
+      return 30; // Haneda → merkez Tokyo
+    case 'NRT':
+      return 60; // Narita → merkez Tokyo (N'EX)
+    case 'KIX':
+      return 60; // Kansai → merkez Osaka (Haruka)
+    case 'ITM':
+      return 25; // Itami → merkez Osaka
+    case 'FUK':
+      return 15; // Fukuoka → merkez
+    case 'NGO':
+      return 45; // Chubu → merkez Nagoya
+    case 'CTS':
+      return 45; // Sapporo (Chitose) → merkez
+    case 'OKA':
+      return 20; // Naha → merkez
+    default:
+      return 60;
+  }
+}
+
+/// Immigration + bagaj + SIM aktivasyonu vs. için havaalanı çıkışı buffer'ı.
+const int _kAirportExitBufferMin = 75;
+
+/// Uçuş öncesi havaalanında olma buffer'ı (check-in + güvenlik + boarding).
+const int _kAirportPreDepartureBufferMin = 120;
+
+/// Otelden ayrılıp havaalanına yola çıkma öncesi buffer (check-out + hazırlık).
+const int _kCheckoutBufferMin = 30;
+
+/// HH:MM → toplam dakika (00:00'dan itibaren).
+int? _parseHhmm(String? hhmm) {
+  if (hhmm == null || hhmm.isEmpty || !hhmm.contains(':')) return null;
+  final p = hhmm.split(':');
+  final h = int.tryParse(p[0]);
+  final m = int.tryParse(p[1]);
+  if (h == null || m == null) return null;
+  return h * 60 + m;
+}
+
+/// Dakika → HH:MM. 0..23:59 aralığına clamp (aynı gün varsayımı).
+String _fmtHhmm(int minutes) {
+  final m = minutes.clamp(0, 24 * 60 - 1);
+  final h = (m ~/ 60).toString().padLeft(2, '0');
+  final mm = (m % 60).toString().padLeft(2, '0');
+  return '$h:$mm';
+}
+
+/// Gezinin ilk günü — havaalanı → otele transfer → check-in → hafif akşam.
+/// Saatler [arrivalTime] verilmişse ona göre kurulur; havaalanına özel
+/// transfer süresi (_hotelTransferMinutes) hesaba katılır.
+/// [arrivalTime] null ise varsayılan saatler kullanılır (13:00, 15:00, 17:00,
+/// 19:30). Çok geç iniş (>20:00) ise yalnız check-in + dinlenme.
+DayPlan _buildArrivalDay(
+  DayPlan day,
+  String city,
+  String flag,
+  AppLang lang, {
+  String? arrivalTime,
+  String? airportIata,
+}) {
+  final landMin = _parseHhmm(arrivalTime) ?? (13 * 60);
+  final exitMin = landMin + _kAirportExitBufferMin;
+  final transferMin = _hotelTransferMinutes(airportIata);
+  final atHotelMin = exitMin + transferMin;
+  final checkInMin = atHotelMin + 30;
+  final dinnerMin = (checkInMin + 3 * 60).clamp(19 * 60 + 30, 21 * 60 + 30);
+  final isLateArrival = landMin >= 20 * 60;
+
+  return _buildArrivalDayLegacy(day, city, flag, lang, landMin, atHotelMin,
+      checkInMin, dinnerMin, isLateArrival);
+}
+
+DayPlan _buildArrivalDayLegacy(
+  DayPlan day,
+  String city,
+  String flag,
+  AppLang lang,
+  int landMin,
+  int atHotelMin,
+  int checkInMin,
+  int dinnerMin,
+  bool isLateArrival,
+) =>
     day.copyWith(
       theme: '🛬 ${L10n.parametrize(L10n.resolve('gen.arrival.cityTheme', lang), {
             'city': city
           })}',
       tags: [city, L10n.resolve('gen.arrival.checkinTitle', lang)],
-      stepsEstimate: 5000,
+      stepsEstimate: 4000,
       taxiRecommended: false,
       items: [
         TimelineItem(
           id: newItemId(day.dayNumber),
-          time: '15:00',
-          scheduledTime: '15:00',
-          title: '🛬 ${L10n.resolve('gen.arrival.checkinTitle', lang)}',
-          description: L10n.resolve('gen.arrival.checkinDesc', lang),
-          kind: TimelineItemKind.activity,
+          time: _fmtHhmm(landMin),
+          scheduledTime: _fmtHhmm(landMin),
+          title: '🛬 ${L10n.resolve('gen.arrival.airportTitle', lang)}',
+          description: L10n.resolve('gen.arrival.airportDesc', lang),
+          kind: TimelineItemKind.transport,
           cityId: city,
         ),
         TimelineItem(
           id: newItemId(day.dayNumber),
-          time: '18:00',
-          scheduledTime: '18:00',
-          title: '🏪 ${L10n.resolve('gen.arrival.exploreTitle', lang)}',
-          description: L10n.resolve('gen.arrival.exploreDesc', lang),
-          kind: TimelineItemKind.meal,
+          time: _fmtHhmm(landMin + _kAirportExitBufferMin),
+          scheduledTime: _fmtHhmm(landMin + _kAirportExitBufferMin),
+          title: '🚕 ${L10n.resolve('gen.arrival.transferTitle', lang)}',
+          description: L10n.resolve('gen.arrival.transferDesc', lang),
+          kind: TimelineItemKind.transport,
           cityId: city,
         ),
+        TimelineItem(
+          id: newItemId(day.dayNumber),
+          time: _fmtHhmm(checkInMin),
+          scheduledTime: _fmtHhmm(checkInMin),
+          title: '🏨 ${L10n.resolve('gen.arrival.checkinTitle', lang)}',
+          description: L10n.resolve('gen.arrival.checkinDesc', lang),
+          kind: TimelineItemKind.hotel,
+          cityId: city,
+        ),
+        // Çok geç iniş → sadece uyu. Aksi halde hafif akşam yemeği.
+        if (!isLateArrival)
+          TimelineItem(
+            id: newItemId(day.dayNumber),
+            time: _fmtHhmm(dinnerMin),
+            scheduledTime: _fmtHhmm(dinnerMin),
+            title: '🍜 ${L10n.resolve('gen.arrival.lightDinnerTitle', lang)}',
+            description: L10n.resolve('gen.arrival.lightDinnerDesc', lang),
+            kind: TimelineItemKind.meal,
+            cityId: city,
+          ),
       ],
       highlights: const [],
     );
+
+/// Full/half-day coverage'lı bir mekan varsa günü uygun kalıba oturtur.
+/// - FULL (Disney, USJ): sadece bu mekan + 13:00 park içi öğle + 20:00 çıkışta
+///   akşam yemeği. Diğer aktiviteler kaldırılır. adım ~22k, taksi önerilir.
+/// - HALF (teamLab): 10:00 sabah gezisi (varsa) + 12:30 öğle + 14:00 bu mekan.
+///   İki aktiviteyle sınırlı; ekstra doldurma yok.
+DayPlan _applyCoverage(DayPlan day, AppLang lang) {
+  final items = day.items;
+  if (items.isEmpty) return day;
+
+  final fullItem = items.firstWhere(
+    (it) => coverageOfTitle(it.title) == PlaceCoverage.full,
+    orElse: () => TimelineItem(id: '', title: ''),
+  );
+  if (fullItem.id.isNotEmpty) {
+    final f = TimelineItem(
+      id: fullItem.id,
+      title: fullItem.title,
+      description: fullItem.description,
+      tips: fullItem.tips,
+      kind: fullItem.kind,
+      cityId: fullItem.cityId,
+      time: '09:00',
+      scheduledTime: '09:00',
+    );
+    return day.copyWith(
+      theme: fullItem.title, // ör. "🏰 Tokyo Disneyland"
+      tags: [fullItem.title.replaceAll(RegExp(r'^[^\s]+\s*'), '')],
+      stepsEstimate: 22000,
+      taxiRecommended: true,
+      items: [
+        f,
+        TimelineItem(
+          id: newItemId(day.dayNumber),
+          time: '13:00',
+          scheduledTime: '13:00',
+          title: '🍽️ ${L10n.resolve('gen.coverage.parkLunch', lang)}',
+          description: L10n.resolve('gen.coverage.parkLunchDesc', lang),
+          kind: TimelineItemKind.meal,
+          cityId: fullItem.cityId,
+        ),
+        TimelineItem(
+          id: newItemId(day.dayNumber),
+          time: '20:00',
+          scheduledTime: '20:00',
+          title: '🍜 ${L10n.resolve('gen.coverage.postDinner', lang)}',
+          description: L10n.resolve('gen.coverage.postDinnerDesc', lang),
+          kind: TimelineItemKind.meal,
+          cityId: fullItem.cityId,
+        ),
+      ],
+    );
+  }
+
+  final halfItem = items.firstWhere(
+    (it) => coverageOfTitle(it.title) == PlaceCoverage.half,
+    orElse: () => TimelineItem(id: '', title: ''),
+  );
+  if (halfItem.id.isNotEmpty) {
+    // Yarım günü öğleden sonraya al; sabaha hafif bir aktivite (varsa).
+    TimelineItem? morning;
+    for (final it in items) {
+      if (identical(it, halfItem)) continue;
+      if (it.kind == TimelineItemKind.activity &&
+          coverageOfTitle(it.title) == PlaceCoverage.normal) {
+        morning = TimelineItem(
+          id: it.id,
+          title: it.title,
+          description: it.description,
+          tips: it.tips,
+          kind: it.kind,
+          cityId: it.cityId,
+          time: '10:00',
+          scheduledTime: '10:00',
+        );
+        break;
+      }
+    }
+    final h = TimelineItem(
+      id: halfItem.id,
+      title: halfItem.title,
+      description: halfItem.description,
+      tips: halfItem.tips,
+      kind: halfItem.kind,
+      cityId: halfItem.cityId,
+      time: '14:00',
+      scheduledTime: '14:00',
+    );
+    return day.copyWith(
+      theme: halfItem.title,
+      tags: [halfItem.title.replaceAll(RegExp(r'^[^\s]+\s*'), '')],
+      stepsEstimate: 11000,
+      taxiRecommended: false,
+      items: [
+        if (morning != null)
+          morning
+        else
+          TimelineItem(
+            id: newItemId(day.dayNumber),
+            time: '10:00',
+            scheduledTime: '10:00',
+            title: '🚶 ${L10n.resolve('gen.coverage.halfMorning', lang)}',
+            description: L10n.resolve('gen.coverage.halfMorningDesc', lang),
+            kind: TimelineItemKind.activity,
+            cityId: halfItem.cityId,
+          ),
+        TimelineItem(
+          id: newItemId(day.dayNumber),
+          time: '12:30',
+          scheduledTime: '12:30',
+          title: '🍽️ ${L10n.resolve('gen.meal.lunchBreak', lang)}',
+          kind: TimelineItemKind.meal,
+          cityId: halfItem.cityId,
+        ),
+        h,
+      ],
+    );
+  }
+
+  return day;
+}
 
 /// Rota, tempo ve ülke profillerine göre gün-gün plan üretir (AI gerekmez).
 /// [lang] üretilen gün temaları, öğün/aktivite başlıkları ve ipuçlarının dilini
@@ -459,14 +708,32 @@ List<DayPlan> generateItineraryFromTrip(Trip trip, {AppLang lang = AppLang.tr}) 
     final isLastDest = dest.id == lastDestId;
 
     // Gezinin ilk günü → şehre özel varış (yalnızca İLK destinasyonda).
+    // Uçuş saatleri (varsa) varış günü akışını belirler.
     if (isFirstOfSeg && isFirstDest) {
-      return _buildArrivalDay(day, city, flag, lang);
+      return _buildArrivalDay(
+        day,
+        city,
+        flag,
+        lang,
+        arrivalTime: trip.preferences.outboundArrivalTime,
+        airportIata: dest.airport,
+      );
     }
     // Gezinin son günü → dönüş uçuşu (yalnızca SON destinasyonda). Ara
     // şehirlerin son günü normal gündür; şehirler-arası geçiş (Shinkansen)
     // ayrıca eklenir (detectCityTransitions + insertCityTransfer).
     if (isLastOfSeg && isLastDest && trip.days.length > 1) {
-      return _buildDepartureDay(day, city, flag, lang);
+      final returnAirport = (trip.preferences.returnDepartAirport ?? '').isNotEmpty
+          ? trip.preferences.returnDepartAirport
+          : dest.airport;
+      return _buildDepartureDay(
+        day,
+        city,
+        flag,
+        lang,
+        returnTime: trip.preferences.returnDepartTime,
+        airportIata: returnAirport,
+      );
     }
 
     // Şehre özel içerik — havuz ve şablonlar O şehre filtrelenir; böylece
@@ -477,7 +744,16 @@ List<DayPlan> generateItineraryFromTrip(Trip trip, {AppLang lang = AppLang.tr}) 
             _normCity(t.city) == _normCity(city) && !t.id.contains('arrival'))
         .toList();
 
-    if (cityTemplates.isNotEmpty) {
+    // Kullanıcı bu şehirde "gezilecekler" listesinden yer seçtiyse (mustSee),
+    // TEMPLATE rotasyonunu atla — _buildFromPlaces mustSee'yi +100 puanla
+    // önceliklendirir, diğer günler pool'daki diğer yerlerle otomatik dolar.
+    final cityHasMustSee = mustSee.any((m) {
+      final ml = m.trim().toLowerCase();
+      if (ml.isEmpty) return false;
+      return cityPool.any((p) => p.name.toLowerCase() == ml);
+    });
+
+    if (cityTemplates.isNotEmpty && !cityHasMustSee) {
       // İlk destinasyonda 0. gün varıştı → şablon sırasını 1 kaydır.
       final seq = isFirstDest ? (dayIndexInSeg - 1) : dayIndexInSeg;
       final idx = (seq < 0 ? 0 : seq) % cityTemplates.length;
@@ -485,10 +761,12 @@ List<DayPlan> generateItineraryFromTrip(Trip trip, {AppLang lang = AppLang.tr}) 
       final built =
           _buildFromTemplate(day, template, cityPool, pace, lang, cityId: city);
       usedPlaces.addAll(template.places);
-      return built;
+      // Full/half-day mekanları uygun kalıba oturt (Disney/USJ tüm gün,
+      // teamLab yarım gün).
+      return _applyCoverage(built, lang);
     }
 
-    return _buildFromPlaces(
+    final built = _buildFromPlaces(
       day,
       cityPool,
       pace,
@@ -502,6 +780,7 @@ List<DayPlan> generateItineraryFromTrip(Trip trip, {AppLang lang = AppLang.tr}) 
       lang,
       cityId: city,
     );
+    return _applyCoverage(built, lang);
   }).toList();
 }
 

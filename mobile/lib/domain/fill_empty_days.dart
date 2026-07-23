@@ -7,6 +7,7 @@ import 'dart:math';
 import '../core/l10n.dart';
 import 'city_places.dart';
 import 'destination_profiles.dart';
+import 'japan_suggestions.dart' show PlaceCoverage, coverageOfTitle;
 import 'trip_factory.dart';
 import 'types.dart';
 
@@ -184,6 +185,11 @@ List<DayPlan> fillEmptyDays(
 
   return days.map((day) {
     if (day.items.length >= minItemsPerDay) return day;
+    // Full/half-day mekan (Disney, USJ, teamLab) günü kaplar — ekstra doldurma
+    // yok, kalıbı bozulmasın.
+    final anyCovered = day.items.any(
+        (it) => coverageOfTitle(it.title) != PlaceCoverage.normal);
+    if (anyCovered) return day;
     final dest = getDestinationForDate(destinations, day.date);
     final destCity = dest == null
         ? ''

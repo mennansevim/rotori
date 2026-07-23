@@ -68,12 +68,8 @@ void main() {
     final t = _tripWithDest();
     await tester.pumpWidget(harness(t));
 
+    // Popup kaldırıldı — "Gezi planı oluştur" doğrudan üretimi başlatır.
     await tester.tap(find.text('✨ Gezi planı oluştur'));
-    await tester.pumpAndSettle();
-
-    // Yeni akış: önce popüler yerler popup'ı açılır. "Atla" ile geç → üretim
-    // yine devam eder (popup üretimi iptal etmez).
-    await tester.tap(find.text('Atla'));
     await tester.pumpAndSettle();
 
     // Kural tabanlı üretici en az bir güne aktivite ekler.
@@ -95,10 +91,8 @@ void main() {
     await tester.pumpWidget(harness(t));
 
     // Önce planı üret (aksi halde gün listesi gizli, "+ Aktivite" yok).
+    // Popup kaldırıldı — doğrudan üretim; 400ms üretim gecikmesini geç.
     await tester.tap(find.text('✨ Gezi planı oluştur'));
-    await tester.pumpAndSettle();
-    // Popüler yerler popup'ını "Atla" ile geç.
-    await tester.tap(find.text('Atla'));
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pump(const Duration(milliseconds: 300));
 
@@ -162,10 +156,8 @@ void main() {
     t.days = generateDaysBetween('2026-05-01', '2026-05-15');
 
     await tester.pumpWidget(harness(t));
+    // Popup kaldırıldı — doğrudan üretim; 400ms üretim gecikmesini geç.
     await tester.tap(find.text('✨ Gezi planı oluştur'));
-    await tester.pumpAndSettle();
-    // Popüler yerler popup'ını "Atla" ile geç.
-    await tester.tap(find.text('Atla'));
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pump(const Duration(milliseconds: 300));
 

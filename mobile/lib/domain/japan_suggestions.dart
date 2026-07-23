@@ -37,6 +37,43 @@ class PlaceSuggestion {
   final String? imageUrl;
 }
 
+/// Bir mekanın günü ne kadar kapladığı.
+/// - full: TÜM gün (Disney, USJ) — başka aktivite yok.
+/// - half: YARIM gün (teamLab) — en fazla 1 ek aktivite + öğün.
+/// - normal: standart slot.
+enum PlaceCoverage { normal, half, full }
+
+/// Sabit ID → coverage. Generator picked place'lerde bunu kontrol eder.
+PlaceCoverage coverageOfPlaceId(String id) {
+  switch (id) {
+    case 'disney':
+    case 'usj':
+      return PlaceCoverage.full;
+    case 'teamlab':
+      return PlaceCoverage.half;
+    default:
+      return PlaceCoverage.normal;
+  }
+}
+
+/// Bir TimelineItem başlığından coverage çıkarır. fillEmptyDays ve
+/// post-processor buradan okur (title anahtar/ID'den bağımsız kalabilir).
+PlaceCoverage coverageOfTitle(String title) {
+  final t = title.toLowerCase();
+  if (t.contains('disneyland') ||
+      t.contains('disneysea') ||
+      t.contains('disney sea')) {
+    return PlaceCoverage.full;
+  }
+  if (t.contains('universal studios') || t.contains('usj')) {
+    return PlaceCoverage.full;
+  }
+  if (t.contains('teamlab') || t.contains('team lab')) {
+    return PlaceCoverage.half;
+  }
+  return PlaceCoverage.normal;
+}
+
 const List<PlaceSuggestion> kJapanPopular = [
   PlaceSuggestion(id: 'sensoji', name: 'Senso-ji Asakusa', city: 'Tokyo', emoji: '⛩️', category: 'culture', typicalSteps: 8000, bestForDayTheme: 'Asakusa & tapınak',
       imageUrl: 'https://images.unsplash.com/photo-1583400400287-ec8bdcc4b91b?w=400&q=60'),
@@ -120,7 +157,9 @@ const List<DayTemplate> kJapanDayTemplates = [
   DayTemplate(id: 'asakusa-skytree', label: 'tmpl.asakusaSkytree.label', theme: 'tmpl.asakusaSkytree.theme', emoji: '🗼', places: ['sensoji', 'skytree'], stepsEstimate: 15000, city: 'Tokyo'),
   DayTemplate(id: 'shibuya', label: 'tmpl.shibuya.label', theme: 'tmpl.shibuya.theme', emoji: '🌸', places: ['meiji', 'shibuya'], stepsEstimate: 16000, city: 'Tokyo'),
   DayTemplate(id: 'disney-day', label: 'tmpl.disney.label', theme: 'tmpl.disney.theme', emoji: '🏰', places: ['disney'], stepsEstimate: 22000, city: 'Tokyo'),
+  DayTemplate(id: 'teamlab-day', label: 'tmpl.teamlabDay.label', theme: 'tmpl.teamlabDay.theme', emoji: '🪐', places: ['teamlab'], stepsEstimate: 10000, city: 'Tokyo'),
   DayTemplate(id: 'osaka-move', label: 'tmpl.osakaMove.label', theme: 'tmpl.osakaMove.theme', emoji: '🚄', places: ['dotonbori'], stepsEstimate: 11000, city: 'Osaka'),
+  DayTemplate(id: 'usj-day', label: 'tmpl.usjDay.label', theme: 'tmpl.usjDay.theme', emoji: '🎢', places: ['usj'], stepsEstimate: 20000, city: 'Osaka'),
   DayTemplate(id: 'kyoto-day', label: 'tmpl.kyotoDay.label', theme: 'tmpl.kyotoDay.theme', emoji: '⛩️', places: ['fushimi'], stepsEstimate: 18000, city: 'Kyoto'),
   DayTemplate(id: 'nara-day', label: 'tmpl.naraDay.label', theme: 'tmpl.naraDay.theme', emoji: '🦌', places: ['nara'], stepsEstimate: 16000, city: 'Nara'),
 ];

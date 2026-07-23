@@ -321,8 +321,12 @@ class _PhraseRow extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 3),
+                      // Okunuş (romaji) — asıl kopyalanabilir/okunabilir metin.
+                      // Boşsa jp'yi büyük göster.
                       Text(
-                        phrase.jp,
+                        (phrase.romaji != null && phrase.romaji!.isNotEmpty)
+                            ? phrase.romaji!
+                            : phrase.jp,
                         style: TextStyle(
                           color: palette.textPrimary,
                           fontSize: 17,
@@ -333,12 +337,12 @@ class _PhraseRow extends StatelessWidget {
                       if (phrase.romaji != null &&
                           phrase.romaji!.isNotEmpty) ...[
                         const SizedBox(height: 2),
+                        // Japon karakterleri (referans) — küçük ve muted.
                         Text(
-                          phrase.romaji!,
+                          phrase.jp,
                           style: TextStyle(
                             color: palette.textMuted,
-                            fontSize: 12,
-                            fontStyle: FontStyle.italic,
+                            fontSize: 13,
                           ),
                         ),
                       ],
