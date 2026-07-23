@@ -37,7 +37,7 @@ class JapanTripApp extends ConsumerWidget {
     return LanguageScope(
       lang: lang,
       child: MaterialApp.router(
-        title: 'Japan-Trip',
+        title: 'Rotori',
         theme: AppTheme.dark,
         routerConfig: router,
         debugShowCheckedModeBanner: false,

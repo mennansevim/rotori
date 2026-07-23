@@ -102,7 +102,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   children: [
                     const SizedBox(height: 32),
                     Text(
-                      '🇯🇵 Japan-Trip',
+                      '⛩️ Rotori',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.headlineMedium,
                     ),

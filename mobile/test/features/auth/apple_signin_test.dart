@@ -63,7 +63,7 @@ void main() {
     // E-posta/şifre formu her platformda görünür.
     expect(find.text('E-posta'), findsOneWidget);
     expect(find.text('Şifre'), findsOneWidget);
-    expect(find.text('🇯🇵 Japan-Trip'), findsOneWidget);
+    expect(find.text('⛩️ Rotori'), findsOneWidget);
     // Apple butonu platform gate'li: test host'u iOS/macOS değilse gizli.
     // Ekranın hatasız kurulması yeterli doğrulamadır.
   });
