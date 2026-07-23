@@ -71,6 +71,11 @@ void main() {
     await tester.tap(find.text('✨ Gezi planı oluştur'));
     await tester.pumpAndSettle();
 
+    // Yeni akış: önce popüler yerler popup'ı açılır. "Atla" ile geç → üretim
+    // yine devam eder (popup üretimi iptal etmez).
+    await tester.tap(find.text('Atla'));
+    await tester.pumpAndSettle();
+
     // Kural tabanlı üretici en az bir güne aktivite ekler.
     expect(t.days.any((d) => d.items.isNotEmpty), isTrue);
     // Boş durum kartı artık yok.
@@ -91,6 +96,9 @@ void main() {
 
     // Önce planı üret (aksi halde gün listesi gizli, "+ Aktivite" yok).
     await tester.tap(find.text('✨ Gezi planı oluştur'));
+    await tester.pumpAndSettle();
+    // Popüler yerler popup'ını "Atla" ile geç.
+    await tester.tap(find.text('Atla'));
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pump(const Duration(milliseconds: 300));
 
@@ -155,6 +163,9 @@ void main() {
 
     await tester.pumpWidget(harness(t));
     await tester.tap(find.text('✨ Gezi planı oluştur'));
+    await tester.pumpAndSettle();
+    // Popüler yerler popup'ını "Atla" ile geç.
+    await tester.tap(find.text('Atla'));
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pump(const Duration(milliseconds: 300));
 

@@ -19,6 +19,7 @@ import '../../../domain/types.dart';
 import '../../shared/place_detail_sheet.dart';
 import '../planner_theme.dart';
 import '../widgets/booking_alert_dialog.dart';
+import '../widgets/popular_places_dialog.dart';
 
 /// AI plan servisi (POST /api/itinerary) mobil derlemede yapılandırılmadı.
 /// Bu bayrak false iken doğrudan kural tabanlı üretici çalışır:
@@ -26,6 +27,11 @@ import '../widgets/booking_alert_dialog.dart';
 /// TODO: Planner API deploy edilince (POST /api/itinerary) bunu aç ve
 /// lib/features/planner/itinerary_lookup.dart:generateItinerary'yi kullan.
 const bool _kApiEnabled = false;
+
+/// "Osaka (Kansai)" → "osaka" — parantez içeriğini at, küçük harfe indir.
+/// Popup'tan gelen şehir adlarını rota şehirleriyle karşılaştırmak için.
+String _normCityName(String c) =>
+    c.replaceAll(RegExp(r'\(.*?\)'), '').toLowerCase().trim();
 
 /// apps/planner/src/components/steps/PlanStep.tsx + DayPlanCard.tsx portu.
 /// Genişleyen gün kartları, saatli zaman çizelgesi, sürükle-sırala,
@@ -232,23 +238,101 @@ class _PlanStepState extends State<PlanStep> {
       );
       if (ok != true) return;
     }
+    if (!mounted) return;
+
+    // Popüler yerler popup'ı — kullanıcı plan üretmeden önce eklemek istediği
+    // yerleri seçer. null döndürürse (Atla) üretim yine devam eder; popup
+    // üretimi iptal etmez.
+    final popResult = await showDialog<PopularPlacesResult?>(
+      context: context,
+      builder: (_) => PopularPlacesDialog(trip: trip),
+    );
+    if (!mounted) return;
 
     setState(() => _generating = true);
     // Loading bar'ın görünmesi için bir kare bekle (üretim senkron ve hızlı).
     await Future<void>.delayed(const Duration(milliseconds: 400));
 
     widget.onChange((t) {
+      // Popup sonucu (seçilen popüler yerler) — üretimden ÖNCE uygulanır ki
+      // mustSee sinyali generator'a girsin ve eklenen şehirler günlere yansısın.
+      if (popResult != null) {
+        for (final name in popResult.mustSeeNames) {
+          if (!t.preferences.mustSee.contains(name)) {
+            t.preferences.mustSee.add(name);
+          }
+        }
+        if (popResult.citiesToAdd.isNotEmpty) {
+          final start = t.preferences.travelDates.start;
+          final end = t.preferences.travelDates.end;
+          for (final city in popResult.citiesToAdd) {
+            final exists = t.preferences.destinations
+                .any((d) => _normCityName(d.city) == _normCityName(city));
+            if (exists) continue;
+            t.preferences.destinations.add(TripDestination(
+              id: newDestinationId(),
+              countryCode: 'JP',
+              countryName: 'Japonya',
+              city: city,
+              airport: '',
+              arrivalDate: start,
+              departureDate: end,
+              order: t.preferences.destinations.length,
+            ));
+          }
+          // Sıralamayı normalize et, tarihleri yeniden dağıt, günleri yeniden kur.
+          final sorted = [...t.preferences.destinations]
+            ..sort((a, b) => a.order.compareTo(b.order));
+          for (var i = 0; i < sorted.length; i++) {
+            sorted[i].order = i;
+          }
+          distributeDates(sorted, start, end);
+          t.preferences.destinations = sorted;
+          t.days = generateDaysBetween(start, end);
+        }
+      }
+
+      // GEÇİŞ GARANTİSİ: her seçili şehir en az bir gün almalı. Kayıtlı
+      // tarihler bozuksa (bir şehir hiçbir güne denk gelmiyorsa) tarihleri
+      // eşit yeniden dağıt — böylece hiçbir şehir plandan düşmez ve şehirler
+      // arası geçişler doğru kurulur.
+      {
+        final start = t.preferences.travelDates.start;
+        final end = t.preferences.travelDates.end;
+        final destsCheck = [...t.preferences.destinations]
+          ..sort((a, b) => a.order.compareTo(b.order));
+        if (destsCheck.length >= 2 && start.isNotEmpty && end.isNotEmpty) {
+          final covered = <String>{};
+          for (final d in t.days) {
+            final dd = getDestinationForDate(destsCheck, d.date);
+            if (dd != null) covered.add(dd.id);
+          }
+          if (!destsCheck.every((d) => covered.contains(d.id))) {
+            for (var i = 0; i < destsCheck.length; i++) {
+              destsCheck[i].order = i;
+            }
+            distributeDates(destsCheck, start, end);
+            t.preferences.destinations = destsCheck;
+            t.days = generateDaysBetween(start, end);
+          }
+        }
+      }
+
       // ignore: dead_code
       if (_kApiEnabled) {
         // TODO: itinerary_lookup.generateItinerary(trip) ile AI dene.
       }
+      // Eklenen şehir de dikkate alınsın diye günceli `t`'den oku (widget.trip
+      // bayat olabilir — _destinations getter'ı kullanma).
+      final destsNow = [...t.preferences.destinations]
+        ..sort((a, b) => a.order.compareTo(b.order));
       final generated = generateItineraryFromTrip(t, lang: lang);
-      t.days = fillEmptyDays(generated, _destinations, lang: lang);
+      t.days = fillEmptyDays(generated, destsNow, lang: lang);
 
       // BUG 2: Şehirler arası geçişleri otomatik ekle — kullanıcı her öneri için
       // ayrıca "Ekle"ye dokunmak zorunda kalmasın. Aynı gün hâlâ manuel
       // eklendiyse dokunulmaz (hasExistingTransferTo koruması).
-      final transitions = detectCityTransitions(t.days, _destinations);
+      final transitions = detectCityTransitions(t.days, destsNow);
       var updated = t.days;
       for (final s in transitions) {
         final target = updated.firstWhere(
@@ -599,6 +683,29 @@ class _PlanStepState extends State<PlanStep> {
                           active: trip.preferences.pace == e.$1,
                           onTap: () => widget
                               .onChange((t) => t.preferences.pace = e.$1),
+                        ),
+                      )),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Text(s.s('plan.childrenQuestion'),
+                      style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: PT.textTertiary)),
+                  const SizedBox(width: 12),
+                  ...[0, 1, 2, 3, 4].map((n) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: PChip(
+                          label: '$n',
+                          active: (trip.preferences.childProfiles.isNotEmpty
+                                  ? trip.preferences.childProfiles.length
+                                  : (trip.preferences.childrenCount ?? 0)) ==
+                              n,
+                          onTap: () => widget
+                              .onChange((t) => t.preferences.childrenCount = n),
                         ),
                       )),
                 ],

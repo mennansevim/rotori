@@ -5,6 +5,7 @@
 import 'dart:math';
 
 import '../core/l10n.dart';
+import 'city_places.dart';
 import 'destination_profiles.dart';
 import 'trip_factory.dart';
 import 'types.dart';
@@ -68,6 +69,23 @@ const List<MealPreset> kMealPresets = [
 /// Şehir adından (örn "Tokyo (Haneda)") sade şehir döndür.
 String _cleanCity(String city) =>
     city.replaceAll(RegExp(r'\s*\(.*\)\s*$'), '').trim();
+
+/// Şehir adından city_places.dart kaydını (alias'larla) çözer — havuz
+/// zenginleştirmesi için.
+CityData? _fillCityData(String city) {
+  final n = _cleanCity(city).toLowerCase();
+  for (final c in kCityData) {
+    if (c.key == n ||
+        c.label.toLowerCase() == n ||
+        c.aliases.any((a) => a == n)) {
+      return c;
+    }
+  }
+  for (final c in kCityData) {
+    if (c.aliases.any((a) => n.contains(a)) || n.contains(c.key)) return c;
+  }
+  return null;
+}
 
 class _FillPlace {
   const _FillPlace({required this.name, this.emoji, this.typicalSteps});
@@ -134,15 +152,29 @@ List<DayPlan> fillEmptyDays(
   for (final dest in destinations) {
     final profile = getDestinationProfile(dest.countryCode);
     if (profile == null) continue;
-    final key = _cleanCity(dest.city.isNotEmpty ? dest.city : dest.countryName);
+    final cityName = dest.city.isNotEmpty ? dest.city : dest.countryName;
+    final key = _cleanCity(cityName);
     if (cityPlaces.containsKey(key)) continue;
-    cityPlaces[key] = profile.popularPlaces
-        .map((p) => _FillPlace(
-              name: p.name,
-              emoji: p.emoji,
-              typicalSteps: p.typicalSteps,
-            ))
-        .toList();
+    final keyLower = key.toLowerCase();
+    final list = <_FillPlace>[];
+    final seen = <String>{};
+    // 1) Profil popularPlaces'ından YALNIZCA bu şehre ait olanlar.
+    for (final p in profile.popularPlaces) {
+      if (_cleanCity(p.city).toLowerCase() != keyLower) continue;
+      if (!seen.add(p.name.toLowerCase())) continue;
+      list.add(_FillPlace(
+          name: p.name, emoji: p.emoji, typicalSteps: p.typicalSteps));
+    }
+    // 2) city_places.dart'tan zenginleştir (Kyoto gibi az mekanlı şehirlerde
+    //    günler aynı yeri tekrarlamasın diye şart).
+    final cd = _fillCityData(cityName);
+    if (cd != null) {
+      for (final cp in cd.places) {
+        if (!seen.add(cp.name.toLowerCase())) continue;
+        list.add(_FillPlace(name: cp.name, emoji: cp.emoji, typicalSteps: 9000));
+      }
+    }
+    cityPlaces[key] = list;
     cityCursors[key] = 0;
   }
 

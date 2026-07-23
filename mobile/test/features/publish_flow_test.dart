@@ -68,9 +68,9 @@ void main() {
     await tester.pumpWidget(harness(t));
     expect(find.text('Paylaşılabilir bağlantı'), findsNothing);
     expect(find.textContaining('/viewer/?u='), findsNothing);
-    // Dışa/İçe aktar ve yayın kilidi notu hala var.
-    expect(find.text('Dışa aktar'), findsOneWidget);
-    expect(find.text('İçe aktar'), findsOneWidget);
+    // Dışa/İçe aktar kaldırıldı; yalnızca yayın kilidi notu kalır.
+    expect(find.text('Dışa aktar'), findsNothing);
+    expect(find.text('İçe aktar'), findsNothing);
     expect(find.textContaining('Yayın kilidi'), findsOneWidget);
   });
 }

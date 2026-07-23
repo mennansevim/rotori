@@ -126,10 +126,30 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
         dests.every((d) => d.city.trim().isNotEmpty);
   }
 
+  /// Başla adımı tamam mı? Kullanıcı "biletim var" / "planlıyorum"
+  /// kartlarından birini seçtiyse (hasTicket artık null değil) ya da plan
+  /// zaten rota verisine sahipse (mevcut/ilerlemiş plan) tamamlanmış sayılır.
+  bool _welcomeComplete(Trip t) =>
+      t.preferences.hasTicket != null || _canContinueJourney(t);
+
   bool _planReady(Trip t) => t.days.any((d) => d.items.isNotEmpty);
 
   Set<StepId> _locked(Trip t) {
     final locked = <StepId>{};
+    // Başla (welcome) bitmeden Rota ve sonrası kilitli — kullanıcı bir yol
+    // ("biletim var" / "planlıyorum") seçmeden üstteki adım çubuğundan
+    // 2. adıma (Rota) atlayamasın.
+    if (!_welcomeComplete(t)) {
+      locked.addAll([
+        StepId.journey,
+        StepId.explore,
+        StepId.title,
+        StepId.hotels,
+        StepId.food,
+        StepId.plan,
+        StepId.publish,
+      ]);
+    }
     if (!_canContinueJourney(t)) {
       locked.addAll([
         StepId.explore,

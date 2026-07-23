@@ -28,6 +28,8 @@ import '../viewer/checklist_screen.dart';
 import '../viewer/compass_screen.dart';
 import '../viewer/day_map_screen.dart';
 import '../viewer/home_widget_hook.dart';
+import '../viewer/japanese_phrases_screen.dart';
+import '../viewer/must_know_screen.dart';
 import '../viewer/reward_map_screen.dart';
 import '../viewer/sakura_overlay.dart';
 import '../viewer/viewer_theme.dart';
@@ -243,6 +245,8 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
             onOpenBudget: _openBudget,
             onOpenChecklist: _openChecklist,
             onOpenWeather: _openWeather,
+            onOpenPhrases: _openPhrases,
+            onOpenMustKnow: _openMustKnow,
           ),
           Expanded(
             child: ListView(
@@ -392,6 +396,38 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
     );
   }
 
+  /// Pratik Japonca kelimeler & cümleler sayfası.
+  void _openPhrases() {
+    final palette = ref.read(viewerPaletteProvider);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => Theme(
+          data: palette.toThemeData(),
+          child: ViewerPaletteScope(
+            palette: palette,
+            child: JapanesePhrasesScreen(trip: widget.trip),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// "Mutlaka bilmeniz gerekenler" — seyahat tavsiyeleri sayfası.
+  void _openMustKnow() {
+    final palette = ref.read(viewerPaletteProvider);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => Theme(
+          data: palette.toThemeData(),
+          child: ViewerPaletteScope(
+            palette: palette,
+            child: MustKnowScreen(trip: widget.trip),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Bir günün rota haritasını açar (numaralı pinli OSM haritası).
   void _openDayMap(DayPlan day) {
     final palette = ref.read(viewerPaletteProvider);
@@ -436,6 +472,8 @@ class _TopStatusBar extends StatefulWidget {
     required this.onOpenBudget,
     required this.onOpenChecklist,
     required this.onOpenWeather,
+    required this.onOpenPhrases,
+    required this.onOpenMustKnow,
   });
 
   final Trip trip;
@@ -447,6 +485,8 @@ class _TopStatusBar extends StatefulWidget {
   final VoidCallback onOpenBudget;
   final VoidCallback onOpenChecklist;
   final VoidCallback onOpenWeather;
+  final VoidCallback onOpenPhrases;
+  final VoidCallback onOpenMustKnow;
 
   @override
   State<_TopStatusBar> createState() => _TopStatusBarState();
@@ -593,6 +633,18 @@ class _TopStatusBarState extends State<_TopStatusBar>
                     color: onColor,
                     tooltip: s.s('viewer.tt.checklist'),
                     onTap: widget.onOpenChecklist,
+                  ),
+                  _BarIconButton(
+                    icon: Icons.translate,
+                    color: onColor,
+                    tooltip: s.s('viewer.tt.phrases'),
+                    onTap: widget.onOpenPhrases,
+                  ),
+                  _BarIconButton(
+                    icon: Icons.info_outline,
+                    color: onColor,
+                    tooltip: s.s('viewer.tt.mustKnow'),
+                    onTap: widget.onOpenMustKnow,
                   ),
                   _BarIconButton(
                     icon: Icons.palette_outlined,

@@ -174,8 +174,6 @@ List<TripWarning> collectTripWarnings(Trip trip) {
   if (hotel != null) warnings.add(hotel);
   final empty = checkEmptyPlan(trip);
   if (empty != null) warnings.add(empty);
-  final title = checkMissingTitle(trip);
-  if (title != null) warnings.add(title);
 
   warnings.addAll(checkUnassignedMustSee(trip));
   final sh = checkShinkansenDeadline(trip.deadlines?.shinkansenBooking);

@@ -4,7 +4,7 @@ import '../../../core/l10n.dart';
 import '../../../domain/types.dart';
 import '../planner_theme.dart';
 
-/// TitleStep.tsx birebir — başlık, açıklama, tempo.
+/// TitleStep.tsx birebir — başlık, açıklama.
 /// Kişi sayısı Rota adımının "Yolcu & seçenekler"inde yönetiliyor.
 class TitleStep extends StatelessWidget {
   const TitleStep({super.key, required this.trip, required this.onChange});
@@ -58,47 +58,10 @@ class TitleStep extends StatelessWidget {
                   onChanged: (v) => onChange((t) => t.subtitle = v),
                 ),
               ),
-              PField(
-                label: s.s('title.field.pace'),
-                child: _PaceDropdown(
-                  value: trip.preferences.pace,
-                  onChanged: (p) => onChange((t) => t.preferences.pace = p),
-                ),
-              ),
             ],
           ),
         ),
       ],
-    );
-  }
-}
-
-class _PaceDropdown extends StatelessWidget {
-  const _PaceDropdown({required this.value, required this.onChanged});
-  final Pace value;
-  final ValueChanged<Pace> onChanged;
-  @override
-  Widget build(BuildContext context) {
-    final s = LanguageScope.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: PT.bgSubtle,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: PT.borderStrong),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<Pace>(
-          value: value,
-          isExpanded: true,
-          items: [
-            DropdownMenuItem(value: Pace.relaxed, child: Text(s.s('title.pace.relaxed'))),
-            DropdownMenuItem(value: Pace.moderate, child: Text(s.s('title.pace.moderate'))),
-            DropdownMenuItem(value: Pace.intense, child: Text(s.s('title.pace.intense'))),
-          ],
-          onChanged: (v) => v != null ? onChanged(v) : null,
-        ),
-      ),
     );
   }
 }

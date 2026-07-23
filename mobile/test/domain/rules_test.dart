@@ -101,12 +101,13 @@ void main() {
   });
 
   group('collectTripWarnings', () {
-    test('boş plan + varsayılan başlık uyarıları', () {
+    test('boş plan → plan-empty (title-default kutusu kaldırıldı)', () {
       final trip = _trip(days: [_day(1), _day(2)]);
       final warnings = collectTripWarnings(trip);
       final ids = warnings.map((w) => w.id).toList();
       expect(ids, contains('plan-empty'));
-      expect(ids, contains('title-default'));
+      // 'Plan başlığı varsayılan' kutusu kaldırıldı — artık uyarı üretilmez.
+      expect(ids, isNot(contains('title-default')));
     });
 
     test('destinasyon var ama otel yok → hotels-missing', () {

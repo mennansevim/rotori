@@ -73,9 +73,14 @@ class DayTemplate {
     required this.emoji,
     required this.places,
     required this.stepsEstimate,
+    this.city = '',
   });
 
   final String id;
+
+  /// Şablonun ait olduğu şehir — generator günün şehrine göre filtreler
+  /// (boş = şehir-bağımsız).
+  final String city;
 
   /// i18n anahtarı (prefix `tmpl.`) — `L10n.resolve(label, lang)` ile çözülür.
   final String label;
@@ -111,11 +116,11 @@ const List<String> kJapanTips = [
 // bunları `L10n.resolve(...)` ile seçili dile çözer. `id`, `emoji`, `places`,
 // `stepsEstimate` sabit kalır. Özel isim içeren temalarda tr==en.
 const List<DayTemplate> kJapanDayTemplates = [
-  DayTemplate(id: 'tokyo-arrival', label: 'tmpl.tokyoArrival.label', theme: 'tmpl.tokyoArrival.theme', emoji: '🛬', places: [], stepsEstimate: 5000),
-  DayTemplate(id: 'asakusa-skytree', label: 'tmpl.asakusaSkytree.label', theme: 'tmpl.asakusaSkytree.theme', emoji: '🗼', places: ['sensoji', 'skytree'], stepsEstimate: 15000),
-  DayTemplate(id: 'shibuya', label: 'tmpl.shibuya.label', theme: 'tmpl.shibuya.theme', emoji: '🌸', places: ['meiji', 'shibuya'], stepsEstimate: 16000),
-  DayTemplate(id: 'disney-day', label: 'tmpl.disney.label', theme: 'tmpl.disney.theme', emoji: '🏰', places: ['disney'], stepsEstimate: 22000),
-  DayTemplate(id: 'osaka-move', label: 'tmpl.osakaMove.label', theme: 'tmpl.osakaMove.theme', emoji: '🚄', places: ['dotonbori'], stepsEstimate: 11000),
-  DayTemplate(id: 'kyoto-day', label: 'tmpl.kyotoDay.label', theme: 'tmpl.kyotoDay.theme', emoji: '⛩️', places: ['fushimi'], stepsEstimate: 18000),
-  DayTemplate(id: 'nara-day', label: 'tmpl.naraDay.label', theme: 'tmpl.naraDay.theme', emoji: '🦌', places: ['nara'], stepsEstimate: 16000),
+  DayTemplate(id: 'tokyo-arrival', label: 'tmpl.tokyoArrival.label', theme: 'tmpl.tokyoArrival.theme', emoji: '🛬', places: [], stepsEstimate: 5000, city: 'Tokyo'),
+  DayTemplate(id: 'asakusa-skytree', label: 'tmpl.asakusaSkytree.label', theme: 'tmpl.asakusaSkytree.theme', emoji: '🗼', places: ['sensoji', 'skytree'], stepsEstimate: 15000, city: 'Tokyo'),
+  DayTemplate(id: 'shibuya', label: 'tmpl.shibuya.label', theme: 'tmpl.shibuya.theme', emoji: '🌸', places: ['meiji', 'shibuya'], stepsEstimate: 16000, city: 'Tokyo'),
+  DayTemplate(id: 'disney-day', label: 'tmpl.disney.label', theme: 'tmpl.disney.theme', emoji: '🏰', places: ['disney'], stepsEstimate: 22000, city: 'Tokyo'),
+  DayTemplate(id: 'osaka-move', label: 'tmpl.osakaMove.label', theme: 'tmpl.osakaMove.theme', emoji: '🚄', places: ['dotonbori'], stepsEstimate: 11000, city: 'Osaka'),
+  DayTemplate(id: 'kyoto-day', label: 'tmpl.kyotoDay.label', theme: 'tmpl.kyotoDay.theme', emoji: '⛩️', places: ['fushimi'], stepsEstimate: 18000, city: 'Kyoto'),
+  DayTemplate(id: 'nara-day', label: 'tmpl.naraDay.label', theme: 'tmpl.naraDay.theme', emoji: '🦌', places: ['nara'], stepsEstimate: 16000, city: 'Nara'),
 ];

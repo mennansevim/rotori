@@ -58,8 +58,8 @@ void main() {
     expect(t.preferences.dietaryTags.contains('no_pork'), isFalse);
   });
 
-  testWidgets('destinasyon başına mutfak/lezzet grid'
-      ' artık render edilmez — sadece hassasiyet + bütçe kalır', (tester) async {
+  testWidgets('mutfak/lezzet grid + öğün bütçesi artık render edilmez'
+      ' — sadece hassasiyet kalır', (tester) async {
     final t = _tripWithDest();
     await tester.pumpWidget(harness(t));
     await tester.pumpAndSettle();
@@ -68,9 +68,9 @@ void main() {
     expect(find.textContaining('Beslenme tercihleri'), findsNothing);
     expect(find.textContaining('Mutfak türleri'), findsNothing);
     expect(find.textContaining('Önerilen lezzetler'), findsNothing);
-    // Bütçe alanı hala var.
-    expect(find.textContaining('Kişi başı öğün'), findsOneWidget);
-    expect(find.text('Öğünleri plana ekle'), findsOneWidget);
+    // Öğün bütçesi + para birimi + planMeals switch'i kaldırıldı.
+    expect(find.textContaining('Kişi başı öğün'), findsNothing);
+    expect(find.text('Öğünleri plana ekle'), findsNothing);
   });
 
   testWidgets('375px iPhone genişliğinde hassasiyet wrap overflow etmez',

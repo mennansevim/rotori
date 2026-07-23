@@ -201,9 +201,6 @@ class _JourneyStepState extends State<JourneyStep> {
             ),
           ),
 
-        const SizedBox(height: 12),
-        if (dests.isNotEmpty) _passengerOptions(),
-
         if (!_canContinue())
           Container(
             margin: const EdgeInsets.only(top: 12),
@@ -619,65 +616,6 @@ class _JourneyStepState extends State<JourneyStep> {
     );
   }
 
-  Widget _passengerOptions() {
-    final s = LanguageScope.of(context);
-    final prefs = trip.preferences;
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: PT.border),
-        borderRadius: BorderRadius.circular(PT.radius),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: ExpansionTile(
-        initiallyExpanded: true,
-        title: Text(s.s('journey.pax.title'),
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: PT.text)),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 2),
-          child: Text(s.s('journey.pax.subtitle'),
-              style: const TextStyle(fontSize: 12, color: PT.textSecondary)),
-        ),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _DropdownField<int>(
-                  label: s.s('journey.pax.adult'),
-                  value: prefs.partySize ?? 2,
-                  items: const [1, 2, 3, 4, 5, 6],
-                  onChanged: (v) => widget.onChange((t) => t.preferences.partySize = v),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _DropdownField<int>(
-                  label: s.s('journey.pax.child'),
-                  value: prefs.childrenCount ?? 0,
-                  items: const [0, 1, 2, 3, 4],
-                  onChanged: (v) => widget.onChange((t) => t.preferences.childrenCount = v),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _DropdownField<Pace>(
-                  label: s.s('journey.pax.pace'),
-                  value: prefs.pace,
-                  items: const [Pace.relaxed, Pace.moderate, Pace.intense],
-                  labelFor: (p) => switch (p) {
-                    Pace.relaxed => s.s('journey.pace.relaxed'),
-                    Pace.moderate => s.s('journey.pace.moderate'),
-                    Pace.intense => s.s('journey.pace.intense'),
-                  },
-                  onChanged: (v) => widget.onChange((t) => t.preferences.pace = v),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ---- küçük parçalar ----
@@ -779,54 +717,6 @@ class _DateBox extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _DropdownField<T> extends StatelessWidget {
-  const _DropdownField({
-    required this.label,
-    required this.value,
-    required this.items,
-    required this.onChanged,
-    this.labelFor,
-  });
-  final String label;
-  final T value;
-  final List<T> items;
-  final ValueChanged<T> onChanged;
-  final String Function(T)? labelFor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: PT.text)),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: PT.bgSubtle,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: PT.borderStrong),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<T>(
-              value: value,
-              isExpanded: true,
-              items: [
-                for (final it in items)
-                  DropdownMenuItem(value: it, child: Text(labelFor?.call(it) ?? '$it')),
-              ],
-              onChanged: (v) {
-                if (v != null) onChanged(v);
-              },
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

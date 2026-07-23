@@ -1,7 +1,4 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../core/l10n.dart';
 import '../../../domain/rules.dart';
@@ -10,7 +7,7 @@ import '../planner_theme.dart';
 import '../steps.dart';
 
 /// apps/planner/src/components/steps/PublishStep.tsx portu.
-/// Uyarı paneli (collectTripWarnings) + paylaşım URL + JSON dışa/içe aktarma.
+/// Uyarı paneli (collectTripWarnings) + yayın kilidi notu.
 class PublishStep extends StatelessWidget {
   const PublishStep({
     super.key,
@@ -54,99 +51,6 @@ class PublishStep extends StatelessWidget {
         TripWarningSeverity.warn => const Color(0x14B45309),
         TripWarningSeverity.urgent => const Color(0x14BF4800),
       };
-
-  void _exportJson(BuildContext context) {
-    final s = LanguageScope.of(context);
-    final json = const JsonEncoder.withIndent('  ').convert(trip.toJson());
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(s.s('publish.exportTitle')),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: SelectableText(json,
-                style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: json));
-              ScaffoldMessenger.of(ctx).showSnackBar(
-                SnackBar(content: Text(s.s('publish.jsonCopied'))),
-              );
-            },
-            child: Text(s.s('publish.copy')),
-          ),
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(s.s('publish.close'))),
-        ],
-      ),
-    );
-  }
-
-  void _importJson(BuildContext context) {
-    final s = LanguageScope.of(context);
-    final ctrl = TextEditingController();
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(s.s('publish.importTitle')),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: TextField(
-            controller: ctrl,
-            maxLines: 8,
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-            decoration: InputDecoration(
-              hintText: s.s('publish.importHint'),
-              border: const OutlineInputBorder(),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(s.s('publish.cancel'))),
-          TextButton(
-            onPressed: () {
-              try {
-                final map = jsonDecode(ctrl.text) as Map<String, dynamic>;
-                final imported = Trip.fromJson(map);
-                // Mevcut trip'in id/slug'ını korur, alanları içe aktarır.
-                onChange((t) {
-                  t.title = imported.title;
-                  t.subtitle = imported.subtitle;
-                  t.timezone = imported.timezone;
-                  t.tripStart = imported.tripStart;
-                  t.tripEnd = imported.tripEnd;
-                  t.flights = imported.flights;
-                  t.hotels = imported.hotels;
-                  t.tickets = imported.tickets;
-                  t.preferences = imported.preferences;
-                  t.days = imported.days;
-                  t.deadlines = imported.deadlines;
-                });
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(s.s('publish.imported'))),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  SnackBar(
-                      content:
-                          Text(s.p('publish.invalidJson', {'err': '$e'}))),
-                );
-              }
-            },
-            child: Text(s.s('publish.import')),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -193,36 +97,11 @@ class PublishStep extends StatelessWidget {
             ),
           ),
 
-        // JSON dışa/içe aktar + yayın kilidi notu.
+        // Yayın kilidi notu.
         PCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: PButton(
-                      label: s.s('publish.export'),
-                      primary: false,
-                      onPressed: () => _exportJson(context),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: PButton(
-                      label: s.s('publish.import'),
-                      primary: false,
-                      onPressed: () => _importJson(context),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(s.s('publish.lockNote'),
-                  style: const TextStyle(
-                      fontSize: 13, color: PT.textTertiary, height: 1.4)),
-            ],
-          ),
+          child: Text(s.s('publish.lockNote'),
+              style: const TextStyle(
+                  fontSize: 13, color: PT.textTertiary, height: 1.4)),
         ),
       ],
     );

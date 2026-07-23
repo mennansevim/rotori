@@ -18,17 +18,21 @@ import 'domain/fill_empty_days.dart';
 import 'domain/itinerary_generator.dart';
 import 'domain/trip_factory.dart';
 import 'domain/types.dart';
+import 'features/auth/auth_screen.dart';
 import 'features/planner/planner_screen.dart';
 import 'features/planner/planner_theme.dart';
 import 'features/planner/steps.dart';
 import 'features/plans/plan_providers.dart';
 import 'features/plans/plan_viewer_screen.dart';
+import 'features/plans/plans_list_screen.dart';
 import 'features/reminders/reminders_screen.dart';
 import 'features/viewer/budget_screen.dart';
 import 'features/viewer/checklist_screen.dart';
 import 'features/viewer/compass_screen.dart';
 import 'features/viewer/day_map_screen.dart';
 import 'features/viewer/gps_sim_screen.dart';
+import 'features/viewer/japanese_phrases_screen.dart';
+import 'features/viewer/must_know_screen.dart';
 import 'features/viewer/weather_screen.dart';
 
 void main() {
@@ -45,6 +49,9 @@ void main() {
           if (id == 'new') return Stream<Trip>.value(_buildEmptyTrip());
           return Stream<Trip>.value(demo);
         }),
+        // Gerçek "Planlarım" ekranını dolu göstermek için (Supabase pull'u no-op).
+        localPlansProvider.overrideWithValue([demo]),
+        plansPullProvider.overrideWith((ref) async => <Trip>[]),
       ],
       child: const _PreviewApp(),
     ),
@@ -163,6 +170,9 @@ class _PreviewApp extends ConsumerWidget {
       routes: [
         GoRoute(path: '/', redirect: (_, __) => '/plans'),
         GoRoute(path: '/plans', builder: (_, __) => const _PreviewHome()),
+        // Gerçek uygulama ekranları (önizleme): giriş + "Planlarım".
+        GoRoute(path: '/auth', builder: (_, __) => const AuthScreen()),
+        GoRoute(path: '/planslist', builder: (_, __) => const PlansListScreen()),
         GoRoute(
           path: '/plans/:id/edit',
           builder: (_, s) => PlannerScreen(
@@ -207,6 +217,14 @@ class _PreviewApp extends ConsumerWidget {
         GoRoute(
           path: '/plans/:id/weather',
           builder: (_, s) => _WeatherRoute(planId: s.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: '/plans/:id/phrases',
+          builder: (_, s) => _PhrasesRoute(planId: s.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: '/plans/:id/mustknow',
+          builder: (_, s) => _MustKnowRoute(planId: s.pathParameters['id']!),
         ),
         GoRoute(
           path: '/reminders',
@@ -331,6 +349,54 @@ class _BudgetRoute extends ConsumerWidget {
 }
 
 /// Preview: planByIdProvider'dan trip'i çözüp Valiz & Hazırlık ekranını açar.
+/// Preview: planByIdProvider'dan trip'i çözüp Japonca frazlar sayfasını açar.
+class _PhrasesRoute extends ConsumerWidget {
+  const _PhrasesRoute({required this.planId});
+  final String planId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final planAsync = ref.watch(planByIdProvider(planId));
+    return planAsync.when(
+      data: (trip) => JapanesePhrasesScreen(trip: trip),
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Scaffold(
+        body: Center(
+          child: Text(
+            LanguageScope.of(context).p('home.planLoadFailed', {'err': '$e'}),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Preview: planByIdProvider'dan trip'i çözüp "Mutlaka bilmeniz gerekenler"i açar.
+class _MustKnowRoute extends ConsumerWidget {
+  const _MustKnowRoute({required this.planId});
+  final String planId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final planAsync = ref.watch(planByIdProvider(planId));
+    return planAsync.when(
+      data: (trip) => MustKnowScreen(trip: trip),
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Scaffold(
+        body: Center(
+          child: Text(
+            LanguageScope.of(context).p('home.planLoadFailed', {'err': '$e'}),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ChecklistRoute extends ConsumerWidget {
   const _ChecklistRoute({required this.planId});
   final String planId;

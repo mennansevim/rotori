@@ -4,6 +4,7 @@
 import 'dart:math';
 
 import '../core/l10n.dart';
+import 'city_places.dart';
 import 'destination_profiles.dart';
 import 'explore.dart';
 import 'japan_suggestions.dart';
@@ -123,8 +124,9 @@ TimelineItem _makeItem(
   int dayNumber,
   String time,
   PlaceSuggestion place,
-  AppLang lang,
-) =>
+  AppLang lang, {
+  String? cityId,
+}) =>
     TimelineItem(
       id: newItemId(dayNumber),
       time: time,
@@ -137,15 +139,18 @@ TimelineItem _makeItem(
               ? L10n.resolve('gen.tip.foodMeal', lang)
               : null,
       kind: TimelineItemKind.activity,
+      cityId: cityId ?? place.city,
     );
 
-TimelineItem _mealItem(int dayNumber, String time, String label) =>
+TimelineItem _mealItem(int dayNumber, String time, String label,
+        {String? cityId}) =>
     TimelineItem(
       id: newItemId(dayNumber),
       time: time,
       scheduledTime: time,
       title: '🍽️ $label',
       kind: TimelineItemKind.meal,
+      cityId: cityId,
     );
 
 DayPlan _buildFromTemplate(
@@ -153,8 +158,9 @@ DayPlan _buildFromTemplate(
   DayTemplate template,
   List<PlaceSuggestion> places,
   Pace pace,
-  AppLang lang,
-) {
+  AppLang lang, {
+  String? cityId,
+}) {
   final times = _timesForPace(pace);
   final items = <TimelineItem>[];
   var stepSum = 0;
@@ -163,11 +169,12 @@ DayPlan _buildFromTemplate(
     final place = _placeById(places, template.places[i]);
     if (place == null) continue;
     final time = i < times.length ? times[i] : times.last;
-    items.add(_makeItem(day.dayNumber, time, place, lang));
+    items.add(_makeItem(day.dayNumber, time, place, lang, cityId: cityId));
     stepSum += place.typicalSteps ?? 8000;
     if (i == 0 && times.length > 1) {
-      items.add(_mealItem(
-          day.dayNumber, times[1], L10n.resolve('gen.meal.lunchBreak', lang)));
+      items.add(_mealItem(day.dayNumber, times[1],
+          L10n.resolve('gen.meal.lunchBreak', lang),
+          cityId: cityId));
     }
   }
 
@@ -179,6 +186,7 @@ DayPlan _buildFromTemplate(
       title: '🛬 ${L10n.resolve('gen.arrival.checkinTitle', lang)}',
       description: L10n.resolve('gen.arrival.checkinDesc', lang),
       kind: TimelineItemKind.activity,
+      cityId: cityId,
     ));
     items.add(TimelineItem(
       id: newItemId(day.dayNumber),
@@ -187,6 +195,7 @@ DayPlan _buildFromTemplate(
       title: '🏪 ${L10n.resolve('gen.arrival.exploreTitle', lang)}',
       description: L10n.resolve('gen.arrival.exploreDesc', lang),
       kind: TimelineItemKind.meal,
+      cityId: cityId,
     ));
     stepSum = template.stepsEstimate;
   }
@@ -245,6 +254,7 @@ DayPlan _buildDepartureDay(
           scheduledTime: '09:00',
           title: '🧳 ${L10n.resolve('gen.departure.checkoutTitle', lang)}',
           kind: TimelineItemKind.activity,
+          cityId: destName,
         ),
         TimelineItem(
           id: newItemId(day.dayNumber),
@@ -253,6 +263,7 @@ DayPlan _buildDepartureDay(
           title: '🚕 ${L10n.resolve('gen.departure.transferTitle', lang)}',
           description: L10n.resolve('gen.departure.transferDesc', lang),
           kind: TimelineItemKind.transport,
+          cityId: destName,
         ),
         TimelineItem(
           id: newItemId(day.dayNumber),
@@ -260,6 +271,7 @@ DayPlan _buildDepartureDay(
           scheduledTime: '14:00',
           title: '✈️ ${L10n.resolve('gen.departure.flightTitle', lang)}',
           kind: TimelineItemKind.transport,
+          cityId: destName,
         ),
       ],
       highlights: [
@@ -281,8 +293,9 @@ DayPlan _buildFromPlaces(
   int maxSteps,
   String destLabel,
   String flag,
-  AppLang lang,
-) {
+  AppLang lang, {
+  String? cityId,
+}) {
   final count = _activitiesPerDay(pace);
   final picked =
       _pickPlaces(pool, count, used, kidMode, mustSee, interests, maxSteps);
@@ -292,13 +305,16 @@ DayPlan _buildFromPlaces(
 
   for (var i = 0; i < picked.length; i++) {
     final time = i < times.length ? times[i] : times.last;
-    items.add(_makeItem(day.dayNumber, time, picked[i], lang));
+    items.add(_makeItem(day.dayNumber, time, picked[i], lang, cityId: cityId));
     stepSum += picked[i].typicalSteps ?? 8000;
   }
 
   if (picked.length >= 2 && times.length > 1) {
-    items.insert(1,
-        _mealItem(day.dayNumber, times[1], L10n.resolve('gen.meal.lunchStop', lang)));
+    items.insert(
+        1,
+        _mealItem(day.dayNumber, times[1],
+            L10n.resolve('gen.meal.lunchStop', lang),
+            cityId: cityId));
   }
 
   final themePlace = picked.isNotEmpty ? picked.first : null;
@@ -323,6 +339,85 @@ DayPlan _buildFromPlaces(
   );
 }
 
+/// Şehir adını normalize eder ("Osaka (Kansai)" → "osaka").
+String _normCity(String c) =>
+    c.replaceAll(RegExp(r'\s*\(.*\)\s*$'), '').trim().toLowerCase();
+
+/// Şehir adından city_places.dart kaydını (alias'larla) çözer.
+CityData? _cityDataForName(String city) {
+  final n = _normCity(city);
+  for (final c in kCityData) {
+    if (c.key == n ||
+        c.label.toLowerCase() == n ||
+        c.aliases.any((a) => a == n)) {
+      return c;
+    }
+  }
+  for (final c in kCityData) {
+    if (c.aliases.any((a) => n.contains(a)) || n.contains(c.key)) return c;
+  }
+  return null;
+}
+
+/// Bir şehrin mekan havuzu: profilin popularPlaces'ından O ŞEHRE ait olanlar +
+/// city_places.dart'tan zenginleştirme (Kyoto gibi az mekanlı şehirler için
+/// şart — aksi halde tüm günler aynı yeri tekrarlardı).
+List<PlaceSuggestion> _cityPool(DestinationProfile profile, String city) {
+  final n = _normCity(city);
+  final pool =
+      profile.popularPlaces.where((p) => _normCity(p.city) == n).toList();
+  final seen = pool.map((p) => p.name.toLowerCase()).toSet();
+  final cd = _cityDataForName(city);
+  if (cd != null) {
+    for (final cp in cd.places) {
+      if (seen.contains(cp.name.toLowerCase())) continue;
+      seen.add(cp.name.toLowerCase());
+      pool.add(PlaceSuggestion(
+        id: cp.id,
+        name: cp.name,
+        city: cd.label,
+        emoji: cp.emoji,
+        category: 'culture',
+        typicalSteps: 9000,
+      ));
+    }
+  }
+  return pool;
+}
+
+/// Gezinin ilk günü — şehre özel varış & yerleşme (şablondan bağımsız, böylece
+/// başka bir şehre "Tokyo'ya varış" yazılmaz).
+DayPlan _buildArrivalDay(DayPlan day, String city, String flag, AppLang lang) =>
+    day.copyWith(
+      theme: '🛬 ${L10n.parametrize(L10n.resolve('gen.arrival.cityTheme', lang), {
+            'city': city
+          })}',
+      tags: [city, L10n.resolve('gen.arrival.checkinTitle', lang)],
+      stepsEstimate: 5000,
+      taxiRecommended: false,
+      items: [
+        TimelineItem(
+          id: newItemId(day.dayNumber),
+          time: '15:00',
+          scheduledTime: '15:00',
+          title: '🛬 ${L10n.resolve('gen.arrival.checkinTitle', lang)}',
+          description: L10n.resolve('gen.arrival.checkinDesc', lang),
+          kind: TimelineItemKind.activity,
+          cityId: city,
+        ),
+        TimelineItem(
+          id: newItemId(day.dayNumber),
+          time: '18:00',
+          scheduledTime: '18:00',
+          title: '🏪 ${L10n.resolve('gen.arrival.exploreTitle', lang)}',
+          description: L10n.resolve('gen.arrival.exploreDesc', lang),
+          kind: TimelineItemKind.meal,
+          cityId: city,
+        ),
+      ],
+      highlights: const [],
+    );
+
 /// Rota, tempo ve ülke profillerine göre gün-gün plan üretir (AI gerekmez).
 /// [lang] üretilen gün temaları, öğün/aktivite başlıkları ve ipuçlarının dilini
 /// belirler; içerik seçili dilde trip'e yazılır (sonradan dil değişimi mevcut
@@ -339,6 +434,8 @@ List<DayPlan> generateItineraryFromTrip(Trip trip, {AppLang lang = AppLang.tr}) 
   final destinations = [...trip.preferences.destinations]
     ..sort((a, b) => a.order.compareTo(b.order));
   final usedPlaces = <String>{};
+  final firstDestId = destinations.isNotEmpty ? destinations.first.id : null;
+  final lastDestId = destinations.isNotEmpty ? destinations.last.id : null;
 
   return trip.days.map((day) {
     final dest = getDestinationForDate(destinations, day.date);
@@ -347,64 +444,63 @@ List<DayPlan> generateItineraryFromTrip(Trip trip, {AppLang lang = AppLang.tr}) 
     final profile = getDestinationProfile(dest.countryCode);
     if (profile == null) return day;
 
+    final city = dest.city.isNotEmpty ? dest.city : profile.name;
+    final flag = profile.flag;
+
     final segDays = trip.days.where((d) {
       final dd = getDestinationForDate(destinations, d.date);
       return dd?.id == dest.id;
     }).toList();
     final dayIndexInSeg =
         segDays.indexWhere((d) => d.dayNumber == day.dayNumber);
-    final isFirst = dayIndexInSeg == 0;
-    final isLast = dayIndexInSeg == segDays.length - 1;
-    final flag = profile.flag;
+    final isFirstOfSeg = dayIndexInSeg == 0;
+    final isLastOfSeg = dayIndexInSeg == segDays.length - 1;
+    final isFirstDest = dest.id == firstDestId;
+    final isLastDest = dest.id == lastDestId;
 
-    if (isLast && segDays.length > 1) {
-      return _buildDepartureDay(
-        day,
-        dest.city.isNotEmpty ? dest.city : profile.name,
-        flag,
-        lang,
-      );
+    // Gezinin ilk günü → şehre özel varış (yalnızca İLK destinasyonda).
+    if (isFirstOfSeg && isFirstDest) {
+      return _buildArrivalDay(day, city, flag, lang);
+    }
+    // Gezinin son günü → dönüş uçuşu (yalnızca SON destinasyonda). Ara
+    // şehirlerin son günü normal gündür; şehirler-arası geçiş (Shinkansen)
+    // ayrıca eklenir (detectCityTransitions + insertCityTransfer).
+    if (isLastOfSeg && isLastDest && trip.days.length > 1) {
+      return _buildDepartureDay(day, city, flag, lang);
     }
 
-    final templates = profile.dayTemplates;
-    if (isFirst) {
-      DayTemplate? arrival;
-      for (final t in templates) {
-        if (t.id.contains('arrival')) {
-          arrival = t;
-          break;
-        }
-      }
-      arrival ??= templates.isNotEmpty ? templates.first : null;
-      if (arrival != null) {
-        return _buildFromTemplate(
-            day, arrival, profile.popularPlaces, pace, lang);
-      }
-    }
+    // Şehre özel içerik — havuz ve şablonlar O şehre filtrelenir; böylece
+    // Kyoto gününe Tokyo mekanı gelmez.
+    final cityPool = _cityPool(profile, city);
+    final cityTemplates = profile.dayTemplates
+        .where((t) =>
+            _normCity(t.city) == _normCity(city) && !t.id.contains('arrival'))
+        .toList();
 
-    final middleTemplates =
-        templates.where((t) => !t.id.contains('arrival')).toList();
-    if (middleTemplates.isNotEmpty) {
-      final idx = max(0, dayIndexInSeg - 1) % middleTemplates.length;
-      final template = middleTemplates[idx];
+    if (cityTemplates.isNotEmpty) {
+      // İlk destinasyonda 0. gün varıştı → şablon sırasını 1 kaydır.
+      final seq = isFirstDest ? (dayIndexInSeg - 1) : dayIndexInSeg;
+      final idx = (seq < 0 ? 0 : seq) % cityTemplates.length;
+      final template = cityTemplates[idx];
       final built =
-          _buildFromTemplate(day, template, profile.popularPlaces, pace, lang);
+          _buildFromTemplate(day, template, cityPool, pace, lang, cityId: city);
       usedPlaces.addAll(template.places);
       return built;
     }
 
     return _buildFromPlaces(
       day,
-      profile.popularPlaces,
+      cityPool,
       pace,
       usedPlaces,
       kidMode,
       mustSee,
       interests,
       maxSteps,
-      dest.city.isNotEmpty ? dest.city : profile.name,
+      city,
       flag,
       lang,
+      cityId: city,
     );
   }).toList();
 }

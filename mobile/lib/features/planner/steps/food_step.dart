@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/l10n.dart';
-import '../../../domain/destination_profiles.dart';
 import '../../../domain/dietary.dart';
 import '../../../domain/types.dart';
 import '../planner_theme.dart';
 
 /// apps/planner/src/components/steps/FoodStep.tsx portu (sadeleştirilmiş).
-/// 9 emoji hassasiyet toggle → global foodSensitivities + dietaryTags,
-/// öğün bütçesi ve planMeals. Destinasyon başına lezzet/mutfak seçimi ve
+/// 9 emoji hassasiyet toggle → global foodSensitivities + dietaryTags.
+/// Destinasyon başına lezzet/mutfak seçimi ve
 /// restoran önerileri Rehber'e (viewer) taşındı.
 class FoodStep extends StatelessWidget {
   const FoodStep({super.key, required this.trip, required this.onChange});
@@ -82,10 +81,6 @@ class FoodStep extends StatelessWidget {
     }
 
     final sensitivities = trip.preferences.foodSensitivities.toSet();
-    // Rota'daki ilk destinasyondan para birimini türet — global bütçe için.
-    final currency =
-        getDestinationProfile(destinations.first.countryCode)?.defaultCurrency ??
-            'EUR';
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 120),
@@ -116,71 +111,6 @@ class FoodStep extends StatelessWidget {
                 s.s('food.sensNote'),
                 style: const TextStyle(
                     fontSize: 13, color: PT.textSecondary, height: 1.4),
-              ),
-            ],
-          ),
-        ),
-
-        // Öğün bütçesi + planMeals kartı
-        PCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: PField(
-                      label: s.p('food.mealPerPerson', {'currency': currency}),
-                      child: PTextField(
-                        value: '${trip.preferences.mealBudgetPerPerson ?? 50}',
-                        keyboardType: TextInputType.number,
-                        onChanged: (v) => onChange((t) => t.preferences
-                            .mealBudgetPerPerson = int.tryParse(v) ?? 0),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: PField(
-                      label: s.s('food.currency'),
-                      child: PTextField(
-                        value: trip.preferences.mealBudgetCurrency ?? currency,
-                        onChanged: (v) => onChange(
-                            (t) => t.preferences.mealBudgetCurrency = v),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(s.s('food.addMeals'),
-                            style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: PT.text)),
-                        const SizedBox(height: 2),
-                        Text(s.s('food.addMealsHint'),
-                            style: const TextStyle(
-                                fontSize: 12, color: PT.textTertiary)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Switch.adaptive(
-                    value: trip.preferences.planMeals ?? true,
-                    activeTrackColor: PT.accent,
-                    onChanged: (v) =>
-                        onChange((t) => t.preferences.planMeals = v),
-                  ),
-                ],
               ),
             ],
           ),
