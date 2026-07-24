@@ -613,7 +613,7 @@
     </div>
   </div>
 
-  <!-- Üretilen kartlar -->
+  <!-- Üretilen kartlar (yayınlanmamış) -->
   <section class="section" id="storyCard">
     <div class="section-head">
       <h2 class="section-title">🗂 Üretilen Kartlar <span class="count" id="storyCount">0</span></h2>
@@ -621,6 +621,16 @@
     <div id="storyGrid" class="story-grid">
       <div class="empty" data-icon="🎨">Yukarıdan üret — kartların burada belirsin.</div>
     </div>
+  </section>
+
+  <!-- Yayınlanan kartlar (Instagram'a atılmışlar — arşiv) -->
+  <section class="section" id="publishedCard" style="display:none">
+    <div class="section-head">
+      <h2 class="section-title">✅ Yayınlananlar <span class="count" id="publishedCount">0</span></h2>
+      <button class="sm ghost" onclick="togglePublished()" id="btnTogglePublished"
+        title="Yayınlananlar arşivini aç/kapat">▾ Göster</button>
+    </div>
+    <div id="publishedGrid" class="story-grid" style="display:none"></div>
   </section>
 
   <!-- Reels Fikirleri — şimdilik gizli (reels modülleri kapalı) -->
@@ -1536,9 +1546,16 @@ async function openAutomationModal(){
   back.id = "automationModal";
   back.className = "modal-backdrop";
 
+  // 0=Pzr, 1=Pzt, ..., 6=Cmt (launchd Weekday şeması)
+  const DAY_LABELS = [
+    {k:1,t:"Pzt"},{k:2,t:"Sal"},{k:3,t:"Çar"},{k:4,t:"Per"},
+    {k:5,t:"Cum"},{k:6,t:"Cmt"},{k:0,t:"Pzr"},
+  ];
   const jobCard = (kind, colorGrad, ico, title, desc) => {
     const c = _autoCfg[kind] || {};
-    const days = c.interval_days || (kind === "news" ? 2 : 3);
+    const days = new Set(c.days || []);
+    const hour = String(c.hour ?? (kind==="news"?9:12)).padStart(2,"0");
+    const minute = String(c.minute ?? 0).padStart(2,"0");
     return `
     <div class="auto-card" style="background:var(--surface);border:1px solid var(--line);
       border-radius:16px;overflow:hidden;margin-bottom:14px">
@@ -1556,17 +1573,39 @@ async function openAutomationModal(){
         </label>
       </div>
       <div style="padding:16px 18px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <span style="font-size:13px;color:var(--txt-dim);font-weight:600">Kaç günde bir?</span>
-          <div class="tabs" style="margin:0" id="auto-${kind}-days">
-            ${[1,2,3,5,7].map(d => `
-              <button class="tab ${d===days?'active':''}" data-d="${d}"
-                onclick="setAutoDays('${kind}',${d})">${d} gün</button>
+        <div style="margin-bottom:12px">
+          <div style="font-size:13px;color:var(--txt-dim);font-weight:600;margin-bottom:8px">
+            📅 Haftanın hangi günleri?
+          </div>
+          <div id="auto-${kind}-days" style="display:flex;gap:6px;flex-wrap:wrap">
+            ${DAY_LABELS.map(({k,t}) => `
+              <button type="button" data-d="${k}"
+                onclick="toggleAutoDay('${kind}',${k},this)"
+                class="day-chip ${days.has(k)?'on':''}"
+                style="padding:8px 12px;font-size:12px;font-weight:600;font-family:inherit;
+                  border:1px solid ${days.has(k)?'var(--gold)':'var(--line)'};
+                  background:${days.has(k)?'rgba(255,209,102,.14)':'transparent'};
+                  color:${days.has(k)?'var(--gold)':'var(--txt-dim)'};
+                  border-radius:8px;cursor:pointer;transition:all var(--dur) var(--ease);min-width:52px">
+                ${t}
+              </button>
             `).join("")}
           </div>
         </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:13px;color:var(--txt-dim);font-weight:600">⏰ Saat</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input type="number" id="auto-${kind}-hour" min="0" max="23" value="${hour}"
+              style="width:60px;padding:8px 10px;text-align:center;font-size:14px;font-weight:600;
+                background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--txt)" />
+            <span style="color:var(--muted);font-weight:600">:</span>
+            <input type="number" id="auto-${kind}-minute" min="0" max="59" value="${minute}"
+              style="width:60px;padding:8px 10px;text-align:center;font-size:14px;font-weight:600;
+                background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--txt)" />
+          </div>
+        </div>
         <label style="display:flex;justify-content:space-between;align-items:center;
-          padding:12px 0;border-top:1px solid var(--line)">
+          padding:12px 0;border-top:1px solid var(--line);margin-top:6px">
           <span>
             <div style="font-size:13px;color:var(--txt);font-weight:600">📤 Otomatik yayınla</div>
             <div style="font-size:11.5px;color:var(--muted);margin-top:2px">
@@ -1620,20 +1659,32 @@ function closeAutomationModal(){
   if(m) m.remove();
 }
 
-function setAutoDays(kind, days){
+function toggleAutoDay(kind, dayCode, el){
   if(!_autoCfg) return;
-  _autoCfg[kind].interval_days = days;
-  document.querySelectorAll(`#auto-${kind}-days .tab`).forEach(t =>
-    t.classList.toggle("active", Number(t.dataset.d) === days));
+  const set = new Set(_autoCfg[kind].days || []);
+  if(set.has(dayCode)) set.delete(dayCode); else set.add(dayCode);
+  _autoCfg[kind].days = [...set].sort();
+  const on = set.has(dayCode);
+  el.classList.toggle("on", on);
+  el.style.borderColor = on ? "var(--gold)" : "var(--line)";
+  el.style.background = on ? "rgba(255,209,102,.14)" : "transparent";
+  el.style.color = on ? "var(--gold)" : "var(--txt-dim)";
 }
 
 async function saveAutomationConfig(){
+  const readHM = (kind) => ({
+    hour: Math.max(0, Math.min(23, parseInt($(`auto-${kind}-hour`).value || "9", 10))),
+    minute: Math.max(0, Math.min(59, parseInt($(`auto-${kind}-minute`).value || "0", 10))),
+  });
+  const nHM = readHM("news"), tHM = readHM("topic");
   const body = {
     news:  { enabled: $("auto-news-enabled").checked,
-             interval_days: _autoCfg.news.interval_days,
+             days: _autoCfg.news.days || [],
+             hour: nHM.hour, minute: nHM.minute,
              auto_publish: $("auto-news-publish").checked },
     topic: { enabled: $("auto-topic-enabled").checked,
-             interval_days: _autoCfg.topic.interval_days,
+             days: _autoCfg.topic.days || [],
+             hour: tHM.hour, minute: tHM.minute,
              auto_publish: $("auto-topic-publish").checked },
   };
   const btn = $("btn-auto-save");
@@ -1648,7 +1699,7 @@ async function saveAutomationConfig(){
       toast("Kaydedilemedi: " + m, "err"); return;
     }
     const data = await r.json();
-    toast("✓ Ayarlar kaydedildi · " + (data.launchd||[]).join(" · "), "ok", 4500);
+    toast("✓ Ayarlar kaydedildi · " + (data.launchd||[]).join(" · "), "ok", 5500);
     closeAutomationModal();
   }catch(e){ toast("Bağlantı hatası.", "err"); }
   finally{ btn.disabled = false; btn.textContent = "💾 Kaydet"; }
@@ -1937,13 +1988,24 @@ async function renderPickerCard(){
 function renderStories(cards){
   const grid = $("storyGrid");
   const cnt = document.getElementById("storyCount");
-  if(cnt) cnt.textContent = (cards && cards.length) || 0;
-  if(!cards || !cards.length){
+  const pgrid = document.getElementById("publishedGrid");
+  const psection = document.getElementById("publishedCard");
+  const pcnt = document.getElementById("publishedCount");
+  cards = cards || [];
+  // Yayınlanmış olanları ayrı listeye ayır
+  const active = cards.filter(c => !c.published);
+  const done = cards.filter(c => c.published);
+  if(cnt) cnt.textContent = active.length;
+  if(pcnt) pcnt.textContent = done.length;
+  // Yayınlanan bölümünü sadece kart varsa göster
+  if(psection) psection.style.display = done.length ? "" : "none";
+  if(pgrid) pgrid.innerHTML = done.map(c => renderStoryCardHtml(c, true)).join("");
+  if(!active.length){
     grid.innerHTML = `<div class="empty" data-icon="🎨">Yukarıdan üret — kartların burada belirsin.</div>`;
     return;
   }
   grid.innerHTML = "";
-  for(const c of cards){
+  for(const c of active){
     const card = document.createElement("div");
     const isNews = c.source === "haber";
     card.className = "story-card " + (isNews ? "src-haber" : "src-manuel");
@@ -1989,6 +2051,37 @@ function renderStories(cards){
       </div>`;
     grid.appendChild(card);
   }
+}
+
+// Yayınlanmış kartlar için sade "arşiv" görünümü (küçük, aksiyonsuz).
+function renderStoryCardHtml(c, isPublished){
+  const isNews = c.source === "haber";
+  const imgUrl = `${c.url}?v=${Math.floor(c.mtime || 0)}`;
+  const when = c.uploaded_at ? c.uploaded_at.replace("T", " ").slice(0, 16) : "";
+  return `<div class="story-card ${isNews?'src-haber':'src-manuel'}" style="opacity:.9">
+    <img src="${imgUrl}" alt="" onclick="openLightbox('${imgUrl}')" />
+    <div class="story-badges">
+      <span class="badge ok">✓ Yayında</span>
+      <span class="badge ${isNews?'news':'manual'}">${isNews?'📰 Haber':'🎨 Manuel'}</span>
+      ${when ? `<span class="badge muted">${escapeHtml(when)}</span>` : ""}
+    </div>
+    <div class="story-actions">
+      <div class="secondary-row">
+        <a class="story-btn ghost" href="https://www.instagram.com/p/" target="_blank" rel="noopener"
+          title="Instagram'da görmek için profil sayfana git">🔗 Instagram</a>
+        <a class="story-btn icon-only" href="${c.url}" download="${c.file}" title="Görseli indir">⬇</a>
+      </div>
+    </div>
+  </div>`;
+}
+
+function togglePublished(){
+  const grid = document.getElementById("publishedGrid");
+  const btn = document.getElementById("btnTogglePublished");
+  if(!grid || !btn) return;
+  const isHidden = grid.style.display === "none";
+  grid.style.display = isHidden ? "" : "none";
+  btn.textContent = isHidden ? "▴ Gizle" : "▾ Göster";
 }
 
 async function storyMarkReady(name){

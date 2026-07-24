@@ -768,30 +768,39 @@ def story_list() -> dict[str, Any]:
         return "manuel"
 
     cards = []
-    # 1) ready/ altındaki (yayına hazır)
+    # 1) ready/ altındaki (yayına hazır — henüz yayınlanmadıysa listede,
+    #    yayınlandıysa ayrı "published" listesine gider)
     if ready_dir.exists():
         for p in ready_dir.glob("*.jpg"):
             stem = p.stem
+            up = uploads.get(stem)
             cards.append({
                 "file": p.name,
                 "url": f"/media/stories/ready/{quote(p.name)}",
                 "mtime": p.stat().st_mtime,
                 "ready": True,
-                "draft": stem in uploads,
-                "draft_info": uploads.get(stem),
+                "published": bool(up),
+                "media_id": (up or {}).get("media_id"),
+                "uploaded_at": (up or {}).get("uploaded_at"),
+                "draft": bool(up),   # bwd compat
+                "draft_info": up,
                 "has_caption": p.with_suffix(".txt").exists(),
                 "source": _card_source(p),
             })
     # 2) top-level (henüz hazır işaretlenmemiş)
     for p in cfg.stories.output_dir.glob("*.jpg"):
         stem = p.stem
+        up = uploads.get(stem)
         cards.append({
             "file": p.name,
             "url": f"/media/stories/{quote(p.name)}",
             "mtime": p.stat().st_mtime,
             "ready": False,
-            "draft": stem in uploads,
-            "draft_info": uploads.get(stem),
+            "published": bool(up),
+            "media_id": (up or {}).get("media_id"),
+            "uploaded_at": (up or {}).get("uploaded_at"),
+            "draft": bool(up),
+            "draft_info": up,
             "has_caption": p.with_suffix(".txt").exists(),
             "source": _card_source(p),
         })
@@ -980,9 +989,10 @@ def instagram_publish(name: str) -> dict[str, Any]:
 
 
 _AUTO_CFG_PATH = "data/automation_config.json"
+# launchd Weekday: 0=Pazar, 1=Pazartesi, …, 6=Cumartesi
 _DEFAULT_AUTO_CFG = {
-    "news":  {"enabled": False, "interval_days": 2, "hour": 9,  "auto_publish": False},
-    "topic": {"enabled": False, "interval_days": 3, "hour": 12, "auto_publish": False},
+    "news":  {"enabled": False, "days": [1, 4], "hour": 9,  "minute": 0, "auto_publish": False},
+    "topic": {"enabled": False, "days": [2, 5], "hour": 12, "minute": 0, "auto_publish": False},
 }
 
 
@@ -992,7 +1002,14 @@ def _load_auto_cfg() -> dict[str, Any]:
         try:
             data = json.loads(p.read_text(encoding="utf-8"))
             for k, v in _DEFAULT_AUTO_CFG.items():
-                data.setdefault(k, v.copy())
+                item = data.setdefault(k, v.copy())
+                # eski şema (interval_days) → yeni şemaya (days array) geçiş
+                if "days" not in item:
+                    item["days"] = v["days"]
+                item.setdefault("minute", 0)
+                item.setdefault("hour", v["hour"])
+                item.setdefault("auto_publish", False)
+                item.setdefault("enabled", False)
             return data
         except (OSError, ValueError):
             pass
@@ -1044,12 +1061,27 @@ def _sync_launchd(auto: dict[str, Any]) -> list[str]:
                 notes.append(f"{kind}: kaldırıldı (kapalı)")
             continue
 
-        interval = max(1, int(conf.get("interval_days", 2))) * 86400
+        # Gün seçimi (0=Pzr, 1=Pzt, ...) + saat + dakika
+        days = [int(d) for d in (conf.get("days") or []) if 0 <= int(d) <= 6]
+        if not days:
+            notes.append(f"{kind}: gün seçilmedi (aktif ama plist yazılmadı)")
+            plist.unlink(missing_ok=True)
+            continue
+        hour = max(0, min(23, int(conf.get("hour", 9))))
+        minute = max(0, min(59, int(conf.get("minute", 0))))
         args = [py, "-m", meta["module"]]
         if conf.get("auto_publish"):
             args.append("--publish")
         log_path = cfg.project_root / meta["log"]
         log_path.parent.mkdir(parents=True, exist_ok=True)
+        # Her seçili gün için bir StartCalendarInterval entry — launchd birden
+        # fazla entry'yi OR olarak değerlendirir (hepsi eşleşince tetiklenir).
+        cal_entries = "".join(
+            f"<dict><key>Weekday</key><integer>{d}</integer>"
+            f"<key>Hour</key><integer>{hour}</integer>"
+            f"<key>Minute</key><integer>{minute}</integer></dict>"
+            for d in sorted(set(days))
+        )
         content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -1058,7 +1090,8 @@ def _sync_launchd(auto: dict[str, Any]) -> list[str]:
   <key>ProgramArguments</key>
   <array>{"".join(f"<string>{a}</string>" for a in args)}</array>
   <key>WorkingDirectory</key><string>{cfg.project_root}</string>
-  <key>StartInterval</key><integer>{interval}</integer>
+  <key>StartCalendarInterval</key>
+  <array>{cal_entries}</array>
   <key>RunAtLoad</key><false/>
   <key>StandardOutPath</key><string>{log_path}</string>
   <key>StandardErrorPath</key><string>{log_path}</string>
@@ -1069,7 +1102,10 @@ def _sync_launchd(auto: dict[str, Any]) -> list[str]:
         try:
             subprocess.run(["launchctl", "load", str(plist)],
                            capture_output=True, timeout=8)
-            notes.append(f"{kind}: aktif · her {conf['interval_days']} günde · "
+            day_names = "PztSalÇarPerCumCmtPzr"   # index'e göre TR kısa (0=Pzr için ayrı)
+            tr = {0:"Pzr",1:"Pzt",2:"Sal",3:"Çar",4:"Per",5:"Cum",6:"Cmt"}
+            when = ", ".join(tr[d] for d in sorted(set(days)))
+            notes.append(f"{kind}: aktif · {when} @ {hour:02d}:{minute:02d} · "
                          f"auto_publish={conf.get('auto_publish', False)}")
         except (OSError, subprocess.SubprocessError) as exc:
             notes.append(f"{kind}: plist yazıldı ama launchctl load hata verdi: {exc}")
@@ -1091,7 +1127,7 @@ def automation_config_post(req: AutomationConfigRequest) -> dict[str, Any]:
     data = _load_auto_cfg()
     for k in ("news", "topic"):
         incoming = getattr(req, k) or {}
-        for key in ("enabled", "interval_days", "hour", "auto_publish"):
+        for key in ("enabled", "days", "hour", "minute", "auto_publish"):
             if key in incoming:
                 data[k][key] = incoming[key]
     _save_auto_cfg(data)
