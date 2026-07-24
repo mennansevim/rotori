@@ -126,7 +126,7 @@ class NewsCfg:
     enabled: bool = True
     feeds: list[str] = field(default_factory=lambda: list(_DEFAULT_NEWS_FEEDS))
     lookback_days: int = 2      # son N günün haberleri dikkate alınır
-    max_candidates: int = 25    # GPT'ye sunulacak aday haber sayısı
+    max_candidates: int = 40    # GPT'ye sunulacak aday haber sayısı (geniş havuz)
 
 
 @dataclass
