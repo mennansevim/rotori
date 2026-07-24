@@ -81,9 +81,9 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('Japonya Test Gezisi'), findsOneWidget);
-    // Aktif gün açık; aktivitesi listeye eklenmiş olmalı (ekran dışı da olabilir).
-    // Küçük viewport'ta önce görünür alana kaydır, sonra doğrula.
+    // Viewer minimalize edildi — başlık artık body'de değil, drawer'ın
+    // "Rotori" markası. Ana view sadece top bar + günler. Aktif gün açık
+    // olmalı; aktivitesi görünür alana kaydırılıp doğrulanır.
     await tester.scrollUntilVisible(
       find.text('Aktif Aktivite'),
       200,
@@ -120,9 +120,12 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
+    // Aksiyon şeridi drawer'a taşındı — önce hamburger'a dokunup drawer'ı
+    // aç, sonra palette butonuna tıkla.
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.palette_outlined));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pumpAndSettle();
 
     expect(find.text('Japon Gecesi'), findsOneWidget);
     expect(find.text('Apple Aydınlık'), findsOneWidget);
@@ -172,9 +175,13 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    // Boş bacak "—" olarak render olmalı
+    // Uçuş özeti artık drawer'ın içinde — hamburger'a dokun, aç.
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+
+    // Boş bacak "—" olarak render olmalı (_DrawerFlightsMini._iata)
     expect(find.text('—'), findsWidgets);
-    // Dolu bacak korunmalı
-    expect(find.textContaining('Tokyo'), findsWidgets);
+    // Dolu bacak korunmalı — IATA "HND" görünür (city yerine airport tercih).
+    expect(find.text('HND'), findsWidgets);
   });
 }

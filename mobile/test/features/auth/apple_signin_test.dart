@@ -63,7 +63,10 @@ void main() {
     // E-posta/şifre formu her platformda görünür.
     expect(find.text('E-posta'), findsOneWidget);
     expect(find.text('Şifre'), findsOneWidget);
-    expect(find.text('⛩️ Rotori'), findsOneWidget);
+    // Yeni hero: 旅 karakteri + "Rotori" markası + tagline.
+    expect(find.text('旅'), findsOneWidget);
+    expect(find.text('Rotori'), findsOneWidget);
+    expect(find.text('Sürpriz yok, plan var.'), findsOneWidget);
     // Apple butonu platform gate'li: test host'u iOS/macOS değilse gizli.
     // Ekranın hatasız kurulması yeterli doğrulamadır.
   });

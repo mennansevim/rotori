@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/l10n.dart';
 import '../../data/language_store.dart';
+import '../../data/tts_service.dart';
 import '../../domain/japanese_phrases_data.dart';
 import '../../domain/localized_text.dart';
 import '../../domain/types.dart';
@@ -63,6 +64,35 @@ class _PhrasesViewState extends ConsumerState<_PhrasesView> {
         behavior: SnackBarBehavior.floating,
       ),
     );
+  }
+
+  /// Frazı ja-JP olarak seslendirir + kısa bir SnackBar ile geri bildirim
+  /// verir. Web'de ses çalmazsa (voice yüklenmediyse) kullanıcı en
+  /// azından çağrının tetiklendiğini görsün.
+  Future<void> _speak(String text, AppLang lang) async {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.volume_up_rounded, size: 16),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                const LText('Sesli: ', 'Speaking: ').of(lang) + text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        duration: const Duration(milliseconds: 1400),
+        backgroundColor: widget.palette.elevated,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+    await ref.read(ttsServiceProvider).speakJa(text);
   }
 
   @override
@@ -135,6 +165,7 @@ class _PhrasesViewState extends ConsumerState<_PhrasesView> {
                     palette: palette,
                     lang: lang,
                     onCopy: () => _copy(p.jp, lang),
+                    onSpeak: () => _speak(p.jp, lang),
                   ),
               ],
             ),
@@ -287,12 +318,14 @@ class _PhraseRow extends StatelessWidget {
     required this.palette,
     required this.lang,
     required this.onCopy,
+    required this.onSpeak,
   });
 
   final JpPhrase phrase;
   final ViewerPalette palette;
   final AppLang lang;
   final VoidCallback onCopy;
+  final VoidCallback onSpeak;
 
   @override
   Widget build(BuildContext context) {
@@ -350,6 +383,26 @@ class _PhraseRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
+                // Seslendirme butonu: Japonca telaffuzu offline TTS ile
+                // oynatır. Kart tıklaması hâlâ kopyala; buton yalnızca
+                // ses için ayrı dokunulacak alan sunar.
+                Material(
+                  color: palette.sakura.withValues(alpha: 0.10),
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: onSpeak,
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Icon(
+                        Icons.volume_up_rounded,
+                        size: 18,
+                        color: palette.sakura,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
                 Icon(Icons.copy_rounded, size: 18, color: palette.textMuted),
               ],
             ),

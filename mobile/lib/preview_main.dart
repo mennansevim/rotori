@@ -35,6 +35,7 @@ import 'features/viewer/day_map_screen.dart';
 import 'features/viewer/gps_sim_screen.dart';
 import 'features/viewer/japanese_phrases_screen.dart';
 import 'features/viewer/must_know_screen.dart';
+import 'features/viewer/pre_departure_checklist_screen.dart';
 import 'features/viewer/weather_screen.dart';
 
 void main() {
@@ -221,6 +222,10 @@ class _PreviewApp extends ConsumerWidget {
         GoRoute(
           path: '/plans/:id/checklist',
           builder: (_, s) => _ChecklistRoute(planId: s.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: '/plans/:id/prep',
+          builder: (_, s) => _PrepRoute(planId: s.pathParameters['id']!),
         ),
         GoRoute(
           path: '/plans/:id/weather',
@@ -418,6 +423,31 @@ class _ChecklistRoute extends ConsumerWidget {
     final planAsync = ref.watch(planByIdProvider(planId));
     return planAsync.when(
       data: (trip) => ChecklistScreen(trip: trip),
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Scaffold(
+        body: Center(
+          child: Text(
+            LanguageScope.of(context).p('home.planLoadFailed', {'err': '$e'}),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Preview: planByIdProvider'dan trip'i çözüp Yolculuk Öncesi Hazırlık
+/// ekranını açar (repository backend'siz — SharedPreferences fallback).
+class _PrepRoute extends ConsumerWidget {
+  const _PrepRoute({required this.planId});
+  final String planId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final planAsync = ref.watch(planByIdProvider(planId));
+    return planAsync.when(
+      data: (trip) => PreDepartureChecklistScreen(trip: trip),
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       ),

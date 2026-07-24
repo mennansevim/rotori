@@ -1,0 +1,385 @@
+{
+  "voice": "nova",
+  "model": "tts-1-hd",
+  "lang": "ja",
+  "items": [
+    {
+      "id": "20427a708c",
+      "jp": "こんにちは",
+      "romaji": "Konnichiwa"
+    },
+    {
+      "id": "24afcca10e",
+      "jp": "ありがとうございます",
+      "romaji": "Arigatou gozaimasu"
+    },
+    {
+      "id": "cce1862bcb",
+      "jp": "すみません",
+      "romaji": "Sumimasen"
+    },
+    {
+      "id": "c92b4cda8b",
+      "jp": "はい",
+      "romaji": "Hai"
+    },
+    {
+      "id": "f901585367",
+      "jp": "いいえ",
+      "romaji": "Iie"
+    },
+    {
+      "id": "6dcfc9b79b",
+      "jp": "わかりません",
+      "romaji": "Wakarimasen"
+    },
+    {
+      "id": "2b7c52d264",
+      "jp": "お願いします",
+      "romaji": "Onegaishimasu"
+    },
+    {
+      "id": "87a4d24d04",
+      "jp": "大丈夫です",
+      "romaji": "Daijoubu desu"
+    },
+    {
+      "id": "271beda659",
+      "jp": "英語を話せますか？",
+      "romaji": "Eigo o hanasemasu ka?"
+    },
+    {
+      "id": "fa0cb093ad",
+      "jp": "ゆっくり話してください",
+      "romaji": "Yukkuri hanashite kudasai"
+    },
+    {
+      "id": "c560a192d9",
+      "jp": "メニューをください",
+      "romaji": "Menyuu o kudasai"
+    },
+    {
+      "id": "7022ad0149",
+      "jp": "お会計をお願いします",
+      "romaji": "Okaikei o onegaishimasu"
+    },
+    {
+      "id": "427c18f592",
+      "jp": "お水をください",
+      "romaji": "Omizu o kudasai"
+    },
+    {
+      "id": "593c02aff9",
+      "jp": "これは何ですか？",
+      "romaji": "Kore wa nan desu ka?"
+    },
+    {
+      "id": "a0133d32f2",
+      "jp": "とても美味しいです",
+      "romaji": "Totemo oishii desu"
+    },
+    {
+      "id": "3c9541f8fb",
+      "jp": "ベジタリアンです",
+      "romaji": "Bejitarian desu"
+    },
+    {
+      "id": "d1eed17fc7",
+      "jp": "アレルギーがあります",
+      "romaji": "Arerugii ga arimasu"
+    },
+    {
+      "id": "a677d5072a",
+      "jp": "おすすめは何ですか？",
+      "romaji": "Osusume wa nan desu ka?"
+    },
+    {
+      "id": "fd277ea491",
+      "jp": "辛くないものはありますか？",
+      "romaji": "Karakunai mono wa arimasu ka?"
+    },
+    {
+      "id": "f68e16b0ac",
+      "jp": "お持ち帰りできますか？",
+      "romaji": "Omochikaeri dekimasu ka?"
+    },
+    {
+      "id": "32f0148b39",
+      "jp": "〜はどこですか？",
+      "romaji": "~ wa doko desu ka?"
+    },
+    {
+      "id": "82e1dc22d4",
+      "jp": "駅はどこですか？",
+      "romaji": "Eki wa doko desu ka?"
+    },
+    {
+      "id": "071860d7c3",
+      "jp": "トイレはどこですか？",
+      "romaji": "Toire wa doko desu ka?"
+    },
+    {
+      "id": "2a80cfed33",
+      "jp": "右です",
+      "romaji": "Migi desu"
+    },
+    {
+      "id": "6cd6ecf25f",
+      "jp": "左です",
+      "romaji": "Hidari desu"
+    },
+    {
+      "id": "53b1f62267",
+      "jp": "まっすぐです",
+      "romaji": "Massugu desu"
+    },
+    {
+      "id": "409921e2f4",
+      "jp": "ここからどれくらいですか？",
+      "romaji": "Koko kara dorekurai desu ka?"
+    },
+    {
+      "id": "9aa9b6a78c",
+      "jp": "道に迷いました",
+      "romaji": "Michi ni mayoimashita"
+    },
+    {
+      "id": "3887e1ab27",
+      "jp": "歩いて行けますか？",
+      "romaji": "Aruite ikemasu ka?"
+    },
+    {
+      "id": "251399c382",
+      "jp": "この住所へ行きたいです",
+      "romaji": "Kono juusho e ikitai desu"
+    },
+    {
+      "id": "201c285859",
+      "jp": "いくらですか？",
+      "romaji": "Ikura desu ka?"
+    },
+    {
+      "id": "702139dd4c",
+      "jp": "カードは使えますか？",
+      "romaji": "Kaado wa tsukaemasu ka?"
+    },
+    {
+      "id": "4b18660bd8",
+      "jp": "免税できますか？",
+      "romaji": "Menzei dekimasu ka?"
+    },
+    {
+      "id": "7ce3114d2a",
+      "jp": "袋をください",
+      "romaji": "Fukuro o kudasai"
+    },
+    {
+      "id": "8e77ec5381",
+      "jp": "試着してもいいですか？",
+      "romaji": "Shichaku shite mo ii desu ka?"
+    },
+    {
+      "id": "05fe422fa7",
+      "jp": "これを見てもいいですか？",
+      "romaji": "Kore o mite mo ii desu ka?"
+    },
+    {
+      "id": "64faa3c499",
+      "jp": "もっと安いのはありますか？",
+      "romaji": "Motto yasui no wa arimasu ka?"
+    },
+    {
+      "id": "fa2307d417",
+      "jp": "別の色はありますか？",
+      "romaji": "Betsu no iro wa arimasu ka?"
+    },
+    {
+      "id": "39eb03e8b7",
+      "jp": "これをください",
+      "romaji": "Kore o kudasai"
+    },
+    {
+      "id": "19ef31be44",
+      "jp": "レシートをください",
+      "romaji": "Reshiito o kudasai"
+    },
+    {
+      "id": "ad28871942",
+      "jp": "切符はどこで買えますか？",
+      "romaji": "Kippu wa doko de kaemasu ka?"
+    },
+    {
+      "id": "ba227d7a1d",
+      "jp": "この電車は〜に行きますか？",
+      "romaji": "Kono densha wa ~ ni ikimasu ka?"
+    },
+    {
+      "id": "293e321f42",
+      "jp": "何番線ですか？",
+      "romaji": "Nanbansen desu ka?"
+    },
+    {
+      "id": "0841d36089",
+      "jp": "何時に出発しますか？",
+      "romaji": "Nanji ni shuppatsu shimasu ka?"
+    },
+    {
+      "id": "51ed1dc608",
+      "jp": "スイカにチャージしたいです",
+      "romaji": "Suika ni chaaji shitai desu"
+    },
+    {
+      "id": "3a3abbe21c",
+      "jp": "次の駅はどこですか？",
+      "romaji": "Tsugi no eki wa doko desu ka?"
+    },
+    {
+      "id": "20a52e12c8",
+      "jp": "乗り換えが必要ですか？",
+      "romaji": "Norikae ga hitsuyou desu ka?"
+    },
+    {
+      "id": "5f9c4446f9",
+      "jp": "タクシー乗り場はどこですか？",
+      "romaji": "Takushii noriba wa doko desu ka?"
+    },
+    {
+      "id": "ce3e1fd2b0",
+      "jp": "空港までお願いします",
+      "romaji": "Kuukou made onegaishimasu"
+    },
+    {
+      "id": "4384521d32",
+      "jp": "終電は何時ですか？",
+      "romaji": "Shuuden wa nanji desu ka?"
+    },
+    {
+      "id": "6ef2e9fedd",
+      "jp": "助けて！",
+      "romaji": "Tasukete!"
+    },
+    {
+      "id": "8ef99f174d",
+      "jp": "救急車を呼んでください",
+      "romaji": "Kyuukyuusha o yonde kudasai"
+    },
+    {
+      "id": "dc570a0bd0",
+      "jp": "警察を呼んでください",
+      "romaji": "Keisatsu o yonde kudasai"
+    },
+    {
+      "id": "b39fbfdd71",
+      "jp": "病院はどこですか？",
+      "romaji": "Byouin wa doko desu ka?"
+    },
+    {
+      "id": "0618f125d4",
+      "jp": "医者が必要です",
+      "romaji": "Isha ga hitsuyou desu"
+    },
+    {
+      "id": "1ded7440bc",
+      "jp": "痛いです",
+      "romaji": "Itai desu"
+    },
+    {
+      "id": "d201c26747",
+      "jp": "気分が悪いです",
+      "romaji": "Kibun ga warui desu"
+    },
+    {
+      "id": "32a3a3e3ea",
+      "jp": "パスポートをなくしました",
+      "romaji": "Pasupooto o nakushimashita"
+    },
+    {
+      "id": "b46df3967c",
+      "jp": "財布を盗まれました",
+      "romaji": "Saifu o nusumaremashita"
+    },
+    {
+      "id": "5826b0f8e7",
+      "jp": "トルコ大使館に連絡したいです",
+      "romaji": "Toruko taishikan ni renraku shitai desu"
+    },
+    {
+      "id": "d274eee8a1",
+      "jp": "一",
+      "romaji": "Ichi"
+    },
+    {
+      "id": "1d5639f716",
+      "jp": "二",
+      "romaji": "Ni"
+    },
+    {
+      "id": "49ddb069d5",
+      "jp": "三",
+      "romaji": "San"
+    },
+    {
+      "id": "4f88740b34",
+      "jp": "四",
+      "romaji": "Yon (Shi)"
+    },
+    {
+      "id": "8f07f53d63",
+      "jp": "五",
+      "romaji": "Go"
+    },
+    {
+      "id": "3d72c724e0",
+      "jp": "六",
+      "romaji": "Roku"
+    },
+    {
+      "id": "7db1eeb5c3",
+      "jp": "七",
+      "romaji": "Nana (Shichi)"
+    },
+    {
+      "id": "2142fb62fd",
+      "jp": "八",
+      "romaji": "Hachi"
+    },
+    {
+      "id": "27a2b9f17b",
+      "jp": "九",
+      "romaji": "Kyuu (Ku)"
+    },
+    {
+      "id": "aa107f05b6",
+      "jp": "十",
+      "romaji": "Juu"
+    },
+    {
+      "id": "51056f781a",
+      "jp": "今何時ですか？",
+      "romaji": "Ima nanji desu ka?"
+    },
+    {
+      "id": "574cd4fb79",
+      "jp": "今日",
+      "romaji": "Kyou"
+    },
+    {
+      "id": "762ffcba27",
+      "jp": "明日",
+      "romaji": "Ashita"
+    },
+    {
+      "id": "695aad811a",
+      "jp": "朝",
+      "romaji": "Asa"
+    },
+    {
+      "id": "2d8f0e9d13",
+      "jp": "夜",
+      "romaji": "Yoru"
+    }
+  ],
+  "format": "mp3",
+  "speed": 0.95,
+  "generatedAt": "2026-07-24T18:16:40.442Z"
+}

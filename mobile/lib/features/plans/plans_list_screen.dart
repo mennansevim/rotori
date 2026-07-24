@@ -32,7 +32,19 @@ class PlansListScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(s.s('plans.title')),
+        title: Row(
+          children: [
+            // Küçük mor 旅 rozet — marka izi (avatar-mini).
+            const _BrandBadge(),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                s.s('plans.title'),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -58,6 +70,37 @@ class PlansListScreen extends ConsumerWidget {
         onPressed: () => _createNew(context, ref),
         icon: const Icon(Icons.add),
         label: Text(s.s('plans.newPlan')),
+      ),
+    );
+  }
+}
+
+/// AppBar title yanındaki küçük mor 旅 rozet — Rotori marka izi.
+class _BrandBadge extends StatelessWidget {
+  const _BrandBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF7C6AEF), Color(0xFFB07CD6)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      alignment: Alignment.center,
+      child: const Text(
+        '旅',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+          fontSize: 16,
+          height: 1.0,
+        ),
       ),
     );
   }

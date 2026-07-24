@@ -6,9 +6,11 @@ import 'package:go_router/go_router.dart';
 
 import '../features/auth/auth_screen.dart';
 import '../features/planner/planner_screen.dart';
+import '../features/plans/plan_providers.dart';
 import '../features/plans/plan_viewer_screen.dart';
 import '../features/plans/plans_list_screen.dart';
 import '../features/reminders/reminders_screen.dart';
+import '../features/viewer/pre_departure_checklist_screen.dart';
 import 'supabase_client.dart';
 
 /// Uygulama router'ı. Auth state'e göre otomatik yönlendirme yapar:
@@ -47,6 +49,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             PlanViewerScreen(planId: state.pathParameters['id']!),
       ),
       GoRoute(
+        path: '/plans/:id/prep',
+        builder: (context, state) =>
+            _PreDepartureRoute(planId: state.pathParameters['id']!),
+      ),
+      GoRoute(
         path: '/reminders',
         builder: (context, state) => const RemindersScreen(),
       ),
@@ -57,6 +64,22 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+/// `/plans/:id/prep` için trip yükleyip [PreDepartureChecklistScreen]'i açar.
+class _PreDepartureRoute extends ConsumerWidget {
+  const _PreDepartureRoute({required this.planId});
+  final String planId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final planAsync = ref.watch(planByIdProvider(planId));
+    return planAsync.when(
+      data: (trip) => PreDepartureChecklistScreen(trip: trip),
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+}
 
 /// Auth stream'i router'ın refresh mekanizmasına köprüler — login/logout olunca
 /// router redirect'i yeniden hesaplar.

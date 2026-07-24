@@ -101,12 +101,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 32),
-                    Text(
-                      '⛩️ Rotori',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                    const SizedBox(height: 8),
+                    // Hero: 旅 karakteri (gradient) + "Rotori" + tagline
+                    const _AuthBrandHero(),
+                    const SizedBox(height: 12),
                     Text(
                       _isRegister
                           ? s.s('auth.createAccount')
@@ -114,7 +111,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 28),
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
@@ -205,6 +202,69 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Auth ekranı hero: 旅 karakteri gradient boyalı, altında "Rotori" markası ve
+/// "Sürpriz yok, plan var." tagline'ı. Apple-style büyük tipografi.
+class _AuthBrandHero extends StatelessWidget {
+  const _AuthBrandHero();
+
+  // Sakura → Fuji (mor) gradient — marka aksi.
+  static const _brandGradient = [
+    Color(0xFFFF8FAB), // sakura
+    Color(0xFF7C6AEF), // fuji
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
+    return Column(
+      children: [
+        // 旅 karakteri — gradient boya (ShaderMask).
+        ShaderMask(
+          shaderCallback: (bounds) => const LinearGradient(
+            colors: _brandGradient,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ).createShader(bounds),
+          child: const Text(
+            '旅',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 84,
+              fontWeight: FontWeight.w700,
+              height: 1.0,
+              color: Colors.white, // ShaderMask ile boyanır.
+              letterSpacing: -2,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          s.s('drawer.brand'),
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          s.s('auth.tagline'),
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 14,
+            color: Theme.of(context)
+                .colorScheme
+                .onSurface
+                .withValues(alpha: 0.60),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 }

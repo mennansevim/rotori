@@ -200,6 +200,14 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Via: {stops}',
   },
   'viewer.stays': {AppLang.tr: '🏨 Konaklama', AppLang.en: '🏨 Stays'},
+  'viewer.hotels': {AppLang.tr: 'Konaklama', AppLang.en: 'Hotels'},
+  'viewer.hotels.more': {
+    AppLang.tr: '+{n} tesis daha',
+    AppLang.en: '+{n} more',
+  },
+  'viewer.metric.nights': {AppLang.tr: 'Gece', AppLang.en: 'Nights'},
+  'viewer.metric.cities': {AppLang.tr: 'Şehir', AppLang.en: 'Cities'},
+  'viewer.metric.days': {AppLang.tr: 'Gün', AppLang.en: 'Days'},
   'viewer.day.noItems': {
     AppLang.tr: '(Bu güne aktivite eklenmedi.)',
     AppLang.en: '(No activities added for this day.)',
@@ -343,6 +351,162 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: '{done} / {total} ready',
   },
   'checklist.customBadge': {AppLang.tr: 'özel', AppLang.en: 'custom'},
+
+  // ----- Yolculuk öncesi hazırlık (pre-departure) -----
+  'viewer.tt.prep': {AppLang.tr: 'Hazırlık', AppLang.en: 'Prep'},
+  'prep.title': {
+    AppLang.tr: '🎒 Hazırlık listesi',
+    AppLang.en: '🎒 Prep checklist',
+  },
+  'prep.countdown.before': {
+    AppLang.tr: 'Gezine {n} gün kaldı',
+    AppLang.en: '{n} days to your trip',
+  },
+  'prep.countdown.started': {
+    AppLang.tr: 'Gezi başladı 🌸',
+    AppLang.en: 'Trip started 🌸',
+  },
+  'prep.status': {
+    AppLang.tr: '{done}/{total} tamam',
+    AppLang.en: '{done}/{total} done',
+  },
+  'prep.allReady': {
+    AppLang.tr: '✅ Her şey hazır — iyi yolculuklar!',
+    AppLang.en: '✅ All set — safe travels!',
+  },
+  'prep.addCustom': {
+    AppLang.tr: '+ Kendi maddeni ekle',
+    AppLang.en: '+ Add your own item',
+  },
+  'prep.addCustom.hint': {
+    AppLang.tr: 'Yeni madde',
+    AppLang.en: 'New item',
+  },
+  'prep.addCustom.emoji': {
+    AppLang.tr: 'Emoji (opsiyonel)',
+    AppLang.en: 'Emoji (optional)',
+  },
+  'prep.settings.title': {
+    AppLang.tr: 'Ayarlar',
+    AppLang.en: 'Settings',
+  },
+  'prep.settings.daysBefore': {
+    AppLang.tr: 'Kaç gün önce görünsün?',
+    AppLang.en: 'Show how many days before?',
+  },
+  'prep.settings.daysBeforeValue': {
+    AppLang.tr: '{n} gün önce',
+    AppLang.en: '{n} days before',
+  },
+  'prep.banner.remaining': {
+    AppLang.tr: '🎒 Gitmeden {n} gün — hazırlık listeni kontrol et →',
+    AppLang.en: '🎒 {n} days to go — check your prep list →',
+  },
+  'prep.banner.today': {
+    AppLang.tr: '🎒 Bugün — son bir kontrol →',
+    AppLang.en: '🎒 Today — one last check →',
+  },
+  'prep.banner.done': {
+    AppLang.tr: '🎒 Hazırlık tamam ✅',
+    AppLang.en: '🎒 Prep complete ✅',
+  },
+  // Preset madde metinleri (id ile eşleşir: prep.item.<id>.title|desc)
+  'prep.item.passport.title': {
+    AppLang.tr: 'Pasaport hazır',
+    AppLang.en: 'Passport ready',
+  },
+  'prep.item.passport.desc': {
+    AppLang.tr: 'Dönüş tarihinden itibaren en az 6 ay geçerli olmalı.',
+    AppLang.en: 'Valid at least 6 months beyond your return date.',
+  },
+  'prep.item.visitJapanWeb.title': {
+    AppLang.tr: 'Visit Japan Web QR',
+    AppLang.en: 'Visit Japan Web QR',
+  },
+  'prep.item.visitJapanWeb.desc': {
+    AppLang.tr: 'Varış öncesi giriş & gümrük formlarını doldur.',
+    AppLang.en: 'Fill immigration & customs forms before arrival.',
+  },
+  'prep.item.bankCard.title': {
+    AppLang.tr: 'Banka / ATM kartı',
+    AppLang.en: 'Bank / ATM card',
+  },
+  'prep.item.bankCard.desc': {
+    AppLang.tr: 'Japonya ATM\'lerinde çalıştığını (7-Eleven / Japan Post) teyit et.',
+    AppLang.en: 'Confirm it works at Japan ATMs (7-Eleven / Japan Post).',
+  },
+  'prep.item.cashYen.title': {
+    AppLang.tr: '~10.000-20.000¥ nakit',
+    AppLang.en: '~10,000-20,000¥ cash',
+  },
+  'prep.item.cashYen.desc': {
+    AppLang.tr: 'Küçük restoran, tapınak ve otobüs için nakit hâlâ gerekli.',
+    AppLang.en: 'Small eateries, shrines and buses often need cash.',
+  },
+  'prep.item.powerbank.title': {
+    AppLang.tr: 'Powerbank',
+    AppLang.en: 'Powerbank',
+  },
+  'prep.item.powerbank.desc': {
+    AppLang.tr: '≤160Wh, en fazla 2 adet, kabin bagajında (kargoya yasak).',
+    AppLang.en: '≤160Wh, max 2 units, cabin bag only (not checked-in).',
+  },
+  'prep.item.esim.title': {
+    AppLang.tr: 'eSIM aktivasyon linki',
+    AppLang.en: 'eSIM activation link',
+  },
+  'prep.item.esim.desc': {
+    AppLang.tr: 'QR kodu / linki uçağa binmeden önce kaydet.',
+    AppLang.en: 'Save the QR / link before boarding — offline access.',
+  },
+  'prep.item.jrPass.title': {
+    AppLang.tr: 'JR Pass değişim kuponu',
+    AppLang.en: 'JR Pass exchange voucher',
+  },
+  'prep.item.jrPass.desc': {
+    AppLang.tr: 'Aldıysan — orijinal kâğıt kuponu yanına al.',
+    AppLang.en: 'If purchased — bring the original paper voucher.',
+  },
+  'prep.item.medications.title': {
+    AppLang.tr: 'Reçeteli ilaçlar',
+    AppLang.en: 'Prescription medications',
+  },
+  'prep.item.medications.desc': {
+    AppLang.tr: 'Orijinal kutularında + reçetenin fotoğrafı yanında olsun.',
+    AppLang.en: 'In original boxes; carry a photo of the prescription.',
+  },
+  'prep.item.toothpaste.title': {
+    AppLang.tr: 'Diş macunu',
+    AppLang.en: 'Toothpaste',
+  },
+  'prep.item.toothpaste.desc': {
+    AppLang.tr: 'Japonya\'da florür oranı düşük — kendi macununu getir.',
+    AppLang.en: 'Japan\'s toothpaste has low fluoride — bring your own.',
+  },
+  'prep.item.walkingShoes.title': {
+    AppLang.tr: 'Kaliteli yürüyüş ayakkabısı',
+    AppLang.en: 'Broken-in walking shoes',
+  },
+  'prep.item.walkingShoes.desc': {
+    AppLang.tr: 'En az bir hafta önceden giyilmiş, ayağa oturmuş olsun.',
+    AppLang.en: 'Wear for at least a week before the trip.',
+  },
+  'prep.item.trashBags.title': {
+    AppLang.tr: 'Küçük çöp poşetleri',
+    AppLang.en: 'Small trash bags',
+  },
+  'prep.item.trashBags.desc': {
+    AppLang.tr: 'Japonya\'da sokakta çöp kutusu neredeyse yok — cebinde taşı.',
+    AppLang.en: 'Public trash cans are rare — carry your trash in a pocket bag.',
+  },
+  'prep.item.waterBottle.title': {
+    AppLang.tr: 'Boş su şişesi',
+    AppLang.en: 'Empty water bottle',
+  },
+  'prep.item.waterBottle.desc': {
+    AppLang.tr: 'Havaalanı sonrası çeşmeden doldur — musluk suyu içilebilir.',
+    AppLang.en: 'Refill after security — tap water is safe to drink.',
+  },
 
   // ----- Hava durumu (weather) -----
   'weather.title': {AppLang.tr: '🌤️ Hava Durumu', AppLang.en: '🌤️ Weather'},
@@ -974,6 +1138,21 @@ const Map<String, Map<AppLang, String>> _strings = {
   'auth.noAccount': {AppLang.tr: 'Hesabın yok mu? Kayıt ol', AppLang.en: 'Don\'t have an account? Sign up'},
   'auth.or': {AppLang.tr: 'veya', AppLang.en: 'or'},
   'auth.signInWithApple': {AppLang.tr: '🍎 Apple ile Giriş Yap', AppLang.en: '🍎 Sign in with Apple'},
+  'auth.tagline': {
+    AppLang.tr: 'Sürpriz yok, plan var.',
+    AppLang.en: 'No surprises. Just the plan.',
+  },
+  'drawer.brand': {AppLang.tr: 'Rotori', AppLang.en: 'Rotori'},
+  'drawer.role.guest': {AppLang.tr: 'Misafir', AppLang.en: 'Guest'},
+  'drawer.role.traveler': {AppLang.tr: 'Gezgin', AppLang.en: 'Traveler'},
+  'drawer.nav.plans': {AppLang.tr: 'Planlarım', AppLang.en: 'My plans'},
+  'drawer.nav.viewer': {AppLang.tr: 'Rehber', AppLang.en: 'Guide'},
+  'drawer.nav.reminders': {
+    AppLang.tr: 'Hatırlatmalar',
+    AppLang.en: 'Reminders',
+  },
+  'drawer.signout': {AppLang.tr: 'Çıkış yap', AppLang.en: 'Sign out'},
+  'drawer.tt.menu': {AppLang.tr: 'Menü', AppLang.en: 'Menu'},
   'plans.title': {AppLang.tr: 'Planlarım', AppLang.en: 'My plans'},
   'plans.refresh': {AppLang.tr: 'Yenile', AppLang.en: 'Refresh'},
   'plans.signOut': {AppLang.tr: 'Çıkış yap', AppLang.en: 'Sign out'},
