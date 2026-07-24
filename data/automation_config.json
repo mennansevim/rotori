@@ -1,15 +1,19 @@
 {
   "news": {
-    "enabled": false,
-    "days": [1, 4],
-    "hour": 9,
+    "enabled": true,
+    "days": [
+      1
+    ],
+    "hour": 20,
     "minute": 0,
-    "auto_publish": false
+    "auto_publish": true
   },
   "topic": {
-    "enabled": false,
-    "days": [2, 5],
-    "hour": 12,
+    "enabled": true,
+    "days": [
+      5
+    ],
+    "hour": 20,
     "minute": 0,
     "auto_publish": false
   }

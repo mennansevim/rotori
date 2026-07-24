@@ -1310,6 +1310,31 @@ function renderPickerModal(){
         <button id="pickerSearchBtn" class="primary" onclick="doPickerSearch()"
           style="padding:11px 22px;font-size:14px;font-weight:600;white-space:nowrap">Ara</button>
       </div>
+    </div>
+
+    <div style="text-align:center;color:var(--muted);font-size:11px;
+      text-transform:uppercase;letter-spacing:.14em;margin:14px 0 10px">
+      — veya kendi görselini yükle —
+    </div>
+
+    <div id="bgDropZone"
+      ondragover="handleBgDragOver(event)"
+      ondragleave="handleBgDragLeave(event)"
+      ondrop="handleBgDrop(event)"
+      onclick="document.getElementById('bgFileInput').click()"
+      style="background:var(--surface);border:2px dashed var(--line);
+        border-radius:var(--r-lg);padding:22px 18px;margin-bottom:16px;
+        text-align:center;cursor:pointer;transition:all .15s ease">
+      <div style="font-size:34px;line-height:1;margin-bottom:6px">📁</div>
+      <div style="font-size:14px;font-weight:600;color:var(--txt);margin-bottom:4px">
+        Görseli buraya sürükle bırak
+      </div>
+      <div style="font-size:12px;color:var(--muted)">
+        veya <strong style="color:var(--gold)">tıkla, dosya seç</strong> · JPG · PNG · WEBP · maks 25 MB
+      </div>
+      <input id="bgFileInput" type="file" accept="image/*"
+        onchange="handleBgFileSelect(event)"
+        style="display:none" />
     </div>`;
 
   back.innerHTML = `
@@ -1328,14 +1353,24 @@ function renderPickerModal(){
             <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600">
               ✏️ Kart yazısı — Instagram Story standardı
             </div>
-            <button type="button" class="sm" id="btn-ai-from-image"
-              style="padding:6px 14px;font-size:12px;font-weight:600;
-                background:linear-gradient(135deg,#fbbf24,#f59e0b);
-                color:#1a1408;border:none;border-radius:var(--r-sm);cursor:pointer"
-              onclick="aiFillFromImage()"
-              title="Seçili görseli GPT vision ile analiz et — başlık + alt açıklama öner">
-              🖼️ Görselden AI Önerisi
-            </button>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button type="button" class="sm" id="btn-ai-from-image"
+                style="padding:6px 14px;font-size:12px;font-weight:600;
+                  background:linear-gradient(135deg,#fbbf24,#f59e0b);
+                  color:#1a1408;border:none;border-radius:var(--r-sm);cursor:pointer"
+                onclick="aiFillFromImage()"
+                title="Seçili görseli GPT vision ile analiz et — başlık + alt açıklama öner">
+                🖼️ Görselden AI Önerisi
+              </button>
+              <button type="button" class="sm" id="btn-ai-from-text"
+                style="padding:6px 14px;font-size:12px;font-weight:600;
+                  background:linear-gradient(135deg,#60a5fa,#3b82f6);
+                  color:#0a0f1c;border:none;border-radius:var(--r-sm);cursor:pointer"
+                onclick="aiFillFromText()"
+                title="Yukarıdaki arama metnindeki konudan GPT ile başlık + açıklama üret (görsel gerekmez)">
+                ✍️ Metinden AI Önerisi
+              </button>
+            </div>
           </div>
           <div class="field" style="margin-bottom:12px">
             <label style="display:flex;justify-content:space-between;align-items:center">
@@ -1418,6 +1453,103 @@ async function reloadPicker(){
 function closeBgPicker(){
   const m = document.getElementById("bgPickerModal");
   if(m) m.remove();
+}
+
+// ---------- Kendi görselini yükle (drag&drop veya tıkla-seç) ----------
+function handleBgDragOver(e){
+  e.preventDefault(); e.stopPropagation();
+  const z = document.getElementById("bgDropZone");
+  if(z){
+    z.style.borderColor = "var(--accent, #f5555d)";
+    z.style.background = "rgba(245,85,93,0.06)";
+  }
+}
+function handleBgDragLeave(e){
+  e.preventDefault(); e.stopPropagation();
+  const z = document.getElementById("bgDropZone");
+  if(z){
+    z.style.borderColor = "var(--line)";
+    z.style.background = "var(--surface)";
+  }
+}
+function handleBgDrop(e){
+  e.preventDefault(); e.stopPropagation();
+  handleBgDragLeave(e);
+  const files = e.dataTransfer && e.dataTransfer.files;
+  if(files && files.length){ uploadOwnBackground(files[0]); }
+}
+function handleBgFileSelect(e){
+  const f = e.target.files && e.target.files[0];
+  if(f) uploadOwnBackground(f);
+  e.target.value = "";  // aynı dosyayı tekrar seçebilmek için
+}
+
+async function uploadOwnBackground(file){
+  if(!file){ return; }
+  if(!file.type.startsWith("image/")){
+    toast("Sadece görsel dosyası yükleyebilirsin.", "err");
+    return;
+  }
+  if(file.size > 25 * 1024 * 1024){
+    toast("Dosya 25 MB'dan büyük olmasın.", "err");
+    return;
+  }
+  const zone = document.getElementById("bgDropZone");
+  // Drop zone'un orijinal içeriğini sakla — hata olursa geri koy (yoksa
+  // "⏳ Yükleniyor…" metni sonsuza kadar takılı kalır).
+  const zoneOriginalHTML = zone ? zone.innerHTML : null;
+  if(zone){
+    zone.style.pointerEvents = "none";
+    zone.style.opacity = "0.7";
+    zone.innerHTML = `
+      <div style="font-size:28px;line-height:1;margin-bottom:8px">⏳</div>
+      <div style="font-size:14px;font-weight:600;color:var(--txt);margin-bottom:4px">
+        Yükleniyor — ${Math.round(file.size / 1024)} KB
+      </div>
+      <div style="font-size:12px;color:var(--muted)">
+        Sunucuya gönderiliyor ve AI metni hazırlanıyor…
+      </div>`;
+  }
+  try{
+    // Kullanıcının yazdığı arama metnini query olarak backend'e geç — dosya
+    // adı slug'ı ve AI vision'ın "konu" hint'i olarak kullanılır.
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("query", _pickerRawQuery || "");
+    const r = await fetch("/api/story/upload_bg", { method:"POST", body: fd });
+    if(!r.ok){
+      let msg = r.statusText;
+      try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+      toast("Yükleme başarısız: " + msg, "err", 5000);
+      // Drop zone metnini restore et — success dışı durumda modal render
+      // edilmiyor, bu yüzden manuel geri yükle.
+      if(zone && zoneOriginalHTML !== null){ zone.innerHTML = zoneOriginalHTML; }
+      return;
+    }
+    const data = await r.json();
+    // Picker sonuç listesinin BAŞINA ekle → re-render → auto-select idx 0.
+    // Kullanıcının yazdığı arama metni de _pickerQuery'ye geçer ki AI vision'a
+    // "konu" hint'i olarak gitsin (yoksa serbest yorumlar).
+    _pickerResults = [data].concat(_pickerResults);
+    _pickerSelectedIdx = null;
+    if(!_pickerQuery && _pickerRawQuery){ _pickerQuery = "japan " + _pickerRawQuery; }
+    renderPickerModal();  // yeni modal → yeni drop zone (temiz)
+    setTimeout(() => selectPicker(0), 50);
+    toast("Görsel yüklendi ✓ AI metni hazırlıyor…", "ok", 2500);
+  }catch(err){
+    // network hatası (file:// açılmışsa buraya düşer, CORS + ERR_FAILED)
+    const msg = (err && err.message) ? err.message : String(err);
+    const isFileProto = location.protocol === "file:";
+    toast(isFileProto
+      ? "❌ file:// üzerinden çalışmaz — adres http://localhost:8000 veya https://api.rotori.app olmalı"
+      : ("Bağlantı hatası: " + msg), "err", 8000);
+    if(zone && zoneOriginalHTML !== null){ zone.innerHTML = zoneOriginalHTML; }
+  }finally{
+    if(zone){
+      zone.style.pointerEvents = "";
+      zone.style.opacity = "";
+    }
+  }
 }
 
 // ---------- Random üretim (kart metni + caption) ----------
@@ -1778,9 +1910,13 @@ async function aiFillFromImage(){
   subEl.value = "⏳ Görsel analiz ediliyor…";
   subEl.disabled = true;
   if(btn){ btn.disabled = true; btn.style.opacity = "0.6"; }
+  // 45sn timeout — vision AI takılırsa UI kilitli kalmasın
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), 45000);
   try{
     const r = await fetch("/api/story/ai_from_image", {
       method:"POST", headers:{"Content-Type":"application/json"},
+      signal: ac.signal,
       // konu = arattığın kelime — vision bu konuya ODAKLANIR (görselde başka
       // öğe olsa bile). Boşsa görseli serbest yorumlar.
       body: JSON.stringify({image_url, konu: _pickerRawQuery || ""})
@@ -1799,6 +1935,67 @@ async function aiFillFromImage(){
     // metin geçerliyse post caption'ı da otomatik hazırla
     if(subEl.value.length >= 8){
       setTimeout(() => expandCaptionAI({auto: true}), 400);
+    }
+  }catch(e){
+    const isAbort = e && e.name === "AbortError";
+    const isFileProto = location.protocol === "file:";
+    toast(isAbort
+      ? "AI çağrısı 45sn'yi aştı — iptal edildi. Tekrar dene."
+      : (isFileProto
+          ? "❌ file:// üzerinden çalışmaz — http://localhost:8000 veya https://api.rotori.app'e git"
+          : "Bağlantı hatası."), "err", 6000);
+    subEl.value = oldS;
+  }finally{
+    clearTimeout(timer);
+    subEl.disabled = false;
+    if(btn){ btn.disabled = false; btn.style.opacity = "1"; }
+  }
+}
+
+async function aiFillFromText(){
+  // Kullanıcının yukarıdaki arama kutusuna yazdığı konu → GPT text-only →
+  // başlık + açıklama üret. Vision'suz — görsel seçmeye gerek yok.
+  let konu = (_pickerRawQuery || "").trim();
+  // Arama kutusundan güncel değeri de al (kullanıcı henüz Ara'ya basmamış olabilir)
+  const inp = document.getElementById("pickerSearchInput");
+  if(inp && inp.value.trim()){ konu = inp.value.trim(); }
+  if(!konu){
+    toast("Önce yukarıdaki arama kutusuna bir konu yaz (örn: sakura, ryokan, konbini).", "warn", 4000);
+    if(inp) inp.focus();
+    return;
+  }
+  // Form paneli görünmüyorsa göster (kullanıcı henüz görsel seçmemiş olabilir)
+  const panel = document.getElementById("cardFormPanel");
+  if(panel) panel.style.display = "block";
+  const subEl = document.getElementById("cardSubtitle");
+  const btn = document.getElementById("btn-ai-from-text");
+  if(!subEl) return;
+  const oldS = subEl.value;
+  subEl.value = "⏳ AI konudan metin üretiyor…";
+  subEl.disabled = true;
+  if(btn){ btn.disabled = true; btn.style.opacity = "0.6"; }
+  try{
+    const r = await fetch("/api/story/ai_from_text", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({konu})
+    });
+    if(!r.ok){
+      let msg = r.statusText;
+      try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+      toast("AI hatası: " + msg, "err");
+      subEl.value = oldS;
+      return;
+    }
+    const data = await r.json();
+    subEl.value = (data.subtitle || data.title || "").trim();
+    toast("Konudan metin hazırlandı ✓", "ok", 2500);
+    // metin geçerliyse post caption'ı da otomatik hazırla
+    if(subEl.value.length >= 8){
+      setTimeout(() => expandCaptionAI({auto: true}), 400);
+    }
+    // Görsel seçili değilse kullanıcıyı yönlendir
+    if(_pickerSelectedIdx === null){
+      toast("Şimdi bir görsel seç veya kendi görselini yükle.", "ok", 3500);
     }
   }catch(e){
     toast("Bağlantı hatası.", "err");
