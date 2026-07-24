@@ -92,6 +92,10 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 .sec{padding:clamp(84px,13vh,150px) 0}
 .split{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(28px,5vw,72px);align-items:center}
 .split.rev .col-text{order:2}
+/* .solo — tek kolonlu split. Telefon mockup gizlenir, metin geniş nefes alır;
+   sol hizalı kalır ama satır uzunluğu okunabilir (readable measure) tutulur. */
+.split.solo{grid-template-columns:1fr;max-width:920px;margin-inline:auto}
+.split.solo .col-phone{display:none}
 @media(max-width:860px){.split{grid-template-columns:1fr;gap:40px}.split.rev .col-text{order:0}.split .col-phone{order:-1}}
 
 .chips{display:flex;flex-wrap:wrap;gap:9px;margin-top:22px}
@@ -339,14 +343,14 @@ footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-in
 </div></div>
 
 <!-- PLANLA -->
-<section class="sec" id="planla"><div class="wrap split">
+<section class="sec" id="planla"><div class="wrap split solo">
   <div class="col-text">
     <span class="eyebrow reveal" data-i18n="planla.eyebrow">Çok şehirli rota</span>
-    <h2 class="h-md reveal d1" style="margin-top:14px" data-i18n-html="planla.h">Şehirleri seç.<br>Günleri biz paylaştıralım.</h2>
-    <p class="lead reveal d2" style="margin-top:16px" data-i18n="planla.lead">Rotaya yeni bir şehir eklediğin an, tüm gezi tarihleri eşit ve mantıklı biçimde yeniden bölünür. Son şehir artan günleri toplar; varış-ayrılış kendiliğinden zincirlenir. Elle tarih girdiysen ona hiç dokunmaz.</p>
+    <h2 class="h-md reveal d1" style="margin-top:14px" data-i18n-html="planla.h">Şehirleri seç.<br>Günleri biz bölelim.</h2>
+    <p class="lead reveal d2" style="margin-top:16px" data-i18n="planla.lead">Rotaya yeni bir şehir eklediğin an günler kendiliğinden bölünür. Son şehir kalan günleri toplar, varış ve ayrılış tarihleri birbirine bağlanır. Elle tarih girdiysen ona hiç dokunmayız.</p>
     <ul class="bul">
-      <li class="reveal d2"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l6-3v17M11 21V9l8 2.5V21"/><path d="M8 10h0M8 14h0M15 14h0M15 17h0"/></svg></span><div><h3 data-i18n="planla.b1h">40+ şehir, tek arama kutusu</h3><p data-i18n="planla.b1p">Hakone'den Yakushima'ya — havalimanlı şehir uçuş bacağı olur, havalimansız şehir trenle gidilen durak.</p></div></li>
-      <li class="reveal d3"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="12" rx="3"/><path d="M5 11h14M8 20l-2 2M16 20l2 2"/><circle cx="8.5" cy="13.5" r=".7" fill="currentColor" stroke="none"/><circle cx="15.5" cy="13.5" r=".7" fill="currentColor" stroke="none"/></svg></span><div><h3 data-i18n="planla.b2h">İkinci şehri seçince Shinkansen önerilir</h3><p data-i18n="planla.b2p">Şehir değişimini uygulama kendi yakalar, geçişi kendi düşürür.</p></div></li>
+      <li class="reveal d2"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l6-3v17M11 21V9l8 2.5V21"/><path d="M8 10h0M8 14h0M15 14h0M15 17h0"/></svg></span><div><h3 data-i18n="planla.b1h">40+ şehir, tek arama kutusu</h3><p data-i18n="planla.b1p">Hakone'den Yakushima'ya — havalimanı olan şehir uçuşla, olmayan trenle rotana eklenir.</p></div></li>
+      <li class="reveal d3"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="12" rx="3"/><path d="M5 11h14M8 20l-2 2M16 20l2 2"/><circle cx="8.5" cy="13.5" r=".7" fill="currentColor" stroke="none"/><circle cx="15.5" cy="13.5" r=".7" fill="currentColor" stroke="none"/></svg></span><div><h3 data-i18n="planla.b2h">Shinkansen biletini ayarla</h3><p data-i18n="planla.b2p">Şehir değiştiğin gün Shinkansen bileti plana kendiliğinden eklenir.</p></div></li>
     </ul>
   </div>
   <div class="col-phone"><div class="phone reveal d1" aria-hidden="true">
@@ -400,14 +404,15 @@ footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-in
 </section>
 
 <!-- SHINKANSEN -->
-<section class="sec"><div class="wrap split">
+<section class="sec"><div class="wrap split solo">
   <div class="col-text">
     <span class="eyebrow reveal" data-i18n="shin.eyebrow">Ulaşım zekâsı</span>
-    <h2 class="h-md reveal d1" style="margin-top:14px" data-i18n-html="shin.h">İki şehir seçtin —<br>gişeyi biz düşündük.</h2>
-    <p class="lead reveal d2" style="margin-top:16px" data-i18n="shin.lead">Şehir değişen her güne gerçek tren kartı düşer: uydurma değil, gerçek süre ve ücretle. Beğenmedin mi? Dört ulaşım modu arasında geçiş yap — her birinin dürüst artı-eksisi yazılı.</p>
+    <h2 class="h-md reveal d1" style="margin-top:14px" data-i18n-html="shin.h">İki şehri seçmen yeterli.<br>Biletini biz almıyoruz; en doğru ulaşım seçeneğini gösteriyoruz.</h2>
+    <p class="lead reveal d2" style="margin-top:16px" data-i18n="shin.lead">Her seyahat günü için gerçek ve güncel tren seferleri sunulur. Uydurma rota veya tahmini saatler yok. Sefer saatleri, süreler ve değişiklikler mümkün olduğunca güncel verilere dayanır.</p>
+    <p class="lead reveal d2" style="margin-top:12px" data-i18n="shin.lead2">Tek dokunuşla tren, uçak, otobüs veya araç kiralama seçenekleri arasında geçiş yapabilir, her ulaşım türünün avantajlarını ve dezavantajlarını karşılaştırabilirsin.</p>
     <ul class="bul">
-      <li class="reveal d2"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="12" rx="3"/><path d="M5 11h14M8 20l-2 2M16 20l2 2"/><circle cx="8.5" cy="13.5" r=".7" fill="currentColor" stroke="none"/><circle cx="15.5" cy="13.5" r=".7" fill="currentColor" stroke="none"/></svg></span><div><h3 data-i18n="shin.b1h">Otomatik Shinkansen</h3><p data-i18n="shin.b1p">Tokyo → Kyoto: Nozomi · 2s 15dk · ~14.170 ¥ + JR Pass/Smart-EX ipucu.</p></div></li>
-      <li class="reveal d3"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="7" width="14" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M9 11v5M15 11v5"/></svg></span><div><h3>Yamato Takkyubin</h3><p data-i18n="shin.b2p">Valizini otele önceden gönder — ~2.000 ¥/parça, 1 gün. Resepsiyona "takkyubin" de yeter.</p></div></li>
+      <li class="reveal d2"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="12" rx="3"/><path d="M5 11h14M8 20l-2 2M16 20l2 2"/><circle cx="8.5" cy="13.5" r=".7" fill="currentColor" stroke="none"/><circle cx="15.5" cy="13.5" r=".7" fill="currentColor" stroke="none"/></svg></span><div><h3 data-i18n="shin.b1h">Otomatik Shinkansen önerisi</h3><p data-i18n="shin.b1p">Tokyo → Kyoto • Nozomi • 2 sa 15 dk • ~14.170 ¥. JR Pass veya Smart EX kullanıyorsan buna göre öneriler de sunulur.</p></div></li>
+      <li class="reveal d3"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="7" width="14" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M9 11v5M15 11v5"/></svg></span><div><h3 data-i18n="shin.b2h">Yamato Takkyubin önerisi</h3><p data-i18n="shin.b2p">Valizini bir sonraki otele önceden gönder. Yaklaşık 2.000 ¥/parça, genellikle ertesi gün teslim. Otel resepsiyonunda sadece "Takkyubin" demen yeterli.</p></div></li>
     </ul>
   </div>
   <div class="col-phone"><div class="phone reveal d1" aria-hidden="true">
@@ -420,7 +425,7 @@ footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-in
           <div class="hd">🚄 Shinkansen Nozomi</div>
           <div class="meta" data-i18n="shin.meta">Tokyo → Kyoto · 2s 15dk · ~14.170 ¥</div>
           <div class="tip" data-i18n="shin.tip">💡 Standart JR Pass Nozomi'yi kapsamaz — ek ücret ya da Smart-EX.</div>
-          <div class="modes"><span class="mode on">🚄</span><span class="mode">🚆</span><span class="mode">🚌</span><span class="mode">🚗</span></div>
+          <div class="modes"><span class="mode on">🚄</span><span class="mode">✈️</span><span class="mode">🚌</span><span class="mode">🚗</span></div>
         </div>
         <div class="cat-card"><span class="cat">🐈</span><div data-i18n-html="shin.yamato"><b style="color:#fff">Yamato Takkyubin</b> — valizini Kyoto'daki otele önceden gönder. ~2.000 ¥/parça, 1 gün.</div></div>
         <div class="rt"><span class="flag">⛩️</span><div class="m"><div class="c">Kyoto</div><div class="a" data-i18n="shin.kyoto">Gün 5 · varış</div></div></div>
@@ -666,7 +671,7 @@ footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-in
     'hero.eyebrow':{tr:'Planla · Uç · Keşfet',en:'Plan · Fly · Discover'},
     'hero.t1':{tr:'Sürpriz yok.',en:'No surprises.'},
     'hero.t2':{tr:'Plan var.',en:'Just the plan.'},
-    'hero.lead':{tr:'60 saniyede rota, ömür boyu hatıra. Çevrimdışı çalışır, Shinkansen bileti kendi düşer, gerçekten gittiğin her yer bir rozet.',en:'Route in 60 seconds, memories for life. Works offline, drops in the Shinkansen ticket by itself, every place you actually visit is a badge.'},
+    'hero.lead':{tr:'Tokyo\'dan Kyoto\'ya, tapınaktan ramen dükkânına — rotan hazır, sen sadece yaşa.',en:'From Tokyo to Kyoto, temple to ramen shop — your route is ready, just live it.'},
     'hero.cta1':{tr:'Rotanı kur',en:'Build your route'},
     'hero.cta2':{tr:'Nasıl çalışır? ↓',en:'How it works? ↓'},
     'hero.s1':{tr:'günlük gerçek rota',en:'days · real route'},
@@ -690,14 +695,14 @@ footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-in
     'ph.nara.sub':{tr:'Kyoto\'dan · geyikler',en:'From Kyoto · deer'},
     'act1.no':{tr:'Perde I',en:'Act I'},
     'act1.h':{tr:'Planla.',en:'Plan.'},
-    'act1.lead':{tr:'Sen sadece şehirleri seç. Tarihler bölünür, tren kartı düşer, boş günler dolar — bulut yok, bekleme yok.',en:'Just pick the cities. Dates split, the train card drops in, empty days fill up — no cloud, no waiting.'},
+    'act1.lead':{tr:'Rotanı çiz, Rotori düzenlesin.',en:'Draw your route, let Rotori arrange it.'},
     'planla.eyebrow':{tr:'Çok şehirli rota',en:'Multi-city route'},
-    'planla.h':{tr:'Şehirleri seç.<br>Günleri biz paylaştıralım.',en:"Pick your cities.<br>We'll split the days."},
-    'planla.lead':{tr:'Rotaya yeni bir şehir eklediğin an, tüm gezi tarihleri eşit ve mantıklı biçimde yeniden bölünür. Son şehir artan günleri toplar; varış-ayrılış kendiliğinden zincirlenir. Elle tarih girdiysen ona hiç dokunmaz.',en:"The moment you add a city, all your dates re-split evenly and sensibly. The last stop takes the remaining days; arrival–departure chains itself. Set a date by hand and it's never touched."},
+    'planla.h':{tr:'Şehirleri seç.<br>Günleri biz bölelim.',en:"Pick your cities.<br>We'll split the days."},
+    'planla.lead':{tr:'Rotaya yeni bir şehir eklediğin an günler kendiliğinden bölünür. Son şehir kalan günleri toplar, varış ve ayrılış tarihleri birbirine bağlanır. Elle tarih girdiysen ona hiç dokunmayız.',en:"The moment you add a city, days split by themselves. The last stop takes the remaining days; arrival and departure chain together. Set a date by hand and we never touch it."},
     'planla.b1h':{tr:'40+ şehir, tek arama kutusu',en:'40+ cities, one search box'},
-    'planla.b1p':{tr:'Hakone\'den Yakushima\'ya — havalimanlı şehir uçuş bacağı olur, havalimansız şehir trenle gidilen durak.',en:'From Hakone to Yakushima — a city with an airport becomes a flight leg, one without becomes a train stop.'},
-    'planla.b2h':{tr:'İkinci şehri seçince Shinkansen önerilir',en:'Pick a second city and Shinkansen is suggested'},
-    'planla.b2p':{tr:'Şehir değişince Shinkansen kartı gün planına kendiliğinden düşer.',en:'When the city changes, the Shinkansen card drops into the day itself.'},
+    'planla.b1p':{tr:'Hakone\'den Yakushima\'ya — havalimanı olan şehir uçuşla, olmayan trenle rotana eklenir.',en:'From Hakone to Yakushima — a city with an airport joins by flight, one without joins by train.'},
+    'planla.b2h':{tr:'Shinkansen biletini ayarla',en:'Set the Shinkansen ticket'},
+    'planla.b2p':{tr:'Şehir değiştiğin gün Shinkansen bileti plana kendiliğinden eklenir.',en:'The day you change cities, the Shinkansen ticket is added to your plan automatically.'},
     'planla.ph.title':{tr:'🏙️ Gezilecek şehirler',en:'🏙️ Cities to visit'},
     'planla.ph.sub':{tr:'Seçtikçe rotana eklenir',en:'Added to your route as you pick'},
     'planla.morecity':{tr:'+ Başka şehir',en:'+ Another city'},
@@ -715,11 +720,13 @@ footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-in
     'off.tl4':{tr:'🎨 Sanat · 🎟 ~2 ay önce bilet',en:'🎨 Art · 🎟 ticket ~2 months ahead'},
     'off.toast':{tr:'🔔 2 hatırlatma eklendi · USJ & teamLab bilet penceresi',en:'🔔 2 reminders added · USJ & teamLab ticket window'},
     'shin.eyebrow':{tr:'Ulaşım zekâsı',en:'Transit intelligence'},
-    'shin.h':{tr:'İki şehir seçtin.<br>Bileti biz aldık.',en:'You picked two cities.<br>We got the ticket.'},
-    'shin.lead':{tr:'Şehir değişen her güne gerçek tren kartı düşer — uydurma değil, dakikasına ve yenine kadar doğru. Beğenmezsen dört ulaşım modu arasında geçiş yap; her birinin dürüst artı-eksisi yazılı.',en:"Every day the city changes, a real train card drops in — not made up, accurate down to the minute and yen. Not your style? Switch between four transport modes — each with honest pros and cons."},
-    'shin.b1h':{tr:'Otomatik Shinkansen',en:'Automatic Shinkansen'},
-    'shin.b1p':{tr:'Tokyo → Kyoto: Nozomi · 2s 15dk · ~14.170 ¥ + JR Pass/Smart-EX ipucu.',en:'Tokyo → Kyoto: Nozomi · 2h 15m · ~¥14,170 + JR Pass/Smart-EX tip.'},
-    'shin.b2p':{tr:'Valizini otele önceden gönder — ~2.000 ¥/parça, 1 gün. Resepsiyona "takkyubin" de yeter.',en:'Send your luggage ahead to the hotel — ~¥2,000/piece, 1 day. Just say "takkyubin" at the front desk.'},
+    'shin.h':{tr:'İki şehri seçmen yeterli.<br>Biletini biz almıyoruz; en doğru ulaşım seçeneğini gösteriyoruz.',en:"Just pick two cities.<br>We don't buy the ticket — we show you the right way to get there."},
+    'shin.lead':{tr:'Her seyahat günü için gerçek ve güncel tren seferleri sunulur. Uydurma rota veya tahmini saatler yok. Sefer saatleri, süreler ve değişiklikler mümkün olduğunca güncel verilere dayanır.',en:"For every travel day we surface real, up-to-date train departures. No made-up routes, no guessed times. Times, durations and changes rely on as-current-as-possible data."},
+    'shin.lead2':{tr:'Tek dokunuşla tren, uçak, otobüs veya araç kiralama seçenekleri arasında geçiş yapabilir, her ulaşım türünün avantajlarını ve dezavantajlarını karşılaştırabilirsin.',en:'One tap switches between train, flight, bus and car rental — compare the pros and cons of each transport mode.'},
+    'shin.b1h':{tr:'Otomatik Shinkansen önerisi',en:'Automatic Shinkansen suggestion'},
+    'shin.b1p':{tr:'Tokyo → Kyoto • Nozomi • 2 sa 15 dk • ~14.170 ¥. JR Pass veya Smart EX kullanıyorsan buna göre öneriler de sunulur.',en:'Tokyo → Kyoto • Nozomi • 2h 15m • ~¥14,170. If you use a JR Pass or Smart EX, suggestions adapt accordingly.'},
+    'shin.b2h':{tr:'Yamato Takkyubin önerisi',en:'Yamato Takkyubin suggestion'},
+    'shin.b2p':{tr:'Valizini bir sonraki otele önceden gönder. Yaklaşık 2.000 ¥/parça, genellikle ertesi gün teslim. Otel resepsiyonunda sadece "Takkyubin" demen yeterli.',en:'Send your suitcase ahead to your next hotel. Roughly ¥2,000/piece, usually delivered the next day. Just say "Takkyubin" at the front desk.'},
     'shin.ph.title':{tr:'🚄 Şehirler arası geçiş',en:'🚄 Inter-city transfer'},
     'shin.ph.sub':{tr:'Gün 4 → Gün 5',en:'Day 4 → Day 5'},
     'shin.tokyo':{tr:'Gün 4 · son gece',en:'Day 4 · last night'},
