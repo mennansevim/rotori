@@ -95,6 +95,32 @@
   .section-hint{color:var(--muted);font-size:12.5px;margin:0 0 14px;
     line-height:1.55}
 
+  /* ------ Sekme çubuğu (segmented) ------ */
+  .tabs{display:inline-flex;gap:2px;background:var(--surface);border:1px solid var(--line);
+    border-radius:12px;padding:4px;margin:2px 0 22px}
+  .tab{appearance:none;border:none;background:transparent;color:var(--txt-dim);
+    font-family:inherit;font-size:14px;font-weight:600;padding:8px 18px;
+    border-radius:9px;cursor:pointer;transition:all var(--dur) var(--ease);
+    display:inline-flex;align-items:center;gap:7px}
+  .tab:hover{color:var(--txt)}
+  .tab.active{background:var(--bg-elev);color:var(--txt);box-shadow:var(--sh-1)}
+
+  /* ------ Reels: kaynak video grid ------ */
+  .reel-src-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+  .reel-src{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+    overflow:hidden;display:flex;flex-direction:column}
+  .reel-src .thumb{position:relative;aspect-ratio:9/16;background:#000;overflow:hidden}
+  .reel-src .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .reel-src .dur{position:absolute;right:6px;bottom:6px;background:rgba(0,0,0,.72);
+    color:#fff;font-size:11px;font-weight:600;padding:2px 7px;border-radius:6px}
+  .reel-src .meta{padding:8px 10px;font-size:11.5px;color:var(--txt-dim);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .reel-src .mk{margin:0 10px 10px;padding:9px;border:none;border-radius:var(--r-sm);
+    background:linear-gradient(135deg,#a06bff,#6d3bdb);color:#fff;font-weight:700;
+    font-size:12px;cursor:pointer;font-family:inherit;transition:all var(--dur) var(--ease)}
+  .reel-src .mk:hover{box-shadow:0 8px 20px rgba(140,90,255,.4);transform:translateY(-1px)}
+  .reel-src .mk:disabled{opacity:.55;cursor:progress}
+
   /* ------ Hero / hızlı aksiyonlar (Apple sadeliği) ------ */
   .hero{padding:8px 2px 0}
   .hero-title{font-size:27px;font-weight:800;letter-spacing:-.025em;margin:0 0 5px;
@@ -538,6 +564,14 @@
 <div class="toast-host" id="toastHost"></div>
 
 <main>
+  <!-- Sekmeler -->
+  <div class="tabs">
+    <button class="tab active" data-tab="cards" onclick="switchTab('cards')">🎨 Kartlar</button>
+    <button class="tab" data-tab="reels" onclick="switchTab('reels')">🎬 Reels</button>
+  </div>
+
+  <!-- ===== KARTLAR paneli ===== -->
+  <div id="panel-cards">
   <!-- Hero: hızlı aksiyonlar -->
   <div class="hero">
     <h1 class="hero-title">Japonya Rüyası Stüdyo</h1>
@@ -712,6 +746,42 @@
       <div class="empty" data-icon="📦">Henüz onaylanmış reel yok.</div>
     </div>
   </section>
+  </div><!-- /panel-cards -->
+
+  <!-- ===== REELS paneli ===== -->
+  <div id="panel-reels" style="display:none">
+    <div class="hero">
+      <h1 class="hero-title">Reels Stüdyo</h1>
+      <p class="hero-sub">JAPAN REELS klasöründeki çekimleri tek tıkla 9:16 dikey Reels'e çevir — temiz, yazısız. Süreyi seç, üret, Drive'a at.</p>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="color:var(--muted);font-size:12.5px">Maks. süre:</span>
+        <div class="tabs" style="margin:0" id="reelDurTabs">
+          <button class="tab" data-sn="15" onclick="setReelDur(15)">15 sn</button>
+          <button class="tab active" data-sn="30" onclick="setReelDur(30)">30 sn</button>
+          <button class="tab" data-sn="60" onclick="setReelDur(60)">60 sn</button>
+        </div>
+      </div>
+    </div>
+
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title">🎞 Kaynak Videolar <span class="count" id="reelSrcCount">0</span></h2>
+        <button class="sm ghost" onclick="loadReelSources()">🔄 Yenile</button>
+      </div>
+      <div id="reelSourceGrid" class="reel-src-grid">
+        <div class="empty" data-icon="🎬">Yükleniyor…</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title">✅ Üretilen Reels <span class="count" id="reelGenCount">0</span></h2>
+      </div>
+      <div id="reelGrid" class="story-grid">
+        <div class="empty" data-icon="🎬">Bir kaynak videodan üret — reels burada belirsin.</div>
+      </div>
+    </section>
+  </div><!-- /panel-reels -->
 </main>
 
 <!-- Canlı Süreç — sabit footer, tek satır default, sürüklenebilir -->
@@ -1929,6 +1999,124 @@ async function unpublish(name){
   await fetch(`/api/ready/${encodeURIComponent(name)}/unpublish`, {method:"POST"});
   toast("Onay bekleyene geri alındı.", "info");
   pollReels();
+}
+
+// ---------- Reels sekmesi ----------
+let _reelDur = 30;
+let _reelsLoaded = false;
+
+function switchTab(name){
+  document.querySelectorAll(".tab[data-tab]").forEach(t =>
+    t.classList.toggle("active", t.dataset.tab === name));
+  const pc = document.getElementById("panel-cards");
+  const pr = document.getElementById("panel-reels");
+  if(pc) pc.style.display = name === "cards" ? "" : "none";
+  if(pr) pr.style.display = name === "reels" ? "" : "none";
+  if(name === "reels" && !_reelsLoaded){
+    _reelsLoaded = true;
+    loadReelSources();
+    loadGeneratedReels();
+  }
+}
+
+function setReelDur(sn){
+  _reelDur = sn;
+  document.querySelectorAll("#reelDurTabs .tab").forEach(t =>
+    t.classList.toggle("active", Number(t.dataset.sn) === sn));
+}
+
+async function loadReelSources(){
+  const grid = document.getElementById("reelSourceGrid");
+  try{
+    const d = await (await fetch("/api/reels/sources")).json();
+    const vids = d.videos || [];
+    document.getElementById("reelSrcCount").textContent = vids.length;
+    if(!vids.length){
+      grid.innerHTML = `<div class="empty" data-icon="📂">JAPAN REELS klasöründe video yok.</div>`;
+      return;
+    }
+    grid.innerHTML = vids.map(v => `
+      <div class="reel-src">
+        <div class="thumb">
+          ${v.thumb_url ? `<img src="${v.thumb_url}" loading="lazy" alt="">` : ""}
+          <span class="dur">${v.duration_sn}s</span>
+        </div>
+        <div class="meta" title="${escapeHtml(v.name)}">${escapeHtml(v.name)} · ${v.size_mb}MB</div>
+        <button class="mk" data-video="${escapeHtml(v.name)}" onclick="makeReel(this)">🎬 Reel Üret</button>
+      </div>`).join("");
+  }catch(e){ grid.innerHTML = `<div class="empty">Kaynak yüklenemedi.</div>`; }
+}
+
+async function makeReel(btn){
+  const video = btn.dataset.video;
+  btn.disabled = true; btn.textContent = "⏳ Üretiliyor…";
+  const reset = () => { btn.disabled = false; btn.textContent = "🎬 Reel Üret"; };
+  try{
+    const r = await fetch("/api/reels/make", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({video, max_sn: _reelDur})
+    });
+    if(!r.ok){
+      let m = r.statusText; try{ const j = await r.json(); m = j.detail || m; }catch(e){}
+      toast("Başlatılamadı: " + m, "err"); reset(); return;
+    }
+    toast("🎬 Reel üretiliyor — Canlı Süreç'i izle", "info", 3000);
+    logSeq = 0; $("logbox").innerHTML = ""; pollStatus(); pollLogs();
+    const watch = setInterval(async () => {
+      try{
+        const s = await (await fetch("/api/status")).json();
+        if(!(s.job && s.job.running)){
+          clearInterval(watch); reset();
+          await loadGeneratedReels();
+          if(s.job && s.job.error) toast("Reel üretimi hata verdi — loglara bak.", "err", 4000);
+          else toast("Reel hazır ✓", "ok", 2500);
+        }
+      }catch(e){}
+    }, 2500);
+    setTimeout(() => { clearInterval(watch); reset(); }, 600000);
+  }catch(e){ toast("Bağlantı hatası.", "err"); reset(); }
+}
+
+async function loadGeneratedReels(){
+  const grid = document.getElementById("reelGrid");
+  try{
+    const d = await (await fetch("/api/reels/generated")).json();
+    const reels = d.reels || [];
+    document.getElementById("reelGenCount").textContent = reels.length;
+    if(!reels.length){
+      grid.innerHTML = `<div class="empty" data-icon="🎬">Bir kaynak videodan üret — reels burada belirsin.</div>`;
+      return;
+    }
+    grid.innerHTML = reels.map(x => {
+      const u = `${x.url}?v=${Math.floor(x.mtime || 0)}`;
+      return `<div class="story-card src-manuel">
+        <video src="${u}" controls preload="metadata"
+          style="width:100%;aspect-ratio:9/16;object-fit:cover;background:#000;display:block"></video>
+        <div class="story-badges">
+          <span class="badge manual">🎬 Reel</span>
+          <span class="badge muted">${x.size_mb}MB</span>
+          ${x.has_caption ? `<span class="badge muted">📝 Caption</span>` : ""}
+        </div>
+        <div class="story-actions">
+          <div class="primary-row">
+            <button class="story-btn primary" onclick="reelToDrive('${x.name}')">☁️ Drive'a Gönder</button>
+          </div>
+          <div class="secondary-row">
+            <a class="story-btn icon-only" href="${x.url}" download="${x.name}" title="İndir">⬇</a>
+          </div>
+        </div></div>`;
+    }).join("");
+  }catch(e){ grid.innerHTML = `<div class="empty">Reels yüklenemedi.</div>`; }
+}
+
+async function reelToDrive(name){
+  const r = await fetch(`/api/reels/drive-upload/${encodeURIComponent(name)}`, {method:"POST"});
+  if(!r.ok){
+    let m = r.statusText; try{ const j = await r.json(); m = j.detail || m; }catch(e){}
+    toast("Drive'a gönderilemedi: " + m, "err", 5000); return;
+  }
+  const d = await r.json();
+  toast(`Drive'a kopyalandı ✓ (${(d.copied || []).length} dosya)`, "ok", 3000);
 }
 
 // ---------- Alt açıklama blur → otomatik post caption ----------
