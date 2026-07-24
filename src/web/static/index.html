@@ -95,6 +95,39 @@
   .section-hint{color:var(--muted);font-size:12.5px;margin:0 0 14px;
     line-height:1.55}
 
+  /* ------ Hero / hızlı aksiyonlar (Apple sadeliği) ------ */
+  .hero{padding:8px 2px 0}
+  .hero-title{font-size:27px;font-weight:800;letter-spacing:-.025em;margin:0 0 5px;
+    background:linear-gradient(90deg,var(--txt),#c7cede);-webkit-background-clip:text;
+    background-clip:text;-webkit-text-fill-color:transparent}
+  .hero-sub{color:var(--muted);font-size:14px;margin:0 0 22px;max-width:620px;
+    line-height:1.5}
+  .hero-actions{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width:640px){ .hero-actions{grid-template-columns:1fr} }
+  .action-card{display:flex;align-items:center;gap:16px;text-align:left;
+    padding:20px;border:none;border-radius:20px;cursor:pointer;color:#fff;
+    position:relative;overflow:hidden;font-family:inherit;
+    transition:transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease);
+    box-shadow:0 8px 24px rgba(0,0,0,.35)}
+  .action-card:hover{transform:translateY(-3px)}
+  .action-card:active{transform:translateY(-1px)}
+  .action-card.busy{opacity:.65;cursor:progress;transform:none}
+  .action-image{background:linear-gradient(135deg,#ff6b81 0%,#ff2d55 55%,#c81e56 100%)}
+  .action-image:hover{box-shadow:0 16px 36px rgba(255,45,85,.45)}
+  .action-news{background:linear-gradient(135deg,#5b8cff 0%,#3b5bdb 55%,#4c2fb0 100%)}
+  .action-news:hover{box-shadow:0 16px 36px rgba(59,91,219,.45)}
+  .action-ico{width:52px;height:52px;flex-shrink:0;border-radius:15px;
+    background:rgba(255,255,255,.20);display:flex;align-items:center;
+    justify-content:center;font-size:26px}
+  .action-txt{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .action-txt b{font-size:17px;font-weight:700;letter-spacing:-.01em}
+  .action-txt small{font-size:12.5px;opacity:.9;font-weight:500}
+  .action-card .spin{width:20px;height:20px;border:2.5px solid rgba(255,255,255,.35);
+    border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;
+    margin-left:auto;flex-shrink:0;display:none}
+  .action-card.busy .spin{display:block}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
   /* ------ Reels Fikirleri ------ */
   .idea-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
     gap:12px}
@@ -497,18 +530,30 @@
 <div class="toast-host" id="toastHost"></div>
 
 <main>
-  <!-- Hikaye Görsel Üreticisi -->
+  <!-- Hero: hızlı aksiyonlar -->
+  <div class="hero">
+    <h1 class="hero-title">Japonya Rüyası Stüdyo</h1>
+    <p class="hero-sub">Görsel seç ya da güncel bir Japonya haberinden — saniyeler içinde paylaşıma hazır, belgesel tonda Instagram kartı.</p>
+    <div class="hero-actions">
+      <button class="action-card action-image" onclick="openStoryCreator()">
+        <span class="action-ico">🎨</span>
+        <span class="action-txt"><b>Görsel Üret</b><small>Konu ara · görsel seç · AI metin</small></span>
+      </button>
+      <button class="action-card action-news" id="btn-news-now" onclick="runNewsNow()">
+        <span class="action-ico">📰</span>
+        <span class="action-txt"><b>Haberden Üret</b><small>Güncel haberden otomatik kart</small></span>
+        <span class="spin"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Üretilen kartlar -->
   <section class="section" id="storyCard">
     <div class="section-head">
-      <h2 class="section-title">🎨 Hikaye Görsel Üreticisi</h2>
-      <button class="primary" id="btn-story-create" onclick="openStoryCreator()"
-        title="Görsel ara, seç, başlık + alt açıklama yaz, kart üret">🎨 Görsel Üret</button>
+      <h2 class="section-title">🗂 Üretilen Kartlar <span class="count" id="storyCount">0</span></h2>
     </div>
-    <p class="section-hint">
-      Tek butonla akış — bir konu yaz, Unsplash'ten görsel seç, başlık + alt açıklama gir (ya da <strong>✨ AI Yaz</strong> ile GPT'ye ürettir), 1080×1920 Instagram Story kartı çıksın. Foto <code>assets/story_backgrounds/</code>'a cache'lenir; aynı görsel bir daha indirilmez.
-    </p>
     <div id="storyGrid" class="story-grid">
-      <div class="empty" data-icon="🎨">Butona bas — ilk kart burada belirsin.</div>
+      <div class="empty" data-icon="🎨">Yukarıdan üret — kartların burada belirsin.</div>
     </div>
   </section>
 
@@ -1628,8 +1673,10 @@ async function renderPickerCard(){
 // ---------- Hikaye Görselleri ----------
 function renderStories(cards){
   const grid = $("storyGrid");
+  const cnt = document.getElementById("storyCount");
+  if(cnt) cnt.textContent = (cards && cards.length) || 0;
   if(!cards || !cards.length){
-    grid.innerHTML = `<div class="empty" data-icon="✨">Kart üretilemedi.</div>`;
+    grid.innerHTML = `<div class="empty" data-icon="🎨">Yukarıdan üret — kartların burada belirsin.</div>`;
     return;
   }
   grid.innerHTML = "";
@@ -1712,6 +1759,41 @@ async function storyToDrive(name){
   const data = await r.json();
   const n = (data.copied || []).length;
   toast(`Drive'a kopyalandı ✓ (${n} dosya) — Drive Desktop buluta yüklüyor`, "ok", 3500);
+}
+
+// Haberden kart üret — arka plan job; footer'da canlı log, bitince liste yenilenir
+async function runNewsNow(){
+  const btn = document.getElementById("btn-news-now");
+  if(btn && btn.classList.contains("busy")) return;
+  try{
+    const r = await fetch("/api/news/run_now", {method:"POST"});
+    if(!r.ok){
+      let msg = r.statusText;
+      try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+      toast("Başlatılamadı: " + msg, "err", 5000);
+      return;
+    }
+  }catch(e){ toast("Bağlantı hatası.", "err"); return; }
+
+  if(btn) btn.classList.add("busy");
+  toast("📰 Haberden kart üretiliyor — Canlı Süreç'i izle", "info", 3500);
+  logSeq = 0; $("logbox").innerHTML = "";
+  pollStatus(); pollLogs();
+
+  // job bitene kadar durumu izle, bitince listeyi yenile
+  const watch = setInterval(async () => {
+    try{
+      const s = await (await fetch("/api/status")).json();
+      if(!(s.job && s.job.running)){
+        clearInterval(watch);
+        if(btn) btn.classList.remove("busy");
+        await loadRecentStories();
+        if(s.job && s.job.error) toast("Haber üretimi hata verdi — loglara bak.", "err", 4000);
+        else toast("İşlem bitti ✓ — yeni kart varsa listede", "ok", 3000);
+      }
+    }catch(e){}
+  }, 3000);
+  setTimeout(() => { clearInterval(watch); if(btn) btn.classList.remove("busy"); }, 120000);
 }
 
 async function storyToInstagram(name){
