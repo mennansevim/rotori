@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Rotori — App Preview</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif}
+.hint{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);color:#fff;background:rgba(0,0,0,.55);padding:6px 14px;border-radius:999px;font-size:12px;opacity:.75;letter-spacing:.4px;pointer-events:auto;z-index:100;user-select:none}
+.hint kbd{background:#fff;color:#000;padding:1px 6px;border-radius:4px;font-family:inherit;font-size:11px}
+body.play .hint{opacity:0;transition:opacity .4s}
+body{display:flex;align-items:center;justify-content:center;cursor:pointer}
+.stage{position:relative;width:min(100vw,calc(100vh*9/19.5));height:min(100vh,calc(100vw*19.5/9));max-width:1080px;max-height:1920px;overflow:hidden;background:#050212}
+.scene{position:absolute;inset:0;opacity:0;display:flex;align-items:center;justify-content:center;transform:scale(.98)}
+.scene svg{width:100%;height:100%;display:block}
+body.play .scene{animation:fadeInOut 28s cubic-bezier(.4,0,.2,1) infinite both}
+body.play .scene:nth-child(1){animation-delay:0s}
+body.play .scene:nth-child(2){animation-delay:4.6s}
+body.play .scene:nth-child(3){animation-delay:9.2s}
+body.play .scene:nth-child(4){animation-delay:13.8s}
+body.play .scene:nth-child(5){animation-delay:18.4s}
+body.play .endcard{animation:endShow 28s cubic-bezier(.4,0,.2,1) infinite both}
+@keyframes fadeInOut{
+0%,1%{opacity:0;transform:scale(.985)}
+2.5%,15.5%{opacity:1;transform:scale(1)}
+16.5%,100%{opacity:0;transform:scale(1.015)}
+}
+@keyframes endShow{
+0%,80%{opacity:0;transform:scale(.985)}
+82%,96%{opacity:1;transform:scale(1)}
+98%,100%{opacity:0;transform:scale(1.02)}
+}
+.endcard{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;background:radial-gradient(circle at 50% 40%,#2E1966 0%,#0F0524 55%,#04010F 100%);color:#fff;text-align:center;padding:0 40px;gap:24px}
+.endcard .mark{font-size:120px;line-height:1;color:#FFC7DB;text-shadow:0 0 40px rgba(255,199,219,.4);font-family:serif;font-weight:700}
+.endcard .name{font-size:56px;font-weight:700;letter-spacing:-1px;background:linear-gradient(90deg,#FFC7DB 0%,#B8A8FF 50%,#FFB4C1 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.endcard .tag{font-size:22px;color:#D6C8FA;opacity:.85;letter-spacing:.3px}
+.endcard .cta{margin-top:20px;font-size:14px;color:#B8A8FF;opacity:.7;letter-spacing:3px}
+</style>
+</head>
+<body>
+<div class="stage" aria-label="Rotori App Preview">
+
+<!-- SCENE 1 — HERO -->
+<div class="scene">
+<svg width="100%" viewBox="0 0 380 820" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<radialGradient id="s1bg" cx="50%" cy="18%" r="90%"><stop offset="0%" stop-color="#2E1966"/><stop offset="55%" stop-color="#150934"/><stop offset="100%" stop-color="#04010F"/></radialGradient>
+<linearGradient id="s1h" x1="0" y1="0" x2="100%" y2="0"><stop offset="0%" stop-color="#FFC7DB"/><stop offset="45%" stop-color="#B8A8FF"/><stop offset="100%" stop-color="#FFB4C1"/></linearGradient>
+<linearGradient id="s1d" x1="0" y1="0" x2="100%" y2="0"><stop offset="0%" stop-color="#FFB4C1" stop-opacity="0"/><stop offset="50%" stop-color="#B8A8FF"/><stop offset="100%" stop-color="#FFB4C1" stop-opacity="0"/></linearGradient>
+</defs>
+<rect width="380" height="820" fill="url(#s1bg)"/>
+<text x="190" y="500" font-size="420" font-family="serif" font-weight="700" fill="#FFB4C1" opacity=".028" text-anchor="middle" transform="rotate(-6 190 500)">旅</text>
+<text x="190" y="72" font-size="10.5" fill="#B8A8FF" text-anchor="middle" letter-spacing="5" font-weight="500">— ROTORİ —</text>
+<text x="190" y="128" font-size="38" font-weight="700" fill="url(#s1h)" text-anchor="middle" letter-spacing="-1">Sürpriz yok.</text>
+<text x="190" y="172" font-size="38" font-weight="700" fill="url(#s1h)" text-anchor="middle" letter-spacing="-1">Plan var.</text>
+<text x="190" y="200" font-size="13" fill="#D6C8FA" text-anchor="middle" opacity=".85">Japonya rotanı 60 saniyede kur.</text>
+<g transform="translate(88 244)">
+<rect x="-3" y="-3" width="210" height="424" rx="42" fill="#B8A8FF" opacity=".09"/>
+<rect width="204" height="418" rx="38" fill="#0A0417" stroke="#3D256E" stroke-width="1.2"/>
+<rect x="7" y="7" width="190" height="404" rx="34" fill="#161028"/>
+<rect x="72" y="13" width="60" height="12" rx="6" fill="#0A0417"/>
+<text x="16" y="48" font-size="12.5" font-weight="600" fill="#EFE7FF">🇯🇵 Japonya rotası</text>
+<text x="16" y="63" font-size="10" fill="#A89DD8">13 gün · 4 şehir · Mayıs 2027</text>
+<rect x="14" y="72" width="176" height="1.2" fill="url(#s1d)"/>
+<g><rect x="14" y="82" width="176" height="46" rx="12" fill="#1A1338"/><circle cx="34" cy="105" r="12" fill="#221844"/><text x="34" y="110" font-size="13" text-anchor="middle">✈️</text><text x="53" y="101" font-size="11.5" font-weight="600" fill="#EFE7FF">İstanbul</text><text x="53" y="115" font-size="9" fill="#9E93CC">IST · kalkış</text><rect x="150" y="97" width="34" height="17" rx="8.5" fill="#4C2C8C" opacity=".42"/><text x="167" y="109" font-size="8" fill="#D6C8FA" text-anchor="middle" font-weight="600">Gün 0</text></g>
+<g><rect x="14" y="136" width="176" height="46" rx="12" fill="#1A1338"/><circle cx="34" cy="159" r="12" fill="#221844"/><text x="34" y="164" font-size="13" text-anchor="middle">🗼</text><text x="53" y="155" font-size="11.5" font-weight="600" fill="#EFE7FF">Tokyo</text><text x="53" y="169" font-size="9" fill="#9E93CC">HND · 4 gün</text><rect x="146" y="151" width="38" height="17" rx="8.5" fill="#B8A8FF" opacity=".16"/><text x="165" y="163" font-size="7.5" fill="#B8A8FF" text-anchor="middle" font-weight="600">Gün 1–4</text></g>
+<g><rect x="14" y="190" width="176" height="46" rx="12" fill="#1A1338"/><circle cx="34" cy="213" r="12" fill="#221844"/><text x="34" y="218" font-size="13" text-anchor="middle">⛩️</text><text x="53" y="209" font-size="11.5" font-weight="600" fill="#EFE7FF">Kyoto</text><text x="53" y="223" font-size="9" fill="#9E93CC">Shinkansen · 3 gün</text><rect x="146" y="205" width="38" height="17" rx="8.5" fill="#B8A8FF" opacity=".16"/><text x="165" y="217" font-size="7.5" fill="#B8A8FF" text-anchor="middle" font-weight="600">Gün 5–7</text></g>
+<g><rect x="14" y="244" width="176" height="46" rx="12" fill="#1A1338"/><circle cx="34" cy="267" r="12" fill="#221844"/><text x="34" y="272" font-size="13" text-anchor="middle">🦌</text><text x="53" y="263" font-size="11.5" font-weight="600" fill="#EFE7FF">Nara</text><text x="53" y="277" font-size="9" fill="#9E93CC">Kyoto'dan · geyikler</text><rect x="139" y="259" width="45" height="17" rx="8.5" fill="#B8A8FF" opacity=".16"/><text x="161.5" y="271" font-size="7.5" fill="#B8A8FF" text-anchor="middle" font-weight="600">günübirlik</text></g>
+<g><rect x="14" y="298" width="176" height="46" rx="12" fill="#1A1338"/><circle cx="34" cy="321" r="12" fill="#221844"/><text x="34" y="326" font-size="13" text-anchor="middle">🐙</text><text x="53" y="317" font-size="11.5" font-weight="600" fill="#EFE7FF">Osaka</text><text x="53" y="331" font-size="9" fill="#9E93CC">KIX · dönüş</text><rect x="141" y="313" width="43" height="17" rx="8.5" fill="#FFB4C1" opacity=".2"/><text x="162.5" y="325" font-size="7.5" fill="#FFB4C1" text-anchor="middle" font-weight="600">Gün 8–13</text></g>
+<rect x="76" y="394" width="52" height="3" rx="1.5" fill="#3D256E" opacity=".7"/>
+</g>
+<text x="190" y="720" font-size="10" fill="#B8A8FF" text-anchor="middle" letter-spacing="4.5" opacity=".7">P L A N L A  ·  U Ç  ·  K E Ş F E T</text>
+<g><ellipse cx="52" cy="380" rx="7" ry="3" fill="#FFB4C1" opacity=".55" transform="rotate(28 52 380)"/><ellipse cx="342" cy="240" rx="5" ry="2.5" fill="#FFC7DB" opacity=".4" transform="rotate(-32 342 240)"/><ellipse cx="30" cy="520" rx="6" ry="3" fill="#FFB4C1" opacity=".45" transform="rotate(52 30 520)"/><ellipse cx="348" cy="490" rx="8" ry="4" fill="#FFC7DB" opacity=".35" transform="rotate(-18 348 490)"/><ellipse cx="22" cy="670" rx="5" ry="2.5" fill="#FFB4C1" opacity=".5" transform="rotate(38 22 670)"/></g>
+</svg>
+</div>
+
+<!-- SCENE 2 — PLAN -->
+<div class="scene">
+<svg width="100%" viewBox="0 0 380 820" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<radialGradient id="s2bg" cx="20%" cy="30%" r="100%"><stop offset="0%" stop-color="#331B62"/><stop offset="55%" stop-color="#180A38"/><stop offset="100%" stop-color="#050214"/></radialGradient>
+<linearGradient id="s2h" x1="0" y1="0" x2="100%" y2="0"><stop offset="0%" stop-color="#B8A8FF"/><stop offset="60%" stop-color="#FFC7DB"/></linearGradient>
+</defs>
+<rect width="380" height="820" fill="url(#s2bg)"/>
+<text x="90" y="440" font-size="380" font-family="serif" font-weight="700" fill="#FFC7DB" opacity=".03" text-anchor="middle" transform="rotate(-12 90 440)">計</text>
+<text x="190" y="72" font-size="10.5" fill="#FFC7DB" text-anchor="middle" letter-spacing="5" font-weight="500">— PLAN —</text>
+<text x="190" y="128" font-size="34" font-weight="700" fill="url(#s2h)" text-anchor="middle" letter-spacing="-.5">Şehirleri seç.</text>
+<text x="190" y="168" font-size="34" font-weight="700" fill="url(#s2h)" text-anchor="middle" letter-spacing="-.5">Günleri biz paylaştıralım.</text>
+<text x="190" y="200" font-size="13" fill="#D6C8FA" text-anchor="middle" opacity=".8">Ekle · çıkar · dağıt — kendiliğinden zincirlenir.</text>
+<g transform="translate(88 244)">
+<rect width="204" height="418" rx="38" fill="#0A0417" stroke="#3D256E" stroke-width="1.2"/>
+<rect x="7" y="7" width="190" height="404" rx="34" fill="#161028"/>
+<rect x="72" y="13" width="60" height="12" rx="6" fill="#0A0417"/>
+<text x="16" y="48" font-size="13" font-weight="700" fill="#EFE7FF">Plan</text>
+<text x="16" y="63" font-size="9.5" fill="#A89DD8">10 gün · Osaka → Tokyo → Kyoto</text>
+<g transform="translate(14 122)"><text x="0" y="10" font-size="11" font-weight="600" fill="#EFE7FF">Gün dağılımı</text><text x="176" y="10" font-size="9" fill="#8CE0A0" text-anchor="end" font-weight="600">kalan 0</text></g>
+<g transform="translate(14 140)"><rect width="176" height="34" rx="10" fill="#1A1338" stroke="#B8A8FF" stroke-width=".5"/><text x="10" y="20" font-size="11" font-weight="600" fill="#EFE7FF">Osaka</text><rect x="49" y="12" width="24" height="12" rx="6" fill="#FFB4C1" opacity=".2"/><text x="61" y="21" font-size="7.5" fill="#FFB4C1" text-anchor="middle" font-weight="600">iniş</text><circle cx="118" cy="17" r="10" fill="#221844"/><text x="118" y="21" font-size="14" fill="#B8A8FF" text-anchor="middle">−</text><text x="141" y="21" font-size="13" fill="#EFE7FF" text-anchor="middle" font-weight="700">3</text><circle cx="164" cy="17" r="10" fill="#4C2C8C"/><text x="164" y="21" font-size="14" fill="#FFC7DB" text-anchor="middle">+</text></g>
+<g transform="translate(14 182)"><rect width="176" height="34" rx="10" fill="#1A1338"/><text x="10" y="20" font-size="11" font-weight="600" fill="#EFE7FF">Tokyo</text><circle cx="118" cy="17" r="10" fill="#221844"/><text x="118" y="21" font-size="14" fill="#B8A8FF" text-anchor="middle">−</text><text x="141" y="21" font-size="13" fill="#EFE7FF" text-anchor="middle" font-weight="700">4</text><circle cx="164" cy="17" r="10" fill="#4C2C8C"/><text x="164" y="21" font-size="14" fill="#FFC7DB" text-anchor="middle">+</text></g>
+<g transform="translate(14 224)"><rect width="176" height="34" rx="10" fill="#1A1338"/><text x="10" y="20" font-size="11" font-weight="600" fill="#EFE7FF">Kyoto</text><rect x="48" y="12" width="34" height="12" rx="6" fill="#FFB4C1" opacity=".2"/><text x="65" y="21" font-size="7.5" fill="#FFB4C1" text-anchor="middle" font-weight="600">dönüş</text><circle cx="118" cy="17" r="10" fill="#221844"/><text x="118" y="21" font-size="14" fill="#B8A8FF" text-anchor="middle">−</text><text x="141" y="21" font-size="13" fill="#EFE7FF" text-anchor="middle" font-weight="700">3</text><circle cx="164" cy="17" r="10" fill="#4C2C8C"/><text x="164" y="21" font-size="14" fill="#FFC7DB" text-anchor="middle">+</text></g>
+<g transform="translate(14 274)"><rect width="176" height="42" rx="12" fill="#4C2C8C"/><text x="88" y="27" font-size="12" fill="#FFF" text-anchor="middle" font-weight="700">✨ Planı oluştur</text></g>
+<rect x="76" y="394" width="52" height="3" rx="1.5" fill="#3D256E" opacity=".7"/>
+</g>
+<text x="190" y="740" font-size="11" fill="#B8A8FF" text-anchor="middle" opacity=".75">Çok şehir · otomatik dağıtım</text>
+</svg>
+</div>
+
+<!-- SCENE 3 — DISCOVER -->
+<div class="scene">
+<svg width="100%" viewBox="0 0 380 820" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<radialGradient id="s3bg" cx="70%" cy="25%" r="90%"><stop offset="0%" stop-color="#3A1866"/><stop offset="55%" stop-color="#1A0A3F"/><stop offset="100%" stop-color="#040018"/></radialGradient>
+<linearGradient id="s3h" x1="0" y1="0" x2="100%" y2="0"><stop offset="0%" stop-color="#96E4B8"/><stop offset="50%" stop-color="#B8A8FF"/><stop offset="100%" stop-color="#FFC7DB"/></linearGradient>
+</defs>
+<rect width="380" height="820" fill="url(#s3bg)"/>
+<text x="290" y="440" font-size="380" font-family="serif" font-weight="700" fill="#96E4B8" opacity=".028" text-anchor="middle" transform="rotate(12 290 440)">歩</text>
+<text x="190" y="72" font-size="10.5" fill="#96E4B8" text-anchor="middle" letter-spacing="5" font-weight="500">— KEŞİF —</text>
+<text x="190" y="128" font-size="42" font-weight="700" fill="url(#s3h)" text-anchor="middle" letter-spacing="-1">Yürü. Keşfet.</text>
+<text x="190" y="176" font-size="42" font-weight="700" fill="url(#s3h)" text-anchor="middle" letter-spacing="-1">Kazan.</text>
+<text x="190" y="208" font-size="13" fill="#D6C8FA" text-anchor="middle" opacity=".85">Rotandaki her yere git, 10 dk kal — +25 XP.</text>
+<g transform="translate(88 244)">
+<rect width="204" height="418" rx="38" fill="#0A0417" stroke="#3D256E" stroke-width="1.2"/>
+<rect x="7" y="7" width="190" height="404" rx="34" fill="#0B1420"/>
+<rect x="72" y="13" width="60" height="12" rx="6" fill="#0A0417"/>
+<text x="16" y="48" font-size="12" font-weight="700" fill="#EFE7FF">🗺️ Keşif haritası</text>
+<text x="16" y="63" font-size="9.5" fill="#7DB995">Lv 4 · 12 yer keşfedildi</text>
+<g transform="translate(14 74)">
+<rect width="176" height="180" rx="14" fill="#0F1F2E"/>
+<circle cx="45" cy="60" r="18" fill="#96E4B8" opacity=".15"/><circle cx="45" cy="60" r="7" fill="#96E4B8"/><text x="45" y="64" font-size="9" text-anchor="middle" font-weight="700" fill="#0B1420">✓</text>
+<circle cx="120" cy="90" r="18" fill="#96E4B8" opacity=".15"/><circle cx="120" cy="90" r="7" fill="#96E4B8"/><text x="120" y="94" font-size="9" text-anchor="middle" font-weight="700" fill="#0B1420">✓</text>
+<circle cx="90" cy="140" r="18" fill="#96E4B8" opacity=".15"/><circle cx="90" cy="140" r="7" fill="#96E4B8"/><text x="90" y="144" font-size="9" text-anchor="middle" font-weight="700" fill="#0B1420">✓</text>
+<circle cx="145" cy="45" r="16" fill="#FFB4C1" opacity=".25"/><circle cx="145" cy="45" r="16" fill="none" stroke="#FFB4C1" stroke-width="1.5" opacity=".7"/><circle cx="145" cy="45" r="8" fill="#FFB4C1"/><text x="145" y="49" font-size="9" text-anchor="middle" fill="#0B1420" font-weight="700">📍</text>
+</g>
+<g transform="translate(14 264)"><rect width="176" height="60" rx="12" fill="#1A2836" stroke="#3D8055" stroke-width="1"/><text x="24" y="35" font-size="14" text-anchor="middle">🎉</text><text x="46" y="24" font-size="11" font-weight="700" fill="#96E4B8">Senso-ji keşfedildi!</text><text x="46" y="38" font-size="9" fill="#B0D8BF">Rozet açıldı</text><rect x="130" y="20" width="42" height="22" rx="11" fill="#96E4B8" opacity=".2"/><text x="151" y="35" font-size="10" fill="#96E4B8" text-anchor="middle" font-weight="700">+25 XP</text></g>
+<g transform="translate(14 334)">
+<rect width="42" height="42" rx="21" fill="#3D256E" opacity=".6"/><text x="21" y="27" font-size="17" text-anchor="middle">🗾</text>
+<g transform="translate(46 0)"><rect width="42" height="42" rx="21" fill="#3D256E" opacity=".6"/><text x="21" y="27" font-size="17" text-anchor="middle">⛩️</text></g>
+<g transform="translate(92 0)"><rect width="42" height="42" rx="21" fill="#3D256E" opacity=".6"/><text x="21" y="27" font-size="17" text-anchor="middle">🗼</text></g>
+<g transform="translate(138 0)"><rect width="42" height="42" rx="21" fill="#B8A8FF" opacity=".35"/><text x="21" y="27" font-size="16" text-anchor="middle" opacity=".4">🔒</text></g>
+</g>
+<rect x="76" y="394" width="52" height="3" rx="1.5" fill="#3D256E" opacity=".7"/>
+</g>
+<text x="190" y="720" font-size="11" fill="#96E4B8" text-anchor="middle" opacity=".75">18 rozet · GPS onaylı · gerçek keşif</text>
+</svg>
+</div>
+
+<!-- SCENE 4 — MEET -->
+<div class="scene">
+<svg width="100%" viewBox="0 0 380 820" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<radialGradient id="s4bg" cx="30%" cy="35%" r="95%"><stop offset="0%" stop-color="#5A1F5A"/><stop offset="55%" stop-color="#22083D"/><stop offset="100%" stop-color="#0A0018"/></radialGradient>
+<linearGradient id="s4h" x1="0" y1="0" x2="100%" y2="0"><stop offset="0%" stop-color="#FFC7DB"/><stop offset="50%" stop-color="#FF9DC2"/><stop offset="100%" stop-color="#B8A8FF"/></linearGradient>
+<linearGradient id="s4c" x1="0" y1="0" x2="100%" y2="0"><stop offset="0%" stop-color="#5A2E80"/><stop offset="100%" stop-color="#B8558C"/></linearGradient>
+</defs>
+<rect width="380" height="820" fill="url(#s4bg)"/>
+<text x="290" y="440" font-size="380" font-family="serif" font-weight="700" fill="#FFC7DB" opacity=".03" text-anchor="middle" transform="rotate(-8 290 440)">仲</text>
+<text x="190" y="72" font-size="10.5" fill="#FFC7DB" text-anchor="middle" letter-spacing="5" font-weight="500">— BULUŞ —</text>
+<text x="190" y="128" font-size="42" font-weight="700" fill="url(#s4h)" text-anchor="middle" letter-spacing="-1">Yabancı yok.</text>
+<text x="190" y="176" font-size="42" font-weight="700" fill="url(#s4h)" text-anchor="middle" letter-spacing="-1">Ekip var.</text>
+<text x="190" y="208" font-size="13" fill="#FFD6E6" text-anchor="middle" opacity=".85">Aynı ay Japonya'da olan gezginlerle ortak oda.</text>
+<g transform="translate(88 244)">
+<rect width="204" height="418" rx="38" fill="#0A0417" stroke="#3D256E" stroke-width="1.2"/>
+<rect x="7" y="7" width="190" height="404" rx="34" fill="#161028"/>
+<rect x="72" y="13" width="60" height="12" rx="6" fill="#0A0417"/>
+<g transform="translate(7 7)"><path d="M0 34 L0 26 Q0 8 18 8 L172 8 Q190 8 190 26 L190 60 L0 60 Z" fill="url(#s4c)"/><text x="14" y="34" font-size="12" font-weight="700" fill="#FFF">💬 Mayıs 2027 · Japonya</text><text x="14" y="48" font-size="9" fill="#FFD6E6" opacity=".9">24 gezgin · aktif oda</text></g>
+<g transform="translate(14 78)"><rect width="176" height="24" rx="12" fill="#1A4D2E"/><text x="88" y="16" font-size="9" fill="#96E4B8" text-anchor="middle" font-weight="600">📍 Kyoto'da aynı gün 6 kişi</text></g>
+<g transform="translate(14 114)"><text x="0" y="8" font-size="8.5" fill="#8878B8" font-weight="600">Aiko · Tokyo</text><rect x="0" y="12" width="130" height="42" rx="10" fill="#221844"/><text x="8" y="27" font-size="9.5" fill="#EFE7FF">Sabah 07:00 Fushimi</text><text x="8" y="40" font-size="9.5" fill="#EFE7FF">Inari, katılan? 🌅</text></g>
+<g transform="translate(14 172)"><text x="0" y="8" font-size="8.5" fill="#8878B8" font-weight="600">Kenji · Osaka</text><rect x="0" y="12" width="150" height="42" rx="10" fill="#221844"/><text x="8" y="27" font-size="9.5" fill="#EFE7FF">USJ'e 5 kişi olduk, grup</text><text x="8" y="40" font-size="9.5" fill="#EFE7FF">indirimi çıktı — katılan?</text></g>
+<g transform="translate(14 230)"><text x="176" y="8" font-size="8.5" fill="#B8A8FF" text-anchor="end" font-weight="600">Sen</text><rect x="30" y="12" width="146" height="42" rx="10" fill="#4C2C8C"/><text x="38" y="27" font-size="9.5" fill="#FFF">teamLab için 4 kişilik</text><text x="38" y="40" font-size="9.5" fill="#FFF">bilet aldım — 1 boş 🎨</text></g>
+<g transform="translate(14 336)"><rect width="140" height="34" rx="17" fill="#221844" stroke="#3D256E" stroke-width="1"/><text x="12" y="21" font-size="10" fill="#8878B8">Mesaj yaz…</text><circle cx="162" cy="17" r="17" fill="#B8558C"/><text x="162" y="22" font-size="14" text-anchor="middle" fill="#FFF">→</text></g>
+<rect x="76" y="394" width="52" height="3" rx="1.5" fill="#3D256E" opacity=".7"/>
+</g>
+<text x="190" y="720" font-size="11" fill="#FFB4C1" text-anchor="middle" opacity=".75">Otomatik dönem odası · birlikte planla</text>
+</svg>
+</div>
+
+<!-- SCENE 5 — OFFLINE -->
+<div class="scene">
+<svg width="100%" viewBox="0 0 380 820" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<radialGradient id="s5bg" cx="50%" cy="20%" r="95%"><stop offset="0%" stop-color="#123878"/><stop offset="55%" stop-color="#061C4A"/><stop offset="100%" stop-color="#02061F"/></radialGradient>
+<linearGradient id="s5h" x1="0" y1="0" x2="100%" y2="0"><stop offset="0%" stop-color="#7CD6FF"/><stop offset="50%" stop-color="#B8A8FF"/><stop offset="100%" stop-color="#FFC7DB"/></linearGradient>
+</defs>
+<rect width="380" height="820" fill="url(#s5bg)"/>
+<text x="80" y="440" font-size="380" font-family="serif" font-weight="700" fill="#7CD6FF" opacity=".028" text-anchor="middle" transform="rotate(-6 80 440)">空</text>
+<g transform="translate(320 60)" opacity=".6"><circle r="14" fill="none" stroke="#7CD6FF" stroke-width="1"/><path d="M-8 -3 L8 5 M-8 3 L8 -5" stroke="#7CD6FF" stroke-width="1.5" stroke-linecap="round"/></g>
+<text x="298" y="90" font-size="9" fill="#7CD6FF" text-anchor="end" opacity=".7" letter-spacing="1">UÇAK MODU</text>
+<text x="190" y="72" font-size="10.5" fill="#7CD6FF" text-anchor="middle" letter-spacing="5" font-weight="500">— OFFLINE —</text>
+<text x="190" y="130" font-size="34" font-weight="700" fill="url(#s5h)" text-anchor="middle" letter-spacing="-.5">Uçak modunda bile</text>
+<text x="190" y="172" font-size="34" font-weight="700" fill="url(#s5h)" text-anchor="middle" letter-spacing="-.5">yanında.</text>
+<text x="190" y="204" font-size="13" fill="#C8D8FA" text-anchor="middle" opacity=".85">Harita · Japonca · bütçe · valiz — cebinde.</text>
+<g transform="translate(88 244)">
+<rect width="204" height="418" rx="38" fill="#0A0417" stroke="#3D256E" stroke-width="1.2"/>
+<rect x="7" y="7" width="190" height="404" rx="34" fill="#0B1428"/>
+<rect x="72" y="13" width="60" height="12" rx="6" fill="#0A0417"/>
+<text x="16" y="48" font-size="12" font-weight="700" fill="#EFE7FF">🎒 Yol arkadaşın</text>
+<text x="16" y="63" font-size="9" fill="#8CB1D8">Uçak modu · offline</text>
+<g transform="translate(14 76)"><rect width="85" height="80" rx="12" fill="#152238"/><text x="10" y="20" font-size="9" fill="#8CB1D8">Hava · Kyoto</text><text x="10" y="47" font-size="22" font-weight="700" fill="#FFC7DB">☀️ 22°</text><text x="10" y="65" font-size="8.5" fill="#96E4B8">↓18° · 💧%10</text></g>
+<g transform="translate(105 76)"><rect width="85" height="80" rx="12" fill="#152238"/><text x="10" y="20" font-size="9" fill="#8CB1D8">Bütçe</text><text x="10" y="47" font-size="16" font-weight="700" fill="#FFC7DB">1 ¥ ≈ ₺0,30</text><text x="10" y="65" font-size="8.5" fill="#96E4B8">son senkron ✓</text></g>
+<g transform="translate(14 166)"><rect width="85" height="80" rx="12" fill="#152238"/><text x="10" y="20" font-size="9" fill="#8CB1D8">Pusula 🇯🇵</text><text x="10" y="43" font-size="14" font-weight="700" fill="#FFC7DB">こんにちは</text><text x="10" y="58" font-size="9" fill="#B0BFDB" font-style="italic">Konnichiwa</text><text x="10" y="72" font-size="8" fill="#7CD6FF">📋 Kopyala</text></g>
+<g transform="translate(105 166)"><rect width="85" height="80" rx="12" fill="#152238"/><text x="10" y="20" font-size="9" fill="#8CB1D8">Valiz</text><text x="10" y="38" font-size="10" fill="#EFE7FF">🎫 JR Pass</text><text x="10" y="52" font-size="10" fill="#EFE7FF">🔌 adaptör</text><text x="10" y="66" font-size="10" fill="#EFE7FF">💊 mide koru.</text></g>
+<g transform="translate(14 258)"><rect width="176" height="70" rx="12" fill="#152238"/><text x="10" y="20" font-size="9" fill="#8CB1D8">🏠 Home Screen widget</text><text x="10" y="43" font-size="12" font-weight="700" fill="#FFC7DB">Sıradaki: 15:00 teamLab</text><text x="10" y="58" font-size="8.5" fill="#8CB1D8">Ana ekrandan tek bakışta</text></g>
+<g transform="translate(14 338)"><rect width="176" height="26" rx="13" fill="#7CD6FF" opacity=".15"/><text x="88" y="18" font-size="10" fill="#7CD6FF" text-anchor="middle" font-weight="600">✈️ Uçak modunda çalışır</text></g>
+<rect x="76" y="394" width="52" height="3" rx="1.5" fill="#3D256E" opacity=".7"/>
+</g>
+<text x="190" y="720" font-size="11" fill="#7CD6FF" text-anchor="middle" opacity=".75">Harita · Japonca · bütçe · widget · valiz</text>
+</svg>
+</div>
+
+<!-- END CARD -->
+<div class="endcard">
+<div class="mark">旅</div>
+<div class="name">Rotori</div>
+<div class="tag">Sürpriz yok, plan var.</div>
+<div class="cta">A P P  S T O R E ' D A</div>
+</div>
+
+</div>
+
+<div class="hint" id="hint">Başlatmak için <kbd>tıkla</kbd> · fullscreen için <kbd>F</kbd></div>
+
+<script>
+const body = document.body;
+const stage = document.querySelector('.stage');
+const hint = document.getElementById('hint');
+function play() {
+  body.classList.add('play');
+  hint.textContent = 'F: Fullscreen · ESC: Çık';
+  setTimeout(() => hint.remove(), 3000);
+}
+body.addEventListener('click', () => { if (!body.classList.contains('play')) play(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key.toLowerCase() === 'f') {
+    if (!document.fullscreenElement) stage.requestFullscreen();
+    else document.exitFullscreen();
+  }
+});
+</script>
+
+</body>
+</html>

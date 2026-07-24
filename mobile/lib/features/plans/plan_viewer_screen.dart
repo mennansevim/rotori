@@ -11,6 +11,8 @@
 //   7) Günler: aktif gün vurgulu + genişletilmiş, geçmiş günler soluk;
 //      aktif günde "Sıradaki" aktivite işaretlenir; ilk build'de otomatik konum.
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -20,6 +22,7 @@ import '../../core/l10n.dart';
 import '../../data/language_store.dart';
 import '../../data/plans_repository.dart';
 import '../../data/reminders_store.dart';
+import '../../data/weather_service.dart';
 import '../../domain/city_palette.dart';
 import '../../domain/destination_profiles.dart';
 import '../../domain/types.dart';
@@ -176,6 +179,10 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
   final _activeDayKey = GlobalKey();
   bool _autoScrolled = false;
 
+  /// Tarih (YYYY-MM-DD) → o günün hava tahmini (o tarihte hangi destinasyondayız
+  /// ise oradan). Open-Meteo'dan bir kez çekilir; hata sessiz.
+  Map<String, DayForecast> _forecast = const {};
+
   List<DayPlan> get _sortedDays =>
       [...widget.trip.days]..sort((a, b) => a.date.compareTo(b.date));
 
@@ -194,6 +201,34 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => HomeWidgetHook.pushFromTrip(widget.trip),
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadForecast());
+  }
+
+  /// Her destinasyon için Open-Meteo'dan 16 günlük tahmin çek. Bir günün
+  /// forecast'i, o tarihte hangi şehre ait olduğuna göre eşleştirilir —
+  /// böylece Kyoto gününe Tokyo hava tahmini düşmez. Ağ hatası sessiz.
+  Future<void> _loadForecast() async {
+    final dests = _sortedDestinations;
+    if (dests.isEmpty) return;
+    final result = <String, DayForecast>{};
+    final seen = <String>{};
+    for (final d in dests) {
+      final lat = d.lat, lng = d.lng;
+      if (lat == null || lng == null) continue;
+      final key = '$lat,$lng';
+      if (!seen.add(key)) continue;
+      try {
+        final list = await fetchForecast(lat, lng);
+        for (final f in list) {
+          final match = getDestinationForDate(dests, f.date);
+          if (match?.id == d.id) result[f.date] = f;
+        }
+      } catch (_) {
+        // Ağ hatası — sessizce geç, hava rozeti o gün için gösterilmez.
+      }
+    }
+    if (!mounted || result.isEmpty) return;
+    setState(() => _forecast = result);
   }
 
   @override
@@ -290,6 +325,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                           days[i].date,
                         )?.id,
                       ),
+                      forecast: _forecast[days[i].date],
                       isPast: i < activeIndex,
                       isActive: i == activeIndex,
                       onOpenItem: _openItem,
@@ -1210,116 +1246,511 @@ class _FlightsCard extends StatelessWidget {
     if (outbound.isEmpty && returnLegs.isEmpty) {
       return const SizedBox.shrink();
     }
-    return _SectionCard(
-      title: LanguageScope.of(context).s('viewer.flights'),
-      palette: palette,
+    final s = LanguageScope.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final leg in outbound)
-          _FlightRow(leg: leg, arrow: '→', palette: palette),
-        for (final leg in returnLegs)
-          _FlightRow(leg: leg, arrow: '←', palette: palette),
+        if (outbound.isNotEmpty)
+          _BoardingPassCard(
+            legs: outbound,
+            palette: palette,
+            directionLabel: s.s('viewer.flights.outbound'),
+            isReturn: false,
+          ),
+        if (returnLegs.isNotEmpty)
+          _BoardingPassCard(
+            legs: returnLegs,
+            palette: palette,
+            directionLabel: s.s('viewer.flights.return'),
+            isReturn: true,
+          ),
       ],
     );
   }
 }
 
-class _FlightRow extends StatelessWidget {
-  const _FlightRow({
-    required this.leg,
-    required this.arrow,
+/// Apple Wallet / Google Flights tarzı "boarding pass" kartı. Yönün ilk
+/// bacağını kalkış, son bacağını varış olarak alır; aradaki bacaklar aktarma
+/// olarak listelenir. Direkt uçuşta (2 leg) aktarma satırı gizlidir.
+class _BoardingPassCard extends StatelessWidget {
+  const _BoardingPassCard({
+    required this.legs,
     required this.palette,
+    required this.directionLabel,
+    required this.isReturn,
   });
-  final FlightLeg leg;
-  final String arrow;
+  final List<FlightLeg> legs;
   final ViewerPalette palette;
+  final String directionLabel;
+  final bool isReturn;
 
-  /// buildRouteLegs bazen city/airport boş bacaklar üretebilir — satır asla
-  /// tamamen boş görünmesin diye kademeli fallback:
-  ///   - ikisi de boş → "—"
-  ///   - sadece şehir boş → havaalanı kodu tek başına
-  ///   - sadece havaalanı boş → şehir tek başına
-  ///   - ikisi de dolu → "City (IATA)"
-  String get _placeLabel {
-    final city = leg.city.trim();
-    final airport = leg.airport.trim();
-    if (city.isEmpty && airport.isEmpty) return '—';
-    if (city.isEmpty) return airport;
-    if (airport.isEmpty) return city;
-    return '$city ($airport)';
+  static String _airportCode(FlightLeg l) {
+    final ap = l.airport.trim();
+    if (ap.isNotEmpty) return ap.toUpperCase();
+    final c = l.city.trim();
+    if (c.isEmpty) return '—';
+    // Şehir adından 3 harflik pseudo-kod türetmek yerine, ismini büyük yaz.
+    return c.length > 4 ? c.substring(0, 4).toUpperCase() : c.toUpperCase();
+  }
+
+  static String _cityName(FlightLeg l) {
+    final c = l.city.trim();
+    if (c.isNotEmpty) return c;
+    final ap = l.airport.trim();
+    return ap.isEmpty ? '' : ap;
+  }
+
+  static String _timeOnly(String iso) {
+    final d = DateTime.tryParse(iso);
+    if (d == null) return '';
+    final hh = d.hour.toString().padLeft(2, '0');
+    final mm = d.minute.toString().padLeft(2, '0');
+    return '$hh:$mm';
+  }
+
+  static String _dateShort(String iso, AppLang lang) {
+    final d = DateTime.tryParse(iso);
+    if (d == null) return '';
+    final months = L10n.monthsFor(lang);
+    return lang == AppLang.en
+        ? '${months[d.month]} ${d.day}'
+        : '${d.day} ${months[d.month]}';
+  }
+
+  /// İki datetime farkı → (saat, dakika). Fark negatif/sıfır ise null.
+  static (int h, int m)? _duration(FlightLeg from, FlightLeg to) {
+    final s = DateTime.tryParse(from.dateTime);
+    final e = DateTime.tryParse(to.dateTime);
+    if (s == null || e == null) return null;
+    final diff = e.difference(s);
+    if (diff.inMinutes <= 0) return null;
+    return (diff.inHours, diff.inMinutes.remainder(60));
   }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          Text(
-            '$arrow ',
-            style: TextStyle(color: palette.sakura, fontSize: 15),
+    final p = palette;
+    final s = LanguageScope.of(context);
+    final from = legs.first;
+    final to = legs.last;
+    final stops =
+        legs.length > 2 ? legs.sublist(1, legs.length - 1) : const <FlightLeg>[];
+    final dur = _duration(from, to);
+    final dateLbl = _dateShort(from.dateTime, s.lang);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: p.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: p.border),
+        boxShadow: [
+          BoxShadow(
+            color: p.sakura.withValues(alpha: 0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
-          Expanded(
-            child: Text(
-              _placeLabel,
-              style: TextStyle(
-                color: palette.textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Üst şerit: yön etiketi + tarih.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+            child: Row(
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: p.sakura,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  directionLabel.toUpperCase(),
+                  style: TextStyle(
+                    color: p.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.4,
+                  ),
+                ),
+                const Spacer(),
+                if (dateLbl.isNotEmpty)
+                  Text(
+                    dateLbl,
+                    style: TextStyle(
+                      color: p.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+              ],
             ),
           ),
-          Text(
-            leg.dateTime.isNotEmpty
-                ? _formatLegDateTime(
-                    leg.dateTime, LanguageScope.of(context).lang)
-                : '',
-            style: TextStyle(color: palette.textSecondary, fontSize: 12),
+          // Rota gövdesi: BÜYÜK IATA — çizgi + ✈ — BÜYÜK IATA.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: _EndPoint(leg: from, palette: p, alignEnd: false),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: _DashedFlightPath(
+                    palette: p,
+                    duration: dur,
+                    durationText: dur == null
+                        ? null
+                        : s.p('viewer.flights.duration', {
+                            'h': '${dur.$1}',
+                            'm': '${dur.$2}',
+                          }),
+                  ),
+                ),
+                Expanded(
+                  child: _EndPoint(leg: to, palette: p, alignEnd: true),
+                ),
+              ],
+            ),
           ),
+          // Aktarma satırı (varsa).
+          if (stops.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Icon(Icons.multiple_stop, size: 13, color: p.textMuted),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      s.p('viewer.flights.via', {
+                        'stops': stops.map(_cityName).where((x) => x.isNotEmpty).join(' · '),
+                      }),
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: p.textMuted,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            const SizedBox(height: 4),
         ],
       ),
     );
   }
 }
 
-class _HotelsCard extends StatelessWidget {
+/// Boarding pass kartının bir ucu: BÜYÜK IATA kodu + altında şehir + saat.
+class _EndPoint extends StatelessWidget {
+  const _EndPoint({
+    required this.leg,
+    required this.palette,
+    required this.alignEnd,
+  });
+  final FlightLeg leg;
+  final ViewerPalette palette;
+  final bool alignEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    final code = _BoardingPassCard._airportCode(leg);
+    final city = _BoardingPassCard._cityName(leg);
+    final t = _BoardingPassCard._timeOnly(leg.dateTime);
+    final cross =
+        alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+    final align = alignEnd ? TextAlign.end : TextAlign.start;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: cross,
+      children: [
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: alignEnd ? Alignment.centerRight : Alignment.centerLeft,
+          child: Text(
+            code,
+            textAlign: align,
+            style: TextStyle(
+              color: palette.textPrimary,
+              fontSize: 30,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.6,
+              height: 1.0,
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        if (city.isNotEmpty)
+          Text(
+            city,
+            textAlign: align,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: palette.textSecondary,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        if (t.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(
+            t,
+            textAlign: align,
+            style: TextStyle(
+              color: palette.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Ortadaki çizgi: sakura renkli kesikli hat + ortada ✈. Duruk metni altında.
+class _DashedFlightPath extends StatelessWidget {
+  const _DashedFlightPath({
+    required this.palette,
+    required this.duration,
+    required this.durationText,
+  });
+  final ViewerPalette palette;
+  final (int, int)? duration;
+  final String? durationText;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          height: 26,
+          child: LayoutBuilder(
+            builder: (_, c) => CustomPaint(
+              size: Size(c.maxWidth, 26),
+              painter: _DashedLinePainter(color: palette.sakura),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: palette.card,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '✈',
+                    style: TextStyle(
+                      color: palette.sakura,
+                      fontSize: 15,
+                      height: 1.0,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (durationText != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              durationText!,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: palette.textMuted,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _DashedLinePainter extends CustomPainter {
+  _DashedLinePainter({required this.color});
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.65)
+      ..strokeWidth = 1.4
+      ..strokeCap = StrokeCap.round;
+    final cy = size.height / 2;
+    const dash = 3.2;
+    const gap = 3.4;
+    // Ortadaki ✈ ikon için ~28px'lik boşluk bırak.
+    const iconHalf = 14.0;
+    _drawDashed(canvas, paint, Offset(0, cy),
+        Offset(size.width / 2 - iconHalf, cy), dash, gap);
+    _drawDashed(canvas, paint, Offset(size.width / 2 + iconHalf, cy),
+        Offset(size.width, cy), dash, gap);
+  }
+
+  void _drawDashed(
+      Canvas c, Paint p, Offset a, Offset b, double dash, double gap) {
+    final dx = b.dx - a.dx;
+    final dy = b.dy - a.dy;
+    final len = math.sqrt(dx * dx + dy * dy);
+    if (len <= 0) return;
+    final ux = dx / len;
+    final uy = dy / len;
+    var t = 0.0;
+    while (t < len) {
+      final s0 = t;
+      final e0 = math.min(t + dash, len);
+      c.drawLine(
+        Offset(a.dx + ux * s0, a.dy + uy * s0),
+        Offset(a.dx + ux * e0, a.dy + uy * e0),
+        p,
+      );
+      t += dash + gap;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedLinePainter old) => old.color != color;
+}
+
+class _HotelsCard extends StatefulWidget {
   const _HotelsCard({required this.trip, required this.palette});
   final Trip trip;
   final ViewerPalette palette;
 
   @override
+  State<_HotelsCard> createState() => _HotelsCardState();
+}
+
+class _HotelsCardState extends State<_HotelsCard> {
+  final _controller = PageController(viewportFraction: 1);
+  int _current = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (trip.hotels.isEmpty) return const SizedBox.shrink();
+    final hotels = widget.trip.hotels;
+    if (hotels.isEmpty) return const SizedBox.shrink();
+    final palette = widget.palette;
+    final s = LanguageScope.of(context);
+
+    if (hotels.length == 1) {
+      // Tek otel: mevcut düzen (bir hotelin tek Column'u kart içinde).
+      return _SectionCard(
+        title: s.s('viewer.stays'),
+        palette: palette,
+        children: [_HotelBlock(hotel: hotels.first, palette: palette)],
+      );
+    }
+
     return _SectionCard(
-      title: LanguageScope.of(context).s('viewer.stays'),
+      title: s.s('viewer.stays'),
       palette: palette,
       children: [
-        for (final h in trip.hotels)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${h.name} · ${h.city}',
-                  style: TextStyle(
-                    color: palette.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (h.address.isNotEmpty)
-                  Text(
-                    h.address,
-                    style: TextStyle(
-                      color: palette.textSecondary,
-                      fontSize: 13,
-                    ),
-                  ),
-                Text(
-                  '${h.checkIn} → ${h.checkOut}',
-                  style: TextStyle(color: palette.textMuted, fontSize: 12),
-                ),
-              ],
+        SizedBox(
+          height: 120,
+          child: PageView.builder(
+            controller: _controller,
+            itemCount: hotels.length,
+            onPageChanged: (i) => setState(() => _current = i),
+            itemBuilder: (_, i) => Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: _HotelBlock(hotel: hotels[i], palette: palette),
             ),
           ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (var i = 0; i < hotels.length; i++)
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeOutCubic,
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: i == _current ? 14 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: i == _current ? palette.accent : palette.border,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _HotelBlock extends StatelessWidget {
+  const _HotelBlock({required this.hotel, required this.palette});
+  final HotelStay hotel;
+  final ViewerPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          hotel.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: p.textPrimary,
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
+          ),
+        ),
+        if (hotel.city.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              hotel.city,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: p.textSecondary,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        if (hotel.address.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              hotel.address,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: p.textSecondary, fontSize: 13),
+            ),
+          ),
+        const SizedBox(height: 4),
+        Text(
+          '${hotel.checkIn} → ${hotel.checkOut}',
+          style: TextStyle(color: p.textMuted, fontSize: 12),
+        ),
       ],
     );
   }
@@ -1359,6 +1790,7 @@ class _DayCard extends StatefulWidget {
     required this.palette,
     required this.dest,
     required this.bubbleColor,
+    this.forecast,
     required this.isPast,
     required this.isActive,
     required this.onOpenItem,
@@ -1368,6 +1800,7 @@ class _DayCard extends StatefulWidget {
   final ViewerPalette palette;
   final TripDestination? dest;
   final Color bubbleColor;
+  final DayForecast? forecast;
   final bool isPast;
   final bool isActive;
   final void Function(TimelineItem item, TripDestination? dest) onOpenItem;
@@ -1451,17 +1884,33 @@ class _DayCardState extends State<_DayCard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          _formatDateLong(
-                            day.date,
-                            LanguageScope.of(context).lang,
-                            weekdayHint: day.weekday,
-                          ),
-                          style: TextStyle(
-                            color: p.textPrimary,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15,
-                          ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                _formatDateLong(
+                                  day.date,
+                                  LanguageScope.of(context).lang,
+                                  weekdayHint: day.weekday,
+                                ),
+                                style: TextStyle(
+                                  color: p.textPrimary,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                            if (widget.forecast != null) ...[
+                              const SizedBox(width: 8),
+                              _WeatherBadge(
+                                forecast: widget.forecast!,
+                                palette: p,
+                                onTap: () => _showWeatherDialog(
+                                    context, widget.forecast!, p),
+                              ),
+                            ],
+                          ],
                         ),
                         if (day.theme.isNotEmpty) ...[
                           const SizedBox(height: 2),
@@ -1565,6 +2014,146 @@ class _DayCardState extends State<_DayCard> {
     final m = _timeToMinutes(item.time ?? item.scheduledTime);
     if (m == null) return false;
     return m < nowMin;
+  }
+
+  /// Küçük hava rozetine dokunulunca detay dialog'u aç — emoji + etiket + yüksek/
+  /// düşük/yağış. planner plan_step'teki _showWeatherDialog'un viewer palette
+  /// uyarlaması.
+  void _showWeatherDialog(
+      BuildContext context, DayForecast f, ViewerPalette p) {
+    final s = LanguageScope.of(context);
+    final info = weatherInfo(f.code);
+    final emoji = info.$1;
+    final label = s.s(info.$2);
+    showDialog<void>(
+      context: context,
+      barrierColor: p.bg.withValues(alpha: 0.6),
+      builder: (_) => Theme(
+        data: p.toThemeData(),
+        child: AlertDialog(
+          backgroundColor: p.card,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: p.border),
+          ),
+          title: Row(
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 32)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: p.textPrimary,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      f.date,
+                      style: TextStyle(
+                        color: p.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _wxRow(s.s('wx.high'), '${f.tempMax.round()}°C', p),
+              const SizedBox(height: 6),
+              _wxRow(s.s('wx.low'), '${f.tempMin.round()}°C', p),
+              if (f.precipProb != null) ...[
+                const SizedBox(height: 6),
+                _wxRow(s.s('wx.precip'), '%${f.precipProb}', p),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                s.s('wx.close'),
+                style: TextStyle(
+                  color: p.accent,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _wxRow(String label, String value, ViewerPalette p) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(fontSize: 14, color: p.textSecondary),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: p.textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Gün başlığı yanındaki küçük hava rozeti: "☀️ 22°". Tıklanınca detay dialog.
+class _WeatherBadge extends StatelessWidget {
+  const _WeatherBadge({
+    required this.forecast,
+    required this.palette,
+    required this.onTap,
+  });
+  final DayForecast forecast;
+  final ViewerPalette palette;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final emoji = weatherInfo(forecast.code).$1;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: palette.elevated,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: palette.border),
+          ),
+          child: Text(
+            '$emoji ${forecast.tempMax.round()}°',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: palette.textPrimary,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

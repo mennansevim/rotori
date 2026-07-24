@@ -5,6 +5,8 @@
 //   flutter run -d chrome -t lib/preview_main.dart
 //
 // Üretim girişi lib/main.dart'tır; bu dosya yalnızca görsel kontrol içindir.
+import 'package:device_preview/device_preview.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -40,20 +42,26 @@ void main() {
   final demo = _buildDemoTrip();
 
   runApp(
-    ProviderScope(
-      overrides: [
-        // Supabase auth yok → repo null → save() no-op, geofence userId 'anon'.
-        currentUserProvider.overrideWithValue(null),
-        // Realtime yerine trip yayınla — id 'demo' seedli, 'new' sıfırdan boş.
-        planByIdProvider.overrideWith((ref, id) {
-          if (id == 'new') return Stream<Trip>.value(_buildEmptyTrip());
-          return Stream<Trip>.value(demo);
-        }),
-        // Gerçek "Planlarım" ekranını dolu göstermek için (Supabase pull'u no-op).
-        localPlansProvider.overrideWithValue([demo]),
-        plansPullProvider.overrideWith((ref) async => <Trip>[]),
-      ],
-      child: const _PreviewApp(),
+    DevicePreview(
+      // Release'de otomatik devre dışı — bu dosya zaten sadece dev girişi.
+      enabled: !kReleaseMode,
+      // Varsayılan cihaz: iPhone 15 Pro (App Store hedef cihazı).
+      defaultDevice: Devices.ios.iPhone15Pro,
+      builder: (context) => ProviderScope(
+        overrides: [
+          // Supabase auth yok → repo null → save() no-op, geofence userId 'anon'.
+          currentUserProvider.overrideWithValue(null),
+          // Realtime yerine trip yayınla — id 'demo' seedli, 'new' sıfırdan boş.
+          planByIdProvider.overrideWith((ref, id) {
+            if (id == 'new') return Stream<Trip>.value(_buildEmptyTrip());
+            return Stream<Trip>.value(demo);
+          }),
+          // Gerçek "Planlarım" ekranını dolu göstermek için (Supabase pull'u no-op).
+          localPlansProvider.overrideWithValue([demo]),
+          plansPullProvider.overrideWith((ref) async => <Trip>[]),
+        ],
+        child: const _PreviewApp(),
+      ),
     ),
   );
 }
@@ -239,7 +247,11 @@ class _PreviewApp extends ConsumerWidget {
         theme: PT.theme(),
         routerConfig: router,
         debugShowCheckedModeBanner: false,
-        locale: Locale(lang.code),
+        // DevicePreview entegrasyonu: locale + MediaQuery cihaz frame'inden
+        // gelsin. Kullanıcı device_preview toolbar'ından iPhone/iPad
+        // frame + karanlık mod + dil değiştirebilir.
+        locale: DevicePreview.locale(context) ?? Locale(lang.code),
+        builder: DevicePreview.appBuilder,
         supportedLocales: const [Locale('tr'), Locale('en')],
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,

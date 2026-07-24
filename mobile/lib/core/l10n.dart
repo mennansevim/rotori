@@ -189,6 +189,16 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'No days added to this plan yet. Edit → add days.',
   },
   'viewer.flights': {AppLang.tr: '✈️ Uçuşlar', AppLang.en: '✈️ Flights'},
+  'viewer.flights.outbound': {AppLang.tr: 'Gidiş', AppLang.en: 'Outbound'},
+  'viewer.flights.return': {AppLang.tr: 'Dönüş', AppLang.en: 'Return'},
+  'viewer.flights.duration': {
+    AppLang.tr: '{h}sa {m}dk',
+    AppLang.en: '{h}h {m}m',
+  },
+  'viewer.flights.via': {
+    AppLang.tr: 'Aktarma: {stops}',
+    AppLang.en: 'Via: {stops}',
+  },
   'viewer.stays': {AppLang.tr: '🏨 Konaklama', AppLang.en: '🏨 Stays'},
   'viewer.day.noItems': {
     AppLang.tr: '(Bu güne aktivite eklenmedi.)',
