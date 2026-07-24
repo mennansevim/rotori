@@ -906,6 +906,79 @@ def reels_drive_upload(name: str) -> dict[str, Any]:
     return {"ok": True, "copied": copied}
 
 
+@app.get("/api/instagram/graph_status")
+def instagram_graph_status() -> dict[str, Any]:
+    """Instagram Graph API token durumu (config debug ekranı için)."""
+    from src import instagram_graph as ig
+    return ig.debug_token(cfg)
+
+
+@app.post("/api/instagram/publish/{name}")
+def instagram_publish(name: str) -> dict[str, Any]:
+    """Yayına Hazır kartı resmi Graph API ile Instagram'a yayınlar.
+    Foto public HTTPS URL olarak Instagram sunucularına aktarılır — bu yüzden
+    cfg.instagram.public_base_url zorunlu."""
+    name = _safe_story_name(name)
+    if cfg.instagram is None or not (cfg.instagram.graph_token and cfg.instagram.ig_user_id):
+        raise HTTPException(status_code=400,
+                            detail="Instagram Graph API ayarlı değil (config.yaml → "
+                                   "instagram.graph_token + ig_user_id).")
+    base = (cfg.instagram.public_base_url or "").strip().rstrip("/")
+    if not base:
+        raise HTTPException(status_code=400,
+                            detail="public_base_url boş. Instagram, foto'yu public "
+                                   "HTTPS URL'den çeker. Cloudflare tunnel çalıştır ve "
+                                   "verdiği URL'yi config.yaml → instagram.public_base_url'e yaz.")
+
+    # Yayına Hazır klasöründeki JPG'yi bul
+    jpg = cfg.stories.output_dir / "ready" / name if cfg.stories else None
+    if not (jpg and jpg.exists()):
+        raise HTTPException(status_code=404,
+                            detail="Kart 'Yayına Hazır'da değil. Önce 'Yayına Hazır Yap' yap.")
+
+    # Zaten yayınlanmış mı?
+    from src import instagram_publisher as ig_pub
+    existing = ig_pub.read_upload_log(cfg).get(jpg.stem)
+    if existing:
+        raise HTTPException(status_code=409,
+                            detail=f"Bu kart zaten yayınlanmış (media_id={existing.get('media_id')})")
+
+    image_url = f"{base}/media/stories/ready/{quote(name)}"
+    # caption
+    txt = jpg.with_suffix(".txt")
+    caption = txt.read_text(encoding="utf-8") if txt.exists() else ""
+
+    def target(emit: Callable[..., None], cancel_ev: Event) -> None:
+        from src import instagram_graph
+        emit(f"📤 Instagram'a yayınlanıyor: {name}", "info")
+        emit(f"  görsel URL: {image_url}", "log")
+        try:
+            res = instagram_graph.publish_image(cfg, image_url, caption)
+        except instagram_graph.GraphError as exc:
+            emit(f"✖ Yayın hatası: {exc}", "error")
+            raise
+        # uploads_log'a yaz — UI'da 'Taslakta/Yayında' rozeti için
+        import json as _json
+        rec = {"name": jpg.stem, "media_id": res["id"],
+               "container_id": res["container_id"],
+               "uploaded_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+               "method": "graph"}
+        try:
+            log_path = cfg.project_root / cfg.instagram.uploads_log
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            with log_path.open("a", encoding="utf-8") as f:
+                f.write(_json.dumps(rec, ensure_ascii=False) + "\n")
+        except OSError as exc:
+            log.warning(f"uploads_log yazılamadı: {exc}")
+        emit(f"✅ Yayınlandı! media_id={res['id']}", "info")
+
+    try:
+        manager.start_callable(f"Instagram yayın: {name[:40]}", target)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"ok": True, "image_url": image_url}
+
+
 @app.post("/api/news/run_now")
 def news_run_now() -> dict[str, Any]:
     """Haber otomasyonunu elle bir kez çalıştır — arka plan job; run_once'un

@@ -82,6 +82,19 @@ instagram:
   sessionid: ""
   session_file: "data/instagram_session.json"    # login sonrası otomatik oluşur
   uploads_log: "data/instagram_uploads.jsonl"    # upload log'u
+  # === Instagram Graph API (resmi Business akışı — önerilen) ===
+  # 1) developers.facebook.com'da app oluştur (Business type)
+  # 2) Use case: "Manage messaging & content on Instagram"
+  # 3) IG hesabını Business'a çevir (Creator DEĞİL) + tester rolü ver
+  # 4) Instagram → API setup with Instagram business login → token oluştur
+  # 5) refresh_access_token ile 60 günlük long-lived'a çevir
+  graph_token: ""        # IGAA... ile başlar
+  ig_user_id: ""         # 17 haneli IG Business account ID
+  app_secret: ""         # App settings → Basic → App Secret
+  # Kart JPG'sine Instagram'ın public HTTPS ile erişebilmesi için taban URL.
+  # Cloudflare tunnel önerilir: cloudflared tunnel --url http://localhost:8000
+  # → verdiği .trycloudflare.com URL'sini buraya yaz.
+  public_base_url: ""
 
 drive:
   # "☁️ Drive'a Gönder" hedefi — bulut senkronlu YEREL klasör yolu.

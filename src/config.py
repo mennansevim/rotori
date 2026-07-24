@@ -56,6 +56,16 @@ class InstagramCfg:
     sessionid: str = ""
     session_file: str = "data/instagram_session.json"
     uploads_log: str = "data/instagram_uploads.jsonl"
+    # Instagram Graph API (resmi, Business Login) — instagrapi'nin alternatifi.
+    # Yeni yayın akışı bunu kullanır: /media (container) → /media_publish.
+    # Token: Instagram Business Login ile alınmış long-lived access token (~60g).
+    graph_token: str = ""
+    ig_user_id: str = ""       # Instagram Business account ID (17 haneli)
+    app_secret: str = ""       # Long-lived refresh + debug için
+    # Kart JPG'sine Instagram'ın erişebilmesi için public HTTPS URL tabanı.
+    # (Cloudflare tunnel, ngrok, Cloudinary vb.) Yayın anında image_url =
+    # f"{public_base_url}/media/stories/<name>" olarak kullanılır.
+    public_base_url: str = ""
 
 
 @dataclass
