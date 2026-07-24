@@ -167,34 +167,52 @@ def _select_prompt(cands: list[dict[str, Any]]) -> str:
 
 def _text_prompt(news: dict[str, Any]) -> str:
     return (
-        "Aşağıdaki Japonya haberinden bir Instagram bilgi kartının ANA METNİNİ "
-        "üret.\n\n"
+        "Aşağıdaki Japonya haberinden bir Instagram kartının ÜST METNİNİ üret. "
+        "Bu metin kartın üstünde büyük görünür — KISA ve MERAK UYANDIRAN bir "
+        "haber spotu olmalı. Detay caption'a bırakılır, kartta VERİLMEZ.\n\n"
         f"BAŞLIK: {news['title']}\n"
         f"ÖZET: {news['summary']}\n\n"
-        f"{_TR_STYLE}\n\n"
-        "BİÇİM: EN FAZLA 2 cümle, toplam max 28 kelime. Haberin özünü (ne oldu, "
-        "neden önemli) belgesel tonda aktar. Emoji YOK. Sadece metni yaz — "
-        "başlık/tırnak/prefix EKLEME."
+        "KURALLAR:\n"
+        "- TEK cümle, en fazla ~14 kelime. Kısa, vurucu.\n"
+        "- Profesyonel bir haber editörü/gazeteci tonu — abartısız ama İLGİ "
+        "ÇEKİCİ. Haberin en çarpıcı/şaşırtıcı yönünü öne çıkar; okuru "
+        "meraklandır ('peki nasıl/neden?' dedirt) ama tüm detayı AÇIKLAMA.\n"
+        "- Spesifik sayı/tarih/yer/kurum adı YIĞMA — bunlar caption'da yer alır.\n"
+        "- Ucuz clickbait YASAK ('inanmayacaksınız', 'şok', 'bakın ne oldu', "
+        "'bir tık'). Klişe/pazarlama dili YASAK. 2. şahıs/emir YASAK.\n"
+        "- 3. şahıs, kusursuz Türkçe. Emoji YOK. Japonca özel terimleri çevirme "
+        "(Shinkansen, onsen, ryokan, sakura olduğu gibi).\n\n"
+        "Örnek ton (kısa + meraklandıran):\n"
+        "✓ 'Bir Japon tren istasyonu, dev bir anime heykeline ev sahipliği yapacak.'\n"
+        "✓ 'Japonya'da bir tren, bu yaz hareket eden bir otele dönüşüyor.'\n\n"
+        "Sadece metni yaz — başlık/tırnak/prefix EKLEME."
     )
 
 
 _CAPTION_SYSTEM = (
-    "Sen @japonyaruyasi için belgesel tonda Instagram post caption'ı yazan bir "
-    "editörsün. Kusursuz Türkçe, klişesiz, bilgilendirici. Uydurma YOK."
+    "Sen @japonyaruyasi için profesyonel bir haber editörü/gazeteci tonunda "
+    "Instagram post caption'ı yazan bir editörsün. Kart üstündeki kısa spot "
+    "merak uyandırır; caption ise haberin DETAYINI (kim, ne, nerede, ne zaman, "
+    "neden) net ve akıcı biçimde açıklar. Kusursuz Türkçe, klişesiz. Uydurma YOK."
 )
 
 
 def _caption_prompt(news: dict[str, Any], aciklama: str) -> str:
     return (
-        f"Haber: {news['title']}\nÖzet: {news['summary']}\n"
-        f"Kart metni: {aciklama}\n\n"
-        "Bunu Instagram post caption'ına genişlet. Format:\n"
-        "1. Açılış (1 cümle, 1-2 emoji) — haberi tanıtan objektif fact.\n"
-        "2. 3-4 madde (her satır emoji + 1 kısa somut bilgi cümlesi).\n"
-        "3. Kısa CTA (örn 'Kaydet 📌').\n"
+        f"Haber başlığı: {news['title']}\n"
+        f"Haber özeti: {news['summary']}\n"
+        f"Kartın üst spotu (bunu TEKRARLAMA, detaylandır): {aciklama}\n\n"
+        "Bunu, haberin detayını veren bir Instagram post caption'ına dönüştür. "
+        "Kart sadece merak uyandırdı; burada CEVABI ver. Format:\n"
+        "1. Açılış (1-2 cümle, 1-2 emoji): haberin özü — ne oldu, nerede, "
+        "kim/hangi kurum. Gazeteci netliğinde.\n"
+        "2. 3-4 madde (her satır emoji + 1 somut detay: tarih, yer, sayı, "
+        "arka plan, neden önemli).\n"
+        "3. Kısa kapanış/CTA (örn 'Kaydet 📌', 'Detaylar için takipte kal 🇯🇵').\n"
         "4. Boş satır + 8-12 hashtag (Türkçe/İngilizce karışık).\n"
-        "Klişe/emir/2. şahıs YASAK. 400-1200 karakter. Sadece caption — "
-        "markdown başlığı/prefix YOK."
+        "Klişe/ucuz clickbait/emir/2. şahıs YASAK. 400-1200 karakter. "
+        "Yalnızca yalın haberdeki bilgiye dayan. Sadece caption — markdown "
+        "başlığı/prefix YOK."
     )
 
 
@@ -224,9 +242,9 @@ def pick_news(cfg: Config, oai, items: list[dict[str, Any]],
 
 def generate_text(cfg: Config, oai, news: dict[str, Any]) -> tuple[str, str]:
     aciklama = oai.chat_text(
-        "Sen @japonyaruyasi için ansiklopedik/belgesel Türkçe hap bilgi metinleri "
-        "üreten bir editörsün. Yanıt SADECE metin.",
-        _text_prompt(news), temperature=0.6, max_tokens=120,
+        "Sen @japonyaruyasi için profesyonel bir haber editörü tonunda KISA, "
+        "merak uyandıran haber spotları yazan bir editörsün. Yanıt SADECE metin.",
+        _text_prompt(news), temperature=0.7, max_tokens=70,
     ).strip().strip('"').strip("'").strip()
     caption = ""
     try:

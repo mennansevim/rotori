@@ -384,8 +384,14 @@
   .story-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
   .story-card{background:var(--surface);border:1px solid var(--line);
     border-radius:var(--r-lg);overflow:hidden;display:flex;flex-direction:column;
+    border-top:3px solid var(--line);
     transition:transform var(--dur) var(--ease),border-color var(--dur) var(--ease)}
-  .story-card:hover{transform:translateY(-2px);border-color:var(--gold)}
+  .story-card:hover{transform:translateY(-2px)}
+  /* kaynağa göre üst renk şeridi — bir bakışta anla */
+  .story-card.src-haber{border-top-color:#5b8cff}    /* mavi = haberden */
+  .story-card.src-haber:hover{border-color:#5b8cff}
+  .story-card.src-manuel{border-top-color:#ff6b81}   /* pembe = manuel */
+  .story-card.src-manuel:hover{border-color:#ff6b81}
   .story-card img{width:100%;aspect-ratio:4/5;object-fit:cover;background:#000;
     display:block;cursor:pointer}
   .story-badges{display:flex;flex-wrap:wrap;gap:4px;padding:8px 10px 4px}
@@ -395,6 +401,8 @@
   .story-badges .badge.ok{background:rgba(120,220,140,.12);color:#78dc8c;border-color:rgba(120,220,140,.28)}
   .story-badges .badge.draft{background:rgba(120,180,255,.14);color:#8ab4ff;border-color:rgba(120,180,255,.30)}
   .story-badges .badge.muted{background:var(--surface-2);color:var(--muted);border-color:var(--line)}
+  .story-badges .badge.news{background:rgba(91,140,255,.16);color:#8ab4ff;border-color:rgba(91,140,255,.34)}
+  .story-badges .badge.manual{background:rgba(255,107,129,.14);color:#ff9aa8;border-color:rgba(255,107,129,.32)}
   /* Aksiyon grubu — 2 satır grid: primary (full-width) + secondary (split) */
   .story-actions{
     padding:10px 10px 12px;display:grid;grid-template-rows:auto auto;gap:6px}
@@ -1682,12 +1690,16 @@ function renderStories(cards){
   grid.innerHTML = "";
   for(const c of cards){
     const card = document.createElement("div");
-    card.className = "story-card";
+    const isNews = c.source === "haber";
+    card.className = "story-card " + (isNews ? "src-haber" : "src-manuel");
     const ready = !!c.ready;
     const draft = !!c.draft;
     const hasCaption = !!c.has_caption;
-    // durum rozetleri
+    // durum rozetleri — ilk rozet KAYNAK (haber=mavi / manuel=pembe)
     const badges = [];
+    badges.push(isNews
+      ? `<span class="badge news">📰 Haber</span>`
+      : `<span class="badge manual">🎨 Manuel</span>`);
     if(ready) badges.push(`<span class="badge ok">✓ Yayına Hazır</span>`);
     if(hasCaption) badges.push(`<span class="badge muted">📝 Caption</span>`);
     // Buton hierarchy — durum bazlı 2 satır:
