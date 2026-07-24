@@ -1,14 +1,16 @@
 {
   "news": {
     "enabled": false,
-    "interval_days": 2,
+    "days": [1, 4],
     "hour": 9,
+    "minute": 0,
     "auto_publish": false
   },
   "topic": {
     "enabled": false,
-    "interval_days": 3,
+    "days": [2, 5],
     "hour": 12,
+    "minute": 0,
     "auto_publish": false
   }
 }
