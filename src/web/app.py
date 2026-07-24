@@ -979,22 +979,170 @@ def instagram_publish(name: str) -> dict[str, Any]:
     return {"ok": True, "image_url": image_url}
 
 
+_AUTO_CFG_PATH = "data/automation_config.json"
+_DEFAULT_AUTO_CFG = {
+    "news":  {"enabled": False, "interval_days": 2, "hour": 9,  "auto_publish": False},
+    "topic": {"enabled": False, "interval_days": 3, "hour": 12, "auto_publish": False},
+}
+
+
+def _load_auto_cfg() -> dict[str, Any]:
+    p = cfg.project_root / _AUTO_CFG_PATH
+    if p.exists():
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
+            for k, v in _DEFAULT_AUTO_CFG.items():
+                data.setdefault(k, v.copy())
+            return data
+        except (OSError, ValueError):
+            pass
+    return {k: v.copy() for k, v in _DEFAULT_AUTO_CFG.items()}
+
+
+def _save_auto_cfg(data: dict[str, Any]) -> None:
+    p = cfg.project_root / _AUTO_CFG_PATH
+    p.parent.mkdir(parents=True, exist_ok=True)
+    tmp = p.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp.replace(p)
+
+
+def _sync_launchd(auto: dict[str, Any]) -> list[str]:
+    """Automation config'e göre launchd plist'lerini yeniden yaz + reload.
+    Her aktif iş için ayrı plist; kapalı olan silinir. Notlar döner."""
+    import subprocess
+    notes = []
+    la_dir = Path.home() / "Library" / "LaunchAgents"
+    la_dir.mkdir(parents=True, exist_ok=True)
+    py = shutil.which("python3") or "/usr/bin/python3"
+    # venv python'u tercih et
+    venv_py = cfg.project_root / ".venv" / "bin" / "python"
+    if venv_py.exists():
+        py = str(venv_py)
+
+    jobs = {
+        "news":  {"label": "com.japonyaruyasi.news",
+                  "module": "src.news_automation",
+                  "log": "data/news_automation/run.log"},
+        "topic": {"label": "com.japonyaruyasi.topic",
+                  "module": "src.topic_automation",
+                  "log": "data/topic_automation/run.log"},
+    }
+    for kind, meta in jobs.items():
+        plist = la_dir / f"{meta['label']}.plist"
+        conf = auto.get(kind) or {}
+        # önce mevcut varsa unload
+        if plist.exists():
+            try:
+                subprocess.run(["launchctl", "unload", str(plist)],
+                               capture_output=True, timeout=8)
+            except (OSError, subprocess.SubprocessError):
+                pass
+        if not conf.get("enabled"):
+            if plist.exists():
+                plist.unlink(missing_ok=True)
+                notes.append(f"{kind}: kaldırıldı (kapalı)")
+            continue
+
+        interval = max(1, int(conf.get("interval_days", 2))) * 86400
+        args = [py, "-m", meta["module"]]
+        if conf.get("auto_publish"):
+            args.append("--publish")
+        log_path = cfg.project_root / meta["log"]
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>{meta['label']}</string>
+  <key>ProgramArguments</key>
+  <array>{"".join(f"<string>{a}</string>" for a in args)}</array>
+  <key>WorkingDirectory</key><string>{cfg.project_root}</string>
+  <key>StartInterval</key><integer>{interval}</integer>
+  <key>RunAtLoad</key><false/>
+  <key>StandardOutPath</key><string>{log_path}</string>
+  <key>StandardErrorPath</key><string>{log_path}</string>
+</dict>
+</plist>
+"""
+        plist.write_text(content, encoding="utf-8")
+        try:
+            subprocess.run(["launchctl", "load", str(plist)],
+                           capture_output=True, timeout=8)
+            notes.append(f"{kind}: aktif · her {conf['interval_days']} günde · "
+                         f"auto_publish={conf.get('auto_publish', False)}")
+        except (OSError, subprocess.SubprocessError) as exc:
+            notes.append(f"{kind}: plist yazıldı ama launchctl load hata verdi: {exc}")
+    return notes
+
+
+@app.get("/api/automation/config")
+def automation_config_get() -> dict[str, Any]:
+    return _load_auto_cfg()
+
+
+class AutomationConfigRequest(BaseModel):
+    news: dict[str, Any] = Field(default_factory=dict)
+    topic: dict[str, Any] = Field(default_factory=dict)
+
+
+@app.post("/api/automation/config")
+def automation_config_post(req: AutomationConfigRequest) -> dict[str, Any]:
+    data = _load_auto_cfg()
+    for k in ("news", "topic"):
+        incoming = getattr(req, k) or {}
+        for key in ("enabled", "interval_days", "hour", "auto_publish"):
+            if key in incoming:
+                data[k][key] = incoming[key]
+    _save_auto_cfg(data)
+    notes = _sync_launchd(data)
+    return {"ok": True, "config": data, "launchd": notes}
+
+
+class RunNowRequest(BaseModel):
+    kind: str = "news"       # 'news' | 'topic'
+    auto_publish: bool = False
+
+
+@app.post("/api/automation/run_now")
+def automation_run_now(req: RunNowRequest) -> dict[str, Any]:
+    """Bir otomasyon işini elle bir kez tetikle (footer'da canlı log)."""
+    kind = req.kind if req.kind in ("news", "topic") else "news"
+    label = "📰 Haber" if kind == "news" else "🎨 Konu"
+
+    def target(emit: Callable[..., None], cancel_ev: Event) -> None:
+        emit(f"{label} otomasyonu başladı (auto_publish={req.auto_publish})", "info")
+        if kind == "news":
+            from src import news_automation
+            res = news_automation.run_once_with_publish(cfg, auto_publish=req.auto_publish)
+        else:
+            from src import topic_automation
+            res = topic_automation.run_once(cfg, auto_publish=req.auto_publish)
+        if res.get("ok"):
+            mid = res.get("published_media_id")
+            emit(f"✅ {label}: {res.get('file', '?')}"
+                 + (f" · yayınlandı (media_id={mid})" if mid else ""), "info")
+        else:
+            emit(f"⚠ {label} atlandı: {res.get('reason', 'bilinmiyor')}", "warn")
+
+    try:
+        manager.start_callable(f"{label} — elle tetik", target)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"ok": True, "kind": kind}
+
+
 @app.post("/api/news/run_now")
 def news_run_now() -> dict[str, Any]:
-    """Haber otomasyonunu elle bir kez çalıştır — arka plan job; run_once'un
-    log satırları 'Canlı Süreç' footer'ına düşer."""
+    """Backward-compat: eski buton hâlâ çalışsın (auto_publish=False)."""
     def target(emit: Callable[..., None], cancel_ev: Event) -> None:
         from src import news_automation
         emit("📰 Japonya haberleri taranıyor…", "info")
         res = news_automation.run_once(cfg)
-        if res.get("ok") and not res.get("dry_run"):
-            copied = ", ".join(res.get("copied") or []) or "Drive'a kopyalanmadı"
-            emit(f"✅ Kart üretildi: {res.get('file', '?')} · {copied}", "info")
-        elif res.get("ok"):
-            emit("✓ Dry-run tamam", "info")
+        if res.get("ok"):
+            emit(f"✅ Kart üretildi: {res.get('file', '?')}", "info")
         else:
-            emit(f"⚠ Kart üretilmedi ({res.get('reason', 'bilinmiyor')}) — "
-                 "uygun taze haber yok olabilir.", "warn")
+            emit(f"⚠ Kart üretilmedi ({res.get('reason', 'bilinmiyor')})", "warn")
     try:
         manager.start_callable("Haberden kart üret", target)
     except RuntimeError as exc:
