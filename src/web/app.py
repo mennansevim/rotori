@@ -830,6 +830,29 @@ def story_drive_upload(name: str) -> dict[str, Any]:
     return {"ok": True, "copied": copied, "dest": str(dest_dir)}
 
 
+@app.post("/api/news/run_now")
+def news_run_now() -> dict[str, Any]:
+    """Haber otomasyonunu elle bir kez çalıştır — arka plan job; run_once'un
+    log satırları 'Canlı Süreç' footer'ına düşer."""
+    def target(emit: Callable[..., None], cancel_ev: Event) -> None:
+        from src import news_automation
+        emit("📰 Japonya haberleri taranıyor…", "info")
+        res = news_automation.run_once(cfg)
+        if res.get("ok") and not res.get("dry_run"):
+            copied = ", ".join(res.get("copied") or []) or "Drive'a kopyalanmadı"
+            emit(f"✅ Kart üretildi: {res.get('file', '?')} · {copied}", "info")
+        elif res.get("ok"):
+            emit("✓ Dry-run tamam", "info")
+        else:
+            emit(f"⚠ Kart üretilmedi ({res.get('reason', 'bilinmiyor')}) — "
+                 "uygun taze haber yok olabilir.", "warn")
+    try:
+        manager.start_callable("Haberden kart üret", target)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"ok": True}
+
+
 @app.get("/api/story/meta/{name}")
 def story_meta(name: str) -> dict[str, Any]:
     """Kartın kaynak verisini döndür (düzenleme formu için). Sidecar .json
