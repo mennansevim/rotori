@@ -90,6 +90,19 @@ drive:
   # Örn: "/Users/<sen>/Library/CloudStorage/GoogleDrive-<mail>/My Drive/JaponyaReels"
   folder: ""
 
+# Haber otomasyonu — 2 günde bir Japonya haberlerini tara, uygun bir haber
+# seç, kart üret, Drive'a at. Zamanlama launchd ile (scripts/install_news_automation.sh).
+# Elle çalıştır: python -m src.news_automation  (--dry-run: dosya yazmadan test)
+news_automation:
+  enabled: true
+  lookback_days: 2          # son N günün haberleri
+  max_candidates: 25        # GPT'ye sunulacak aday haber sayısı
+  feeds:                    # boş bırakılırsa varsayılan 4 feed kullanılır
+    - "https://soranews24.com/feed/"       # kültür/yaşam/seyahat (on-brand)
+    - "https://www.nippon.com/en/feed/"    # kültür/toplum
+    - "https://japantoday.com/feed"        # genel güncel
+    - "https://www.japantimes.co.jp/feed/" # genel güncel
+
 stories:
   # Hikaye/Post Görsel Üreticisi. Instagram Post 4:5 formatı (1080×1350) —
   # feed'de tam görünür, kesilmez. Aynı görsel Story'e "share to story"
