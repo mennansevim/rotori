@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -110,6 +110,25 @@ class RunCfg:
     max_videos_per_run: int = 10
 
 
+# Varsayılan Japonya haber RSS feed'leri (İngilizce, kanala uygun karışım):
+# SoraNews24 + Nippon.com = kültür/yaşam/seyahat (birebir on-brand),
+# Japan Today + Japan Times = genel güncel haber.
+_DEFAULT_NEWS_FEEDS = [
+    "https://soranews24.com/feed/",
+    "https://www.nippon.com/en/feed/",
+    "https://japantoday.com/feed",
+    "https://www.japantimes.co.jp/feed/",
+]
+
+
+@dataclass
+class NewsCfg:
+    enabled: bool = True
+    feeds: list[str] = field(default_factory=lambda: list(_DEFAULT_NEWS_FEEDS))
+    lookback_days: int = 2      # son N günün haberleri dikkate alınır
+    max_candidates: int = 25    # GPT'ye sunulacak aday haber sayısı
+
+
 @dataclass
 class Config:
     paths: PathsCfg
@@ -126,6 +145,7 @@ class Config:
     # "Drive'a Gönder" hedefi — yerel senkron klasör yolu (Google Drive Desktop /
     # OneDrive vb.). Dosyalar buraya kopyalanır, bulut uygulaması otomatik yükler.
     drive_folder: Path | None = None
+    news: "NewsCfg | None" = None    # haber otomasyonu ayarları
 
 
 def _resolve(base: Path, p: str) -> Path:
@@ -204,10 +224,19 @@ def load_config(config_path: str | None = None) -> Config:
     if _df and _df not in ("", "REPLACE_ME_DRIVE_FOLDER"):
         drive_folder = _resolve(project_root, _df)
 
+    # Haber otomasyonu
+    news_raw = raw.get("news_automation") or {}
+    news_cfg = NewsCfg(
+        enabled=bool(news_raw.get("enabled", True)),
+        feeds=list(news_raw.get("feeds") or _DEFAULT_NEWS_FEEDS),
+        lookback_days=int(news_raw.get("lookback_days", 2)),
+        max_candidates=int(news_raw.get("max_candidates", 25)),
+    )
+
     return Config(paths=paths, ollama=ollama, dify=dify, reels=reels, pilot=pilot,
                   run=run, project_root=project_root, openai=openai_cfg,
                   instagram=ig_cfg, stories=stories_cfg, unsplash=unsplash_cfg,
-                  drive_folder=drive_folder)
+                  drive_folder=drive_folder, news=news_cfg)
 
 
 def require_video_source(cfg: Config) -> Path:
