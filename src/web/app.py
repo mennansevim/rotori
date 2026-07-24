@@ -843,6 +843,69 @@ def story_drive_upload(name: str) -> dict[str, Any]:
     return {"ok": True, "copied": copied, "dest": str(dest_dir)}
 
 
+# ---------------- Reels (OpusClip-tarzı 9:16 reframe) ----------------
+class ReelMakeRequest(BaseModel):
+    video: str = Field(..., min_length=1)      # kaynak video dosya adı
+    max_sn: int = 60                            # hedef süre (üst sınır)
+
+
+@app.get("/api/reels/sources")
+def reels_sources() -> dict[str, Any]:
+    """JAPAN REELS klasöründeki kaynak videoları listele (thumb + süre)."""
+    from src import reel_maker
+    try:
+        return {"videos": reel_maker.list_source_videos(cfg)}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Kaynak listelenemedi: {exc}") from exc
+
+
+@app.get("/api/reels/generated")
+def reels_generated() -> dict[str, Any]:
+    """Üretilmiş reels'leri listele (output/reels)."""
+    from src import reel_maker
+    return {"reels": reel_maker.list_generated(cfg)}
+
+
+@app.post("/api/reels/make")
+def reels_make(req: ReelMakeRequest) -> dict[str, Any]:
+    """Kaynak videodan 9:16 dikey reel üret — arka plan job; footer'da canlı log."""
+    def target(emit: Callable[..., None], cancel_ev: Event) -> None:
+        from src import reel_maker
+        reel_maker.make_reel(cfg, req.video, req.max_sn, emit, cancel_ev)
+    try:
+        manager.start_callable(f"Reel: {req.video[:40]}", target)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"ok": True}
+
+
+@app.post("/api/reels/drive-upload/{name}")
+def reels_drive_upload(name: str) -> dict[str, Any]:
+    """Reel mp4'ünü (+varsa .txt) Drive senkron klasörüne kopyala."""
+    if "/" in name or "\\" in name or ".." in name or not name.lower().endswith(".mp4"):
+        raise HTTPException(status_code=400, detail="Geçersiz dosya adı.")
+    if cfg.drive_folder is None:
+        raise HTTPException(status_code=400,
+                            detail="Drive klasörü ayarlı değil (config.yaml → drive.folder).")
+    mp4 = cfg.paths.output_dir / name
+    if not mp4.exists():
+        raise HTTPException(status_code=404, detail="Reel bulunamadı.")
+    dest = cfg.drive_folder
+    try:
+        dest.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise HTTPException(status_code=400, detail=f"Drive klasörü erişilemedi: {exc}") from exc
+    copied = []
+    for f in (mp4, mp4.with_suffix(".txt")):
+        if f.exists():
+            try:
+                shutil.copy2(f, dest / f.name)
+                copied.append(f.name)
+            except OSError as exc:
+                log.warning(f"  reel Drive kopyalama hatası ({f.name}): {exc}")
+    return {"ok": True, "copied": copied}
+
+
 @app.post("/api/news/run_now")
 def news_run_now() -> dict[str, Any]:
     """Haber otomasyonunu elle bir kez çalıştır — arka plan job; run_once'un
