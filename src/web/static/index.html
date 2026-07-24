@@ -95,6 +95,20 @@
   .section-hint{color:var(--muted);font-size:12.5px;margin:0 0 14px;
     line-height:1.55}
 
+  /* ------ iOS-tarzı toggle switch (Otomasyon modalı) ------ */
+  .switch{position:relative;display:inline-block;width:46px;height:26px;flex-shrink:0}
+  .switch input{opacity:0;width:0;height:0}
+  .switch .slider{position:absolute;cursor:pointer;inset:0;background:rgba(255,255,255,.22);
+    border-radius:26px;transition:background var(--dur) var(--ease)}
+  .switch .slider:before{content:"";position:absolute;height:20px;width:20px;left:3px;top:3px;
+    background:#fff;border-radius:50%;transition:transform var(--dur) var(--ease);
+    box-shadow:0 2px 4px rgba(0,0,0,.3)}
+  .switch input:checked + .slider{background:#34d399}
+  .switch input:checked + .slider:before{transform:translateX(20px)}
+  /* modal içindeki (koyu bg) toggle için */
+  .auto-card .switch .slider{background:rgba(0,0,0,.25)}
+  .auto-card .switch input:checked + .slider{background:#34d399}
+
   /* ------ Sekme çubuğu (segmented) ------ */
   .tabs{display:inline-flex;gap:2px;background:var(--surface);border:1px solid var(--line);
     border-radius:12px;padding:4px;margin:2px 0 22px}
@@ -585,6 +599,16 @@
         <span class="action-ico">📰</span>
         <span class="action-txt"><b>Haberden Üret</b><small>Güncel haberden otomatik kart</small></span>
         <span class="spin"></span>
+      </button>
+    </div>
+    <div style="margin-top:14px;text-align:right">
+      <button onclick="openAutomationModal()"
+        style="background:transparent;border:1px solid var(--line);color:var(--txt-dim);
+          padding:9px 18px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;
+          font-family:inherit;transition:all var(--dur) var(--ease)"
+        onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--txt)'"
+        onmouseout="this.style.borderColor='var(--line)';this.style.color='var(--txt-dim)'">
+        ⚙ Otomasyon Ayarları
       </button>
     </div>
   </div>
@@ -1497,6 +1521,167 @@ async function openEditModal(name){
 function closeEditModal(){
   const m = document.getElementById("editModal");
   if(m) m.remove();
+}
+
+// ---------- Otomasyon Ayarları modal ----------
+let _autoCfg = null;
+
+async function openAutomationModal(){
+  // ayarları çek
+  try{
+    _autoCfg = await (await fetch("/api/automation/config")).json();
+  }catch(e){ toast("Otomasyon ayarları alınamadı.", "err"); return; }
+
+  const back = document.createElement("div");
+  back.id = "automationModal";
+  back.className = "modal-backdrop";
+
+  const jobCard = (kind, colorGrad, ico, title, desc) => {
+    const c = _autoCfg[kind] || {};
+    const days = c.interval_days || (kind === "news" ? 2 : 3);
+    return `
+    <div class="auto-card" style="background:var(--surface);border:1px solid var(--line);
+      border-radius:16px;overflow:hidden;margin-bottom:14px">
+      <div style="background:${colorGrad};padding:14px 18px;display:flex;
+        align-items:center;gap:12px;color:#fff">
+        <div style="width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,.20);
+          display:flex;align-items:center;justify-content:center;font-size:22px">${ico}</div>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:16px">${title}</div>
+          <div style="font-size:12px;opacity:.9">${desc}</div>
+        </div>
+        <label class="switch" title="Aktif">
+          <input type="checkbox" id="auto-${kind}-enabled" ${c.enabled ? "checked" : ""}>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div style="padding:16px 18px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-size:13px;color:var(--txt-dim);font-weight:600">Kaç günde bir?</span>
+          <div class="tabs" style="margin:0" id="auto-${kind}-days">
+            ${[1,2,3,5,7].map(d => `
+              <button class="tab ${d===days?'active':''}" data-d="${d}"
+                onclick="setAutoDays('${kind}',${d})">${d} gün</button>
+            `).join("")}
+          </div>
+        </div>
+        <label style="display:flex;justify-content:space-between;align-items:center;
+          padding:12px 0;border-top:1px solid var(--line)">
+          <span>
+            <div style="font-size:13px;color:var(--txt);font-weight:600">📤 Otomatik yayınla</div>
+            <div style="font-size:11.5px;color:var(--muted);margin-top:2px">
+              Üretilen kart doğrudan Instagram'a atılır (@japonyaruyasi)
+            </div>
+          </span>
+          <label class="switch">
+            <input type="checkbox" id="auto-${kind}-publish" ${c.auto_publish ? "checked" : ""}>
+            <span class="slider"></span>
+          </label>
+        </label>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button class="story-btn" style="flex:1"
+            onclick="runAutoNow('${kind}', false)">▶ Şimdi çalıştır</button>
+          <button class="story-btn primary" style="flex:1"
+            onclick="runAutoNow('${kind}', true)">📤 Şimdi üret + yayınla</button>
+        </div>
+      </div>
+    </div>`;
+  };
+
+  back.innerHTML = `
+    <div class="modal-content" style="max-width:640px" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <h3 class="modal-title">⚙ Otomasyon Ayarları
+          <small>— arka planda otomatik kart üretimi</small></h3>
+        <button class="ghost sm" onclick="closeAutomationModal()">✕ Kapat</button>
+      </div>
+      <div class="modal-body">
+        ${jobCard("news", "linear-gradient(135deg,#5b8cff 0%,#3b5bdb 55%,#4c2fb0 100%)",
+                  "📰", "Haberden Üret", "Güncel Japonya haberi → kart")}
+        ${jobCard("topic", "linear-gradient(135deg,#ff6b81 0%,#ff2d55 55%,#c81e56 100%)",
+                  "🎨", "Görselden Üret", "Konu havuzundan rastgele + görsel")}
+        <div style="font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.5">
+          💡 Kaydet'e bastığında macOS launchd'de kalıcı zamanlayıcı kurulur —
+          Mac açık olduğu sürece arka planda çalışır.
+        </div>
+      </div>
+      <div class="modal-foot">
+        <div></div>
+        <div>
+          <button class="primary" id="btn-auto-save" onclick="saveAutomationConfig()">💾 Kaydet</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(back);
+}
+
+function closeAutomationModal(){
+  const m = document.getElementById("automationModal");
+  if(m) m.remove();
+}
+
+function setAutoDays(kind, days){
+  if(!_autoCfg) return;
+  _autoCfg[kind].interval_days = days;
+  document.querySelectorAll(`#auto-${kind}-days .tab`).forEach(t =>
+    t.classList.toggle("active", Number(t.dataset.d) === days));
+}
+
+async function saveAutomationConfig(){
+  const body = {
+    news:  { enabled: $("auto-news-enabled").checked,
+             interval_days: _autoCfg.news.interval_days,
+             auto_publish: $("auto-news-publish").checked },
+    topic: { enabled: $("auto-topic-enabled").checked,
+             interval_days: _autoCfg.topic.interval_days,
+             auto_publish: $("auto-topic-publish").checked },
+  };
+  const btn = $("btn-auto-save");
+  btn.disabled = true; btn.textContent = "⏳ Kaydediliyor…";
+  try{
+    const r = await fetch("/api/automation/config", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(body),
+    });
+    if(!r.ok){
+      let m = r.statusText; try{ const j = await r.json(); m = j.detail || m; }catch(e){}
+      toast("Kaydedilemedi: " + m, "err"); return;
+    }
+    const data = await r.json();
+    toast("✓ Ayarlar kaydedildi · " + (data.launchd||[]).join(" · "), "ok", 4500);
+    closeAutomationModal();
+  }catch(e){ toast("Bağlantı hatası.", "err"); }
+  finally{ btn.disabled = false; btn.textContent = "💾 Kaydet"; }
+}
+
+async function runAutoNow(kind, autoPublish){
+  if(autoPublish && !confirm(`${kind==='news'?'📰 Haber':'🎨 Konu'} kartı üretilip DOĞRUDAN Instagram'a yayınlanacak. Emin misin?`)) return;
+  try{
+    const r = await fetch("/api/automation/run_now", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({kind, auto_publish: autoPublish}),
+    });
+    if(!r.ok){
+      let m = r.statusText; try{ const j = await r.json(); m = j.detail || m; }catch(e){}
+      toast("Başlatılamadı: " + m, "err"); return;
+    }
+    toast(`${kind==='news'?'📰 Haber':'🎨 Konu'} otomasyonu başladı — Canlı Süreç'te izle`, "info", 3000);
+    logSeq = 0; $("logbox").innerHTML = ""; pollStatus(); pollLogs();
+    closeAutomationModal();
+    // job biterse listeyi yenile
+    const watch = setInterval(async () => {
+      try{
+        const s = await (await fetch("/api/status")).json();
+        if(!(s.job && s.job.running)){
+          clearInterval(watch);
+          await loadRecentStories();
+          if(s.job && s.job.error) toast("Job hata verdi — loglara bak.", "err", 4000);
+          else toast("✅ Tamam ✓", "ok", 2500);
+        }
+      }catch(e){}
+    }, 2500);
+    setTimeout(() => clearInterval(watch), 240000);
+  }catch(e){ toast("Bağlantı hatası.", "err"); }
 }
 
 async function saveEdit(name){
