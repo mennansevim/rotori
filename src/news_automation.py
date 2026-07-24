@@ -158,10 +158,17 @@ def _select_prompt(cands: list[dict[str, Any]]) -> str:
         f"HABERLER:\n{liste}\n\n"
         "ÇIKTI: sadece JSON —\n"
         '  {"index": <uygun haberin numarası>, "unsplash_query": "<2-4 kelime '
-        'İngilizce görsel arama; Japonya bağlamı>", "reason": "<kısa>"}\n'
-        "Turist adayına hitap eden hiçbir haber yoksa: {\"index\": -1}\n"
-        "unsplash_query örnek: 'cherry blossom kyoto', 'autumn leaves temple', "
-        "'tokyo street food', 'mount fuji snow', 'traditional ryokan onsen'."
+        'İngilizce görsel arama>", "reason": "<kısa>"}\n'
+        "Turist adayına hitap eden hiçbir haber yoksa: {\"index\": -1}\n\n"
+        "unsplash_query KURALLARI (çok önemli — stok fotoğrafta bulunmalı):\n"
+        "- ÇEKİLEBİLİR, GENEL bir sahne yaz. Marka/anime/film/karakter/kurum "
+        "adı YAZMA (Evangelion, Ghibli, Uniqlo, Pokémon stok fotoğrafta YOK).\n"
+        "- Haberin temasını gerçek bir sahneye çevir. Örnekler:\n"
+        "  'Evangelion heykeli tren istasyonunda' → 'japanese train station'\n"
+        "  'Studio Ghibli festivali' → 'tokyo cinema night' veya 'anime akihabara'\n"
+        "  'sakura tahminleri' → 'cherry blossom park'\n"
+        "  'yeni onsen oteli' → 'traditional ryokan onsen'\n"
+        "- Japonya bağlamını koru (mümkünse 'japan/tokyo/kyoto' + sahne)."
     )
 
 
@@ -255,6 +262,81 @@ def generate_text(cfg: Config, oai, news: dict[str, Any]) -> tuple[str, str]:
     return aciklama, caption
 
 
+# ---------------- Görsel seçimi (dedup + vision doğrulama) ----------------
+def _img_fits(oai, thumb_url: str, konu: str) -> bool:
+    """Adayı GPT-vision ile denetle: bu görsel habere/temaya uygun mu?
+    Thumb'ı indirip base64 gönderir (OpenAI Unsplash CDN'ini doğrudan çekemiyor).
+    Denetim yapılamazsa True döner (engelleme)."""
+    if not thumb_url:
+        return True
+    try:
+        import base64
+        import requests as _rq
+        r = _rq.get(thumb_url, timeout=12, headers={"User-Agent": _UA})
+        r.raise_for_status()
+        mime = r.headers.get("Content-Type", "image/jpeg").split(";")[0].strip()
+        if not mime.startswith("image/"):
+            mime = "image/jpeg"
+        data_uri = f"data:{mime};base64,{base64.b64encode(r.content).decode('ascii')}"
+        out = oai.chat_vision_json(
+            "Sen bir görsel editörüsün — bir haber görselinin konuya uygunluğunu "
+            "denetlersin. Yanıt SADECE JSON.",
+            f"Haber konusu: \"{konu}\"\n\nBu görsel, bu konudaki bir Japonya "
+            "paylaşımına GÖRSEL olarak uygun/ilgili mi? Konuyu birebir göstermesi "
+            "şart değil ama teması/atmosferi uymalı ve alakasız olmamalı "
+            "(örn. konu 'tren' ise orman fotoğrafı UYGUN DEĞİL).\n"
+            'JSON: {"uygun": true veya false}',
+            image_url=data_uri, detail="low", temperature=0, max_tokens=30,
+        )
+        return bool(out.get("uygun", True))
+    except Exception as exc:
+        log.warning(f"  görsel denetimi atlandı: {exc}")
+        return True
+
+
+def _pick_image(cfg, oai, query: str, konu: str,
+                used_bg_ids: set[str]) -> dict[str, Any] | None:
+    """Habere uygun, DAHA ÖNCE KULLANILMAMIŞ görsel seç.
+    Sorgu boş sonuç verirse kademeli genişletir; adayları vision ile doğrular
+    (en fazla 3 aday denetlenir); hiçbiri geçmezse ilk kullanılmamışa düşer."""
+    from src import downloader
+    queries = [query, f"japan {query.split()[0]}" if query else "japan",
+               "japan travel", "japan"]
+    seen_q, results = set(), []
+    for q in queries:
+        q = q.strip()
+        if not q or q in seen_q:
+            continue
+        seen_q.add(q)
+        try:
+            results = downloader.search_only(cfg, q, count=12)
+        except Exception as exc:
+            log.warning(f"  Unsplash arama hatası ('{q}'): {exc}")
+            results = []
+        if results:
+            log.info(f"  görsel arama: '{q}' → {len(results)} sonuç")
+            break
+    if not results:
+        return None
+
+    unused = [r for r in results if r.get("id") not in used_bg_ids]
+    pool = unused or results   # hepsi kullanıldıysa mecburen tekrar
+
+    # ilk 3 kullanılmamış adayı vision ile doğrula, ilk 'uygun'u seç
+    checked = 0
+    for cand in pool:
+        if checked >= 3:
+            break
+        checked += 1
+        if _img_fits(oai, cand.get("thumb") or cand.get("download_url", ""), konu):
+            log.info(f"  ✓ görsel uygun bulundu (id={cand.get('id')}, {checked}. aday)")
+            return cand
+        log.info(f"  ✗ aday uygun değil (id={cand.get('id')}), sonrakine bakılıyor")
+    # hiçbiri doğrulanmadı → en iyi kullanılmamış (yoksa ilk)
+    log.info("  uygun aday doğrulanamadı — ilk kullanılmamış görsel kullanılıyor")
+    return pool[0]
+
+
 # ---------------- Drive kopyala ----------------
 def _copy_to_drive(cfg: Config, jpg: Path) -> list[str]:
     if cfg.drive_folder is None:
@@ -313,23 +395,14 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
         return {"ok": True, "dry_run": True, "news": news, "aciklama": aciklama,
                 "caption_preview": caption[:120]}
 
-    # görsel
+    # görsel — habere uygun + kullanılmamış + vision doğrulamalı
     if cfg.stories is None:
         raise RuntimeError("stories config yok — kart render edilemez.")
-    from src import downloader, story_generator
-    try:
-        results = downloader.search_only(cfg, news["unsplash_query"], count=10)
-    except Exception as exc:
-        log.warning(f"  Unsplash arama hatası: {exc} — 'japan' fallback")
-        results = []
-    if not results:
-        try:
-            results = downloader.search_only(cfg, "japan", count=10)
-        except Exception as exc:
-            raise RuntimeError(f"Unsplash görsel bulunamadı: {exc}") from exc
-    if not results:
-        raise RuntimeError("Unsplash hiç görsel döndürmedi.")
-    bg = results[0]
+    from src import story_generator
+    used_bg = set(state.get("used_bg_ids", []))
+    bg = _pick_image(cfg, oai, news["unsplash_query"], news["title"], used_bg)
+    if bg is None:
+        raise RuntimeError("Uygun görsel bulunamadı (Unsplash boş).")
 
     out_path = story_generator.render_from_url(
         cfg, bg_url=bg["download_url"], bg_id=bg["id"],
@@ -361,9 +434,11 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
 
     copied = _copy_to_drive(cfg, out_path)
 
-    # state güncelle
+    # state güncelle (haber + görsel dedup)
     used.add(_news_id(news))
     state["used_ids"] = list(used)[-_USED_CAP:]
+    used_bg.add(bg["id"])
+    state["used_bg_ids"] = list(used_bg)[-_USED_CAP:]
     state["last_run"] = time.strftime("%Y-%m-%dT%H:%M:%S")
     state.setdefault("history", []).append({
         "at": state["last_run"], "title": news["title"], "link": news["link"],
