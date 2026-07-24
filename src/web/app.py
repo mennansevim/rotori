@@ -9,7 +9,7 @@ from typing import Any, Callable
 from urllib.parse import quote
 
 import requests
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -35,6 +35,11 @@ app.mount("/media/ready", StaticFiles(directory=str(cfg.paths.ready_dir)), name=
 app.mount("/media/frames", StaticFiles(directory=str(cfg.paths.frames_dir)), name="frames")
 if cfg.stories:
     app.mount("/media/stories", StaticFiles(directory=str(cfg.stories.output_dir)), name="stories")
+    if cfg.stories.backgrounds_dir:
+        cfg.stories.backgrounds_dir.mkdir(parents=True, exist_ok=True)
+        app.mount("/media/backgrounds",
+                  StaticFiles(directory=str(cfg.stories.backgrounds_dir)),
+                  name="backgrounds")
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
@@ -154,6 +159,10 @@ class VaryTextRequest(BaseModel):
 class AIFromImageRequest(BaseModel):
     image_url: str = Field(..., min_length=8)   # public URL veya data: URI
     konu: str = ""   # kullanıcının arattığı kelime — vision bu konuya odaklanır
+
+
+class AIFromTextRequest(BaseModel):
+    konu: str = Field(..., min_length=2, max_length=200)   # kullanıcının yazdığı konu
 
 
 # ---------------- endpoint'ler ----------------
@@ -560,6 +569,67 @@ def _ai_vision_prompt(konu: str = "") -> str:
     )
 
 
+_AI_TEXT_SYSTEM = (
+    "Sen @japonyaruyasi Instagram kanalı için konu tabanlı editörsün. Kullanıcının "
+    "yazdığı Japonya konusuna uygun bir Story kartı için başlık ve alt açıklama "
+    "önerirsin. TON: BELGESEL — 3. şahıs, öğretici değil, hitap yok. Uydurma sayı/"
+    "tarih/spesifik isim YASAK. Yanıt YALNIZCA istenen JSON."
+)
+
+
+def _ai_text_prompt(konu: str) -> str:
+    konu = (konu or "").strip()
+    for pre in ("japan ", "japonya "):
+        if konu.lower().startswith(pre):
+            konu = konu[len(pre):].strip()
+    return (
+        f"KONU: {konu}\n\n"
+        "Bu konu için bir Instagram Story kartı başlık + açıklama üret.\n\n"
+        "ÇIKTI FORMATI: sadece JSON objesi\n"
+        '  {"baslik": "...", "aciklama": "..."}\n\n'
+        "BAŞLIK (baslik) kuralları:\n"
+        "- MAX 4 kelime, konuyu yansıtan, vurucu.\n"
+        "- Klişe/emir YASAK. Örnek: 'Kırmızı Kapılar', 'Konbini Kültürü', "
+        "'Sakura Zamanı'.\n\n"
+        "AÇIKLAMA (aciklama) — kartın ana metni. EN FAZLA 2 cümle, toplam max "
+        "28 kelime. Konuya dair SOMUT bilgi ver (ne olduğu, işlevi, kültürel "
+        "bağlamı). Üslup kılavuzuna BİREBİR uy:\n\n"
+        f"{_TR_STYLE}\n\n"
+        "Emin olmadığın spesifik isim/sayı UYDURMA. Emoji YOK.\n\n"
+        "Yalnızca JSON döndür — hiçbir prefix/açıklama/markdown ekleme."
+    )
+
+
+@app.post("/api/story/ai_from_text")
+def story_ai_from_text(req: AIFromTextRequest) -> dict[str, Any]:
+    """Sadece konu metninden (vision'suz) GPT ile başlık + açıklama üretir.
+    Kullanıcı görsel seçmeden de konu yazıp AI önerisi alabilsin diye."""
+    if cfg.openai is None:
+        raise HTTPException(status_code=400,
+                            detail="OpenAI key gerekli. config.yaml → openai.api_key.")
+
+    from src.openai_client import OpenAIClient
+    oai = OpenAIClient.from_config(cfg)
+    if oai is None:
+        raise HTTPException(status_code=400, detail="OpenAI client oluşturulamadı.")
+
+    try:
+        out = oai.chat_json(
+            _AI_TEXT_SYSTEM,
+            _ai_text_prompt(req.konu),
+            temperature=0.7,
+            max_tokens=250,
+        )
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail=f"OpenAI hatası: {exc}") from exc
+
+    title = (out.get("baslik") or "").strip().strip('"').strip("'").strip()
+    subtitle = (out.get("aciklama") or "").strip().strip('"').strip("'").strip()
+    if not title and not subtitle:
+        raise HTTPException(status_code=502, detail="AI boş yanıt döndürdü")
+    return {"title": title, "subtitle": subtitle}
+
+
 @app.post("/api/story/ai_from_image")
 def story_ai_from_image(req: AIFromImageRequest) -> dict[str, Any]:
     """Verilen görseli GPT-4o vision ile analiz eder, başlık + alt açıklama önerir.
@@ -579,6 +649,31 @@ def story_ai_from_image(req: AIFromImageRequest) -> dict[str, Any]:
     src_url = req.image_url
     if src_url.startswith("data:"):
         data_uri = src_url
+    elif src_url.startswith("/media/backgrounds/") or src_url.startswith("/media/stories/"):
+        # Yerel dosya — diskten oku (HTTP round-trip'e gerek yok, göreli
+        # URL zaten requests.get ile fetch edilemez).
+        import base64
+        import mimetypes
+        if src_url.startswith("/media/backgrounds/"):
+            root = cfg.stories.backgrounds_dir if cfg.stories else None
+            rel = src_url[len("/media/backgrounds/"):]
+        else:
+            root = cfg.stories.output_dir if cfg.stories else None
+            rel = src_url[len("/media/stories/"):]
+        if root is None:
+            raise HTTPException(status_code=400, detail="stories config yok")
+        from urllib.parse import unquote
+        local_path = (root / unquote(rel)).resolve()
+        try:
+            local_path.relative_to(root.resolve())
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Geçersiz yol")
+        if not local_path.exists():
+            raise HTTPException(status_code=404,
+                                detail=f"Yerel görsel bulunamadı: {local_path.name}")
+        mime = mimetypes.guess_type(str(local_path))[0] or "image/jpeg"
+        b64 = base64.b64encode(local_path.read_bytes()).decode("ascii")
+        data_uri = f"data:{mime};base64,{b64}"
     else:
         import base64
         import requests as _req
@@ -646,6 +741,89 @@ def story_expand_caption(req: ExpandCaptionRequest) -> dict[str, Any]:
         if text.lower().startswith(prefix):
             text = text[len(prefix):].strip()
     return {"text": text, "chars": len(text)}
+
+
+_ALLOWED_UPLOAD_MIME = {"image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif"}
+
+
+@app.post("/api/story/upload_bg")
+async def story_upload_bg(
+    file: UploadFile = File(...),
+    query: str = Form(""),
+) -> dict[str, Any]:
+    """Kullanıcının kendi görselini backgrounds_dir'a kaydeder. Dönen payload
+    picker-item şeması ile aynıdır (id/download_url/preview_url/thumb) — frontend
+    onu Unsplash sonuçları gibi işleyebilir."""
+    if cfg.stories is None or cfg.stories.backgrounds_dir is None:
+        raise HTTPException(status_code=400, detail="stories.backgrounds_dir yok")
+
+    mime = (file.content_type or "").lower()
+    if mime and mime not in _ALLOWED_UPLOAD_MIME:
+        raise HTTPException(status_code=400,
+                            detail=f"Desteklenmeyen dosya tipi: {mime}. Sadece JPG/PNG/WEBP.")
+
+    from src import story_generator
+
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Boş dosya")
+    if len(raw) > 25 * 1024 * 1024:
+        raise HTTPException(status_code=400,
+                            detail=f"Dosya çok büyük ({len(raw)//(1024*1024)} MB, maks 25 MB)")
+
+    import hashlib
+    from io import BytesIO
+    try:
+        from PIL import Image
+    except ImportError as exc:
+        raise HTTPException(status_code=500, detail=f"Pillow yok: {exc}") from exc
+
+    try:
+        img = Image.open(BytesIO(raw))
+        img.verify()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Görsel açılamadı: {exc}") from exc
+
+    digest = hashlib.sha1(raw).hexdigest()[:12]
+    bg_id = f"upload-{digest}"
+    slug_q = story_generator._slugify(query or "upload")
+    bg_dir = cfg.stories.backgrounds_dir
+    bg_dir.mkdir(parents=True, exist_ok=True)
+    bg_path = bg_dir / f"unsplash-{slug_q}-{bg_id}.jpg"
+
+    if not bg_path.exists():
+        try:
+            img2 = Image.open(BytesIO(raw))
+            if img2.mode not in ("RGB", "L"):
+                img2 = img2.convert("RGB")
+            max_side = 2400
+            w, h = img2.size
+            if max(w, h) > max_side:
+                if w >= h:
+                    new_w = max_side
+                    new_h = int(h * (max_side / w))
+                else:
+                    new_h = max_side
+                    new_w = int(w * (max_side / h))
+                img2 = img2.resize((new_w, new_h), Image.LANCZOS)
+            img2.save(bg_path, format="JPEG", quality=90, optimize=True)
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Kaydetme hatası: {exc}") from exc
+
+    thumb_url = f"/media/backgrounds/{quote(bg_path.name)}"
+    return {
+        "ok": True,
+        "id": bg_id,
+        "download_url": thumb_url,
+        "preview_url": thumb_url,
+        "thumb": thumb_url,
+        "photographer": "kullanıcı",
+        "photographer_name": "Yüklenen",
+        "photographer_url": "",
+        "query": query,
+        "width": img.width if hasattr(img, "width") else 0,
+        "height": img.height if hasattr(img, "height") else 0,
+    }
 
 
 @app.post("/api/story/render_direct")
