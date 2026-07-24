@@ -756,6 +756,17 @@ def story_list() -> dict[str, Any]:
     from src import instagram_publisher as ig
     uploads = ig.read_upload_log(cfg) if cfg.instagram is not None else {}
 
+    def _card_source(jpg: Path) -> str:
+        """Kartın kaynağı: 'haber' (otomasyon) | 'manuel'. Sidecar .json'dan."""
+        sc = jpg.with_suffix(".json")
+        if sc.exists():
+            try:
+                if json.loads(sc.read_text(encoding="utf-8")).get("auto_generated"):
+                    return "haber"
+            except (OSError, ValueError):
+                pass
+        return "manuel"
+
     cards = []
     # 1) ready/ altındaki (yayına hazır)
     if ready_dir.exists():
@@ -769,6 +780,7 @@ def story_list() -> dict[str, Any]:
                 "draft": stem in uploads,
                 "draft_info": uploads.get(stem),
                 "has_caption": p.with_suffix(".txt").exists(),
+                "source": _card_source(p),
             })
     # 2) top-level (henüz hazır işaretlenmemiş)
     for p in cfg.stories.output_dir.glob("*.jpg"):
@@ -781,6 +793,7 @@ def story_list() -> dict[str, Any]:
             "draft": stem in uploads,
             "draft_info": uploads.get(stem),
             "has_caption": p.with_suffix(".txt").exists(),
+            "source": _card_source(p),
         })
 
     cards.sort(key=lambda c: c["mtime"], reverse=True)
