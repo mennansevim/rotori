@@ -653,14 +653,49 @@ body.widget-mode .action-card small{ font-size:10px; }
 /* Section head/body — kompakt */
 body.widget-mode .section{ padding:14px 10px; margin-top:12px; }
 body.widget-mode .section-title{ font-size:15px; }
+/* Kartlar — 2 kolon grid, kompakt padding + küçük fontlar (2x2 = 4 sığar) */
 body.widget-mode #storyGrid,
-body.widget-mode #publishedGrid{ grid-template-columns:1fr; gap:10px; }
-body.widget-mode .story-card{ font-size:12px; }
-body.widget-mode .approval-section{ margin:0 0 12px; padding:14px 12px; }
-body.widget-mode .approval-grid{ grid-template-columns:1fr; }
+body.widget-mode #publishedGrid{
+  grid-template-columns:repeat(2, 1fr) !important;
+  gap:8px;
+}
+body.widget-mode .story-card{ font-size:11px; border-top-width:2px; }
+body.widget-mode .story-badges{ padding:5px 6px 2px; gap:3px; }
+body.widget-mode .story-badges .badge{ font-size:9px; padding:2px 5px; }
+body.widget-mode .story-actions{ padding:5px 6px 7px; gap:4px; }
+body.widget-mode .story-btn{
+  padding:6px 6px; font-size:10.5px; min-height:30px;
+  gap:3px; letter-spacing:0;
+}
+body.widget-mode .story-btn.primary{
+  font-size:10px; padding:6px 4px; letter-spacing:.02em;
+}
+body.widget-mode .story-actions .secondary-row .icon-only{ flex:0 0 32px; }
+body.widget-mode .approval-section{ margin:0 0 12px; padding:12px 10px; }
+body.widget-mode .approval-title{ font-size:14px; }
+body.widget-mode .approval-grid{ grid-template-columns:1fr; gap:10px; }
+/* Onay kartında görsel çok büyük olmasın — 220px'e sabitle, cover ile kes */
+body.widget-mode .approval-card .approval-img{
+  aspect-ratio:auto !important; height:220px; object-fit:cover;
+}
+body.widget-mode .approval-card .approval-body{ padding:10px; gap:7px; }
+body.widget-mode .approval-card .approval-meta{ font-size:10px; gap:5px; }
+body.widget-mode .approval-card .approval-source-badge{ font-size:9px; padding:1px 6px; }
+body.widget-mode .approval-card .approval-field-label{ font-size:9px; }
+body.widget-mode .approval-card textarea{
+  padding:7px 9px; font-size:12px; min-height:44px;
+}
+body.widget-mode .approval-card .approval-actions{ gap:5px; }
+body.widget-mode .approval-card .btn-approve{
+  padding:8px 8px; font-size:12px; min-width:110px;
+}
+body.widget-mode .approval-card .btn-reject,
+body.widget-mode .approval-card .btn-defer{
+  padding:8px 8px; font-size:11px;
+}
 body.widget-mode .approval-empty{
-  text-align:center; padding:36px 20px; color:var(--muted); font-size:13px;
-  background:var(--surface); border:1px dashed var(--line); border-radius:14px;
+  text-align:center; padding:24px 16px; color:var(--muted); font-size:12px;
+  background:var(--surface); border:1px dashed var(--line); border-radius:12px;
 }
 
 /* Modal — widget'ta full-screen yerine full-width */
