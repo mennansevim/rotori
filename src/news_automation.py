@@ -449,49 +449,49 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
 
     log.info(f"✓ Kart üretildi: {out_path.name} | Drive: {copied or 'kopyalanmadı'}")
 
-    # Otomatik yayın (opsiyonel) — Instagram Graph API üzerinden direkt
-    published_media_id = None
-    if globals().get("_AUTO_PUBLISH_NEXT") and cfg.instagram and cfg.instagram.graph_token:
+    # Onay Bekleyen'e taşı (auto_publish=true iken) — yayına ALMAZ, kullanıcı
+    # widget'ta inceleyip onaylayana kadar bekletir.
+    pending_notified = False
+    if globals().get("_AUTO_PUBLISH_NEXT"):
         try:
-            log.info("  📤 Otomatik yayına gönderiliyor…")
-            # kartı ready/ altına taşı (aksi halde image_url erişilebilir olmayabilir)
-            ready_dir = cfg.stories.output_dir / "ready"
-            ready_dir.mkdir(parents=True, exist_ok=True)
-            new_path = ready_dir / out_path.name
+            log.info("  📥 Onay listesine ekleniyor…")
+            pending_dir = cfg.stories.output_dir / "pending_approval"
+            pending_dir.mkdir(parents=True, exist_ok=True)
+            new_path = pending_dir / out_path.name
             out_path.rename(new_path)
             for suf in (".txt", ".json"):
                 s = out_path.with_suffix(suf)
                 if s.exists():
                     s.rename(new_path.with_suffix(suf))
-            base = (cfg.instagram.public_base_url or "").rstrip("/")
-            if not base:
-                log.warning("  public_base_url boş — otomatik yayın atlandı")
-            else:
-                from urllib.parse import quote
-                from src import instagram_graph
-                image_url = f"{base}/media/stories/ready/{quote(new_path.name)}"
-                cap = new_path.with_suffix(".txt")
-                cap_text = cap.read_text(encoding="utf-8") if cap.exists() else ""
-                res = instagram_graph.publish_image(cfg, image_url, cap_text)
-                published_media_id = res["id"]
-                # uploads_log
-                import json as _json
-                rec = {"name": new_path.stem, "media_id": res["id"],
-                       "container_id": res["container_id"],
-                       "uploaded_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
-                       "method": "graph_auto"}
-                log_path = cfg.project_root / cfg.instagram.uploads_log
-                log_path.parent.mkdir(parents=True, exist_ok=True)
-                with log_path.open("a", encoding="utf-8") as f:
-                    f.write(_json.dumps(rec, ensure_ascii=False) + "\n")
-                log.info(f"  ✅ Yayınlandı: media_id={res['id']}")
-        except Exception as exc:
-            log.warning(f"  Otomatik yayın hata verdi: {exc} — kart hazır, elle yayınlanabilir")
+            # source alanını sidecar'a ekle (widget'ta rengi ayırt etmek için)
+            meta_p = new_path.with_suffix(".json")
+            if meta_p.exists():
+                try:
+                    meta = json.loads(meta_p.read_text(encoding="utf-8"))
+                    meta["source"] = "haber"
+                    meta_p.write_text(json.dumps(meta, ensure_ascii=False, indent=2),
+                                       encoding="utf-8")
+                except (OSError, ValueError):
+                    pass
+            # Mac notification
+            try:
+                from src.mac_notifier import notify
+                notify(
+                    title="Onay Bekliyor — Haber",
+                    subtitle="@japonyaruyasi",
+                    message=news["title"][:80],
+                )
+                pending_notified = True
+            except Exception as exc:
+                log.warning(f"  Notification atlandı: {exc}")
+            out_path = new_path
+        except OSError as exc:
+            log.warning(f"  pending'e taşıma hatası: {exc}")
 
     log.info("=== Haber otomasyonu bitti ===")
     return {"ok": True, "file": out_path.name, "copied": copied,
             "news_title": news["title"], "news_link": news["link"],
-            "published_media_id": published_media_id}
+            "pending": pending_notified}
 
 
 # Modül seviyesinde flag — CLI'dan / run_once caller'dan set edilir
