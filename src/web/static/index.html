@@ -559,6 +559,86 @@
     .idea-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
     .reel-grid{grid-template-columns:1fr}
   }
+
+/* ============ Onay Bekleyen (approval) ============ */
+.approval-section{
+  margin: 24px 0 32px;
+  padding: 22px;
+  background: linear-gradient(135deg, rgba(245,85,93,0.09), rgba(251,191,36,0.06));
+  border: 1px solid rgba(245,85,93,0.28);
+  border-radius: 18px;
+  animation: approval-pulse 3.5s ease-in-out infinite;
+}
+@keyframes approval-pulse{
+  0%,100%{ box-shadow: 0 0 0 0 rgba(245,85,93,0.18); }
+  50%{ box-shadow: 0 0 0 8px rgba(245,85,93,0); }
+}
+.approval-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; gap:10px; flex-wrap:wrap;}
+.approval-title{ font-size:17px; font-weight:700; margin:0; letter-spacing:-0.01em; }
+.approval-count{
+  display:inline-block; margin-left:6px; background:#f5555d; color:#fff;
+  font-size:12px; padding:2px 9px; border-radius:11px; font-weight:700;
+}
+.approval-grid{ display:grid; gap:16px; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); }
+.approval-card{
+  background: var(--surface); border:1px solid var(--line); border-radius:14px;
+  overflow:hidden; display:flex; flex-direction:column;
+}
+.approval-card .approval-img{
+  width:100%; aspect-ratio:4/5; object-fit:cover; background:#0a0a0a; display:block;
+}
+.approval-card .approval-body{ padding:14px; display:flex; flex-direction:column; gap:10px; }
+.approval-card .approval-meta{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; font-size:11px; color:var(--muted);}
+.approval-card .approval-source-badge{
+  padding:2px 8px; border-radius:8px; font-weight:600; font-size:10px;
+  text-transform:uppercase; letter-spacing:.06em;
+}
+.approval-card .src-haber{ background:rgba(96,165,250,0.16); color:#93c5fd; }
+.approval-card .src-konu, .approval-card .src-otomasyon{ background:rgba(236,72,153,0.16); color:#f472b6; }
+.approval-card textarea{
+  width:100%; min-height:60px; padding:9px 11px; font-size:13px; line-height:1.4;
+  background:var(--bg); border:1px solid var(--line); border-radius:8px;
+  color:var(--txt); font-family:inherit; resize:vertical; outline:none;
+}
+.approval-card textarea:focus{ border-color:var(--gold); }
+.approval-card .approval-field-label{
+  font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em;
+  margin-bottom:3px; font-weight:600;
+}
+.approval-card .approval-actions{ display:flex; gap:6px; margin-top:4px; flex-wrap:wrap; }
+.approval-card .btn-approve{
+  flex:1; min-width:130px; padding:10px 12px; font-size:13px; font-weight:700;
+  background: linear-gradient(135deg, #22c55e, #16a34a); color:#fff;
+  border:none; border-radius:9px; cursor:pointer; font-family:inherit;
+}
+.approval-card .btn-approve:disabled{ opacity:.55; cursor:not-allowed; }
+.approval-card .btn-approve:hover:not(:disabled){ filter:brightness(1.1); }
+.approval-card .btn-reject{
+  padding:10px 12px; font-size:13px; font-weight:600; background:transparent;
+  color:#f5555d; border:1px solid rgba(245,85,93,0.4); border-radius:9px;
+  cursor:pointer; font-family:inherit;
+}
+.approval-card .btn-defer{
+  padding:10px 12px; font-size:12px; font-weight:600; background:transparent;
+  color:var(--muted); border:1px solid var(--line); border-radius:9px;
+  cursor:pointer; font-family:inherit;
+}
+
+/* ============ Widget mode (chrome app) ============ */
+body.widget-mode header,
+body.widget-mode .tabs,
+body.widget-mode .hero,
+body.widget-mode #storyCard,
+body.widget-mode #publishedCard,
+body.widget-mode #livelogFooter,
+body.widget-mode #panel-reels{ display:none !important; }
+body.widget-mode main{ padding:8px 12px; max-width:100%; }
+body.widget-mode .approval-section{ margin:8px 0; padding:14px; }
+body.widget-mode .approval-grid{ grid-template-columns:1fr; }
+body.widget-mode .approval-empty{
+  text-align:center; padding:40px 24px; color:var(--muted); font-size:14px;
+  background:var(--surface); border:1px dashed var(--line); border-radius:14px;
+}
 </style>
 </head>
 <body>
@@ -601,16 +681,19 @@
         <span class="spin"></span>
       </button>
     </div>
-    <div style="margin-top:14px;text-align:right">
-      <button onclick="openAutomationModal()"
-        style="background:transparent;border:1px solid var(--line);color:var(--txt-dim);
-          padding:9px 18px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;
-          font-family:inherit;transition:all var(--dur) var(--ease)"
-        onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--txt)'"
-        onmouseout="this.style.borderColor='var(--line)';this.style.color='var(--txt-dim)'">
-        ⚙ Otomasyon Ayarları
-      </button>
+    <div style="margin-top:14px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap">
+      <button class="ghost sm" onclick="openAutomationModal()">⚙ Otomasyon Ayarları</button>
+      <button class="ghost sm" onclick="openWidget()" title="Widget'ı ayrı Chrome penceresinde aç">🖥 Widget'ı Aç</button>
     </div>
+  </div>
+
+  <!-- Onay Bekleyen (otomasyonun ürettiği postlar) -->
+  <div id="approvalSection" class="approval-section" style="display:none">
+    <div class="approval-head">
+      <h2 class="approval-title">⏳ Onay Bekleyen <span id="approvalCount" class="approval-count">0</span></h2>
+      <button class="ghost sm" onclick="loadApprovalList()">🔄 Yenile</button>
+    </div>
+    <div id="approvalGrid" class="approval-grid"></div>
   </div>
 
   <!-- Üretilen kartlar (yayınlanmamış) -->
@@ -2721,6 +2804,200 @@ async function reelToDrive(name){
 // Reels modülleri gizli — pollReels + loadSuggestions çağrılmıyor.
 // pollStatus/pollLogs footer için, pollIgStatus story Instagram için,
 // pollBackgrounds story arka plan indirme durumu için tutuldu.
+// ============ Onay Bekleyen (approval flow) ============
+async function loadApprovalList(){
+  try{
+    const r = await fetch("/api/approval/list", {cache:"no-store"});
+    if(!r.ok) return;
+    const data = await r.json();
+    renderApprovalList(data.items || []);
+  }catch(e){ /* silent — poller devam eder */ }
+}
+
+function renderApprovalList(items){
+  const section = document.getElementById("approvalSection");
+  const grid = document.getElementById("approvalGrid");
+  const cntEl = document.getElementById("approvalCount");
+  const isWidget = document.body.classList.contains("widget-mode");
+  if(!section || !grid) return;
+  cntEl.textContent = items.length;
+  if(!items.length){
+    if(isWidget){
+      // Widget mod: sürekli açık kalır — boş bile olsa göster
+      section.style.display = "";
+      grid.innerHTML = `<div class="approval-empty">
+        📭 Şu an onay bekleyen yok.<br><br>
+        <span style="font-size:12px">Otomasyon çalıştığında burada belirir.</span>
+      </div>`;
+    } else {
+      section.style.display = "none";
+    }
+    return;
+  }
+  section.style.display = "";
+  grid.innerHTML = items.map(renderApprovalCard).join("");
+}
+
+function renderApprovalCard(it){
+  const nameEsc = escapeHtml(it.name);
+  const nameAttr = it.name.replace(/'/g, "\\'");
+  const source = (it.source || "otomasyon").toLowerCase();
+  const srcClass = "src-" + source;
+  const srcLabel = source === "haber" ? "📰 Haber" : (source === "konu" ? "🗾 Konu" : "🤖 Otomasyon");
+  return `
+    <div class="approval-card" data-name="${nameEsc}">
+      <img class="approval-img" src="${escapeHtml(it.url)}" alt="preview" loading="lazy" />
+      <div class="approval-body">
+        <div class="approval-meta">
+          <span class="approval-source-badge ${srcClass}">${srcLabel}</span>
+          <span>${escapeHtml(it.generated_at)}</span>
+          <span>· ${it.size_kb} KB</span>
+        </div>
+        <div>
+          <div class="approval-field-label">Kart metni (kart üstünde görünen)</div>
+          <textarea class="ap-aciklama" rows="3" maxlength="220">${escapeHtml(it.aciklama || "")}</textarea>
+        </div>
+        <div>
+          <div class="approval-field-label">Instagram post açıklaması</div>
+          <textarea class="ap-caption" rows="5" maxlength="2200">${escapeHtml(it.post_caption || "")}</textarea>
+        </div>
+        <div class="approval-actions">
+          <button class="btn-approve" onclick="approveApproval('${nameAttr}', this)">
+            ✅ Onayla ve Yayınla
+          </button>
+          <button class="btn-defer" onclick="deferApproval('${nameAttr}', this)"
+            title="Şimdi yayınlama — normal listeye taşı (elle sonradan yayınlanabilir)">
+            ⏸ Sonra
+          </button>
+          <button class="btn-reject" onclick="rejectApproval('${nameAttr}', this)"
+            title="Bu kartı sil (geri döndürülemez)">
+            ✕ Reddet
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+
+// Textarea değişikliklerini sunucuya yazar (approve öncesi kaydet)
+async function _saveApprovalEdits(cardEl){
+  const name = cardEl.dataset.name;
+  const aciklama = cardEl.querySelector(".ap-aciklama")?.value?.trim() || "";
+  const post_caption = cardEl.querySelector(".ap-caption")?.value?.trim() || "";
+  if(aciklama.length < 5){
+    toast("Kart metni çok kısa (en az 5 karakter).", "err");
+    return false;
+  }
+  const r = await fetch(`/api/approval/update/${encodeURIComponent(name)}`, {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({aciklama, post_caption, ust_tag:"GEZİ DEFTERİ"})
+  });
+  if(!r.ok){
+    let msg = r.statusText;
+    try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+    toast("Güncelleme başarısız: " + msg, "err");
+    return false;
+  }
+  return true;
+}
+
+async function approveApproval(name, btn){
+  const cardEl = btn.closest(".approval-card");
+  if(!confirm("Bu postu Instagram'a yayınlamak istediğinden emin misin?")) return;
+  btn.disabled = true;
+  const oldTxt = btn.textContent;
+  btn.textContent = "⏳ Kaydediliyor…";
+  const savedOk = await _saveApprovalEdits(cardEl);
+  if(!savedOk){ btn.disabled = false; btn.textContent = oldTxt; return; }
+  btn.textContent = "📤 Yayınlanıyor…";
+  try{
+    const r = await fetch(`/api/approval/approve/${encodeURIComponent(name)}`, {method:"POST"});
+    if(!r.ok){
+      let msg = r.statusText;
+      try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+      toast("Yayın başarısız: " + msg, "err", 8000);
+      btn.disabled = false; btn.textContent = oldTxt;
+      return;
+    }
+    const data = await r.json();
+    toast(`✅ Yayınlandı — media_id ${data.media_id}`, "ok", 5000);
+    await loadApprovalList();
+    if(typeof loadRecentStories === "function") loadRecentStories();
+  }catch(e){
+    toast("Bağlantı hatası: " + (e.message||e), "err");
+    btn.disabled = false; btn.textContent = oldTxt;
+  }
+}
+
+async function rejectApproval(name, btn){
+  if(!confirm("Bu postu SİLMEK istediğinden emin misin? (Geri döndürülemez)")) return;
+  btn.disabled = true;
+  try{
+    const r = await fetch(`/api/approval/reject/${encodeURIComponent(name)}`, {method:"POST"});
+    if(!r.ok){
+      let msg = r.statusText;
+      try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+      toast("Silme hatası: " + msg, "err");
+      btn.disabled = false; return;
+    }
+    toast("Kart reddedildi.", "ok");
+    await loadApprovalList();
+  }catch(e){
+    toast("Bağlantı hatası.", "err");
+    btn.disabled = false;
+  }
+}
+
+async function deferApproval(name, btn){
+  btn.disabled = true;
+  const cardEl = btn.closest(".approval-card");
+  const savedOk = await _saveApprovalEdits(cardEl);
+  if(!savedOk){ btn.disabled = false; return; }
+  try{
+    const r = await fetch(`/api/approval/defer/${encodeURIComponent(name)}`, {method:"POST"});
+    if(!r.ok){
+      let msg = r.statusText;
+      try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+      toast("Sonraya bırakılamadı: " + msg, "err");
+      btn.disabled = false; return;
+    }
+    toast("Normal listeye taşındı — elle yayınlayabilirsin.", "ok");
+    await loadApprovalList();
+    if(typeof loadRecentStories === "function") loadRecentStories();
+  }catch(e){
+    toast("Bağlantı hatası.", "err");
+    btn.disabled = false;
+  }
+}
+
+// Widget'ı Chrome app-mode'da açan yardımcı
+async function openWidget(){
+  // Backend'e trigger — masaüstünde küçük native pencere olarak açılır
+  try{
+    const r = await fetch("/api/widget/open", {method:"POST"});
+    if(!r.ok){
+      let msg = r.statusText; try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+      toast("Widget açılamadı: " + msg, "err", 5000);
+      return;
+    }
+    toast("🖥 Widget açıldı — masaüstünde ayrı pencere olarak.", "ok", 3000);
+  }catch(e){
+    toast("Bağlantı hatası.", "err");
+  }
+}
+
+// ============ init — normal ya da widget mode ============
+(function initApprovalMode(){
+  const params = new URLSearchParams(location.search);
+  const isWidget = params.get("view") === "widget";
+  if(isWidget){
+    document.body.classList.add("widget-mode");
+    document.title = "🇯🇵 Onay Bekleyen — Japan Reels";
+  }
+  loadApprovalList();
+  // 15 sn'de bir yenile (widget mod dahil)
+  setInterval(loadApprovalList, 15000);
+})();
+
 setInterval(() => { pollStatus(); pollLogs(); }, 1000);
 setInterval(() => { pollIgStatus(); }, 4000);
 setInterval(pollBackgrounds, 6000);

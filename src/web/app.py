@@ -35,6 +35,8 @@ app.mount("/media/ready", StaticFiles(directory=str(cfg.paths.ready_dir)), name=
 app.mount("/media/frames", StaticFiles(directory=str(cfg.paths.frames_dir)), name="frames")
 if cfg.stories:
     app.mount("/media/stories", StaticFiles(directory=str(cfg.stories.output_dir)), name="stories")
+    # pending_approval klasörünü baştan yarat — mount öncesi olması lazım
+    (cfg.stories.output_dir / "pending_approval").mkdir(parents=True, exist_ok=True)
     if cfg.stories.backgrounds_dir:
         cfg.stories.backgrounds_dir.mkdir(parents=True, exist_ok=True)
         app.mount("/media/backgrounds",
@@ -895,12 +897,16 @@ def _write_story_meta(jpg_path: Path, meta: dict[str, Any]) -> None:
 
 
 def _find_story_jpg(name: str) -> tuple[Path, bool] | None:
-    """Kartı top-level veya ready/ altında bul. (jpg_path, is_ready) döner."""
+    """Kartı top-level, pending_approval/ veya ready/ altında bul.
+    (jpg_path, is_ready) döner. pending_approval içinde bulunursa is_ready=False."""
     if cfg.stories is None:
         return None
     top = cfg.stories.output_dir / name
     if top.exists():
         return top, False
+    pnd = cfg.stories.output_dir / "pending_approval" / name
+    if pnd.exists():
+        return pnd, False
     rdy = cfg.stories.output_dir / "ready" / name
     if rdy.exists():
         return rdy, True
@@ -912,6 +918,15 @@ def _story_ready_dir() -> Path:
     if cfg.stories is None:
         raise HTTPException(status_code=400, detail="stories config yok.")
     d = cfg.stories.output_dir / "ready"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _story_pending_dir() -> Path:
+    """Otomasyonun ürettiği + onay bekleyen kart klasörü."""
+    if cfg.stories is None:
+        raise HTTPException(status_code=400, detail="stories config yok.")
+    d = cfg.stories.output_dir / "pending_approval"
     d.mkdir(parents=True, exist_ok=True)
     return d
 
@@ -1102,6 +1117,238 @@ def instagram_graph_status() -> dict[str, Any]:
     """Instagram Graph API token durumu (config debug ekranı için)."""
     from src import instagram_graph as ig
     return ig.debug_token(cfg)
+
+
+# =============================================================================
+# Onay Bekleyen (Pending Approval) — Otomasyonun ürettiği postlar önce buraya
+# düşer, kullanıcı widget veya web UI'dan inceler → Onayla ve Yayınla veya Reddet.
+# =============================================================================
+
+
+@app.get("/api/approval/list")
+def approval_list() -> dict[str, Any]:
+    """Onay bekleyen kartların listesi. Her item: name/url/aciklama/post_caption/
+    ust_tag/generated_at."""
+    if cfg.stories is None:
+        return {"items": [], "count": 0}
+    pending_dir = cfg.stories.output_dir / "pending_approval"
+    if not pending_dir.exists():
+        return {"items": [], "count": 0}
+    items = []
+    for jpg in sorted(pending_dir.glob("*.jpg"), key=lambda p: p.stat().st_mtime, reverse=True):
+        meta_path = jpg.with_suffix(".json")
+        cap_path = jpg.with_suffix(".txt")
+        meta: dict[str, Any] = {}
+        if meta_path.exists():
+            try:
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                pass
+        post_caption = ""
+        if cap_path.exists():
+            try:
+                post_caption = cap_path.read_text(encoding="utf-8")
+            except OSError:
+                pass
+        items.append({
+            "name": jpg.name,
+            "url": f"/media/stories/pending_approval/{quote(jpg.name)}",
+            "aciklama": meta.get("aciklama", ""),
+            "post_caption": post_caption,
+            "ust_tag": meta.get("ust_tag", "GEZİ DEFTERİ"),
+            "source": meta.get("source", meta.get("source_topic", "otomasyon")),
+            "generated_at": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(jpg.stat().st_mtime)),
+            "size_kb": jpg.stat().st_size // 1024,
+        })
+    return {"items": items, "count": len(items)}
+
+
+class ApprovalUpdateRequest(BaseModel):
+    aciklama: str = Field(..., min_length=5, max_length=280)
+    post_caption: str = ""
+    ust_tag: str = "GEZİ DEFTERİ"
+
+
+@app.post("/api/approval/update/{name}")
+def approval_update(name: str, req: ApprovalUpdateRequest) -> dict[str, Any]:
+    """Onay bekleyen kartın metin alanlarını güncelle (kart yeniden render EDİLMEZ
+    — sadece caption/aciklama sidecar günceller; kart görseli aynı kalır)."""
+    name = _safe_story_name(name)
+    pending_dir = _story_pending_dir()
+    jpg = pending_dir / name
+    if not jpg.exists():
+        raise HTTPException(status_code=404, detail="Kart onay listesinde değil.")
+
+    # sidecar meta
+    meta_path = jpg.with_suffix(".json")
+    meta: dict[str, Any] = {}
+    if meta_path.exists():
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            pass
+    meta["aciklama"] = req.aciklama.strip()
+    meta["ust_tag"] = (req.ust_tag or "GEZİ DEFTERİ").strip()
+    meta["post_caption"] = (req.post_caption or "").strip()
+    _write_story_meta(jpg, meta)
+
+    # caption .txt
+    cap_path = jpg.with_suffix(".txt")
+    try:
+        if req.post_caption.strip():
+            cap_path.write_text(req.post_caption.strip(), encoding="utf-8")
+        elif cap_path.exists():
+            cap_path.unlink()
+    except OSError as exc:
+        raise HTTPException(status_code=500, detail=f"Caption yazılamadı: {exc}") from exc
+
+    # Görsel yeniden render — aciklama değiştiyse kart üstündeki metin de değişsin
+    if cfg.stories is not None and meta.get("bg_local"):
+        try:
+            from src import story_generator
+            bg_local = meta.get("bg_local", "")
+            bg_path = cfg.stories.backgrounds_dir / bg_local if bg_local else None
+            if bg_path and bg_path.exists():
+                kart = {
+                    "baslik": "",
+                    "aciklama": meta["aciklama"],
+                    "ust_tag": meta["ust_tag"],
+                }
+                story_generator.render_card(cfg, kart, bg_path, jpg)
+        except Exception as exc:
+            log.warning(f"onay-güncelleme render başarısız: {exc}")
+
+    return {"ok": True, "name": name}
+
+
+@app.post("/api/approval/approve/{name}")
+def approval_approve(name: str) -> dict[str, Any]:
+    """Onayla → ready/'ye taşı → Instagram Graph API ile yayınla."""
+    name = _safe_story_name(name)
+    if cfg.instagram is None or not (cfg.instagram.graph_token and cfg.instagram.ig_user_id):
+        raise HTTPException(status_code=400,
+                            detail="Instagram Graph API ayarlı değil.")
+    base = (cfg.instagram.public_base_url or "").strip().rstrip("/")
+    if not base:
+        raise HTTPException(status_code=400,
+                            detail="public_base_url boş. config.yaml → instagram.public_base_url")
+
+    pending_dir = _story_pending_dir()
+    ready_dir = _story_ready_dir()
+    src_jpg = pending_dir / name
+    if not src_jpg.exists():
+        raise HTTPException(status_code=404, detail="Kart onay listesinde değil.")
+
+    dst_jpg = ready_dir / name
+    try:
+        src_jpg.rename(dst_jpg)
+        for suf in (".txt", ".json"):
+            s = src_jpg.with_suffix(suf)
+            if s.exists():
+                s.rename(dst_jpg.with_suffix(suf))
+    except OSError as exc:
+        raise HTTPException(status_code=500,
+                            detail=f"ready/'ye taşınamadı: {exc}") from exc
+
+    image_url = f"{base}/media/stories/ready/{quote(name)}"
+    cap_path = dst_jpg.with_suffix(".txt")
+    caption = cap_path.read_text(encoding="utf-8") if cap_path.exists() else ""
+
+    from src import instagram_graph
+    try:
+        res = instagram_graph.publish_image(cfg, image_url, caption)
+    except Exception as exc:
+        # Yayın başarısız → kartı geri pending'e döndürme (dosya ready'de kalsın,
+        # kullanıcı elle "Instagram'a Yayınla" ile tekrar deneyebilir)
+        raise HTTPException(status_code=502, detail=f"Yayın hatası: {exc}") from exc
+
+    # uploads_log'a yaz
+    rec = {"name": dst_jpg.stem, "media_id": res["id"],
+           "container_id": res["container_id"],
+           "uploaded_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+           "method": "graph_approval"}
+    try:
+        log_path = cfg.project_root / cfg.instagram.uploads_log
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with log_path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    except OSError as exc:
+        log.warning(f"uploads_log yazılamadı: {exc}")
+
+    return {"ok": True, "media_id": res["id"], "image_url": image_url}
+
+
+@app.post("/api/approval/reject/{name}")
+def approval_reject(name: str) -> dict[str, Any]:
+    """Reddet → pending kartı + yan dosyalarını sil (geri döndürülemez)."""
+    name = _safe_story_name(name)
+    pending_dir = _story_pending_dir()
+    jpg = pending_dir / name
+    if not jpg.exists():
+        raise HTTPException(status_code=404, detail="Kart onay listesinde değil.")
+    deleted = []
+    try:
+        for path in (jpg, jpg.with_suffix(".txt"), jpg.with_suffix(".json")):
+            if path.exists():
+                path.unlink()
+                deleted.append(path.name)
+    except OSError as exc:
+        raise HTTPException(status_code=500,
+                            detail=f"Silme hatası: {exc}") from exc
+    return {"ok": True, "deleted": deleted}
+
+
+@app.post("/api/approval/defer/{name}")
+def approval_defer(name: str) -> dict[str, Any]:
+    """Şimdilik yayınlama → pending'den top-level'a taşı. Normal manuel akışa döner
+    (dashboard'da 'Onayla ve Yayınla' butonu ile sonradan yayınlanabilir)."""
+    name = _safe_story_name(name)
+    if cfg.stories is None:
+        raise HTTPException(status_code=400, detail="stories config yok")
+    src = cfg.stories.output_dir / "pending_approval" / name
+    if not src.exists():
+        raise HTTPException(status_code=404, detail="Kart onay listesinde değil.")
+    dst = cfg.stories.output_dir / name
+    try:
+        src.rename(dst)
+        for suf in (".txt", ".json"):
+            s = src.with_suffix(suf)
+            if s.exists():
+                s.rename(dst.with_suffix(suf))
+    except OSError as exc:
+        raise HTTPException(status_code=500,
+                            detail=f"Taşıma hatası: {exc}") from exc
+    return {"ok": True, "name": name}
+
+
+@app.post("/api/widget/open")
+def widget_open() -> dict[str, Any]:
+    """Chrome/Brave/Edge app-mode ile masaüstünde widget penceresi açar.
+    URL: local host + ?view=widget. Backend script'i tetikler, arka planda
+    çalıştırır — request beklemez."""
+    import subprocess
+
+    script = cfg.project_root / "bin" / "open-widget.sh"
+    if not script.exists():
+        raise HTTPException(status_code=500,
+                            detail=f"Widget script bulunamadı: {script}")
+
+    # widget URL — public_base_url varsa onu tercih et (uzaktan çalışsa da açılır)
+    base = ""
+    if cfg.instagram and cfg.instagram.public_base_url:
+        base = cfg.instagram.public_base_url.strip().rstrip("/")
+    url = f"{base or 'http://localhost:8000'}/?view=widget"
+
+    try:
+        # start_new_session=True — child process bağımsız; server restart etse
+        # bile widget açık kalır
+        subprocess.Popen(["bash", str(script), url],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         start_new_session=True)
+    except OSError as exc:
+        raise HTTPException(status_code=500,
+                            detail=f"Widget açılamadı: {exc}") from exc
+    return {"ok": True, "url": url}
 
 
 @app.post("/api/instagram/publish/{name}")

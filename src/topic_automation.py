@@ -207,45 +207,47 @@ def run_once(cfg: Config, auto_publish: bool = False,
 
     log.info(f"✓ Kart üretildi: {out_path.name}")
 
-    # opsiyonel yayın
-    published_media_id = None
-    if auto_publish and cfg.instagram and cfg.instagram.graph_token:
+    # Onay Bekleyen'e taşı — yayına ALMAZ, kullanıcı widget'ta inceleyip
+    # onaylayana kadar bekletir.
+    pending_notified = False
+    if auto_publish:
         try:
-            log.info("  📤 Otomatik yayına gönderiliyor…")
-            ready_dir = cfg.stories.output_dir / "ready"
-            ready_dir.mkdir(parents=True, exist_ok=True)
-            new_path = ready_dir / out_path.name
+            log.info("  📥 Onay listesine ekleniyor…")
+            pending_dir = cfg.stories.output_dir / "pending_approval"
+            pending_dir.mkdir(parents=True, exist_ok=True)
+            new_path = pending_dir / out_path.name
             out_path.rename(new_path)
             for suf in (".txt", ".json"):
                 s = out_path.with_suffix(suf)
                 if s.exists():
                     s.rename(new_path.with_suffix(suf))
-            base = (cfg.instagram.public_base_url or "").rstrip("/")
-            if not base:
-                log.warning("  public_base_url boş — otomatik yayın atlandı")
-            else:
-                from urllib.parse import quote
-                from src import instagram_graph
-                image_url = f"{base}/media/stories/ready/{quote(new_path.name)}"
-                cap = new_path.with_suffix(".txt")
-                cap_text = cap.read_text(encoding="utf-8") if cap.exists() else ""
-                res = instagram_graph.publish_image(cfg, image_url, cap_text)
-                published_media_id = res["id"]
-                rec = {"name": new_path.stem, "media_id": res["id"],
-                       "container_id": res["container_id"],
-                       "uploaded_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
-                       "method": "graph_auto_topic"}
-                log_path = cfg.project_root / cfg.instagram.uploads_log
-                log_path.parent.mkdir(parents=True, exist_ok=True)
-                with log_path.open("a", encoding="utf-8") as f:
-                    f.write(json.dumps(rec, ensure_ascii=False) + "\n")
-                log.info(f"  ✅ Yayınlandı: media_id={res['id']}")
-        except Exception as exc:
-            log.warning(f"  Otomatik yayın hata verdi: {exc} — kart hazır, elle yayınlanabilir")
+            # sidecar'a source ekle (widget'ta konu = pembe rozet)
+            meta_p = new_path.with_suffix(".json")
+            if meta_p.exists():
+                try:
+                    meta = json.loads(meta_p.read_text(encoding="utf-8"))
+                    meta["source"] = "konu"
+                    meta_p.write_text(json.dumps(meta, ensure_ascii=False, indent=2),
+                                       encoding="utf-8")
+                except (OSError, ValueError):
+                    pass
+            try:
+                from src.mac_notifier import notify
+                notify(
+                    title="Onay Bekliyor — Konu",
+                    subtitle="@japonyaruyasi",
+                    message=topic["title"][:80],
+                )
+                pending_notified = True
+            except Exception as exc:
+                log.warning(f"  Notification atlandı: {exc}")
+            out_path = new_path
+        except OSError as exc:
+            log.warning(f"  pending'e taşıma hatası: {exc}")
 
     log.info("=== Konu otomasyonu bitti ===")
     return {"ok": True, "file": out_path.name, "topic": topic["title"],
-            "published_media_id": published_media_id}
+            "pending": pending_notified}
 
 
 def main(argv: list[str] | None = None) -> int:
