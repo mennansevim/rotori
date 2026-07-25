@@ -624,21 +624,48 @@
   cursor:pointer; font-family:inherit;
 }
 
-/* ============ Widget mode (chrome app) ============ */
+/* ============ Widget mode (Chrome app-mode mini dashboard) ============
+   Widget dar bir pencerede tüm iş akışlarını içerir. Gizlenen: browser
+   chrome zaten yok, ekstra livelog + Reels tabı (widget'ın kapsamı dışı). */
 body.widget-mode header,
-body.widget-mode .tabs,
-body.widget-mode .hero,
-body.widget-mode #storyCard,
-body.widget-mode #publishedCard,
 body.widget-mode #livelogFooter,
-body.widget-mode #panel-reels{ display:none !important; }
-body.widget-mode main{ padding:8px 12px; max-width:100%; }
-body.widget-mode .approval-section{ margin:8px 0; padding:14px; }
+body.widget-mode #panel-reels,
+body.widget-mode .tabs{ display:none !important; }
+
+body.widget-mode main{ padding:12px 14px; max-width:100%; }
+
+/* Approval section'ı en üste al (widget'ın odak noktası) */
+body.widget-mode #approvalSection{ order:-1; }
+body.widget-mode #panel-cards{ display:flex; flex-direction:column; gap:0; }
+
+/* Hero — kompakt hâl */
+body.widget-mode .hero{ padding:14px 12px 8px; margin-bottom:0; }
+body.widget-mode .hero-title{ font-size:20px; margin-bottom:2px; }
+body.widget-mode .hero-sub{ font-size:12px; margin-bottom:12px; }
+body.widget-mode .hero-actions{ gap:8px; }
+body.widget-mode .action-card{
+  padding:12px 14px; min-height:auto;
+}
+body.widget-mode .action-card .action-ico{ font-size:22px; }
+body.widget-mode .action-card b{ font-size:13px; }
+body.widget-mode .action-card small{ font-size:10px; }
+
+/* Section head/body — kompakt */
+body.widget-mode .section{ padding:14px 10px; margin-top:12px; }
+body.widget-mode .section-title{ font-size:15px; }
+body.widget-mode #storyGrid,
+body.widget-mode #publishedGrid{ grid-template-columns:1fr; gap:10px; }
+body.widget-mode .story-card{ font-size:12px; }
+body.widget-mode .approval-section{ margin:0 0 12px; padding:14px 12px; }
 body.widget-mode .approval-grid{ grid-template-columns:1fr; }
 body.widget-mode .approval-empty{
-  text-align:center; padding:40px 24px; color:var(--muted); font-size:14px;
+  text-align:center; padding:36px 20px; color:var(--muted); font-size:13px;
   background:var(--surface); border:1px dashed var(--line); border-radius:14px;
 }
+
+/* Modal — widget'ta full-screen yerine full-width */
+body.widget-mode .modal-content{ max-width:100% !important; width:96vw; margin:8px auto; }
+body.widget-mode .picker-grid{ grid-template-columns:repeat(2,1fr) !important; }
 </style>
 </head>
 <body>
