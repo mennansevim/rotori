@@ -72,5 +72,12 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- iOS 9+ canLaunchUrl() sadece Info.plist'te beyan edilen scheme'ler
+	     için true döner. Google Maps app'i açabilmek için comgooglemaps
+	     scheme'i whitelist'e ekli. -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>comgooglemaps</string>
+	</array>
 </dict>
 </plist>

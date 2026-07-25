@@ -13,6 +13,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/l10n.dart';
+import '../../data/google_maps_launcher.dart';
 import '../../domain/city_places.dart';
 import '../../domain/destination_profiles.dart';
 import '../../domain/explore.dart';
@@ -185,27 +186,43 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
   Ticket? get _ticket => _added ?? widget.existingTicket;
 
   Future<void> _openMap(BuildContext context) async {
-    String url;
-    if (item.mapUrl != null && item.mapUrl!.trim().isNotEmpty) {
-      url = item.mapUrl!.trim();
-    } else if (item.lat != null && item.lng != null) {
-      url =
-          'https://www.google.com/maps/search/?api=1&query=${item.lat},${item.lng}';
-    } else {
-      final q = '${_normalize(item.title)} $city'.trim();
-      url = googleReviewsUrl(q.isEmpty ? item.title : q);
-    }
     final messenger = ScaffoldMessenger.of(context);
     final s = LanguageScope.of(context);
-    final uri = Uri.parse(url);
-    var launched = false;
-    try {
-      launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } catch (_) {
-      launched = false;
+    // Öncelikle Google Maps app scheme'i (`comgooglemaps://`) denenir;
+    // yoksa `https://www.google.com/maps` web fallback.
+    bool ok;
+    if (item.lat != null && item.lng != null) {
+      ok = await openGoogleMapsPoint(
+        lat: item.lat!,
+        lng: item.lng!,
+        label: item.title,
+      );
+    } else if (item.mapUrl != null && item.mapUrl!.trim().isNotEmpty) {
+      // Kullanıcı özel bir harita URL'i (Google Maps place ID vb.) girmiş —
+      // olduğu gibi aç.
+      ok = false;
+      try {
+        ok = await launchUrl(
+          Uri.parse(item.mapUrl!.trim()),
+          mode: LaunchMode.externalApplication,
+        );
+      } catch (_) {}
+    } else {
+      // Koordinat yok — başlığı + şehri Google'a bırak.
+      final q = '${_normalize(item.title)} $city'.trim();
+      final searchUrl = googleReviewsUrl(q.isEmpty ? item.title : q);
+      ok = false;
+      try {
+        ok = await launchUrl(
+          Uri.parse(searchUrl),
+          mode: LaunchMode.externalApplication,
+        );
+      } catch (_) {}
+      if (!ok) {
+        await Clipboard.setData(ClipboardData(text: searchUrl));
+      }
     }
-    if (!launched) {
-      await Clipboard.setData(ClipboardData(text: url));
+    if (!ok) {
       messenger.showSnackBar(SnackBar(
         content: Text(s.s('placeDetail.mapOpenFailed')),
       ));

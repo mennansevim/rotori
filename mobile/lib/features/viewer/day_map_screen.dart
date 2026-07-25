@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/l10n.dart';
+import '../../data/google_maps_launcher.dart';
 import '../../domain/city_places.dart';
 import '../../domain/destination_profiles.dart';
 import '../../domain/place_coords.dart';
@@ -135,6 +136,15 @@ class _DayMapViewState extends State<_DayMapView> {
         foregroundColor: palette.textPrimary,
         elevation: 0,
         actions: [
+          // Google Maps'te aç — bugünün duraklarını Google Maps'e taşır.
+          // Duraklar varsa çoklu waypoint rota; yoksa şehir merkezini.
+          IconButton(
+            tooltip: s.s('map.openInGoogleMaps'),
+            icon: const Icon(Icons.open_in_new),
+            color: palette.textPrimary,
+            onPressed: () =>
+                _openInGoogleMaps(stops, cityCenter, cityLabel),
+          ),
           if (canPrewarm)
             TextButton.icon(
               onPressed: () => _prewarmCurrentDay(
@@ -328,6 +338,62 @@ class _DayMapViewState extends State<_DayMapView> {
         ),
       ],
     );
+  }
+
+  /// Bugünün duraklarını Google Maps'te aç. Durak sayısı:
+  /// - 2+ → çoklu waypoint rota (`openGoogleMapsRoute`); ilk = origin,
+  ///   son = destination, ara noktalar = waypoints (max 9).
+  /// - 1 → tek nokta arama (`openGoogleMapsPoint`).
+  /// - 0 → şehir merkezini gösteren tek nokta araması (kullanıcı hâlâ
+  ///   Google Maps'te şehri görebilir).
+  Future<void> _openInGoogleMaps(
+    List<ResolvedStop> stops,
+    LatLng cityCenter,
+    String cityLabel,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final s = LanguageScope.of(context);
+    if (stops.length >= 2) {
+      final res = await openGoogleMapsRoute(
+        points: [
+          for (final st in stops)
+            (lat: st.lat, lng: st.lng, label: st.item.title),
+        ],
+      );
+      if (!mounted) return;
+      if (!res.launched) {
+        messenger.showSnackBar(SnackBar(content: Text(s.s('map.openFailed'))));
+      } else if (res.truncated) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(s.s('map.truncatedWaypoints'))),
+        );
+      }
+      return;
+    }
+    if (stops.length == 1) {
+      final st = stops.first;
+      final ok = await openGoogleMapsPoint(
+        lat: st.lat,
+        lng: st.lng,
+        label: st.item.title,
+      );
+      if (!mounted) return;
+      if (!ok) {
+        messenger.showSnackBar(SnackBar(content: Text(s.s('map.openFailed'))));
+      }
+      return;
+    }
+    // Boş gün — şehir merkezini aç (kullanıcı Google Maps'te en azından
+    // Tokyo/Kyoto vs. konumunu görsün).
+    final ok = await openGoogleMapsPoint(
+      lat: cityCenter.latitude,
+      lng: cityCenter.longitude,
+      label: cityLabel.isNotEmpty ? cityLabel : null,
+    );
+    if (!mounted) return;
+    if (!ok) {
+      messenger.showSnackBar(SnackBar(content: Text(s.s('map.openFailed'))));
+    }
   }
 
   void _openStop(BuildContext context, ResolvedStop stop) {

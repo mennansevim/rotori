@@ -18,12 +18,14 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../core/l10n.dart';
 import '../../core/supabase_client.dart';
+import '../../data/google_maps_launcher.dart';
 import '../../data/language_store.dart';
 import '../../data/plans_repository.dart';
 import '../../data/reminders_store.dart';
 import '../../data/weather_service.dart';
 import '../../domain/city_palette.dart';
 import '../../domain/destination_profiles.dart';
+import '../../domain/place_coords.dart';
 import '../../domain/types.dart';
 import '../auth/auth_repository.dart';
 import '../shared/place_detail_sheet.dart';
@@ -270,6 +272,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
         onOpenWeather: _openWeather,
         onOpenPhrases: _openPhrases,
         onOpenMustKnow: _openMustKnow,
+        onOpenTripInGoogleMaps: _openTripInGoogleMaps,
       ),
       body: SafeArea(
         bottom: false,
@@ -451,6 +454,67 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
         ),
       ),
     );
+  }
+
+  /// Tüm planı Google Maps'te aç — her günün ilk konumlu durağı sırayla
+  /// bir waypoint olur. Sonuç: gezinin gün-gün kabaca rotası Google Maps
+  /// üzerinde açılır (ilk gün origin, son gün destination, aradakiler
+  /// waypoints). Detay pinler için day map ekranı kullanılır.
+  ///
+  /// Sınır: Google Maps `dir` URL'i en fazla 9 waypoint destekler. 11+
+  /// günlük gezilerde ilk 9 ara nokta kalır, kullanıcıya SnackBar ile
+  /// bildirim verilir.
+  Future<void> _openTripInGoogleMaps() async {
+    final tripStops = resolveTripStops(widget.trip);
+    final sortedDays = [...widget.trip.days]
+      ..sort((a, b) => a.date.compareTo(b.date));
+    final waypoints = <({double lat, double lng, String? label})>[];
+    for (final day in sortedDays) {
+      final stops = tripStops[day.dayNumber];
+      if (stops == null || stops.isEmpty) continue;
+      final first = stops.first;
+      waypoints.add(
+        (lat: first.lat, lng: first.lng, label: first.item.title),
+      );
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    final s = LanguageScope.of(context);
+    if (waypoints.isEmpty) {
+      // Hiç konumlu durak yok — Japonya merkezini aç, kullanıcı Google
+      // Maps'te en azından ülke haritasını görsün.
+      final ok = await openGoogleMapsPoint(
+        lat: 36.2048,
+        lng: 138.2529,
+        label: 'Japan',
+      );
+      if (!mounted) return;
+      if (!ok) {
+        messenger.showSnackBar(SnackBar(content: Text(s.s('map.openFailed'))));
+      }
+      return;
+    }
+    if (waypoints.length == 1) {
+      final p = waypoints.first;
+      final ok = await openGoogleMapsPoint(
+        lat: p.lat,
+        lng: p.lng,
+        label: p.label,
+      );
+      if (!mounted) return;
+      if (!ok) {
+        messenger.showSnackBar(SnackBar(content: Text(s.s('map.openFailed'))));
+      }
+      return;
+    }
+    final res = await openGoogleMapsRoute(points: waypoints);
+    if (!mounted) return;
+    if (!res.launched) {
+      messenger.showSnackBar(SnackBar(content: Text(s.s('map.openFailed'))));
+    } else if (res.truncated) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(s.s('map.truncatedWaypoints'))),
+      );
+    }
   }
 
   /// "Mutlaka bilmeniz gerekenler" — seyahat tavsiyeleri sayfası.
@@ -1988,6 +2052,7 @@ class _ViewerDrawer extends ConsumerWidget {
     required this.onOpenWeather,
     required this.onOpenPhrases,
     required this.onOpenMustKnow,
+    required this.onOpenTripInGoogleMaps,
   });
   final ViewerPalette palette;
   final Trip trip;
@@ -2001,6 +2066,7 @@ class _ViewerDrawer extends ConsumerWidget {
   final VoidCallback onOpenWeather;
   final VoidCallback onOpenPhrases;
   final VoidCallback onOpenMustKnow;
+  final VoidCallback onOpenTripInGoogleMaps;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -2055,6 +2121,13 @@ class _ViewerDrawer extends ConsumerWidget {
           icon: Icons.palette_outlined,
           label: s.s('viewer.tt.theme'),
           onTap: onOpenThemePicker),
+      // Tüm rotayı Google Maps'te aç — günlerden ilk konumlu duraklarını
+      // sırayla waypoint yapıp Google Maps `dir` URL'i ile açar. Kompakt
+      // rota özeti (max ~9 gün); günlerin detay pinleri day map ekranında.
+      _DrawerActionSpec(
+          icon: Icons.travel_explore,
+          label: s.s('map.openInGoogleMaps'),
+          onTap: onOpenTripInGoogleMaps),
     ];
 
     return Drawer(
