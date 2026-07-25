@@ -1,0 +1,3 @@
+# Test koşumu her seferinde yeniden üretilir — commit'lenmez.
+latest-run.json
+.raw-run.json

@@ -1,0 +1,872 @@
+{
+  "version": 1,
+  "generatedAt": null,
+  "notes": "Rotori QA senaryoları — kategori bazlı sıralı. autoRunnable=true olanlar integration_test/scenario_runner_test.dart tarafından koşulur; autoRunnable=false olanlar manuel/deferred.",
+  "categories": [
+    { "id": "auth", "label": "Auth & Onboarding" },
+    { "id": "plan", "label": "Plan oluşturma" },
+    { "id": "route", "label": "Rota manipülasyonu" },
+    { "id": "viewer", "label": "Viewer & Gün akışı" },
+    { "id": "nav", "label": "Ekranlar arası geçiş" },
+    { "id": "maps", "label": "Harita & GPS" },
+    { "id": "ticket", "label": "Bilet & OCR" },
+    { "id": "food", "label": "Yeme & Yerel" },
+    { "id": "i18n", "label": "Dil & Çeviri" },
+    { "id": "sync", "label": "Sync & Multi-user" },
+    { "id": "ux", "label": "UX & Ergonomi" },
+    { "id": "flight", "label": "Uçak & Tarih tutarlılığı" },
+    { "id": "polish", "label": "App Store hazırlığı" }
+  ],
+  "scenarios": [
+    {
+      "id": "s01",
+      "category": "auth",
+      "priority": "critical",
+      "title": "Yeni kullanıcı e-posta + parola ile kayıt olur",
+      "steps": [
+        "Uygulamayı aç",
+        "Auth ekranında 'Hesap oluştur' seç",
+        "Benzersiz e-posta + geçerli parola gir",
+        "Kayıt ol",
+        "HomeScreen'e yönlendiğini doğrula"
+      ],
+      "expected": "authStateProvider tetiklenir, home'a router push eder",
+      "autoRunnable": true,
+      "flags": ["needs-supabase"]
+    },
+    {
+      "id": "s02",
+      "category": "auth",
+      "priority": "critical",
+      "title": "Var olan kullanıcı e-posta + parola ile giriş yapar",
+      "steps": [
+        "Auth ekranını aç",
+        "demo@japantrip.app / Demo1234! (dev default) ile giriş",
+        "Home'a inildiği doğrula"
+      ],
+      "expected": "Session açılır; token localStorage/Supabase client'a düşer",
+      "autoRunnable": true,
+      "flags": ["needs-supabase"]
+    },
+    {
+      "id": "s03",
+      "category": "auth",
+      "priority": "high",
+      "title": "Sign in with Apple butonu yalnızca iOS/macOS'ta görünür",
+      "steps": [
+        "Web'de auth ekranı → Apple butonu YOK",
+        "iOS simulator'da aynı ekran → Apple butonu VAR"
+      ],
+      "expected": "kIsWeb + defaultTargetPlatform kontrolü ile buton koşullu",
+      "autoRunnable": true
+    },
+    {
+      "id": "s04",
+      "category": "auth",
+      "priority": "medium",
+      "title": "Drawer'dan çıkış yapılınca auth ekranına dönülür",
+      "steps": [
+        "Viewer aç",
+        "Drawer aç → 'Çıkış yap'",
+        "Auth ekranına düştüğünü doğrula"
+      ],
+      "expected": "Router yeniden değerlendirir, auth screen mount",
+      "autoRunnable": true
+    },
+    {
+      "id": "s05",
+      "category": "auth",
+      "priority": "medium",
+      "title": "Preview modunda Supabase yoksa 'Misafir' rolü gösterilir",
+      "steps": [
+        "preview_main ile çalıştır",
+        "Drawer aç",
+        "Kullanıcı bloğunda 'Misafir' + '?' avatar"
+      ],
+      "expected": "currentUserProvider null → guest fallback",
+      "autoRunnable": true
+    },
+    {
+      "id": "s06",
+      "category": "plan",
+      "priority": "critical",
+      "title": "Sıfırdan plan: Welcome adımından çıkış tarihine kadar tüm adımlar",
+      "steps": [
+        "Home'da 'Sıfırdan yeni plan'",
+        "Welcome → Destinations → Dates → Flights → Hotels → Preferences → Review",
+        "Plan kaydedilir + viewer'a düşer"
+      ],
+      "expected": "Trip.days generate edilir, tickets boş, tripStart<tripEnd",
+      "autoRunnable": true
+    },
+    {
+      "id": "s07",
+      "category": "plan",
+      "priority": "critical",
+      "title": "3 şehir seçilirse optimum güzergâh (Tokyo→Kyoto→Osaka) oluşturulur",
+      "steps": [
+        "Planner'da Tokyo, Kyoto, Osaka seç",
+        "Tarih penceresi 7-10 gün ver",
+        "Review'da rota sırasını + gün paylaşımını doğrula"
+      ],
+      "expected": "Şehirler coğrafi/mantıksal sıralanır (kuzey→güney), günler bölünür, Shinkansen aktarma günü eklenir",
+      "autoRunnable": true
+    },
+    {
+      "id": "s08",
+      "category": "plan",
+      "priority": "high",
+      "title": "Yeni şehir eklendiğinde günler yeniden bölünür, elle girilen tarihler korunur",
+      "steps": [
+        "Planlı bir plan aç",
+        "3. şehir ekle",
+        "Diğer şehirlerin manuel tarihleri değişmediğini doğrula"
+      ],
+      "expected": "auto-distribute yalnızca elle set edilmemiş şehirlere dokunur",
+      "autoRunnable": true
+    },
+    {
+      "id": "s09",
+      "category": "plan",
+      "priority": "high",
+      "title": "Yeme-içme tercihi (vejetaryen/helal) plan içeriğine yansır",
+      "steps": [
+        "Preferences → 'Vejetaryen' işaretle",
+        "Plan gün akışında vegan-friendly restoran önerileri görünür",
+        "'Domuz eti' önerisi görünmez"
+      ],
+      "expected": "food filter uygulanır; recommendedFoods hariç tutulur",
+      "autoRunnable": true
+    },
+    {
+      "id": "s10",
+      "category": "plan",
+      "priority": "high",
+      "title": "Otel eklendiğinde ilgili günlere check-in/check-out düşer",
+      "steps": [
+        "Planner Hotels adımı → 2 otel gir (Tokyo Shinjuku 4 gece, Kyoto 3 gece)",
+        "Viewer gün 4 sonuna Tokyo check-out + Kyoto check-in görünür"
+      ],
+      "expected": "HotelStay tarihleri gün metadata'sına düşer",
+      "autoRunnable": true
+    },
+    {
+      "id": "s11",
+      "category": "plan",
+      "priority": "medium",
+      "title": "Boş plan (0 gün) viewer'da 'Bu plana henüz gün eklenmedi' banner'ı gösterir",
+      "steps": [
+        "Days=0 bir trip oluştur",
+        "Viewer aç",
+        "_EmptyDaysCard bannerı görünür"
+      ],
+      "expected": "Boş state fallback + 'Düzenle → gün ekle' CTA",
+      "autoRunnable": true
+    },
+    {
+      "id": "s12",
+      "category": "plan",
+      "priority": "medium",
+      "title": "Plan JSON export/import cycle korur (tarih, uçuşlar, oteller, günler)",
+      "steps": [
+        "Plan oluştur",
+        "Trip.toJson() → JSON string",
+        "Trip.fromJson() ile geri parse",
+        "Alanların birebir eşleştiğini doğrula"
+      ],
+      "expected": "Serialization deterministik; round-trip loss-less",
+      "autoRunnable": true
+    },
+    {
+      "id": "s13",
+      "category": "viewer",
+      "priority": "critical",
+      "title": "Viewer minimalize: hero/uçuş/otel/aksiyon şeridi ana view'da YOK",
+      "steps": [
+        "Demo trip aç",
+        "Ana ekran doğrudan gün kartlarıyla başlar",
+        "'Uçuşlar', 'Konaklama', 'Aksiyon şeridi' widget'ları görünmez"
+      ],
+      "expected": "_Hero, _StatsRow, _FlightsCard, _HotelsCard kaldırılmış",
+      "autoRunnable": true
+    },
+    {
+      "id": "s14",
+      "category": "viewer",
+      "priority": "critical",
+      "title": "Aktif gün genişletilmiş + geçmiş günler soluk (opacity 0.6)",
+      "steps": [
+        "Bugün ortasında bir tarihi kapsayan trip aç",
+        "Aktif gün kartı açık (aktivite listesi expanded)",
+        "Geçmiş gün kartları 0.6 opaklık"
+      ],
+      "expected": "activeIndex hesaplaması + Opacity(0.6) uygulanır",
+      "autoRunnable": true
+    },
+    {
+      "id": "s15",
+      "category": "viewer",
+      "priority": "high",
+      "title": "Hamburger drawer'ı açar; içinde uçuş özet + otel + metrikler + aksiyon grid görünür",
+      "steps": [
+        "Viewer aç",
+        "Sol üstteki ☰ tıkla",
+        "Drawer içeriği: 旅 Rotori, uçuş mini kart, otel mini kart, 3 metrik, 10 aksiyon"
+      ],
+      "expected": "_ViewerDrawer mount, tüm alt widget'lar render",
+      "autoRunnable": true
+    },
+    {
+      "id": "s16",
+      "category": "viewer",
+      "priority": "high",
+      "title": "Bildirim (🔔) sağa taşınmış + badge sayısı red",
+      "steps": [
+        "Trip'e 6 hatırlatma ekle",
+        "Viewer top bar → 🔔 sağda + red '6' badge"
+      ],
+      "expected": "_BarBellButton unread count'u remindersStore'dan çeker",
+      "autoRunnable": true
+    },
+    {
+      "id": "s17",
+      "category": "viewer",
+      "priority": "medium",
+      "title": "Yolculuk öncesi hazırlık: pasaport/powerbank checklist + günler önce ayarı",
+      "steps": [
+        "Drawer → 'Hazırlık'",
+        "12 preset item görünür",
+        "Custom madde ekle",
+        "Slider ile 'günler önce' 1-30 arası ayarla"
+      ],
+      "expected": "PreDepartureChecklist storage local + Supabase sync (varsa)",
+      "autoRunnable": true
+    },
+    {
+      "id": "s18",
+      "category": "viewer",
+      "priority": "medium",
+      "title": "TTS: Japonca fraz hoparlör butonuna dokununca ses çalar",
+      "steps": [
+        "Drawer → 'Japonca'",
+        "'こんにちは' satırındaki 🔊 tıkla",
+        "AudioPlayer bir asset mp3 çalar"
+      ],
+      "expected": "assets/tts/ja/<sha>.mp3 → play, SnackBar 'Sesli: …'",
+      "autoRunnable": true
+    },
+    {
+      "id": "s19",
+      "category": "viewer",
+      "priority": "medium",
+      "title": "Dil değişimi TR/EN — tüm ekranlar dinamik update",
+      "steps": [
+        "Home → EN toggle",
+        "Auth, home, planner, viewer başlıklarının hepsi EN döner"
+      ],
+      "expected": "appLangProvider yayınlanır; LText.of(lang) her yerde re-evaluate",
+      "autoRunnable": true
+    },
+    {
+      "id": "s20",
+      "category": "viewer",
+      "priority": "medium",
+      "title": "Tema seçici drawer'dan açılıp 3 tema arasında geçiş yapabilir",
+      "steps": [
+        "Drawer → 'Tema'",
+        "'Apple Aydınlık' seç",
+        "Palette değişir, viewer light tema"
+      ],
+      "expected": "viewerPaletteProvider güncellenir + persist",
+      "autoRunnable": true
+    },
+    {
+      "id": "s21",
+      "category": "maps",
+      "priority": "critical",
+      "title": "Gün haritası açılır; konumlu duraklar numaralı pin olarak görünür",
+      "steps": [
+        "Gün 2 (Tokyo) kartında 'Haritada gör'",
+        "OSM tile yüklenir",
+        "En az 2 numaralı pin görünür (Senso-ji, teamLab)"
+      ],
+      "expected": "resolveDayStops non-empty → MarkerLayer render",
+      "autoRunnable": true
+    },
+    {
+      "id": "s22",
+      "category": "maps",
+      "priority": "critical",
+      "title": "Gün haritasında 'Google Maps'te aç' butonu duraklarla rota açar",
+      "steps": [
+        "DayMapScreen AppBar → 🔗 ikon",
+        "iOS'ta comgooglemaps:// açılır (fallback: web)",
+        "Rota URL'inde origin + waypoints + destination görünür"
+      ],
+      "expected": "openGoogleMapsRoute(points) çağırılır",
+      "autoRunnable": true
+    },
+    {
+      "id": "s23",
+      "category": "maps",
+      "priority": "high",
+      "title": "Drawer'daki 'Google Maps'te aç' — gezinin gün-gün rota özeti",
+      "steps": [
+        "Drawer → 'Google Maps'te aç' (travel_explore ikon)",
+        "Her günün ilk konumlu durağı waypoint",
+        "9+ günde SnackBar 'truncated' uyarısı"
+      ],
+      "expected": "_openTripInGoogleMaps → openGoogleMapsRoute",
+      "autoRunnable": true
+    },
+    {
+      "id": "s24",
+      "category": "maps",
+      "priority": "high",
+      "title": "GPS simülasyonu Tokyo/Senso-ji koordinatına ışınlanınca badge kazandırır",
+      "steps": [
+        "Drawer → 'Harita' (RewardMapScreen)",
+        "GPS Sim ikonu (🧪) → GpsSimScreen aç",
+        "Preset 'Senso-ji' seç → GPS emit et",
+        "GeofenceController 'discovered' event fire eder",
+        "SnackBar 'Rozet kazanıldı' + XP artışı"
+      ],
+      "expected": "Geofence match → onDiscovered → user_stats_store XP+",
+      "autoRunnable": true
+    },
+    {
+      "id": "s25",
+      "category": "maps",
+      "priority": "medium",
+      "title": "Offline tile prewarm butonu tile'ları cache'ler",
+      "steps": [
+        "DayMapScreen'e gir",
+        "'📥 Çevrimdışı hazırla' butonu görünür",
+        "Tıkla → progress bar → SnackBar 'X tile hazır'"
+      ],
+      "expected": "CachingTileProvider.prewarmTiles → disk cache",
+      "autoRunnable": false,
+      "flags": ["needs-device"]
+    },
+    {
+      "id": "s26",
+      "category": "maps",
+      "priority": "medium",
+      "title": "Boş güne haritada girildiğinde 'Konumlu durak yok' bannerı + Google Maps butonu şehri açar",
+      "steps": [
+        "Generic başlıklı (Havaalanına iniş) gün aç",
+        "In-app map: _EmptyBanner görünür",
+        "'Google Maps'te aç' → şehir merkezi (Tokyo) URL'i"
+      ],
+      "expected": "stops.isEmpty → cityCenter'a fallback",
+      "autoRunnable": true
+    },
+    {
+      "id": "s27",
+      "category": "ticket",
+      "priority": "medium",
+      "title": "Bilet ekleme dialog: numara + kalkış saati manuel girişi çalışır",
+      "steps": [
+        "Aktivite detay → 'Bilet ekle'",
+        "Numara + tarih + saat + fotoğraf",
+        "Kaydedilir + gün kartında bilet chip görünür"
+      ],
+      "expected": "Ticket added to trip.tickets, viewer bar chip render",
+      "autoRunnable": true
+    },
+    {
+      "id": "s28",
+      "category": "ticket",
+      "priority": "low",
+      "title": "Bilet fotoğrafı OCR ile kalkış saati/rota otomatik doldurulur",
+      "steps": [
+        "Bilet dialog → fotoğraf yükle",
+        "OCR service çağrılır",
+        "Kalkış/varış/tarih otomatik dolar"
+      ],
+      "expected": "OCR şu an STUBBED — gerçek test post-launch, şimdilik skip",
+      "autoRunnable": false,
+      "flags": ["stubbed", "deferred"]
+    },
+    {
+      "id": "s29",
+      "category": "food",
+      "priority": "medium",
+      "title": "Yeme tercihi 'Vejetaryen' → aktivite detayında recommended foods sadece vegan",
+      "steps": [
+        "Preferences: dietary.vegetarian=true",
+        "Bir meal öğesi aç (ör. 'Ramen molası')",
+        "Öneri listesinde ramen yerine vegan seçenekler"
+      ],
+      "expected": "recommendedFoods(cc) dietary filter uygular",
+      "autoRunnable": true
+    },
+    {
+      "id": "s30",
+      "category": "food",
+      "priority": "low",
+      "title": "Japonca fraz kategori sekmeleri (Temel, Yemek, Yön, …) doğru çalışır",
+      "steps": [
+        "Japanese phrases screen",
+        "Her kategori sekmesine tıkla",
+        "Filtrelenmiş satırlar render"
+      ],
+      "expected": "_activeCat state günceller, category.phrases listelenir",
+      "autoRunnable": true
+    },
+    {
+      "id": "s31",
+      "category": "sync",
+      "priority": "critical",
+      "title": "İki farklı kullanıcı aynı anda plan yapabilir; birbirinin verisini görmez",
+      "steps": [
+        "User1 giriş → plan A oluştur",
+        "User2 giriş → plan listesinde A GÖRÜNMEZ",
+        "User2 kendi planı B oluştur → User1 listesinde B YOK"
+      ],
+      "expected": "RLS owner_id=auth.uid() — Supabase izolasyon",
+      "autoRunnable": false,
+      "flags": ["needs-supabase", "verified-manually"]
+    },
+    {
+      "id": "s32",
+      "category": "sync",
+      "priority": "high",
+      "title": "Çevrimdışı yapılan değişiklikler online'a çıkınca sync olur",
+      "steps": [
+        "Uçak modu aç",
+        "Plan güncelle (ör. otel adı değiştir)",
+        "Uçak modu kapat",
+        "Supabase'e otomatik push edilir"
+      ],
+      "expected": "PlansRepository offline queue → auto flush",
+      "autoRunnable": false,
+      "flags": ["needs-device"]
+    },
+    {
+      "id": "s33",
+      "category": "sync",
+      "priority": "medium",
+      "title": "Reminders (bildirimler) Supabase'e senkron edilir",
+      "steps": [
+        "Aktiviteye 1 gün önce reminder ekle",
+        "Farklı cihazda aynı user giriş → aynı reminder listesi"
+      ],
+      "expected": "remindersStore SupabaseRepository backing",
+      "autoRunnable": false,
+      "flags": ["needs-supabase"]
+    },
+    {
+      "id": "s34",
+      "category": "flight",
+      "priority": "critical",
+      "title": "Uçak kalkış tarihi trip'in ilk günü, dönüş uçağı son günü ile eşleşir",
+      "steps": [
+        "Planner Flights adımı: Gidiş 2026-05-07 10:00, Dönüş 2026-05-13 20:00",
+        "Trip.tripStart = 2026-05-07, tripEnd = 2026-05-13",
+        "Gün 1 = Gidiş, Gün N = Dönüş"
+      ],
+      "expected": "Date range = flight dates, day count consistent",
+      "autoRunnable": true
+    },
+    {
+      "id": "s35",
+      "category": "flight",
+      "priority": "high",
+      "title": "Aktarmalı uçuş süre + toplam saat doğru hesaplanır",
+      "steps": [
+        "IST → DOH → NRT aktarma uçuşu ekle",
+        "Compact flight row toplam süre + 'Aktarma: DOH' gösterir"
+      ],
+      "expected": "_CompactFlightRow flight.durationTotal + via legs",
+      "autoRunnable": true
+    },
+    {
+      "id": "s36",
+      "category": "flight",
+      "priority": "medium",
+      "title": "Uçak günleri hariç tutulur; gezi günleri sayımı yalnızca 'yerde' geçen günleri sayar",
+      "steps": [
+        "13 gün trip: Gidiş 7 Mayıs, Dönüş 20 Mayıs",
+        "Gerçek gezi günleri = 12 (dönüş uçağı akşamsa da gün sayılabilir; şu an kural: son gün = varış günü)"
+      ],
+      "expected": "trip.days.length = tripEnd - tripStart + 1",
+      "autoRunnable": true
+    },
+    {
+      "id": "s37",
+      "category": "flight",
+      "priority": "medium",
+      "title": "Bilet ekleme uçağın kalkış saatinden çakışmalı gün kontrolü yapar",
+      "steps": [
+        "Gidiş uçağı 07:00 kalkıyorsa",
+        "05:00 için başka bir aktivite eklenirse uyarı"
+      ],
+      "expected": "Time-window validation → SnackBar / dialog",
+      "autoRunnable": false,
+      "flags": ["deferred-feature"]
+    },
+    {
+      "id": "s38",
+      "category": "ux",
+      "priority": "high",
+      "title": "Dark tema + light tema geçişi accessibilityda kontrastı korur",
+      "steps": [
+        "System dark → viewer dark tema",
+        "Manual 'Apple Aydınlık' → light",
+        "WCAG AA kontrastını (>4.5) her metin/arkaplan çifti için doğrula"
+      ],
+      "expected": "ViewerPalette pairs pass contrast check",
+      "autoRunnable": true
+    },
+    {
+      "id": "s39",
+      "category": "ux",
+      "priority": "medium",
+      "title": "device_preview çerçevesi debug mode'da aktif, release'de kapalı",
+      "steps": [
+        "kDebugMode → DevicePreview render",
+        "kReleaseMode → doğrudan MaterialApp"
+      ],
+      "expected": "!kReleaseMode gate doğru",
+      "autoRunnable": true
+    },
+    {
+      "id": "s40",
+      "category": "ux",
+      "priority": "medium",
+      "title": "Ekran döndürüldüğünde (landscape) viewer bozulmaz",
+      "steps": [
+        "iPad simülatorde viewer aç",
+        "Landscape'e çevir",
+        "Gün kartları overflow olmaz, drawer normal davranır"
+      ],
+      "expected": "Layout responsive; SafeArea + LayoutBuilder",
+      "autoRunnable": false,
+      "flags": ["needs-device"]
+    },
+    {
+      "id": "s41",
+      "category": "polish",
+      "priority": "medium",
+      "title": "App icon + launch screen + accent renkler App Store rehberine uygun",
+      "steps": [
+        "iOS Assets.xcassets'te 1024x1024 icon + tüm boyutlar",
+        "LaunchScreen.storyboard Rotori marka rengi"
+      ],
+      "expected": "Xcode validate + App Store Connect asset upload no warning",
+      "autoRunnable": false,
+      "flags": ["release-check"]
+    },
+    {
+      "id": "s42",
+      "category": "polish",
+      "priority": "medium",
+      "title": "VoiceOver ile ana ekranlar okunabilir (semantic labels)",
+      "steps": [
+        "iOS Accessibility Inspector aç",
+        "Auth, home, viewer, day map ekranları taranınca",
+        "Her etkileşimli element bir label taşır"
+      ],
+      "expected": "Semantics widget'ları / tooltip'ler mevcut",
+      "autoRunnable": false,
+      "flags": ["needs-device", "release-check"]
+    },
+    { "id": "s43", "category": "route", "priority": "critical",
+      "title": "Rotaya yeni şehir eklendiğinde gün sayısı yeniden bölünür",
+      "steps": ["Tokyo+Kyoto 7 gün","Osaka ekle","Günler 3-2-2 gibi bölünür"],
+      "expected": "TripPreferences.destinations mutation → günler auto-distribute",
+      "autoRunnable": true },
+    { "id": "s44", "category": "route", "priority": "critical",
+      "title": "Rotadan şehir çıkarıldığında kalan şehirlere gün dağılır",
+      "steps": ["3 şehir 9 gün","Ortadaki Osaka'yı sil","Tokyo+Kyoto 5-4 dağılım"],
+      "expected": "Silinen şehirin günleri kalan şehirlere eklenir",
+      "autoRunnable": true },
+    { "id": "s45", "category": "route", "priority": "high",
+      "title": "Rotada şehirlerin sırası değiştirilince günler yeniden hesaplanır",
+      "steps": ["Tokyo→Kyoto sırasını Kyoto→Tokyo yap","Günler yeni sıraya göre dağılır"],
+      "expected": "destinations.order güncellenir + gün hesabı",
+      "autoRunnable": true },
+    { "id": "s46", "category": "route", "priority": "high",
+      "title": "Elle tarih girilen şehir yeniden bölünmede korunur",
+      "steps": ["Tokyo elle 4 gün","Yeni şehir ekle","Tokyo hâlâ 4 gün, diğer şehirlere dağılım"],
+      "expected": "manualDates flag → auto-distribute skip",
+      "autoRunnable": true },
+    { "id": "s47", "category": "route", "priority": "critical",
+      "title": "3 şehirli plan otomatik coğrafi/mantıksal sıralanır",
+      "steps": ["Osaka+Tokyo+Kyoto rastgele seç","Kaydet","Tokyo→Kyoto→Osaka olarak sıralı"],
+      "expected": "geographical order (kuzey→güney) otomatik",
+      "autoRunnable": true },
+    { "id": "s48", "category": "route", "priority": "high",
+      "title": "Havalimanı olmayan şehir tren geçişiyle bağlanır",
+      "steps": ["Nara ekle (havalimanı yok)","Önceki şehirden Nara'ya Shinkansen aktarma"],
+      "expected": "airportCode null → train transfer inject",
+      "autoRunnable": true },
+    { "id": "s49", "category": "route", "priority": "medium",
+      "title": "1 şehirli plan (Tokyo tek) gün akışı düzgün",
+      "steps": ["Sadece Tokyo 5 gün","Viewer aç","5 gün ardışık, aktarma yok"],
+      "expected": "Single destination day generation",
+      "autoRunnable": true },
+    { "id": "s50", "category": "route", "priority": "medium",
+      "title": "10+ şehirli plan crash olmadan render edilir",
+      "steps": ["10 şehir seç, 20 gün","Kaydet","Viewer scroll edilir"],
+      "expected": "Performance: viewer render < 500ms, scroll 60fps",
+      "autoRunnable": true },
+    { "id": "s51", "category": "route", "priority": "high",
+      "title": "Otel eklendiğinde gün metadata'sına çeker",
+      "steps": ["Shinjuku Hotel 3 gece ekle","Gün 1-3 kartında hotel adı görünür"],
+      "expected": "HotelStay.date range gün mapping",
+      "autoRunnable": true },
+    { "id": "s52", "category": "route", "priority": "high",
+      "title": "Aktivite (TimelineItem) gün içinde ekle/sil/sırala",
+      "steps": ["Gün 2'ye aktivite ekle","Zaman değiştir","Sırayla listelenir"],
+      "expected": "TimelineItem CRUD + zaman sıralaması",
+      "autoRunnable": true },
+    { "id": "s53", "category": "nav", "priority": "critical",
+      "title": "Home → Planner → Viewer route stack push-pop",
+      "steps": ["Home aç","'Sıfırdan plan'","Review'da 'Kaydet'","Viewer'a düşer","Back → Home"],
+      "expected": "GoRouter push/pop stack tutarlı",
+      "autoRunnable": true },
+    { "id": "s54", "category": "nav", "priority": "high",
+      "title": "Deep link /plans/:id/prep prep ekranını açar",
+      "steps": ["URL /plans/qa-1/prep","PreDepartureChecklistScreen render"],
+      "expected": "GoRouter route match + trip lookup",
+      "autoRunnable": true },
+    { "id": "s55", "category": "nav", "priority": "high",
+      "title": "Drawer aksiyon buttonu tıklayınca ilgili ekran açılır",
+      "steps": ["Drawer aç","'Hava' butonuna dokun","WeatherScreen mount"],
+      "expected": "Navigator.push MaterialPageRoute",
+      "autoRunnable": true },
+    { "id": "s56", "category": "nav", "priority": "medium",
+      "title": "Alt ekrandan back tuşuyla drawer state korunur",
+      "steps": ["Drawer → Bütçe","Back","Drawer kapalı, viewer'a döner"],
+      "expected": "Scaffold state preservation",
+      "autoRunnable": true },
+    { "id": "s57", "category": "nav", "priority": "medium",
+      "title": "Aktivite tap → place_detail_sheet bottom sheet açılır",
+      "steps": ["Gün kartında Senso-ji tap","BottomSheet slide up","Detail render"],
+      "expected": "showModalBottomSheet + PlaceDetailSheet",
+      "autoRunnable": true },
+    { "id": "s58", "category": "nav", "priority": "medium",
+      "title": "Router yönlendirme: kullanıcı yoksa /auth, varsa /home",
+      "steps": ["Session temizle","App başlat","/auth görünür","Login","/home"],
+      "expected": "GoRouter redirect logic + authStateProvider",
+      "autoRunnable": true },
+    { "id": "s59", "category": "i18n", "priority": "critical",
+      "title": "Tüm l10n key'leri hem TR hem EN için tanımlı (leak check)",
+      "steps": ["l10n.dart tara","LText içeren key'leri say","Bir dilde eksik olan yok"],
+      "expected": "Her key {tr:, en:} çiftini tam sağlar",
+      "autoRunnable": true },
+    { "id": "s60", "category": "i18n", "priority": "high",
+      "title": "Placeholder'lı key'ler ({param}) her dilde eşdeğer parametre kullanır",
+      "steps": ["viewer.phase.countdown gibi key'leri say","TR ve EN'de {d} {h} eşit"],
+      "expected": "Placeholder consistency — tr {d}=en {d}",
+      "autoRunnable": true },
+    { "id": "s61", "category": "i18n", "priority": "high",
+      "title": "Uzun EN cümleleri Türkçe cümlelerden %30 fazla değil",
+      "steps": ["Her key için tr.length vs en.length ratio","Ratio > 1.5 flagli"],
+      "expected": "Copy length parity — layout overflow'u önler",
+      "autoRunnable": true },
+    { "id": "s62", "category": "i18n", "priority": "medium",
+      "title": "Marka isimleri (Rotori, Shinkansen, Yamato) çeviride literal kalır",
+      "steps": ["'Rotori' geçen key'leri say","TR ve EN'de aynı literal"],
+      "expected": "Brand name preservation",
+      "autoRunnable": true },
+    { "id": "s63", "category": "i18n", "priority": "medium",
+      "title": "Türkçe karakterler (ç ğ ı ö ş ü) EN key'lerinde YER ALMAZ",
+      "steps": ["Tüm EN string'lerini tara","Türkçe karakter varsa flagli"],
+      "expected": "EN clean ASCII + neutral Unicode",
+      "autoRunnable": true },
+    { "id": "s64", "category": "i18n", "priority": "medium",
+      "title": "AppLang değişince tüm widget'lar re-build olur (kaçak state yok)",
+      "steps": ["Viewer aç","TR → EN","Başlık, buton, tooltip hepsi EN görünür"],
+      "expected": "LanguageScope dependOnInheritedWidget yaygın",
+      "autoRunnable": true },
+    { "id": "s65", "category": "i18n", "priority": "high",
+      "title": "Auth ekranı EN'de bile 'Rotori' marka hero'sunu korur",
+      "steps": ["Auth EN","'Rotori' + tagline görünür"],
+      "expected": "_AuthBrandHero brand static",
+      "autoRunnable": true },
+    { "id": "s66", "category": "i18n", "priority": "medium",
+      "title": "Tarih formatı dile göre (13 Mayıs / May 13)",
+      "steps": ["Trip Tokyo 13 Mayıs","TR: '13 Mayıs 2026'","EN: 'May 13 2026'"],
+      "expected": "monthsFor(lang) + format order",
+      "autoRunnable": true },
+    { "id": "s67", "category": "i18n", "priority": "medium",
+      "title": "Zaman formatı 24 saatlik her iki dilde",
+      "steps": ["10:00 → TR '10:00'","EN '10:00'"],
+      "expected": "24h fixed (Japonya konvansiyonu)",
+      "autoRunnable": true },
+    { "id": "s68", "category": "i18n", "priority": "low",
+      "title": "Copy stil kontrol: EN cümleler apostrofsuz düzgün",
+      "steps": ["EN string'lerinde smart apostrof/quote (’, “) tara","Sadece ASCII ' ve \""],
+      "expected": "Neutral punctuation",
+      "autoRunnable": true },
+    { "id": "s69", "category": "maps", "priority": "high",
+      "title": "GPS geofence Senso-ji yakınında (100m) badge tetikler",
+      "steps": ["GpsSimScreen Senso-ji preset","fenceRadius=100m","onDiscovered tetiklenir"],
+      "expected": "Geofence.match + XP artışı",
+      "autoRunnable": true },
+    { "id": "s70", "category": "maps", "priority": "high",
+      "title": "GPS fence dışına çıkınca badge kaybolmaz (persist)",
+      "steps": ["Badge kazan","GPS uzağa taşı","user_stats badge listesi korunur"],
+      "expected": "Badge storage persistence",
+      "autoRunnable": true },
+    { "id": "s71", "category": "maps", "priority": "medium",
+      "title": "GPS izni reddedilirse geofence pasif + banner",
+      "steps": ["Location denied","Map screen aç","'İzin ver' CTA görünür"],
+      "expected": "Permission handler + fallback UI",
+      "autoRunnable": false,
+      "flags": ["needs-device"] },
+    { "id": "s72", "category": "maps", "priority": "medium",
+      "title": "GPS accuracy düşükse geofence tetikleme eşiğinde",
+      "steps": ["GpsSim accuracy=100m","Fence 50m","Tetikleme yok"],
+      "expected": "Accuracy filter — false positive önler",
+      "autoRunnable": true },
+    { "id": "s73", "category": "maps", "priority": "medium",
+      "title": "Tile cache disk kullanımı 100MB'yı aşmıyor",
+      "steps": ["Prewarm 4 şehir","Disk size hesabı"],
+      "expected": "CachingTileProvider LRU eviction",
+      "autoRunnable": false,
+      "flags": ["needs-device"] },
+    { "id": "s74", "category": "maps", "priority": "high",
+      "title": "Uzun sürede GPS batarya optimum — 30sn interval",
+      "steps": ["30sn'de bir konum güncellemesi","Yüksek doğrulukta değil"],
+      "expected": "LocationOptions balancedPower",
+      "autoRunnable": false,
+      "flags": ["needs-device", "measured"] },
+    { "id": "s75", "category": "sync", "priority": "critical",
+      "title": "2 kullanıcı aynı anda plan yapar, biri diğerinin planını görmez",
+      "steps": ["ProviderContainer A oluştur (user1 trip)","Container B (user2 trip)","A.plans B.plans farklı"],
+      "expected": "RLS + izole state",
+      "autoRunnable": true },
+    { "id": "s76", "category": "sync", "priority": "high",
+      "title": "5 kullanıcı sanal — hiçbiri diğerinin planlarını görmez",
+      "steps": ["5 container aç","Her biri kendi trip'iyle","Cross-container isolation"],
+      "expected": "5-user matrix isolation",
+      "autoRunnable": true },
+    { "id": "s77", "category": "sync", "priority": "high",
+      "title": "10 kullanıcı stres testi — hiç leak yok",
+      "steps": ["10 container","Her biri 1 plan","Cross-check her user diğerlerini görmez"],
+      "expected": "10-user matrix isolation",
+      "autoRunnable": true },
+    { "id": "s78", "category": "sync", "priority": "medium",
+      "title": "Aynı kullanıcı 2 cihaz — plan senkron",
+      "steps": ["Container A ve B aynı user_id","A'ya plan ekle","B'de görünür (Stream)"],
+      "expected": "Same-user cross-device sync",
+      "autoRunnable": true },
+    { "id": "s79", "category": "sync", "priority": "medium",
+      "title": "Concurrent modification — son yazan kazanır (last-write-wins)",
+      "steps": ["A ve B eş zamanlı plan title değiştirir","B'ninki daha geç","Final = B"],
+      "expected": "Timestamp based LWW",
+      "autoRunnable": true },
+    { "id": "s80", "category": "food", "priority": "high",
+      "title": "Vejetaryen + helal kombinasyonu doğru filtre",
+      "steps": ["Preferences: veg=true, halal=true","Restoran önerisi ne domuz ne alkol"],
+      "expected": "AND filter — dietary compose",
+      "autoRunnable": true },
+    { "id": "s81", "category": "food", "priority": "medium",
+      "title": "Gluten free işaretlenirse ramen önerisi görünmez",
+      "steps": ["glutenFree=true","Recommendations","Ramen listede yok"],
+      "expected": "Ramen has gluten → filter out",
+      "autoRunnable": true },
+    { "id": "s82", "category": "food", "priority": "medium",
+      "title": "Fraz kopyalama panoya doğru Japonca yazı yazar",
+      "steps": ["'こんにちは' satırına dokun","Panoda 'こんにちは' var"],
+      "expected": "Clipboard.setData jp string",
+      "autoRunnable": true },
+    { "id": "s83", "category": "food", "priority": "low",
+      "title": "TTS asset yoksa sessiz fail (crash olmaz)",
+      "steps": ["Hayali fraz için speakJa çağır","AudioPlayer error catch"],
+      "expected": "AssetSource fail → debugPrint",
+      "autoRunnable": true },
+    { "id": "s84", "category": "ux", "priority": "high",
+      "title": "Drawer 90% ekran yüksekliğinde scrollable",
+      "steps": ["Küçük telefon (iPhone SE)","Drawer aç","İçerik scroll edilebilir"],
+      "expected": "SingleChildScrollView + Expanded",
+      "autoRunnable": true },
+    { "id": "s85", "category": "ux", "priority": "medium",
+      "title": "Top bar overflow — uzun countdown metni ellipsis",
+      "steps": ["Faz label çok uzun","Row Expanded + Text overflow"],
+      "expected": "TextOverflow.ellipsis + softWrap:false",
+      "autoRunnable": true },
+    { "id": "s86", "category": "ux", "priority": "medium",
+      "title": "SafeArea iPhone Dynamic Island altında değil",
+      "steps": ["iPhone 15 Pro simulator","Top bar Dynamic Island'ın altında"],
+      "expected": "SafeArea top",
+      "autoRunnable": false,
+      "flags": ["needs-device"] },
+    { "id": "s87", "category": "ux", "priority": "high",
+      "title": "Snackbar messenger tekrar tekrar aynı message dublike etmez",
+      "steps": ["Aynı butona 3× dokun","1 snackbar açık, önceki dismiss"],
+      "expected": "messenger.clearSnackBars() öncesi",
+      "autoRunnable": true },
+    { "id": "s88", "category": "ux", "priority": "medium",
+      "title": "Karanlık mode geçişi paint jank oluşturmaz",
+      "steps": ["Palette switch","Frame skip < 3"],
+      "expected": "Smooth transition — Animatable",
+      "autoRunnable": false,
+      "flags": ["needs-device", "measured"] },
+    { "id": "s89", "category": "flight", "priority": "critical",
+      "title": "Gidiş uçağı tarihi trip başlangıcıyla eşleşir",
+      "steps": ["outbound[0].dateTime = 2026-05-07 10:00","tripStart = 2026-05-07"],
+      "expected": "Auto sync from flights",
+      "autoRunnable": true },
+    { "id": "s90", "category": "flight", "priority": "critical",
+      "title": "Dönüş uçağı tarihi trip bitişiyle eşleşir",
+      "steps": ["returnLegs[last].dateTime = 2026-05-13 20:00","tripEnd = 2026-05-13"],
+      "expected": "Auto sync from returnLegs",
+      "autoRunnable": true },
+    { "id": "s91", "category": "flight", "priority": "high",
+      "title": "Uçak günü olan gün 0 varış aktivitesi yerleştirilir",
+      "steps": ["Gidiş 10:00 varış 14:00","Gün 1 aktivite ≥ 15:00"],
+      "expected": "Post-arrival activity injection",
+      "autoRunnable": true },
+    { "id": "s92", "category": "flight", "priority": "high",
+      "title": "Dönüş gününde uçaktan sonra aktivite yok",
+      "steps": ["Dönüş 20:00","Son gün aktivite < 18:00"],
+      "expected": "Pre-departure buffer",
+      "autoRunnable": true },
+    { "id": "s93", "category": "flight", "priority": "medium",
+      "title": "Uçuş süresi hesaplaması saat farkına göre doğru",
+      "steps": ["IST 10:00 → HND 14:00 (+6h TZ)","Süre = 4+6 = 10sa"],
+      "expected": "TZ-aware duration",
+      "autoRunnable": true },
+    { "id": "s94", "category": "flight", "priority": "medium",
+      "title": "Aktarmalı uçuş her bacak süresi + bekleme toplanır",
+      "steps": ["IST-DOH-NRT: leg1 3sa, wait 2sa, leg2 8sa","Toplam 13sa"],
+      "expected": "Sum durations + waits",
+      "autoRunnable": true },
+    { "id": "s95", "category": "flight", "priority": "medium",
+      "title": "Uçuş silinince trip tarihleri sıfırlanmaz — kullanıcı korunur",
+      "steps": ["outbound sil","tripStart korunur"],
+      "expected": "No cascade delete of dates",
+      "autoRunnable": true },
+    { "id": "s96", "category": "polish", "priority": "high",
+      "title": "App icon 1024x1024 Assets.xcassets'te mevcut",
+      "steps": ["ios/Runner/Assets.xcassets/AppIcon.appiconset","1024x1024 png"],
+      "expected": "Icon set complete",
+      "autoRunnable": true },
+    { "id": "s97", "category": "polish", "priority": "medium",
+      "title": "Launch screen Rotori marka rengi",
+      "steps": ["LaunchScreen.storyboard","Background = accent gradient"],
+      "expected": "Brand color applied",
+      "autoRunnable": false,
+      "flags": ["needs-device", "release-check"] },
+    { "id": "s98", "category": "polish", "priority": "high",
+      "title": "iOS Info.plist LSApplicationQueriesSchemes comgooglemaps var",
+      "steps": ["Info.plist grep","<string>comgooglemaps</string> present"],
+      "expected": "URL scheme whitelist",
+      "autoRunnable": true },
+    { "id": "s99", "category": "polish", "priority": "medium",
+      "title": "Bundle ID com.mennansevim.japanTrip değişmemiş",
+      "steps": ["ios/Runner.xcodeproj/project.pbxproj","PRODUCT_BUNDLE_IDENTIFIER"],
+      "expected": "Bundle ID = com.mennansevim.japanTrip",
+      "autoRunnable": true },
+    { "id": "s100", "category": "polish", "priority": "critical",
+      "title": "Uygulama fresh install → çökme olmadan auth ekranına iner",
+      "steps": ["SharedPrefs temiz","App başlat","Auth screen mount, crash yok"],
+      "expected": "First-launch smoke test",
+      "autoRunnable": true }
+  ]
+}

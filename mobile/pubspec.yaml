@@ -67,6 +67,11 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  # E2E senaryo koşusu için — mobile/qa/scenarios.json içindeki senaryolar
+  # integration_test/scenario_runner_test.dart tarafından koşulur ve
+  # mobile/qa/latest-run.json'a çıktı verir. Dashboard bunu okur.
+  integration_test:
+    sdk: flutter
   flutter_lints: ^4.0.0
 
 flutter:

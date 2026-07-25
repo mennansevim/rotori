@@ -20,7 +20,13 @@ class AppLangNotifier extends StateNotifier<AppLang> {
 
   Future<void> _load() async {
     final prefs = await _ref.read(sharedPrefsProvider.future);
-    state = AppLangX.fromCode(prefs.getString(_key));
+    final saved = prefs.getString(_key);
+    // Kayıtlı değer yoksa state'e dokunma — constructor default'ı korunur.
+    // Bu, ilk açılışta set() ile _load() yarışırsa set'in ezilmesini önler
+    // (async race: set → state=en → _load geç bitişte state=tr'ye geri).
+    if (saved != null) {
+      state = AppLangX.fromCode(saved);
+    }
   }
 
   /// Yeni dili ayarlar ve kalıcılaştırır.
