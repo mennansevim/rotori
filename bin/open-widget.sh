@@ -44,11 +44,11 @@ EXE="$BROWSER/Contents/MacOS/$(basename "$BROWSER" .app)"
 echo "🖥 Widget açılıyor: $URL"
 echo "   tarayıcı: $BROWSER"
 
-# app-mode ile aç, arka planda bırak
+# app-mode ile aç, arka planda bırak (620x1000 — mini dashboard için ferah)
 "$EXE" \
     --app="$URL" \
-    --window-size=460,860 \
-    --window-position=100,100 \
+    --window-size=620,1000 \
+    --window-position=100,80 \
     --user-data-dir="$HOME/.japan-widget-profile" \
     >/dev/null 2>&1 &
 
