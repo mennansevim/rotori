@@ -199,6 +199,96 @@ _OPENAI_CAPTION_SYSTEM = (
     "Uydurma sayı/saat/fiyat YASAK. Yanıt SADECE JSON."
 )
 
+# ---------------------------------------------------------------------------
+# Hook A/B Test — farklı hook tiplerinden varyant üretimi
+# ---------------------------------------------------------------------------
+
+# Hook formatlarına göre sistem rehberi
+_HOOK_VARIANT_TYPES = [
+    {
+        "tip": "merak",
+        "aciklama": "Merak uyandıran, yanıtlanmayan soru veya cliffhanger",
+        "ornek": "Bu kapıyı geçersen geri dönemezsin",
+    },
+    {
+        "tip": "sayi_gercek",
+        "aciklama": "Somut sayı/gerçek içeren bilgi kancası",
+        "ornek": "200 yıllık bu geleneği biz de yaşadık",
+    },
+    {
+        "tip": "karsilastirma",
+        "aciklama": "Türkiye ile veya beklentiyle karşılaştırma",
+        "ornek": "Türkiye'den çok farklı bir metro",
+    },
+    {
+        "tip": "hata_uyarisi",
+        "aciklama": "Yapılan/yapılabilecek hata odaklı, öğretici",
+        "ornek": "Bu hatayı herkes yapıyor Nara'da",
+    },
+]
+
+
+def generate_hook_variants(
+    cfg: "Config",
+    mekan: str,
+    kategori: str,
+    seed: dict[str, Any],
+    n: int = 3,
+) -> list[dict[str, Any]]:
+    """Bir mekan için N farklı tipte hook varyantı üret.
+
+    Her varyant: {"tip": str, "hook": str}
+    Öncelik: OpenAI → seed (deterministik fallback)
+    """
+    from src.openai_client import OpenAIClient
+
+    # Deterministik fallback: seed hook'u tipe göre kopyala
+    seed_hook = seed.get("hook", persona.GENERIC["hook"])
+    fallback = [{"tip": t["tip"], "hook": seed_hook} for t in _HOOK_VARIANT_TYPES[:n]]
+
+    oai = OpenAIClient.from_config(cfg)
+    if oai is None:
+        return fallback
+
+    types_block = "\n".join(
+        f"- {t['tip']}: {t['aciklama']} (örnek: \"{t['ornek']}\")"
+        for t in _HOOK_VARIANT_TYPES[:n]
+    )
+    tips_block = "\n".join(f"- {t}" for t in seed.get("tips", [])[:4])
+
+    user = (
+        f"Mekan: {mekan} ({kategori})\n"
+        f"Gerçek tüyolar:\n{tips_block}\n\n"
+        f"Aşağıdaki {n} farklı hook tipinde birer hook cümlesi yaz:\n{types_block}\n\n"
+        "Kurallar: max 8 kelime, Türkçe, uydurma sayı yok, klişe yok.\n"
+        "Yanıt SADECE JSON array:\n"
+        '[{"tip": "merak", "hook": "..."}, {"tip": "sayi_gercek", "hook": "..."}, ...]'
+    )
+
+    system = (
+        "Sen Instagram Reels hook metni üretiyorsun. "
+        "Kısa (max 8 kelime), çarpıcı, Türkçe. Klişe yok. SADECE JSON array döndür."
+    )
+
+    try:
+        raw = oai.chat_text(system, user, temperature=0.85, max_tokens=300)
+        import re as _re
+        m = _re.search(r"\[.*\]", raw, _re.DOTALL)
+        if not m:
+            return fallback
+        variants = json.loads(m.group(0))
+        # validate
+        result = []
+        for v in variants[:n]:
+            tip = str(v.get("tip", "")).strip()
+            hook = str(v.get("hook", "")).strip()
+            if tip and _valid_hook(hook):
+                result.append({"tip": tip, "hook": hook})
+        return result if result else fallback
+    except Exception as exc:
+        log.warning(f"Hook varyant üretimi başarısız ({mekan}): {exc}")
+        return fallback
+
 
 def generate_caption_only(cfg: Config, row: dict[str, Any]) -> dict[str, Any]:
     """metadata.csv satırından o videoya özel Instagram caption + hashtagler üret.
@@ -421,12 +511,30 @@ def process_group(cfg: Config, input_path: Path, use_dify: bool, client: OllamaC
         log.error(f"Grup başarısız ({input_path.name}): {exc}")
         return None
 
+    # Hook A/B Test varyantları — analitikle hangi tipin daha iyi performans
+    # gösterdiğini karşılaştırmak için: final.json["ab_test"]["hook_variants"]
+    mekan = group.get("mekan_etiketi", "")
+    kategori = group.get("kategori", "")
+    seed = persona.seed_for(mekan, kategori)
+    try:
+        hook_variants = generate_hook_variants(cfg, mekan, kategori, seed, n=3)
+    except Exception as exc:
+        log.warning(f"Hook varyant üretimi atlandı: {exc}")
+        hook_variants = []
+
     # knowledge/kullanici_prompt input alanları çıktıya kopyalanmaz (final_json şişer)
     slim_group = {k: v for k, v in group.items() if k != "knowledge"}
-    merged = {**slim_group, "kurgu_json": plan}
+    merged = {
+        **slim_group,
+        "kurgu_json": plan,
+        "ab_test": {
+            "hook_variants": hook_variants,   # [{tip, hook}, ...]
+            "active_variant": None,            # seçilen varyant indeksi (analytics'ten)
+            "impressions": {},                 # {tip: int} — analytics doldurur
+        },
+    }
     output_path.write_text(json.dumps(merged, ensure_ascii=False, indent=2), encoding="utf-8")
-    log.info(f"✓ {output_path.name} → \"{plan.get('hook','')}\"")
-    return output_path
+    log.info(f"✓ {output_path.name} → \"{plan.get('hook','')}\" ({len(hook_variants)} hook varyantı)")    return output_path
 
 
 def main() -> None:

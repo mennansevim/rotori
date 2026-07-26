@@ -45,7 +45,25 @@ if cfg.stories:
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
-# ---------------- yardımcılar ----------------
+# ---------------------------------------------------------------------------
+# Startup: scheduler background thread
+# ---------------------------------------------------------------------------
+@app.on_event("startup")
+def _start_scheduler() -> None:
+    if cfg.scheduler and cfg.scheduler.enabled:
+        from src import scheduler as sched_mod
+        sched_mod.start_background_scheduler(
+            project_root=cfg.project_root,
+            output_dir=cfg.paths.output_dir,
+            cfg_any=cfg,
+            queue_file=cfg.scheduler.queue_file,
+            auto_upload=cfg.scheduler.auto_upload,
+            check_interval_sn=cfg.scheduler.check_interval_sn,
+        )
+        log.info("Reels Scheduler başlatıldı ✓")
+
+
+
 _src_cache: dict[str, Any] = {"count": None, "ts": 0.0}
 
 
@@ -143,6 +161,12 @@ class AICaptionRequest(BaseModel):
     mode: str = "subtitle"   # "title" | "subtitle"
 
 
+class ReelsCaptionRequest(BaseModel):
+    konu: str = Field(..., min_length=2)          # video konusu, örn "Nara geyikleri"
+    ton: str = "samimi"                            # samimi | merak | bilgi
+    ekstra: str = ""                               # kullanıcının eklemek istediği detay
+
+
 class ExpandCaptionRequest(BaseModel):
     aciklama: str = Field(..., min_length=8)
     baslik: str = ""
@@ -175,6 +199,27 @@ def index() -> FileResponse:
         headers={"Cache-Control": "no-cache, no-store, must-revalidate",
                  "Pragma": "no-cache", "Expires": "0"},
     )
+
+
+# --- Domain doğrulama (TikTok / Meta vb.) ---
+# TikTok "Verify URL properties" adımı kök dizinde bir .txt dosyası ister:
+#   https://api.rotori.app/tiktokXXXXXXXX.txt
+# İndirdiğin doğrulama dosyasını data/domain_verification/ klasörüne koy;
+# bu endpoint onu kök dizinden servis eder.
+@app.get("/{verify_file:path}")
+def domain_verification(verify_file: str) -> FileResponse:
+    # Sadece kök seviye tiktok*.txt / google*.html gibi doğrulama dosyaları.
+    # Path traversal koruması + yalnızca güvenli uzantılar.
+    if "/" in verify_file or "\\" in verify_file or ".." in verify_file:
+        raise HTTPException(status_code=404, detail="Not found")
+    allowed = verify_file.endswith(".txt") or verify_file.endswith(".html")
+    is_verify = verify_file.startswith(("tiktok", "google", "pinterest", "BingSiteAuth"))
+    if not (allowed and is_verify):
+        raise HTTPException(status_code=404, detail="Not found")
+    path = cfg.project_root / "data" / "domain_verification" / verify_file
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Doğrulama dosyası bulunamadı")
+    return FileResponse(str(path), media_type="text/plain")
 
 
 @app.get("/api/status")
@@ -1567,6 +1612,8 @@ def automation_config_post(req: AutomationConfigRequest) -> dict[str, Any]:
 class RunNowRequest(BaseModel):
     kind: str = "news"       # 'news' | 'topic'
     auto_publish: bool = False
+    topic: str = ""          # (sadece kind=topic) özel konu başlığı — boşsa havuzdan rastgele
+    query: str = ""          # (opsiyonel) özel Unsplash görsel arama sorgusu
 
 
 @app.post("/api/automation/run_now")
@@ -1582,7 +1629,13 @@ def automation_run_now(req: RunNowRequest) -> dict[str, Any]:
             res = news_automation.run_once_with_publish(cfg, auto_publish=req.auto_publish)
         else:
             from src import topic_automation
-            res = topic_automation.run_once(cfg, auto_publish=req.auto_publish)
+            override = None
+            if req.topic.strip():
+                override = {"title": req.topic.strip(),
+                            "query": req.query.strip() or req.topic.strip()}
+                emit(f"  Özel konu: {req.topic.strip()}", "log")
+            res = topic_automation.run_once(cfg, auto_publish=req.auto_publish,
+                                            topic_override=override)
         if res.get("ok"):
             mid = res.get("published_media_id")
             emit(f"✅ {label}: {res.get('file', '?')}"
@@ -2052,3 +2105,333 @@ def instagram_logout() -> dict[str, Any]:
     from src import instagram_publisher as ig
     removed = ig.logout(cfg)
     return {"ok": True, "removed": removed}
+
+
+# =============================================================================
+# Reels Caption Üretici — kendi çektiğiniz videolar için hazır metin
+# =============================================================================
+
+_REELS_CAPTION_SYSTEM = (
+    "Sen @japonyaruyasi Instagram kanalı için Reels caption'ı yazan bir "
+    "editörsün. Kanal sahibi Mennan; ailesiyle 13 gün Japonya (Tokyo/Osaka/"
+    "Kyoto/Nara, Mayıs 2026) gezmiş bir Türk gezgin. Birinci çoğul ağız (biz, "
+    "ailemle), kusursuz ve akıcı Türkçe, samimi ama bilgi veren ton. "
+    "Uydurma sayı/saat/fiyat YASAK. Klişe YASAK ('büyülü', 'eşsiz', 'muhteşem', "
+    "'erken git', 'rahat ayakkabı'). Japonca özel isimler (Shinkansen, onsen, "
+    "ryokan) çevrilmez. Yanıt SADECE geçerli JSON."
+)
+
+
+def _reels_caption_prompt(konu: str, ton: str, ekstra: str) -> str:
+    ton_hint = {
+        "samimi": "Sıcak, samimi, birinci ağızdan deneyim anlatımı.",
+        "merak": "Merak uyandıran, cliffhanger — 'çoğu kişi bilmiyor' tonunda.",
+        "bilgi": "Bilgilendirici, somut ipucu/tüyo odaklı, belgesel tonu.",
+    }.get(ton, "Sıcak, samimi.")
+
+    ekstra_line = f"\nKullanıcının eklemek istediği detay: {ekstra}\n" if ekstra.strip() else ""
+
+    return (
+        f"Video konusu: {konu}\n"
+        f"İstenen ton: {ton} — {ton_hint}"
+        f"{ekstra_line}\n"
+        "Bu konuda çektiğim Reels için 3 farklı hook + 1 caption + hashtag üret.\n\n"
+        "ÇIKTI (sadece JSON):\n"
+        "{\n"
+        '  "hooklar": ["video başında söylenecek/yazılacak 3 farklı çarpıcı '
+        'açılış cümlesi (max 8 kelime)"],\n'
+        '  "aciklama": "3-5 kısa cümle, birinci çoğul, somut bir gözlem/tüyo, '
+        '2-4 emoji, sonda yumuşak kanal hatırlatması",\n'
+        '  "hashtagler": ["8-12 tag, # olmadan, küçük harf"]\n'
+        "}\n\n"
+        "Kurallar: hook'lar birbirinden farklı tarzda olsun (biri merak, biri "
+        "tüyo, biri kişisel). Uydurma bilgi yok. SADECE JSON döndür."
+    )
+
+
+@app.post("/api/reels/caption")
+def reels_caption(req: ReelsCaptionRequest) -> dict[str, Any]:
+    """Kendi çektiğiniz Reels için hazır Türkçe caption + hook + hashtag üret.
+
+    Video üretmez — sadece metin. CapCut/InShot'ta düzenlediğiniz videoyu
+    Instagram'a yüklerken bu metni kopyala-yapıştır kullanırsınız.
+    """
+    from src.openai_client import OpenAIClient
+    from src import persona
+
+    oai = OpenAIClient.from_config(cfg)
+
+    if oai is not None:
+        try:
+            data = oai.chat_json(
+                _REELS_CAPTION_SYSTEM,
+                _reels_caption_prompt(req.konu, req.ton, req.ekstra),
+                temperature=0.8,
+                max_tokens=700,
+            )
+        except (RuntimeError, ValueError) as exc:
+            log.warning(f"Reels caption OpenAI hatası, seed fallback: {exc}")
+            data = None
+
+        if data:
+            hooklar = [str(h).strip() for h in (data.get("hooklar") or []) if str(h).strip()]
+            aciklama = str(data.get("aciklama", "")).strip()
+            # klişe temizliği
+            import re as _re
+            parts = _re.split(r"(?<=[.!?])\s+", aciklama)
+            aciklama = " ".join(p for p in parts if not persona.cliche_iceriyor(p)).strip()
+            hashtagler = []
+            for t in (data.get("hashtagler") or []):
+                t = _re.sub(r"[^0-9A-Za-zçğıöşüÇĞİÖŞÜ]", "", str(t)).lower()
+                if t and t not in hashtagler:
+                    hashtagler.append(t)
+            if hooklar and aciklama and hashtagler:
+                tags_line = " ".join(f"#{t}" for t in hashtagler[:12])
+                full_caption = f"{aciklama}\n\n{tags_line}"
+                return {
+                    "ok": True,
+                    "hooklar": hooklar[:3],
+                    "aciklama": aciklama,
+                    "hashtagler": hashtagler[:12],
+                    "full_caption": full_caption,
+                    "source": "openai",
+                }
+
+    # Fallback: persona seed
+    seed = persona.seed_for(req.konu, req.konu)
+    aciklama = seed.get("aciklama") or persona.GENERIC["aciklama"]
+    hashtagler = seed.get("hashtags", persona.GENERIC["hashtags"])[:12]
+    hook = seed.get("hook", persona.GENERIC["hook"])
+    tags_line = " ".join(f"#{t}" for t in hashtagler)
+    return {
+        "ok": True,
+        "hooklar": [hook],
+        "aciklama": aciklama,
+        "hashtagler": hashtagler,
+        "full_caption": f"{aciklama}\n\n{tags_line}",
+        "source": "seed",
+    }
+
+
+# =============================================================================
+# Scheduler — Reels Posting Kuyruğu
+# =============================================================================
+class SchedulerEnqueueRequest(BaseModel):
+    mp4_name: str = Field(..., min_length=1)        # output/reels/ altındaki dosya adı
+    caption: str = ""                                # boşsa final.json'dan alınır
+    scheduled_at: str = ""                           # ISO: "2026-07-28T18:00:00"; boşsa otomatik
+
+
+@app.get("/api/scheduler/queue")
+def scheduler_queue_list() -> dict[str, Any]:
+    """Tüm kuyruk içeriğini + özet istatistiklerini döndür."""
+    from src import scheduler as sched_mod
+    return sched_mod.queue_summary(cfg.project_root,
+                                   cfg.scheduler.queue_file if cfg.scheduler else "data/scheduler_queue.json")
+
+
+@app.post("/api/scheduler/queue")
+def scheduler_enqueue(req: SchedulerEnqueueRequest) -> dict[str, Any]:
+    """Reels MP4'ünü yayın kuyruğuna ekle."""
+    from src import scheduler as sched_mod
+
+    sched_cfg = cfg.scheduler
+    mp4 = cfg.paths.output_dir / req.mp4_name
+    if not mp4.exists():
+        raise HTTPException(status_code=404, detail=f"MP4 bulunamadı: {req.mp4_name}")
+
+    # caption: request'te yoksa final.json'dan bul
+    caption = req.caption
+    if not caption:
+        plans_dir = cfg.paths.plans_dir
+        # mp4 adından slug çıkar → final.json ara
+        stem_parts = mp4.stem.split("_")
+        for final in plans_dir.glob("*_final.json"):
+            try:
+                import json as _json
+                data = _json.loads(final.read_text(encoding="utf-8"))
+                kj = data.get("kurgu_json", {})
+                aciklama = kj.get("aciklama", "")
+                hashtagler = kj.get("hashtagler", [])
+                if aciklama and data.get("mekan_etiketi", "") in mp4.stem:
+                    tags = " ".join(f"#{t}" for t in hashtagler[:12])
+                    caption = f"{aciklama}\n\n{tags}".strip()
+                    break
+            except Exception:
+                continue
+
+    try:
+        entry = sched_mod.enqueue(
+            project_root=cfg.project_root,
+            mp4_path=mp4,
+            caption=caption,
+            scheduled_at=req.scheduled_at or None,
+            daily_limit=sched_cfg.daily_limit if sched_cfg else 2,
+            default_times=sched_cfg.default_times if sched_cfg else ["08:00", "18:00"],
+            queue_file=sched_cfg.queue_file if sched_cfg else "data/scheduler_queue.json",
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    return {"ok": True, "entry": entry}
+
+
+@app.delete("/api/scheduler/queue/{entry_id}")
+def scheduler_dequeue(entry_id: str) -> dict[str, Any]:
+    """Kuyruktan iptal et (status → 'cancelled')."""
+    from src import scheduler as sched_mod
+    ok = sched_mod.cancel_entry(
+        cfg.project_root, entry_id,
+        cfg.scheduler.queue_file if cfg.scheduler else "data/scheduler_queue.json"
+    )
+    if not ok:
+        raise HTTPException(status_code=404, detail=f"Girdi bulunamadı: {entry_id}")
+    return {"ok": True}
+
+
+@app.post("/api/scheduler/run")
+def scheduler_run_now() -> dict[str, Any]:
+    """Zamanı gelmiş girdileri hemen işle (manuel tetik)."""
+    from src import scheduler as sched_mod
+    processed = sched_mod.process_due(
+        project_root=cfg.project_root,
+        output_dir=cfg.paths.output_dir,
+        cfg_any=cfg,
+        queue_file=cfg.scheduler.queue_file if cfg.scheduler else "data/scheduler_queue.json",
+        auto_upload=cfg.scheduler.auto_upload if cfg.scheduler else False,
+    )
+    return {"ok": True, "processed": len(processed), "items": processed}
+
+
+# =============================================================================
+# TikTok — Cross-Platform Yayın
+# =============================================================================
+
+class TikTokUploadRequest(BaseModel):
+    mp4_name: str = Field(..., min_length=1)
+    caption: str = ""
+
+
+@app.get("/api/tiktok/status")
+def tiktok_status() -> dict[str, Any]:
+    """TikTok config durumu + yayınlanan video sayısı."""
+    enabled = cfg.tiktok is not None
+    log_path = (cfg.project_root / cfg.tiktok.uploads_log) if cfg.tiktok else None
+    uploaded_count = 0
+    if log_path and log_path.exists():
+        uploaded_count = sum(1 for line in log_path.read_text(encoding="utf-8").splitlines() if line.strip())
+    return {
+        "enabled": enabled,
+        "open_id": cfg.tiktok.open_id if cfg.tiktok else None,
+        "uploaded_videos": uploaded_count,
+    }
+
+
+@app.post("/api/tiktok/upload")
+def tiktok_upload(req: TikTokUploadRequest) -> dict[str, Any]:
+    """Reels MP4'ünü TikTok'a yükle ve yayınla."""
+    if cfg.tiktok is None:
+        raise HTTPException(status_code=400,
+                            detail="TikTok configure edilmemiş. config.yaml → tiktok bölümünü doldur.")
+
+    mp4 = cfg.paths.output_dir / req.mp4_name
+    if not mp4.exists():
+        raise HTTPException(status_code=404, detail=f"MP4 bulunamadı: {req.mp4_name}")
+
+    caption = req.caption
+    if not caption:
+        txt = mp4.with_suffix(".txt")
+        if txt.exists():
+            caption = txt.read_text(encoding="utf-8")
+
+    uploads_log = cfg.project_root / cfg.tiktok.uploads_log
+
+    def target(emit: Callable[..., None], cancel_ev: Event) -> None:
+        from src import tiktok_publisher
+        tiktok_publisher.upload_video(
+            mp4_path=mp4,
+            caption=caption,
+            access_token=cfg.tiktok.access_token,
+            open_id=cfg.tiktok.open_id,
+            uploads_log=uploads_log,
+            emit=emit,
+            cancel=cancel_ev,
+        )
+
+    try:
+        manager.start_callable(f"TikTok: {req.mp4_name[:40]}", target)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"ok": True, "job": manager.state}
+
+
+@app.post("/api/tiktok/refresh_token")
+def tiktok_refresh_token() -> dict[str, Any]:
+    """TikTok access_token'ı yenile (refresh_token kullanır)."""
+    if cfg.tiktok is None or not cfg.tiktok.refresh_token:
+        raise HTTPException(status_code=400, detail="TikTok refresh_token yok.")
+    from src import tiktok_publisher
+    try:
+        result = tiktok_publisher.refresh_access_token(
+            cfg.tiktok.client_key,
+            cfg.tiktok.client_secret,
+            cfg.tiktok.refresh_token,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Token yenileme hatası: {exc}") from exc
+    return {"ok": True, "expires_in": result.get("expires_in"), "message": "Yeni token'ı config.yaml'a yazın."}
+
+
+# =============================================================================
+# Analytics — Yayın istatistikleri ve Hook A/B Test
+# =============================================================================
+
+class HookImpressionRequest(BaseModel):
+    hook_tip: str = Field(..., min_length=1)   # merak | sayi_gercek | karsilastirma | hata_uyarisi
+
+
+@app.get("/api/analytics/overview")
+def analytics_overview(days: int = 30) -> dict[str, Any]:
+    """Son N günlük yayın istatistikleri + haftalık frekans önerisi."""
+    from src import analytics
+    ig_log = cfg.instagram.uploads_log if cfg.instagram else "data/instagram_uploads.jsonl"
+    tt_log = cfg.tiktok.uploads_log if cfg.tiktok else "data/tiktok_uploads.jsonl"
+    return analytics.overview(
+        project_root=cfg.project_root,
+        ig_log=ig_log,
+        tt_log=tt_log,
+        scheduler_queue=cfg.scheduler.queue_file if cfg.scheduler else "data/scheduler_queue.json",
+        lookback_days=days,
+    )
+
+
+@app.get("/api/analytics/hooks")
+def analytics_hooks() -> dict[str, Any]:
+    """Hook A/B test varyant analizi — hangi hook tipi daha iyi performans gösteriyor."""
+    from src import analytics
+    return analytics.hook_ab_analysis(cfg.paths.plans_dir)
+
+
+@app.post("/api/analytics/hooks/{plan_name}/impression")
+def analytics_record_impression(plan_name: str, req: HookImpressionRequest) -> dict[str, Any]:
+    """Belirli plan + hook tipine impression kaydı ekle (reel izlenince tetiklenir)."""
+    from src import analytics
+    if "/" in plan_name or "\\" in plan_name or ".." in plan_name:
+        raise HTTPException(status_code=400, detail="Geçersiz plan adı.")
+    try:
+        result = analytics.record_hook_impression(cfg.paths.plans_dir, plan_name, req.hook_tip)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"ok": True, **result}
+
+
+@app.get("/api/analytics/platforms")
+def analytics_platforms() -> dict[str, Any]:
+    """Instagram vs TikTok platform karşılaştırma istatistikleri."""
+    from src import analytics
+    ig_log = cfg.instagram.uploads_log if cfg.instagram else "data/instagram_uploads.jsonl"
+    tt_log = cfg.tiktok.uploads_log if cfg.tiktok else "data/tiktok_uploads.jsonl"
+    return analytics.platform_comparison(cfg.project_root, ig_log, tt_log)
+
+
+

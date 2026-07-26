@@ -30,3 +30,5 @@ output/stories/
 *.jpg
 # Haber otomasyonu state + log
 data/news_automation/
+# Konu otomasyonu state + log
+data/topic_automation/

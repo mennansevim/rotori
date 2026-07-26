@@ -15,6 +15,6 @@
     ],
     "hour": 20,
     "minute": 0,
-    "auto_publish": false
+    "auto_publish": true
   }
 }
