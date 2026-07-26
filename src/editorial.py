@@ -21,9 +21,9 @@ from typing import Any
 # Ortam değişkeni EDITORIAL_MIN_SCORE ile kod değişmeden ayarlanabilir (ör. RSS
 # feed'leri yumuşak haber ağırlıklıysa 30'a düşür; daha seçici istersen 45 yap).
 try:
-    MIN_SCORE = int(os.environ.get("EDITORIAL_MIN_SCORE", "40"))
+    MIN_SCORE = int(os.environ.get("EDITORIAL_MIN_SCORE", "30"))
 except ValueError:
-    MIN_SCORE = 40
+    MIN_SCORE = 30
 
 
 # ─────────────────────────────────────────────────────────────────────────────
