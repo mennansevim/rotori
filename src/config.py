@@ -120,6 +120,26 @@ class RunCfg:
     max_videos_per_run: int = 10
 
 
+@dataclass
+class TikTokCfg:
+    access_token: str = ""          # OAuth2 access token (24 saat geçerli)
+    refresh_token: str = ""         # 365 gün geçerli; yenilemek için kullanılır
+    open_id: str = ""               # TikTok kullanıcı ID'si
+    client_key: str = ""
+    client_secret: str = ""
+    uploads_log: str = "data/tiktok_uploads.jsonl"
+
+
+@dataclass
+class SchedulerCfg:
+    enabled: bool = False
+    daily_limit: int = 2                   # günde max kaç Reels yayınlanır
+    default_times: list[str] = field(default_factory=lambda: ["08:00", "18:00"])
+    auto_upload: bool = False              # True → Instagram upload otomatik tetiklenir
+    queue_file: str = "data/scheduler_queue.json"
+    check_interval_sn: int = 60            # background thread kontrol aralığı (saniye)
+
+
 # Varsayılan Japonya haber RSS feed'leri (İngilizce, kanala uygun karışım):
 # SoraNews24 + Nippon.com = kültür/yaşam/seyahat (birebir on-brand),
 # Japan Today + Japan Times = genel güncel haber.
@@ -156,6 +176,8 @@ class Config:
     # OneDrive vb.). Dosyalar buraya kopyalanır, bulut uygulaması otomatik yükler.
     drive_folder: Path | None = None
     news: "NewsCfg | None" = None    # haber otomasyonu ayarları
+    scheduler: "SchedulerCfg | None" = None   # reels posting scheduler
+    tiktok: "TikTokCfg | None" = None         # tiktok cross-posting
 
 
 def _resolve(base: Path, p: str) -> Path:
@@ -181,6 +203,14 @@ def load_config(config_path: str | None = None) -> Config:
     ollama = OllamaCfg(**raw["ollama"])
     dify = DifyCfg(**raw["dify"])
     reels = ReelsCfg(**raw["reels"])
+    # Platform bağımsız font — config'teki path yoksa (ör. macOS fontu Pi'de
+    # yok) gömülü assets/fonts'a düş. Böylece Docker/Linux'ta da render çalışır.
+    _font_bundled = project_root / "assets" / "fonts" / "ChunkFive.otf"
+    _font_alt_bundled = project_root / "assets" / "fonts" / "Oswald-VariableFont.ttf"
+    if not Path(reels.font).exists() and _font_bundled.exists():
+        reels.font = str(_font_bundled)
+    if not Path(reels.font_alt).exists() and _font_alt_bundled.exists():
+        reels.font_alt = str(_font_alt_bundled)
     pilot = PilotCfg(**raw["pilot"])
     run = RunCfg(**raw.get("run", {}))
 
@@ -246,7 +276,40 @@ def load_config(config_path: str | None = None) -> Config:
     return Config(paths=paths, ollama=ollama, dify=dify, reels=reels, pilot=pilot,
                   run=run, project_root=project_root, openai=openai_cfg,
                   instagram=ig_cfg, stories=stories_cfg, unsplash=unsplash_cfg,
-                  drive_folder=drive_folder, news=news_cfg)
+                  drive_folder=drive_folder, news=news_cfg,
+                  scheduler=_load_scheduler_cfg(raw),
+                  tiktok=_load_tiktok_cfg(raw))
+
+
+def _load_scheduler_cfg(raw: dict[str, Any]) -> "SchedulerCfg | None":
+    sched_raw = raw.get("scheduler") or {}
+    if not sched_raw:
+        return None
+    return SchedulerCfg(
+        enabled=bool(sched_raw.get("enabled", False)),
+        daily_limit=int(sched_raw.get("daily_limit", 2)),
+        default_times=list(sched_raw.get("default_times") or ["08:00", "18:00"]),
+        auto_upload=bool(sched_raw.get("auto_upload", False)),
+        queue_file=str(sched_raw.get("queue_file", "data/scheduler_queue.json")),
+        check_interval_sn=int(sched_raw.get("check_interval_sn", 60)),
+    )
+
+
+def _load_tiktok_cfg(raw: dict[str, Any]) -> "TikTokCfg | None":
+    tt_raw = raw.get("tiktok") or {}
+    if not tt_raw:
+        return None
+    access_token = str(tt_raw.get("access_token", "")).strip()
+    if not access_token or access_token == "REPLACE_ME":
+        return None
+    return TikTokCfg(
+        access_token=access_token,
+        refresh_token=str(tt_raw.get("refresh_token", "")),
+        open_id=str(tt_raw.get("open_id", "")),
+        client_key=str(tt_raw.get("client_key", "")),
+        client_secret=str(tt_raw.get("client_secret", "")),
+        uploads_log=str(tt_raw.get("uploads_log", "data/tiktok_uploads.jsonl")),
+    )
 
 
 def require_video_source(cfg: Config) -> Path:

@@ -1,0 +1,37 @@
+# rotori-social — Japan Reels Maker (web dashboard + news/topic otomasyonu)
+# Raspberry Pi 5'te çalışır. Mevcut servisleri BOZMAZ:
+#   3080 rotori-web · 3003 agora · 3000 dify-web · 5001 dify-api
+# Bu servis boş port 3090'ı kullanır.
+#
+# Cloudflare Tunnel:  api.rotori.app → http://localhost:3090
+name: rotori-social
+
+services:
+  web:
+    build: .
+    container_name: rotori-social
+    ports:
+      # Host 3090 → container 8420 (uvicorn). Cloudflare Tunnel bu portu okur.
+      - "3090:8420"
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Istanbul
+    # Container içinden Mac/Pi host servislerine (Ollama vb.) erişim:
+    #   http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # Secret'lı config — repo'ya girmez, Pi'de elle konur (read-only).
+      - ./config.yaml:/app/config.yaml:ro
+      # Kalıcı veri — plan/metadata/log/state container yeniden kurulunca kaybolmasın.
+      - ./data:/app/data
+      # Üretilen çıktılar (story kartları, ready-to-publish).
+      - ./output:/app/output
+      # Kullanıcının kendi eklediği arka planlar/fontlar korunur.
+      - ./assets:/app/assets
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8420/').status==200 else 1)\" || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
