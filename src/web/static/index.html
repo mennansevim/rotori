@@ -779,7 +779,7 @@ body.widget-mode .picker-grid{ grid-template-columns:repeat(2,1fr) !important; }
     <div class="logo-text"><span class="jp">Japan</span> Reels Maker</div>
   </div>
   <!-- Sürüm rozeti — deploy takibi. /api/version'dan doldurulur. -->
-  <div class="ver-badge" id="verBadge" title="Çalışan sürüm (git commit)">
+  <div class="ver-badge" id="verBadge" title="Çalışan sürüm">
     <span class="ver-dot"></span>
     <span id="verText">…</span>
   </div>
@@ -3282,8 +3282,9 @@ async function loadVersion(){
     const v = await r.json();
     const txt = document.getElementById('verText');
     const badge = document.getElementById('verBadge');
-    if(txt) txt.textContent = v.commit || 'dev';
-    if(badge) badge.title = 'Çalışan sürüm: ' + (v.commit || 'dev')
+    if(txt) txt.textContent = v.version || v.commit || 'dev';
+    if(badge) badge.title = 'Çalışan sürüm: ' + (v.version || 'dev')
+      + (v.commit ? ('\ncommit: ' + v.commit) : '')
       + (v.date ? ('\n' + v.date) : '') + (v.source ? ('\n(' + v.source + ')') : '');
   }catch(e){/* sessiz */}
 }
