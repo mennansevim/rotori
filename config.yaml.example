@@ -110,6 +110,15 @@ news_automation:
   enabled: true
   lookback_days: 2          # son N günün haberleri
   max_candidates: 25        # GPT'ye sunulacak aday haber sayısı
+  # ── Karma kalite profili (haftada 1-2 / manuel çalışma için) ──
+  # RSS haberleri + evergreen konular (assets/topic_pool.json) AYNI kalite
+  # kapısından geçer, EN YÜKSEK PUANLI kazanır. Böylece RSS zayıf olsa bile
+  # slot boş dönmez. Env ile override: NEWS_RSS_TRIES, NEWS_EVERGREEN_TRIES,
+  # NEWS_EVERGREEN_FALLBACK=0, NEWS_GATE_TIMEOUT_SEC.
+  rss_tries: 6              # kaç RSS haberi puanlanıp yarışa girsin
+  evergreen_enabled: true   # evergreen konu havuzu da yarışsın mı
+  evergreen_tries: 6        # kaç evergreen konu puanlanıp yarışa girsin
+  gate_timeout_sec: 180     # karma yarışma için toplam süre limiti (sn)
   feeds:                    # boş bırakılırsa varsayılan 4 feed kullanılır
     - "https://soranews24.com/feed/"       # kültür/yaşam/seyahat (on-brand)
     - "https://www.nippon.com/en/feed/"    # kültür/toplum

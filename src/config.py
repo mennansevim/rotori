@@ -161,6 +161,13 @@ class NewsCfg:
     feeds: list[str] = field(default_factory=lambda: list(_DEFAULT_NEWS_FEEDS))
     lookback_days: int = 2      # son N günün haberleri dikkate alınır
     max_candidates: int = 40    # GPT'ye sunulacak aday haber sayısı (geniş havuz)
+    # ---- Karma kalite profili (haftalık/manuel çalışma için) ----
+    # RSS haberleri + evergreen konular AYNI kalite kapısından geçer, en yüksek
+    # puanlı kazanır. Env (NEWS_RSS_TRIES vb.) bu değerleri override eder.
+    rss_tries: int = 6          # kaç RSS haberi puanlanıp yarışa girsin
+    evergreen_enabled: bool = True   # evergreen konu havuzu yarışa katılsın mı
+    evergreen_tries: int = 6    # kaç evergreen konu puanlanıp yarışa girsin
+    gate_timeout_sec: int = 180  # karma yarışma için toplam süre limiti (sn)
 
 
 @dataclass
@@ -275,6 +282,10 @@ def load_config(config_path: str | None = None) -> Config:
         feeds=list(news_raw.get("feeds") or _DEFAULT_NEWS_FEEDS),
         lookback_days=int(news_raw.get("lookback_days", 2)),
         max_candidates=int(news_raw.get("max_candidates", 25)),
+        rss_tries=int(news_raw.get("rss_tries", 6)),
+        evergreen_enabled=bool(news_raw.get("evergreen_enabled", True)),
+        evergreen_tries=int(news_raw.get("evergreen_tries", 6)),
+        gate_timeout_sec=int(news_raw.get("gate_timeout_sec", 180)),
     )
 
     return Config(paths=paths, ollama=ollama, dify=dify, reels=reels, pilot=pilot,

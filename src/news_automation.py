@@ -21,6 +21,7 @@ import hashlib
 import html
 import json
 import os
+import random
 import re
 import shutil
 import sys
@@ -36,6 +37,7 @@ log = get_logger("news")
 _UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
 _STATE_SUBDIR = "data/news_automation"
 _USED_CAP = 200   # state'te tutulacak maks. kullanılmış haber id sayısı
+_TOPIC_POOL_PATH = "assets/topic_pool.json"   # evergreen fallback konu havuzu
 
 
 # ---------------- state (dedup) ----------------
@@ -240,12 +242,60 @@ def generate_text(cfg: Config, oai, news: dict[str, Any]) -> tuple[str, str]:
              f"kategori={res.get('data', {}).get('kategori', '?')})")
     # Yapılandırılmış alanları news'e iliştir — run_once sidecar'a yazsın
     news["_editorial"] = res.get("data", {})
+    news["_score"] = res.get("toplam", 0)   # karma sıralama için puanı sakla
     # Görsel konsepti üretildiyse Unsplash sorgusunu ONUNLA değiştir — metin ve
     # görsel aynı kaynaktan (editöryel model) gelir → uyum sağlamlaşır.
     gorsel = (res.get("gorsel_konsepti") or "").strip()
     if gorsel:
         log.info(f"  🎯 görsel konsepti: '{gorsel}' (seçim sorgusu güncellendi)")
         news["unsplash_query"] = gorsel
+    return res["kart_ust_metni"], res["caption"]
+
+
+# ---------------- Evergreen fallback (RSS'e bağımlı olmayan genel Japonya bilgisi) ----------------
+def _load_topic_pool(cfg: Config) -> list[dict[str, Any]]:
+    """assets/topic_pool.json'daki evergreen konuları döndür (yoksa boş liste)."""
+    p = cfg.project_root / _TOPIC_POOL_PATH
+    if not p.exists():
+        return []
+    try:
+        return json.loads(p.read_text(encoding="utf-8")).get("topics", [])
+    except (OSError, ValueError):
+        return []
+
+
+def generate_text_topic(cfg: Config, oai, cand: dict[str, Any]) -> tuple[str, str]:
+    """Evergreen KONUDAN kart üst metni + caption üret — aynı editöryel prompt +
+    kalite kapısı. cand['title'] konu başlığıdır. Uygun değilse ('', '') döner ve
+    cand['_gate_fail'] doldurulur (neden raporu için)."""
+    from src import editorial
+
+    try:
+        res = editorial.generate_editorial_topic(oai, cand.get("title", ""))
+    except (RuntimeError, ValueError) as exc:
+        log.warning(f"  evergreen üretim başarısız: {exc}")
+        cand["_gate_fail"] = {"baslik": cand.get("title", "")[:70],
+                              "toplam": None, "hata": str(exc)}
+        return "", ""
+
+    if not res.get("uygun"):
+        toplam = res.get("toplam", 0)
+        puan = res.get("puan") or {}
+        kirilim = ", ".join(f"{k}={v}" for k, v in puan.items()) if puan else "—"
+        log.info(f"  ⏭ Kalite kapısı (evergreen): '{cand.get('title', '')[:60]}' ELENDI "
+                 f"(toplam={toplam}/50 < min={editorial.MIN_SCORE}) | puan: {kirilim}")
+        cand["_gate_fail"] = {"baslik": cand.get("title", "")[:70],
+                              "toplam": toplam, "puan": puan}
+        return "", ""
+
+    log.info(f"  ✓ Evergreen içerik (puan={res.get('toplam')}/50, "
+             f"kategori={res.get('data', {}).get('kategori', '?')})")
+    cand["_editorial"] = res.get("data", {})
+    cand["_score"] = res.get("toplam", 0)   # karma sıralama için puanı sakla
+    gorsel = (res.get("gorsel_konsepti") or "").strip()
+    if gorsel:
+        log.info(f"  🎯 görsel konsepti: '{gorsel}' (evergreen)")
+        cand["unsplash_query"] = gorsel
     return res["kart_ust_metni"], res["caption"]
 
 
@@ -377,7 +427,19 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
     # bulunana kadar DÖNGÜ: her turda başka haber seçtir; havuz tükenirse
     # feed'leri yeniden çekip baştan dene. TIMEOUT (varsayılan 5 dk) dolunca dur.
     # Env: NEWS_GATE_TIMEOUT_SEC ile ayarlanabilir.
-    timeout_sec = float(os.environ.get("NEWS_GATE_TIMEOUT_SEC", "300"))
+    # Öncelik: env > config.yaml (news_automation) > kod varsayılanı.
+    def _int_pref(env_key: str, cfg_val: int) -> int:
+        raw = os.environ.get(env_key)
+        if raw is not None:
+            try:
+                return int(float(raw))
+            except ValueError:
+                pass
+        return cfg_val
+
+    ncfg = cfg.news
+    timeout_sec = float(_int_pref("NEWS_GATE_TIMEOUT_SEC",
+                                  getattr(ncfg, "gate_timeout_sec", 180)))
     deadline = time.monotonic() + timeout_sec
     tried_ids: set[str] = set()
     news: dict[str, Any] | None = None
@@ -387,7 +449,18 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
     refetches = 0
     log.info(f"  Kalite kapısı döngüsü başladı (timeout={int(timeout_sec)}sn, "
              f"min={editorial.MIN_SCORE}/50).")
-    while time.monotonic() < deadline:
+
+    # ── KARMA HAVUZ ──────────────────────────────────────────────────────────
+    # Artık "ilk geçen kazanır" DEĞİL: hem RSS haberleri hem evergreen konular
+    # AYNI kalite kapısından geçirilir, puanı saklanır ve EN YÜKSEK PUANLI kazanır.
+    # winners: kapıyı geçen adaylar (her birinde _score/_aciklama/_caption var).
+    # Ayarlar (env > config.yaml > varsayılan): NEWS_RSS_TRIES, NEWS_EVERGREEN_TRIES,
+    # NEWS_EVERGREEN_FALLBACK=0 ile evergreen'i tamamen kapat.
+    winners: list[dict[str, Any]] = []
+    rss_tries = max(1, _int_pref("NEWS_RSS_TRIES", getattr(ncfg, "rss_tries", 6)))
+
+    # Faz 1 — RSS haberlerini puanla (en fazla rss_tries aday veya deadline).
+    while time.monotonic() < deadline and len(winners) < rss_tries:
         attempt += 1
         cand = pick_news(cfg, oai, items, used | tried_ids)
         if cand is None:
@@ -395,34 +468,77 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
             if attempt == 1 and refetches == 0:
                 log.warning("  Kalite eşiğini geçebilecek uygun haber bulunamadı "
                             "(feed'ler yumuşak/haber niteliği düşük olabilir).")
-            if time.monotonic() >= deadline:
-                break
-            refetches += 1
-            wait_s = min(20.0, max(5.0, deadline - time.monotonic()))
-            log.info(f"  ⏳ Aday havuzu tükendi — {int(wait_s)}sn sonra feed'ler "
-                     f"yeniden çekilecek (yenileme #{refetches})…")
-            time.sleep(wait_s)
-            if time.monotonic() >= deadline:
-                break
-            fresh_items = fetch_news(cfg)
-            if fresh_items:
-                items = fresh_items
-            tried_ids.clear()
-            continue
-        aciklama, caption = generate_text(cfg, oai, cand)
-        if aciklama and len(aciklama) >= 8:
-            news = cand
-            log.info(f"  ✓ Uygun aday bulundu ({attempt}. denemede).")
             break
-        # kapıyı geçemedi → bu haberi bu tur için ele, sıradakini dene
-        gf = cand.get("_gate_fail")
-        if gf:
-            fails.append(gf)
+        a, c = generate_text(cfg, oai, cand)
+        if a and len(a) >= 8:
+            cand["_aciklama"] = a
+            cand["_caption"] = c
+            winners.append(cand)
+            log.info(f"  ➕ RSS adayı kapıyı geçti (puan={cand.get('_score')}/50): "
+                     f"{cand.get('title', '')[:60]}")
+        else:
+            gf = cand.get("_gate_fail")
+            if gf:
+                fails.append(gf)
         tried_ids.add(_news_id(cand))
-        kalan = int(deadline - time.monotonic())
-        log.info(f"  ↻ Sonraki aday deneniyor (deneme {attempt}, kalan ~{kalan}sn)…")
 
-    if news is None and time.monotonic() >= deadline:
+    # Faz 2 — Evergreen konuları puanla (RSS'e bağımlı DEĞİL, her tur yarışır).
+    ev_env = os.environ.get("NEWS_EVERGREEN_FALLBACK")
+    if ev_env is not None:
+        ev_on = ev_env not in ("0", "false", "False")
+    else:
+        ev_on = bool(getattr(ncfg, "evergreen_enabled", True))
+    if ev_on and time.monotonic() < deadline:
+        pool = _load_topic_pool(cfg)
+        if pool:
+            fresh_topics = [t for t in pool
+                            if _news_id({"title": t.get("title", "")}) not in used]
+            if not fresh_topics:   # havuz tükendiyse baştan (dedup sıfırla)
+                fresh_topics = list(pool)
+            random.shuffle(fresh_topics)
+            ev_tries = max(1, _int_pref("NEWS_EVERGREEN_TRIES",
+                                        getattr(ncfg, "evergreen_tries", 6)))
+            log.info(f"  🌿 Evergreen konular yarışa katılıyor "
+                     f"({len(fresh_topics)} taze konu, en fazla {ev_tries} deneme).")
+            for t in fresh_topics[:ev_tries]:
+                if time.monotonic() >= deadline:
+                    break
+                cand = {
+                    "title": t.get("title", ""),
+                    "summary": "",
+                    "link": "",
+                    "source": "Evergreen (konu havuzu)",
+                    "published_ts": time.time(),
+                    "unsplash_query": t.get("query") or "japan",
+                }
+                a, c = generate_text_topic(cfg, oai, cand)
+                if a and len(a) >= 8:
+                    cand["_aciklama"] = a
+                    cand["_caption"] = c
+                    winners.append(cand)
+                    log.info(f"  ➕ Evergreen adayı kapıyı geçti "
+                             f"(puan={cand.get('_score')}/50): {t.get('title', '')}")
+                else:
+                    gf = cand.get("_gate_fail")
+                    if gf:
+                        fails.append(gf)
+        else:
+            log.info("  🌿 Evergreen havuz boş/bulunamadı (assets/topic_pool.json).")
+
+    # ── KAZANAN — en yüksek puanlı aday ──────────────────────────────────────
+    if winners:
+        winners.sort(key=lambda w: w.get("_score", 0), reverse=True)
+        news = winners[0]
+        aciklama = news.get("_aciklama", "")
+        caption = news.get("_caption", "")
+        src_tip = "evergreen" if news.get("source", "").startswith("Evergreen") else "RSS"
+        log.info(f"  🏆 KAZANAN ({src_tip}, puan={news.get('_score')}/50): "
+                 f"{news.get('title', '')[:60]}")
+        if len(winners) > 1:
+            digerleri = ", ".join(f"{w.get('title', '')[:30]}→{w.get('_score')}"
+                                  for w in winners[1:])
+            log.info(f"    (yarıştaki diğerleri: {digerleri})")
+    elif time.monotonic() >= deadline:
         log.warning(f"  ⏰ {int(timeout_sec)}sn timeout doldu — uygun aday bulunamadı.")
 
     if news is None:
