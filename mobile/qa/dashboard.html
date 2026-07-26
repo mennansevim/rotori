@@ -161,6 +161,8 @@
 
     <div class="toolbar">
       <button id="runBtn" class="primary">▶ Testleri Koştur</button>
+      <button id="simBtn">📱 Simülatörü Başlat</button>
+      <button id="simStopBtn" style="display:none">⏹ Simülatörü Durdur</button>
       <button id="refreshBtn">↻ Sadece Verileri Yenile</button>
       <button id="toggleLogBtn">📜 Log</button>
       <span class="meta"><span id="statusDot" class="status-dot idle"></span><span id="lastUpdated">Yükleniyor…</span></span>
@@ -394,6 +396,57 @@
     $('runBtn').addEventListener('click', runTests);
     $('refreshBtn').addEventListener('click', () => loadDashboard());
     $('toggleLogBtn').addEventListener('click', () => $('logPanel').classList.toggle('on'));
+
+    // ── Simülatör (flutter run) tetikleme ──────────────────────────────
+    let simReader = null;
+    const setSimRunning = (on) => {
+      $('simBtn').style.display = on ? 'none' : '';
+      $('simStopBtn').style.display = on ? '' : 'none';
+    };
+
+    const runSimulator = async () => {
+      setSimRunning(true);
+      $('logPanel').classList.add('on');
+      appendLog('\n📱 Simülatör başlatılıyor…\n\n');
+      try {
+        const resp = await fetch('/simulator', { method: 'POST' });
+        if (!resp.ok) {
+          const msg = resp.status === 409
+            ? 'zaten çalışıyor'
+            : `HTTP ${resp.status} — server çalışıyor mu?`;
+          appendLog(`\n[hata] ${msg}\n`);
+          setSimRunning(false);
+          return;
+        }
+        simReader = resp.body.getReader();
+        const dec = new TextDecoder();
+        while (true) {
+          const { value, done } = await simReader.read();
+          if (done) break;
+          appendLog(dec.decode(value, { stream: true }));
+        }
+        appendLog('\n✓ flutter run sonlandı.\n');
+      } catch (e) {
+        appendLog(`\n[bağlantı hatası] ${e.message}\n` +
+          'Sunucu ayakta değil. Şu komutla başlat:\n' +
+          '  cd mobile && python3 qa/dashboard_server.py\n');
+      } finally {
+        simReader = null;
+        setSimRunning(false);
+      }
+    };
+
+    const stopSimulator = async () => {
+      appendLog('\n⏹ Durduruluyor…\n');
+      try {
+        await fetch('/simulator/stop', { method: 'POST' });
+      } catch (e) {
+        appendLog(`\n[hata] ${e.message}\n`);
+      }
+    };
+
+    $('simBtn').addEventListener('click', runSimulator);
+    $('simStopBtn').addEventListener('click', stopSimulator);
 
     loadDashboard();
   </script>

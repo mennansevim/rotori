@@ -26,6 +26,10 @@ REFRESH_SCRIPT = QA_DIR / "refresh-dashboard.sh"
 _RUN_LOCK = threading.Lock()
 _CURRENT_PROC: subprocess.Popen | None = None
 
+# Simülatör (flutter run) — testlerden bağımsız ayrı süreç/lock.
+_SIM_LOCK = threading.Lock()
+_SIM_PROC: subprocess.Popen | None = None
+
 
 class Handler(SimpleHTTPRequestHandler):
     # Serve from qa/ (dashboard.html, JSON'lar burada).
@@ -39,6 +43,7 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path == "/status":
             self._json({
                 "running": _CURRENT_PROC is not None and _CURRENT_PROC.poll() is None,
+                "simRunning": _SIM_PROC is not None and _SIM_PROC.poll() is None,
                 "cwd": str(MOBILE_DIR),
                 "script": str(REFRESH_SCRIPT),
             })
@@ -46,6 +51,12 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self):  # noqa: N802
+        if self.path == "/simulator":
+            self._run_simulator()
+            return
+        if self.path == "/simulator/stop":
+            self._stop_simulator()
+            return
         if self.path != "/run":
             self.send_error(404, "unknown endpoint")
             return
@@ -82,6 +93,62 @@ class Handler(SimpleHTTPRequestHandler):
             self._chunk("")  # terminating chunk
             _CURRENT_PROC = None
             _RUN_LOCK.release()
+
+    # ── simulator ──────────────────────────────────────────────────────
+    def _run_simulator(self) -> None:
+        """iOS Simulator'ı açar + `flutter run -d iphone` çıktısını canlı akıtır.
+
+        Uzun süren süreç; kullanıcı `POST /simulator/stop` ile durdurabilir ya
+        da bağlantıyı kapatabilir. Testlerden ayrı lock kullanır.
+        """
+        if not _SIM_LOCK.acquire(blocking=False):
+            self._json({"ok": False, "error": "simulator already running"}, status=409)
+            return
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Transfer-Encoding", "chunked")
+        self.end_headers()
+
+        global _SIM_PROC
+        try:
+            self._chunk("→ iOS Simulator açılıyor (open -a Simulator)…\n")
+            subprocess.run(["open", "-a", "Simulator"], check=False)
+            self._chunk("→ flutter run -d iphone başlatılıyor…\n\n")
+            _SIM_PROC = subprocess.Popen(
+                ["flutter", "run", "-d", "iphone"],
+                cwd=str(MOBILE_DIR),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                stdin=subprocess.DEVNULL,
+                bufsize=1,
+                text=True,
+            )
+            assert _SIM_PROC.stdout is not None
+            for line in _SIM_PROC.stdout:
+                self._chunk(line)
+            _SIM_PROC.wait()
+            self._chunk(f"\n[flutter run bitti — exit {_SIM_PROC.returncode}]\n")
+        except Exception as exc:  # noqa: BLE001
+            self._chunk(f"\n[server error] {exc}\n")
+        finally:
+            self._chunk("")  # terminating chunk
+            _SIM_PROC = None
+            _SIM_LOCK.release()
+
+    def _stop_simulator(self) -> None:
+        """Çalışan `flutter run` sürecini sonlandırır."""
+        global _SIM_PROC
+        proc = _SIM_PROC
+        if proc is None or proc.poll() is not None:
+            self._json({"ok": False, "error": "not running"}, status=409)
+            return
+        try:
+            proc.terminate()
+            self._json({"ok": True})
+        except Exception as exc:  # noqa: BLE001
+            self._json({"ok": False, "error": str(exc)}, status=500)
 
     # ── helpers ────────────────────────────────────────────────────────
     def _chunk(self, text: str) -> None:
