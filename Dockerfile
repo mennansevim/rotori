@@ -40,11 +40,12 @@ RUN pip install --no-cache-dir --no-deps \
 # Uygulama kodu + gömülü fontlar/assets.
 COPY . .
 
-# Sürüm damgası — deploy'da build arg ile geçilir (deploy.sh doldurur).
-# /api/version bu dosyayı okur; container'da .git olmadığı için gerekli.
+# Build damgası — deploy'da build arg ile geçilir (deploy.sh doldurur).
+# Semver (v1.0.1) git-tracked VERSION dosyasında; bu sadece commit/tarih ekler.
+# /api/version ikisini birleştirir; container'da .git olmadığı için gerekli.
 ARG GIT_COMMIT=unknown
 ARG BUILD_DATE=
-RUN printf '{"commit":"%s","date":"%s"}\n' "$GIT_COMMIT" "$BUILD_DATE" > /app/VERSION
+RUN printf '{"commit":"%s","date":"%s"}\n' "$GIT_COMMIT" "$BUILD_DATE" > /app/BUILD_INFO
 
 # Web arayüzü portu (compose'da host 3090 → container 8420 map edilir).
 EXPOSE 8420
