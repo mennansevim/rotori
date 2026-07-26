@@ -74,6 +74,15 @@
     box-shadow:var(--sh-accent)}
   .logo-text{color:var(--txt)}
   .logo-text .jp{color:var(--accent)}
+  /* Sürüm rozeti — deploy takibi (sağ üst) */
+  .ver-badge{margin-left:auto;display:flex;align-items:center;gap:6px;
+    font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+    color:var(--muted);background:rgba(255,255,255,.04);
+    border:1px solid var(--line);border-radius:20px;padding:5px 11px;
+    cursor:default;user-select:all;transition:color .15s,border-color .15s}
+  .ver-badge:hover{color:var(--txt);border-color:var(--accent)}
+  .ver-badge .ver-dot{width:6px;height:6px;border-radius:50%;
+    background:#3ecf7e;box-shadow:0 0 6px #3ecf7e}
   .pills{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;align-items:center}
   .pill{display:inline-flex;align-items:center;gap:6px;background:var(--surface);
     border:1px solid var(--line);padding:5px 11px;border-radius:20px;
@@ -768,6 +777,11 @@ body.widget-mode .picker-grid{ grid-template-columns:repeat(2,1fr) !important; }
   <div class="logo">
     <div class="logo-mark">🎬</div>
     <div class="logo-text"><span class="jp">Japan</span> Reels Maker</div>
+  </div>
+  <!-- Sürüm rozeti — deploy takibi. /api/version'dan doldurulur. -->
+  <div class="ver-badge" id="verBadge" title="Çalışan sürüm (git commit)">
+    <span class="ver-dot"></span>
+    <span id="verText">…</span>
   </div>
   <!-- Reels pipeline durum pill'leri — şimdilik gizli (reels modülleri kapalı) -->
   <div class="pills" style="display:none">
@@ -3259,6 +3273,21 @@ setInterval(() => { pollIgStatus(); }, 4000);
 setInterval(pollBackgrounds, 6000);
 pollStatus(); pollLogs(); pollIgStatus();
 loadRecentStories(); pollBackgrounds();
+
+// Sürüm rozeti — çalışan commit'i sağ üstte göster (deploy takibi)
+async function loadVersion(){
+  try{
+    const r = await fetch('/api/version', {cache:'no-store'});
+    if(!r.ok) return;
+    const v = await r.json();
+    const txt = document.getElementById('verText');
+    const badge = document.getElementById('verBadge');
+    if(txt) txt.textContent = v.commit || 'dev';
+    if(badge) badge.title = 'Çalışan sürüm: ' + (v.commit || 'dev')
+      + (v.date ? ('\n' + v.date) : '') + (v.source ? ('\n(' + v.source + ')') : '');
+  }catch(e){/* sessiz */}
+}
+loadVersion();
 
 // ============ REELS CAPTION ÜRETİCİ ============
 async function generateReelsCaption(){

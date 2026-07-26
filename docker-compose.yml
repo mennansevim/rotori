@@ -8,7 +8,11 @@ name: rotori-social
 
 services:
   web:
-    build: .
+    build:
+      context: .
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        BUILD_DATE: ${BUILD_DATE:-}
     container_name: rotori-social
     ports:
       # Host 3090 → container 8420 (uvicorn). Cloudflare Tunnel bu portu okur.

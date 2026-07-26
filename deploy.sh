@@ -13,6 +13,11 @@ fi
 echo "→ git pull"
 git pull --ff-only
 
+# Sürüm damgası — /api/version + web sağ üstte gösterilir.
+export GIT_COMMIT="$(git rev-parse --short HEAD)"
+export BUILD_DATE="$(git log -1 --format=%cd --date=format:'%Y-%m-%d %H:%M')"
+echo "→ sürüm: $GIT_COMMIT ($BUILD_DATE)"
+
 echo "→ docker compose up -d --build"
 docker compose up -d --build
 
