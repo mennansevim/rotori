@@ -29,6 +29,45 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 app = FastAPI(title="Japan Reels Maker", docs_url=None, redoc_url=None)
 
+
+# ---------------------------------------------------------------------------
+# Sürüm bilgisi — deploy takibi için. Öncelik: build zamanı yazılan VERSION
+# dosyası (Docker) → yoksa canlı git → yoksa "dev".
+# ---------------------------------------------------------------------------
+def _read_version() -> dict[str, str]:
+    root = cfg.project_root
+    vfile = root / "VERSION"
+    if vfile.exists():
+        try:
+            raw = json.loads(vfile.read_text(encoding="utf-8"))
+            if isinstance(raw, dict) and raw.get("commit"):
+                return {"commit": str(raw.get("commit", "")).strip()[:7],
+                        "date": str(raw.get("date", "")).strip(),
+                        "source": "build"}
+        except (OSError, ValueError):
+            pass
+    # git fallback (yerel geliştirme)
+    try:
+        import subprocess
+        commit = subprocess.check_output(
+            ["git", "-C", str(root), "rev-parse", "--short", "HEAD"],
+            stderr=subprocess.DEVNULL, timeout=3).decode().strip()
+        date = subprocess.check_output(
+            ["git", "-C", str(root), "log", "-1", "--format=%cd", "--date=format:%Y-%m-%d %H:%M"],
+            stderr=subprocess.DEVNULL, timeout=3).decode().strip()
+        return {"commit": commit, "date": date, "source": "git"}
+    except Exception:
+        return {"commit": "dev", "date": "", "source": "none"}
+
+
+_VERSION = _read_version()
+
+
+@app.get("/api/version")
+def api_version() -> dict[str, str]:
+    return _VERSION
+
+
 # Üretilen medya + kareler (StaticFiles HTTP Range destekler → video seek çalışır)
 app.mount("/media/reels", StaticFiles(directory=str(cfg.paths.output_dir)), name="reels")
 app.mount("/media/ready", StaticFiles(directory=str(cfg.paths.ready_dir)), name="ready")
