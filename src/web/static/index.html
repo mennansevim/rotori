@@ -503,6 +503,30 @@
   .story-card.src-manuel:hover{border-color:#ff6b81}
   .story-card img{width:100%;aspect-ratio:4/5;object-fit:cover;background:#000;
     display:block;cursor:pointer}
+  /* ---- Skeleton (üretim sırasında HTML5 shimmer loading efekti) ---- */
+  .story-card.skeleton{border-top-color:#5b8cff;pointer-events:none}
+  .story-card.skeleton:hover{transform:none}
+  .sk-shimmer{position:relative;overflow:hidden;background:var(--surface-2)}
+  .sk-shimmer::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
+    background:linear-gradient(90deg,transparent 0,rgba(255,255,255,.08) 45%,
+      rgba(139,180,255,.18) 50%,rgba(255,255,255,.08) 55%,transparent 100%);
+    animation:sk-slide 1.35s ease-in-out infinite}
+  @keyframes sk-slide{100%{transform:translateX(100%)}}
+  .sk-img{width:100%;aspect-ratio:4/5;display:flex;align-items:center;
+    justify-content:center;flex-direction:column;gap:12px}
+  .sk-spinner{width:38px;height:38px;border-radius:50%;
+    border:3px solid rgba(139,180,255,.22);border-top-color:#8ab4ff;
+    animation:sk-spin .9s linear infinite}
+  @keyframes sk-spin{100%{transform:rotate(360deg)}}
+  .sk-label{font-size:12px;color:#8ab4ff;font-weight:600;letter-spacing:.03em;
+    z-index:1;text-shadow:0 1px 6px rgba(0,0,0,.4)}
+  .sk-line{height:10px;border-radius:6px;margin:0}
+  .sk-badges{display:flex;gap:6px;padding:10px 10px 4px}
+  .sk-badges .sk-line{width:64px;height:16px;border-radius:999px}
+  .sk-body{padding:8px 10px 14px;display:flex;flex-direction:column;gap:8px}
+  .sk-body .sk-line.w70{width:70%}
+  .sk-body .sk-line.w90{width:90%}
+  .sk-body .sk-line.w50{width:50%}
   .story-badges{display:flex;flex-wrap:wrap;gap:4px;padding:8px 10px 4px}
   .story-badges .badge{font-size:10px;padding:3px 8px;border-radius:999px;
     text-transform:uppercase;letter-spacing:.04em;font-weight:600;line-height:1;
@@ -2483,6 +2507,39 @@ async function renderPickerCard(){
 }
 
 // ---------- Hikaye Görselleri ----------
+// Üretim sırasında gösterilen skeleton placeholder (HTML5 shimmer loading).
+// runNewsNow / runTopicNow başlarken storyGrid'in başına eklenir, iş bitince
+// renderStories grid'i baştan kurduğu için kendiliğinden kaybolur.
+function showSkeletonCard(label){
+  const grid = $("storyGrid");
+  if(!grid) return;
+  // "Yukarıdan üret…" boş durumunu temizle ki skeleton görünsün
+  const empty = grid.querySelector(".empty");
+  if(empty) empty.remove();
+  if(grid.querySelector(".story-card.skeleton")) return;  // zaten var
+  const sk = document.createElement("div");
+  sk.className = "story-card skeleton";
+  sk.innerHTML = `
+    <div class="sk-img sk-shimmer">
+      <div class="sk-spinner"></div>
+      <div class="sk-label">${label || "Üretiliyor…"}</div>
+    </div>
+    <div class="sk-badges">
+      <div class="sk-line sk-shimmer"></div>
+      <div class="sk-line sk-shimmer"></div>
+    </div>
+    <div class="sk-body">
+      <div class="sk-line w90 sk-shimmer"></div>
+      <div class="sk-line w70 sk-shimmer"></div>
+      <div class="sk-line w50 sk-shimmer"></div>
+    </div>`;
+  grid.insertBefore(sk, grid.firstChild);
+}
+
+function removeSkeletonCards(){
+  document.querySelectorAll("#storyGrid .story-card.skeleton").forEach(el => el.remove());
+}
+
 function renderStories(cards){
   const grid = $("storyGrid");
   const cnt = document.getElementById("storyCount");
@@ -2678,6 +2735,7 @@ async function runTopicNow(konu){
   if(btn) btn.classList.add("busy");
   const etiket = konu ? `"${konu}"` : "rastgele konu";
   toast(`🎌 ${etiket} kartı üretiliyor — Canlı Süreç'i izle`, "info", 3500);
+  showSkeletonCard("🎌 Konu kartı hazırlanıyor…");
   logSeq = 0; $("logbox").innerHTML = "";
   pollStatus(); pollLogs();
 
@@ -2687,6 +2745,7 @@ async function runTopicNow(konu){
       if(!(s.job && s.job.running)){
         clearInterval(watch);
         if(btn) btn.classList.remove("busy");
+        removeSkeletonCards();
         await loadRecentStories();
         await loadApprovalList();
         if(s.job && s.job.error) toast("Konu üretimi hata verdi — loglara bak.", "err", 4000);
@@ -2711,6 +2770,7 @@ async function runNewsNow(){
 
   if(btn) btn.classList.add("busy");
   toast("📰 Haberden kart üretiliyor — Canlı Süreç'i izle", "info", 3500);
+  showSkeletonCard("📰 Haber kartı hazırlanıyor…");
   logSeq = 0; $("logbox").innerHTML = "";
   pollStatus(); pollLogs();
 
@@ -2721,13 +2781,14 @@ async function runNewsNow(){
       if(!(s.job && s.job.running)){
         clearInterval(watch);
         if(btn) btn.classList.remove("busy");
+        removeSkeletonCards();
         await loadRecentStories();
         if(s.job && s.job.error) toast("Haber üretimi hata verdi — loglara bak.", "err", 4000);
         else toast("İşlem bitti ✓ — yeni kart varsa listede", "ok", 3000);
       }
     }catch(e){}
   }, 3000);
-  setTimeout(() => { clearInterval(watch); if(btn) btn.classList.remove("busy"); }, 120000);
+  setTimeout(() => { clearInterval(watch); if(btn) btn.classList.remove("busy"); removeSkeletonCards(); }, 120000);
 }
 
 async function storyToInstagram(name){
