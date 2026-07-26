@@ -540,6 +540,8 @@
   .story-actions{
     padding:10px 10px 12px;display:grid;grid-template-rows:auto auto;gap:6px}
   .story-actions .primary-row{display:block}
+  .story-actions .content-row{display:block}
+  .story-actions .content-row .story-btn{width:100%}
   .story-actions .secondary-row{
     display:flex;gap:6px}
   .story-actions .secondary-row .story-btn{flex:1}
@@ -603,6 +605,17 @@
   .modal-title{font-size:16px;font-weight:700;color:var(--txt);margin:0}
   .modal-title small{color:var(--muted);font-weight:400;font-size:12px;margin-left:8px}
   .modal-body{padding:16px 22px;overflow-y:auto;flex:1}
+  /* İçeriği Göster modal blokları */
+  .content-block{margin-bottom:18px}
+  .content-block:last-child{margin-bottom:0}
+  .content-label{display:flex;justify-content:space-between;align-items:center;
+    gap:8px;font-size:12px;font-weight:600;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px}
+  .content-text{background:var(--surface-2);border:1px solid var(--line);
+    border-radius:var(--r-md,10px);padding:14px 16px;font-size:14px;
+    line-height:1.6;color:var(--text,#e6e6e6);white-space:pre-wrap;
+    word-break:break-word}
+  .content-text.caption{max-height:340px;overflow-y:auto}
   .modal-foot{padding:14px 22px;border-top:1px solid var(--line);
     display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
   .picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
@@ -2591,6 +2604,8 @@ function renderStories(cards){
     }
     const editBtn = `<button class="story-btn ghost" onclick="openEditModal('${c.file}')"
         title="Metinleri düzenle + yeniden render">✏️ Düzenle</button>`;
+    const showBtn = `<button class="story-btn ghost" onclick="showStoryContent('${c.file}')"
+        title="Kart metni + Instagram caption'ını göster">👁 İçeriği Göster</button>`;
     // cache-bust: güncelleme sonrası mtime değişir → taze görsel gelir
     const imgUrl = `${c.url}?v=${Math.floor(c.mtime || 0)}`;
     card.innerHTML = `
@@ -2598,6 +2613,7 @@ function renderStories(cards){
       <div class="story-badges">${badges.join('')}</div>
       <div class="story-actions">
         <div class="primary-row">${primaryBtn}</div>
+        <div class="content-row">${showBtn}</div>
         <div class="secondary-row">
           ${undoBtn}
           ${editBtn}
@@ -2811,6 +2827,64 @@ function openLightbox(url){
   box.innerHTML = `<img src="${url}">`;
   box.onclick = () => box.remove();
   document.body.appendChild(box);
+}
+
+// Kartın içeriğini (kart metni + Instagram caption) modal'da göster.
+async function showStoryContent(name){
+  let meta;
+  try{
+    const r = await fetch(`/api/story/meta/${encodeURIComponent(name)}`);
+    if(!r.ok){
+      let m = r.statusText; try{ const j = await r.json(); m = j.detail || m; }catch(e){}
+      toast("İçerik alınamadı: " + m, "err"); return;
+    }
+    meta = (await r.json()).meta || {};
+  }catch(e){ toast("Bağlantı hatası.", "err"); return; }
+
+  const aciklama = (meta.aciklama || "").trim();
+  const caption = (meta.post_caption || "").trim();
+  if(!aciklama && !caption){
+    toast("Bu kartta gösterilecek metin yok.", "warn"); return;
+  }
+
+  const back = document.createElement("div");
+  back.className = "modal-backdrop";
+  back.onclick = () => back.remove();
+  const kartBlok = aciklama ? `
+      <div class="content-block">
+        <div class="content-label">📝 Kart metni</div>
+        <div class="content-text">${escapeHtml(aciklama)}</div>
+      </div>` : "";
+  const capBlok = caption ? `
+      <div class="content-block">
+        <div class="content-label">
+          <span>📱 Instagram açıklaması</span>
+          <button class="sm ghost" style="padding:4px 10px;font-size:11px"
+            onclick="copyStoryCaption(this)">📋 Kopyala</button>
+        </div>
+        <div class="content-text caption" data-caption="${escapeHtml(caption)}">${escapeHtml(caption)}</div>
+      </div>` : "";
+  back.innerHTML = `
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <h3 class="modal-title">👁 İçerik <small>— ${escapeHtml(name)}</small></h3>
+        <button class="ghost sm" onclick="this.closest('.modal-backdrop').remove()">✕ Kapat</button>
+      </div>
+      <div class="modal-body">
+        ${kartBlok}
+        ${capBlok}
+      </div>
+    </div>`;
+  document.body.appendChild(back);
+}
+
+function copyStoryCaption(btn){
+  const el = btn.closest(".content-block").querySelector(".content-text.caption");
+  const txt = el ? (el.getAttribute("data-caption") || el.textContent) : "";
+  navigator.clipboard.writeText(txt).then(
+    () => { btn.textContent = "✓ Kopyalandı"; setTimeout(() => { btn.textContent = "📋 Kopyala"; }, 1500); },
+    () => toast("Kopyalanamadı.", "err")
+  );
 }
 
 async function loadRecentStories(){
