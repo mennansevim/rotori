@@ -80,36 +80,10 @@ def _pick_topic(pool: list[dict[str, Any]], used: set[str]) -> dict[str, Any] | 
     return random.choice(fresh)
 
 
-# ---- GPT metin (news_automation'ın belgesel Türkçe stilini kullanır) ----
-_TR_STYLE = (
-    "Türkçen kusursuz, akıcı ve ansiklopedik/belgesel olmalı. 3. şahıs, genel "
-    "bilgi kipi ('…dır', '…olarak biliniyor'). Klişe/pazarlama dili YASAK "
-    "('büyüleyici', 'eşsiz', 'muhteşem'). Emir/2. şahıs hitap YASAK. Uydurma "
-    "spesifik sayı/tarih YASAK — genel bilgi ver."
-)
-
-
-def _card_prompt(konu: str) -> str:
-    return (
-        f"KONU: {konu}\n\n"
-        "Bu konu hakkında bir Instagram kartı için KISA merak uyandıran spot yaz.\n\n"
-        f"{_TR_STYLE}\n\n"
-        "BİÇİM: TEK cümle, ~10-14 kelime. Konuyu tanıt, merak uyandır (detay "
-        "caption'a bırakılır). Emoji YOK. Sadece metni yaz."
-    )
-
-
-def _caption_prompt(konu: str, aciklama: str) -> str:
-    return (
-        f"KONU: {konu}\n"
-        f"Kartın üst spotu: {aciklama}\n\n"
-        "Bunu detaylı bir Instagram post caption'ına genişlet. Gazeteci netliğinde:\n"
-        "1. Açılış (1-2 cümle, 1-2 emoji): konuyu tanıt.\n"
-        "2. 3-4 madde (emoji + kısa somut bilgi).\n"
-        "3. Kısa CTA (örn 'Kaydet 📌').\n"
-        "4. Boş satır + 8-12 hashtag (TR/EN karışık).\n"
-        "Klişe/emir/2. şahıs YASAK. 400-1000 karakter."
-    )
+# NOT: Kart üst metni + caption üretimi artık src/editorial.py'daki PAYLAŞIMLI
+# 'Japonya Rüyası araştırma editörü' system prompt'una taşındı
+# (generate_editorial_topic). Eski _TR_STYLE / _card_prompt / _caption_prompt
+# kaldırıldı; 'Konudan Üret' butonu ve otomasyon aynı kalıbı/kalite kapısını kullanır.
 
 
 def run_once(cfg: Config, auto_publish: bool = False,
@@ -146,23 +120,20 @@ def run_once(cfg: Config, auto_publish: bool = False,
         return {"ok": False, "reason": "no_topic"}
     log.info(f"  seçilen konu: {topic['title']}  | görsel: {topic['query']}")
 
-    # metin
-    aciklama = oai.chat_text(
-        "Sen @japonyaruyasi için belgesel tonda kısa haber spotları üreten bir "
-        "editörsün. Yanıt SADECE metin.",
-        _card_prompt(topic["title"]),
-        temperature=0.7, max_tokens=70,
-    ).strip().strip('"').strip("'").strip()
-
-    caption = ""
-    try:
-        caption = oai.chat_text(
-            "Sen @japonyaruyasi için detaylı Instagram post caption'ı yazan bir "
-            "editörsün. Kusursuz Türkçe.",
-            _caption_prompt(topic["title"], aciklama),
-            temperature=0.8, max_tokens=700).strip()
-    except Exception as exc:
-        log.warning(f"  caption üretilemedi: {exc}")
+    # metin + caption — PAYLAŞIMLI 'Japonya Rüyası' editöryel prompt (konu modu).
+    # 'Konudan Üret' butonu ve konu otomasyonu aynı kaliteyi/kalıbı kullanır.
+    from src import editorial
+    res = editorial.generate_editorial_topic(oai, topic["title"])
+    if not res.get("uygun"):
+        log.info(f"  ⏭ Konu kalite kapısını geçemedi "
+                 f"(toplam={res.get('toplam', 0)}/50, min={editorial.MIN_SCORE}).")
+        return {"ok": False, "reason": "low_score", "topic": topic,
+                "toplam": res.get("toplam", 0)}
+    aciklama = res["kart_ust_metni"]
+    caption = res["caption"]
+    editorial_data = res.get("data", {})
+    log.info(f"  ✓ Editöryel içerik (puan={res.get('toplam')}/50, "
+             f"kategori={editorial_data.get('kategori', '?')})")
 
     log.info(f"  kart metni: {aciklama}")
     if dry_run:
@@ -196,6 +167,10 @@ def run_once(cfg: Config, auto_publish: bool = False,
             "photographer": bg.get("photographer", ""),
             "aciklama": aciklama, "ust_tag": "GEZİ DEFTERİ",
             "post_caption": caption,
+            "kategori": editorial_data.get("kategori", ""),
+            "puan": editorial_data.get("puan", {}),
+            "toplam_puan": editorial_data.get("toplam"),
+            "kaynak": editorial_data.get("kaynak", ""),
             "source_topic": topic["title"],
             "auto_generated": True,
         }, ensure_ascii=False, indent=2), encoding="utf-8")

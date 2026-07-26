@@ -108,6 +108,32 @@ DİL: Kusursuz Türkçe, 3. şahıs, klişesiz. Japonca özel terimleri çevirme
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Ortak JSON şema açıklaması (haber + konu prompt'ları paylaşır)
+# ─────────────────────────────────────────────────────────────────────────────
+_JSON_SCHEMA_HINT = (
+    "SADECE şu JSON şemasını döndür (başka metin yok):\n"
+    "{\n"
+    '  "uygun": true,\n'
+    '  "puan": {"sasirticilik": 0, "fayda": 0, "guncellik": 0, '
+    '"dogruluk": 0, "paylasilabilirlik": 0},\n'
+    '  "toplam": 0,\n'
+    '  "baslik": "8-15 kelime, merak uyandıran, clickbait olmayan başlık",\n'
+    '  "kart_ust_metni": "Kart üstünde büyük görünecek TEK cümle, en fazla '
+    '14 kelime — merak uyandırır, detay vermez",\n'
+    '  "kisa_aciklama": "2-3 cümle giriş",\n'
+    '  "ana_bilgi": "En fazla 80 kelime somut bilgi (kural/ipucu/nasıl)",\n'
+    '  "neden_bilmelisin": "Gerçek fayda: para mı, zaman mı, güvenlik mi, gezi '
+    'planı mı?",\n'
+    '  "kaynak": "Resmi/güvenilir kaynak adı (biliniyorsa)",\n'
+    '  "kategori": "Ulaşım|Havaalanları|Turistik Noktalar|Teknoloji|Günlük '
+    'Yaşam|Sağlık|Kültür|Etkinlikler|Haber|Yeme İçme|Uyarı|Tasarruf",\n'
+    '  "hashtagler": ["#japonya", "#tokyo", "..."]\n'
+    "}\n"
+    "Türkçe, klişesiz, uydurma YOK."
+)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Kullanıcı prompt'u — haberi yapılandırılmış JSON'a çevir
 # ─────────────────────────────────────────────────────────────────────────────
 def build_user_prompt(title: str, summary: str, source: str = "",
@@ -123,28 +149,9 @@ def build_user_prompt(title: str, summary: str, source: str = "",
         f"HABER ÖZETİ: {summary}\n"
         f"{meta}\n\n"
         "ÖNCE kendi içinde 10 üzerinden puanla: şaşırtıcılık, fayda, güncellik, "
-        "doğruluk, paylaşılabilirlik. Toplam 40'ın altındaysa 'uygun': false döndür "
-        "ve boş alanlar bırak. Haber gerçek bir turist faydası (para/zaman/güvenlik) "
-        "içermiyorsa da 'uygun': false.\n\n"
-        "SADECE şu JSON şemasını döndür (başka metin yok):\n"
-        "{\n"
-        '  "uygun": true,\n'
-        '  "puan": {"sasirticilik": 0, "fayda": 0, "guncellik": 0, '
-        '"dogruluk": 0, "paylasilabilirlik": 0},\n'
-        '  "toplam": 0,\n'
-        '  "baslik": "8-15 kelime, merak uyandıran, clickbait olmayan başlık",\n'
-        '  "kart_ust_metni": "Kart üstünde büyük görünecek TEK cümle, en fazla '
-        '14 kelime — merak uyandırır, detay vermez",\n'
-        '  "kisa_aciklama": "2-3 cümle giriş",\n'
-        '  "ana_bilgi": "En fazla 80 kelime somut bilgi (tarih/yer/sayı/kural)",\n'
-        '  "neden_bilmelisin": "Gerçek fayda: para mı, zaman mı, güvenlik mi?",\n'
-        '  "kaynak": "Resmi kaynak adı" ,\n'
-        '  "kategori": "Ulaşım|Havaalanları|Turistik Noktalar|Teknoloji|Günlük '
-        'Yaşam|Sağlık|Kültür|Etkinlikler|Haber|Yeme İçme|Uyarı|Tasarruf",\n'
-        '  "hashtagler": ["#japonya", "#tokyo", "..."]\n'
-        "}\n"
-        "unsplash için gerekmiyor — sadece yukarıdaki alanlar. Türkçe, klişesiz, "
-        "uydurma YOK."
+        "doğruluk, paylaşılabilirlik. Toplam 30'un altındaysa 'uygun': false döndür "
+        "ve boş alanlar bırak.\n\n"
+        + _JSON_SCHEMA_HINT
     )
 
 
@@ -189,26 +196,34 @@ def assemble_caption(data: dict[str, Any]) -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Konu prompt'u — evergreen bir konuyu yapılandırılmış JSON'a çevir
+# ─────────────────────────────────────────────────────────────────────────────
+def build_topic_prompt(topic: str) -> str:
+    return (
+        "Aşağıdaki KONU, sistem talimatındaki İÇERİK FELSEFESİ ve PAYLAŞILABİLİR "
+        "'BOOK FACT' kurallarına göre bir Instagram postuna dönüştürülecek. Bu bir "
+        "haber değil, evergreen (her zaman geçerli) bir turist tüyosu/bilgisidir.\n\n"
+        f"KONU: {topic}\n\n"
+        "Bu konu hakkında ilk kez Japonya'ya gidecek bir turistin GERÇEKTEN işine "
+        "yarayacak, çoğu Japonya hesabının vermediği somut bilgiyi ver (para/zaman/"
+        "güvenlik/gezi planı faydası). Uydurma spesifik sayı/tarih verme; genel ama "
+        "doğru bilgi ver. Emin olmadığın rakamı yazma.\n\n"
+        "ÖNCE kendi içinde 10 üzerinden puanla: şaşırtıcılık, fayda, güncellik "
+        "(evergreen konular için 'her zaman geçerli' = yüksek güncellik say), "
+        "doğruluk, paylaşılabilirlik. Toplam 30'un altındaysa 'uygun': false.\n\n"
+        + _JSON_SCHEMA_HINT
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Ana giriş — buton + otomasyon burayı çağırır
 # ─────────────────────────────────────────────────────────────────────────────
-def generate_editorial(oai, title: str, summary: str, source: str = "",
-                       published: str = "") -> dict[str, Any]:
-    """Haberden yapılandırılmış editöryel içerik üret.
-
-    Dönüş:
-      {"uygun": bool, "toplam": int, "kart_ust_metni": str, "caption": str,
-       "data": <ham JSON>}
-    uygun=False veya toplam<MIN_SCORE ise kart_ust_metni/caption boş döner.
-    """
-    user = build_user_prompt(title, summary, source, published)
-    data = oai.chat_json(JAPONYA_RUYASI_SYSTEM, user, temperature=0.6,
-                         max_tokens=1100)
-
+def _finalize(data: Any) -> dict[str, Any]:
+    """GPT JSON çıktısını puan kapısından geçir + caption montajla."""
     if not isinstance(data, dict):
         return {"uygun": False, "toplam": 0, "kart_ust_metni": "",
                 "caption": "", "data": {}}
 
-    # toplam yoksa puanlardan hesapla
     toplam = data.get("toplam")
     if not isinstance(toplam, (int, float)):
         puan = data.get("puan") or {}
@@ -225,3 +240,29 @@ def generate_editorial(oai, title: str, summary: str, source: str = "",
     caption = assemble_caption(data)
     return {"uygun": True, "toplam": toplam, "kart_ust_metni": kart_ust,
             "caption": caption, "data": data}
+
+
+def generate_editorial(oai, title: str, summary: str, source: str = "",
+                       published: str = "") -> dict[str, Any]:
+    """HABERDEN yapılandırılmış editöryel içerik üret.
+
+    Dönüş:
+      {"uygun": bool, "toplam": int, "kart_ust_metni": str, "caption": str,
+       "data": <ham JSON>}
+    uygun=False veya toplam<MIN_SCORE ise kart_ust_metni/caption boş döner.
+    """
+    user = build_user_prompt(title, summary, source, published)
+    data = oai.chat_json(JAPONYA_RUYASI_SYSTEM, user, temperature=0.6,
+                         max_tokens=1100)
+    return _finalize(data)
+
+
+def generate_editorial_topic(oai, topic: str) -> dict[str, Any]:
+    """KONUDAN (evergreen tüyo) yapılandırılmış editöryel içerik üret.
+
+    'Konudan Üret' butonu ve konu otomasyonu bunu kullanır. Aynı system
+    prompt + puan kapısı; sadece kullanıcı prompt'u konu odaklı."""
+    user = build_topic_prompt(topic)
+    data = oai.chat_json(JAPONYA_RUYASI_SYSTEM, user, temperature=0.7,
+                         max_tokens=1100)
+    return _finalize(data)
