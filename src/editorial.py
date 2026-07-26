@@ -119,7 +119,10 @@ _JSON_SCHEMA_HINT = (
     '  "toplam": 0,\n'
     '  "baslik": "8-15 kelime, merak uyandıran, clickbait olmayan başlık",\n'
     '  "kart_ust_metni": "Kart üstünde büyük görünecek TEK cümle, en fazla '
-    '14 kelime — merak uyandırır, detay vermez",\n'
+    '14 kelime — merak uyandırır, detay vermez. Görsel GENEL bir stok fotoğraf '
+    'olacağı için burada SPESİFİK marka/yer/ürün adı (FamilyMart, Azabudai, '
+    'ürün modeli) VERME — görselle çelişir. Spesifik detaylar caption\'da yer '
+    'alır. Overlay genel ama merak uyandıran kalsın",\n'
     '  "kisa_aciklama": "2-3 cümle giriş",\n'
     '  "ana_bilgi": "En fazla 80 kelime somut bilgi (kural/ipucu/nasıl)",\n'
     '  "neden_bilmelisin": "Gerçek fayda: para mı, zaman mı, güvenlik mi, gezi '
@@ -127,6 +130,11 @@ _JSON_SCHEMA_HINT = (
     '  "kaynak": "Resmi/güvenilir kaynak adı (biliniyorsa)",\n'
     '  "kategori": "Ulaşım|Havaalanları|Turistik Noktalar|Teknoloji|Günlük '
     'Yaşam|Sağlık|Kültür|Etkinlikler|Haber|Yeme İçme|Uyarı|Tasarruf",\n'
+    '  "gorsel_konsepti": "İngilizce, 2-5 kelime, STOK FOTOĞRAFTA BULUNABİLİR '
+    'GENEL bir sahne. Marka/kurum/kişi/anime/film adı YAZMA (FamilyMart, Ghibli, '
+    'Uniqlo stok fotoğrafta yok → yerine generic sahne). İçeriğin atmosferine '
+    'uy. Örnek: konbini haberi→\'japanese convenience store night\', tren→'
+    '\'shinkansen station platform\', sakura→\'cherry blossom park kyoto\'",\n'
     '  "hashtagler": ["#japonya", "#tokyo", "..."]\n'
     "}\n"
     "Türkçe, klişesiz, uydurma YOK."
@@ -233,13 +241,14 @@ def _finalize(data: Any) -> dict[str, Any]:
     uygun = bool(data.get("uygun", True)) and toplam >= MIN_SCORE
     if not uygun:
         return {"uygun": False, "toplam": toplam, "kart_ust_metni": "",
-                "caption": "", "data": data}
+                "caption": "", "gorsel_konsepti": "", "data": data}
 
     kart_ust = (data.get("kart_ust_metni") or data.get("baslik") or "").strip()
     kart_ust = kart_ust.strip('"').strip("'").strip()
     caption = assemble_caption(data)
+    gorsel = (data.get("gorsel_konsepti") or "").strip()
     return {"uygun": True, "toplam": toplam, "kart_ust_metni": kart_ust,
-            "caption": caption, "data": data}
+            "caption": caption, "gorsel_konsepti": gorsel, "data": data}
 
 
 def generate_editorial(oai, title: str, summary: str, source: str = "",
