@@ -184,4 +184,65 @@ void main() {
     // Dolu bacak korunmalı — IATA "HND" görünür (city yerine airport tercih).
     expect(find.text('HND'), findsWidgets);
   });
+
+  group('Düzenleme modu', () {
+    testWidgets('✎ ikonuna basınca edit modu açılır, günler auto-expand olur',
+        (tester) async {
+      await tester.pumpWidget(harness(_sampleTrip()));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Başlangıç: edit ikonu (kalem) görünür.
+      expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
+
+      // Edit moduna geç.
+      await tester.tap(find.byIcon(Icons.edit_outlined));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Kalem → onay (✓) olur, baştan-oluştur (⟳) ikonu belirir.
+      expect(find.byIcon(Icons.check), findsOneWidget);
+      expect(find.byIcon(Icons.refresh), findsOneWidget);
+      // Her item için taşıma/sıralama menü ikonu (⋮) görünür.
+      expect(find.byIcon(Icons.more_vert), findsWidgets);
+    });
+
+    testWidgets('edit modunda ⋮ menüsü taşıma/kaldırma seçenekleri sunar',
+        (tester) async {
+      await tester.pumpWidget(harness(_sampleTrip()));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.byIcon(Icons.edit_outlined));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // İlk ⋮ menüsünü aç.
+      await tester.tap(find.byIcon(Icons.more_vert).first);
+      await tester.pumpAndSettle();
+
+      // Sıralama/taşıma/kaldırma seçenekleri görünmeli.
+      expect(find.text('Yukarı taşı'), findsOneWidget);
+      expect(find.text('Hangi güne alalım?'), findsOneWidget);
+      expect(find.text('Kaldır'), findsOneWidget);
+    });
+
+    testWidgets('baştan-oluştur ikonu onay dialogu gösterir', (tester) async {
+      await tester.pumpWidget(harness(_sampleTrip()));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.byIcon(Icons.edit_outlined));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.byIcon(Icons.refresh));
+      await tester.pumpAndSettle();
+
+      // Onay dialogu — başlık + iki buton.
+      expect(find.text('Plan baştan oluşturulsun mu?'), findsOneWidget);
+      expect(find.text('Vazgeç'), findsOneWidget);
+      expect(find.text('Baştan oluştur'), findsWidgets);
+    });
+  });
 }

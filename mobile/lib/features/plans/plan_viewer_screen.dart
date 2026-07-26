@@ -167,6 +167,12 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
   final _activeDayKey = GlobalKey();
   bool _autoScrolled = false;
 
+  /// Düzenleme modu — üst bardaki ✎ simgesine basılınca aktif olur.
+  /// Bu modda: aynı gün içinde sıralama, başka güne taşıma ve kaldırma
+  /// aksiyonları her item için görünür. Kayıt her mutasyonda anlık yapılır
+  /// (`plansRepositoryProvider.save`).
+  bool _editMode = false;
+
   /// Tarih (YYYY-MM-DD) → o günün hava tahmini (o tarihte hangi destinasyondayız
   /// ise oradan). Open-Meteo'dan bir kez çekilir; hata sessiz.
   Map<String, DayForecast> _forecast = const {};
@@ -282,6 +288,9 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
               trip: trip,
               palette: palette,
               planId: widget.planId,
+              editMode: _editMode,
+              onToggleEdit: _toggleEditMode,
+              onRebuild: _confirmRebuild,
             ),
             Expanded(
               child: ListView(
@@ -310,8 +319,13 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                         forecast: _forecast[days[i].date],
                         isPast: i < activeIndex,
                         isActive: i == activeIndex,
+                        editMode: _editMode,
+                        allDays: days,
                         onOpenItem: _openItem,
                         onOpenMap: _openDayMap,
+                        onMoveWithinDay: _moveWithinDay,
+                        onMoveItemToDay: _moveItemToDay,
+                        onDeleteItem: _deleteItem,
                       ),
                 ],
               ),
@@ -342,6 +356,104 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
         if (mounted) setState(() {});
       },
     );
+  }
+
+  // -------------------------------------------------------------------------
+  // Edit mode — mutation helpers (her biri anlık kaydeder + UI'yı tazeler).
+  // -------------------------------------------------------------------------
+
+  DayPlan? _findDayByDate(String date) {
+    for (final d in widget.trip.days) {
+      if (d.date == date) return d;
+    }
+    return null;
+  }
+
+  void _persistAndRefresh() {
+    ref.read(plansRepositoryProvider)?.save(widget.trip);
+    if (mounted) setState(() {});
+    HomeWidgetHook.pushFromTrip(widget.trip);
+  }
+
+  /// Aynı gün içinde item sırasını değiştirir (yukarı/aşağı).
+  void _moveWithinDay(DayPlan day, int oldIdx, int newIdx) {
+    if (newIdx < 0 || newIdx >= day.items.length || oldIdx == newIdx) return;
+    final item = day.items.removeAt(oldIdx);
+    day.items.insert(newIdx, item);
+    _persistAndRefresh();
+  }
+
+  /// Item'ı başka bir gün planına taşır. Yeni günün sonuna eklenir.
+  void _moveItemToDay(DayPlan sourceDay, int itemIdx, DayPlan targetDay) {
+    if (identical(sourceDay, targetDay)) return;
+    if (itemIdx < 0 || itemIdx >= sourceDay.items.length) return;
+    final item = sourceDay.items.removeAt(itemIdx);
+    // Hangi günden taşındığını kaydet — kullanıcı geri almak isteyebilir.
+    final moved = item.copyWith(movedFromDay: sourceDay.dayNumber);
+    targetDay.items.add(moved);
+    _persistAndRefresh();
+    final s = LanguageScope.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(s.p('viewer.edit.movedSnack', {
+          'title': item.title,
+          'day': '${targetDay.dayNumber}',
+        })),
+      ),
+    );
+  }
+
+  /// Item'ı plandan kaldırır. Undo ile geri alınabilir (SnackBar action).
+  void _deleteItem(DayPlan day, int itemIdx) {
+    if (itemIdx < 0 || itemIdx >= day.items.length) return;
+    final removed = day.items.removeAt(itemIdx);
+    _persistAndRefresh();
+    final s = LanguageScope.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(s.p('viewer.edit.deletedSnack', {'title': removed.title})),
+        action: SnackBarAction(
+          label: s.s('viewer.edit.undo'),
+          onPressed: () {
+            // Geri al: aynı index'e yerleştir (varsa) yoksa sona.
+            final safeIdx =
+                itemIdx > day.items.length ? day.items.length : itemIdx;
+            day.items.insert(safeIdx, removed);
+            _persistAndRefresh();
+          },
+        ),
+      ),
+    );
+  }
+
+  void _toggleEditMode() {
+    setState(() => _editMode = !_editMode);
+  }
+
+  /// "Baştan oluştur" — mevcut plan atılıp planner ekranından yeniden yaratılır.
+  /// Onay dialog'u ile korunur (kazara tıklamayı engellemek için).
+  Future<void> _confirmRebuild() async {
+    final s = LanguageScope.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(s.s('viewer.tt.editRebuildConfirmTitle')),
+        content: Text(s.s('viewer.tt.editRebuildConfirmBody')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(s.s('viewer.edit.cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(s.s('viewer.edit.rebuild')),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && mounted) {
+      context.go('/plans/${widget.planId}/edit');
+    }
   }
 
   void _openMap() {
@@ -571,11 +683,21 @@ class _TopStatusBar extends StatefulWidget {
     required this.trip,
     required this.palette,
     required this.planId,
+    required this.editMode,
+    required this.onToggleEdit,
+    required this.onRebuild,
   });
 
   final Trip trip;
   final ViewerPalette palette;
   final String planId;
+
+  /// True ise üst bardaki ✎ ikonu ✓ olur ve baştan-oluştur (⟳) ikonu çıkar.
+  final bool editMode;
+  final VoidCallback onToggleEdit;
+
+  /// Onay dialog'u ile planı planner ekranından baştan oluşturur.
+  final VoidCallback onRebuild;
 
   @override
   State<_TopStatusBar> createState() => _TopStatusBarState();
@@ -678,16 +800,25 @@ class _TopStatusBarState extends State<_TopStatusBar>
                     ),
                   ),
                 ),
-                // Sağa sabit iki birincil aksiyon: bildirim + düzenle.
+                // Sağa sabit aksiyonlar: bildirim + düzenle (+ edit modunda baştan oluştur).
                 _BarBellButton(
                   color: onColor,
                   onTap: () => context.push('/reminders'),
                 ),
+                if (widget.editMode)
+                  _BarIconButton(
+                    icon: Icons.refresh,
+                    color: onColor,
+                    tooltip: s.s('viewer.tt.editRebuild'),
+                    onTap: widget.onRebuild,
+                  ),
                 _BarIconButton(
-                  icon: Icons.edit_outlined,
+                  icon: widget.editMode ? Icons.check : Icons.edit_outlined,
                   color: onColor,
-                  tooltip: s.s('viewer.tt.edit'),
-                  onTap: () => context.go('/plans/${widget.planId}/edit'),
+                  tooltip: widget.editMode
+                      ? s.s('viewer.tt.editDone')
+                      : s.s('viewer.tt.edit'),
+                  onTap: widget.onToggleEdit,
                 ),
               ],
             ),
@@ -892,8 +1023,13 @@ class _DayCard extends StatefulWidget {
     this.forecast,
     required this.isPast,
     required this.isActive,
+    required this.editMode,
+    required this.allDays,
     required this.onOpenItem,
     required this.onOpenMap,
+    required this.onMoveWithinDay,
+    required this.onMoveItemToDay,
+    required this.onDeleteItem,
   });
   final DayPlan day;
   final ViewerPalette palette;
@@ -902,8 +1038,26 @@ class _DayCard extends StatefulWidget {
   final DayForecast? forecast;
   final bool isPast;
   final bool isActive;
+
+  /// True ise her item için sıralama/taşıma/kaldırma menüsü çıkar; itemler
+  /// tıklandığında normal detay yerine bu menüyü de gösterir.
+  final bool editMode;
+
+  /// Başka güne taşıma menüsünü besleyen tüm gün listesi (sıralı).
+  final List<DayPlan> allDays;
+
   final void Function(TimelineItem item, TripDestination? dest) onOpenItem;
   final void Function(DayPlan day) onOpenMap;
+
+  /// Aynı gün içinde item sırasını değiştir (yukarı/aşağı butonu için).
+  final void Function(DayPlan day, int oldIdx, int newIdx) onMoveWithinDay;
+
+  /// Item'ı hedef güne taşı.
+  final void Function(DayPlan source, int itemIdx, DayPlan target)
+      onMoveItemToDay;
+
+  /// Item'ı plandan kaldır (SnackBar ile undo verilir).
+  final void Function(DayPlan day, int itemIdx) onDeleteItem;
 
   @override
   State<_DayCard> createState() => _DayCardState();
@@ -941,6 +1095,9 @@ class _DayCardState extends State<_DayCard> {
   Widget build(BuildContext context) {
     final p = widget.palette;
     final day = widget.day;
+    // Düzenleme modunda tüm günleri zorla aç — kullanıcı kapalı bir gündeki
+    // item'ı düzenleyemez, hedef güne taşıma için de görünür olması iyi.
+    final expanded = widget.editMode ? true : _expanded;
     final nextIdx = _nextUpcomingIndex();
     final nowMin = DateTime.now().hour * 60 + DateTime.now().minute;
 
@@ -971,7 +1128,9 @@ class _DayCardState extends State<_DayCard> {
           // Başlık satırı (tıklanınca genişlet/daralt).
           InkWell(
             borderRadius: BorderRadius.circular(18),
-            onTap: () => setState(() => _expanded = !_expanded),
+            onTap: widget.editMode
+                ? null
+                : () => setState(() => _expanded = !_expanded),
             child: Padding(
               padding: const EdgeInsets.all(14),
               child: Row(
@@ -1034,14 +1193,14 @@ class _DayCardState extends State<_DayCard> {
                       ),
                     ),
                   Icon(
-                    _expanded ? Icons.expand_less : Icons.expand_more,
+                    expanded ? Icons.expand_less : Icons.expand_more,
                     color: p.textMuted,
                   ),
                 ],
               ),
             ),
           ),
-          if (_expanded)
+          if (expanded)
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
               child: Column(
@@ -1059,18 +1218,31 @@ class _DayCardState extends State<_DayCard> {
                     )
                   else
                     for (var i = 0; i < day.items.length; i++)
-                      _TimelineRow(
-                        item: day.items[i],
-                        palette: p,
-                        dest: widget.dest,
-                        isNext: i == nextIdx,
-                        isPastItem: widget.isActive &&
-                            _isItemPast(day.items[i], nowMin),
-                        isFirst: i == 0,
-                        isLast: i == day.items.length - 1,
-                        onOpen: () =>
-                            widget.onOpenItem(day.items[i], widget.dest),
-                      ),
+                      widget.editMode
+                          ? _EditableTimelineRow(
+                              day: day,
+                              index: i,
+                              palette: p,
+                              dest: widget.dest,
+                              allDays: widget.allDays,
+                              onMoveWithinDay: widget.onMoveWithinDay,
+                              onMoveItemToDay: widget.onMoveItemToDay,
+                              onDeleteItem: widget.onDeleteItem,
+                              onOpen: () =>
+                                  widget.onOpenItem(day.items[i], widget.dest),
+                            )
+                          : _TimelineRow(
+                              item: day.items[i],
+                              palette: p,
+                              dest: widget.dest,
+                              isNext: i == nextIdx,
+                              isPastItem: widget.isActive &&
+                                  _isItemPast(day.items[i], nowMin),
+                              isFirst: i == 0,
+                              isLast: i == day.items.length - 1,
+                              onOpen: () =>
+                                  widget.onOpenItem(day.items[i], widget.dest),
+                            ),
                   if (day.items.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Align(
@@ -1381,6 +1553,137 @@ IconData _kindIcon(TimelineItemKind? k) => switch (k) {
       TimelineItemKind.hotel => Icons.hotel,
       _ => Icons.place,
     };
+
+// ---------------------------------------------------------------------------
+// Düzenleme modunda kullanılan wrapper — mevcut _TimelineRow'u aynen render
+// eder ama yanına sıralama/taşıma/kaldırma menüsü ekler. `_TimelineRow`'un
+// görsel akışını bozmamak için tıklama davranışı da menüye açık kalır.
+// ---------------------------------------------------------------------------
+class _EditableTimelineRow extends StatelessWidget {
+  const _EditableTimelineRow({
+    required this.day,
+    required this.index,
+    required this.palette,
+    required this.dest,
+    required this.allDays,
+    required this.onMoveWithinDay,
+    required this.onMoveItemToDay,
+    required this.onDeleteItem,
+    required this.onOpen,
+  });
+
+  final DayPlan day;
+  final int index;
+  final ViewerPalette palette;
+  final TripDestination? dest;
+  final List<DayPlan> allDays;
+  final void Function(DayPlan day, int oldIdx, int newIdx) onMoveWithinDay;
+  final void Function(DayPlan source, int itemIdx, DayPlan target)
+      onMoveItemToDay;
+  final void Function(DayPlan day, int itemIdx) onDeleteItem;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    final s = LanguageScope.of(context);
+    final isFirst = index == 0;
+    final isLast = index == day.items.length - 1;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: _TimelineRow(
+            item: day.items[index],
+            palette: p,
+            dest: dest,
+            isNext: false,
+            isPastItem: false,
+            isFirst: isFirst,
+            isLast: isLast,
+            onOpen: onOpen,
+          ),
+        ),
+        // Sıralama + taşıma + kaldırma popup menüsü.
+        PopupMenuButton<String>(
+          tooltip: '',
+          icon: Icon(Icons.more_vert, color: p.textMuted, size: 20),
+          onSelected: (value) async {
+            if (value == 'up') {
+              onMoveWithinDay(day, index, index - 1);
+            } else if (value == 'down') {
+              onMoveWithinDay(day, index, index + 1);
+            } else if (value == 'delete') {
+              onDeleteItem(day, index);
+            } else if (value.startsWith('day:')) {
+              final targetIdx = int.parse(value.substring(4));
+              onMoveItemToDay(day, index, allDays[targetIdx]);
+            }
+          },
+          itemBuilder: (ctx) => <PopupMenuEntry<String>>[
+            PopupMenuItem(
+              value: 'up',
+              enabled: !isFirst,
+              child: Row(children: [
+                const Icon(Icons.arrow_upward, size: 18),
+                const SizedBox(width: 10),
+                Text(s.s('viewer.edit.moveUp')),
+              ]),
+            ),
+            PopupMenuItem(
+              value: 'down',
+              enabled: !isLast,
+              child: Row(children: [
+                const Icon(Icons.arrow_downward, size: 18),
+                const SizedBox(width: 10),
+                Text(s.s('viewer.edit.moveDown')),
+              ]),
+            ),
+            if (allDays.length > 1) ...[
+              const PopupMenuDivider(),
+              PopupMenuItem<String>(
+                enabled: false,
+                child: Text(
+                  s.s('viewer.edit.moveToDayTitle'),
+                  style: TextStyle(color: p.textMuted, fontSize: 12),
+                ),
+              ),
+              for (var di = 0; di < allDays.length; di++)
+                if (!identical(allDays[di], day))
+                  PopupMenuItem<String>(
+                    value: 'day:$di',
+                    child: Row(children: [
+                      const Icon(Icons.calendar_today, size: 16),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Gün ${allDays[di].dayNumber} · '
+                          '${allDays[di].date}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ]),
+                  ),
+            ],
+            const PopupMenuDivider(),
+            PopupMenuItem(
+              value: 'delete',
+              child: Row(children: [
+                Icon(Icons.delete_outline,
+                    size: 18, color: Colors.red.shade400),
+                const SizedBox(width: 10),
+                Text(
+                  s.s('viewer.edit.deleteItem'),
+                  style: TextStyle(color: Colors.red.shade400),
+                ),
+              ]),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
 
 class _TimelineRow extends StatelessWidget {
   const _TimelineRow({
