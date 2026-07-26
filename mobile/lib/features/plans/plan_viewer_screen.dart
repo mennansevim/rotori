@@ -41,6 +41,7 @@ import '../viewer/reward_map_screen.dart';
 import '../viewer/viewer_theme.dart';
 import '../viewer/weather_screen.dart';
 import 'plan_providers.dart';
+import 'train_plan_view.dart';
 
 // ---------------------------------------------------------------------------
 // Tarih yardımcıları — dile göre ay/gün dizisi (intl locale'e bağlı DEĞİL).
@@ -164,7 +165,6 @@ class _ViewerBody extends ConsumerStatefulWidget {
 class _ViewerBodyState extends ConsumerState<_ViewerBody>
     with WidgetsBindingObserver {
   final _scrollController = ScrollController();
-  final _activeDayKey = GlobalKey();
   bool _autoScrolled = false;
 
   /// Düzenleme modu — üst bardaki ✎ simgesine basılınca aktif olur.
@@ -172,6 +172,14 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
   /// aksiyonları her item için görünür. Kayıt her mutasyonda anlık yapılır
   /// (`plansRepositoryProvider.save`).
   bool _editMode = false;
+
+  /// Tren (top-down) görünüm tercihi. null = otomatik (≥5 gün ise açık).
+  /// Kullanıcı üst bardaki tren/liste ikonuyla değiştirince sabitlenir.
+  bool? _trainModeOverride;
+
+  /// Tren görünümünde bir vagona basınca ilgili güne kaydırmak için, her
+  /// günün kartına atanan GlobalKey (date → key).
+  final Map<String, GlobalKey> _dayKeys = {};
 
   /// Tarih (YYYY-MM-DD) → o günün hava tahmini (o tarihte hangi destinasyondayız
   /// ise oradan). Open-Meteo'dan bir kez çekilir; hata sessiz.
@@ -236,7 +244,10 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
 
   void _autoScrollToActive() {
     if (_autoScrolled || !mounted) return;
-    final ctx = _activeDayKey.currentContext;
+    final days = _sortedDays;
+    if (days.isEmpty) return;
+    final activeDate = days[_activeDayIndex(days)].date;
+    final ctx = _dayKeys[activeDate]?.currentContext;
     if (ctx == null) return;
     _autoScrolled = true;
     Scrollable.ensureVisible(
@@ -246,6 +257,61 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
       alignment: 0.05, // aktif günü üste yakın konumla
     );
   }
+
+  /// Tren görünümünde bir vagona basınca: liste görünümüne geç ve o güne
+  /// yumuşakça kaydır.
+  void _openDayFromTrain(String date) {
+    setState(() => _trainModeOverride = false);
+    _autoScrolled = true; // otomatik aktif-güne kaydırmayı devre dışı bırak
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final ctx = _dayKeys[date]?.currentContext;
+      if (ctx == null) return;
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeOutCubic,
+        alignment: 0.05,
+      );
+    });
+  }
+
+  /// Üst bardaki tren/liste ikonu — görünümü değiştirir.
+  void _toggleTrainMode() {
+    final days = _sortedDays;
+    final current = days.length >= 5 && (_trainModeOverride ?? true);
+    setState(() => _trainModeOverride = !current);
+  }
+
+  /// Sıralı günlerden tren vagonu verisi üretir (şehir bazlı renk + tarih).
+  List<TrainCarData> _buildTrainCars(
+    List<DayPlan> days,
+    int activeIndex,
+    ViewerPalette palette,
+  ) {
+    final lang = LanguageScope.of(context).lang;
+    final dests = _sortedDestinations;
+    final cars = <TrainCarData>[];
+    for (var i = 0; i < days.length; i++) {
+      final day = days[i];
+      final dest = getDestinationForDate(dests, day.date);
+      final color = cityColorFor(dests, dest?.id);
+      final parsed = DateTime.tryParse(day.date);
+      cars.add(TrainCarData(
+        date: day.date,
+        dayNumber: day.dayNumber,
+        weekdayShort: trainWeekdayShort(lang, parsed, day.weekday),
+        dayOfMonth: parsed != null ? '${parsed.day}' : '',
+        city: dest?.city ?? '',
+        subtitle: day.theme,
+        color: color,
+        isPast: i < activeIndex,
+        isActive: i == activeIndex,
+      ));
+    }
+    return cars;
+  }
+
 
   @override
   void dispose() {
@@ -260,6 +326,10 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
     final trip = widget.trip;
     final days = _sortedDays;
     final activeIndex = _activeDayIndex(days);
+    // Tren (top-down) görünüm yalnızca ≥5 günlük gezilerde anlamlı — kısa
+    // gezilerde klasik liste kalır. Kullanıcı tercihi varsa o kazanır.
+    final trainAvailable = days.length >= 5;
+    final trainMode = trainAvailable && (_trainModeOverride ?? true);
 
     // Minimalize edilmiş viewer: sadece üst bar + doğrudan gün akışı. Uçuş
     // özeti, konaklama, metrikler ve tüm aksiyon butonları drawer içinde.
@@ -291,6 +361,9 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
               editMode: _editMode,
               onToggleEdit: _toggleEditMode,
               onRebuild: _confirmRebuild,
+              showTrainToggle: trainAvailable,
+              trainMode: trainMode,
+              onToggleTrain: _toggleTrainMode,
             ),
             Expanded(
               child: ListView(
@@ -299,10 +372,19 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                 children: [
                   if (days.isEmpty)
                     _EmptyDaysCard(palette: palette)
+                  else if (trainMode)
+                    TrainPlanView(
+                      palette: palette,
+                      cars: _buildTrainCars(days, activeIndex, palette),
+                      onTapCar: _openDayFromTrain,
+                    )
                   else
                     for (var i = 0; i < days.length; i++)
                       _DayCard(
-                        key: i == activeIndex ? _activeDayKey : null,
+                        key: _dayKeys.putIfAbsent(
+                          days[i].date,
+                          () => GlobalKey(),
+                        ),
                         day: days[i],
                         palette: palette,
                         dest: getDestinationForDate(
@@ -361,13 +443,6 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
   // -------------------------------------------------------------------------
   // Edit mode — mutation helpers (her biri anlık kaydeder + UI'yı tazeler).
   // -------------------------------------------------------------------------
-
-  DayPlan? _findDayByDate(String date) {
-    for (final d in widget.trip.days) {
-      if (d.date == date) return d;
-    }
-    return null;
-  }
 
   void _persistAndRefresh() {
     ref.read(plansRepositoryProvider)?.save(widget.trip);
@@ -686,6 +761,9 @@ class _TopStatusBar extends StatefulWidget {
     required this.editMode,
     required this.onToggleEdit,
     required this.onRebuild,
+    required this.showTrainToggle,
+    required this.trainMode,
+    required this.onToggleTrain,
   });
 
   final Trip trip;
@@ -698,6 +776,11 @@ class _TopStatusBar extends StatefulWidget {
 
   /// Onay dialog'u ile planı planner ekranından baştan oluşturur.
   final VoidCallback onRebuild;
+
+  /// ≥5 günlük gezilerde tren/liste görünüm geçişi ikonu gösterilir.
+  final bool showTrainToggle;
+  final bool trainMode;
+  final VoidCallback onToggleTrain;
 
   @override
   State<_TopStatusBar> createState() => _TopStatusBarState();
@@ -801,6 +884,17 @@ class _TopStatusBarState extends State<_TopStatusBar>
                   ),
                 ),
                 // Sağa sabit aksiyonlar: bildirim + düzenle (+ edit modunda baştan oluştur).
+                if (widget.showTrainToggle && !widget.editMode)
+                  _BarIconButton(
+                    icon: widget.trainMode
+                        ? Icons.view_agenda_outlined
+                        : Icons.train_outlined,
+                    color: onColor,
+                    tooltip: widget.trainMode
+                        ? s.s('viewer.tt.viewList')
+                        : s.s('viewer.tt.viewTrain'),
+                    onTap: widget.onToggleTrain,
+                  ),
                 _BarBellButton(
                   color: onColor,
                   onTap: () => context.push('/reminders'),

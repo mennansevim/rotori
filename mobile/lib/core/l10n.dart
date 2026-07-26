@@ -172,6 +172,8 @@ const Map<String, Map<AppLang, String>> _strings = {
   'viewer.tt.mustKnow': {AppLang.tr: 'Bilmelisin', AppLang.en: 'Must-know'},
   'viewer.tt.theme': {AppLang.tr: 'Tema', AppLang.en: 'Theme'},
   'viewer.tt.edit': {AppLang.tr: 'Düzenle', AppLang.en: 'Edit'},
+  'viewer.tt.viewTrain': {AppLang.tr: 'Tren görünümü', AppLang.en: 'Train view'},
+  'viewer.tt.viewList': {AppLang.tr: 'Liste görünümü', AppLang.en: 'List view'},
   'viewer.tt.editDone': {AppLang.tr: 'Bitir', AppLang.en: 'Done'},
   'viewer.tt.editRebuild': {AppLang.tr: 'Baştan oluştur', AppLang.en: 'Rebuild plan'},
   'viewer.tt.editRebuildConfirmTitle': {AppLang.tr: 'Plan baştan oluşturulsun mu?', AppLang.en: 'Rebuild the plan?'},

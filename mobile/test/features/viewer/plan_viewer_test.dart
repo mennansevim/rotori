@@ -8,6 +8,7 @@ import 'package:japan_trip/data/plans_repository.dart';
 import 'package:japan_trip/domain/types.dart';
 import 'package:japan_trip/features/plans/plan_providers.dart';
 import 'package:japan_trip/features/plans/plan_viewer_screen.dart';
+import 'package:japan_trip/features/plans/train_plan_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Bugüne göre birkaç geçmiş + bir aktif gün içeren örnek Trip.
@@ -47,6 +48,67 @@ Trip _sampleTrip() {
       mk(1, -2, 'Geçmiş Gün Teması', 'Gecmis Aktivite'),
       mk(2, 0, 'Aktif Gün Teması', 'Aktif Aktivite'),
       mk(3, 2, 'Gelecek Gün Teması', 'Gelecek Aktivite'),
+    ],
+  );
+}
+
+/// Tren (top-down) görünümünü tetiklemek için 6 günlük örnek Trip.
+Trip _longTrip() {
+  final now = DateTime.now();
+  String d(int offsetDays) {
+    final t = now.add(Duration(days: offsetDays));
+    return '${t.year.toString().padLeft(4, '0')}-'
+        '${t.month.toString().padLeft(2, '0')}-'
+        '${t.day.toString().padLeft(2, '0')}';
+  }
+
+  DayPlan mk(int n, int offset, String theme) => DayPlan(
+        dayNumber: n,
+        date: d(offset),
+        theme: theme,
+        items: [TimelineItem(id: 'it$n', title: 'Aktivite $n', time: '10:00')],
+      );
+
+  return Trip(
+    id: 'trip-long',
+    slug: 'long-trip',
+    title: 'Uzun Japonya Gezisi',
+    subtitle: 'Widget testi',
+    timezone: 'Asia/Tokyo',
+    tripStart: d(-2),
+    tripEnd: d(3),
+    flights: TripFlights(),
+    preferences: TripPreferences(
+      travelDates: TravelDates(start: d(-2), end: d(3)),
+      pace: Pace.moderate,
+      destinations: [
+        TripDestination(
+          id: 'osaka',
+          countryCode: 'JP',
+          countryName: 'Japonya',
+          city: 'Osaka',
+          arrivalDate: d(-2),
+          departureDate: d(0),
+          order: 0,
+        ),
+        TripDestination(
+          id: 'tokyo',
+          countryCode: 'JP',
+          countryName: 'Japonya',
+          city: 'Tokyo',
+          arrivalDate: d(1),
+          departureDate: d(3),
+          order: 1,
+        ),
+      ],
+    ),
+    days: [
+      mk(1, -2, 'Gün 1'),
+      mk(2, -1, 'Gün 2'),
+      mk(3, 0, 'Gün 3'),
+      mk(4, 1, 'Gün 4'),
+      mk(5, 2, 'Gün 5'),
+      mk(6, 3, 'Gün 6'),
     ],
   );
 }
@@ -243,6 +305,46 @@ void main() {
       expect(find.text('Plan baştan oluşturulsun mu?'), findsOneWidget);
       expect(find.text('Vazgeç'), findsOneWidget);
       expect(find.text('Baştan oluştur'), findsWidgets);
+    });
+  });
+
+  group('Tren (top-down) görünümü', () {
+    testWidgets('≥5 günlük gezi tren görünümüyle açılır', (tester) async {
+      await tester.pumpWidget(harness(_longTrip()));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // ≥5 gün → varsayılan tren görünümü aktif.
+      expect(find.byType(TrainPlanView), findsOneWidget);
+      // Liste görünümüne geçiş ikonu (view_agenda) üst barda görünür.
+      expect(find.byIcon(Icons.view_agenda_outlined), findsOneWidget);
+    });
+
+    testWidgets('tren/liste ikonu görünümü değiştirir', (tester) async {
+      await tester.pumpWidget(harness(_longTrip()));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.byType(TrainPlanView), findsOneWidget);
+
+      // Liste görünümüne geç.
+      await tester.tap(find.byIcon(Icons.view_agenda_outlined));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.byType(TrainPlanView), findsNothing);
+      // Şimdi tren görünümüne dönüş ikonu (train) görünür.
+      expect(find.byIcon(Icons.train_outlined), findsOneWidget);
+    });
+
+    testWidgets('<5 günlük gezide tren toggle gösterilmez', (tester) async {
+      await tester.pumpWidget(harness(_sampleTrip()));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.byType(TrainPlanView), findsNothing);
+      expect(find.byIcon(Icons.view_agenda_outlined), findsNothing);
+      expect(find.byIcon(Icons.train_outlined), findsNothing);
     });
   });
 }
