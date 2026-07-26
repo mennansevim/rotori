@@ -201,27 +201,6 @@ def index() -> FileResponse:
     )
 
 
-# --- Domain doğrulama (TikTok / Meta vb.) ---
-# TikTok "Verify URL properties" adımı kök dizinde bir .txt dosyası ister:
-#   https://api.rotori.app/tiktokXXXXXXXX.txt
-# İndirdiğin doğrulama dosyasını data/domain_verification/ klasörüne koy;
-# bu endpoint onu kök dizinden servis eder.
-@app.get("/{verify_file:path}")
-def domain_verification(verify_file: str) -> FileResponse:
-    # Sadece kök seviye tiktok*.txt / google*.html gibi doğrulama dosyaları.
-    # Path traversal koruması + yalnızca güvenli uzantılar.
-    if "/" in verify_file or "\\" in verify_file or ".." in verify_file:
-        raise HTTPException(status_code=404, detail="Not found")
-    allowed = verify_file.endswith(".txt") or verify_file.endswith(".html")
-    is_verify = verify_file.startswith(("tiktok", "google", "pinterest", "BingSiteAuth"))
-    if not (allowed and is_verify):
-        raise HTTPException(status_code=404, detail="Not found")
-    path = cfg.project_root / "data" / "domain_verification" / verify_file
-    if not path.exists():
-        raise HTTPException(status_code=404, detail="Doğrulama dosyası bulunamadı")
-    return FileResponse(str(path), media_type="text/plain")
-
-
 @app.get("/api/status")
 def status() -> dict[str, Any]:
     src_total = _source_video_count()
@@ -2432,6 +2411,29 @@ def analytics_platforms() -> dict[str, Any]:
     ig_log = cfg.instagram.uploads_log if cfg.instagram else "data/instagram_uploads.jsonl"
     tt_log = cfg.tiktok.uploads_log if cfg.tiktok else "data/tiktok_uploads.jsonl"
     return analytics.platform_comparison(cfg.project_root, ig_log, tt_log)
+
+
+# --- Domain doğrulama (TikTok / Meta vb.) — EN SONDA olmalı ---
+# TikTok "Verify URL properties" adımı kök dizinde bir .txt dosyası ister:
+#   https://api.rotori.app/tiktokXXXXXXXX.txt
+# İndirdiğin doğrulama dosyasını data/domain_verification/ klasörüne koy.
+# KRİTİK: Bu catch-all route (`/{verify_file:path}`) MUTLAKA tüm diğer route'ların
+# ARDINDAN kayıtlı olmalı — FastAPI route'ları tanımlanma sırasına göre eşleştirir;
+# başta olursa /api/* dahil her şeyi gölgeler (404). En sonda = güvenli fallback.
+@app.get("/{verify_file:path}")
+def domain_verification(verify_file: str) -> FileResponse:
+    # Path traversal koruması + yalnızca güvenli doğrulama dosyaları.
+    if "/" in verify_file or "\\" in verify_file or ".." in verify_file:
+        raise HTTPException(status_code=404, detail="Not found")
+    allowed = verify_file.endswith(".txt") or verify_file.endswith(".html")
+    is_verify = verify_file.startswith(("tiktok", "google", "pinterest", "BingSiteAuth"))
+    if not (allowed and is_verify):
+        raise HTTPException(status_code=404, detail="Not found")
+    path = cfg.project_root / "data" / "domain_verification" / verify_file
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Doğrulama dosyası bulunamadı")
+    return FileResponse(str(path), media_type="text/plain")
+
 
 
 
