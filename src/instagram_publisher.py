@@ -68,6 +68,17 @@ def _wrap_instagram_error(exc: Exception) -> RuntimeError:
             "Instagram şifresi yanlış — config.yaml → instagram.password kontrol et.\n"
             f"[Orijinal hata] {msg}"
         )
+    # Süresi dolmuş/geçersiz sessionid — login_required, 403, ya da instagrapi'nin
+    # redirect döngüsü ("exceeded 30 redirects") bu duruma işaret eder.
+    if any(k in lower for k in (
+            "login_required", "exceeded 30 redirects", "login required",
+    )):
+        return RuntimeError(
+            "Instagram sessionid'nin süresi dolmuş/geçersiz (Instagram oturumu "
+            "düşürmüş). Yeni bir sessionid al:\n\n"
+            f"{_SESSIONID_HELP}\n\n"
+            f"[Orijinal hata] {msg}"
+        )
     if "two_factor" in lower or "two-factor" in lower or "verification_code" in lower:
         return RuntimeError(
             "2FA doğrulaması tamamlanamadı. config.yaml → instagram.totp_secret "
@@ -151,12 +162,20 @@ def get_client(cfg: Config):
         try:
             cl.login_by_sessionid(sessionid)
             cl.get_timeline_feed()   # geçerli mi doğrula
+            session_path.parent.mkdir(parents=True, exist_ok=True)
+            cl.dump_settings(session_path)
+            log.info(f"  Session (sessionid'den) yazıldı → {session_path.name}")
+            return cl
         except Exception as exc:
-            raise _wrap_instagram_error(exc) from exc
-        session_path.parent.mkdir(parents=True, exist_ok=True)
-        cl.dump_settings(session_path)
-        log.info(f"  Session (sessionid'den) yazıldı → {session_path.name}")
-        return cl
+            # sessionid süresi dolmuş/geçersiz. Kullanıcı adı+şifre varsa SERT
+            # HATA vermek yerine 3. katmana (login) düş — belki o çalışır.
+            # Yoksa net "sessionid yenile" hatasını fırlat.
+            if ig.username and ig.password:
+                log.warning(f"  sessionid geçersiz/süresi dolmuş ({exc}); "
+                            "kullanıcı adı + şifre ile login deneniyor…")
+                _load_or_make_device()   # sessionid cihazı değiştirmiş olabilir
+            else:
+                raise _wrap_instagram_error(exc) from exc
 
     # 3) Sıfırdan login — SABİT cihazla (kullanıcı adı + şifre + TOTP)
     log.info(f"  Instagram login: {ig.username}")

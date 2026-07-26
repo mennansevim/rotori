@@ -224,7 +224,7 @@ def assemble_caption(data: dict[str, Any]) -> str:
     if neden:
         parcalar.append(f"📌 Turist için: {neden}")
     if ipucu:
-        parcalar.append(f"💡 ROTİRİ ipucu: {ipucu}")
+        parcalar.append(f"💡 Rotori ipucu: {ipucu}")
     if kaynak:
         parcalar.append(f"🔗 Kaynak: {kaynak}")
 

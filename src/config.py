@@ -62,6 +62,10 @@ class InstagramCfg:
     graph_token: str = ""
     ig_user_id: str = ""       # Instagram Business account ID (17 haneli)
     app_secret: str = ""       # Long-lived refresh + debug için
+    # Otomatik yenilenen token'ın saklandığı YAZILABİLİR dosya. config.yaml
+    # container'da read-only mount edildiğinden, haftalık otomasyon token'ı
+    # yeniler ve buraya yazar. Bu dosya VARSA graph_token'ı override eder.
+    graph_token_file: str = "data/graph_token.txt"
     # Kart JPG'sine Instagram'ın erişebilmesi için public HTTPS URL tabanı.
     # (Cloudflare tunnel, ngrok, Cloudinary vb.) Yayın anında image_url =
     # f"{public_base_url}/media/stories/<name>" olarak kullanılır.
@@ -235,6 +239,16 @@ def load_config(config_path: str | None = None) -> Config:
     if (ig_raw.get("username") and ig_raw["username"] not in ("", "REPLACE_ME_USERNAME")
             and ig_raw.get("password") and ig_raw["password"] not in ("", "REPLACE_ME_PASSWORD")):
         ig_cfg = InstagramCfg(**ig_raw)
+        # Otomatik yenilenen token dosyası varsa config.yaml'daki graph_token'ı
+        # EZ (read-only mount'ta bile çalışır — dosya writable data/ altında).
+        try:
+            tok_path = _resolve(project_root, ig_cfg.graph_token_file)
+            if tok_path.exists():
+                saved = tok_path.read_text(encoding="utf-8").strip()
+                if saved:
+                    ig_cfg.graph_token = saved
+        except OSError:
+            pass
 
     stories_raw = raw.get("stories") or {}
     stories_cfg: StoriesCfg | None = None
