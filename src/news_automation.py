@@ -220,11 +220,19 @@ def generate_text(cfg: Config, oai, news: dict[str, Any]) -> tuple[str, str]:
         )
     except (RuntimeError, ValueError) as exc:
         log.warning(f"  editöryel üretim başarısız: {exc}")
+        news["_gate_fail"] = {"baslik": news.get("title", "")[:70],
+                              "toplam": None, "hata": str(exc)}
         return "", ""
 
     if not res.get("uygun"):
-        log.info(f"  ⏭ İçerik kalite kapısını geçemedi "
-                 f"(toplam={res.get('toplam', 0)}/50, min={editorial.MIN_SCORE}).")
+        toplam = res.get("toplam", 0)
+        puan = res.get("puan") or {}
+        # Puan kırılımını oku (varsa) → en zayıf kriterleri göster.
+        kirilim = ", ".join(f"{k}={v}" for k, v in puan.items()) if puan else "—"
+        log.info(f"  ⏭ Kalite kapısı: '{news.get('title', '')[:60]}' ELENDI "
+                 f"(toplam={toplam}/50 < min={editorial.MIN_SCORE}) | puan: {kirilim}")
+        news["_gate_fail"] = {"baslik": news.get("title", "")[:70],
+                              "toplam": toplam, "puan": puan}
         return "", ""
 
     log.info(f"  ✓ Editöryel içerik (puan={res.get('toplam')}/50, "
@@ -350,6 +358,7 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
         raise RuntimeError("OpenAI key gerekli (config.yaml → openai.api_key).")
 
     from src.openai_client import OpenAIClient
+    from src import editorial
     oai = OpenAIClient.from_config(cfg)
     if oai is None:
         raise RuntimeError("OpenAI client oluşturulamadı.")
@@ -370,11 +379,15 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
     tried_ids: set[str] = set()
     news: dict[str, Any] | None = None
     aciklama = caption = ""
+    fails: list[dict[str, Any]] = []   # elenen adayların özeti (neden raporu için)
     for attempt in range(1, MAX_ATTEMPTS + 1):
         cand = pick_news(cfg, oai, items, used | tried_ids)
         if cand is None:
             if attempt == 1:
-                return {"ok": False, "reason": "no_suitable_news"}
+                log.warning("  Kalite eşiğini geçebilecek uygun haber bulunamadı "
+                            "(feed'ler yumuşak/haber niteliği düşük olabilir).")
+                return {"ok": False, "reason": "no_suitable_news",
+                        "detail": "Feed'lerde işlenebilir uygun haber yok."}
             log.info("  Denenecek başka uygun haber kalmadı.")
             break
         aciklama, caption = generate_text(cfg, oai, cand)
@@ -382,12 +395,32 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
             news = cand
             break
         # kapıyı geçemedi → bu haberi bu tur için ele, sıradakini dene
+        gf = cand.get("_gate_fail")
+        if gf:
+            fails.append(gf)
         tried_ids.add(_news_id(cand))
         log.info(f"  ↻ Sonraki aday deneniyor ({attempt}/{MAX_ATTEMPTS})…")
 
     if news is None:
+        # Neden raporu: kaç aday elendi + en yüksek puan + kırılım.
+        scored = [f for f in fails if isinstance(f.get("toplam"), (int, float))]
+        best = max((f["toplam"] for f in scored), default=None)
+        satirlar = []
+        for f in fails:
+            t = f.get("toplam")
+            tstr = f"{t}/50" if isinstance(t, (int, float)) else "hata"
+            satirlar.append(f"• {f.get('baslik', '?')} → {tstr}")
+        detail = (
+            f"{len(fails)} aday kalite kapısını geçemedi "
+            f"(min={editorial.MIN_SCORE}/50"
+            + (f", en yüksek={best}/50" if best is not None else "")
+            + ")."
+        )
         log.warning("  Hiçbir aday kalite kapısını geçemedi — tur boş.")
-        return {"ok": False, "reason": "no_text"}
+        for s in satirlar:
+            log.warning(f"    {s}")
+        return {"ok": False, "reason": "no_text", "detail": detail,
+                "fails": satirlar}
 
     log.info(f"  Kart metni: {aciklama}")
     if dry_run:
