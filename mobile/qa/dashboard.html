@@ -161,8 +161,8 @@
 
     <div class="toolbar">
       <button id="runBtn" class="primary">▶ Testleri Koştur</button>
-      <button id="simBtn">📱 Simülatörü Başlat</button>
-      <button id="simStopBtn" style="display:none">⏹ Simülatörü Durdur</button>
+      <button id="simBtn">🖥️ Önizleme (device_preview)</button>
+      <button id="simStopBtn" style="display:none">⏹ Önizlemeyi Durdur</button>
       <button id="refreshBtn">↻ Sadece Verileri Yenile</button>
       <button id="toggleLogBtn">📜 Log</button>
       <span class="meta"><span id="statusDot" class="status-dot idle"></span><span id="lastUpdated">Yükleniyor…</span></span>
@@ -407,7 +407,7 @@
     const runSimulator = async () => {
       setSimRunning(true);
       $('logPanel').classList.add('on');
-      appendLog('\n📱 Simülatör başlatılıyor…\n\n');
+      appendLog('\n🖥️ device_preview (Chrome) başlatılıyor…\n\n');
       try {
         const resp = await fetch('/simulator', { method: 'POST' });
         if (!resp.ok) {

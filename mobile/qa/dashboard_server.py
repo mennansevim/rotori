@@ -96,13 +96,16 @@ class Handler(SimpleHTTPRequestHandler):
 
     # ── simulator ──────────────────────────────────────────────────────
     def _run_simulator(self) -> None:
-        """iOS Simulator'ı açar + `flutter run -d iphone` çıktısını canlı akıtır.
+        """device_preview'i Chrome'da açar (`flutter run -d chrome -t
+        lib/preview_main.dart`) ve çıktıyı canlı akıtır.
 
-        Uzun süren süreç; kullanıcı `POST /simulator/stop` ile durdurabilir ya
-        da bağlantıyı kapatabilir. Testlerden ayrı lock kullanır.
+        Gerçek iOS simülatörü yerine web + device_preview kullanılır: derleme
+        çok daha hızlı, cihaz çerçevesi device_preview panelinden değiştirilir
+        ve login/Supabase gerektirmez (seedli demo trip). Uzun süren süreç;
+        `POST /simulator/stop` ile durdurulur.
         """
         if not _SIM_LOCK.acquire(blocking=False):
-            self._json({"ok": False, "error": "simulator already running"}, status=409)
+            self._json({"ok": False, "error": "preview already running"}, status=409)
             return
 
         self.send_response(200)
@@ -113,11 +116,14 @@ class Handler(SimpleHTTPRequestHandler):
 
         global _SIM_PROC
         try:
-            self._chunk("→ iOS Simulator açılıyor (open -a Simulator)…\n")
-            subprocess.run(["open", "-a", "Simulator"], check=False)
-            self._chunk("→ flutter run -d iphone başlatılıyor…\n\n")
+            self._chunk("→ device_preview (Chrome) başlatılıyor…\n")
+            self._chunk("→ flutter run -d chrome -t lib/preview_main.dart\n\n")
             _SIM_PROC = subprocess.Popen(
-                ["flutter", "run", "-d", "iphone"],
+                [
+                    "flutter", "run",
+                    "-d", "chrome",
+                    "-t", "lib/preview_main.dart",
+                ],
                 cwd=str(MOBILE_DIR),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,

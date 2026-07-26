@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:device_preview/device_preview.dart';
 
 import 'core/l10n.dart';
 import 'core/router.dart';
@@ -11,9 +12,15 @@ import 'theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Env.load();
 
   if (!Env.isConfigured) {
-    runApp(const _MissingEnvApp());
+    runApp(
+      DevicePreview(
+        enabled: true,
+        builder: (context) => const _MissingEnvApp(),
+      ),
+    );
     return;
   }
 
@@ -22,7 +29,12 @@ Future<void> main() async {
     publishableKey: Env.supabaseAnonKey,
   );
 
-  runApp(const ProviderScope(child: JapanTripApp()));
+  runApp(
+    DevicePreview(
+      enabled: true,
+      builder: (context) => const ProviderScope(child: JapanTripApp()),
+    ),
+  );
 }
 
 class JapanTripApp extends ConsumerWidget {
@@ -41,7 +53,8 @@ class JapanTripApp extends ConsumerWidget {
         theme: AppTheme.dark,
         routerConfig: router,
         debugShowCheckedModeBanner: false,
-        locale: Locale(lang.code),
+        locale: DevicePreview.locale(context) ?? Locale(lang.code),
+        builder: DevicePreview.appBuilder,
         supportedLocales: const [Locale('tr'), Locale('en')],
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
