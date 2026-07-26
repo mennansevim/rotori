@@ -125,6 +125,60 @@
   .tab:hover{color:var(--txt)}
   .tab.active{background:var(--bg-elev);color:var(--txt);box-shadow:var(--sh-1)}
 
+  /* ------ Caption Üretici ------ */
+  .caption-tool{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:18px}
+  .caption-inputs{display:flex;flex-direction:column;gap:10px}
+  .cap-input{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--r-md);
+    padding:11px 14px;color:var(--txt);font-family:inherit;font-size:14px;outline:none;width:100%}
+  .cap-input:focus{border-color:var(--accent)}
+  .cap-row{display:flex;gap:10px;flex-wrap:wrap}
+  .cap-select{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--r-md);
+    padding:11px 14px;color:var(--txt);font-family:inherit;font-size:14px;outline:none;cursor:pointer}
+  .cap-generate{background:linear-gradient(135deg,var(--accent),#c81e56);color:#fff;border:none;
+    border-radius:var(--r-md);padding:13px;font-weight:700;font-size:14px;cursor:pointer;
+    font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;
+    transition:all var(--dur) var(--ease)}
+  .cap-generate:hover{transform:translateY(-1px);box-shadow:var(--sh-accent)}
+  .cap-result{margin-top:16px;display:flex;flex-direction:column;gap:14px}
+  .cap-block{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--r-md);padding:14px}
+  .cap-block-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .cap-block-title{font-size:12px;font-weight:700;color:var(--txt-dim);text-transform:uppercase;letter-spacing:.03em}
+  .cap-copy{background:var(--surface-2);border:1px solid var(--line);border-radius:6px;color:var(--txt-dim);
+    font-size:11.5px;padding:4px 10px;cursor:pointer;font-family:inherit}
+  .cap-copy:hover{color:var(--txt);border-color:var(--accent)}
+  .cap-hook{background:var(--surface-2);border-radius:6px;padding:9px 12px;margin-bottom:6px;
+    font-size:13.5px;cursor:pointer;display:flex;align-items:center;gap:8px}
+  .cap-hook:hover{background:var(--surface)}
+  .cap-hook::before{content:"→";color:var(--accent);font-weight:700}
+  .cap-text{font-size:13.5px;line-height:1.6;white-space:pre-wrap;color:var(--txt)}
+  .cap-tags{display:flex;flex-wrap:wrap;gap:6px}
+  .cap-tag{background:var(--accent-soft);color:var(--accent);border-radius:12px;
+    padding:3px 10px;font-size:12px;font-weight:500}
+
+  /* ------ Büyüme sekmesi ------ */
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:4px}
+  .stat-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+    padding:18px 14px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+  .stat-icon{font-size:24px}
+  .stat-val{font-size:22px;font-weight:800;color:var(--txt)}
+  .stat-label{font-size:11.5px;color:var(--muted)}
+  .recommendation-box{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+    padding:12px 16px;font-size:13px;color:var(--txt-dim)}
+  .hook-row{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+    padding:12px 14px;margin-bottom:8px;display:grid;
+    grid-template-columns:1fr auto auto auto;grid-template-rows:auto auto;gap:4px 12px;align-items:center}
+  .hook-winner{border-color:var(--gold);background:rgba(255,209,102,.06)}
+  .hook-tip{font-weight:700;font-size:13px;grid-column:1}
+  .hook-avg{font-size:12px;color:var(--ok);font-weight:600}
+  .hook-count{font-size:12px;color:var(--txt-dim)}
+  .hook-examples{grid-column:1/-1;font-size:12px;color:var(--muted);margin-top:2px}
+  .hook-examples em{font-style:normal;background:var(--surface-2);border-radius:4px;padding:1px 6px}
+  .queue-row{display:flex;align-items:center;gap:10px;padding:10px 14px;
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);margin-bottom:6px}
+  .queue-name{flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .queue-time{font-size:12px;color:var(--txt-dim);white-space:nowrap}
+  .queue-status{font-size:12px;font-weight:700;white-space:nowrap}
+
   /* ------ Reels: kaynak video grid ------ */
   .reel-src-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
   .reel-src{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
@@ -730,6 +784,7 @@ body.widget-mode .picker-grid{ grid-template-columns:repeat(2,1fr) !important; }
   <div class="tabs">
     <button class="tab active" data-tab="cards" onclick="switchTab('cards')">🎨 Kartlar</button>
     <button class="tab" data-tab="reels" onclick="switchTab('reels')">🎬 Reels</button>
+    <button class="tab" data-tab="growth" onclick="switchTab('growth')">📈 Büyüme</button>
   </div>
 
   <!-- ===== KARTLAR paneli ===== -->
@@ -746,6 +801,11 @@ body.widget-mode .picker-grid{ grid-template-columns:repeat(2,1fr) !important; }
       <button class="action-card action-news" id="btn-news-now" onclick="runNewsNow()">
         <span class="action-ico">📰</span>
         <span class="action-txt"><b>Haberden Üret</b><small>Güncel haberden otomatik kart</small></span>
+        <span class="spin"></span>
+      </button>
+      <button class="action-card action-topic" id="btn-topic-now" onclick="openTopicModal()">
+        <span class="action-ico">🎌</span>
+        <span class="action-txt"><b>Konudan Üret</b><small>Havuzdan rastgele ya da kendi konun</small></span>
         <span class="spin"></span>
       </button>
     </div>
@@ -937,36 +997,112 @@ body.widget-mode .picker-grid{ grid-template-columns:repeat(2,1fr) !important; }
   <div id="panel-reels" style="display:none">
     <div class="hero">
       <h1 class="hero-title">Reels Stüdyo</h1>
-      <p class="hero-sub">JAPAN REELS klasöründeki çekimleri tek tıkla 9:16 dikey Reels'e çevir — temiz, yazısız. Süreyi seç, üret, Drive'a at.</p>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <span style="color:var(--muted);font-size:12.5px">Maks. süre:</span>
-        <div class="tabs" style="margin:0" id="reelDurTabs">
-          <button class="tab" data-sn="15" onclick="setReelDur(15)">15 sn</button>
-          <button class="tab active" data-sn="30" onclick="setReelDur(30)">30 sn</button>
-          <button class="tab" data-sn="60" onclick="setReelDur(60)">60 sn</button>
-        </div>
-      </div>
+      <p class="hero-sub">Videonu kendin çek + düzenle (CapCut/InShot). Konuyu yaz, sana hazır Türkçe caption + hook + hashtag üretelim — kopyala, yapıştır, paylaş.</p>
     </div>
 
+    <!-- ═══ Caption Üretici (ana araç) ═══ -->
     <section class="section">
       <div class="section-head">
-        <h2 class="section-title">🎞 Kaynak Videolar <span class="count" id="reelSrcCount">0</span></h2>
-        <button class="sm ghost" onclick="loadReelSources()">🔄 Yenile</button>
+        <h2 class="section-title">✍️ Reels Caption Üret</h2>
       </div>
-      <div id="reelSourceGrid" class="reel-src-grid">
-        <div class="empty" data-icon="🎬">Yükleniyor…</div>
+      <div class="caption-tool">
+        <div class="caption-inputs">
+          <input type="text" id="capKonu" class="cap-input"
+                 placeholder="Video konusu — örn: Nara geyikleri, Shibuya kavşağı, konbini yemekleri" />
+          <div class="cap-row">
+            <select id="capTon" class="cap-select">
+              <option value="samimi">😊 Samimi ton</option>
+              <option value="merak">🤔 Merak uyandıran</option>
+              <option value="bilgi">📚 Bilgilendirici</option>
+            </select>
+            <input type="text" id="capEkstra" class="cap-input" style="flex:1"
+                   placeholder="(opsiyonel) eklemek istediğin detay" />
+          </div>
+          <button class="cap-generate" id="capBtn" onclick="generateReelsCaption()">
+            ✨ Caption Üret
+            <span class="spin"></span>
+          </button>
+        </div>
+        <div id="capResult" class="cap-result" style="display:none"></div>
       </div>
     </section>
 
     <section class="section">
       <div class="section-head">
         <h2 class="section-title">✅ Üretilen Reels <span class="count" id="reelGenCount">0</span></h2>
+        <span style="font-size:12px;color:var(--muted)">(sistem tarafından üretilmiş eski videolar)</span>
       </div>
       <div id="reelGrid" class="story-grid">
-        <div class="empty" data-icon="🎬">Bir kaynak videodan üret — reels burada belirsin.</div>
+        <div class="empty" data-icon="🎬">Videolarını kendin üretiyorsun — burada eski otomatik üretimler görünür.</div>
       </div>
     </section>
   </div><!-- /panel-reels -->
+
+  <!-- ===== BÜYÜME paneli ===== -->
+  <div id="panel-growth" style="display:none">
+
+    <div class="hero">
+      <h1 class="hero-title">📈 Büyüme Merkezi</h1>
+      <p class="hero-sub">Yayın takvimi, TikTok cross-posting ve Hook A/B test — 1 milyona giden yol.</p>
+    </div>
+
+    <!-- ── Analytics Özet ── -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title">📊 Bu Ayki İstatistikler</h2>
+        <button class="sm ghost" onclick="loadAnalytics()">🔄 Yenile</button>
+      </div>
+      <div id="analyticsGrid" class="stats-grid">
+        <div class="empty" data-icon="📊">Yükleniyor…</div>
+      </div>
+      <div id="analyticsRecommendation" style="margin-top:12px"></div>
+    </section>
+
+    <!-- ── Hook A/B Test ── -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title">🔬 Hook A/B Test Sonuçları</h2>
+        <button class="sm ghost" onclick="loadHooks()">🔄 Yenile</button>
+      </div>
+      <div id="hookGrid">
+        <div class="empty" data-icon="🔬">step3 çalıştıktan sonra veriler burada belirir.</div>
+      </div>
+    </section>
+
+    <!-- ── Yayın Kuyruğu ── -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title">🗓 Yayın Kuyruğu</h2>
+        <button class="sm ghost" onclick="loadSchedulerQueue()">🔄 Yenile</button>
+        <button class="sm" onclick="triggerSchedulerRun()" style="margin-left:auto">⚡ Şimdi Çalıştır</button>
+      </div>
+      <div id="schedulerQueueInfo" style="margin-bottom:10px;font-size:12.5px;color:var(--txt-dim)"></div>
+      <div id="schedulerQueue">
+        <div class="empty" data-icon="🗓">Kuyruk boş — Reels üret ve ekle.</div>
+      </div>
+    </section>
+
+    <!-- ── TikTok Durumu ── -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title">🎵 TikTok Cross-Posting</h2>
+      </div>
+      <div id="tiktokStatus" class="card" style="padding:18px">
+        <p style="color:var(--txt-dim);font-size:13px">Yükleniyor…</p>
+      </div>
+    </section>
+
+    <!-- ── Platform Karşılaştırma ── -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title">⚖️ Platform Karşılaştırma</h2>
+      </div>
+      <div id="platformCompare" class="stats-grid">
+        <div class="empty" data-icon="⚖️">Yükleniyor…</div>
+      </div>
+    </section>
+
+  </div><!-- /panel-growth -->
 </main>
 
 <!-- Canlı Süreç — sabit footer, tek satır default, sürüklenebilir -->
@@ -2496,6 +2632,56 @@ async function storyPublishIG(name){
 }
 
 // Haberden kart üret — arka plan job; footer'da canlı log, bitince liste yenilenir
+// ============ KONUDAN ÜRET (buton) ============
+function openTopicModal(){
+  // Basit prompt tabanlı: havuzdan rastgele mi, özel konu mu?
+  const konu = window.prompt(
+    "🎌 Konudan Kart Üret\n\n" +
+    "• Boş bırak → havuzdaki 25 hazır konudan rastgele seçer\n" +
+    "• Konu yaz → o konuda kart üretir (örn: 'Japon çay seremonisi')\n\n" +
+    "Konu:", "");
+  if(konu === null) return;   // iptal
+  runTopicNow(konu.trim());
+}
+
+async function runTopicNow(konu){
+  const btn = document.getElementById("btn-topic-now");
+  if(btn && btn.classList.contains("busy")) return;
+  try{
+    const r = await fetch("/api/automation/run_now", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({kind:"topic", auto_publish:true, topic:konu}),
+    });
+    if(!r.ok){
+      let msg = r.statusText;
+      try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+      toast("Başlatılamadı: " + msg, "err", 5000);
+      return;
+    }
+  }catch(e){ toast("Bağlantı hatası.", "err"); return; }
+
+  if(btn) btn.classList.add("busy");
+  const etiket = konu ? `"${konu}"` : "rastgele konu";
+  toast(`🎌 ${etiket} kartı üretiliyor — Canlı Süreç'i izle`, "info", 3500);
+  logSeq = 0; $("logbox").innerHTML = "";
+  pollStatus(); pollLogs();
+
+  const watch = setInterval(async () => {
+    try{
+      const s = await (await fetch("/api/status")).json();
+      if(!(s.job && s.job.running)){
+        clearInterval(watch);
+        if(btn) btn.classList.remove("busy");
+        await loadRecentStories();
+        await loadApprovalList();
+        if(s.job && s.job.error) toast("Konu üretimi hata verdi — loglara bak.", "err", 4000);
+        else toast("Kart hazır ✓ — Onay Bekleyen'e düştü", "ok", 3500);
+      }
+    }catch(e){}
+  }, 3000);
+}
+
 async function runNewsNow(){
   const btn = document.getElementById("btn-news-now");
   if(btn && btn.classList.contains("busy")) return;
@@ -2662,13 +2848,15 @@ function switchTab(name){
     t.classList.toggle("active", t.dataset.tab === name));
   const pc = document.getElementById("panel-cards");
   const pr = document.getElementById("panel-reels");
+  const pg = document.getElementById("panel-growth");
   if(pc) pc.style.display = name === "cards" ? "" : "none";
   if(pr) pr.style.display = name === "reels" ? "" : "none";
+  if(pg) pg.style.display = name === "growth" ? "" : "none";
   if(name === "reels" && !_reelsLoaded){
     _reelsLoaded = true;
-    loadReelSources();
     loadGeneratedReels();
   }
+  if(name === "growth") loadGrowthTab();
 }
 
 function setReelDur(sn){
@@ -3071,6 +3259,229 @@ setInterval(() => { pollIgStatus(); }, 4000);
 setInterval(pollBackgrounds, 6000);
 pollStatus(); pollLogs(); pollIgStatus();
 loadRecentStories(); pollBackgrounds();
+
+// ============ REELS CAPTION ÜRETİCİ ============
+async function generateReelsCaption(){
+  const konu = document.getElementById("capKonu").value.trim();
+  if(!konu){ toast("Önce video konusunu yaz.", "warn"); return; }
+  const ton = document.getElementById("capTon").value;
+  const ekstra = document.getElementById("capEkstra").value.trim();
+  const btn = document.getElementById("capBtn");
+  const res = document.getElementById("capResult");
+
+  btn.classList.add("loading");
+  btn.disabled = true;
+  res.style.display = "none";
+
+  try{
+    const r = await fetch("/api/reels/caption", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({konu, ton, ekstra}),
+    });
+    if(!r.ok){
+      const e = await r.json().catch(()=>({detail:"Hata"}));
+      throw new Error(e.detail || "Üretim başarısız");
+    }
+    const d = await r.json();
+
+    const hooksHtml = (d.hooklar||[]).map(h =>
+      `<div class="cap-hook" onclick="copyText(this, ${JSON.stringify(h).replace(/"/g,'&quot;')})">${h}</div>`
+    ).join("");
+    const tagsHtml = (d.hashtagler||[]).map(t => `<span class="cap-tag">#${t}</span>`).join("");
+
+    res.innerHTML = `
+      <div class="cap-block">
+        <div class="cap-block-head">
+          <span class="cap-block-title">🎬 Hook Önerileri (videonun ilk cümlesi)</span>
+        </div>
+        ${hooksHtml}
+      </div>
+      <div class="cap-block">
+        <div class="cap-block-head">
+          <span class="cap-block-title">📝 Açıklama + Hashtag (tam caption)</span>
+          <button class="cap-copy" onclick='copyText(this, ${JSON.stringify(d.full_caption)})'>📋 Kopyala</button>
+        </div>
+        <div class="cap-text">${(d.aciklama||"").replace(/</g,"&lt;")}</div>
+        <div class="cap-tags" style="margin-top:10px">${tagsHtml}</div>
+      </div>
+      <div style="font-size:11.5px;color:var(--muted);text-align:center">
+        ${d.source === "openai" ? "✨ AI ile üretildi" : "📋 Hazır şablondan"} —
+        hook'a veya Kopyala'ya tıkla, Instagram'a yapıştır.
+      </div>`;
+    res.style.display = "flex";
+    toast("Caption hazır! Kopyala-yapıştır kullan.", "ok");
+  }catch(e){
+    toast(e.message, "err");
+  }finally{
+    btn.classList.remove("loading");
+    btn.disabled = false;
+  }
+}
+
+function copyText(el, text){
+  navigator.clipboard.writeText(text).then(()=>{
+    const old = el.textContent;
+    el.textContent = "✓ Kopyalandı";
+    setTimeout(()=>{ el.textContent = old; }, 1500);
+    toast("Panoya kopyalandı.", "ok", 1500);
+  }).catch(()=> toast("Kopyalanamadı.", "err"));
+}
+
+// ============ BÜYÜME SEKMESİ ============
+function loadGrowthTab(){
+  loadAnalytics();
+  loadHooks();
+  loadSchedulerQueue();
+  loadTikTokStatus();
+  loadPlatformCompare();
+}
+
+// ── Analytics özet ──
+async function loadAnalytics(){
+  const grid = document.getElementById("analyticsGrid");
+  const rec  = document.getElementById("analyticsRecommendation");
+  try{
+    const d = await (await fetch("/api/analytics/overview?days=30")).json();
+    const cards = [
+      { label:"Instagram Toplam",   val: d.total_ig,           icon:"📸" },
+      { label:"TikTok Toplam",      val: d.total_tiktok,       icon:"🎵" },
+      { label:"Son 30 Gün (IG)",    val: d.last_30d_ig,        icon:"📅" },
+      { label:"Son 30 Gün (TT)",    val: d.last_30d_tiktok,    icon:"📅" },
+      { label:"Haftalık Ort. (IG)", val: d.avg_per_week_ig+"/hafta", icon:"📊" },
+      { label:"Kuyrukta Bekleyen",  val: d.pending_queue,      icon:"🗓" },
+    ];
+    grid.innerHTML = cards.map(c=>`
+      <div class="stat-card">
+        <span class="stat-icon">${c.icon}</span>
+        <span class="stat-val">${c.val ?? 0}</span>
+        <span class="stat-label">${c.label}</span>
+      </div>`).join("");
+    rec.innerHTML = `<div class="recommendation-box">${d.recommendation || ""}</div>`;
+  }catch(e){
+    grid.innerHTML = `<div class="empty" data-icon="⚠️">${e.message}</div>`;
+  }
+}
+
+// ── Hook A/B Test ──
+async function loadHooks(){
+  const el = document.getElementById("hookGrid");
+  try{
+    const d = await (await fetch("/api/analytics/hooks")).json();
+    if(!d.plans_count){
+      el.innerHTML = `<div class="empty" data-icon="🔬">${d.message || "Veri yok."}</div>`;
+      return;
+    }
+    const winner = d.winner;
+    const rows = Object.entries(d.by_type).map(([tip, s])=>{
+      const isWin = tip === winner;
+      return `<div class="hook-row${isWin ? " hook-winner" : ""}">
+        <span class="hook-tip">${tip}${isWin ? " 🏆" : ""}</span>
+        <span class="hook-avg">${s.avg_impressions} imp/plan</span>
+        <span class="hook-count">${s.plans_count} plan</span>
+        <div class="hook-examples">${(s.hooks||[]).slice(0,2).map(h=>`<em>"${h}"</em>`).join(" · ")}</div>
+      </div>`;
+    });
+    el.innerHTML = `<div style="margin-bottom:8px;font-size:12.5px;color:var(--txt-dim)">${d.plans_count} plan analiz edildi</div>`
+      + rows.join("");
+  }catch(e){
+    el.innerHTML = `<div class="empty" data-icon="⚠️">${e.message}</div>`;
+  }
+}
+
+// ── Scheduler Kuyruğu ──
+async function loadSchedulerQueue(){
+  const el   = document.getElementById("schedulerQueue");
+  const info = document.getElementById("schedulerQueueInfo");
+  try{
+    const d = await (await fetch("/api/scheduler/queue")).json();
+    info.textContent = `Bekleyen: ${d.pending} · Hazır: ${d.ready} · Tamamlanan: ${d.done} · Başarısız: ${d.failed}`;
+    const items = d.items || [];
+    if(!items.length){
+      el.innerHTML = `<div class="empty" data-icon="🗓">Kuyruk boş.</div>`;
+      return;
+    }
+    el.innerHTML = items.map(i=>{
+      const statusColor = {pending:"var(--warn)",ready:"var(--ok)",uploading:"var(--info)",failed:"var(--err)"}[i.status] || "var(--muted)";
+      return `<div class="queue-row">
+        <span class="queue-name" title="${i.mp4_path}">${i.mp4_name}</span>
+        <span class="queue-time">🕐 ${(i.scheduled_at||"").replace("T"," ")}</span>
+        <span class="queue-status" style="color:${statusColor}">${i.status}</span>
+        <button class="sm ghost" onclick="cancelQueueEntry('${i.id}')">✕</button>
+      </div>`;
+    }).join("");
+  }catch(e){
+    el.innerHTML = `<div class="empty" data-icon="⚠️">${e.message}</div>`;
+  }
+}
+
+async function cancelQueueEntry(id){
+  try{
+    await fetch(`/api/scheduler/queue/${id}`, {method:"DELETE"});
+    toast("Kuyruktan çıkarıldı.","ok");
+    loadSchedulerQueue();
+  }catch(e){ toast(e.message,"err"); }
+}
+
+async function triggerSchedulerRun(){
+  try{
+    const d = await (await fetch("/api/scheduler/run",{method:"POST"})).json();
+    toast(`${d.processed} girdi işlendi.`, d.processed ? "ok" : "warn");
+    loadSchedulerQueue();
+    loadAnalytics();
+  }catch(e){ toast(e.message,"err"); }
+}
+
+// ── TikTok Durumu ──
+async function loadTikTokStatus(){
+  const el = document.getElementById("tiktokStatus");
+  try{
+    const d = await (await fetch("/api/analytics/platforms")).json();
+    const tt = d.tiktok;
+    if(!tt || tt.total === 0){
+      el.innerHTML = `
+        <p style="color:var(--warn);font-weight:600">⚠ TikTok henüz configure edilmemiş.</p>
+        <p style="color:var(--txt-dim);font-size:12.5px;margin-top:8px">
+          1. <a href="https://developers.tiktok.com" target="_blank">TikTok Developer Portal</a>'dan uygulama oluştur<br>
+          2. OAuth token al (scope: video.upload + video.list)<br>
+          3. <code>config.yaml → tiktok.access_token + open_id</code> alanlarını doldur<br>
+          4. Aynı MP4'ler hem Instagram hem TikTok'a yüklenebilir — reach 2-3x artar
+        </p>`;
+      return;
+    }
+    el.innerHTML = `
+      <div class="stats-grid" style="margin:0">
+        <div class="stat-card"><span class="stat-icon">🎵</span><span class="stat-val">${tt.total}</span><span class="stat-label">Toplam TikTok Video</span></div>
+        <div class="stat-card"><span class="stat-icon">📅</span><span class="stat-val">${tt.first||"—"}</span><span class="stat-label">İlk Yayın</span></div>
+        <div class="stat-card"><span class="stat-icon">🕐</span><span class="stat-val">${tt.last||"—"}</span><span class="stat-label">Son Yayın</span></div>
+      </div>`;
+  }catch(e){
+    el.innerHTML = `<p style="color:var(--err)">${e.message}</p>`;
+  }
+}
+
+// ── Platform Karşılaştırma ──
+async function loadPlatformCompare(){
+  const el = document.getElementById("platformCompare");
+  try{
+    const d = await (await fetch("/api/analytics/platforms")).json();
+    const ig = d.instagram, tt = d.tiktok;
+    el.innerHTML = [
+      {p:ig, name:"Instagram", icon:"📸"},
+      {p:tt, name:"TikTok",    icon:"🎵"},
+    ].map(({p,name,icon})=>`
+      <div class="stat-card" style="min-width:220px">
+        <span class="stat-icon">${icon}</span>
+        <span class="stat-val">${p.total}</span>
+        <span class="stat-label">${name} · toplam yayın</span>
+        <div style="margin-top:8px;font-size:11.5px;color:var(--txt-dim)">
+          İlk: ${p.first||"—"}<br>Son: ${p.last||"—"}
+        </div>
+      </div>`).join("");
+  }catch(e){
+    el.innerHTML = `<div class="empty" data-icon="⚠️">${e.message}</div>`;
+  }
+}
 </script>
 </body>
 </html>

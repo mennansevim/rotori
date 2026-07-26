@@ -113,7 +113,8 @@ def _caption_prompt(konu: str, aciklama: str) -> str:
 
 
 def run_once(cfg: Config, auto_publish: bool = False,
-             dry_run: bool = False) -> dict[str, Any]:
+             dry_run: bool = False,
+             topic_override: dict[str, Any] | None = None) -> dict[str, Any]:
     if cfg.openai is None:
         raise RuntimeError("OpenAI key gerekli (config.yaml → openai.api_key).")
     if cfg.stories is None:
@@ -132,7 +133,15 @@ def run_once(cfg: Config, auto_publish: bool = False,
     state = _load_state(cfg)
     used = set(state.get("used_ids", []))
     used_bg = set(state.get("used_bg_ids", []))
-    topic = _pick_topic(pool, used)
+    # Kullanıcı özel konu verdiyse onu kullan (dedup atlanır), yoksa havuzdan seç
+    if topic_override and topic_override.get("title"):
+        topic = {
+            "title": str(topic_override["title"]).strip(),
+            "query": str(topic_override.get("query") or topic_override["title"]).strip(),
+        }
+        log.info(f"  ÖZEL konu (kullanıcı): {topic['title']}")
+    else:
+        topic = _pick_topic(pool, used)
     if topic is None:
         return {"ok": False, "reason": "no_topic"}
     log.info(f"  seçilen konu: {topic['title']}  | görsel: {topic['query']}")
