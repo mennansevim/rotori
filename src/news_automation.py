@@ -172,55 +172,10 @@ def _select_prompt(cands: list[dict[str, Any]]) -> str:
     )
 
 
-def _text_prompt(news: dict[str, Any]) -> str:
-    return (
-        "Aşağıdaki Japonya haberinden bir Instagram kartının ÜST METNİNİ üret. "
-        "Bu metin kartın üstünde büyük görünür — KISA ve MERAK UYANDIRAN bir "
-        "haber spotu olmalı. Detay caption'a bırakılır, kartta VERİLMEZ.\n\n"
-        f"BAŞLIK: {news['title']}\n"
-        f"ÖZET: {news['summary']}\n\n"
-        "KURALLAR:\n"
-        "- TEK cümle, en fazla ~14 kelime. Kısa, vurucu.\n"
-        "- Profesyonel bir haber editörü/gazeteci tonu — abartısız ama İLGİ "
-        "ÇEKİCİ. Haberin en çarpıcı/şaşırtıcı yönünü öne çıkar; okuru "
-        "meraklandır ('peki nasıl/neden?' dedirt) ama tüm detayı AÇIKLAMA.\n"
-        "- Spesifik sayı/tarih/yer/kurum adı YIĞMA — bunlar caption'da yer alır.\n"
-        "- Ucuz clickbait YASAK ('inanmayacaksınız', 'şok', 'bakın ne oldu', "
-        "'bir tık'). Klişe/pazarlama dili YASAK. 2. şahıs/emir YASAK.\n"
-        "- 3. şahıs, kusursuz Türkçe. Emoji YOK. Japonca özel terimleri çevirme "
-        "(Shinkansen, onsen, ryokan, sakura olduğu gibi).\n\n"
-        "Örnek ton (kısa + meraklandıran):\n"
-        "✓ 'Bir Japon tren istasyonu, dev bir anime heykeline ev sahipliği yapacak.'\n"
-        "✓ 'Japonya'da bir tren, bu yaz hareket eden bir otele dönüşüyor.'\n\n"
-        "Sadece metni yaz — başlık/tırnak/prefix EKLEME."
-    )
-
-
-_CAPTION_SYSTEM = (
-    "Sen @japonyaruyasi için profesyonel bir haber editörü/gazeteci tonunda "
-    "Instagram post caption'ı yazan bir editörsün. Kart üstündeki kısa spot "
-    "merak uyandırır; caption ise haberin DETAYINI (kim, ne, nerede, ne zaman, "
-    "neden) net ve akıcı biçimde açıklar. Kusursuz Türkçe, klişesiz. Uydurma YOK."
-)
-
-
-def _caption_prompt(news: dict[str, Any], aciklama: str) -> str:
-    return (
-        f"Haber başlığı: {news['title']}\n"
-        f"Haber özeti: {news['summary']}\n"
-        f"Kartın üst spotu (bunu TEKRARLAMA, detaylandır): {aciklama}\n\n"
-        "Bunu, haberin detayını veren bir Instagram post caption'ına dönüştür. "
-        "Kart sadece merak uyandırdı; burada CEVABI ver. Format:\n"
-        "1. Açılış (1-2 cümle, 1-2 emoji): haberin özü — ne oldu, nerede, "
-        "kim/hangi kurum. Gazeteci netliğinde.\n"
-        "2. 3-4 madde (her satır emoji + 1 somut detay: tarih, yer, sayı, "
-        "arka plan, neden önemli).\n"
-        "3. Kısa kapanış/CTA (örn 'Kaydet 📌', 'Detaylar için takipte kal 🇯🇵').\n"
-        "4. Boş satır + 8-12 hashtag (Türkçe/İngilizce karışık).\n"
-        "Klişe/ucuz clickbait/emir/2. şahıs YASAK. 400-1200 karakter. "
-        "Yalnızca yalın haberdeki bilgiye dayan. Sadece caption — markdown "
-        "başlığı/prefix YOK."
-    )
+# NOT: Kart üst metni + caption üretimi artık src/editorial.py'daki PAYLAŞIMLI
+# 'Japonya Rüyası araştırma editörü' system prompt'una taşındı (generate_text →
+# editorial.generate_editorial). Eski _text_prompt / _CAPTION_SYSTEM /
+# _caption_prompt fonksiyonları kaldırıldı; buton ve otomasyon aynı kalıbı kullanır.
 
 
 def pick_news(cfg: Config, oai, items: list[dict[str, Any]],
@@ -248,18 +203,35 @@ def pick_news(cfg: Config, oai, items: list[dict[str, Any]],
 
 
 def generate_text(cfg: Config, oai, news: dict[str, Any]) -> tuple[str, str]:
-    aciklama = oai.chat_text(
-        "Sen @japonyaruyasi için profesyonel bir haber editörü tonunda KISA, "
-        "merak uyandıran haber spotları yazan bir editörsün. Yanıt SADECE metin.",
-        _text_prompt(news), temperature=0.7, max_tokens=70,
-    ).strip().strip('"').strip("'").strip()
-    caption = ""
+    """Haberden kart üst metni + caption üret — PAYLAŞIMLI editöryel prompt ile.
+
+    Hem 'Haberden Üret' butonu hem otomasyon bu yolu kullanır (ikisi de run_once
+    → generate_text çağırır). İçerik, src/editorial.py'daki 'Japonya Rüyası
+    araştırma editörü' system prompt'una ve 40-puan kalite kapısına tabidir.
+    Uygun değilse ('', '') döner → run_once 'no_text' ile atlar."""
+    from src import editorial
+
+    pub_ts = news.get("published_ts") or 0.0
+    pub_str = time.strftime("%Y-%m-%d", time.localtime(pub_ts)) if pub_ts else ""
     try:
-        caption = oai.chat_text(_CAPTION_SYSTEM, _caption_prompt(news, aciklama),
-                                temperature=0.8, max_tokens=700).strip()
+        res = editorial.generate_editorial(
+            oai, title=news.get("title", ""), summary=news.get("summary", ""),
+            source=news.get("source", ""), published=pub_str,
+        )
     except (RuntimeError, ValueError) as exc:
-        log.warning(f"  caption üretilemedi: {exc}")
-    return aciklama, caption
+        log.warning(f"  editöryel üretim başarısız: {exc}")
+        return "", ""
+
+    if not res.get("uygun"):
+        log.info(f"  ⏭ İçerik kalite kapısını geçemedi "
+                 f"(toplam={res.get('toplam', 0)}/50, min={editorial.MIN_SCORE}).")
+        return "", ""
+
+    log.info(f"  ✓ Editöryel içerik (puan={res.get('toplam')}/50, "
+             f"kategori={res.get('data', {}).get('kategori', '?')})")
+    # Yapılandırılmış alanları news'e iliştir — run_once sidecar'a yazsın
+    news["_editorial"] = res.get("data", {})
+    return res["kart_ust_metni"], res["caption"]
 
 
 # ---------------- Görsel seçimi (dedup + vision doğrulama) ----------------
@@ -380,13 +352,31 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
 
     state = _load_state(cfg)
     used = set(state.get("used_ids", []))
-    news = pick_news(cfg, oai, items, used)
-    if news is None:
-        return {"ok": False, "reason": "no_suitable_news"}
 
-    aciklama, caption = generate_text(cfg, oai, news)
-    if not aciklama or len(aciklama) < 8:
-        log.warning("  Kart metni üretilemedi/çok kısa — atlanıyor.")
+    # Kalite kapısı (editorial, ≥40 puan) seçilen haberi eleyebilir. Tur boş
+    # dönmesin diye birkaç aday dene: her turda seçileni geçici olarak 'used'
+    # sayıp bir sonraki uygun haberi seçtir.
+    MAX_ATTEMPTS = 4
+    tried_ids: set[str] = set()
+    news: dict[str, Any] | None = None
+    aciklama = caption = ""
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        cand = pick_news(cfg, oai, items, used | tried_ids)
+        if cand is None:
+            if attempt == 1:
+                return {"ok": False, "reason": "no_suitable_news"}
+            log.info("  Denenecek başka uygun haber kalmadı.")
+            break
+        aciklama, caption = generate_text(cfg, oai, cand)
+        if aciklama and len(aciklama) >= 8:
+            news = cand
+            break
+        # kapıyı geçemedi → bu haberi bu tur için ele, sıradakini dene
+        tried_ids.add(_news_id(cand))
+        log.info(f"  ↻ Sonraki aday deneniyor ({attempt}/{MAX_ATTEMPTS})…")
+
+    if news is None:
+        log.warning("  Hiçbir aday kalite kapısını geçemedi — tur boş.")
         return {"ok": False, "reason": "no_text"}
 
     log.info(f"  Kart metni: {aciklama}")
@@ -418,6 +408,7 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
     # .json sidecar (UI'da düzenlenebilsin + kaynak haber linki)
     try:
         slug_q = story_generator._slugify(news["unsplash_query"])
+        editorial_data = news.get("_editorial", {})
         out_path.with_suffix(".json").write_text(json.dumps({
             "background_url": bg["download_url"], "background_id": bg["id"],
             "query": news["unsplash_query"],
@@ -425,6 +416,10 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
             "photographer": bg.get("photographer", ""),
             "aciklama": aciklama, "ust_tag": "GEZİ DEFTERİ",
             "post_caption": caption,
+            "kategori": editorial_data.get("kategori", ""),
+            "puan": editorial_data.get("puan", {}),
+            "toplam_puan": editorial_data.get("toplam"),
+            "kaynak": editorial_data.get("kaynak", ""),
             "source_news": {"title": news["title"], "link": news["link"],
                             "source": news["source"]},
             "auto_generated": True,
