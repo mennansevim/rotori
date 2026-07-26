@@ -36,12 +36,23 @@ app = FastAPI(title="Japan Reels Maker", docs_url=None, redoc_url=None)
 # ---------------------------------------------------------------------------
 def _read_version() -> dict[str, str]:
     root = cfg.project_root
-    vfile = root / "VERSION"
-    if vfile.exists():
+    # Semver — elle bump'lanan git-tracked VERSION dosyası (ör. "1.0.1").
+    version = ""
+    try:
+        version = (root / "VERSION").read_text(encoding="utf-8").strip()
+    except OSError:
+        version = ""
+    if version and not version.lower().startswith("v"):
+        version = "v" + version
+
+    # Build damgası (commit/tarih) — Docker'da BUILD_INFO'dan.
+    bfile = root / "BUILD_INFO"
+    if bfile.exists():
         try:
-            raw = json.loads(vfile.read_text(encoding="utf-8"))
+            raw = json.loads(bfile.read_text(encoding="utf-8"))
             if isinstance(raw, dict) and raw.get("commit"):
-                return {"commit": str(raw.get("commit", "")).strip()[:7],
+                return {"version": version or "v?",
+                        "commit": str(raw.get("commit", "")).strip()[:7],
                         "date": str(raw.get("date", "")).strip(),
                         "source": "build"}
         except (OSError, ValueError):
@@ -55,9 +66,9 @@ def _read_version() -> dict[str, str]:
         date = subprocess.check_output(
             ["git", "-C", str(root), "log", "-1", "--format=%cd", "--date=format:%Y-%m-%d %H:%M"],
             stderr=subprocess.DEVNULL, timeout=3).decode().strip()
-        return {"commit": commit, "date": date, "source": "git"}
+        return {"version": version or "dev", "commit": commit, "date": date, "source": "git"}
     except Exception:
-        return {"commit": "dev", "date": "", "source": "none"}
+        return {"version": version or "dev", "commit": "dev", "date": "", "source": "none"}
 
 
 _VERSION = _read_version()
