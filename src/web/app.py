@@ -1670,7 +1670,10 @@ def automation_run_now(req: RunNowRequest) -> dict[str, Any]:
             emit(f"✅ {label}: {res.get('file', '?')}"
                  + (f" · yayınlandı (media_id={mid})" if mid else ""), "info")
         else:
-            emit(f"⚠ {label} atlandı: {res.get('reason', 'bilinmiyor')}", "warn")
+            emit(f"⚠ {label} atlandı: {res.get('reason', 'bilinmiyor')}"
+                 + (f" — {res.get('detail')}" if res.get('detail') else ""), "warn")
+            for satir in res.get("fails", []):
+                emit(f"   {satir}", "warn")
 
     try:
         manager.start_callable(f"{label} — elle tetik", target)
@@ -1689,7 +1692,12 @@ def news_run_now() -> dict[str, Any]:
         if res.get("ok"):
             emit(f"✅ Kart üretildi: {res.get('file', '?')}", "info")
         else:
-            emit(f"⚠ Kart üretilmedi ({res.get('reason', 'bilinmiyor')})", "warn")
+            reason = res.get("reason", "bilinmiyor")
+            detail = res.get("detail", "")
+            emit(f"⚠ Kart üretilmedi ({reason})"
+                 + (f" — {detail}" if detail else ""), "warn")
+            for satir in res.get("fails", []):
+                emit(f"   {satir}", "warn")
     try:
         manager.start_callable("Haberden kart üret", target)
     except RuntimeError as exc:

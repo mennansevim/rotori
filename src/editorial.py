@@ -238,17 +238,20 @@ def _finalize(data: Any) -> dict[str, Any]:
         toplam = sum(v for v in puan.values() if isinstance(v, (int, float)))
     toplam = int(toplam)
 
+    puan = data.get("puan") if isinstance(data.get("puan"), dict) else {}
     uygun = bool(data.get("uygun", True)) and toplam >= MIN_SCORE
     if not uygun:
-        return {"uygun": False, "toplam": toplam, "kart_ust_metni": "",
-                "caption": "", "gorsel_konsepti": "", "data": data}
+        return {"uygun": False, "toplam": toplam, "puan": puan,
+                "kart_ust_metni": "", "caption": "", "gorsel_konsepti": "",
+                "data": data}
 
     kart_ust = (data.get("kart_ust_metni") or data.get("baslik") or "").strip()
     kart_ust = kart_ust.strip('"').strip("'").strip()
     caption = assemble_caption(data)
     gorsel = (data.get("gorsel_konsepti") or "").strip()
-    return {"uygun": True, "toplam": toplam, "kart_ust_metni": kart_ust,
-            "caption": caption, "gorsel_konsepti": gorsel, "data": data}
+    return {"uygun": True, "toplam": toplam, "puan": puan,
+            "kart_ust_metni": kart_ust, "caption": caption,
+            "gorsel_konsepti": gorsel, "data": data}
 
 
 def generate_editorial(oai, title: str, summary: str, source: str = "",
