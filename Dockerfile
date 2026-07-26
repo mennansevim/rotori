@@ -24,6 +24,29 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# instagrapi ayrı aşamada — Pillow pin çatışması (moviepy<12 vs instagrapi>=12.2)
+# tek resolver çalışmasında çözülemiyor. --no-deps ile kurup Pillow'u 12'ye
+# yükseltiyoruz; moviepy Pillow 12 ile fiilen sorunsuz çalışır (Mac'te de öyle).
+# NOT: Bu kurulum SADECE bu container imajının içinde — Pi host'una veya diğer
+# container'lara (dify, agora, rotori-web) hiçbir etkisi yok.
+# pydantic zaten fastapi ile geldi (uyumlu) — tekrar kurmuyoruz ki pydantic-core
+# eşleşmesi bozulmasın. Sadece instagrapi'nin eksik çekirdek bağımlılıkları:
+RUN pip install --no-cache-dir --no-deps \
+        instagrapi>=2.18.9 \
+        "PySocks>=1.7.1,<2" \
+        "pycryptodomex>=3.23.0,<4" \
+    && pip install --no-cache-dir --no-deps --upgrade "Pillow>=12.2.0,<13"
+
+# instagrapi ayrı aşamada — Pillow pin çatışması (moviepy<12 vs instagrapi>=12.2)
+# tek resolver çalışmasında çözülemiyor. --no-deps ile kurup Pillow'u 12'ye
+# yükseltiyoruz; moviepy Pillow 12 ile fiilen sorunsuz çalışır (Mac'te de öyle).
+RUN pip install --no-cache-dir --no-deps \
+        instagrapi>=2.18.9 \
+        "pydantic>=2.12.5,<2.14" \
+        "PySocks>=1.7.1,<2" \
+        "pycryptodomex>=3.23.0,<4" \
+    && pip install --no-cache-dir --no-deps --upgrade "Pillow>=12.2.0,<13"
+
 # Uygulama kodu + gömülü fontlar/assets.
 COPY . .
 
