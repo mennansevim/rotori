@@ -231,6 +231,12 @@ def generate_text(cfg: Config, oai, news: dict[str, Any]) -> tuple[str, str]:
              f"kategori={res.get('data', {}).get('kategori', '?')})")
     # Yapılandırılmış alanları news'e iliştir — run_once sidecar'a yazsın
     news["_editorial"] = res.get("data", {})
+    # Görsel konsepti üretildiyse Unsplash sorgusunu ONUNLA değiştir — metin ve
+    # görsel aynı kaynaktan (editöryel model) gelir → uyum sağlamlaşır.
+    gorsel = (res.get("gorsel_konsepti") or "").strip()
+    if gorsel:
+        log.info(f"  🎯 görsel konsepti: '{gorsel}' (seçim sorgusu güncellendi)")
+        news["unsplash_query"] = gorsel
     return res["kart_ust_metni"], res["caption"]
 
 
@@ -294,13 +300,17 @@ def _pick_image(cfg, oai, query: str, konu: str,
     unused = [r for r in results if r.get("id") not in used_bg_ids]
     pool = unused or results   # hepsi kullanıldıysa mecburen tekrar
 
-    # ilk 3 kullanılmamış adayı vision ile doğrula, ilk 'uygun'u seç
+    # ilk 3 kullanılmamış adayı vision ile doğrula, ilk 'uygun'u seç.
+    # Denetim ÖZNESİ = genel görsel konsepti (query) — spesifik başlık değil.
+    # Böylece stok fotoğrafta ULAŞILABİLİR bir eşleşme doğrulanır (generic
+    # konbini görseli 'convenience store' konseptine uyar; orman uymaz).
+    vision_subject = query or konu
     checked = 0
     for cand in pool:
         if checked >= 3:
             break
         checked += 1
-        if _img_fits(oai, cand.get("thumb") or cand.get("download_url", ""), konu):
+        if _img_fits(oai, cand.get("thumb") or cand.get("download_url", ""), vision_subject):
             log.info(f"  ✓ görsel uygun bulundu (id={cand.get('id')}, {checked}. aday)")
             return cand
         log.info(f"  ✗ aday uygun değil (id={cand.get('id')}), sonrakine bakılıyor")

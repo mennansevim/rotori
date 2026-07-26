@@ -134,6 +134,12 @@ def run_once(cfg: Config, auto_publish: bool = False,
     editorial_data = res.get("data", {})
     log.info(f"  ✓ Editöryel içerik (puan={res.get('toplam')}/50, "
              f"kategori={editorial_data.get('kategori', '?')})")
+    # Görsel konsepti üretildiyse görsel sorgusunu ONUNLA değiştir — metin ve
+    # görsel aynı editöryel kaynaktan gelir → uyum sağlamlaşır.
+    gorsel = (res.get("gorsel_konsepti") or "").strip()
+    if gorsel:
+        log.info(f"  🎯 görsel konsepti: '{gorsel}'")
+        topic["query"] = gorsel
 
     log.info(f"  kart metni: {aciklama}")
     if dry_run:
