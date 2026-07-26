@@ -85,6 +85,25 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
   }
 
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await ref.read(authRepositoryProvider).signInWithGoogle();
+      // Başarı: Supabase OAuth deep link ile döner → authStateProvider tetikler.
+    } on Exception catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString());
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = LanguageScope.of(context);
@@ -195,6 +214,40 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         child: Text(s.s('auth.signInWithApple')),
                       ),
                     ],
+                    // Google ile Giriş — tüm platformlarda (iOS/Android/web)
+                    // gösterilir. Apple butonu yoksa da "veya" çizgisini
+                    // burada bir kere daha çizmemek için Apple ile ortak
+                    // separator kullanılır.
+                    if (!_canUseApple) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Expanded(child: Divider()),
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              s.s('auth.or'),
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ),
+                          const Expanded(child: Divider()),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: _busy ? null : _signInWithGoogle,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black87,
+                        minimumSize: const Size.fromHeight(48),
+                        side: BorderSide(
+                          color: Colors.grey.shade400,
+                        ),
+                      ),
+                      child: Text(s.s('auth.signInWithGoogle')),
+                    ),
                   ],
                 ),
               ),

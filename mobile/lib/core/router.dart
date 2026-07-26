@@ -13,6 +13,17 @@ import '../features/reminders/reminders_screen.dart';
 import '../features/viewer/pre_departure_checklist_screen.dart';
 import 'supabase_client.dart';
 
+/// Auth route-guard kararını tek bir yerde toplar.
+String? resolveAuthRedirect({
+  required bool loggedIn,
+  required String matchedLocation,
+}) {
+  final atAuth = matchedLocation == '/auth';
+  if (!loggedIn && !atAuth) return '/auth';
+  if (loggedIn && atAuth) return '/plans';
+  return null;
+}
+
 /// Uygulama router'ı. Auth state'e göre otomatik yönlendirme yapar:
 ///   - Oturum yok → /auth
 ///   - Oturum var → /
@@ -24,10 +35,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: refresh,
     redirect: (context, state) {
       final loggedIn = ref.read(currentSessionProvider) != null;
-      final atAuth = state.matchedLocation == '/auth';
-      if (!loggedIn && !atAuth) return '/auth';
-      if (loggedIn && atAuth) return '/plans';
-      return null;
+      return resolveAuthRedirect(
+        loggedIn: loggedIn,
+        matchedLocation: state.matchedLocation,
+      );
     },
     routes: [
       GoRoute(

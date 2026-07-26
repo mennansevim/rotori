@@ -28,3 +28,13 @@ android/local.properties
 .env.local
 env.json
 *.p8
+
+# QA dashboard generated artifacts
+qa/flutter-tests.json
+qa/latest-run.json
+qa/integration-run.json
+qa/uiflow-run.json
+qa/test-dashboard.json
+qa/.raw-run.json
+qa/*.bak
+qa/dashboard.qa-only.html.bak

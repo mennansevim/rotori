@@ -40,14 +40,14 @@ class TitleStep extends StatelessWidget {
               PCardTitle(s.s('title.displayName')),
               PField(
                 label: s.s('title.field.title'),
+                hint: Text(
+                  s.p('title.titleHint', {'sample': computed}),
+                  style: const TextStyle(fontSize: 13, color: PT.textTertiary),
+                ),
                 child: PTextField(
                   value: trip.title,
                   hint: computed,
                   onChanged: (v) => onChange((t) => t.title = v),
-                ),
-                hint: Text(
-                  s.p('title.titleHint', {'sample': computed}),
-                  style: const TextStyle(fontSize: 13, color: PT.textTertiary),
                 ),
               ),
               PField(

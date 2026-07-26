@@ -1,270 +1,401 @@
 <!doctype html>
 <html lang="tr">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rotori QA Dashboard</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23FF8FAB'/><stop offset='1' stop-color='%237C6AEF'/></linearGradient></defs><rect width='64' height='64' rx='14' fill='url(%23g)'/><text x='50%25' y='55%25' text-anchor='middle' dominant-baseline='middle' font-family='sans-serif' font-size='38' font-weight='700' fill='%23FFFFFF'>Q</text></svg>">
-<style>
-  :root{
-    --bg:#0A0A0F; --card:#12121A; --card-2:#1A1A25;
-    --accent:#7C6AEF; --sakura:#FF8FAB; --gold:#FFD54F; --matcha:#81C784;
-    --danger:#FF6B6B; --info:#5CB3FF;
-    --ink:#FFFFFF; --ink-2:#A8A8BE; --ink-3:#8888A0;
-    --line:rgba(255,255,255,.08); --line-2:rgba(255,255,255,.16);
-    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased}
-  a{color:var(--sakura);text-decoration:none}
-  a:hover{text-decoration:underline}
-  .wrap{max-width:1400px;margin:0 auto;padding:32px 24px 96px}
-  header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:24px}
-  .brand{display:flex;align-items:center;gap:14px}
-  .brand-mark{
-    width:40px;height:40px;border-radius:11px;
-    background:linear-gradient(135deg,#FF8FAB,#7C6AEF);
-    display:grid;place-items:center;color:#fff;font-weight:800;font-size:22px;
-  }
-  h1{font-size:28px;margin:0;font-weight:700;letter-spacing:-0.5px}
-  .sub{color:var(--ink-2);font-size:13px;margin-top:2px}
-  .meta{display:flex;gap:14px;color:var(--ink-3);font-size:13px;align-items:center}
-  .meta b{color:var(--ink)}
-  /* Summary */
-  .summary{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:24px}
-  @media(max-width:900px){.summary{grid-template-columns:repeat(3,1fr)}}
-  @media(max-width:520px){.summary{grid-template-columns:repeat(2,1fr)}}
-  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
-  .stat .label{color:var(--ink-3);font-size:11px;text-transform:uppercase;letter-spacing:.8px;font-weight:600}
-  .stat .value{font-size:28px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums}
-  .stat.pass .value{color:var(--matcha)}
-  .stat.fail .value{color:var(--danger)}
-  .stat.pending .value{color:var(--ink-2)}
-  .stat.skip .value{color:var(--gold)}
-  /* Filters */
-  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
-  .chip{
-    display:inline-flex;align-items:center;gap:6px;
-    background:var(--card);border:1px solid var(--line-2);color:var(--ink-2);
-    padding:8px 14px;border-radius:980px;cursor:pointer;font-size:13px;font-weight:600;
-    transition:.2s;
-  }
-  .chip:hover{border-color:var(--sakura);color:var(--ink)}
-  .chip.on{background:var(--sakura);border-color:var(--sakura);color:#111}
-  .chip .n{opacity:.7;font-weight:500}
-  /* Grid */
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
-  .card{
-    background:var(--card);border:1px solid var(--line);border-radius:16px;
-    padding:16px 16px 14px;cursor:pointer;transition:.2s;position:relative;
-  }
-  .card:hover{border-color:var(--line-2);transform:translateY(-1px)}
-  .card .head{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
-  .id{
-    font-size:11px;font-weight:700;color:var(--ink-3);
-    background:var(--card-2);padding:3px 8px;border-radius:6px;
-    font-variant-numeric:tabular-nums;
-  }
-  .card .title{font-size:14px;font-weight:600;line-height:1.35;flex:1;color:var(--ink)}
-  .card .meta{display:flex;gap:8px;font-size:11px;color:var(--ink-3);margin-top:6px;flex-wrap:wrap;align-items:center}
-  .badge{
-    padding:3px 8px;border-radius:6px;font-size:10.5px;font-weight:700;
-    text-transform:uppercase;letter-spacing:.6px;
-  }
-  .badge.critical{background:rgba(255,107,107,.15);color:var(--danger)}
-  .badge.high{background:rgba(255,213,79,.15);color:var(--gold)}
-  .badge.medium{background:rgba(92,179,255,.15);color:var(--info)}
-  .badge.low{background:rgba(168,168,190,.15);color:var(--ink-2)}
-  .status-dot{
-    width:8px;height:8px;border-radius:50%;display:inline-block;
-    box-shadow:0 0 0 3px rgba(255,255,255,.05);
-  }
-  .status-dot.pass{background:var(--matcha);box-shadow:0 0 0 3px rgba(129,199,132,.2)}
-  .status-dot.fail{background:var(--danger);box-shadow:0 0 0 3px rgba(255,107,107,.2)}
-  .status-dot.pending{background:var(--ink-3)}
-  .status-dot.skip{background:var(--gold);box-shadow:0 0 0 3px rgba(255,213,79,.2)}
-  .cat-tag{color:var(--ink-2);font-weight:600}
-  .flag{font-size:10px;color:var(--ink-3);opacity:.7}
-  .flag::before{content:"·";margin-right:4px}
-  /* Detail panel (drawer) */
-  .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:.2s;z-index:10}
-  .backdrop.on{opacity:1;pointer-events:auto}
-  .panel{
-    position:fixed;top:0;right:0;bottom:0;width:min(520px,100vw);
-    background:var(--card);border-left:1px solid var(--line);
-    padding:24px;overflow-y:auto;transform:translateX(100%);transition:.25s cubic-bezier(.4,0,.2,1);z-index:11;
-  }
-  .panel.on{transform:translateX(0)}
-  .panel h2{margin:0 0 8px;font-size:20px;font-weight:700}
-  .panel .close{
-    position:absolute;top:14px;right:14px;
-    background:var(--card-2);border:0;color:var(--ink-2);
-    width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:20px;
-    display:grid;place-items:center;transition:.2s;
-  }
-  .panel .close:hover{color:var(--ink);background:var(--line-2)}
-  .panel h3{font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 6px}
-  .panel ol{margin:0;padding-left:20px;color:var(--ink-2);font-size:14px;line-height:1.6}
-  .panel ol li{margin-bottom:4px}
-  .panel .expected{
-    background:var(--card-2);border-left:3px solid var(--matcha);
-    padding:10px 12px;border-radius:0 8px 8px 0;color:var(--ink-2);font-size:13px;line-height:1.5;
-  }
-  .panel .log{
-    background:#000;border:1px solid var(--line);border-radius:8px;
-    padding:12px;font-family:"SF Mono", ui-monospace, Menlo, monospace;font-size:12px;line-height:1.5;
-    color:var(--ink-2);white-space:pre-wrap;max-height:280px;overflow:auto;
-  }
-  .empty{color:var(--ink-3);font-size:13px;font-style:italic}
-  .rlink{
-    display:inline-block;margin-top:6px;padding:4px 10px;
-    background:var(--card-2);border-radius:6px;color:var(--sakura);
-    font-size:12px;text-decoration:none;
-  }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rotori Test Dashboard</title>
+  <style>
+    :root {
+      --bg: #0b0f17;
+      --panel: #111827;
+      --panel-2: #0f172a;
+      --line: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --ok: #22c55e;
+      --fail: #ef4444;
+      --warn: #f59e0b;
+      --info: #38bdf8;
+      --accent: #7c6aef;
+      --pill: #1f2937;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 24px 16px 60px; }
+    h1 { margin: 0 0 4px; font-size: 1.55rem; }
+    .sub { color: var(--muted); margin-bottom: 14px; font-size: 0.92rem; }
+    .toolbar {
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 18px;
+    }
+    button {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.92rem;
+    }
+    button:hover:not(:disabled) { border-color: #334155; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    button.primary {
+      background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600;
+    }
+    .meta { color: var(--muted); font-size: 0.88rem; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+      margin: 14px 0 20px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .k { color: var(--muted); font-size: 0.82rem; }
+    .v { font-size: 1.45rem; font-weight: 700; margin-top: 4px; }
+    .ok { color: var(--ok); }
+    .fail { color: var(--fail); }
+    .warn { color: var(--warn); }
+    .section {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .section h2 {
+      margin: 0 0 10px;
+      font-size: 1.05rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .pill {
+      background: var(--pill);
+      color: var(--muted);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 0.76rem;
+      white-space: nowrap;
+    }
+    .pill.ok { color: var(--ok); border-color: rgba(34,197,94,.4); }
+    .pill.fail { color: var(--fail); border-color: rgba(239,68,68,.4); }
+    details { border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 8px; }
+    summary { cursor: pointer; color: var(--info); user-select: none; font-size: 0.92rem; }
+    summary:hover { color: #93c5fd; }
+    ul { margin: 8px 0 0 18px; padding: 0; }
+    li { margin-bottom: 4px; font-size: 0.9rem; }
+    .mono {
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 0.84rem;
+      color: #cbd5e1;
+      word-break: break-word;
+    }
+    .empty { color: var(--muted); font-size: 0.9rem; }
+    .err {
+      background: #2a1012;
+      border: 1px solid #5e1f26;
+      color: #fecaca;
+      padding: 8px 10px;
+      border-radius: 8px;
+      margin-top: 6px;
+      white-space: pre-wrap;
+      font-size: 0.82rem;
+    }
+    .suite {
+      border-top: 1px dashed var(--line);
+      padding: 8px 0 4px;
+    }
+    .suite:first-of-type { border-top: 0; padding-top: 4px; }
+    .suite-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      cursor: pointer;
+    }
+    .suite-head:hover { color: #93c5fd; }
+    .suite-title { flex: 1; }
+    .suite-count { color: var(--muted); font-size: 0.82rem; }
+    .test-list { display: none; margin: 6px 0 4px 12px; padding-left: 0; }
+    .test-list.open { display: block; }
+    .test-list li {
+      list-style: none; padding: 2px 0; display: flex; gap: 8px; align-items: baseline;
+    }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot.ok { background: var(--ok); }
+    .dot.fail { background: var(--fail); }
+    .dot.skip { background: var(--warn); }
+    .test-name { flex: 1; color: var(--text); font-size: 0.86rem; }
+    .test-dur { color: var(--muted); font-size: 0.76rem; font-variant-numeric: tabular-nums; }
+    #logPanel {
+      background: #000; border: 1px solid var(--line); border-radius: 10px;
+      color: #d1d5db; font-family: ui-monospace, Menlo, monospace;
+      font-size: 0.78rem; line-height: 1.4;
+      padding: 10px; max-height: 300px; overflow: auto;
+      white-space: pre-wrap; word-break: break-word;
+      margin-bottom: 12px; display: none;
+    }
+    #logPanel.on { display: block; }
+    .status-dot {
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+      margin-right: 6px; vertical-align: middle;
+    }
+    .status-dot.idle { background: var(--muted); }
+    .status-dot.run { background: var(--warn); animation: pulse 1.2s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+  </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div class="brand">
-      <div class="brand-mark">Q</div>
-      <div>
-        <h1>Rotori QA Dashboard</h1>
-        <div class="sub">Uçtan uca senaryo denetimi — hata bulunursa çözüm için onay istenir</div>
-      </div>
+  <div class="wrap">
+    <h1>Rotori Test Dashboard</h1>
+    <div class="sub">Flutter suite + QA senaryoları + Integration sözleşme testleri — tek panelden izle ve tetikle.</div>
+
+    <div class="toolbar">
+      <button id="runBtn" class="primary">▶ Testleri Koştur</button>
+      <button id="refreshBtn">↻ Sadece Verileri Yenile</button>
+      <button id="toggleLogBtn">📜 Log</button>
+      <span class="meta"><span id="statusDot" class="status-dot idle"></span><span id="lastUpdated">Yükleniyor…</span></span>
     </div>
-    <div class="meta">
-      <span>Son koşu: <b id="lastRun">—</b></span>
-      <span>·</span>
-      <span>Manifest: <b id="totalCount">—</b> senaryo</span>
-    </div>
-  </header>
 
-  <section class="summary" id="summary"></section>
-  <div class="grid" id="grid"></div>
-</div>
+    <pre id="logPanel"></pre>
 
-<div class="backdrop" id="backdrop"></div>
-<aside class="panel" id="panel">
-  <button class="close" id="closeBtn">×</button>
-  <div id="panelBody"></div>
-</aside>
+    <div class="grid" id="summaryGrid"></div>
 
-<script>
-(async () => {
-  const [manifest, results] = await Promise.all([
-    fetch('scenarios.json').then(r => r.json()),
-    fetch('latest-run.json').then(r => r.ok ? r.json() : null).catch(() => null),
-  ]);
+    <div class="section" id="flutterSection"></div>
+    <div class="section" id="uiflowSection"></div>
+    <div class="section" id="qaSection"></div>
+    <div class="section" id="integrationSection"></div>
+  </div>
 
-  const runIndex = new Map();
-  if (results && Array.isArray(results.results)) {
-    for (const r of results.results) runIndex.set(r.id, r);
-  }
+  <script>
+    const $ = (id) => document.getElementById(id);
 
-  const scenarios = manifest.scenarios.map(s => {
-    const r = runIndex.get(s.id);
-    return {
-      ...s,
-      status: r?.status ?? (s.autoRunnable ? 'pending' : 'skip'),
-      durationMs: r?.durationMs,
-      startedAt: r?.startedAt,
-      log: r?.log || null,
-      error: r?.error || null,
+    const fmtTime = (v) => {
+      if (!v) return '—';
+      const d = new Date(v);
+      return Number.isNaN(d.getTime()) ? v : d.toLocaleString('tr-TR');
     };
-  });
+    const pct = (p, t) => t ? Math.round((p / t) * 100) : 0;
+    const cls = (failed) => failed > 0 ? 'fail' : 'ok';
+    const escape = (s) => String(s).replace(/[&<>'"]/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
 
-  document.getElementById('totalCount').textContent = scenarios.length;
-  document.getElementById('lastRun').textContent = results?.completedAt
-    ? new Date(results.completedAt).toLocaleString('tr-TR')
-    : 'henüz koşulmadı';
+    const suiteFromFlutter = (f) => {
+      const s = f?.summary || {};
+      return {
+        total: +(s.total || 0), passed: +(s.passed || 0),
+        failed: +(s.failed || 0), skipped: +(s.skipped || 0),
+      };
+    };
+    const suiteFromQA = (f) => {
+      const r = Array.isArray(f?.results) ? f.results : [];
+      return {
+        total: r.length,
+        passed: r.filter(x => x.status === 'pass').length,
+        failed: r.filter(x => x.status === 'fail').length,
+        skipped: 0,
+      };
+    };
 
-  // Summary
-  const counts = { pass:0, fail:0, pending:0, skip:0 };
-  for (const s of scenarios) counts[s.status] = (counts[s.status] || 0) + 1;
-  const total = scenarios.length;
-  const autoRunnable = scenarios.filter(s => s.autoRunnable).length;
-  const passRate = counts.pass + counts.fail > 0
-    ? Math.round((counts.pass / (counts.pass + counts.fail)) * 100)
-    : 0;
+    const summaryCard = (title, s) => `
+      <div class="card">
+        <div class="k">${title}</div>
+        <div class="v ${cls(s.failed)}">${s.passed}/${s.total}</div>
+        <div class="k">Başarı %${pct(s.passed, s.total)} · Kalan <span class="${cls(s.failed)}">${s.failed}</span>${s.skipped ? ` · Skip ${s.skipped}` : ''}</div>
+      </div>`;
 
-  document.getElementById('summary').innerHTML = `
-    <div class="stat"><div class="label">Toplam</div><div class="value">${total}</div></div>
-    <div class="stat pass"><div class="label">Geçti</div><div class="value">${counts.pass || 0}</div></div>
-    <div class="stat fail"><div class="label">Kaldı</div><div class="value">${counts.fail || 0}</div></div>
-    <div class="stat pending"><div class="label">Bekliyor</div><div class="value">${counts.pending || 0}</div></div>
-    <div class="stat skip"><div class="label">Skip / Manuel</div><div class="value">${counts.skip || 0}</div></div>
-    <div class="stat"><div class="label">Başarı</div><div class="value">${passRate}<span style="font-size:16px;color:var(--ink-3)">%</span></div></div>
-  `;
+    const suiteBlock = (suite) => {
+      const tests = Array.isArray(suite.tests) ? suite.tests : [];
+      const failedFirst = [...tests].sort((a, b) => (a.status === 'fail' ? -1 : 1));
+      const items = failedFirst.map(t => `
+        <li>
+          <span class="dot ${t.status === 'pass' ? 'ok' : t.status === 'fail' ? 'fail' : 'skip'}"></span>
+          <span class="test-name">${escape(t.name)}</span>
+          <span class="test-dur">${t.durationMs != null ? t.durationMs + ' ms' : ''}</span>
+        </li>
+        ${t.status === 'fail' && t.error ? `<li><div class="err">${escape(t.error)}</div></li>` : ''}
+      `).join('');
+      const statusPill = suite.failed > 0
+        ? `<span class="pill fail">${suite.failed} FAIL</span>`
+        : `<span class="pill ok">${suite.passed} ✓</span>`;
+      return `
+        <div class="suite">
+          <div class="suite-head" onclick="this.nextElementSibling.classList.toggle('open')">
+            <span class="suite-title mono">${escape(suite.path)}</span>
+            <span class="suite-count">${suite.passed}/${suite.total}${suite.skipped ? ' (+' + suite.skipped + ' skip)' : ''} · ${suite.durationMs || 0} ms</span>
+            ${statusPill}
+          </div>
+          <ul class="test-list">${items || '<li class="empty">test yok</li>'}</ul>
+        </div>`;
+    };
 
-  // Tüm senaryolar tek grid'te — filtre yok. Kart üstünde kategori + priority
-  // badge'i ile ayırt edilir.
-  const grid = document.getElementById('grid');
-  function renderGrid() {
-    grid.innerHTML = '';
-    for (const s of scenarios) {
-      const card = document.createElement('div');
-      card.className = 'card';
-      const catLabel = manifest.categories.find(c => c.id === s.category)?.label || s.category;
-      const flags = (s.flags || []).map(f => `<span class="flag">${f}</span>`).join('');
-      card.innerHTML = `
-        <div class="head">
-          <span class="id">${s.id}</span>
-          <div class="title">${s.title}</div>
-        </div>
-        <div class="meta">
-          <span class="status-dot ${s.status}"></span>
-          <span class="cat-tag">${catLabel}</span>
-          <span class="badge ${s.priority}">${s.priority}</span>
-          ${!s.autoRunnable ? '<span class="flag">manuel</span>' : ''}
-          ${flags}
-        </div>
-      `;
-      card.onclick = () => openPanel(s);
-      grid.appendChild(card);
-    }
-  }
+    const renderFlutter = (sec, file) => {
+      if (!file) {
+        sec.innerHTML = `<h2>Flutter Suite <span class="pill">veri yok</span></h2>
+          <div class="empty">qa/flutter-tests.json yok — "Testleri Koştur"a bas.</div>`;
+        return;
+      }
+      const s = suiteFromFlutter(file);
+      const suites = (file.suites || []).slice().sort((a, b) => (a.failed === 0 ? 1 : -1));
+      sec.innerHTML = `
+        <h2>Flutter Suite <span class="pill ${cls(s.failed)}">${s.passed}/${s.total} geçti</span></h2>
+        <div class="meta">Üretildi: ${fmtTime(file.generatedAt)} · Süre: ${file.durationMs ?? '—'} ms · ${suites.length} dosya</div>
+        <details open><summary>Suite listesi (${suites.length})</summary>
+          <div>${suites.map(suiteBlock).join('')}</div>
+        </details>`;
+    };
 
-  const panel = document.getElementById('panel');
-  const backdrop = document.getElementById('backdrop');
-  const panelBody = document.getElementById('panelBody');
-  function openPanel(s) {
-    const catLabel = manifest.categories.find(c => c.id === s.category)?.label || s.category;
-    panelBody.innerHTML = `
-      <h2>${s.title}</h2>
-      <div class="meta" style="color:var(--ink-3);font-size:13px;display:flex;gap:12px;margin:6px 0 4px">
-        <span class="id">${s.id}</span>
-        <span><span class="status-dot ${s.status}"></span> ${s.status}</span>
-        <span>${catLabel}</span>
-        <span class="badge ${s.priority}">${s.priority}</span>
-        ${s.autoRunnable ? '' : '<span class="flag">manuel</span>'}
-        ${s.durationMs != null ? `<span>${s.durationMs} ms</span>` : ''}
-      </div>
-      <h3>Adımlar</h3>
-      <ol>${(s.steps || []).map(st => `<li>${st}</li>`).join('')}</ol>
-      <h3>Beklenen</h3>
-      <div class="expected">${s.expected || '—'}</div>
-      ${s.flags && s.flags.length ? `<h3>Etiketler</h3><div>${s.flags.map(f=>`<span class="flag" style="margin-right:8px">${f}</span>`).join('')}</div>` : ''}
-      ${s.error ? `<h3>Hata</h3><div class="log">${escapeHtml(s.error)}</div>` : ''}
-      ${s.log ? `<h3>Log</h3><div class="log">${escapeHtml(s.log)}</div>` : ''}
-      ${s.notes ? `<h3>Not</h3><div class="expected">${s.notes}</div>` : ''}
-    `;
-    panel.classList.add('on');
-    backdrop.classList.add('on');
-  }
-  function closePanel() { panel.classList.remove('on'); backdrop.classList.remove('on'); }
-  document.getElementById('closeBtn').onclick = closePanel;
-  backdrop.onclick = closePanel;
+    const renderQA = (sec, file) => {
+      if (!file) {
+        sec.innerHTML = `<h2>QA Senaryoları <span class="pill">veri yok</span></h2>
+          <div class="empty">qa/latest-run.json yok.</div>`;
+        return;
+      }
+      const s = suiteFromQA(file);
+      const results = (file.results || []).slice().sort((a, b) => (a.status === 'fail' ? -1 : 1));
+      const items = results.map(r => `
+        <li>
+          <span class="dot ${r.status === 'pass' ? 'ok' : r.status === 'fail' ? 'fail' : 'skip'}"></span>
+          <span class="test-name mono">${escape(r.id)}</span>
+          <span class="test-dur">${r.durationMs != null ? r.durationMs + ' ms' : ''}</span>
+        </li>
+        ${r.status === 'fail' && r.error ? `<li><div class="err">${escape(r.error)}</div></li>` : ''}
+      `).join('');
+      sec.innerHTML = `
+        <h2>QA Senaryoları <span class="pill ${cls(s.failed)}">${s.passed}/${s.total} geçti</span></h2>
+        <div class="meta">Başlangıç: ${fmtTime(file.startedAt)} · Bitiş: ${fmtTime(file.completedAt)}</div>
+        <details><summary>Senaryo listesi (${results.length})</summary>
+          <ul class="test-list open">${items}</ul>
+        </details>`;
+    };
 
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  }
+    const renderIntegration = (sec, file) => {
+      if (!file) {
+        sec.innerHTML = `<h2>Integration <span class="pill">veri yok</span></h2>
+          <div class="empty">qa/integration-run.json yok.</div>`;
+        return;
+      }
+      const s = suiteFromFlutter(file);
+      const suites = file.suites || [];
+      sec.innerHTML = `
+        <h2>Integration (Contract) <span class="pill ${cls(s.failed)}">${s.passed}/${s.total} geçti</span></h2>
+        <div class="meta">Üretildi: ${fmtTime(file.generatedAt)}</div>
+        <details open><summary>Test listesi</summary>
+          <div>${suites.map(suiteBlock).join('')}</div>
+        </details>`;
+    };
 
-  renderGrid();
-})().catch(err => {
-  document.getElementById('grid').innerHTML = `<div class="empty">Dashboard yüklenemedi: ${err.message}</div>`;
-  console.error(err);
-});
-</script>
+    const renderUiflow = (sec, file) => {
+      if (!file) {
+        sec.innerHTML = `<h2>UI Otomasyon <span class="pill">veri yok</span></h2>
+          <div class="empty">qa/uiflow-run.json yok — "Testleri Koştur"a bas.</div>`;
+        return;
+      }
+      const s = suiteFromFlutter(file);
+      const suites = file.suites || [];
+      sec.innerHTML = `
+        <h2>UI Otomasyon (Gesture) <span class="pill ${cls(s.failed)}">${s.passed}/${s.total} geçti</span></h2>
+        <div class="meta">Gerçek kullanıcı jestleri (tap / enterText / navigate) · Üretildi: ${fmtTime(file.generatedAt)}</div>
+        <details open><summary>Test listesi (${s.total})</summary>
+          <div>${suites.map(suiteBlock).join('')}</div>
+        </details>`;
+    };
+
+    const fetchJson = async (path) => {
+      try {
+        const r = await fetch(path + '?t=' + Date.now(), { cache: 'no-store' });
+        return r.ok ? await r.json() : null;
+      } catch { return null; }
+    };
+
+    const loadDashboard = async () => {
+      const [flutter, qa, integration, uiflow] = await Promise.all([
+        fetchJson('flutter-tests.json'),
+        fetchJson('latest-run.json'),
+        fetchJson('integration-run.json'),
+        fetchJson('uiflow-run.json'),
+      ]);
+      const fs = suiteFromFlutter(flutter || {});
+      const qs = suiteFromQA(qa || {});
+      const is = suiteFromFlutter(integration || {});
+      const us = suiteFromFlutter(uiflow || {});
+      const total = {
+        total: fs.total + qs.total + is.total + us.total,
+        passed: fs.passed + qs.passed + is.passed + us.passed,
+        failed: fs.failed + qs.failed + is.failed + us.failed,
+        skipped: fs.skipped + qs.skipped + is.skipped + us.skipped,
+      };
+      $('summaryGrid').innerHTML = [
+        summaryCard('Toplam', total),
+        summaryCard('Flutter Suite', fs),
+        summaryCard('UI Otomasyon', us),
+        summaryCard('QA Senaryoları', qs),
+        summaryCard('Integration', is),
+      ].join('');
+      renderFlutter($('flutterSection'), flutter);
+      renderUiflow($('uiflowSection'), uiflow);
+      renderQA($('qaSection'), qa);
+      renderIntegration($('integrationSection'), integration);
+      const stamps = [flutter?.generatedAt, qa?.completedAt, integration?.generatedAt, uiflow?.generatedAt].filter(Boolean).sort();
+      $('lastUpdated').textContent = 'Son güncelleme: ' + (stamps.length ? fmtTime(stamps[stamps.length - 1]) : '—');
+    };
+
+    const setRunning = (on) => {
+      $('runBtn').disabled = on;
+      $('refreshBtn').disabled = on;
+      $('statusDot').className = 'status-dot ' + (on ? 'run' : 'idle');
+    };
+
+    const appendLog = (text) => {
+      const el = $('logPanel');
+      el.classList.add('on');
+      el.textContent += text;
+      el.scrollTop = el.scrollHeight;
+    };
+
+    const runTests = async () => {
+      setRunning(true);
+      $('logPanel').textContent = '';
+      appendLog('▶ refresh-dashboard.sh başlatılıyor…\n\n');
+      try {
+        const resp = await fetch('/run', { method: 'POST' });
+        if (!resp.ok) {
+          appendLog(`\n[hata] HTTP ${resp.status} — server çalışıyor mu? (python3 qa/dashboard_server.py)\n`);
+          setRunning(false);
+          return;
+        }
+        const reader = resp.body.getReader();
+        const dec = new TextDecoder();
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          appendLog(dec.decode(value, { stream: true }));
+        }
+        appendLog('\n✓ tamamlandı — dashboard yenileniyor…\n');
+      } catch (e) {
+        appendLog(`\n[bağlantı hatası] ${e.message}\n` +
+          'Sunucu ayakta değil. Şu komutla başlat:\n' +
+          '  cd mobile && python3 qa/dashboard_server.py\n');
+      } finally {
+        await loadDashboard();
+        setRunning(false);
+      }
+    };
+
+    $('runBtn').addEventListener('click', runTests);
+    $('refreshBtn').addEventListener('click', () => loadDashboard());
+    $('toggleLogBtn').addEventListener('click', () => $('logPanel').classList.toggle('on'));
+
+    loadDashboard();
+  </script>
 </body>
 </html>

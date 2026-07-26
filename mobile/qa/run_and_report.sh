@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# QA senaryo runner — flutter test integration_test/ ile ilk 10 senaryoyu
-# koşar, sonuçları mobile/qa/latest-run.json'a yazar.
+# QA senaryo runner — mevcut QA test hedefini koşar,
+# sonuçları mobile/qa/latest-run.json'a yazar.
 #
 # Kullanım (mobile/ dizininden):
 #   ./qa/run_and_report.sh
@@ -13,9 +13,11 @@ cd "$(dirname "$0")/.."  # mobile/
 echo "→ flutter pub get"
 flutter pub get > /dev/null
 
-echo "→ integration_test koşuluyor…"
+QA_TEST_TARGET="${QA_TEST_TARGET:-test/qa_scenarios_test.dart}"
+
+echo "→ QA testi koşuluyor (${QA_TEST_TARGET})…"
 # Headless test — device gerekmez. --machine JSON çıktısı stdout'a düşer.
-flutter test integration_test/scenario_runner_test.dart --machine > qa/.raw-run.json 2>&1 || true
+flutter test "${QA_TEST_TARGET}" --machine > qa/.raw-run.json 2>&1 || true
 
 # Runner test kendisi qa/latest-run.json'a yazar (tearDownAll).
 if [ -f qa/latest-run.json ]; then

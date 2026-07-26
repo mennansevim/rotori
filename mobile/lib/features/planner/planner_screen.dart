@@ -206,8 +206,9 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
     if (_step == StepId.journey && !_canContinueJourney(trip)) {
       continueEnabled = false;
     }
-    if (_step == StepId.hotels && !_hotelsComplete(trip))
+    if (_step == StepId.hotels && !_hotelsComplete(trip)) {
       continueEnabled = false;
+    }
     if (_step == StepId.plan && !_planReady(trip)) continueEnabled = false;
 
     return Theme(

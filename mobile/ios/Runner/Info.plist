@@ -79,5 +79,25 @@
 	<array>
 		<string>comgooglemaps</string>
 	</array>
+	<!-- OAuth (Google, başka provider'lar) deep link callback’ı buradan gelir:
+	     io.supabase.rotori://login-callback/ — Supabase Auth tarafı yönlendirir. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>io.supabase.rotori</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>io.supabase.rotori</string>
+			</array>
+		</dict>
+	</array>
+	<!-- App Store submit sırasında "Uses non-exempt encryption?" sorusunu
+	     otomatik hayır olarak cevaplar. Sadece HTTPS/Supabase gibi standart
+	     TLS kullanıyoruz; export compliance beyanı gerekmez. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

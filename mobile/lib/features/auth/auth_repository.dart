@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -91,6 +92,27 @@ class AuthRepository {
       if (e.code == AuthorizationErrorCode.canceled) return;
       throw Exception('Apple ile giriş başarısız oldu: ${e.message}');
     }
+  }
+
+  /// Google ile Giriş — Supabase OAuth akışı (web view + deep link).
+  ///
+  /// Akış:
+  /// 1. `signInWithOAuth` sistem tarayıcısını (iOS: ASWebAuthenticationSession,
+  ///    Android: Chrome Custom Tabs) açar; Google login sayfası gösterilir.
+  /// 2. Kullanıcı onaylayınca Google → Supabase callback URL'ine yönlenir
+  ///    (`https://<ref>.supabase.co/auth/v1/callback`).
+  /// 3. Supabase kendi tarafında access/refresh token üretir ve deep link ile
+  ///    uygulamaya geri döner (`io.supabase.rotori://login-callback/`).
+  /// 4. supabase_flutter otomatik olarak session'ı yakalar → authStateProvider
+  ///    tetiklenir → router HomeScreen'e yönlendirir.
+  ///
+  /// Web'de deep link yerine aynı pencerede redirect olur.
+  Future<void> signInWithGoogle() async {
+    await _client.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: kIsWeb ? null : 'io.supabase.rotori://login-callback/',
+      authScreenLaunchMode: LaunchMode.externalApplication,
+    );
   }
 }
 

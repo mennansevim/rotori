@@ -1142,6 +1142,7 @@ const Map<String, Map<AppLang, String>> _strings = {
   'auth.noAccount': {AppLang.tr: 'Hesabın yok mu? Kayıt ol', AppLang.en: 'Don\'t have an account? Sign up'},
   'auth.or': {AppLang.tr: 'veya', AppLang.en: 'or'},
   'auth.signInWithApple': {AppLang.tr: '🍎 Apple ile Giriş Yap', AppLang.en: '🍎 Sign in with Apple'},
+  'auth.signInWithGoogle': {AppLang.tr: 'G Google ile Giriş Yap', AppLang.en: 'G Sign in with Google'},
   'auth.tagline': {
     AppLang.tr: 'Sürpriz yok, plan var.',
     AppLang.en: 'No surprises. Just the plan.',

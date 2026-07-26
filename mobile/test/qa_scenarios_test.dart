@@ -658,8 +658,8 @@ void main() {
     // ---- s67: Time format 24h ----
     await runScenario('s67', tester: tester, (t) async {
       // TimelineItem.time formatı HH:MM 24-hour
-      final t1 = '10:00';
-      final t2 = '23:59';
+      const t1 = '10:00';
+      const t2 = '23:59';
       expect(RegExp(r'^\d{2}:\d{2}$').hasMatch(t1), isTrue);
       expect(RegExp(r'^\d{2}:\d{2}$').hasMatch(t2), isTrue);
     });
@@ -730,9 +730,9 @@ void main() {
     // ---- s94: Aktarmalı uçuş süre toplamı ----
     await runScenario('s94', tester: tester, (t) async {
       // 2 leg: 3h + 2h wait + 8h = 13h
-      final leg1 = const Duration(hours: 3);
-      final wait = const Duration(hours: 2);
-      final leg2 = const Duration(hours: 8);
+      const leg1 = Duration(hours: 3);
+      const wait = Duration(hours: 2);
+      const leg2 = Duration(hours: 8);
       final total = leg1 + wait + leg2;
       expect(total.inHours, 13);
     });
