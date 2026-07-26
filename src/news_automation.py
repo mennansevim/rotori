@@ -20,6 +20,7 @@ import argparse
 import hashlib
 import html
 import json
+import os
 import re
 import shutil
 import sys
@@ -372,34 +373,57 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
     state = _load_state(cfg)
     used = set(state.get("used_ids", []))
 
-    # Kalite kapısı (editorial, ≥40 puan) seçilen haberi eleyebilir. Tur boş
-    # dönmesin diye birkaç aday dene: her turda seçileni geçici olarak 'used'
-    # sayıp bir sonraki uygun haberi seçtir.
-    MAX_ATTEMPTS = 4
+    # Kalite kapısı (editorial) seçilen haberi eleyebilir. Uygun bir aday
+    # bulunana kadar DÖNGÜ: her turda başka haber seçtir; havuz tükenirse
+    # feed'leri yeniden çekip baştan dene. TIMEOUT (varsayılan 5 dk) dolunca dur.
+    # Env: NEWS_GATE_TIMEOUT_SEC ile ayarlanabilir.
+    timeout_sec = float(os.environ.get("NEWS_GATE_TIMEOUT_SEC", "300"))
+    deadline = time.monotonic() + timeout_sec
     tried_ids: set[str] = set()
     news: dict[str, Any] | None = None
     aciklama = caption = ""
     fails: list[dict[str, Any]] = []   # elenen adayların özeti (neden raporu için)
-    for attempt in range(1, MAX_ATTEMPTS + 1):
+    attempt = 0
+    refetches = 0
+    log.info(f"  Kalite kapısı döngüsü başladı (timeout={int(timeout_sec)}sn, "
+             f"min={editorial.MIN_SCORE}/50).")
+    while time.monotonic() < deadline:
+        attempt += 1
         cand = pick_news(cfg, oai, items, used | tried_ids)
         if cand is None:
-            if attempt == 1:
+            # Bu turda işlenebilir haber kalmadı → feed'leri tazele, baştan dene.
+            if attempt == 1 and refetches == 0:
                 log.warning("  Kalite eşiğini geçebilecek uygun haber bulunamadı "
                             "(feed'ler yumuşak/haber niteliği düşük olabilir).")
-                return {"ok": False, "reason": "no_suitable_news",
-                        "detail": "Feed'lerde işlenebilir uygun haber yok."}
-            log.info("  Denenecek başka uygun haber kalmadı.")
-            break
+            if time.monotonic() >= deadline:
+                break
+            refetches += 1
+            wait_s = min(20.0, max(5.0, deadline - time.monotonic()))
+            log.info(f"  ⏳ Aday havuzu tükendi — {int(wait_s)}sn sonra feed'ler "
+                     f"yeniden çekilecek (yenileme #{refetches})…")
+            time.sleep(wait_s)
+            if time.monotonic() >= deadline:
+                break
+            fresh_items = fetch_news(cfg)
+            if fresh_items:
+                items = fresh_items
+            tried_ids.clear()
+            continue
         aciklama, caption = generate_text(cfg, oai, cand)
         if aciklama and len(aciklama) >= 8:
             news = cand
+            log.info(f"  ✓ Uygun aday bulundu ({attempt}. denemede).")
             break
         # kapıyı geçemedi → bu haberi bu tur için ele, sıradakini dene
         gf = cand.get("_gate_fail")
         if gf:
             fails.append(gf)
         tried_ids.add(_news_id(cand))
-        log.info(f"  ↻ Sonraki aday deneniyor ({attempt}/{MAX_ATTEMPTS})…")
+        kalan = int(deadline - time.monotonic())
+        log.info(f"  ↻ Sonraki aday deneniyor (deneme {attempt}, kalan ~{kalan}sn)…")
+
+    if news is None and time.monotonic() >= deadline:
+        log.warning(f"  ⏰ {int(timeout_sec)}sn timeout doldu — uygun aday bulunamadı.")
 
     if news is None:
         # Neden raporu: kaç aday elendi + en yüksek puan + kırılım.
@@ -414,7 +438,7 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
             f"{len(fails)} aday kalite kapısını geçemedi "
             f"(min={editorial.MIN_SCORE}/50"
             + (f", en yüksek={best}/50" if best is not None else "")
-            + ")."
+            + f", {int(timeout_sec)}sn timeout doldu)."
         )
         log.warning("  Hiçbir aday kalite kapısını geçemedi — tur boş.")
         for s in satirlar:
