@@ -140,14 +140,18 @@ class SchedulerCfg:
     check_interval_sn: int = 60            # background thread kontrol aralığı (saniye)
 
 
-# Varsayılan Japonya haber RSS feed'leri (İngilizce, kanala uygun karışım):
-# SoraNews24 + Nippon.com = kültür/yaşam/seyahat (birebir on-brand),
-# Japan Today + Japan Times = genel güncel haber.
+# Varsayılan Japonya haber RSS feed'leri.
+# Pratik seyahat/tasarruf feed'leri (para-zaman-güvenlik faydası — editöryel
+# kalite kapısına uygun) + genel kültür/güncel karışım:
+#   Tokyo Cheapo   → ulaşım, IC kart, tasarruf, pratik ipuçları (birebir on-brand)
+#   SoraNews24     → kültür/yaşam/seyahat
+#   Nippon.com     → kültür/toplum
+#   Japan Today    → genel güncel
 _DEFAULT_NEWS_FEEDS = [
+    "https://tokyocheapo.com/feed/",
     "https://soranews24.com/feed/",
     "https://www.nippon.com/en/feed/",
     "https://japantoday.com/feed",
-    "https://www.japantimes.co.jp/feed/",
 ]
 
 
