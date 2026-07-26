@@ -1,0 +1,28 @@
+# Docker build context'ini küçült — gizli/gereksiz dosyalar image'a girmesin.
+.git
+.gitignore
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+.DS_Store
+
+# Secret'lı config build'e GİRMEZ — compose'da volume ile read-only mount edilir.
+config.yaml
+config.local.yaml
+
+# Ağır/üretilen içerikler — image'a gömülmesin, volume'dan gelir.
+data/frames/
+data/raw_videos/
+data/cleaned/
+output/reels/
+output/stories/
+output/ready_to_publish/
+*.mp4
+*.mov
+*.MOV
+*.MP4
+
+# Geliştirme artı­kları
+*.log
+.pytest_cache/
