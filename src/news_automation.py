@@ -414,6 +414,17 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
     if oai is None:
         raise RuntimeError("OpenAI client oluşturulamadı.")
 
+    # Instagram Graph token'ını fırsatçı yenile — haftalık otomasyon her
+    # çalıştığında ~60 gün uzatır → token süresiz otomatik yaşar, elle
+    # uğraşmak gerekmez. Başarısız olursa (token çok taze / IP kısıtı) sessizce
+    # geçer; mevcut token zaten geçerlidir.
+    if cfg.instagram and cfg.instagram.graph_token:
+        try:
+            from src import instagram_graph
+            instagram_graph.ensure_fresh_token(cfg)
+        except Exception as exc:   # noqa: BLE001 — yenileme opsiyonel, akışı durdurma
+            log.info(f"  Graph token yenileme atlandı: {exc}")
+
     log.info("=== Haber otomasyonu başladı ===")
     items = fetch_news(cfg)
     if not items:

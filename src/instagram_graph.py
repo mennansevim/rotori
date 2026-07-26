@@ -60,6 +60,20 @@ def _req(method: str, path: str, params: dict[str, Any] | None = None,
 def _tr_err(msg: str) -> str:
     """Yaygın Meta hatalarını Türkçe ipucuyla zenginleştir."""
     m = (msg or "").lower()
+    if "api access blocked" in m or "access blocked" in m:
+        return (
+            "Meta uygulamanın Instagram API erişimi bloklu (code 200: API access "
+            "blocked). En temel çağrı (/me) bile reddediliyor — sorun görsel URL'si "
+            "DEĞİL, token/uygulama seviyesinde. Çözüm:\n"
+            "  1) developers.facebook.com → uygulaman → üstte kısıtlama/uyarı "
+            "baldırımı var mı bak (App restricted / development mode).\n"
+            "  2) App Review → Permissions: instagram_business_basic + "
+            "instagram_business_content_publish izinleri aktif mi?\n"
+            "  3) Instagram → API setup → yeni token üret → config.yaml → "
+            "instagram.graph_token'a yaz.\n"
+            "  4) Bağlı hesap Business (Creator değil) olmalı.\n"
+            "Alternatif: instagrapi ile yayınla (Graph'ı atlar) — taze sessionid gerekir."
+        )
     if "session key invalid" in m or "revoked" in m:
         return (f"Token geçersiz/iptal edildi ({msg}). Meta Developers → "
                 "Instagram → API setup → Generate token ile yenile ve "
@@ -106,6 +120,41 @@ def refresh_token(cfg: Config) -> str:
         raise GraphError(f"Yenileme yanıtı beklenmedik: {data}")
     log.info(f"  token yenilendi, {data.get('expires_in', 0)//86400} gün geçerli")
     return tok
+
+
+def save_token(cfg: Config, token: str) -> None:
+    """Yeni token'ı YAZILABİLİR data/graph_token.txt'e yaz (config.yaml
+    container'da read-only). load_config bu dosyayı config token'ına tercih eder."""
+    ig = cfg.instagram
+    if not ig:
+        return
+    path = cfg.project_root / ig.graph_token_file
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".txt.tmp")
+    tmp.write_text(token.strip(), encoding="utf-8")
+    tmp.replace(path)   # atomic
+    log.info(f"  token kaydedildi → {ig.graph_token_file}")
+
+
+def ensure_fresh_token(cfg: Config) -> bool:
+    """Token'ı yenile + kaydet — haftalık otomasyon bunu çağırır. Long-lived IG
+    token'ı ig_refresh_token ile ~60 gün daha uzatır. Haftada çalıştığı için
+    token 60 gün eşiğine ASLA ulaşmaz → süresiz otomatik yaşar.
+
+    IG kuralı: token 24 saatten eski olmalı (çok taze token yenilenemez). Bu
+    durumda refresh başarısız olur; sorun değil — mevcut token zaten geçerli,
+    hatayı yutup False döneriz (bir sonraki hafta tekrar denenir)."""
+    ig = cfg.instagram
+    if not (ig and ig.graph_token):
+        return False
+    try:
+        newtok = refresh_token(cfg)
+        save_token(cfg, newtok)
+        cfg.instagram.graph_token = newtok   # aynı süreç içinde de geçerli olsun
+        return True
+    except GraphError as exc:
+        log.info(f"  token yenilenmedi (muhtemelen çok taze veya IP kısıtı): {exc}")
+        return False
 
 
 # ---------------- yayınlama ----------------
