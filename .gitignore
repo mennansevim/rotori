@@ -32,3 +32,6 @@ output/stories/
 data/news_automation/
 # Konu otomasyonu state + log
 data/topic_automation/
+
+# Instagram Graph API long-lived token — asla commit edilmez
+data/graph_token.txt

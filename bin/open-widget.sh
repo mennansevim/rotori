@@ -11,8 +11,10 @@
 
 set -euo pipefail
 
-# URL — varsayılan localhost, opsiyonel ilk parametre ile override
-URL="${1:-http://localhost:8000/?view=widget}"
+# URL — varsayılan api.rotori.app (public URL, Mac kapansa bile çalışır),
+# opsiyonel ilk parametre ile override edilebilir (local dev için).
+# Local dev: ./bin/open-widget.sh http://127.0.0.1:8420/?view=widget
+URL="${1:-https://api.rotori.app/?view=widget}"
 
 # Chrome benzeri tarayıcıları sırayla dene (Chrome > Brave > Edge > Chromium)
 BROWSER=""
