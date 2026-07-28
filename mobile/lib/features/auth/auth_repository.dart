@@ -57,6 +57,30 @@ class AuthRepository {
 
   Future<void> signOut() => _client.auth.signOut();
 
+  /// Aktif kullanıcının hesabını ve tüm verilerini siler.
+  ///
+  /// Apple App Store Guideline 5.1.1(v) gereği: hesap oluşturma varsa,
+  /// uygulama içinden silme akışı da olmak zorunda. Client `admin.deleteUser`'ı
+  /// service_role key olmadan çağıramadığı için Supabase'de
+  /// `delete_current_user()` RPC fonksiyonu tanımlı (migration 0004);
+  /// `security definer` ile aktif kullanıcının verisini + auth kaydını siler.
+  ///
+  /// Başarılı silme sonrası local session temizlenir — router auth ekranına
+  /// yönlendirir. Hata durumunda [Exception] fırlatılır (UI SnackBar).
+  Future<void> deleteAccount() async {
+    try {
+      await _client.rpc<void>('delete_current_user');
+    } catch (e) {
+      throw Exception('Hesap silinemedi. Lütfen tekrar deneyin: $e');
+    }
+    // Auth user zaten silindi; local session'ı da temizle ki router yönlendirsin.
+    try {
+      await _client.auth.signOut();
+    } catch (_) {
+      // Kullanıcı silindiği için signOut hata verebilir — normal, yut.
+    }
+  }
+
   /// Sign in with Apple — iOS/macOS native token akışı.
   ///
   /// Akış:

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <script>document.documentElement.className='js';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0A0A0F">
+<meta name="theme-color" content="#F5F2FB">
 <!-- Favicon: 旅 karakteri sakura→fuji gradient. Inline SVG data URI —
      harici istek yok, retina'da çıtır. Alt fallback olarak Apple touch
      ikonu yine aynı SVG (iOS Safari SVG icon kabul eder). -->
@@ -21,16 +21,18 @@
    Renkler uygulamanın gerçek tema kodundan: japanDark + pembe→mor + sakura
    ============================================================ */
 :root{
-  --bg:#0A0A0F; --card:#12121A; --card-2:#1A1A25;
-  --accent:#7C6AEF; --accent-strong:#5C4DBD;
-  --sakura:#FF8FAB; --sakura-soft:#FFC3D7;
-  --gold:#FFD54F; --matcha:#81C784;
-  --ink:#FFFFFF; --ink-2:#A8A8BE; --ink-3:#8888A0;
-  --line:rgba(255,255,255,.08); --line-2:rgba(255,255,255,.16);
-  --torii:#E60033;
-  --grad-title:linear-gradient(105deg,#FFFFFF 0%,#FF8FAB 52%,#7C6AEF 100%);
-  --grad-brand:linear-gradient(135deg,#FF8FAB 0%,#7C6AEF 100%);
-  --grad-sakura:linear-gradient(135deg,#FF8FAB,#FFC3D7);
+  /* Aydınlık mor tema — Rotori marka çekirdeği: derin mor + soft lavanta arka
+     plan + koyu mor-siyah metin. Kontrast WCAG AA'da; gözü yormayan yumuşak. */
+  --bg:#F5F2FB; --card:#FFFFFF; --card-2:#EFE9F9;
+  --accent:#6B5AE3; --accent-strong:#5140C7;
+  --sakura:#C74A72; --sakura-soft:#F4C6D6;
+  --gold:#C89A2D; --matcha:#4A9F5A;
+  --ink:#1B1030; --ink-2:#4A4468; --ink-3:#7A7395;
+  --line:rgba(27,16,48,.09); --line-2:rgba(27,16,48,.16);
+  --torii:#B5122B;
+  --grad-title:linear-gradient(105deg,#1B1030 0%,#6B5AE3 52%,#C74A72 100%);
+  --grad-brand:linear-gradient(135deg,#6B5AE3 0%,#9E58E8 100%);
+  --grad-sakura:linear-gradient(135deg,#C74A72,#F4C6D6);
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Display","SF Pro Text","Segoe UI", system-ui, "Helvetica Neue", Arial, sans-serif;
   --maxw:1180px; --ease:cubic-bezier(.22,.61,.36,1); --ease-out:cubic-bezier(.16,1,.3,1);
 }
@@ -38,33 +40,36 @@
 html{-webkit-text-size-adjust:100%}
 body{font-family:var(--font);background:var(--bg);color:var(--ink);line-height:1.5;letter-spacing:-.01em;
   overflow-x:hidden;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
-::selection{background:rgba(255,143,171,.35);color:#fff}
+::selection{background:rgba(107,90,227,.20);color:var(--ink)}
 a{color:inherit;text-decoration:none}
 img{max-width:100%}
 .i{width:1em;height:1em;display:inline-block;vertical-align:-.12em;stroke:currentColor;stroke-width:1.6;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:none}
 a:focus-visible,button:focus-visible,.btn:focus-visible,.tt:focus-visible,.store-badge:focus-visible,.nav-cta:focus-visible,input:focus-visible{outline:2px solid #b3a6ff;outline-offset:3px;border-radius:8px}
 
-#bg-sky{position:fixed;inset:0;z-index:-3;transition:background .8s linear;background:radial-gradient(120% 90% at 50% -10%, #14121f 0%, #0A0A0F 55%, #060609 100%)}
-#bg-glow{position:fixed;inset:0;z-index:-2;pointer-events:none;opacity:.9;background:radial-gradient(40% 30% at 82% 12%, rgba(124,106,239,.22), transparent 70%),radial-gradient(45% 32% at 12% 78%, rgba(255,143,171,.14), transparent 72%)}
-#stars{position:fixed;inset:0;width:100%;height:100%;z-index:-2;pointer-events:none;opacity:.55;transition:opacity .8s linear}
+/* Aydınlık moda uyumlu arka plan gradient'i — soft lavanta → beyaza dönen
+   nazik bir dokum, koyu tema gibi göz yormaz. */
+#bg-sky{position:fixed;inset:0;z-index:-3;transition:background .8s linear;background:radial-gradient(120% 90% at 50% -10%, #EFE9FB 0%, #F5F2FB 55%, #FBF9FE 100%)}
+#bg-glow{position:fixed;inset:0;z-index:-2;pointer-events:none;opacity:.85;background:radial-gradient(40% 30% at 82% 12%, rgba(107,90,227,.18), transparent 70%),radial-gradient(45% 32% at 12% 78%, rgba(199,74,114,.10), transparent 72%)}
+#stars{display:none} /* Aydınlık modda yıldız olmaz */
+/* Sakura opacity düşürüldü — dekoratif kalır, göz yormaz (0.32) */
 #sakura{position:fixed;inset:0;width:100%;height:100%;z-index:40;pointer-events:none;opacity:0;transition:opacity 1.2s ease}
-#sakura.on{opacity:1}
+#sakura.on{opacity:0.32}
 
 /* nav */
 nav{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;align-items:center;justify-content:space-between;
   padding:max(13px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 13px max(16px,env(safe-area-inset-left));
   backdrop-filter:saturate(140%) blur(14px);-webkit-backdrop-filter:saturate(140%) blur(14px);
-  background:linear-gradient(180deg, rgba(10,10,15,.72), rgba(10,10,15,0));transition:background .4s var(--ease)}
-nav.solid{background:rgba(10,10,15,.82);border-bottom:1px solid var(--line)}
+  background:linear-gradient(180deg, rgba(245,242,251,.85), rgba(245,242,251,0));transition:background .4s var(--ease)}
+nav.solid{background:rgba(245,242,251,.9);border-bottom:1px solid var(--line)}
 .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:18px;letter-spacing:-.02em;padding:6px 4px;margin:-6px -4px}
 .brand .mark{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--grad-brand);font-size:15px;box-shadow:0 6px 18px rgba(124,106,239,.4)}
 .brand .jp{color:var(--ink-3);font-weight:500;font-size:13px;margin-left:2px}
 .nav-right{display:flex;align-items:center;gap:10px}
 .langtog{display:flex;gap:2px;border:1px solid var(--line-2);border-radius:980px;padding:3px}
 .langtog button{font:inherit;font-size:12px;font-weight:600;padding:6px 11px;border-radius:980px;border:0;background:none;color:var(--ink-2);cursor:pointer;min-width:36px;min-height:32px;transition:.25s var(--ease)}
-.langtog button.on{background:var(--ink);color:#0A0A0F}
-.nav-cta{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;padding:11px 18px;border-radius:980px;background:var(--ink);color:#0A0A0F;
-  opacity:0;visibility:hidden;transform:translateY(-6px);transition:.5s var(--ease);pointer-events:none;white-space:nowrap}
+.langtog button.on{background:var(--accent);color:#fff}
+.nav-cta{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;padding:11px 18px;border-radius:980px;background:var(--accent);color:#fff;
+  opacity:0;visibility:hidden;transform:translateY(-6px);transition:.5s var(--ease);pointer-events:none;white-space:nowrap;box-shadow:0 6px 22px rgba(107,90,227,.28)}
 .nav-cta.show{opacity:1;visibility:visible;transform:none;pointer-events:auto}
 .nav-cta:hover{transform:translateY(-1px) scale(1.02)}
 
@@ -193,7 +198,8 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 .hero-cta{display:flex;gap:14px;margin-top:32px;flex-wrap:wrap;align-items:center}
 @media(max-width:860px){.hero-cta{justify-content:center}}
 .btn{display:inline-flex;align-items:center;gap:9px;font-weight:600;font-size:15.5px;padding:14px 26px;border-radius:980px;cursor:pointer;border:1px solid transparent;transition:.3s var(--ease);white-space:nowrap}
-.btn-primary{background:var(--ink);color:#0A0A0F}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 8px 26px -6px rgba(107,90,227,.5)}
+.btn-primary:hover{transform:translateY(-1px)}
 .btn-primary:hover{transform:translateY(-2px);box-shadow:0 16px 34px -14px rgba(255,255,255,.5)}
 .btn-ghost{background:transparent;border-color:var(--line-2);color:var(--ink)}
 .btn-ghost:hover{border-color:var(--ink);background:rgba(255,255,255,.04)}
@@ -250,7 +256,7 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 .store{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:34px}
 .store-badge{display:flex;align-items:center;gap:11px;padding:13px 22px;border-radius:16px;border:1px solid var(--line-2);background:var(--card);transition:.3s var(--ease);cursor:pointer}
 .store-badge:hover{transform:translateY(-2px);border-color:var(--ink)}
-.store-badge.primary{background:var(--ink);color:#0A0A0F;border-color:transparent}
+.store-badge.primary{background:var(--accent);color:#fff;border-color:transparent}
 .store-badge .big{font-size:16px;font-weight:600;line-height:1.1}
 .store-badge .sm{font-size:11px;opacity:.7}
 .trust{margin-top:26px;font-size:13.5px;color:var(--ink-2);display:flex;gap:8px 18px;justify-content:center;flex-wrap:wrap}
@@ -259,7 +265,7 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 .signup{display:flex;gap:9px;max-width:440px;margin:22px auto 0;flex-wrap:wrap;justify-content:center}
 .signup input{flex:1;min-width:200px;padding:13px 16px;border-radius:12px;border:1px solid var(--line-2);background:var(--card);color:var(--ink);font-size:14px;font-family:var(--font)}
 .signup input:focus{outline:none;border-color:var(--accent)}
-.signup .btn{padding:13px 22px;background:var(--ink);color:#0A0A0F}
+.signup .btn{padding:13px 22px;background:var(--accent);color:#fff}
 #signupMsg{margin-top:12px;min-height:1.2em;font-size:13.5px}
 footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-inset-bottom));color:var(--ink-3);font-size:13px}
 .foot-grid{display:flex;justify-content:space-between;flex-wrap:wrap;gap:20px;align-items:center}
@@ -981,7 +987,9 @@ footer{border-top:1px solid var(--line);padding:40px 0 max(60px,env(safe-area-in
 
   /* ===================== bg + scroll engine ===================== */
   const sky=$('bg-sky'),starsEl=$('stars');
-  const phases=[{p:0,c:['#14121f','#0A0A0F','#060609'],star:.55},{p:.22,c:['#2a2740','#171528','#0b0a12'],star:.4},{p:.42,c:['#3a3560','#211d38','#12101f'],star:.25},{p:.6,c:['#4a3a6b','#2a2140','#171225'],star:.15},{p:.8,c:['#3a2540','#241328','#120a14'],star:.25},{p:1,c:['#1e1030','#150a1e','#0a0610'],star:.4}];
+  /* Aydınlık mor tema: scroll boyunca lavanta → soft mor → beyaz-mor akış.
+     Yıldız katmanı gizli (star:0), tüm faz koyulaşma kaldırıldı. */
+  const phases=[{p:0,c:['#EFE9FB','#F5F2FB','#FBF9FE'],star:0},{p:.22,c:['#E8DEF7','#F1EBFA','#FAF7FC'],star:0},{p:.42,c:['#E0D2F5','#EDE4F8','#F8F3FB'],star:0},{p:.6,c:['#D8C6F1','#E9DFF6','#F6F1FA'],star:0},{p:.8,c:['#E4D8F4','#EEE6F8','#F9F5FC'],star:0},{p:1,c:['#EFE9FB','#F5F2FB','#FBF9FE'],star:0}];
   function hx(a,b,t){a=a.replace('#','');b=b.replace('#','');const f=s=>[parseInt(s.slice(0,2),16),parseInt(s.slice(2,4),16),parseInt(s.slice(4,6),16)];const A=f(a),B=f(b);return'rgb('+Math.round(lerp(A[0],B[0],t))+','+Math.round(lerp(A[1],B[1],t))+','+Math.round(lerp(A[2],B[2],t))+')';}
   let maxScroll=Math.max(1,document.body.scrollHeight-innerHeight);
   function skyAt(prog){let i=0;while(i<phases.length-1&&prog>phases[i+1].p)i++;const a=phases[i],b=phases[Math.min(i+1,phases.length-1)];const tt=b.p===a.p?0:(prog-a.p)/(b.p-a.p);

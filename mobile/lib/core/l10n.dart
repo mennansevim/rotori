@@ -191,6 +191,15 @@ const Map<String, Map<AppLang, String>> _strings = {
   'viewer.edit.undo': {AppLang.tr: 'Geri al', AppLang.en: 'Undo'},
   'viewer.edit.cancel': {AppLang.tr: 'Vazgeç', AppLang.en: 'Cancel'},
   'viewer.edit.rebuild': {AppLang.tr: 'Baştan oluştur', AppLang.en: 'Rebuild'},
+  'viewer.edit.editTime': {AppLang.tr: 'Saati düzenle', AppLang.en: 'Edit time'},
+  'viewer.edit.addPlace': {AppLang.tr: 'Bu güne durak ekle', AppLang.en: 'Add a stop to this day'},
+  'viewer.edit.addSheetTitle': {AppLang.tr: 'Yeni durak ekle', AppLang.en: 'Add a stop'},
+  'viewer.edit.searchPlace': {AppLang.tr: 'Gezmek istediğin yeri yaz…', AppLang.en: 'Search a place…'},
+  'viewer.edit.timeLabel': {AppLang.tr: 'Saat', AppLang.en: 'Time'},
+  'viewer.edit.add': {AppLang.tr: 'Ekle', AppLang.en: 'Add'},
+  'viewer.edit.addedSnack': {AppLang.tr: 'Eklendi: {title}', AppLang.en: 'Added: {title}'},
+  'viewer.edit.noResults': {AppLang.tr: 'Eşleşme yok — yine de ekleyebilirsin', AppLang.en: 'No matches — you can still add it'},
+  'viewer.edit.customPlace': {AppLang.tr: '“{q}” olarak ekle', AppLang.en: 'Add as “{q}”'},
   'viewer.heroPill': {
     AppLang.tr: '✈️ {days} Gün · {nights} Gece',
     AppLang.en: '✈️ {days} Days · {nights} Nights',
@@ -1176,6 +1185,27 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Reminders',
   },
   'drawer.signout': {AppLang.tr: 'Çıkış yap', AppLang.en: 'Sign out'},
+  'drawer.deleteAccount': {AppLang.tr: 'Hesabı sil', AppLang.en: 'Delete account'},
+  'account.delete.title': {
+    AppLang.tr: 'Hesabı silmek istiyor musun?',
+    AppLang.en: 'Delete your account?',
+  },
+  'account.delete.body': {
+    AppLang.tr:
+        'Bu işlem geri alınamaz. Hesabın, planların ve tüm verilerin kalıcı olarak silinir. Devam etmek istiyor musun?',
+    AppLang.en:
+        'This action cannot be undone. Your account, plans and all data will be permanently deleted. Do you want to continue?',
+  },
+  'account.delete.confirm': {AppLang.tr: 'Evet, sil', AppLang.en: 'Yes, delete'},
+  'account.delete.cancel': {AppLang.tr: 'Vazgeç', AppLang.en: 'Cancel'},
+  'account.delete.error': {
+    AppLang.tr: 'Hesap silinemedi. Lütfen tekrar dene.',
+    AppLang.en: 'Could not delete account. Please try again.',
+  },
+  'account.delete.success': {
+    AppLang.tr: 'Hesabın silindi. Sağlıcakla.',
+    AppLang.en: 'Your account has been deleted. Farewell.',
+  },
   'drawer.tt.menu': {AppLang.tr: 'Menü', AppLang.en: 'Menu'},
   'plans.title': {AppLang.tr: 'Planlarım', AppLang.en: 'My plans'},
   'plans.refresh': {AppLang.tr: 'Yenile', AppLang.en: 'Refresh'},

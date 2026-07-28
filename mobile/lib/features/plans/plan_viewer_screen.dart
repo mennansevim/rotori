@@ -24,8 +24,11 @@ import '../../data/plans_repository.dart';
 import '../../data/reminders_store.dart';
 import '../../data/weather_service.dart';
 import '../../domain/city_palette.dart';
+import '../../domain/city_places.dart';
+import '../../domain/day_schedule.dart' as sched;
 import '../../domain/destination_profiles.dart';
 import '../../domain/place_coords.dart';
+import '../../domain/place_image_resolver.dart';
 import '../../domain/types.dart';
 import '../auth/auth_repository.dart';
 import '../shared/place_detail_sheet.dart';
@@ -41,26 +44,23 @@ import '../viewer/reward_map_screen.dart';
 import '../viewer/viewer_theme.dart';
 import '../viewer/weather_screen.dart';
 import 'plan_providers.dart';
-import 'train_plan_view.dart';
 
 // ---------------------------------------------------------------------------
 // Tarih yardımcıları — dile göre ay/gün dizisi (intl locale'e bağlı DEĞİL).
 // ---------------------------------------------------------------------------
 
-/// "2025-05-13" → "13 Mayıs 2025, Salı" (tr) / "May 13 2025, Tuesday" (en).
-/// [weekdayHint] yalnızca TR'de kullanılır (domain verisi Türkçedir); EN'de
-/// gün adı tarihten hesaplanır.
-String _formatDateLong(String isoDate, AppLang lang, {String? weekdayHint}) {
+/// "1. Gün Cuma" (tr) / "Day 1 Friday" (en). Rozet zaten tarihi gösterdiğinden
+/// başlık satırı gün sırası + hafta gününü verir.
+String _formatDayTitle(String isoDate, int dayNumber, AppLang lang,
+    {String? weekdayHint}) {
   final d = DateTime.tryParse(isoDate);
-  if (d == null) return isoDate;
-  final months = L10n.monthsFor(lang);
   final weekdays = L10n.weekdaysFor(lang);
   final wd = (lang == AppLang.tr && weekdayHint?.isNotEmpty == true)
       ? weekdayHint!
-      : weekdays[d.weekday];
+      : (d != null ? weekdays[d.weekday] : '');
   return lang == AppLang.en
-      ? '${months[d.month]} ${d.day} ${d.year}, $wd'
-      : '${d.day} ${months[d.month]} ${d.year}, $wd';
+      ? 'Day $dayNumber${wd.isNotEmpty ? ' $wd' : ''}'
+      : '$dayNumber. Gün${wd.isNotEmpty ? ' $wd' : ''}';
 }
 
 int _daysUntil(String iso) {
@@ -102,6 +102,14 @@ int? _timeToMinutes(String? t) {
   final m = int.tryParse(parts[1]);
   if (h == null || m == null) return null;
   return h * 60 + m;
+}
+
+/// Dakika (0..1439) → "HH:mm".
+String _minutesToTime(int mins) {
+  final m = mins.clamp(0, 24 * 60 - 1);
+  final h = m ~/ 60;
+  final mm = m % 60;
+  return '${h.toString().padLeft(2, '0')}:${mm.toString().padLeft(2, '0')}';
 }
 
 // ---------------------------------------------------------------------------
@@ -165,21 +173,19 @@ class _ViewerBody extends ConsumerStatefulWidget {
 class _ViewerBodyState extends ConsumerState<_ViewerBody>
     with WidgetsBindingObserver {
   final _scrollController = ScrollController();
+  final _activeDayKey = GlobalKey();
   bool _autoScrolled = false;
+
+  /// Akordiyon: aynı anda YALNIZCA bir gün açık. Bir güne tıklanınca o açılır,
+  /// diğerleri kapanır. null = henüz belirlenmedi (ilk build'de aktif güne
+  /// ayarlanır). -1 = hepsi kapalı (açık günü tekrar kapatınca).
+  int? _expandedDayIndex;
 
   /// Düzenleme modu — üst bardaki ✎ simgesine basılınca aktif olur.
   /// Bu modda: aynı gün içinde sıralama, başka güne taşıma ve kaldırma
   /// aksiyonları her item için görünür. Kayıt her mutasyonda anlık yapılır
   /// (`plansRepositoryProvider.save`).
   bool _editMode = false;
-
-  /// Tren (top-down) görünüm tercihi. null = otomatik (≥5 gün ise açık).
-  /// Kullanıcı üst bardaki tren/liste ikonuyla değiştirince sabitlenir.
-  bool? _trainModeOverride;
-
-  /// Tren görünümünde bir vagona basınca ilgili güne kaydırmak için, her
-  /// günün kartına atanan GlobalKey (date → key).
-  final Map<String, GlobalKey> _dayKeys = {};
 
   /// Tarih (YYYY-MM-DD) → o günün hava tahmini (o tarihte hangi destinasyondayız
   /// ise oradan). Open-Meteo'dan bir kez çekilir; hata sessiz.
@@ -244,10 +250,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
 
   void _autoScrollToActive() {
     if (_autoScrolled || !mounted) return;
-    final days = _sortedDays;
-    if (days.isEmpty) return;
-    final activeDate = days[_activeDayIndex(days)].date;
-    final ctx = _dayKeys[activeDate]?.currentContext;
+    final ctx = _activeDayKey.currentContext;
     if (ctx == null) return;
     _autoScrolled = true;
     Scrollable.ensureVisible(
@@ -257,61 +260,6 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
       alignment: 0.05, // aktif günü üste yakın konumla
     );
   }
-
-  /// Tren görünümünde bir vagona basınca: liste görünümüne geç ve o güne
-  /// yumuşakça kaydır.
-  void _openDayFromTrain(String date) {
-    setState(() => _trainModeOverride = false);
-    _autoScrolled = true; // otomatik aktif-güne kaydırmayı devre dışı bırak
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final ctx = _dayKeys[date]?.currentContext;
-      if (ctx == null) return;
-      Scrollable.ensureVisible(
-        ctx,
-        duration: const Duration(milliseconds: 450),
-        curve: Curves.easeOutCubic,
-        alignment: 0.05,
-      );
-    });
-  }
-
-  /// Üst bardaki tren/liste ikonu — görünümü değiştirir.
-  void _toggleTrainMode() {
-    final days = _sortedDays;
-    final current = days.length >= 5 && (_trainModeOverride ?? true);
-    setState(() => _trainModeOverride = !current);
-  }
-
-  /// Sıralı günlerden tren vagonu verisi üretir (şehir bazlı renk + tarih).
-  List<TrainCarData> _buildTrainCars(
-    List<DayPlan> days,
-    int activeIndex,
-    ViewerPalette palette,
-  ) {
-    final lang = LanguageScope.of(context).lang;
-    final dests = _sortedDestinations;
-    final cars = <TrainCarData>[];
-    for (var i = 0; i < days.length; i++) {
-      final day = days[i];
-      final dest = getDestinationForDate(dests, day.date);
-      final color = cityColorFor(dests, dest?.id);
-      final parsed = DateTime.tryParse(day.date);
-      cars.add(TrainCarData(
-        date: day.date,
-        dayNumber: day.dayNumber,
-        weekdayShort: trainWeekdayShort(lang, parsed, day.weekday),
-        dayOfMonth: parsed != null ? '${parsed.day}' : '',
-        city: dest?.city ?? '',
-        subtitle: day.theme,
-        color: color,
-        isPast: i < activeIndex,
-        isActive: i == activeIndex,
-      ));
-    }
-    return cars;
-  }
-
 
   @override
   void dispose() {
@@ -326,10 +274,8 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
     final trip = widget.trip;
     final days = _sortedDays;
     final activeIndex = _activeDayIndex(days);
-    // Tren (top-down) görünüm yalnızca ≥5 günlük gezilerde anlamlı — kısa
-    // gezilerde klasik liste kalır. Kullanıcı tercihi varsa o kazanır.
-    final trainAvailable = days.length >= 5;
-    final trainMode = trainAvailable && (_trainModeOverride ?? true);
+    // İlk build'de akordiyon varsayılanı: aktif gün açık.
+    _expandedDayIndex ??= activeIndex;
 
     // Minimalize edilmiş viewer: sadece üst bar + doğrudan gün akışı. Uçuş
     // özeti, konaklama, metrikler ve tüm aksiyon butonları drawer içinde.
@@ -361,9 +307,6 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
               editMode: _editMode,
               onToggleEdit: _toggleEditMode,
               onRebuild: _confirmRebuild,
-              showTrainToggle: trainAvailable,
-              trainMode: trainMode,
-              onToggleTrain: _toggleTrainMode,
             ),
             Expanded(
               child: ListView(
@@ -372,19 +315,10 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                 children: [
                   if (days.isEmpty)
                     _EmptyDaysCard(palette: palette)
-                  else if (trainMode)
-                    TrainPlanView(
-                      palette: palette,
-                      cars: _buildTrainCars(days, activeIndex, palette),
-                      onTapCar: _openDayFromTrain,
-                    )
                   else
                     for (var i = 0; i < days.length; i++)
                       _DayCard(
-                        key: _dayKeys.putIfAbsent(
-                          days[i].date,
-                          () => GlobalKey(),
-                        ),
+                        key: i == activeIndex ? _activeDayKey : null,
                         day: days[i],
                         palette: palette,
                         dest: getDestinationForDate(
@@ -401,6 +335,11 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                         forecast: _forecast[days[i].date],
                         isPast: i < activeIndex,
                         isActive: i == activeIndex,
+                        expanded: _editMode || _expandedDayIndex == i,
+                        onToggleExpand: () => setState(() {
+                          _expandedDayIndex =
+                              _expandedDayIndex == i ? -1 : i;
+                        }),
                         editMode: _editMode,
                         allDays: days,
                         onOpenItem: _openItem,
@@ -408,6 +347,8 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                         onMoveWithinDay: _moveWithinDay,
                         onMoveItemToDay: _moveItemToDay,
                         onDeleteItem: _deleteItem,
+                        onEditItemTime: _editItemTime,
+                        onAddItem: _addItemToDay,
                       ),
                 ],
               ),
@@ -450,13 +391,91 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
     HomeWidgetHook.pushFromTrip(widget.trip);
   }
 
-  /// Aynı gün içinde item sırasını değiştirir (yukarı/aşağı).
+  /// Aynı gün içinde item sırasını değiştirir (yukarı/aşağı ya da sürükleme).
+  /// Yeni sıraya göre saatler makul aralıklarla yeniden yazılır.
   void _moveWithinDay(DayPlan day, int oldIdx, int newIdx) {
     if (newIdx < 0 || newIdx >= day.items.length || oldIdx == newIdx) return;
     final item = day.items.removeAt(oldIdx);
     day.items.insert(newIdx, item);
+    sched.redistributeDayTimes(day.items);
     _persistAndRefresh();
   }
+
+  /// Bir durağın saatini düzenler (time picker). SADECE o durağın saati
+  /// değişir (kullanıcının girdiği saate saygı) ve gün saate göre yeniden
+  /// sıralanır. Diğer durakların saatleri KORUNUR — redistribute yapılmaz.
+  Future<void> _editItemTime(DayPlan day, int index) async {
+    if (index < 0 || index >= day.items.length) return;
+    final it = day.items[index];
+    final cur = sched.timeToMinutes(it.time ?? it.scheduledTime) ?? 9 * 60;
+    final palette = ref.read(viewerPaletteProvider);
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: cur ~/ 60, minute: cur % 60),
+      builder: (ctx, child) => Theme(
+        data: palette.toThemeData(),
+        child: MediaQuery(
+          data: MediaQuery.of(ctx).copyWith(alwaysUse24HourFormat: true),
+          child: child!,
+        ),
+      ),
+    );
+    if (picked == null) return;
+    sched.applyManualTimeEdit(
+        day.items, index, picked.hour * 60 + picked.minute);
+    _persistAndRefresh();
+  }
+
+  /// Bir güne yeni durak ekler — şehir bazlı autocomplete + saat girişli sheet.
+  Future<void> _addItemToDay(DayPlan day, TripDestination? dest) async {
+    // Varsayılan saat: son durağın saati + 90 dk, yoksa 09:00.
+    int defaultMin = 9 * 60;
+    if (day.items.isNotEmpty) {
+      final last = _timeToMinutes(
+          day.items.last.time ?? day.items.last.scheduledTime);
+      if (last != null) defaultMin = (last + 90).clamp(0, 24 * 60 - 1);
+    }
+    final result = await showModalBottomSheet<_AddPlaceResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _AddPlaceSheet(
+        palette: ref.read(viewerPaletteProvider),
+        city: _cityDataForDest(dest),
+        cityLabel: dest?.city ?? '',
+        defaultTime: _minutesToTime(defaultMin),
+      ),
+    );
+    if (result == null) return;
+    final item = TimelineItem(
+      id: 'u-${DateTime.now().microsecondsSinceEpoch}',
+      title: result.title,
+      time: result.time,
+      scheduledTime: result.time,
+      kind: result.kind,
+      lat: result.lat,
+      lng: result.lng,
+      durationMin: 90,
+    );
+    sched.insertItemSorted(day.items, item);
+    _persistAndRefresh();
+    if (!mounted) return;
+    final s = LanguageScope.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(s.p('viewer.edit.addedSnack', {'title': item.title}))),
+    );
+  }
+
+  /// Bir destinasyonun şehrini küratörlü [CityData]'ya eşler (autocomplete için).
+  CityData? _cityDataForDest(TripDestination? dest) {
+    if (dest == null) return null;
+    final city = dest.city.toLowerCase();
+    for (final c in kCityData) {
+      if (c.aliases.any((a) => city.contains(a))) return c;
+    }
+    return null;
+  }
+
 
   /// Item'ı başka bir gün planına taşır. Yeni günün sonuna eklenir.
   void _moveItemToDay(DayPlan sourceDay, int itemIdx, DayPlan targetDay) {
@@ -486,6 +505,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
     final s = LanguageScope.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
+        duration: const Duration(seconds: 5),
         content: Text(s.p('viewer.edit.deletedSnack', {'title': removed.title})),
         action: SnackBarAction(
           label: s.s('viewer.edit.undo'),
@@ -761,9 +781,6 @@ class _TopStatusBar extends StatefulWidget {
     required this.editMode,
     required this.onToggleEdit,
     required this.onRebuild,
-    required this.showTrainToggle,
-    required this.trainMode,
-    required this.onToggleTrain,
   });
 
   final Trip trip;
@@ -776,11 +793,6 @@ class _TopStatusBar extends StatefulWidget {
 
   /// Onay dialog'u ile planı planner ekranından baştan oluşturur.
   final VoidCallback onRebuild;
-
-  /// ≥5 günlük gezilerde tren/liste görünüm geçişi ikonu gösterilir.
-  final bool showTrainToggle;
-  final bool trainMode;
-  final VoidCallback onToggleTrain;
 
   @override
   State<_TopStatusBar> createState() => _TopStatusBarState();
@@ -884,17 +896,6 @@ class _TopStatusBarState extends State<_TopStatusBar>
                   ),
                 ),
                 // Sağa sabit aksiyonlar: bildirim + düzenle (+ edit modunda baştan oluştur).
-                if (widget.showTrainToggle && !widget.editMode)
-                  _BarIconButton(
-                    icon: widget.trainMode
-                        ? Icons.view_agenda_outlined
-                        : Icons.train_outlined,
-                    color: onColor,
-                    tooltip: widget.trainMode
-                        ? s.s('viewer.tt.viewList')
-                        : s.s('viewer.tt.viewTrain'),
-                    onTap: widget.onToggleTrain,
-                  ),
                 _BarBellButton(
                   color: onColor,
                   onTap: () => context.push('/reminders'),
@@ -1117,6 +1118,8 @@ class _DayCard extends StatefulWidget {
     this.forecast,
     required this.isPast,
     required this.isActive,
+    required this.expanded,
+    required this.onToggleExpand,
     required this.editMode,
     required this.allDays,
     required this.onOpenItem,
@@ -1124,6 +1127,8 @@ class _DayCard extends StatefulWidget {
     required this.onMoveWithinDay,
     required this.onMoveItemToDay,
     required this.onDeleteItem,
+    required this.onEditItemTime,
+    required this.onAddItem,
   });
   final DayPlan day;
   final ViewerPalette palette;
@@ -1132,6 +1137,12 @@ class _DayCard extends StatefulWidget {
   final DayForecast? forecast;
   final bool isPast;
   final bool isActive;
+
+  /// Akordiyon: bu gün açık mı? (parent tek-açık mantığını yönetir).
+  final bool expanded;
+
+  /// Başlığa tıklanınca aç/kapa (parent state'i günceller).
+  final VoidCallback onToggleExpand;
 
   /// True ise her item için sıralama/taşıma/kaldırma menüsü çıkar; itemler
   /// tıklandığında normal detay yerine bu menüyü de gösterir.
@@ -1153,19 +1164,17 @@ class _DayCard extends StatefulWidget {
   /// Item'ı plandan kaldır (SnackBar ile undo verilir).
   final void Function(DayPlan day, int itemIdx) onDeleteItem;
 
+  /// Bir durağın saatini düzenle (time picker) → gün yeniden saatlenir.
+  final void Function(DayPlan day, int itemIdx) onEditItemTime;
+
+  /// Bu güne yeni durak ekle (autocomplete + saat sheet).
+  final void Function(DayPlan day, TripDestination? dest) onAddItem;
+
   @override
   State<_DayCard> createState() => _DayCardState();
 }
 
 class _DayCardState extends State<_DayCard> {
-  late bool _expanded;
-
-  @override
-  void initState() {
-    super.initState();
-    _expanded = widget.isActive; // aktif gün açık, diğerleri kapalı
-  }
-
   /// Aktif günde, şimdiki dakikaya göre bir sonraki gelecek aktivitenin index'i.
   int? _nextUpcomingIndex() {
     if (!widget.isActive) return null;
@@ -1189,9 +1198,9 @@ class _DayCardState extends State<_DayCard> {
   Widget build(BuildContext context) {
     final p = widget.palette;
     final day = widget.day;
-    // Düzenleme modunda tüm günleri zorla aç — kullanıcı kapalı bir gündeki
-    // item'ı düzenleyemez, hedef güne taşıma için de görünür olması iyi.
-    final expanded = widget.editMode ? true : _expanded;
+    // Akordiyon: parent tek-açık mantığını yönetir. Düzenleme modunda tüm
+    // günler zorla açık (kullanıcı kapalı gündeki item'ı düzenleyemez).
+    final expanded = widget.editMode ? true : widget.expanded;
     final nextIdx = _nextUpcomingIndex();
     final nowMin = DateTime.now().hour * 60 + DateTime.now().minute;
 
@@ -1224,7 +1233,7 @@ class _DayCardState extends State<_DayCard> {
             borderRadius: BorderRadius.circular(18),
             onTap: widget.editMode
                 ? null
-                : () => setState(() => _expanded = !_expanded),
+                : widget.onToggleExpand,
             child: Padding(
               padding: const EdgeInsets.all(14),
               child: Row(
@@ -1241,8 +1250,9 @@ class _DayCardState extends State<_DayCard> {
                           children: [
                             Flexible(
                               child: Text(
-                                _formatDateLong(
+                                _formatDayTitle(
                                   day.date,
+                                  day.dayNumber,
                                   LanguageScope.of(context).lang,
                                   weekdayHint: day.weekday,
                                 ),
@@ -1302,65 +1312,128 @@ class _DayCardState extends State<_DayCard> {
                 children: [
                   _DayMeta(day: day, palette: p),
                   const SizedBox(height: 4),
-                  if (day.items.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Text(
-                        LanguageScope.of(context).s('viewer.day.noItems'),
-                        style: TextStyle(color: p.textMuted),
+                  if (widget.editMode) ...[
+                    // Düzenleme: sürükle-bırak sıralama + sol ok butonları +
+                    // saate dokunarak düzenleme. Boşsa doğrudan ekleme çubuğu.
+                    if (day.items.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Text(
+                          LanguageScope.of(context).s('viewer.day.noItems'),
+                          style: TextStyle(color: p.textMuted),
+                        ),
+                      )
+                    else
+                      ReorderableListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        buildDefaultDragHandles: false,
+                        itemCount: day.items.length,
+                        // Sürüklenirken temiz bir "kaldırma" efekti: hafif
+                        // büyüme + yumuşak gölge. Varsayılan Material yukarı
+                        // sıçramasını ve gri kartı gizler.
+                        proxyDecorator: (child, index, anim) {
+                          return AnimatedBuilder(
+                            animation: anim,
+                            builder: (context, _) {
+                              final t = Curves.easeInOut.transform(anim.value);
+                              final scale = 1.0 + 0.03 * t;
+                              return Transform.scale(
+                                scale: scale,
+                                child: Material(
+                                  color: Colors.transparent,
+                                  elevation: 0,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(14),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black
+                                              .withValues(alpha: 0.22 * t),
+                                          blurRadius: 18 * t,
+                                          offset: Offset(0, 6 * t),
+                                        ),
+                                      ],
+                                    ),
+                                    child: child,
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        onReorder: (oldIndex, newIndex) {
+                          if (newIndex > oldIndex) newIndex -= 1;
+                          widget.onMoveWithinDay(day, oldIndex, newIndex);
+                        },
+                        itemBuilder: (ctx, i) => _EditableTimelineRow(
+                          key: ValueKey(day.items[i].id),
+                          day: day,
+                          index: i,
+                          palette: p,
+                          dest: widget.dest,
+                          allDays: widget.allDays,
+                          onMoveWithinDay: widget.onMoveWithinDay,
+                          onMoveItemToDay: widget.onMoveItemToDay,
+                          onDeleteItem: widget.onDeleteItem,
+                          onEditTime: () => widget.onEditItemTime(day, i),
+                          onOpen: () =>
+                              widget.onOpenItem(day.items[i], widget.dest),
+                        ),
                       ),
-                    )
-                  else
-                    for (var i = 0; i < day.items.length; i++)
-                      widget.editMode
-                          ? _EditableTimelineRow(
-                              day: day,
-                              index: i,
-                              palette: p,
-                              dest: widget.dest,
-                              allDays: widget.allDays,
-                              onMoveWithinDay: widget.onMoveWithinDay,
-                              onMoveItemToDay: widget.onMoveItemToDay,
-                              onDeleteItem: widget.onDeleteItem,
-                              onOpen: () =>
-                                  widget.onOpenItem(day.items[i], widget.dest),
-                            )
-                          : _TimelineRow(
-                              item: day.items[i],
-                              palette: p,
-                              dest: widget.dest,
-                              isNext: i == nextIdx,
-                              isPastItem: widget.isActive &&
-                                  _isItemPast(day.items[i], nowMin),
-                              isFirst: i == 0,
-                              isLast: i == day.items.length - 1,
-                              onOpen: () =>
-                                  widget.onOpenItem(day.items[i], widget.dest),
-                            ),
-                  if (day.items.isNotEmpty) ...[
                     const SizedBox(height: 6),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        onPressed: () => widget.onOpenMap(day),
-                        icon: Icon(Icons.map_outlined,
-                            size: 18, color: p.accent),
-                        label: Text(
-                          LanguageScope.of(context).s('viewer.day.viewOnMap'),
-                          style: TextStyle(
-                            color: p.accent,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
+                    _AddPlaceBar(
+                      palette: p,
+                      onTap: () => widget.onAddItem(day, widget.dest),
+                    ),
+                  ] else ...[
+                    if (day.items.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Text(
+                          LanguageScope.of(context).s('viewer.day.noItems'),
+                          style: TextStyle(color: p.textMuted),
+                        ),
+                      )
+                    else
+                      for (var i = 0; i < day.items.length; i++)
+                        _TimelineRow(
+                          item: day.items[i],
+                          palette: p,
+                          dest: widget.dest,
+                          isNext: i == nextIdx,
+                          isPastItem: widget.isActive &&
+                              _isItemPast(day.items[i], nowMin),
+                          isFirst: i == 0,
+                          isLast: i == day.items.length - 1,
+                          onOpen: () =>
+                              widget.onOpenItem(day.items[i], widget.dest),
+                        ),
+                    if (day.items.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: () => widget.onOpenMap(day),
+                          icon: Icon(Icons.map_outlined,
+                              size: 18, color: p.accent),
+                          label: Text(
+                            LanguageScope.of(context).s('viewer.day.viewOnMap'),
+                            style: TextStyle(
+                              color: p.accent,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            minimumSize: const Size(0, 36),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                         ),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          minimumSize: const Size(0, 36),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ],
               ),
@@ -1533,10 +1606,11 @@ class _DayBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final lang = LanguageScope.of(context).lang;
     final d = DateTime.tryParse(day.date);
-    // EN'de gün adını tarihten hesapla (day.weekday hint'i Türkçe domain verisi).
-    final wdShort = (lang == AppLang.tr && day.weekday?.isNotEmpty == true)
-        ? day.weekday!
-        : (d != null ? L10n.weekdaysFor(lang)[d.weekday] : '');
+    // Rozet: büyük = ayın günü (ör. 25), küçük = kısa ay adı (ör. Ara).
+    final dayOfMonth = d != null ? '${d.day}' : '${day.dayNumber}';
+    final monthFull = d != null ? L10n.monthsFor(lang)[d.month] : '';
+    final monthShort =
+        monthFull.length > 3 ? monthFull.substring(0, 3) : monthFull;
     return Container(
       width: 54,
       height: 54,
@@ -1548,7 +1622,7 @@ class _DayBadge extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            '${day.dayNumber}',
+            dayOfMonth,
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w800,
@@ -1556,9 +1630,9 @@ class _DayBadge extends StatelessWidget {
               height: 1,
             ),
           ),
-          if (wdShort.isNotEmpty)
+          if (monthShort.isNotEmpty)
             Text(
-              wdShort.length > 3 ? wdShort.substring(0, 3) : wdShort,
+              monthShort,
               style: const TextStyle(
                 color: Colors.white70,
                 fontSize: 10,
@@ -1604,9 +1678,23 @@ class _DayMeta extends StatelessWidget {
       ));
     }
     if (chips.isEmpty) return const SizedBox.shrink();
+    // Tek satır: alta sarkmasın, taşarsa yatay kaydırılır (Apple tarzı chip şeridi).
     return Padding(
       padding: const EdgeInsets.only(top: 4, bottom: 4),
-      child: Wrap(spacing: 6, runSpacing: 6, children: chips),
+      child: SizedBox(
+        height: 28,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.zero,
+          itemCount: chips.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 6),
+          itemBuilder: (_, i) => Align(
+            alignment: Alignment.centerLeft,
+            child: chips[i],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1655,6 +1743,7 @@ IconData _kindIcon(TimelineItemKind? k) => switch (k) {
 // ---------------------------------------------------------------------------
 class _EditableTimelineRow extends StatelessWidget {
   const _EditableTimelineRow({
+    super.key,
     required this.day,
     required this.index,
     required this.palette,
@@ -1663,6 +1752,7 @@ class _EditableTimelineRow extends StatelessWidget {
     required this.onMoveWithinDay,
     required this.onMoveItemToDay,
     required this.onDeleteItem,
+    required this.onEditTime,
     required this.onOpen,
   });
 
@@ -1675,109 +1765,724 @@ class _EditableTimelineRow extends StatelessWidget {
   final void Function(DayPlan source, int itemIdx, DayPlan target)
       onMoveItemToDay;
   final void Function(DayPlan day, int itemIdx) onDeleteItem;
+  final VoidCallback onEditTime;
   final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
     final p = palette;
     final s = LanguageScope.of(context);
+    final item = day.items[index];
     final isFirst = index == 0;
     final isLast = index == day.items.length - 1;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: _TimelineRow(
-            item: day.items[index],
-            palette: p,
-            dest: dest,
-            isNext: false,
-            isPastItem: false,
-            isFirst: isFirst,
-            isLast: isLast,
-            onOpen: onOpen,
-          ),
+    final time = item.time ?? item.scheduledTime ?? '--:--';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Container(
+        decoration: BoxDecoration(
+          color: p.elevated.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: p.border),
         ),
-        // Sıralama + taşıma + kaldırma popup menüsü.
-        PopupMenuButton<String>(
-          tooltip: '',
-          icon: Icon(Icons.more_vert, color: p.textMuted, size: 20),
-          onSelected: (value) async {
-            if (value == 'up') {
-              onMoveWithinDay(day, index, index - 1);
-            } else if (value == 'down') {
-              onMoveWithinDay(day, index, index + 1);
-            } else if (value == 'delete') {
-              onDeleteItem(day, index);
-            } else if (value.startsWith('day:')) {
-              final targetIdx = int.parse(value.substring(4));
-              onMoveItemToDay(day, index, allDays[targetIdx]);
-            }
-          },
-          itemBuilder: (ctx) => <PopupMenuEntry<String>>[
-            PopupMenuItem(
-              value: 'up',
-              enabled: !isFirst,
-              child: Row(children: [
-                const Icon(Icons.arrow_upward, size: 18),
-                const SizedBox(width: 10),
-                Text(s.s('viewer.edit.moveUp')),
-              ]),
+        padding: const EdgeInsets.fromLTRB(4, 6, 6, 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Sol ray: yukarı ok · sürükle tutamacı · aşağı ok.
+            SizedBox(
+              width: 30,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _MiniIconBtn(
+                    icon: Icons.keyboard_arrow_up_rounded,
+                    color: p.textPrimary,
+                    enabled: !isFirst,
+                    onTap: () => onMoveWithinDay(day, index, index - 1),
+                  ),
+                  ReorderableDragStartListener(
+                    index: index,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 1),
+                      child: Icon(Icons.drag_indicator,
+                          size: 15, color: p.textMuted),
+                    ),
+                  ),
+                  _MiniIconBtn(
+                    icon: Icons.keyboard_arrow_down_rounded,
+                    color: p.textPrimary,
+                    enabled: !isLast,
+                    onTap: () => onMoveWithinDay(day, index, index + 1),
+                  ),
+                ],
+              ),
             ),
-            PopupMenuItem(
-              value: 'down',
-              enabled: !isLast,
-              child: Row(children: [
-                const Icon(Icons.arrow_downward, size: 18),
-                const SizedBox(width: 10),
-                Text(s.s('viewer.edit.moveDown')),
-              ]),
-            ),
-            if (allDays.length > 1) ...[
-              const PopupMenuDivider(),
-              PopupMenuItem<String>(
-                enabled: false,
-                child: Text(
-                  s.s('viewer.edit.moveToDayTitle'),
-                  style: TextStyle(color: p.textMuted, fontSize: 12),
+            const SizedBox(width: 2),
+            // Saat rozeti — dokununca time picker.
+            InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: onEditTime,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  color: p.accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: p.accent.withValues(alpha: 0.35)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      time,
+                      style: TextStyle(
+                        color: p.accent,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    Icon(Icons.edit, size: 10, color: p.accent),
+                  ],
                 ),
               ),
-              for (var di = 0; di < allDays.length; di++)
-                if (!identical(allDays[di], day))
-                  PopupMenuItem<String>(
-                    value: 'day:$di',
-                    child: Row(children: [
-                      const Icon(Icons.calendar_today, size: 16),
-                      const SizedBox(width: 10),
-                      Expanded(
+            ),
+            const SizedBox(width: 8),
+            _ItemThumb(item: item, dest: dest, palette: p, size: 40),
+            const SizedBox(width: 10),
+            // Başlık + açıklama — tıklanınca detay.
+            Expanded(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: onOpen,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      item.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: p.textPrimary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13.5,
+                      ),
+                    ),
+                    if (item.description != null &&
+                        item.description!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 1),
                         child: Text(
-                          'Gün ${allDays[di].dayNumber} · '
-                          '${allDays[di].date}',
+                          item.description!,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
+                          style:
+                              TextStyle(color: p.textSecondary, fontSize: 11.5),
                         ),
                       ),
-                    ]),
-                  ),
-            ],
-            const PopupMenuDivider(),
-            PopupMenuItem(
-              value: 'delete',
-              child: Row(children: [
-                Icon(Icons.delete_outline,
-                    size: 18, color: Colors.red.shade400),
-                const SizedBox(width: 10),
-                Text(
-                  s.s('viewer.edit.deleteItem'),
-                  style: TextStyle(color: Colors.red.shade400),
+                  ],
                 ),
-              ]),
+              ),
+            ),
+            // Taşı / kaldır menüsü.
+            PopupMenuButton<String>(
+              tooltip: '',
+              icon: Icon(Icons.more_vert, color: p.textMuted, size: 20),
+              onSelected: (value) {
+                if (value == 'delete') {
+                  onDeleteItem(day, index);
+                } else if (value.startsWith('day:')) {
+                  final targetIdx = int.parse(value.substring(4));
+                  onMoveItemToDay(day, index, allDays[targetIdx]);
+                }
+              },
+              itemBuilder: (ctx) => <PopupMenuEntry<String>>[
+                if (allDays.length > 1) ...[
+                  PopupMenuItem<String>(
+                    enabled: false,
+                    child: Text(
+                      s.s('viewer.edit.moveToDayTitle'),
+                      style: TextStyle(color: p.textMuted, fontSize: 12),
+                    ),
+                  ),
+                  for (var di = 0; di < allDays.length; di++)
+                    if (!identical(allDays[di], day))
+                      PopupMenuItem<String>(
+                        value: 'day:$di',
+                        child: Row(children: [
+                          const Icon(Icons.calendar_today, size: 16),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Gün ${allDays[di].dayNumber} · '
+                              '${allDays[di].date}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ]),
+                      ),
+                  const PopupMenuDivider(),
+                ],
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Row(children: [
+                    Icon(Icons.delete_outline,
+                        size: 18, color: Colors.red.shade400),
+                    const SizedBox(width: 10),
+                    Text(
+                      s.s('viewer.edit.deleteItem'),
+                      style: TextStyle(color: Colors.red.shade400),
+                    ),
+                  ]),
+                ),
+              ],
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 }
+
+/// Küçük, dokunması kolay ok butonu (edit modu sıralama okları).
+class _MiniIconBtn extends StatelessWidget {
+  const _MiniIconBtn({
+    required this.icon,
+    required this.color,
+    required this.enabled,
+    required this.onTap,
+  });
+  final IconData icon;
+  final Color color;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkResponse(
+      onTap: enabled ? onTap : null,
+      radius: 16,
+      child: Icon(
+        icon,
+        size: 20,
+        color: enabled ? color : color.withValues(alpha: 0.25),
+      ),
+    );
+  }
+}
+
+/// Timeline durağı için küçük yuvarlatılmış görsel. `PlaceImageResolver` ile
+/// çözülür (küratörlü → Wikipedia). Görsel yoksa tür ikonuna düşer.
+class _ItemThumb extends StatefulWidget {
+  const _ItemThumb({
+    required this.item,
+    required this.dest,
+    required this.palette,
+    this.size = 40,
+  });
+  final TimelineItem item;
+  final TripDestination? dest;
+  final ViewerPalette palette;
+  final double size;
+
+  @override
+  State<_ItemThumb> createState() => _ItemThumbState();
+}
+
+class _ItemThumbState extends State<_ItemThumb> {
+  String? _url;
+  bool _done = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolve();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ItemThumb old) {
+    super.didUpdateWidget(old);
+    if (old.item.title != widget.item.title) {
+      _done = false;
+      _url = null;
+      _resolve();
+    }
+  }
+
+  bool get _eligible {
+    final k = widget.item.kind;
+    // Şehirler-arası geçiş bandının kendi tasarımı var; thumb gösterme.
+    if (k == TimelineItemKind.transport &&
+        widget.item.title.contains('→')) {
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _resolve() async {
+    if (!_eligible) {
+      setState(() => _done = true);
+      return;
+    }
+    final urls = await PlaceImageResolver.instance
+        .resolve(widget.item.title, city: widget.dest?.city);
+    if (!mounted) return;
+    setState(() {
+      _url = urls.isNotEmpty ? urls.first : null;
+      _done = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = widget.palette;
+    final size = widget.size;
+    final fallback = Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: p.elevated,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: p.border),
+      ),
+      alignment: Alignment.center,
+      child: Icon(_kindIcon(widget.item.kind), size: 18, color: p.textMuted),
+    );
+    if (!_done || _url == null) return fallback;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: Image.network(
+        _url!,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        loadingBuilder: (_, child, prog) =>
+            prog == null ? child : fallback,
+        errorBuilder: (_, __, ___) => fallback,
+      ),
+    );
+  }
+}
+
+/// Düzenleme modunda her günün altında beliren "durak ekle" çubuğu.
+class _AddPlaceBar extends StatelessWidget {
+  const _AddPlaceBar({required this.palette, required this.onTap});
+  final ViewerPalette palette;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    return Padding(
+      padding: const EdgeInsets.only(top: 2, bottom: 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: DottedBorderBox(
+            color: p.accent.withValues(alpha: 0.55),
+            radius: 14,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add_rounded, size: 18, color: p.accent),
+                  const SizedBox(width: 8),
+                  Text(
+                    LanguageScope.of(context).s('viewer.edit.addPlace'),
+                    style: TextStyle(
+                      color: p.accent,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Kesikli çerçeveli kutu (ekle çubuğu için). Basit CustomPaint.
+class DottedBorderBox extends StatelessWidget {
+  const DottedBorderBox({
+    super.key,
+    required this.child,
+    required this.color,
+    this.radius = 12,
+  });
+  final Widget child;
+  final Color color;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _DashedBorderPainter(color: color, radius: radius),
+      child: child,
+    );
+  }
+}
+
+class _DashedBorderPainter extends CustomPainter {
+  _DashedBorderPainter({required this.color, required this.radius});
+  final Color color;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.4
+      ..style = PaintingStyle.stroke;
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      Radius.circular(radius),
+    );
+    final path = Path()..addRRect(rrect);
+    const dash = 6.0;
+    const gap = 4.0;
+    for (final metric in path.computeMetrics()) {
+      var dist = 0.0;
+      while (dist < metric.length) {
+        final next = dist + dash;
+        canvas.drawPath(
+          metric.extractPath(dist, next.clamp(0, metric.length)),
+          paint,
+        );
+        dist = next + gap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedBorderPainter old) =>
+      old.color != color || old.radius != radius;
+}
+
+/// "Durak ekle" sheet sonucu.
+class _AddPlaceResult {
+  const _AddPlaceResult({
+    required this.title,
+    required this.time,
+    required this.kind,
+    this.lat,
+    this.lng,
+  });
+  final String title;
+  final String time;
+  final TimelineItemKind kind;
+  final double? lat;
+  final double? lng;
+}
+
+/// Şehir bazlı autocomplete + saat girişli durak ekleme sheet'i.
+class _AddPlaceSheet extends StatefulWidget {
+  const _AddPlaceSheet({
+    required this.palette,
+    required this.city,
+    required this.cityLabel,
+    required this.defaultTime,
+  });
+  final ViewerPalette palette;
+  final CityData? city;
+  final String cityLabel;
+  final String defaultTime;
+
+  @override
+  State<_AddPlaceSheet> createState() => _AddPlaceSheetState();
+}
+
+class _AddPlaceSheetState extends State<_AddPlaceSheet> {
+  final _controller = TextEditingController();
+  late String _time = widget.defaultTime;
+  CityPlace? _selected;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  List<CityPlace> get _suggestions {
+    final q = _controller.text.trim().toLowerCase();
+    final all = widget.city?.places ?? const <CityPlace>[];
+    if (q.isEmpty) return all;
+    return all
+        .where((p) =>
+            p.name.toLowerCase().contains(q) ||
+            p.category.tr.toLowerCase().contains(q) ||
+            p.category.en.toLowerCase().contains(q))
+        .toList();
+  }
+
+  Future<void> _pickTime() async {
+    final cur = _timeToMinutes(_time) ?? 9 * 60;
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: cur ~/ 60, minute: cur % 60),
+      builder: (ctx, child) => Theme(
+        data: widget.palette.toThemeData(),
+        child: MediaQuery(
+          data: MediaQuery.of(ctx).copyWith(alwaysUse24HourFormat: true),
+          child: child!,
+        ),
+      ),
+    );
+    if (picked == null) return;
+    setState(() => _time = _minutesToTime(picked.hour * 60 + picked.minute));
+  }
+
+  void _submit() {
+    final q = _controller.text.trim();
+    if (_selected == null && q.isEmpty) return;
+    final result = _selected != null
+        ? _AddPlaceResult(
+            title: _selected!.name,
+            time: _time,
+            kind: _kindForCategory(_selected!.category.en),
+            lat: _selected!.lat,
+            lng: _selected!.lng,
+          )
+        : _AddPlaceResult(
+            title: q,
+            time: _time,
+            kind: TimelineItemKind.activity,
+          );
+    Navigator.of(context).pop(result);
+  }
+
+  TimelineItemKind _kindForCategory(String catEn) {
+    final c = catEn.toLowerCase();
+    if (c.contains('food')) return TimelineItemKind.meal;
+    return TimelineItemKind.activity;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = widget.palette;
+    final s = LanguageScope.of(context);
+    final lang = s.lang;
+    final suggestions = _suggestions;
+    final q = _controller.text.trim();
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Material(
+        type: MaterialType.transparency,
+        child: Container(
+          decoration: BoxDecoration(
+            color: p.card,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border.all(color: p.border),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+          child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 14),
+                decoration: BoxDecoration(
+                  color: p.textMuted.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Text(
+                  s.s('viewer.edit.addSheetTitle'),
+                  style: TextStyle(
+                    color: p.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const Spacer(),
+                if (widget.cityLabel.isNotEmpty)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: p.accent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '${widget.city?.emoji ?? '📍'} ${widget.cityLabel}',
+                      style: TextStyle(
+                        color: p.accent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            // Arama alanı.
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              onChanged: (_) => setState(() => _selected = null),
+              style: TextStyle(color: p.textPrimary),
+              decoration: InputDecoration(
+                hintText: s.s('viewer.edit.searchPlace'),
+                hintStyle: TextStyle(color: p.textMuted),
+                prefixIcon: Icon(Icons.search, color: p.textMuted),
+                filled: true,
+                fillColor: p.elevated,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: p.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: p.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: p.accent),
+                ),
+              ),
+              onSubmitted: (_) => _submit(),
+            ),
+            const SizedBox(height: 10),
+            // Öneri listesi (yükseklik sınırlı).
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 240),
+              child: suggestions.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      child: Text(
+                        q.isEmpty
+                            ? s.s('viewer.edit.searchPlace')
+                            : s.s('viewer.edit.noResults'),
+                        style: TextStyle(color: p.textMuted, fontSize: 13),
+                      ),
+                    )
+                  : ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: suggestions.length,
+                      separatorBuilder: (_, __) => Divider(
+                        height: 1,
+                        color: p.border.withValues(alpha: 0.5),
+                      ),
+                      itemBuilder: (_, i) {
+                        final place = suggestions[i];
+                        final sel = identical(_selected, place);
+                        return ListTile(
+                          dense: true,
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 6),
+                          leading: Text(place.emoji,
+                              style: const TextStyle(fontSize: 20)),
+                          title: Text(
+                            place.name,
+                            style: TextStyle(
+                              color: p.textPrimary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                          subtitle: Text(
+                            place.category.of(lang),
+                            style:
+                                TextStyle(color: p.textSecondary, fontSize: 12),
+                          ),
+                          trailing: sel
+                              ? Icon(Icons.check_circle,
+                                  color: p.accent, size: 20)
+                              : null,
+                          onTap: () {
+                            setState(() {
+                              _selected = place;
+                              _controller.text = place.name;
+                            });
+                          },
+                        );
+                      },
+                    ),
+            ),
+            const SizedBox(height: 12),
+            // Saat + Ekle.
+            Row(
+              children: [
+                InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: _pickTime,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: p.elevated,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: p.border),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.schedule, size: 18, color: p.accent),
+                        const SizedBox(width: 8),
+                        Text(
+                          _time,
+                          style: TextStyle(
+                            color: p.textPrimary,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: (_selected != null || q.isNotEmpty)
+                        ? _submit
+                        : null,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: p.accent,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      q.isNotEmpty && _selected == null
+                          ? s.p('viewer.edit.customPlace', {'q': q})
+                          : s.s('viewer.edit.add'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        ),
+      ),
+    );
+  }
+}
+
+
 
 class _TimelineRow extends StatelessWidget {
   const _TimelineRow({
@@ -1849,8 +2554,8 @@ class _TimelineRow extends StatelessWidget {
                 ),
               ),
             ),
-            Icon(_kindIcon(item.kind), size: 16, color: p.textMuted),
-            const SizedBox(width: 8),
+            _ItemThumb(item: item, dest: dest, palette: p),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1860,6 +2565,8 @@ class _TimelineRow extends StatelessWidget {
                       Flexible(
                         child: Text(
                           item.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: p.textPrimary,
                             fontWeight: FontWeight.w600,
@@ -1893,6 +2600,8 @@ class _TimelineRow extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 2),
                       child: Text(
                         item.description!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: p.textSecondary,
                           fontSize: 12,
@@ -2435,6 +3144,59 @@ class _Swatch extends StatelessWidget {
 //    aldı: asıl "iş" (günler) hemen görünsün diye.
 // ---------------------------------------------------------------------------
 
+/// İki adımlı hesap silme onay akışı — Apple 5.1.1(v).
+///
+/// 1. AlertDialog: "Hesabı silmek istiyor musun?" + net destructive uyarı
+/// 2. Onay verilirse `authRepository.deleteAccount()` çağrılır (RPC + signOut)
+/// 3. Sonuç SnackBar ile bildirilir; router auth ekranına yönlendirir
+Future<void> _confirmAndDeleteAccount(
+  BuildContext context,
+  WidgetRef ref,
+) async {
+  final s = LanguageScope.of(context);
+  final palette = ViewerPalette.of(context);
+  final confirmed = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: palette.card,
+      title: Text(
+        s.s('account.delete.title'),
+        style: TextStyle(color: palette.textPrimary, fontWeight: FontWeight.w700),
+      ),
+      content: Text(
+        s.s('account.delete.body'),
+        style: TextStyle(color: palette.textSecondary),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: Text(s.s('account.delete.cancel')),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(true),
+          style: TextButton.styleFrom(foregroundColor: palette.sunset),
+          child: Text(s.s('account.delete.confirm')),
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true) return;
+  if (!context.mounted) return;
+
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    await ref.read(authRepositoryProvider).deleteAccount();
+    messenger.showSnackBar(
+      SnackBar(content: Text(s.s('account.delete.success'))),
+    );
+  } catch (_) {
+    messenger.showSnackBar(
+      SnackBar(content: Text(s.s('account.delete.error'))),
+    );
+  }
+}
+
 class _ViewerDrawer extends ConsumerWidget {
   const _ViewerDrawer({
     required this.palette,
@@ -2663,6 +3425,18 @@ class _ViewerDrawer extends ConsumerWidget {
                 } catch (_) {
                   // Preview / Supabase yok — sessizce yut.
                 }
+              },
+            ),
+            // Apple App Store Guideline 5.1.1(v): kayıt varsa silme akışı da
+            // olmak zorunda. İki adımlı onay + RPC delete_current_user çağırır.
+            _DrawerNavTile(
+              palette: p,
+              icon: Icons.delete_forever_rounded,
+              label: s.s('drawer.deleteAccount'),
+              destructive: true,
+              onTap: () async {
+                Navigator.of(context).pop(); // drawer'ı kapat
+                await _confirmAndDeleteAccount(context, ref);
               },
             ),
             const SizedBox(height: 8),
