@@ -1736,6 +1736,75 @@ def story_meta(name: str) -> dict[str, Any]:
     return {"ok": True, "name": name, "ready": is_ready, "meta": meta}
 
 
+@app.delete("/api/story/{name}")
+def story_delete(name: str) -> dict[str, Any]:
+    """Kartı VE TÜM AYAK İZLERİNİ sil (geri döndürülemez):
+    - output/stories/<name>.{jpg,txt,json}
+    - output/stories/ready/<name>.{jpg,txt,json}
+    - output/stories/pending_approval/<name>.{jpg,txt,json}
+    - data/instagram_uploads.jsonl'de bu kart için kayıt varsa çıkar
+
+    Not: assets/story_backgrounds/'daki cache görseli SİLİNMEZ (başka kartlar
+    aynı bg'yi kullanmış olabilir). Yayınlanmış (media_id var) kart Instagram'dan
+    silinmez, sadece yerel iz kalkar — hesap sahibi elle Instagram'dan silmeli."""
+    name = _safe_story_name(name)
+    if cfg.stories is None:
+        raise HTTPException(status_code=400, detail="stories config yok.")
+
+    stem = Path(name).stem
+    deleted: list[str] = []
+    for base_dir in (
+        cfg.stories.output_dir,
+        cfg.stories.output_dir / "ready",
+        cfg.stories.output_dir / "pending_approval",
+    ):
+        for suf in (".jpg", ".txt", ".json"):
+            p = base_dir / f"{stem}{suf}"
+            if p.exists():
+                try:
+                    p.unlink()
+                    try:
+                        deleted.append(str(p.relative_to(cfg.project_root)))
+                    except ValueError:
+                        deleted.append(p.name)
+                except OSError as exc:
+                    log.warning(f"silme hatası {p}: {exc}")
+
+    if not deleted:
+        raise HTTPException(status_code=404,
+                            detail="Kart bulunamadı — silinecek dosya yok.")
+
+    # uploads_log'dan kayıt çıkar (jsonl → satır satır süz)
+    if cfg.instagram and cfg.instagram.uploads_log:
+        log_path = cfg.project_root / cfg.instagram.uploads_log
+        if log_path.exists():
+            try:
+                kept: list[str] = []
+                removed = 0
+                for line in log_path.read_text(encoding="utf-8").splitlines():
+                    if not line.strip():
+                        continue
+                    try:
+                        rec = json.loads(line)
+                    except ValueError:
+                        kept.append(line)
+                        continue
+                    if rec.get("name") == stem:
+                        removed += 1
+                        continue
+                    kept.append(line)
+                if removed:
+                    tmp = log_path.with_suffix(log_path.suffix + ".tmp")
+                    tmp.write_text("\n".join(kept) + ("\n" if kept else ""),
+                                    encoding="utf-8")
+                    tmp.replace(log_path)
+                    deleted.append(f"{cfg.instagram.uploads_log} ({removed} kayıt)")
+            except OSError as exc:
+                log.warning(f"uploads_log güncellenemedi: {exc}")
+
+    return {"ok": True, "deleted": deleted, "count": len(deleted)}
+
+
 @app.post("/api/story/update/{name}")
 def story_update(name: str, req: StoryUpdateRequest) -> dict[str, Any]:
     """Mevcut kartı yeni metinlerle AYNI dosyaya yeniden render et (overwrite).
