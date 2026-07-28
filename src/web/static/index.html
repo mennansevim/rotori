@@ -1032,7 +1032,17 @@ body.studio{background:
 .fa-card .fa-b.ok{background:rgba(52,211,153,.16);color:#34d399}
 .fa-card .fa-b.draft{background:rgba(255,209,102,.16);color:#ffd166}
 .fa-card .fa-txt{font-size:10.5px;color:var(--txt-dim);line-height:1.3;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  cursor:pointer}
+.fa-card .fa-del{
+  align-self:flex-end;margin-top:4px;background:transparent;border:1px solid rgba(245,85,93,.35);
+  color:#f5555d;font-size:11px;padding:3px 7px;border-radius:6px;cursor:pointer;
+  font-family:inherit;transition:all var(--dur) var(--ease);line-height:1}
+.fa-card .fa-del:hover{background:rgba(245,85,93,.14);border-color:#f5555d}
+/* story-btn.icon-only.danger — kart footer'ındaki 🗑 buton */
+.story-btn.icon-only.danger{border-color:rgba(245,85,93,.32);color:#f5555d}
+.story-btn.icon-only.danger:hover:not(:disabled){
+  border-color:#f5555d;background:rgba(245,85,93,.10);color:#ff8891}
 .flow-card .fc-thumb{width:48px;height:62px;border-radius:8px;object-fit:cover;flex-shrink:0;background:#0a0f18}
 .flow-card .fc-thumb:not([src]){background:#0a0f18 radial-gradient(circle at 50% 40%,rgba(255,255,255,.06),transparent 60%)}
 .flow-card .fc-body{min-width:0;display:flex;flex-direction:column;gap:5px}
@@ -1443,15 +1453,8 @@ body.studio{background:
     <div id="approvalGrid" class="approval-grid"></div>
   </div>
 
-  <!-- Üretilen kartlar (yayınlanmamış) -->
-  <section class="section" id="storyCard">
-    <div class="section-head">
-      <h2 class="section-title">🗂 Üretilen Kartlar <span class="count" id="storyCount">0</span></h2>
-    </div>
-    <div id="storyGrid" class="story-grid">
-      <div class="empty" data-icon="🎨">Yukarıdan üret — kartların burada belirsin.</div>
-    </div>
-  </section>
+  <!-- Üretilen kartlar Otomasyon Merkezi'ndeki akordiyonlarda gösteriliyor
+       artık (Görsel Akışı + Haber Akışı) — burada tekrar listelenmedi. -->
 
   <!-- Yayınlanan kartlar (Instagram'a atılmışlar — arşiv) -->
   <section class="section" id="publishedCard" style="display:none">
@@ -3142,6 +3145,9 @@ function renderStories(cards){
   // Yayınlanan bölümünü sadece kart varsa göster
   if(psection) psection.style.display = done.length ? "" : "none";
   if(pgrid) pgrid.innerHTML = done.map(c => renderStoryCardHtml(c, true)).join("");
+  // #storyGrid artık DOM'da yok (Üretilen Kartlar section'ı kaldırıldı) —
+  // kartlar otomasyon merkezindeki akordiyonlarda gösteriliyor.
+  if(!grid) return;
   if(!active.length){
     grid.innerHTML = `<div class="empty" data-icon="🎨">Yukarıdan üret — kartların burada belirsin.</div>`;
     return;
@@ -3180,6 +3186,8 @@ function renderStories(cards){
         title="Metinleri düzenle + yeniden render">✏️ Düzenle</button>`;
     const showBtn = `<button class="story-btn ghost" onclick="showStoryContent('${c.file}')"
         title="Kart metni + Instagram caption'ını göster">👁 İçeriği Göster</button>`;
+    const deleteBtn = `<button class="story-btn icon-only danger" onclick="deleteStoryCard('${c.file}')"
+        title="Kartı ve tüm ayak izlerini sil (geri döndürülemez)">🗑</button>`;
     // cache-bust: güncelleme sonrası mtime değişir → taze görsel gelir
     const imgUrl = `${c.url}?v=${Math.floor(c.mtime || 0)}`;
     card.innerHTML = `
@@ -3192,6 +3200,7 @@ function renderStories(cards){
           ${undoBtn}
           ${editBtn}
           <a class="story-btn icon-only" href="${c.url}" download="${c.file}" title="Görseli indir">⬇</a>
+          ${deleteBtn}
         </div>
       </div>`;
     grid.appendChild(card);
@@ -3215,6 +3224,8 @@ function renderStoryCardHtml(c, isPublished){
         <a class="story-btn ghost" href="https://www.instagram.com/p/" target="_blank" rel="noopener"
           title="Instagram'da görmek için profil sayfana git">🔗 Instagram</a>
         <a class="story-btn icon-only" href="${c.url}" download="${c.file}" title="Görseli indir">⬇</a>
+        <button class="story-btn icon-only danger" onclick="deleteStoryCard('${c.file}')"
+          title="Yerel izleri sil (Instagram'daki post silinmez)">🗑</button>
       </div>
     </div>
   </div>`;
@@ -3239,6 +3250,30 @@ async function storyMarkReady(name){
   }
   toast("Yayına Hazır ✓", "ok", 1800);
   await loadRecentStories();
+}
+
+async function deleteStoryCard(name){
+  if(!confirm(
+    `"${name}" kartını ve TÜM AYAK İZLERİNİ silmek istediğine emin misin?\n\n` +
+    `Silinecek:\n` +
+    `• JPG kart + .txt caption + .json meta (ana + ready + pending)\n` +
+    `• instagram_uploads.jsonl'daki kayıt (varsa)\n\n` +
+    `Not: Instagram'daki yayınlanmış post silinmez — oradan elle silmelisin.\n` +
+    `Bu işlem geri döndürülemez.`)) return;
+  try{
+    const r = await fetch(`/api/story/${encodeURIComponent(name)}`, {method:"DELETE"});
+    if(!r.ok){
+      let msg = r.statusText;
+      try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
+      toast("Silinemedi: " + msg, "err", 5000);
+      return;
+    }
+    const data = await r.json();
+    toast(`🗑 Silindi (${data.count} iz)`, "ok", 2500);
+    await loadRecentStories();
+  }catch(e){
+    toast("Bağlantı hatası: " + (e.message || e), "err");
+  }
 }
 
 async function storyUnmarkReady(name){
@@ -4062,11 +4097,13 @@ function _paintFlowAcc(gridId, countId, cards, ico, emptyMsg){
     if(c.ready) badges.push(`<span class="fa-b ok">✓ Hazır</span>`);
     else if(c.draft) badges.push(`<span class="fa-b draft">✎ Taslak</span>`);
     const txt = escapeHtml((c.aciklama || c.baslik || "").slice(0, 80));
-    return `<div class="fa-card" onclick="showStoryContent('${nameAttr}')" title="İçeriği göster">
-      <img src="${imgUrl}" alt="" loading="lazy">
+    return `<div class="fa-card" title="İçeriği göster">
+      <img src="${imgUrl}" alt="" loading="lazy" onclick="showStoryContent('${nameAttr}')">
       <div class="fa-cap">
         <div class="fa-badges">${badges.join("")}</div>
-        <div class="fa-txt">${txt}</div>
+        <div class="fa-txt" onclick="showStoryContent('${nameAttr}')">${txt}</div>
+        <button class="fa-del" onclick="event.stopPropagation(); deleteStoryCard('${nameAttr}')"
+          title="Kartı ve tüm ayak izlerini sil">🗑</button>
       </div>
     </div>`;
   }).join("");
