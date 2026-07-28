@@ -4009,11 +4009,17 @@ function refreshNextPreviews(){
     const thumbEl = document.getElementById(m.thumb);
     const titleEl = document.getElementById(m.title);
     const cardEl = thumbEl ? thumbEl.closest(".flow-card") : null;
+    // Sarmalayıcı .fr-next (etiket + kart) — kart yoksa tümünü gizle
+    const wrapEl = cardEl ? cardEl.closest(".fr-next") : null;
     if(it){
+      if(wrapEl) wrapEl.style.display = "";
       if(thumbEl){ thumbEl.src = it.url; thumbEl.style.display = ""; }
       if(titleEl) titleEl.textContent = (it.aciklama || it.post_caption || m.def).slice(0, 90);
       if(cardEl) cardEl.classList.toggle("is-ready", !!it._ready);
     } else {
+      // Yayına hazır / onay-bekleyen kart YOK → 'Sıradaki gönderi' bölümünü
+      // tümüyle gizle (kullanıcı: 'yoksa gösterme')
+      if(wrapEl) wrapEl.style.display = "none";
       if(thumbEl){ thumbEl.removeAttribute("src"); }
       if(titleEl) titleEl.textContent = m.def;
       if(cardEl) cardEl.classList.remove("is-ready");
