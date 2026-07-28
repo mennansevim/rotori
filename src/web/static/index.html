@@ -807,32 +807,442 @@ body.widget-mode .approval-empty{
 /* Modal — widget'ta full-screen yerine full-width */
 body.widget-mode .modal-content{ max-width:100% !important; width:96vw; margin:8px auto; }
 body.widget-mode .picker-grid{ grid-template-columns:repeat(2,1fr) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   STUDIO REDESIGN — sidebar + topbar + right panel + otomasyon merkezi
+   (mockup birebir). Mevcut sınıfların üzerine gelir; JS ID'leri korunur.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#080b12; --bg-elev:#0e121c; --surface:#141a27; --surface-2:#1a2130;
+  --line:#242c3d; --line-strong:#33405a;
+  --txt:#eaeef7; --txt-dim:#aab3c6; --muted:#727d95;
+  --accent:#3b82f6; --accent-hover:#4c8ef7;
+  --red:#ff3b5c; --red-2:#e01f4d; --blue:#3b82f6; --blue-2:#2563eb;
+  --sb-w:238px; --rp-w:320px; --top-h:64px;
+}
+body.studio{background:
+  radial-gradient(1200px 600px at 80% -10%, rgba(59,130,246,.06), transparent 60%),
+  radial-gradient(900px 500px at -5% 10%, rgba(255,59,92,.05), transparent 55%),
+  var(--bg)}
+
+/* ---- Topbar ---- */
+.topbar{position:sticky;top:0;z-index:40;height:var(--top-h);
+  display:flex;align-items:center;gap:18px;padding:0 20px;
+  background:rgba(10,13,20,.82);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line)}
+.tb-brand{display:flex;align-items:center;gap:11px;min-width:0}
+.tb-logo{width:38px;height:38px;border-radius:11px;flex-shrink:0;
+  background:radial-gradient(circle at 32% 28%,#ff5c78,var(--red-2));
+  display:flex;align-items:center;justify-content:center;font-size:19px;
+  box-shadow:0 6px 18px rgba(255,59,92,.32)}
+.tb-titles{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+.tb-title{font-weight:700;font-size:15px;letter-spacing:-.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-sub{font-size:11.5px;color:var(--muted);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.tb-tabs{display:flex;gap:4px;margin:0 auto;background:var(--surface);
+  border:1px solid var(--line);border-radius:12px;padding:4px}
+.tb-tab{display:flex;align-items:center;gap:7px;border:none;cursor:pointer;
+  background:transparent;color:var(--txt-dim);font:600 13px/1 var(--font);
+  padding:9px 16px;border-radius:9px;transition:all var(--dur) var(--ease)}
+.tb-tab:hover{color:var(--txt)}
+.tb-tab.active{background:linear-gradient(135deg,var(--blue),var(--blue-2));
+  color:#fff;box-shadow:0 4px 14px rgba(59,130,246,.36)}
+.tb-right{display:flex;align-items:center;gap:10px}
+.tb-icon{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);color:var(--txt-dim);cursor:pointer;font-size:16px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all var(--dur) var(--ease)}
+.tb-icon:hover{color:var(--txt);border-color:var(--line-strong)}
+.tb-avatar{display:flex;align-items:center;gap:7px;padding:4px 10px 4px 4px;
+  border:1px solid var(--line);border-radius:22px;background:var(--surface);cursor:pointer}
+.tb-avatar .av{width:30px;height:30px;border-radius:50%;font:700 12px/1 var(--font);
+  display:flex;align-items:center;justify-content:center;color:#fff;
+  background:linear-gradient(135deg,var(--blue),#7c3aed)}
+.tb-avatar .cx{color:var(--muted);font-size:11px}
+
+/* ---- Shell grid ---- */
+.shell{display:grid;grid-template-columns:var(--sb-w) minmax(0,1fr);
+  gap:20px;max-width:1560px;margin:0 auto;padding:20px;align-items:start}
+.studio main{max-width:none;margin:0;padding:0;gap:16px}
+
+/* ---- Sidebar ---- */
+.sidebar{position:sticky;top:calc(var(--top-h) + 20px);display:flex;
+  flex-direction:column;gap:6px}
+.side-nav{display:flex;flex-direction:column;gap:3px;background:var(--bg-elev);
+  border:1px solid var(--line);border-radius:16px;padding:8px}
+.side-item{display:flex;align-items:center;gap:11px;padding:11px 13px;
+  border-radius:11px;color:var(--txt-dim);cursor:pointer;font-weight:500;
+  font-size:13.5px;border:1px solid transparent;transition:all var(--dur) var(--ease)}
+.side-item .si-ico{font-size:16px;width:20px;text-align:center}
+.side-item:hover{background:var(--surface);color:var(--txt)}
+.side-item.active{background:var(--surface);color:var(--txt);
+  border-color:var(--line-strong);box-shadow:inset 3px 0 0 var(--blue)}
+.side-item .si-dot{margin-left:auto;width:7px;height:7px;border-radius:50%;
+  background:var(--red);box-shadow:0 0 8px var(--red)}
+/* Hesap durumu kartı */
+.acct-card{margin-top:4px;background:var(--bg-elev);border:1px solid var(--line);
+  border-radius:16px;overflow:hidden}
+.acct-head{padding:14px 15px;display:flex;justify-content:space-between;align-items:center}
+.acct-title{font-size:13px;font-weight:600}
+.acct-badge{font-size:10.5px;font-weight:700;color:#34d399;
+  background:rgba(52,211,153,.14);border:1px solid rgba(52,211,153,.3);
+  padding:3px 9px;border-radius:20px}
+.acct-body{padding:0 15px 14px;display:flex;flex-direction:column;gap:10px}
+.acct-row{display:flex;flex-direction:column;gap:1px}
+.acct-row .k{font-size:11px;color:var(--muted)}
+.acct-row .v{font-size:14px;font-weight:600}
+.acct-btn{margin-top:2px;width:100%;padding:9px;border-radius:10px;border:none;
+  cursor:pointer;font:600 12.5px/1 var(--font);color:#fff;
+  background:linear-gradient(135deg,var(--blue),var(--blue-2))}
+.acct-art{height:96px;background:
+  linear-gradient(180deg,transparent,rgba(0,0,0,.4)),
+  radial-gradient(120px 80px at 50% 120%,rgba(255,59,92,.5),transparent),
+  linear-gradient(160deg,#1a2740,#2a1420);position:relative;overflow:hidden}
+.acct-art::after{content:"🗻";position:absolute;left:50%;bottom:-6px;
+  transform:translateX(-50%);font-size:64px;filter:grayscale(.2) brightness(.9)}
+
+/* ---- Right panel ---- */
+.rightpanel{position:sticky;top:calc(var(--top-h) + 20px);
+  background:var(--bg-elev);border:1px solid var(--line);border-radius:18px;
+  padding:18px;display:flex;flex-direction:column;gap:16px}
+.rp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.rp-title{font-size:14px;font-weight:700}
+.rp-title small{display:block;font-weight:400;font-size:11.5px;color:var(--muted);margin-top:3px}
+.rp-tabs{display:flex;gap:5px;background:var(--surface);border:1px solid var(--line);
+  border-radius:10px;padding:4px}
+.rp-tab{flex:1;text-align:center;padding:8px;border-radius:7px;border:none;cursor:pointer;
+  background:transparent;color:var(--txt-dim);font:600 12px/1 var(--font);
+  transition:all var(--dur) var(--ease)}
+.rp-tab.active{background:linear-gradient(135deg,var(--blue),var(--blue-2));color:#fff}
+.rp-field{display:flex;flex-direction:column;gap:8px}
+.rp-label{font-size:12px;color:var(--txt-dim);font-weight:600}
+.day-row{display:flex;gap:5px;flex-wrap:wrap}
+.day-chip{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);
+  background:var(--surface);color:var(--txt-dim);cursor:pointer;font:600 12px/1 var(--font);
+  display:flex;align-items:center;justify-content:center;transition:all var(--dur) var(--ease)}
+.day-chip.on{background:linear-gradient(135deg,var(--red),var(--red-2));color:#fff;border-color:transparent}
+.day-chip.blue.on{background:linear-gradient(135deg,var(--blue),var(--blue-2))}
+.time-row{display:flex;align-items:center;gap:8px}
+.time-in{width:64px;padding:10px;text-align:center;font:700 16px/1 var(--font);
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;color:var(--txt)}
+.time-sep{font-weight:700;color:var(--muted)}
+.rp-toggle{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.rp-toggle .tg-txt b{font-size:13px}
+.rp-toggle .tg-txt small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.rp-preview{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.rp-preview .pv-row{display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0}
+.rp-preview .pv-row .k{color:var(--muted)}
+.rp-preview .pv-row .v{color:var(--blue);font-weight:600}
+.rp-save{width:100%;padding:12px;border:none;border-radius:12px;cursor:pointer;
+  font:700 14px/1 var(--font);color:#fff;
+  background:linear-gradient(135deg,var(--blue),var(--blue-2));
+  box-shadow:0 6px 20px rgba(59,130,246,.34);transition:transform var(--dur) var(--ease)}
+.rp-save:hover{transform:translateY(-1px)}
+.rp-help{font-size:12px;color:var(--muted);line-height:1.7}
+.rp-help b{color:var(--txt-dim);display:block;margin-bottom:6px;font-size:12.5px}
+
+/* ---- Otomasyon Merkezi ---- */
+.autoflow{display:flex;flex-direction:column;gap:12px;
+  background:var(--bg-elev);border:1px solid var(--line);border-radius:18px;padding:18px}
+.af-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:2px}
+.af-settings{background:var(--surface);border:1px solid var(--line-strong);color:var(--txt-dim);
+  padding:8px 14px;border-radius:10px;cursor:pointer;font:600 12px/1 var(--font);
+  transition:all var(--dur) var(--ease)}
+.af-settings:hover{color:var(--txt);border-color:var(--muted)}
+.af-grid{display:flex;flex-direction:column;gap:12px}
+
+/* 4 kolon: sol kontrol · dairesel sayaç · orta bilgi · sıradaki gönderi */
+.flow-row{display:grid;grid-template-columns:250px 148px 1fr 320px;gap:20px;align-items:center;
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.flow-row.news{border-left:3px solid var(--red)}
+.flow-row.image{border-left:3px solid var(--blue)}
+/* sol kontrol kolonu */
+.fr-left{min-width:0;display:flex;flex-direction:column;gap:9px}
+.fr-name{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.04em}
+.fr-dot{width:8px;height:8px;border-radius:50%}
+.flow-row.news .fr-dot{background:var(--red);box-shadow:0 0 8px var(--red)}
+.flow-row.image .fr-dot{background:var(--blue);box-shadow:0 0 8px var(--blue)}
+.fr-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  font-size:11.5px;color:var(--txt-dim);font-weight:500}
+.fr-days-lbl{font-size:10.5px;color:var(--muted);margin-top:1px}
+.rp-days.sm{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.rp-days.sm .day-chip{width:100%;min-width:0;height:26px;padding:0;border-radius:7px;font-size:10px}
+/* dairesel countdown — küçültüldü */
+.ring-wrap{position:relative;width:132px;height:132px;justify-self:center}
+.ring-wrap svg{transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:var(--line);stroke-width:8}
+.ring-fg{fill:none;stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset 1s linear}
+.flow-row.news .ring-fg{stroke:url(#gradRed)}
+.flow-row.image .ring-fg{stroke:url(#gradBlue)}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center}
+.ring-lbl-top{font-size:9.5px;color:var(--muted);margin-bottom:2px}
+.ring-time{font:800 19px/1 var(--font);letter-spacing:-.02em}
+.ring-lbl{font-size:9.5px;color:var(--muted);margin-top:3px}
+/* orta bilgi kolonu */
+.fr-mid{min-width:0;display:flex;flex-direction:column;gap:10px}
+.fr-line{display:flex;flex-direction:column;gap:3px}
+.fr-line.sep{padding-top:10px;border-top:1px solid var(--line)}
+.fr-line .k{font-size:11px;color:var(--muted)}
+.fr-line .v{font-size:15px;font-weight:700}
+.fr-line .v.em{font-style:italic;color:var(--txt-dim);font-weight:600}
+/* sıradaki gönderi kolonu */
+.fr-next{min-width:0}
+.fr-next-lbl{font-size:10.5px;color:var(--muted);margin-bottom:7px}
+.flow-card{display:flex;gap:11px;background:var(--surface-2);border:1px solid var(--line);
+  border-radius:12px;padding:10px}
+.flow-card.clickable{cursor:pointer;position:relative;transition:all var(--dur) var(--ease)}
+.flow-card.clickable:hover{border-color:var(--line-strong);transform:translateY(-1px);
+  box-shadow:0 6px 18px rgba(0,0,0,.28)}
+.flow-card .fc-open{position:absolute;top:8px;right:10px;color:var(--muted);font-size:13px;opacity:.6}
+.flow-card.clickable:hover .fc-open{opacity:1;color:var(--txt)}
+/* ── Üretilen kartlar akordiyonu — üstteki akış satırına yapışık ── */
+.flow-acc{background:var(--surface);border:1px solid var(--line);border-top:none;
+  border-radius:0 0 14px 14px;overflow:hidden;margin-top:-14px}
+.flow-acc.news{border-left:3px solid var(--red)}
+.flow-acc.image{border-left:3px solid var(--blue)}
+/* akordiyonu olan akış satırının alt köşeleri düz — tek panel */
+.flow-row.has-acc{border-radius:14px 14px 0 0;border-bottom:1px dashed var(--line)}
+.flow-acc-head{width:100%;display:flex;align-items:center;justify-content:space-between;
+  gap:10px;padding:13px 18px;background:transparent;border:none;cursor:pointer;
+  color:var(--txt);font:inherit;transition:background var(--dur) var(--ease)}
+.flow-acc-head:hover{background:var(--surface-2)}
+.fa-title{font-size:12.5px;font-weight:700;letter-spacing:.02em;display:flex;align-items:center;gap:8px}
+.fa-count{font-size:11px;font-weight:700;min-width:20px;text-align:center;padding:1px 7px;
+  border-radius:20px;background:var(--surface-2);color:var(--muted)}
+.flow-acc.news .fa-count{background:rgba(255,59,92,.16);color:#ff8098}
+.flow-acc.image .fa-count{background:rgba(59,130,246,.16);color:#8ab4ff}
+.fa-chevron{font-size:14px;color:var(--muted);transition:transform var(--dur) var(--ease)}
+.flow-acc.open .fa-chevron{transform:rotate(180deg)}
+.flow-acc-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .28s var(--ease)}
+.flow-acc.open .flow-acc-body{grid-template-rows:1fr}
+.flow-acc-body>*{overflow:hidden;min-height:0}
+.flow-acc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  gap:12px;padding:4px 18px 18px}
+.flow-acc-grid .empty.sm{grid-column:1/-1;padding:18px;font-size:12.5px;text-align:center;color:var(--muted)}
+.fa-card{background:var(--surface-2);border:1px solid var(--line);border-radius:11px;
+  overflow:hidden;cursor:pointer;transition:all var(--dur) var(--ease)}
+.fa-card:hover{border-color:var(--line-strong);transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.28)}
+.fa-card img{width:100%;aspect-ratio:9/16;object-fit:cover;display:block;background:#0a0f18}
+.fa-card .fa-cap{padding:8px 10px;display:flex;flex-direction:column;gap:4px}
+.fa-card .fa-badges{display:flex;gap:5px;flex-wrap:wrap}
+.fa-card .fa-b{font-size:8.5px;font-weight:700;padding:2px 6px;border-radius:5px}
+.fa-card .fa-b.ok{background:rgba(52,211,153,.16);color:#34d399}
+.fa-card .fa-b.draft{background:rgba(255,209,102,.16);color:#ffd166}
+.fa-card .fa-txt{font-size:10.5px;color:var(--txt-dim);line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.flow-card .fc-thumb{width:48px;height:62px;border-radius:8px;object-fit:cover;flex-shrink:0;background:#0a0f18}
+.flow-card .fc-thumb:not([src]){background:#0a0f18 radial-gradient(circle at 50% 40%,rgba(255,255,255,.06),transparent 60%)}
+.flow-card .fc-body{min-width:0;display:flex;flex-direction:column;gap:5px}
+.flow-card .fc-tag{align-self:flex-start;font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;letter-spacing:.03em}
+.flow-card .fc-tag.news{background:rgba(255,59,92,.16);color:#ff8098}
+.flow-card .fc-tag.image{background:rgba(59,130,246,.16);color:#8ab4ff}
+.flow-card .fc-title{font-size:11.5px;font-weight:600;line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.flow-card .fc-when{font-size:10.5px;color:var(--muted)}
+.flow-card.news .fc-when,.flow-row.news .fc-when{color:#ff8098}
+.flow-row.image .fc-when{color:#8ab4ff}
+/* yatay akış adımları şeridi */
+.flow-steps-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 18px}
+.fsb-step{display:flex;align-items:center;gap:10px;flex:1;min-width:170px}
+.fsb-ico{width:34px;height:34px;border-radius:9px;background:var(--surface-2);
+  display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;
+  border:1px solid var(--line)}
+.fsb-ico.green{background:rgba(52,211,153,.14);border-color:rgba(52,211,153,.3)}
+.fsb-ico.gold{background:rgba(255,209,102,.14);border-color:rgba(255,209,102,.3)}
+.fsb-ico.ig{background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#bc1888);border-color:transparent}
+.fsb-txt b{font-size:12px;display:block}
+.fsb-txt small{font-size:10.5px;color:var(--muted);line-height:1.3;display:block;margin-top:1px}
+.fsb-arrow{color:var(--muted);font-size:15px;flex-shrink:0}
+
+/* ---- Quick start action cards (mockup gradyanları) ---- */
+.studio .action-image{background:linear-gradient(135deg,#ff4d6a,var(--red-2));border:none;color:#fff}
+.studio .action-news{background:linear-gradient(135deg,#4c8ef7,var(--blue-2));border:none;color:#fff}
+.studio .action-topic{background:var(--surface);border:1px solid var(--line)}
+.studio .action-card{border-radius:15px;position:relative;overflow:hidden}
+.studio .action-card .go{position:absolute;right:16px;top:50%;transform:translateY(-50%);
+  width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.16);
+  display:flex;align-items:center;justify-content:center;font-size:15px}
+.studio .action-topic .go{background:var(--surface-2)}
+/* 3 eşit kolon — tek sıra, hepsi aynı boy */
+.studio .hero-actions{grid-template-columns:repeat(3,1fr)}
+.studio .hero{margin-bottom:16px}
+/* daha yoğun kart grid + küçük punto */
+.studio .story-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+.studio .hero-title{font-size:22px}
+.studio .hero-sub{font-size:13px}
+.studio .section-title{font-size:16px}
+
+/* ---- Adaptive loading / uploading ---- */
+#adaptiveOverlay{position:fixed;inset:0;z-index:120;display:none;
+  align-items:center;justify-content:center;
+  background:rgba(6,9,15,.72);backdrop-filter:blur(6px)}
+#adaptiveOverlay.on{display:flex;animation:ov-in .2s var(--ease)}
+@keyframes ov-in{from{opacity:0}to{opacity:1}}
+.ov-card{width:min(380px,90vw);background:var(--bg-elev);border:1px solid var(--line);
+  border-radius:18px;padding:26px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+.ov-ring{width:76px;height:76px;margin:0 auto 16px;position:relative}
+.ov-ring svg{transform:rotate(-90deg)}
+.ov-ring .ovr-bg{fill:none;stroke:var(--line);stroke-width:7}
+.ov-ring .ovr-fg{fill:none;stroke:url(#gradBlue);stroke-width:7;stroke-linecap:round;
+  transition:stroke-dashoffset .3s var(--ease)}
+.ov-ring.indet svg{animation:ov-spin 1s linear infinite}
+@keyframes ov-spin{to{transform:rotate(270deg)}}
+.ov-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font:800 17px/1 var(--font)}
+.ov-title{font-size:15px;font-weight:700;margin-bottom:5px}
+.ov-sub{font-size:12.5px;color:var(--muted);min-height:17px}
+.ov-bar{height:6px;border-radius:6px;background:var(--surface-2);overflow:hidden;margin-top:16px}
+.ov-bar>i{display:block;height:100%;width:30%;border-radius:6px;
+  background:linear-gradient(90deg,var(--blue),var(--red));
+  animation:ov-slide 1.2s ease-in-out infinite}
+@keyframes ov-slide{0%{transform:translateX(-120%)}100%{transform:translateX(430%)}}
+
+/* Responsive */
+@media(max-width:1100px){.studio .hero-actions{grid-template-columns:1fr 1fr}}
+@media(max-width:920px){.sidebar{display:none}.shell{grid-template-columns:1fr}
+  .tb-sub{display:none}}
+@media(max-width:640px){.studio .hero-actions{grid-template-columns:1fr}}
+@media(max-width:620px){.tb-tabs{gap:0}.tb-tab{padding:9px 11px}}
+
+/* ---- Otomasyon Merkezi başlık + reconcile ---- */
+.af-head{display:flex;align-items:baseline;gap:10px;margin-bottom:2px}
+.af-title{font-size:16px;font-weight:800;letter-spacing:-.01em}
+.af-sub{font-size:12px;color:var(--muted)}
+.af-grid{display:flex;flex-direction:column;gap:14px}
+.flow-info .flow-name{margin-bottom:5px}
+.flow-info .flow-next{font-size:12.5px;color:var(--muted);margin-bottom:10px}
+.flow-info .flow-steps{background:transparent;border:none;padding:0;gap:6px}
+.fstep{font-size:10.5px;font-weight:600;color:var(--muted);padding:4px 9px;
+  border-radius:20px;background:var(--surface-2);border:1px solid var(--line)}
+.fstep.on{color:#fff;border-color:transparent}
+.flow-row.news .fstep.on{background:linear-gradient(135deg,var(--red),var(--red-2))}
+.flow-row.image .fstep.on{background:linear-gradient(135deg,var(--blue),var(--blue-2))}
+.flow-run{margin-top:12px;padding:9px 14px;border:none;border-radius:10px;cursor:pointer;
+  font:700 12px/1 var(--font);color:#fff;transition:transform var(--dur) var(--ease)}
+.flow-run:hover{transform:translateY(-1px)}
+.flow-row.news .flow-run{background:linear-gradient(135deg,var(--red),var(--red-2))}
+.flow-row.image .flow-run{background:linear-gradient(135deg,var(--blue),var(--blue-2))}
+
+/* ---- Right panel body reconcile ---- */
+.rp-close{background:var(--surface);border:1px solid var(--line);color:var(--muted);
+  width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:16px;line-height:1}
+.rp-body{display:flex;flex-direction:column;gap:12px}
+.rp-days{display:flex;gap:5px;flex-wrap:wrap}
+.rp-input{padding:10px;font:700 15px/1 var(--font);background:var(--surface);
+  border:1px solid var(--line);border-radius:10px;color:var(--txt);width:100%}
+.rp-toggle-row{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  font-size:13px;font-weight:600}
+.rp-switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
+.rp-switch input{opacity:0;width:0;height:0}
+.rp-slider{position:absolute;inset:0;cursor:pointer;background:var(--surface-2);
+  border:1px solid var(--line);border-radius:24px;transition:all var(--dur) var(--ease)}
+.rp-slider::before{content:"";position:absolute;left:3px;top:2px;width:18px;height:18px;
+  border-radius:50%;background:var(--muted);transition:all var(--dur) var(--ease)}
+.rp-switch input:checked+.rp-slider{background:linear-gradient(135deg,var(--blue),var(--blue-2));border-color:transparent}
+.rp-switch input:checked+.rp-slider::before{transform:translateX(20px);background:#fff}
+.rp-hidden .rp-tabs,.rp-hidden .rp-body{display:none!important}
+/* küçük + yeşil (akış satırı) toggle */
+.rp-switch.sm{width:38px;height:21px}
+.rp-switch.sm .rp-slider::before{width:15px;height:15px;left:3px;top:2px}
+.rp-switch.sm input:checked+.rp-slider{background:linear-gradient(135deg,#34d399,#10b981)}
+.rp-switch.sm input:checked+.rp-slider::before{transform:translateX(17px)}
+
+/* Responsive — akış merkezi */
+@media(max-width:1200px){
+  .flow-row{grid-template-columns:200px 132px 1fr;gap:16px}
+  .flow-row .fr-next{grid-column:1 / -1;margin-top:6px}
+}
+@media(max-width:920px){
+  .flow-row{grid-template-columns:1fr;justify-items:stretch;text-align:left}
+  .ring-wrap{justify-self:center}
+}
+
 </style>
 </head>
-<body>
-<header>
-  <div class="logo">
-    <div class="logo-mark">🎬</div>
-    <div class="logo-text"><span class="jp">Japan</span> Reels Maker</div>
+<body class="studio">
+<!-- Adaptif yükleme/işlem overlay -->
+<div id="adaptiveOverlay" aria-live="polite">
+  <div class="ov-card">
+    <div class="ov-ring indet" id="ovRing">
+      <svg width="76" height="76" viewBox="0 0 76 76">
+        <circle class="ovr-bg" cx="38" cy="38" r="33"></circle>
+        <circle class="ovr-fg" id="ovRingFg" cx="38" cy="38" r="33"
+          stroke-dasharray="207.3" stroke-dashoffset="155"></circle>
+      </svg>
+      <div class="ov-pct" id="ovPct"></div>
+    </div>
+    <div class="ov-title" id="ovTitle">İşleniyor…</div>
+    <div class="ov-sub" id="ovSub">Lütfen bekleyin</div>
+    <div class="ov-bar" id="ovBar"><i></i></div>
   </div>
-  <!-- Sürüm rozeti — deploy takibi. /api/version'dan doldurulur. -->
-  <div class="ver-badge" id="verBadge" title="Çalışan sürüm">
-    <span class="ver-dot"></span>
-    <span id="verText">…</span>
+</div>
+<!-- SVG gradient tanımları (ring stroke'ları için) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="gradRed" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#ff5c78"/><stop offset="1" stop-color="#e01f4d"/>
+  </linearGradient>
+  <linearGradient id="gradBlue" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#5b9dff"/><stop offset="1" stop-color="#2563eb"/>
+  </linearGradient>
+</defs></svg>
+
+<!-- ═══ Topbar ═══ -->
+<header class="topbar">
+  <div class="tb-brand">
+    <div class="tb-logo">⛩️</div>
+    <div class="tb-titles">
+      <div class="tb-title">Japonya Rüyası Stüdyo</div>
+      <div class="tb-sub">Japonya'dan ilham veren içerikler üretin ve yayınlayın.</div>
+    </div>
   </div>
-  <!-- Reels pipeline durum pill'leri — şimdilik gizli (reels modülleri kapalı) -->
-  <div class="pills" style="display:none">
-    <span class="pill"><span id="pill-ollama" class="dot"></span> Ollama</span>
-    <span class="pill"><span id="pill-source" class="dot"></span> Kaynak <span id="pill-source-txt">?</span></span>
-    <span class="pill" id="pill-count" style="color:var(--txt-dim)"><span id="pill-count-num">0</span> video</span>
+  <div class="tb-right">
+    <div class="ver-badge" id="verBadge" title="Çalışan sürüm">
+      <span class="ver-dot"></span><span id="verText">…</span>
+    </div>
+    <button class="tb-icon" title="Widget'ı aç" onclick="openWidget()">🖥️</button>
+    <div class="tb-avatar" onclick="openAutomationModal()" title="Otomasyon ayarları">
+      <span class="av">JR</span><span class="cx">▾</span>
+    </div>
   </div>
 </header>
 
 <div class="toast-host" id="toastHost"></div>
 
+
+<div class="shell">
+<!-- ═══ Sol Sidebar ═══ -->
+<aside class="sidebar">
+  <nav class="side-nav">
+    <div class="side-item active" data-nav="home" onclick="sideNav('home', this)"><span class="si-ico">🏠</span> Ana Sayfa</div>
+    <div class="side-item" data-nav="cards" onclick="sideNav('cards', this)"><span class="si-ico">🃏</span> Üretilen Kartlar</div>
+    <div class="side-item" data-nav="queue" onclick="sideNav('queue', this)"><span class="si-ico">🗓️</span> Yayın Kuyruğu</div>
+    <div class="side-item" data-nav="automation" onclick="sideNav('automation', this)"><span class="si-ico">⚙️</span> Otomasyon <span class="si-dot"></span></div>
+    <div class="side-item" data-nav="stats" onclick="sideNav('stats', this)"><span class="si-ico">📊</span> İstatistikler</div>
+    <div class="side-item" data-nav="sources" onclick="sideNav('sources', this)"><span class="si-ico">📚</span> Kaynaklar</div>
+    <div class="side-item" data-nav="settings" onclick="sideNav('settings', this)"><span class="si-ico">🛠️</span> Ayarlar</div>
+  </nav>
+  <div class="acct-card">
+    <div class="acct-head">
+      <span class="acct-title">Hesap Durumu</span>
+      <span class="acct-badge" id="acctBadge">Aktif</span>
+    </div>
+    <div class="acct-body">
+      <div class="acct-row"><span class="k">Yayınlanan</span><span class="v" id="acctPublished">—</span></div>
+      <div class="acct-row"><span class="k">Plan</span><span class="v">Pro</span></div>
+      <button class="acct-btn" onclick="switchTab('growth')">📈 Planı Yükselt</button>
+    </div>
+    <div class="acct-art"></div>
+  </div>
+</aside>
+
 <main>
-  <!-- Sekmeler -->
-  <div class="tabs">
+  <!-- Eski sekme çubuğu — topbar'a taşındı, gizli (JS uyumu için) -->
+  <div class="tabs" style="display:none">
     <button class="tab active" data-tab="cards" onclick="switchTab('cards')">🎨 Kartlar</button>
     <button class="tab" data-tab="reels" onclick="switchTab('reels')">🎬 Reels</button>
     <button class="tab" data-tab="growth" onclick="switchTab('growth')">📈 Büyüme</button>
@@ -842,8 +1252,6 @@ body.widget-mode .picker-grid{ grid-template-columns:repeat(2,1fr) !important; }
   <div id="panel-cards">
   <!-- Hero: hızlı aksiyonlar -->
   <div class="hero">
-    <h1 class="hero-title">Japonya Rüyası Stüdyo</h1>
-    <p class="hero-sub">Görsel seç ya da güncel bir Japonya haberinden — saniyeler içinde paylaşıma hazır, belgesel tonda Instagram kartı.</p>
     <div class="hero-actions">
       <button class="action-card action-image" onclick="openStoryCreator()">
         <span class="action-ico">🎨</span>
@@ -860,11 +1268,171 @@ body.widget-mode .picker-grid{ grid-template-columns:repeat(2,1fr) !important; }
         <span class="spin"></span>
       </button>
     </div>
-    <div style="margin-top:14px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap">
-      <button class="ghost sm" onclick="openAutomationModal()">⚙ Otomasyon Ayarları</button>
-      <button class="ghost sm" onclick="openWidget()" title="Widget'ı ayrı Chrome penceresinde aç">🖥 Widget'ı Aç</button>
-    </div>
   </div>
+
+  <!-- ═══ Otomasyon Merkezi ═══ -->
+  <section class="autoflow" id="autoflow">
+    <div class="af-head">
+      <div>
+        <h2 class="af-title">Otomasyon Merkezi</h2>
+        <span class="af-sub">İçerikleriniz otomatik olarak hazırlanır ve planınıza göre yayınlanır.</span>
+      </div>
+      <button class="af-settings" onclick="openAutomationModal()">⚙ Otomasyon Ayarları</button>
+    </div>
+
+    <div class="af-grid">
+      <!-- ── Haber akışı ── -->
+      <div class="flow-row news has-acc">
+        <div class="fr-left">
+          <div class="fr-name"><span class="fr-dot"></span> HABER AKIŞI</div>
+          <label class="fr-toggle">
+            <span>⚙️ Otomatik yayın açık</span>
+            <span class="rp-switch sm"><input type="checkbox" id="frNewsAuto" onchange="toggleFlowAuto('news',this.checked)"><span class="rp-slider"></span></span>
+          </label>
+          <div class="fr-days-lbl">Yayın günleri</div>
+          <div class="rp-days sm" id="frNewsDays">
+            <span class="day-chip" data-day="1">Pzt</span>
+            <span class="day-chip" data-day="2">Sal</span>
+            <span class="day-chip" data-day="3">Çar</span>
+            <span class="day-chip" data-day="4">Per</span>
+            <span class="day-chip" data-day="5">Cum</span>
+            <span class="day-chip" data-day="6">Cmt</span>
+            <span class="day-chip" data-day="0">Paz</span>
+          </div>
+        </div>
+
+        <div class="ring-wrap">
+          <svg viewBox="0 0 120 120" class="ring-svg">
+            <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+            <circle class="ring-fg" id="ringNews" cx="60" cy="60" r="52" stroke="url(#gradRed)"></circle>
+          </svg>
+          <div class="ring-center">
+            <span class="ring-lbl-top">Sonraki yayın</span>
+            <span class="ring-time" id="ringNewsTime">--:--</span>
+            <span class="ring-lbl">kaldı</span>
+          </div>
+        </div>
+
+        <div class="fr-mid">
+          <div class="fr-line"><span class="k">⏰ Sonraki yayın saati</span><span class="v" id="frNewsClock">--:--</span></div>
+          <div class="fr-line sep"><span class="k">Sonraki yayın</span><span class="v em" id="frNewsDay">—</span></div>
+        </div>
+
+        <div class="fr-next">
+          <div class="fr-next-lbl">Sıradaki gönderi</div>
+          <div class="flow-card clickable" onclick="openNextPreview('news')" title="Sıradaki gönderiyi aç">
+            <img class="fc-thumb" id="frNewsThumb" alt="">
+            <div class="fc-body">
+              <span class="fc-tag news">📰 HABER</span>
+              <span class="fc-title" id="frNewsTitle">Sıradaki haber kartı hazırlanacak</span>
+              <span class="fc-when" id="frNewsWhen">—</span>
+            </div>
+            <span class="fc-open">↗</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Haber akışı — üretilen kartlar (akordiyon) -->
+      <div class="flow-acc news" id="accNews">
+        <button class="flow-acc-head" onclick="toggleFlowAcc('news')" aria-expanded="false">
+          <span class="fa-title">📰 Üretilen Haber Kartları <span class="fa-count" id="accNewsCount">0</span></span>
+          <span class="fa-chevron">▾</span>
+        </button>
+        <div class="flow-acc-body" id="accNewsBody">
+          <div class="flow-acc-grid" id="accNewsGrid">
+            <div class="empty sm" data-icon="📰">Henüz haber kartı üretilmedi.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Görsel akışı ── -->
+      <div class="flow-row image has-acc">
+        <div class="fr-left">
+          <div class="fr-name"><span class="fr-dot"></span> GÖRSEL AKIŞI</div>
+          <label class="fr-toggle">
+            <span>⚙️ Otomatik yayın açık</span>
+            <span class="rp-switch sm"><input type="checkbox" id="frImgAuto" onchange="toggleFlowAuto('topic',this.checked)"><span class="rp-slider"></span></span>
+          </label>
+          <div class="fr-days-lbl">Yayın günleri</div>
+          <div class="rp-days sm" id="frImgDays">
+            <span class="day-chip blue" data-day="1">Pzt</span>
+            <span class="day-chip blue" data-day="2">Sal</span>
+            <span class="day-chip blue" data-day="3">Çar</span>
+            <span class="day-chip blue" data-day="4">Per</span>
+            <span class="day-chip blue" data-day="5">Cum</span>
+            <span class="day-chip blue" data-day="6">Cmt</span>
+            <span class="day-chip blue" data-day="0">Paz</span>
+          </div>
+        </div>
+
+        <div class="ring-wrap">
+          <svg viewBox="0 0 120 120" class="ring-svg">
+            <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+            <circle class="ring-fg" id="ringImg" cx="60" cy="60" r="52" stroke="url(#gradBlue)"></circle>
+          </svg>
+          <div class="ring-center">
+            <span class="ring-lbl-top">Sonraki yayın</span>
+            <span class="ring-time" id="ringImgTime">--:--</span>
+            <span class="ring-lbl">kaldı</span>
+          </div>
+        </div>
+
+        <div class="fr-mid">
+          <div class="fr-line"><span class="k">⏰ Sonraki yayın saati</span><span class="v" id="frImgClock">--:--</span></div>
+          <div class="fr-line sep"><span class="k">Sonraki yayın</span><span class="v em" id="frImgDay">—</span></div>
+        </div>
+
+        <div class="fr-next">
+          <div class="fr-next-lbl">Sıradaki gönderi</div>
+          <div class="flow-card clickable" onclick="openNextPreview('image')" title="Sıradaki gönderiyi aç">
+            <img class="fc-thumb" id="frImgThumb" alt="">
+            <div class="fc-body">
+              <span class="fc-tag image">🖼️ GÖRSEL</span>
+              <span class="fc-title" id="frImgTitle">Sıradaki görsel kartı hazırlanacak</span>
+              <span class="fc-when" id="frImgWhen">—</span>
+            </div>
+            <span class="fc-open">↗</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Görsel akışı — üretilen kartlar (akordiyon) -->
+      <div class="flow-acc image" id="accImg">
+        <button class="flow-acc-head" onclick="toggleFlowAcc('image')" aria-expanded="false">
+          <span class="fa-title">🖼️ Üretilen Görsel Kartları <span class="fa-count" id="accImgCount">0</span></span>
+          <span class="fa-chevron">▾</span>
+        </button>
+        <div class="flow-acc-body" id="accImgBody">
+          <div class="flow-acc-grid" id="accImgGrid">
+            <div class="empty sm" data-icon="🖼️">Henüz görsel kartı üretilmedi.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Yatay akış adımları ── -->
+      <div class="flow-steps-bar">
+        <div class="fsb-step">
+          <div class="fsb-ico green">👤</div>
+          <div class="fsb-txt"><b>Şimdi</b><small>Sistem sıradaki içeriği hazırlar.</small></div>
+        </div>
+        <span class="fsb-arrow">→</span>
+        <div class="fsb-step">
+          <div class="fsb-ico">💼</div>
+          <div class="fsb-txt"><b>Sıradaki Post</b><small>Sıradaki içerik kuyruğa alınır.</small></div>
+        </div>
+        <span class="fsb-arrow">→</span>
+        <div class="fsb-step">
+          <div class="fsb-ico gold">⏰</div>
+          <div class="fsb-txt"><b>Yayınlanacak Saat</b><small>Belirlediğiniz saatte yayına hazır olur.</small></div>
+        </div>
+        <span class="fsb-arrow">→</span>
+        <div class="fsb-step">
+          <div class="fsb-ico ig">📸</div>
+          <div class="fsb-txt"><b>Instagram'da Yayınla</b><small>İçerik otomatik olarak Instagram'da paylaşılır.</small></div>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- Onay Bekleyen (otomasyonun ürettiği postlar) -->
   <div id="approvalSection" class="approval-section" style="display:none">
@@ -1155,6 +1723,8 @@ body.widget-mode .picker-grid{ grid-template-columns:repeat(2,1fr) !important; }
 
   </div><!-- /panel-growth -->
 </main>
+
+</div><!-- /shell -->
 
 <!-- Canlı Süreç — sabit footer, tek satır default, sürüklenebilir -->
 <div id="livelogFooter" class="livelog-footer collapsed" role="region" aria-label="Canlı süreç günlükleri">
@@ -2563,6 +3133,10 @@ function renderStories(cards){
   // Yayınlanmış olanları ayrı listeye ayır
   const active = cards.filter(c => !c.published);
   const done = cards.filter(c => c.published);
+  // "Yayına Hazır" işaretli kartlar → Otomasyon Merkezi "Sıradaki gönderi"
+  _readyCards = active.filter(c => c.ready);
+  refreshNextPreviews();
+  fillFlowAccordions(active);
   if(cnt) cnt.textContent = active.length;
   if(pcnt) pcnt.textContent = done.length;
   // Yayınlanan bölümünü sadece kart varsa göster
@@ -2751,6 +3325,7 @@ async function runTopicNow(konu){
   if(btn) btn.classList.add("busy");
   const etiket = konu ? `"${konu}"` : "rastgele konu";
   toast(`🎌 ${etiket} kartı üretiliyor — Canlı Süreç'i izle`, "info", 3500);
+  showAdaptive("🎌 Konu kartı üretiliyor", "Konu seçiliyor · görsel bulunuyor…");
   showSkeletonCard("🎌 Konu kartı hazırlanıyor…");
   logSeq = 0; $("logbox").innerHTML = "";
   pollStatus(); pollLogs();
@@ -2762,11 +3337,12 @@ async function runTopicNow(konu){
         clearInterval(watch);
         if(btn) btn.classList.remove("busy");
         removeSkeletonCards();
+        hideAdaptive();
         await loadRecentStories();
         await loadApprovalList();
         if(s.job && s.job.error) toast("Konu üretimi hata verdi — loglara bak.", "err", 4000);
         else toast("Kart hazır ✓ — Onay Bekleyen'e düştü", "ok", 3500);
-      }
+      } else if(s.job && s.job.message){ setAdaptiveSub(s.job.message); }
     }catch(e){}
   }, 3000);
 }
@@ -2786,6 +3362,7 @@ async function runNewsNow(){
 
   if(btn) btn.classList.add("busy");
   toast("📰 Haberden kart üretiliyor — Canlı Süreç'i izle", "info", 3500);
+  showAdaptive("📰 Haber kartı üretiliyor", "Haberler taranıyor · skorlanıyor…");
   showSkeletonCard("📰 Haber kartı hazırlanıyor…");
   logSeq = 0; $("logbox").innerHTML = "";
   pollStatus(); pollLogs();
@@ -2798,13 +3375,14 @@ async function runNewsNow(){
         clearInterval(watch);
         if(btn) btn.classList.remove("busy");
         removeSkeletonCards();
+        hideAdaptive();
         await loadRecentStories();
         if(s.job && s.job.error) toast("Haber üretimi hata verdi — loglara bak.", "err", 4000);
         else toast("İşlem bitti ✓ — yeni kart varsa listede", "ok", 3000);
-      }
+      } else if(s.job && s.job.message){ setAdaptiveSub(s.job.message); }
     }catch(e){}
   }, 3000);
-  setTimeout(() => { clearInterval(watch); if(btn) btn.classList.remove("busy"); removeSkeletonCards(); }, 120000);
+  setTimeout(() => { clearInterval(watch); if(btn) btn.classList.remove("busy"); removeSkeletonCards(); hideAdaptive(); }, 120000);
 }
 
 async function storyToInstagram(name){
@@ -2995,6 +3573,8 @@ let _reelsLoaded = false;
 function switchTab(name){
   document.querySelectorAll(".tab[data-tab]").forEach(t =>
     t.classList.toggle("active", t.dataset.tab === name));
+  document.querySelectorAll(".tb-tab[data-tab]").forEach(t =>
+    t.classList.toggle("active", t.dataset.tab === name));
   const pc = document.getElementById("panel-cards");
   const pr = document.getElementById("panel-reels");
   const pg = document.getElementById("panel-growth");
@@ -3007,6 +3587,178 @@ function switchTab(name){
   }
   if(name === "growth") loadGrowthTab();
 }
+
+/* ═══ Sol menü — görünüm seçimi ═══ */
+function sideNav(view, el){
+  document.querySelectorAll(".side-item").forEach(s => s.classList.remove("active"));
+  if(el) el.classList.add("active");
+  const map = { home:"cards", cards:"cards", queue:"cards", automation:"cards",
+                stats:"growth", sources:"reels", settings:"cards" };
+  switchTab(map[view] || "cards");
+  if(view === "automation"){
+    const af = document.getElementById("autoflow");
+    if(af) af.scrollIntoView({behavior:"smooth", block:"start"});
+  }
+  if(view === "settings"){ try{ openAutomationModal(); }catch(_){} }
+}
+
+/* ═══ Sağ panel kaldırıldı — inline akış ayarları ═══ */
+function _flowDays(kind){
+  const sel = kind === "news" ? "#frNewsDays" : "#frImgDays";
+  return [...document.querySelectorAll(sel + " .day-chip.on")]
+    .map(c => Number(c.dataset.day)).sort((a,b)=>a-b);
+}
+
+async function _saveFlow(kind, patch){
+  try{
+    const cur = await (await fetch("/api/automation/config")).json();
+    const cfg = cur.config || cur || {};
+    cfg[kind] = Object.assign({}, cfg[kind] || {}, patch);
+    const r = await fetch("/api/automation/config", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(cfg)
+    });
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    loadAutoflowFromConfig();
+    return true;
+  }catch(e){ toast("⚠️ Kaydedilemedi: " + e.message, "error"); return false; }
+}
+
+/* Otomatik yayın toggle → anında kaydet */
+async function toggleFlowAuto(kind, checked){
+  const ok = await _saveFlow(kind, { auto_publish: checked, enabled: true });
+  if(ok) toast(checked ? "✅ Otomatik yayın açık" : "⏸️ Otomatik yayın kapalı", "ok", 1800);
+}
+
+/* Gün çipi tıklanınca görsel toggle + kaydet */
+document.addEventListener("click", (e) => {
+  const chip = e.target.closest("#frNewsDays .day-chip, #frImgDays .day-chip");
+  if(!chip) return;
+  chip.classList.toggle("on");
+  const kind = chip.closest("#frImgDays") ? "topic" : "news";
+  const days = _flowDays(kind === "topic" ? "img" : "news");
+  clearTimeout(_daySaveTimer);
+  _daySaveTimer = setTimeout(() => _saveFlow(kind, { days, enabled: true }), 600);
+});
+let _daySaveTimer = null;
+
+function _paintDays(sel, days){
+  document.querySelectorAll(sel + " .day-chip").forEach(c => {
+    c.classList.toggle("on", (days || []).includes(Number(c.dataset.day)));
+  });
+}
+
+/* ═══ Otomasyon config → inline akış + countdown ═══ */
+async function loadAutoflowFromConfig(){
+  try{
+    const d = await (await fetch("/api/automation/config")).json();
+    const cfg = d.config || d || {};
+    const news = cfg.news || {};
+    const img = cfg.topic || {};
+    _paintDays("#frNewsDays", news.days);
+    _paintDays("#frImgDays", img.days);
+    const nAuto = document.getElementById("frNewsAuto");
+    const iAuto = document.getElementById("frImgAuto");
+    if(nAuto) nAuto.checked = !!news.auto_publish;
+    if(iAuto) iAuto.checked = !!img.auto_publish;
+    const _hm = (o, dh) => String(o.hour ?? dh).padStart(2,"0") + ":" + String(o.minute ?? 0).padStart(2,"0");
+    const nc = document.getElementById("frNewsClock");
+    const ic = document.getElementById("frImgClock");
+    if(nc) nc.textContent = _hm(news, 9);
+    if(ic) ic.textContent = _hm(img, 12);
+    _flowCfg = { news, img };
+    tickCountdowns();
+  }catch(_){}
+}
+
+let _flowCfg = { news:{}, img:{} };
+const _RING_LEN = 2 * Math.PI * 52;  // r=52
+
+/* days: launchd şema (0=Pzr,1=Pzt..6=Cmt) — JS getDay() ile birebir */
+function _nextRun(days, hour, minute){
+  if(hour == null || !days || !days.length) return null;
+  const now = new Date();
+  for(let add=0; add<=7; add++){
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate()+add, hour, minute||0, 0);
+    if(days.includes(d.getDay()) && d > now) return d;
+  }
+  return null;
+}
+
+function _fmtHM(ms){
+  if(ms == null) return "--:--";
+  const tot = Math.max(0, Math.floor(ms/1000));
+  const d = Math.floor(tot/86400);
+  const h = Math.floor((tot%86400)/3600), m = Math.floor((tot%3600)/60);
+  if(d >= 1) return d + "g " + String(h).padStart(2,"0") + "s";
+  return String(h).padStart(2,"0") + "s " + String(m).padStart(2,"0") + "dk";
+}
+
+function _paintRing(id, next){
+  const ring = document.getElementById(id);
+  const timeEl = document.getElementById(id + "Time");
+  if(!ring || !timeEl) return;
+  ring.style.strokeDasharray = _RING_LEN;
+  if(!next){ ring.style.strokeDashoffset = _RING_LEN; timeEl.textContent = "--:--"; return; }
+  const ms = next - new Date();
+  timeEl.textContent = _fmtHM(ms);
+  // 24 saatlik pencereye göre dolum
+  const frac = Math.max(0, Math.min(1, 1 - (ms / (24*3600*1000))));
+  ring.style.strokeDashoffset = _RING_LEN * (1 - frac);
+}
+
+function _dayLabel(d){
+  if(!d) return "—";
+  const now = new Date();
+  const t = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dd = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diff = Math.round((dd - t) / 86400000);
+  if(diff === 0) return "Bugün";
+  if(diff === 1) return "Yarın";
+  return d.toLocaleDateString("tr-TR", { weekday:"long" });
+}
+
+function tickCountdowns(){
+  const nn = _nextRun(_flowCfg.news.days, _flowCfg.news.hour, _flowCfg.news.minute);
+  const ni = _nextRun(_flowCfg.img.days, _flowCfg.img.hour, _flowCfg.img.minute);
+  _paintRing("ringNews", nn);
+  _paintRing("ringImg", ni);
+  const nd = document.getElementById("frNewsDay");
+  const idl = document.getElementById("frImgDay");
+  if(nd) nd.textContent = _dayLabel(nn);
+  if(idl) idl.textContent = _dayLabel(ni);
+  const nw = document.getElementById("frNewsWhen");
+  const iw = document.getElementById("frImgWhen");
+  if(nw) nw.textContent = nn ? (_fmtHM(nn - new Date()) + " kaldı") : "Planlanmadı";
+  if(iw) iw.textContent = ni ? (_fmtHM(ni - new Date()) + " kaldı") : "Planlanmadı";
+}
+setInterval(tickCountdowns, 30000);
+
+/* ═══ Adaptif yükleme / işlem overlay ═══ */
+function showAdaptive(title, sub, determinate){
+  const ov = document.getElementById("adaptiveOverlay");
+  const ring = document.getElementById("ovRing");
+  if(!ov) return;
+  document.getElementById("ovTitle").textContent = title || "İşleniyor…";
+  document.getElementById("ovSub").textContent = sub || "";
+  if(determinate){ ring.classList.remove("indet"); updateAdaptiveProgress(0); }
+  else { ring.classList.add("indet"); const p = document.getElementById("ovPct"); if(p) p.textContent = ""; }
+  ov.classList.add("on");
+}
+function updateAdaptiveProgress(pct){
+  const p = Math.max(0, Math.min(100, Math.round(pct)));
+  const fg = document.getElementById("ovRingFg");
+  const lbl = document.getElementById("ovPct");
+  if(lbl) lbl.textContent = p + "%";
+  if(fg){
+    const len = 2 * Math.PI * 33;
+    fg.style.strokeDasharray = len;
+    fg.style.strokeDashoffset = len * (1 - p/100);
+  }
+}
+function setAdaptiveSub(sub){ const s=document.getElementById("ovSub"); if(s) s.textContent = sub || ""; }
+function hideAdaptive(){ const ov=document.getElementById("adaptiveOverlay"); if(ov) ov.classList.remove("on"); }
+
 
 function setReelDur(sn){
   _reelDur = sn;
@@ -3215,8 +3967,175 @@ async function loadApprovalList(){
     const r = await fetch("/api/approval/list", {cache:"no-store"});
     if(!r.ok) return;
     const data = await r.json();
-    renderApprovalList(data.items || []);
+    _approvalItems = data.items || [];
+    renderApprovalList(_approvalItems);
+    refreshNextPreviews();
   }catch(e){ /* silent — poller devam eder */ }
+}
+
+// Sıradaki gönderi verisi (akış kartlarında ve önizleme modalında kullanılır)
+let _approvalItems = [];
+let _readyCards = [];   // "Yayına Hazır" işaretlenmiş kartlar (renderStories doldurur)
+let _nextPost = { news: null, image: null };
+
+function _pickNext(kind){
+  // Öncelik: YAYINA HAZIR kartlar (tag'e göre). Yoksa onay-bekleyen otomasyon.
+  const wantNews = (kind === "news");
+  const readyMatch = (_readyCards || []).find(c => ((c.source||"").toLowerCase() === "haber") === wantNews);
+  if(readyMatch){
+    return {
+      _ready: true,
+      name: readyMatch.file,
+      url: readyMatch.url + (readyMatch.mtime ? ("?v=" + Math.floor(readyMatch.mtime)) : ""),
+      source: readyMatch.source || (wantNews ? "haber" : "manuel"),
+      aciklama: readyMatch.aciklama || readyMatch.baslik || "",
+      post_caption: readyMatch.post_caption || "",
+      generated_at: readyMatch.uploaded_at || "",
+    };
+  }
+  const items = _approvalItems || [];
+  if(wantNews) return items.find(it => (it.source||"").toLowerCase() === "haber") || null;
+  return items.find(it => (it.source||"").toLowerCase() !== "haber") || null;
+}
+
+function refreshNextPreviews(){
+  const map = [
+    { kind:"news",  thumb:"frNewsThumb", title:"frNewsTitle", def:"Sıradaki haber kartı hazırlanacak" },
+    { kind:"image", thumb:"frImgThumb",  title:"frImgTitle",  def:"Sıradaki görsel kartı hazırlanacak" },
+  ];
+  for(const m of map){
+    const it = _pickNext(m.kind);
+    _nextPost[m.kind] = it;
+    const thumbEl = document.getElementById(m.thumb);
+    const titleEl = document.getElementById(m.title);
+    const cardEl = thumbEl ? thumbEl.closest(".flow-card") : null;
+    if(it){
+      if(thumbEl){ thumbEl.src = it.url; thumbEl.style.display = ""; }
+      if(titleEl) titleEl.textContent = (it.aciklama || it.post_caption || m.def).slice(0, 90);
+      if(cardEl) cardEl.classList.toggle("is-ready", !!it._ready);
+    } else {
+      if(thumbEl){ thumbEl.removeAttribute("src"); }
+      if(titleEl) titleEl.textContent = m.def;
+      if(cardEl) cardEl.classList.remove("is-ready");
+    }
+  }
+}
+
+// Otomasyon Merkezi akordiyon aç/kapa (default kapalı)
+function toggleFlowAcc(kind){
+  const id = kind === "news" ? "accNews" : "accImg";
+  const acc = document.getElementById(id);
+  if(!acc) return;
+  const open = acc.classList.toggle("open");
+  const head = acc.querySelector(".flow-acc-head");
+  if(head) head.setAttribute("aria-expanded", open ? "true" : "false");
+}
+
+// Akış akordiyonlarını üretilen kartlarla doldur (haber → news, diğer → image)
+function fillFlowAccordions(cards){
+  cards = cards || [];
+  const news = cards.filter(c => (c.source||"").toLowerCase() === "haber");
+  const img  = cards.filter(c => (c.source||"").toLowerCase() !== "haber");
+  _paintFlowAcc("accNewsGrid", "accNewsCount", news, "📰", "Henüz haber kartı üretilmedi.");
+  _paintFlowAcc("accImgGrid", "accImgCount", img, "🖼️", "Henüz görsel kartı üretilmedi.");
+}
+
+function _paintFlowAcc(gridId, countId, cards, ico, emptyMsg){
+  const grid = document.getElementById(gridId);
+  const cnt = document.getElementById(countId);
+  if(cnt) cnt.textContent = cards.length;
+  if(!grid) return;
+  if(!cards.length){
+    grid.innerHTML = `<div class="empty sm" data-icon="${ico}">${emptyMsg}</div>`;
+    return;
+  }
+  grid.innerHTML = cards.map(c => {
+    const imgUrl = `${c.url}?v=${Math.floor(c.mtime || 0)}`;
+    const nameAttr = c.file.replace(/'/g, "\\'");
+    const badges = [];
+    if(c.ready) badges.push(`<span class="fa-b ok">✓ Hazır</span>`);
+    else if(c.draft) badges.push(`<span class="fa-b draft">✎ Taslak</span>`);
+    const txt = escapeHtml((c.aciklama || c.baslik || "").slice(0, 80));
+    return `<div class="fa-card" onclick="showStoryContent('${nameAttr}')" title="İçeriği göster">
+      <img src="${imgUrl}" alt="" loading="lazy">
+      <div class="fa-cap">
+        <div class="fa-badges">${badges.join("")}</div>
+        <div class="fa-txt">${txt}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// Sıradaki gönderiyi açıklamasıyla önizle
+async function openNextPreview(kind){
+  const it = _nextPost[kind];
+  if(!it){
+    toast("Şu an bu akışta bekleyen bir gönderi yok.", "info", 2500);
+    return;
+  }
+  // Yayına hazır kartta metin eksikse meta'dan tamamla
+  if(it._ready && (!it.aciklama || !it.post_caption)){
+    try{
+      const r = await fetch(`/api/story/meta/${encodeURIComponent(it.name)}`);
+      if(r.ok){
+        const meta = (await r.json()).meta || {};
+        it.aciklama = it.aciklama || meta.aciklama || "";
+        it.post_caption = it.post_caption || meta.post_caption || "";
+      }
+    }catch(e){ /* sessiz */ }
+  }
+  const tag = kind === "news" ? "📰 HABER" : "🖼️ GÖRSEL";
+  const nameAttr = it.name.replace(/'/g, "\\'");
+  const back = document.createElement("div");
+  back.className = "modal-backdrop";
+  back.onclick = () => back.remove();
+  const aciklama = (it.aciklama || "").trim();
+  const caption = (it.post_caption || "").trim();
+  const statusBadge = it._ready
+    ? `<span class="badge ok" style="margin-left:8px">✓ Yayına Hazır</span>`
+    : `<span class="badge muted" style="margin-left:8px">⏳ Onay Bekliyor</span>`;
+  // Footer butonları — ready kart doğrudan Instagram'a yayınlanır
+  const footBtns = it._ready
+    ? `<button class="ghost" onclick="this.closest('.modal-backdrop').remove(); openEditModal('${nameAttr}')">✏️ Düzenle</button>
+       <button class="primary" onclick="this.closest('.modal-backdrop').remove(); storyPublishIG('${nameAttr}')">📤 Instagram'a Yayınla</button>`
+    : `<button class="ghost" onclick="deferApproval('${nameAttr}', this); this.closest('.modal-backdrop').remove()">⏸ Sonra</button>
+       <button class="primary" onclick="approveApproval('${nameAttr}', this); this.closest('.modal-backdrop').remove()">✅ Onayla ve Yayınla</button>`;
+  back.innerHTML = `
+    <div class="modal-content" style="max-width:720px" onclick="event.stopPropagation()">
+      <div class="modal-head">
+        <h3 class="modal-title">🗓️ Sıradaki Gönderi <small>— ${tag}</small>${statusBadge}</h3>
+        <button class="ghost sm" onclick="this.closest('.modal-backdrop').remove()">✕ Kapat</button>
+      </div>
+      <div class="modal-body" style="display:grid;grid-template-columns:280px 1fr;gap:20px">
+        <img src="${escapeHtml(it.url)}" alt="preview"
+          style="width:100%;border-radius:14px;border:1px solid var(--line);object-fit:cover"
+          onclick="openLightbox('${escapeHtml(it.url)}')" />
+        <div style="min-width:0;display:flex;flex-direction:column;gap:14px">
+          <div>
+            <div class="content-label">📝 Kart metni</div>
+            <div class="content-text">${escapeHtml(aciklama || "—")}</div>
+          </div>
+          <div>
+            <div class="content-label">
+              <span>📱 Instagram açıklaması</span>
+              <button class="sm ghost" style="padding:4px 10px;font-size:11px"
+                onclick="copyStoryCaption(this)">📋 Kopyala</button>
+            </div>
+            <div class="content-text caption" data-caption="${escapeHtml(caption)}">${escapeHtml(caption || "—")}</div>
+          </div>
+          <div style="font-size:11.5px;color:var(--muted)">
+            Kaynak: ${escapeHtml(it.source || "otomasyon")}${it.generated_at ? " · " + escapeHtml(it.generated_at) : ""}
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <div></div>
+        <div style="display:flex;gap:10px">
+          ${footBtns}
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(back);
 }
 
 function renderApprovalList(items){
@@ -3374,19 +4293,34 @@ async function deferApproval(name, btn){
   }
 }
 
-// Widget'ı Chrome app-mode'da açan yardımcı
+// Widget'ı ayrı pencere olarak aç.
+// Öncelik: backend /api/widget/open (Mac local'de bash script çağırır → Chrome app-mode).
+// Fallback: browser window.open (Pi/container'da bash yok, popup pencere açar).
 async function openWidget(){
-  // Backend'e trigger — masaüstünde küçük native pencere olarak açılır
+  const widgetUrl = "/?view=widget";
+  // Önce backend'i dene (Mac local'de Chrome app-mode = en iyi UX)
   try{
     const r = await fetch("/api/widget/open", {method:"POST"});
-    if(!r.ok){
+    if(r.ok){
+      toast("🖥 Widget açıldı — masaüstünde ayrı pencere olarak.", "ok", 3000);
+      return;
+    }
+    // 404 = endpoint yok (Pi/deploy'da bash script çalıştırılamaz) → fallback
+    if(r.status !== 404){
       let msg = r.statusText; try{ const j = await r.json(); msg = j.detail || msg; }catch(e){}
       toast("Widget açılamadı: " + msg, "err", 5000);
       return;
     }
-    toast("🖥 Widget açıldı — masaüstünde ayrı pencere olarak.", "ok", 3000);
-  }catch(e){
-    toast("Bağlantı hatası.", "err");
+  }catch(e){ /* fallback'a düş */ }
+
+  // Fallback: popup pencere olarak aç (Chrome app-mode kadar temiz değil ama çalışır)
+  const w = window.open(widgetUrl, "japanWidget",
+    "width=620,height=1000,menubar=no,toolbar=no,location=no,status=no,resizable=yes");
+  if(w){
+    try{ w.focus(); }catch(e){}
+    toast("🖥 Widget açıldı — ayrı pencere.", "ok", 3000);
+  } else {
+    toast("Popup engellendi. Tarayıcıda popup'lara izin ver.", "warn", 5000);
   }
 }
 
@@ -3424,6 +4358,25 @@ async function loadVersion(){
   }catch(e){/* sessiz */}
 }
 loadVersion();
+
+/* ═══ Hesap durumu kartı + otomasyon akışı — başlangıç ═══ */
+async function loadAccountCard(){
+  try{
+    const s = await (await fetch("/api/status", {cache:"no-store"})).json();
+    const pub = (s.published_count ?? s.published ?? s.instagram_uploads ??
+                 (s.stories && s.stories.published) ?? null);
+    const el = document.getElementById("acctPublished");
+    if(el && pub != null) el.textContent = pub;
+    const badge = document.getElementById("acctBadge");
+    if(badge){
+      const ok = s.instagram_ok ?? s.ig_ok ?? true;
+      badge.textContent = ok ? "Aktif" : "Pasif";
+      badge.style.color = ok ? "#34d399" : "#ff8098";
+    }
+  }catch(_){}
+}
+loadAccountCard();
+loadAutoflowFromConfig();
 
 // ============ REELS CAPTION ÜRETİCİ ============
 async function generateReelsCaption(){
