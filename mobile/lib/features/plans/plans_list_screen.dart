@@ -136,13 +136,46 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _PlansList extends StatelessWidget {
+class _PlansList extends ConsumerWidget {
   const _PlansList({required this.plans, this.offlineHint});
   final List<dynamic> plans;
   final String? offlineHint;
 
+  Future<void> _confirmDelete(
+      BuildContext context, WidgetRef ref, dynamic trip) async {
+    final s = LanguageScope.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(s.s('plans.deleteConfirmTitle')),
+        content: Text(s.p('plans.deleteConfirmBody', {
+          'title': trip.title as String,
+        })),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(s.s('plans.cancel')),
+          ),
+          FilledButton.tonal(
+            style: FilledButton.styleFrom(
+              foregroundColor: Theme.of(ctx).colorScheme.onErrorContainer,
+              backgroundColor: Theme.of(ctx).colorScheme.errorContainer,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(s.s('plans.deleteConfirmAction')),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final repo = ref.read(plansRepositoryProvider);
+    if (repo == null) return;
+    await repo.delete(trip.id as String);
+    ref.invalidate(plansPullProvider);
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final s = LanguageScope.of(context);
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -185,6 +218,14 @@ class _PlansList extends StatelessWidget {
                   icon: const Icon(Icons.edit),
                   tooltip: s.s('plans.edit'),
                   onPressed: () => context.go('/plans/${trip.id}/edit'),
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.delete_outline,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  tooltip: s.s('plans.delete'),
+                  onPressed: () => _confirmDelete(context, ref, trip),
                 ),
               ],
             ),

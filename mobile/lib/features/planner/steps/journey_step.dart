@@ -27,6 +27,12 @@ class JourneyStep extends StatefulWidget {
   State<JourneyStep> createState() => _JourneyStepState();
 }
 
+/// Şehir adından parantez içi bölgeyi (ör. "(Narita)", "(Kansai)") temizler.
+/// Dedup + eşleştirme için tek doğru merkez — havalimanı bilgisi zaten
+/// TripDestination.airport alanında ayrı tutulur.
+String _normalizeCity(String city) =>
+    city.replaceAll(RegExp(r'\s*\(.*\)\s*$'), '').trim();
+
 class _JourneyStepState extends State<JourneyStep> {
   /// Aktif şehir sekmesi (order index). Silme sonrası clamp'lenir.
   int _activeTab = 0;
@@ -231,7 +237,8 @@ class _JourneyStepState extends State<JourneyStep> {
     _updateLeg(legIndex, (d) {
       d.countryCode = a.countryCode;
       d.countryName = a.countryName;
-      d.city = a.city;
+      // "Tokyo (Narita)" → "Tokyo" — havalimanı zaten d.airport'ta.
+      d.city = _normalizeCity(a.city);
       d.airport = a.iata;
       d.lat = a.lat;
       d.lng = a.lng;
@@ -452,7 +459,7 @@ class _JourneyStepState extends State<JourneyStep> {
     final s = LanguageScope.of(context);
     // Şu an rotadaki şehirleri normalize et — kolay karşılaştırma için.
     final selectedNames = {
-      for (final d in dests) d.city.trim().toLowerCase(),
+      for (final d in dests) _normalizeCity(d.city).toLowerCase(),
     };
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -520,7 +527,7 @@ class _JourneyStepState extends State<JourneyStep> {
   }
 
   bool _isKnownCity(String city) => kCityData
-      .any((c) => c.label.toLowerCase() == city.trim().toLowerCase());
+      .any((c) => c.label.toLowerCase() == _normalizeCity(city).toLowerCase());
 
   /// Custom şehir: JpCity listesinden seçilen şehir ile destinasyon ekler.
   /// Havalimanı olan şehirlerde IATA otomatik atanır (uçuş bacağı için); yoksa
@@ -531,7 +538,8 @@ class _JourneyStepState extends State<JourneyStep> {
         ..sort((x, y) => x.order.compareTo(y.order));
       // Aynı şehir zaten varsa tekrar ekleme.
       if (list.any((d) =>
-          d.city.trim().toLowerCase() == c.name.trim().toLowerCase())) {
+          _normalizeCity(d.city).toLowerCase() ==
+          _normalizeCity(c.name).toLowerCase())) {
         return;
       }
       list.add(TripDestination(
@@ -574,8 +582,8 @@ class _JourneyStepState extends State<JourneyStep> {
     widget.onChange((t) {
       final list = [...t.preferences.destinations]
         ..sort((a, b) => a.order.compareTo(b.order));
-      final existingIdx =
-          list.indexWhere((d) => d.city.trim().toLowerCase() == city.label.toLowerCase());
+      final existingIdx = list.indexWhere(
+          (d) => _normalizeCity(d.city).toLowerCase() == city.label.toLowerCase());
       if (existingIdx >= 0) {
         list.removeAt(existingIdx);
       } else {

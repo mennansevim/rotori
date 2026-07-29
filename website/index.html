@@ -216,56 +216,13 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 .hero-stage{position:relative;margin-top:52px;padding:20px 0 24px;display:flex;flex-direction:column;align-items:center;overflow:visible}
 .hero-stage-phone{position:relative;z-index:5;display:flex;justify-content:center}
 .hero-stage .phone{--w:min(340px,80vw)}
-/* Real hand-phone photo — replaces SVG mockup for Flighty-caliber warmth */
-.hero-hand-wrap{position:relative;display:inline-block;width:clamp(320px,42vw,540px)}
-.hero-hand-wrap.float{animation:handFloat 7s ease-in-out infinite}
-@keyframes handFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-@media (prefers-reduced-motion: reduce){.hero-hand-wrap.float{animation:none}}
-.hero-hand{
-  width:100%;
-  height:auto;
-  display:block;
-  filter:drop-shadow(0 60px 80px rgba(15,10,30,.20)) drop-shadow(0 20px 30px rgba(15,10,30,.08));
-  user-select:none;
-  pointer-events:none;
-}
-/* Rotori screen overlay — sits inside the physical phone's display */
-.phone-overlay{
-  position:absolute;
-  /* Positioning is percentage-based against the wrapping .hero-hand-wrap,
-     which matches the image aspect ratio. Tune these to align with the
-     photo's actual screen bounds. */
-  top:9.5%;
-  left:22%;
-  width:56%;
-  height:72%;
-  border-radius:9% / 6.2%;
-  background:linear-gradient(180deg,#F3EFF9 0%,#EAE4F5 40%,#EEF6ED 100%);
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
-  transform:rotate(-1.5deg);
-  transform-origin:center center;
-  box-shadow:inset 0 0 0 1px rgba(15,10,30,.08);
-  pointer-events:none;
-}
-.po-status{display:flex;justify-content:space-between;align-items:center;padding:6% 8% 3%;font-size:calc(0.6vw + 4px);font-weight:600;color:var(--ink)}
-.po-status .po-time{font-variant-numeric:tabular-nums}
-.po-status .po-dots{display:inline-flex;gap:3px;align-items:center;font-size:calc(0.5vw + 3px);letter-spacing:.1em}
-.po-content{flex:1;display:flex;flex-direction:column;padding:0 6% 6%}
-.po-head{padding:2% 0 4%}
-.po-daynum{font-size:calc(0.45vw + 6px);font-weight:700;color:var(--ink-3);letter-spacing:.14em;text-transform:uppercase}
-.po-title{font-size:calc(1.4vw + 6px);font-weight:700;color:var(--ink);letter-spacing:-.03em;line-height:1.05;margin-top:2%}
-.po-sub{font-size:calc(0.5vw + 4.5px);color:var(--ink-2);margin-top:2%;font-weight:500}
-.po-rows{display:flex;flex-direction:column;gap:5%;margin-top:2%}
-.po-row{background:rgba(255,255,255,.85);border:1px solid rgba(15,10,30,.06);border-radius:12%/40%;padding:5% 6%;display:flex;gap:6%;align-items:center;backdrop-filter:blur(4px)}
-.po-row .po-tm{font-size:calc(0.5vw + 4px);font-weight:700;color:var(--sakura);font-variant-numeric:tabular-nums;flex:none;width:22%}
-.po-row .po-place{font-weight:600;color:var(--ink);font-size:calc(0.65vw + 4.5px);letter-spacing:-.01em;line-height:1.1}
-.po-row .po-meta{font-size:calc(0.4vw + 3.5px);color:var(--ink-2);margin-top:1%;line-height:1.2}
-.po-foot{margin-top:auto;padding-top:4%;display:flex;justify-content:space-between;font-size:calc(0.4vw + 3.5px);color:var(--ink-3);font-weight:600;letter-spacing:.02em}
-.po-foot b{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:700}
-
-@media(max-width:720px){.hero-hand-wrap{width:min(280px,72vw)}}
+/* El + telefon SVG mockup — CSS iPhone yerine. Alt kısımda el "yok olur" gibi
+   soft gradient ile hero arka planına karışır, tasarım bütünlüğü için. */
+.hand-mobile-wrap{--hw:min(360px,88vw);width:var(--hw);position:relative;z-index:5;display:flex;justify-content:center;filter:drop-shadow(0 30px 44px rgba(15,10,30,.22))}
+.hand-mobile-wrap.float{animation:float 7s ease-in-out infinite}
+.hand-mobile{width:100%;height:auto;display:block;/* Alt %26'yı soldur — elin bittiği kısmı hero arka planına karıştır. */
+  -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 74%,rgba(0,0,0,.55) 88%,rgba(0,0,0,0) 100%);
+  mask-image:linear-gradient(180deg,#000 0%,#000 74%,rgba(0,0,0,.55) 88%,rgba(0,0,0,0) 100%)}
 
 .hero-nots{position:absolute;inset:0;pointer-events:none;z-index:2}
 
@@ -440,14 +397,13 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 
 /* Transportation — horizontal Shinkansen route illustration */
 .rail-vis{margin:44px auto 0;max-width:920px}
-.rail-line{position:relative;padding:44px 0 32px}
-.rail-line::before{content:"";position:absolute;left:8%;right:8%;top:64px;height:3px;background:linear-gradient(90deg,var(--accent) 0%,var(--sakura) 100%);border-radius:2px}
-.rail-line .rl-stop{position:relative;display:inline-block;text-align:center}
-.rail-stops{display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:2;padding:0 4%}
-.rl-stop{text-align:center;position:relative;padding-top:76px}
-.rl-stop::before{content:"";position:absolute;left:50%;top:56px;transform:translate(-50%,0);width:20px;height:20px;border-radius:50%;background:var(--card);border:3px solid var(--accent);z-index:2;box-shadow:0 0 0 6px var(--bg)}
-.rl-stop:last-child::before{border-color:var(--sakura)}
-.rl-stop .rl-code{font-size:11px;font-weight:700;color:var(--ink-3);letter-spacing:.08em;text-transform:uppercase}
+.rail-line{position:relative;padding:16px 0 32px}
+.rail-stops{display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:2;padding:0 4%;gap:24px}
+.rail-stops::before{content:"";position:absolute;left:12%;right:12%;top:29px;height:3px;background:linear-gradient(90deg,var(--accent) 0%,var(--sakura) 100%);border-radius:2px;z-index:1}
+.rl-stop{display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;z-index:2;min-width:0}
+.rl-node{width:20px;height:20px;border-radius:50%;background:var(--card);border:3px solid var(--accent);box-shadow:0 0 0 6px var(--bg);position:relative;z-index:2}
+.rl-stop:last-child .rl-node{border-color:var(--sakura)}
+.rl-stop .rl-code{font-size:11px;font-weight:700;color:var(--ink-3);letter-spacing:.08em;text-transform:uppercase;margin-top:18px}
 .rl-stop .rl-city{font-size:20px;font-weight:600;color:var(--ink);letter-spacing:-.02em;margin-top:4px}
 .rl-stop .rl-tm{font-size:13.5px;color:var(--ink-2);margin-top:6px;font-variant-numeric:tabular-nums;font-weight:500}
 .rail-info{background:linear-gradient(135deg,rgba(107,90,227,.08),rgba(199,74,114,.05));border:1px solid var(--line-2);border-radius:16px;padding:18px 22px;text-align:center;font-size:14.5px;font-weight:600;color:var(--ink);margin-top:8px;letter-spacing:-.01em}
@@ -688,39 +644,10 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
       </div>
 
       <div class="hero-stage-phone">
-        <div class="hero-hand-wrap float">
-          <img class="hero-hand" src="img/main-hand-phone.avif" alt="Rotori uygulaması gerçek bir elde — Japonya rotası ekranda" width="930" height="1260" loading="eager" fetchpriority="high" decoding="async">
-          <div class="phone-overlay" aria-hidden="true">
-            <div class="po-status">
-              <span class="po-time" data-i18n="hero.po.time">09:41</span>
-              <span class="po-dots">•••</span>
-            </div>
-            <div class="po-content">
-              <div class="po-head">
-                <div class="po-daynum" data-i18n="hero.po.daynum">GÜN 6 · KYOTO</div>
-                <div class="po-title" data-i18n="hero.po.title">Bugünün rotası</div>
-                <div class="po-sub" data-i18n="hero.po.sub">Kalkış 07:00 · 15k adım</div>
-              </div>
-              <div class="po-rows">
-                <div class="po-row">
-                  <span class="po-tm">07:00</span>
-                  <div><div class="po-place" data-i18n="hero.po.p1">Fushimi Inari</div><div class="po-meta" data-i18n="hero.po.m1">⛩️ 10.000 torii · sabah</div></div>
-                </div>
-                <div class="po-row">
-                  <span class="po-tm">10:30</span>
-                  <div><div class="po-place" data-i18n="hero.po.p2">Kinkaku-ji</div><div class="po-meta" data-i18n="hero.po.m2">🏯 Altın Pavyon · 45 dk</div></div>
-                </div>
-                <div class="po-row">
-                  <span class="po-tm">15:00</span>
-                  <div><div class="po-place" data-i18n="hero.po.p3">Arashiyama</div><div class="po-meta" data-i18n="hero.po.m3">🎋 Bambu · altın saat</div></div>
-                </div>
-              </div>
-              <div class="po-foot">
-                <span data-i18n="hero.po.f1">Toplam</span>
-                <span><b>15.2 km</b></span>
-              </div>
-            </div>
-          </div>
+        <div class="hand-mobile-wrap float">
+          <img class="hand-mobile" src="img/hand-mobile.svg"
+               alt="Rotori uygulaması — Japonya günlük plan"
+               loading="eager" decoding="async" />
         </div>
       </div>
 
@@ -865,11 +792,13 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
     <div class="rail-line">
       <div class="rail-stops">
         <div class="rl-stop">
+          <div class="rl-node"></div>
           <div class="rl-code">TYO · 東京</div>
           <div class="rl-city">Tokyo</div>
           <div class="rl-tm" data-i18n="trans.rt1">14:07 kalkış · Peron 19</div>
         </div>
         <div class="rl-stop">
+          <div class="rl-node"></div>
           <div class="rl-code">KYT · 京都</div>
           <div class="rl-city">Kyoto</div>
           <div class="rl-tm" data-i18n="trans.rt2">16:22 varış · Vagon 5</div>
@@ -1360,17 +1289,16 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
     'hero.tab2':{tr:'🎌 Yolculuk',en:'🎌 In Japan'},
     'hero.tab3':{tr:'🏯 Sahada',en:'🏯 On the ground'},
     'hero.tab4':{tr:'↓ İndir',en:'↓ Download'},
-    'hero.po.time':{tr:'09:41',en:'09:41'},
-    'hero.po.daynum':{tr:'GÜN 6 · KYOTO',en:'DAY 6 · KYOTO'},
-    'hero.po.title':{tr:'Bugünün rotası',en:'Today\'s route'},
-    'hero.po.sub':{tr:'Kalkış 07:00 · 15k adım',en:'Depart 07:00 · 15k steps'},
-    'hero.po.p1':{tr:'Fushimi Inari',en:'Fushimi Inari'},
-    'hero.po.m1':{tr:'⛩️ 10.000 torii · sabah',en:'⛩️ 10,000 torii · morning'},
-    'hero.po.p2':{tr:'Kinkaku-ji',en:'Kinkaku-ji'},
-    'hero.po.m2':{tr:'🏯 Altın Pavyon · 45 dk',en:'🏯 Golden Pavilion · 45 min'},
-    'hero.po.p3':{tr:'Arashiyama',en:'Arashiyama'},
-    'hero.po.m3':{tr:'🎋 Bambu · altın saat',en:'🎋 Bamboo · golden hour'},
-    'hero.po.f1':{tr:'Toplam',en:'Total'},
+    'hero.ph.time':{tr:'09:41',en:'09:41'},
+    'hero.ph.title':{tr:'Japonya · Gün 6',en:'Japan · Day 6'},
+    'hero.ph.sub':{tr:'Kyoto · 4/5 durak',en:'Kyoto · 4/5 stops'},
+    'hero.ph.search':{tr:'Bugüne yer ara…',en:'Search today…'},
+    'hero.tl1t':{tr:'Fushimi Inari',en:'Fushimi Inari'},
+    'hero.tl1':{tr:'⛩️ 10.000 torii · sabah sakin',en:'⛩️ 10,000 torii · quiet morning'},
+    'hero.tl2t':{tr:'Kinkaku-ji',en:'Kinkaku-ji'},
+    'hero.tl2':{tr:'🏯 Altın Pavyon · 45 dk',en:'🏯 Golden Pavilion · 45 min'},
+    'hero.tl4t':{tr:'Arashiyama',en:'Arashiyama'},
+    'hero.tl4':{tr:'🎋 Bambu ormanı · altın saat',en:'🎋 Bamboo grove · golden hour'},
 
     // PROBLEM
     'problem.eyebrow':{tr:'Neden Rotori',en:'Why Rotori'},

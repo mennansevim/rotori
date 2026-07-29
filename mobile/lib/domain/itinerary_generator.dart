@@ -693,7 +693,8 @@ List<DayPlan> generateItineraryFromTrip(Trip trip, {AppLang lang = AppLang.tr}) 
     final profile = getDestinationProfile(dest.countryCode);
     if (profile == null) return day;
 
-    final city = dest.city.isNotEmpty ? dest.city : profile.name;
+    final rawCity = dest.city.isNotEmpty ? dest.city : profile.name;
+    final city = rawCity.replaceAll(RegExp(r'\s*\([^)]*\)\s*$'), '').trim();
     final flag = profile.flag;
 
     final segDays = trip.days.where((d) {

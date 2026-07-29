@@ -19,6 +19,7 @@ import '../../domain/destination_profiles.dart';
 import '../../domain/explore.dart';
 import '../../domain/japan_suggestions.dart';
 import '../../domain/place_guide.dart';
+import '../../domain/place_image_resolver.dart';
 import '../../domain/trip_factory.dart';
 import '../../domain/types.dart';
 import 'ticket_ocr.dart';
@@ -561,11 +562,13 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
         ),
         const SizedBox(height: 12),
 
-        // Fotoğraflar (rehber varsa) — kompakt, kaydırmalı
-        if (guide != null && guide.imageUrls.isNotEmpty) ...[
-          _PlaceCarousel(imageUrls: guide.imageUrls, subtleBg: subtleBg),
-          const SizedBox(height: 12),
-        ],
+        // Fotoğraflar — rehber görseli varsa anında, yoksa Wikipedia'dan çözülür.
+        _PlaceCarousel(
+          title: item.title,
+          city: city,
+          seedImages: guide?.imageUrls ?? const [],
+          subtleBg: subtleBg,
+        ),
 
         // Tanıtım
         Text(intro,
@@ -844,8 +847,15 @@ String _formatRatingLabel(double rating, int? reviewCount, LanguageScope s) {
 /// Yerin görsellerini kaydırılabilir bir carousel'de gösterir.
 /// Görsel yüklenemezse subtle placeholder gösterilir.
 class _PlaceCarousel extends StatefulWidget {
-  const _PlaceCarousel({required this.imageUrls, required this.subtleBg});
-  final List<String> imageUrls;
+  const _PlaceCarousel({
+    required this.title,
+    required this.subtleBg,
+    this.city = '',
+    this.seedImages = const [],
+  });
+  final String title;
+  final String city;
+  final List<String> seedImages;
   final Color subtleBg;
 
   @override
@@ -855,6 +865,25 @@ class _PlaceCarousel extends StatefulWidget {
 class _PlaceCarouselState extends State<_PlaceCarousel> {
   final _ctrl = PageController(viewportFraction: 0.92);
   int _idx = 0;
+  late List<String> _urls = widget.seedImages;
+  bool _resolving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_urls.isEmpty) {
+      _resolving = true;
+      PlaceImageResolver.instance
+          .resolve(widget.title, city: widget.city)
+          .then((urls) {
+        if (!mounted) return;
+        setState(() {
+          _urls = urls;
+          _resolving = false;
+        });
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -864,20 +893,42 @@ class _PlaceCarouselState extends State<_PlaceCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    // Çözülüyor: hafif bir placeholder göster.
+    if (_resolving) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Container(
+          height: 150,
+          decoration: BoxDecoration(
+            color: widget.subtleBg,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          alignment: Alignment.center,
+          child: const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2)),
+        ),
+      );
+    }
+    // Görsel yok: hiç yer kaplama.
+    if (_urls.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
       children: [
         SizedBox(
           height: 150,
           child: PageView.builder(
             controller: _ctrl,
-            itemCount: widget.imageUrls.length,
+            itemCount: _urls.length,
             onPageChanged: (i) => setState(() => _idx = i),
             itemBuilder: (_, i) => Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(14),
                 child: Image.network(
-                  widget.imageUrls[i],
+                  _urls[i],
                   fit: BoxFit.cover,
                   loadingBuilder: (_, child, progress) {
                     if (progress == null) return child;
@@ -901,12 +952,12 @@ class _PlaceCarouselState extends State<_PlaceCarousel> {
             ),
           ),
         ),
-        if (widget.imageUrls.length > 1) ...[
+        if (_urls.length > 1) ...[
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              for (var i = 0; i < widget.imageUrls.length; i++)
+              for (var i = 0; i < _urls.length; i++)
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   margin: const EdgeInsets.symmetric(horizontal: 3),
@@ -924,6 +975,7 @@ class _PlaceCarouselState extends State<_PlaceCarousel> {
           ),
         ],
       ],
+      ),
     );
   }
 }

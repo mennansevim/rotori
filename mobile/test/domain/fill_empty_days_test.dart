@@ -82,5 +82,30 @@ void main() {
           filled[0].items.where((i) => i.kind == TimelineItemKind.meal);
       expect(meals.length, lessThanOrEqualTo(2));
     });
+
+    test('mevcut öğle yemeğinin üstüne ikinci öğle EKLENMEZ (dedup)', () {
+      // 11:30'da öğle yemeği zaten var → 13:00 slot'una ikinci öğle gelmemeli.
+      final lunch = TimelineItem(
+        id: 'lunch1',
+        title: '🍜 Öğle yemeği molası',
+        kind: TimelineItemKind.meal,
+        time: '11:30',
+        scheduledTime: '11:30',
+      );
+      final days = [_day(items: [lunch])];
+      final filled = fillEmptyDays(days, [_tokyoDest]);
+      final mealMins = filled[0].items
+          .where((i) => i.kind == TimelineItemKind.meal)
+          .map((i) {
+        final p = (i.time ?? '99:99').split(':');
+        return int.parse(p[0]) * 60 + int.parse(p[1]);
+      }).toList();
+      // Hiçbir iki yemek 2.5 saatten yakın olmamalı.
+      mealMins.sort();
+      for (var i = 1; i < mealMins.length; i++) {
+        expect(mealMins[i] - mealMins[i - 1] >= 150, isTrue,
+            reason: 'iki yemek üst üste gelmemeli (min 2.5 saat ara)');
+      }
+    });
   });
 }

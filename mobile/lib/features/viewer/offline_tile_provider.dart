@@ -137,7 +137,8 @@ class CachingTileProvider extends TileProvider {
     required double east,
     required int minZoom,
     required int maxZoom,
-    String urlTemplate = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    String urlTemplate =
+        'https://mt0.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&hl=ja&gl=JP',
     void Function(int done, int total)? onProgress,
     int maxTiles = 400,
   }) async {
@@ -171,6 +172,7 @@ class CachingTileProvider extends TileProvider {
       for (var x = r.minX; x <= r.maxX; x++) {
         for (var y = r.minY; y <= r.maxY; y++) {
           final url = urlTemplate
+              .replaceAll('{s}', '0')
               .replaceAll('{z}', '$z')
               .replaceAll('{x}', '$x')
               .replaceAll('{y}', '$y');

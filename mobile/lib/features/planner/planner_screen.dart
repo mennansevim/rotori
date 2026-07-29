@@ -248,7 +248,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
                 showBack: i > 0,
                 onBack: _goPrev,
                 continueLabel:
-                    s.s(i < kSteps.length - 1 ? 'shell.continue' : 'shell.guide'),
+                    s.s(i < kSteps.length - 1 ? 'shell.continue' : 'shell.createPlan'),
                 continueEnabled: continueEnabled,
                 onContinue: i < kSteps.length - 1
                     ? _goNext

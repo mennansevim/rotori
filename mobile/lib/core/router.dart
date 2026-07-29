@@ -34,7 +34,12 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     refreshListenable: refresh,
     redirect: (context, state) {
-      final loggedIn = ref.read(currentSessionProvider) != null;
+      // Session'ı doğrudan SDK'dan oku (cache'li currentSessionProvider değil):
+      // onAuthStateChange emit etmeden önce auth.currentSession senkron güncellenir.
+      // Aksi halde refresh listenable, StreamProvider cache'inden önce ateşlenip
+      // eski (null) session okunur ve ilk login denemesi başarısız görünür.
+      final loggedIn =
+          ref.read(supabaseProvider).auth.currentSession != null;
       return resolveAuthRedirect(
         loggedIn: loggedIn,
         matchedLocation: state.matchedLocation,

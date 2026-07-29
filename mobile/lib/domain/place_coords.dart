@@ -8,6 +8,8 @@
 //     ResolvedStop listesine çevirir (numaralandırma için 1-index order).
 //   - resolveTripStops(trip) → günlere göre gruplanmış duraklar.
 
+import 'dart:math' as math;
+
 import '../features/shared/ticket_support.dart' show normalizeTitle;
 import 'city_places.dart';
 import 'destination_profiles.dart' show getDestinationForDate;
@@ -82,18 +84,38 @@ bool _nameMatches(CityPlace p, String t) {
 
 /// Bir günün öğelerini koordinatlı duraklara çevirir. Öğenin kendi lat/lng'si
 /// varsa o kullanılır; yoksa başlık eşleşmesinden çözülür. Koordinatı
-/// çözülemeyen öğeler atlanır. Sıra gün öğesi sırasıyla korunur (1-index).
-List<ResolvedStop> resolveDayStops(DayPlan day, {String? cityKey}) {
+/// çözülemeyen öğeler için [fallbackLat]/[fallbackLng] verilmişse o noktanın
+/// çevresine küçük, deterministik bir kayma ile yerleştirilir (üst üste
+/// binmesin) — böylece günün TÜM durakları haritada nokta olarak görünür.
+/// Fallback verilmezse çözülemeyen öğeler eskisi gibi atlanır.
+List<ResolvedStop> resolveDayStops(
+  DayPlan day, {
+  String? cityKey,
+  double? fallbackLat,
+  double? fallbackLng,
+}) {
   final out = <ResolvedStop>[];
   var order = 0;
+  var unresolved = 0;
   for (final item in day.items) {
     double? lat = item.lat;
     double? lng = item.lng;
     if (lat == null || lng == null) {
       final resolved = resolvePlaceCoords(item.title, cityKey: cityKey);
-      if (resolved == null) continue;
-      lat = resolved.lat;
-      lng = resolved.lng;
+      if (resolved != null) {
+        lat = resolved.lat;
+        lng = resolved.lng;
+      } else if (fallbackLat != null && fallbackLng != null) {
+        // Şehir merkezi etrafında spiral bir kayma (~250-500m) ver: her
+        // çözülemeyen öğe farklı bir açı/yarıçapta konumlanır.
+        final angle = unresolved * 2.399963; // altın açı (rad)
+        final radius = 0.0035 + unresolved * 0.0012;
+        lat = fallbackLat + radius * math.cos(angle);
+        lng = fallbackLng + radius * math.sin(angle);
+        unresolved += 1;
+      } else {
+        continue;
+      }
     }
     order += 1;
     out.add(ResolvedStop(item: item, lat: lat, lng: lng, order: order));

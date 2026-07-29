@@ -102,14 +102,18 @@ class _DayMapViewState extends State<_DayMapView> {
     final cityLabel = dest?.city.isNotEmpty == true
         ? dest!.city
         : (cityData?.label ?? '');
-
-    final stops = day != null
-        ? resolveDayStops(day!, cityKey: dest?.city)
-        : const <ResolvedStop>[];
-
     // Kamera merkezi: duraklar varsa CameraFit ile sınırlara oturur; tek durak
     // varsa o noktaya; hiç durak yoksa şehir merkezine (yoksa Japonya).
     final cityCenter = _cityCenter(dest, cityData);
+
+    final stops = day != null
+        ? resolveDayStops(
+            day!,
+            cityKey: dest?.city,
+            fallbackLat: cityCenter.latitude,
+            fallbackLng: cityCenter.longitude,
+          )
+        : const <ResolvedStop>[];
 
     // Çevrimdışı hazırlama: yalnızca kullanılan sağlayıcı çevrimdışı-uyumluysa
     // ve harita üzerinde noktalar varsa göster. Test'ler kendi provider'ını
@@ -297,9 +301,13 @@ class _DayMapViewState extends State<_DayMapView> {
       options: options,
       children: [
         TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          // Google Maps raster tile'ları — yerel dil etiketleriyle (hl=ja).
+          // lyrs=m: standart yol haritası. {s} alt alan adı 0-3 arası dağıtılır.
+          urlTemplate:
+              'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&hl=ja&gl=JP',
+          subdomains: const ['0', '1', '2', '3'],
           userAgentPackageName: 'com.japantrip.app',
-          maxZoom: 19,
+          maxZoom: 20,
           tileProvider: effectiveProvider,
         ),
         if (points.length >= 2)
@@ -331,7 +339,7 @@ class _DayMapViewState extends State<_DayMapView> {
         RichAttributionWidget(
           attributions: [
             TextSourceAttribution(
-              LanguageScope.of(context).s('map.osmAttribution'),
+              '© Google',
               onTap: () {},
             ),
           ],

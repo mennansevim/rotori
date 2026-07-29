@@ -192,6 +192,30 @@ const Map<String, Map<AppLang, String>> _strings = {
   'viewer.edit.cancel': {AppLang.tr: 'Vazgeç', AppLang.en: 'Cancel'},
   'viewer.edit.rebuild': {AppLang.tr: 'Baştan oluştur', AppLang.en: 'Rebuild'},
   'viewer.edit.editTime': {AppLang.tr: 'Saati düzenle', AppLang.en: 'Edit time'},
+  'viewer.edit.editSheetTitle': {
+    AppLang.tr: 'Aktiviteyi düzenle',
+    AppLang.en: 'Edit activity',
+  },
+  'viewer.edit.dayLabel': {AppLang.tr: 'Gün', AppLang.en: 'Day'},
+  'viewer.edit.save': {AppLang.tr: 'Kaydet', AppLang.en: 'Save'},
+  'viewer.edit.dayShort': {
+    AppLang.tr: 'Gün {n}',
+    AppLang.en: 'Day {n}',
+  },
+  'viewer.edit.ticketConfirmTitle': {
+    AppLang.tr: 'Biletli aktiviteyi düzenle',
+    AppLang.en: 'Edit ticketed activity',
+  },
+  'viewer.edit.ticketConfirmBody': {
+    AppLang.tr:
+        '"{title}" için bilet girmişsin. Biletli bir aktiviteyi düzenlemek üzeresin — biletine uygun bir slot seçtiğinden emin misin?',
+    AppLang.en:
+        'You have a ticket for "{title}". You are about to edit a ticketed activity — are you sure the new slot matches your ticket?',
+  },
+  'viewer.edit.ticketConfirmContinue': {
+    AppLang.tr: 'Devam et',
+    AppLang.en: 'Continue',
+  },
   'viewer.edit.addPlace': {AppLang.tr: 'Bu güne durak ekle', AppLang.en: 'Add a stop to this day'},
   'viewer.edit.addSheetTitle': {AppLang.tr: 'Yeni durak ekle', AppLang.en: 'Add a stop'},
   'viewer.edit.searchPlace': {AppLang.tr: 'Gezmek istediğin yeri yaz…', AppLang.en: 'Search a place…'},
@@ -243,6 +267,10 @@ const Map<String, Map<AppLang, String>> _strings = {
   'viewer.day.viewOnMap': {
     AppLang.tr: '🗺️ Haritada gör',
     AppLang.en: '🗺️ View on map',
+  },
+  'viewer.cityTransition': {
+    AppLang.tr: '{from} → {to}',
+    AppLang.en: '{from} → {to}',
   },
   'viewer.day.taxi': {
     AppLang.tr: '🚕 Taksi önerilir',
@@ -999,6 +1027,7 @@ const Map<String, Map<AppLang, String>> _strings = {
   'shell.brand': {AppLang.tr: 'Seyahat', AppLang.en: 'Trip'},
   'shell.newPlan': {AppLang.tr: 'Yeni plan', AppLang.en: 'New plan'},
   'shell.guide': {AppLang.tr: 'Rehber', AppLang.en: 'Guide'},
+  'shell.createPlan': {AppLang.tr: 'Planı Oluştur', AppLang.en: 'Create Plan'},
   'shell.back': {AppLang.tr: 'Geri', AppLang.en: 'Back'},
   'shell.continue': {AppLang.tr: 'Devam', AppLang.en: 'Continue'},
 
@@ -1176,6 +1205,32 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'No surprises. Just the plan.',
   },
   'drawer.brand': {AppLang.tr: 'Rotori', AppLang.en: 'Rotori'},
+  'drawer.section.discover': {AppLang.tr: 'KEŞFET', AppLang.en: 'DISCOVER'},
+  'drawer.section.tools': {AppLang.tr: 'ARAÇLAR', AppLang.en: 'TOOLS'},
+  'drawer.flights.count': {
+    AppLang.tr: '{n} uçuş',
+    AppLang.en: '{n} flights',
+  },
+  'drawer.hotels.count': {
+    AppLang.tr: '{n} otel',
+    AppLang.en: '{n} hotels',
+  },
+  'drawer.flights.empty': {
+    AppLang.tr: 'Uçuş eklenmedi',
+    AppLang.en: 'No flights',
+  },
+  'drawer.hotels.empty': {
+    AppLang.tr: 'Otel eklenmedi',
+    AppLang.en: 'No hotels',
+  },
+  'drawer.flights.stops': {
+    AppLang.tr: '{n} aktarma',
+    AppLang.en: '{n} stop',
+  },
+  'drawer.flights.stops.plural': {
+    AppLang.tr: '{n} aktarma',
+    AppLang.en: '{n} stops',
+  },
   'drawer.role.guest': {AppLang.tr: 'Misafir', AppLang.en: 'Guest'},
   'drawer.role.traveler': {AppLang.tr: 'Gezgin', AppLang.en: 'Traveler'},
   'drawer.nav.plans': {AppLang.tr: 'Planlarım', AppLang.en: 'My plans'},
@@ -1217,6 +1272,17 @@ const Map<String, Map<AppLang, String>> _strings = {
   'plans.dateRange': {AppLang.tr: '{start} → {end}  ·  {n} gün', AppLang.en: '{start} → {end}  ·  {n} days'},
   'plans.view': {AppLang.tr: 'Görüntüle', AppLang.en: 'View'},
   'plans.edit': {AppLang.tr: 'Düzenle', AppLang.en: 'Edit'},
+  'plans.delete': {AppLang.tr: 'Sil', AppLang.en: 'Delete'},
+  'plans.deleteConfirmTitle': {
+    AppLang.tr: 'Planı sil',
+    AppLang.en: 'Delete plan',
+  },
+  'plans.deleteConfirmBody': {
+    AppLang.tr: '"{title}" planı ve içindeki tüm günler kalıcı olarak silinsin mi?',
+    AppLang.en: 'Delete "{title}" and all its days permanently?',
+  },
+  'plans.deleteConfirmAction': {AppLang.tr: 'Sil', AppLang.en: 'Delete'},
+  'plans.cancel': {AppLang.tr: 'Vazgeç', AppLang.en: 'Cancel'},
   'reward.title': {AppLang.tr: 'Keşif haritası', AppLang.en: 'Explore Map'},
   'reward.gpsSimTooltip': {AppLang.tr: 'GPS Simülatörü (test)', AppLang.en: 'GPS Simulator (test)'},
   'reward.discovered': {AppLang.tr: '🎉 {emoji} {name} keşfedildi! +{xp} XP', AppLang.en: '🎉 {emoji} {name} discovered! +{xp} XP'},

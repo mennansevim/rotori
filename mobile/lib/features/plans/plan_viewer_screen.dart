@@ -32,10 +32,10 @@ import '../../domain/place_image_resolver.dart';
 import '../../domain/types.dart';
 import '../auth/auth_repository.dart';
 import '../shared/place_detail_sheet.dart';
+import '../shared/ticket_support.dart';
 import '../viewer/budget_screen.dart';
 import '../viewer/checklist_screen.dart';
 import '../viewer/compass_screen.dart';
-import '../viewer/day_map_screen.dart';
 import '../viewer/home_widget_hook.dart';
 import '../viewer/japanese_phrases_screen.dart';
 import '../viewer/must_know_screen.dart';
@@ -316,7 +316,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                   if (days.isEmpty)
                     _EmptyDaysCard(palette: palette)
                   else
-                    for (var i = 0; i < days.length; i++)
+                    for (var i = 0; i < days.length; i++) ...[
                       _DayCard(
                         key: i == activeIndex ? _activeDayKey : null,
                         day: days[i],
@@ -350,6 +350,9 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                         onEditItemTime: _editItemTime,
                         onAddItem: _addItemToDay,
                       ),
+                      if (i < days.length - 1)
+                        _cityTransitionBetween(days[i], days[i + 1], palette),
+                    ],
                 ],
               ),
             ),
@@ -401,29 +404,83 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
     _persistAndRefresh();
   }
 
-  /// Bir durağın saatini düzenler (time picker). SADECE o durağın saati
-  /// değişir (kullanıcının girdiği saate saygı) ve gün saate göre yeniden
-  /// sıralanır. Diğer durakların saatleri KORUNUR — redistribute yapılmaz.
+  /// Bir aktivitenin gün + saat değişimini tek bottom-sheet üzerinden yönetir.
+  ///
+  /// - Item bileti girilmişse (Trip.tickets.label eşleşiyorsa) önce
+  ///   "biletli aktiviteyi düzenlemek üzeresin" uyarısı gösterilir; kullanıcı
+  ///   iptal ederse hiçbir şey değişmez.
+  /// - Aynı gün + yeni saat → `applyManualTimeEdit` (diğer saatler korunur).
+  /// - Farklı gün seçilirse item hedef güne "insertItemSorted" ile eklenir;
+  ///   kullanıcı saati elle değiştirmediyse hedef güne uygun otomatik saat
+  ///   önerilir (son durak + 90 dk, boşsa 09:00).
   Future<void> _editItemTime(DayPlan day, int index) async {
     if (index < 0 || index >= day.items.length) return;
     final it = day.items[index];
-    final cur = sched.timeToMinutes(it.time ?? it.scheduledTime) ?? 9 * 60;
     final palette = ref.read(viewerPaletteProvider);
-    final picked = await showTimePicker(
+    final s = LanguageScope.of(context);
+
+    // Bilet uyarısı — kullanıcı bileti girdiği bir aktiviteyi düzenliyorsa
+    // slot uyumu için onay iste.
+    final hasTicketRecord = widget.trip.tickets.any((t) => t.label == it.title);
+    if (hasTicketRecord || requiresTicket(it)) {
+      if (hasTicketRecord) {
+        final ok = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(s.s('viewer.edit.ticketConfirmTitle')),
+            content: Text(s.p('viewer.edit.ticketConfirmBody', {
+              'title': it.title,
+            })),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(s.s('viewer.edit.cancel')),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(s.s('viewer.edit.ticketConfirmContinue')),
+              ),
+            ],
+          ),
+        );
+        if (ok != true) return;
+      }
+    }
+
+    if (!mounted) return;
+    final result = await showModalBottomSheet<_EditItemResult>(
       context: context,
-      initialTime: TimeOfDay(hour: cur ~/ 60, minute: cur % 60),
-      builder: (ctx, child) => Theme(
-        data: palette.toThemeData(),
-        child: MediaQuery(
-          data: MediaQuery.of(ctx).copyWith(alwaysUse24HourFormat: true),
-          child: child!,
-        ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _EditItemDayTimeSheet(
+        palette: palette,
+        item: it,
+        currentDay: day,
+        allDays: widget.trip.days,
       ),
     );
-    if (picked == null) return;
-    sched.applyManualTimeEdit(
-        day.items, index, picked.hour * 60 + picked.minute);
+    if (result == null) return;
+
+    final targetDay = result.targetDay;
+    final newMin = result.timeMinutes;
+    if (identical(targetDay, day)) {
+      sched.applyManualTimeEdit(day.items, index, newMin);
+    } else {
+      // Gün değişti — kaynaktan çıkar, hedef günde uygun konuma yerleştir.
+      final removed = day.items.removeAt(index);
+      final moved = removed.copyWith(movedFromDay: day.dayNumber);
+      _setItemTimeMinutes(moved, newMin);
+      sched.insertItemSorted(targetDay.items, moved);
+    }
     _persistAndRefresh();
+  }
+
+  /// TimelineItem.time + scheduledTime alanlarına HH:MM biçiminde saat basar.
+  void _setItemTimeMinutes(TimelineItem item, int mins) {
+    final hh = (mins ~/ 60).toString().padLeft(2, '0');
+    final mm = (mins % 60).toString().padLeft(2, '0');
+    item.time = '$hh:$mm';
+    item.scheduledTime = '$hh:$mm';
   }
 
   /// Bir güne yeni durak ekler — şehir bazlı autocomplete + saat girişli sheet.
@@ -740,20 +797,68 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
     );
   }
 
-  /// Bir günün rota haritasını açar (numaralı pinli OSM haritası).
-  void _openDayMap(DayPlan day) {
-    final palette = ref.read(viewerPaletteProvider);
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => Theme(
-          data: palette.toThemeData(),
-          child: ViewerPaletteScope(
-            palette: palette,
-            child: DayMapScreen(trip: widget.trip, dayNumber: day.dayNumber),
-          ),
-        ),
-      ),
+  /// Günün duraklarını doğrudan Google Maps ile aç — cihazda Google Maps app
+  /// yüklüyse rota + turn-by-turn yönlendirme (transit); yoksa Google Maps
+  /// web'de aynı rota. İç OSM haritası artık ana giriş noktası değil (kullanıcı
+  /// mesajı: "haritada gör kısmında gerçekten problem var. Google navigation
+  /// kullan burada").
+  Future<void> _openDayMap(DayPlan day) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final s = LanguageScope.of(context);
+    final dest = getDestinationForDate(_sortedDestinations, day.date);
+    final cityData = cityDataForKey(dest?.city);
+    final centerLat = cityData?.places.isNotEmpty == true
+        ? cityData!.places.first.lat
+        : (dest?.lat ?? 35.6762);
+    final centerLng = cityData?.places.isNotEmpty == true
+        ? cityData!.places.first.lng
+        : (dest?.lng ?? 139.6503);
+    final stops = resolveDayStops(
+      day,
+      cityKey: dest?.city,
+      fallbackLat: centerLat,
+      fallbackLng: centerLng,
     );
+    if (stops.length >= 2) {
+      final res = await openGoogleMapsRoute(
+        points: [
+          for (final st in stops)
+            (lat: st.lat, lng: st.lng, label: st.item.title),
+        ],
+      );
+      if (!mounted) return;
+      if (!res.launched) {
+        messenger.showSnackBar(SnackBar(content: Text(s.s('map.openFailed'))));
+      } else if (res.truncated) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(s.s('map.truncatedWaypoints'))),
+        );
+      }
+      return;
+    }
+    if (stops.length == 1) {
+      final st = stops.first;
+      final ok = await openGoogleMapsPoint(
+        lat: st.lat,
+        lng: st.lng,
+        label: st.item.title,
+      );
+      if (!mounted) return;
+      if (!ok) {
+        messenger.showSnackBar(SnackBar(content: Text(s.s('map.openFailed'))));
+      }
+      return;
+    }
+    // Duraksız gün — şehir merkezini aç.
+    final ok = await openGoogleMapsPoint(
+      lat: centerLat,
+      lng: centerLng,
+      label: dest?.city,
+    );
+    if (!mounted) return;
+    if (!ok) {
+      messenger.showSnackBar(SnackBar(content: Text(s.s('map.openFailed'))));
+    }
   }
 
   void _openThemePicker() {
@@ -765,6 +870,73 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) => _ThemePickerSheet(current: palette.id),
+    );
+  }
+
+  /// İki günün destinasyonu farklıysa günler arasına yerleştirilen küçük
+  /// "şehirler arası geçiş" ayracı. Kart yığınında ulaşım günü olduğunu
+  /// belirsizce vurgular; ulaşım kartını değiştirmez.
+  Widget _cityTransitionBetween(
+      DayPlan fromDay, DayPlan toDay, ViewerPalette p) {
+    final fromDest = getDestinationForDate(_sortedDestinations, fromDay.date);
+    final toDest = getDestinationForDate(_sortedDestinations, toDay.date);
+    if (fromDest == null || toDest == null) return const SizedBox.shrink();
+    if (fromDest.id == toDest.id) return const SizedBox.shrink();
+    final fromCity =
+        fromDest.city.isNotEmpty ? fromDest.city : fromDest.countryName;
+    final toCity =
+        toDest.city.isNotEmpty ? toDest.city : toDest.countryName;
+    final s = LanguageScope.of(context);
+    final label = s.p('viewer.cityTransition', {
+      'from': fromCity,
+      'to': toCity,
+    });
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              height: 1,
+              color: p.textMuted.withValues(alpha: 0.35),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: p.accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: p.accent.withValues(alpha: 0.4),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('🚄', style: TextStyle(fontSize: 13)),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: p.accent,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Container(
+              height: 1,
+              color: p.textMuted.withValues(alpha: 0.35),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1296,16 +1468,27 @@ class _DayCardState extends State<_DayCard> {
                         style: const TextStyle(fontSize: 18),
                       ),
                     ),
-                  Icon(
-                    expanded ? Icons.expand_less : Icons.expand_more,
-                    color: p.textMuted,
+                  AnimatedRotation(
+                    turns: expanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
+                    child: Icon(
+                      Icons.expand_more,
+                      color: p.textMuted,
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-          if (expanded)
-            Padding(
+          AnimatedSize(
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeInOutCubic,
+            alignment: Alignment.topCenter,
+            clipBehavior: Clip.hardEdge,
+            child: !expanded
+                ? const SizedBox(width: double.infinity)
+                : Padding(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1438,13 +1621,14 @@ class _DayCardState extends State<_DayCard> {
                 ],
               ),
             ),
+          ),
         ],
       ),
     );
 
-    if (widget.isPast) {
-      return Opacity(opacity: 0.6, child: card);
-    }
+    // Geçmiş günler pasif renklerle solutulmuyor — plan sonrası da net okunsun,
+    // ilk günün gri görünmesi ortadan kalksın. "Aktif gün" vurgusu accent
+    // seçicilerle (isNext, aktif index) zaten yeterli.
     return card;
   }
 
@@ -2182,6 +2366,299 @@ class _AddPlaceResult {
   final TimelineItemKind kind;
   final double? lat;
   final double? lng;
+}
+
+class _EditItemResult {
+  const _EditItemResult({required this.targetDay, required this.timeMinutes});
+  final DayPlan targetDay;
+  final int timeMinutes;
+}
+
+/// Aktivitenin gün + saatini birlikte düzenleyen bottom-sheet. Kullanıcı gün
+/// değiştirmezse saat aynı gün içinde uygulanır; gün değiştirdiği anda saat
+/// otomatik olarak hedef günün son aktivitesi + 90 dk'ya kayar — kullanıcı
+/// isterse saati elle tekrar seçebilir.
+class _EditItemDayTimeSheet extends StatefulWidget {
+  const _EditItemDayTimeSheet({
+    required this.palette,
+    required this.item,
+    required this.currentDay,
+    required this.allDays,
+  });
+
+  final ViewerPalette palette;
+  final TimelineItem item;
+  final DayPlan currentDay;
+  final List<DayPlan> allDays;
+
+  @override
+  State<_EditItemDayTimeSheet> createState() => _EditItemDayTimeSheetState();
+}
+
+class _EditItemDayTimeSheetState extends State<_EditItemDayTimeSheet> {
+  late DayPlan _targetDay;
+  late int _timeMinutes;
+  bool _userTouchedTime = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _targetDay = widget.currentDay;
+    _timeMinutes = sched.timeToMinutes(
+            widget.item.time ?? widget.item.scheduledTime) ??
+        9 * 60;
+  }
+
+  /// Hedef günün son durağı + 90 dk (yoksa 09:00). Yeni güne otomatik saat
+  /// önermek için — kullanıcı istediği zaman saati elle değiştirebilir.
+  int _autoTimeFor(DayPlan day) {
+    if (day.items.isEmpty) return 9 * 60;
+    final last = sched
+        .timeToMinutes(day.items.last.time ?? day.items.last.scheduledTime);
+    if (last == null) return 9 * 60;
+    return (last + 90).clamp(0, 24 * 60 - 1);
+  }
+
+  void _pickDay(DayPlan d) {
+    if (identical(d, _targetDay)) return;
+    setState(() {
+      _targetDay = d;
+      if (!_userTouchedTime) _timeMinutes = _autoTimeFor(d);
+    });
+  }
+
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime:
+          TimeOfDay(hour: _timeMinutes ~/ 60, minute: _timeMinutes % 60),
+      builder: (ctx, child) => Theme(
+        data: widget.palette.toThemeData(),
+        child: MediaQuery(
+          data: MediaQuery.of(ctx).copyWith(alwaysUse24HourFormat: true),
+          child: child!,
+        ),
+      ),
+    );
+    if (picked == null) return;
+    setState(() {
+      _timeMinutes = picked.hour * 60 + picked.minute;
+      _userTouchedTime = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
+    final p = widget.palette;
+    final insets = MediaQuery.of(context).viewInsets.bottom;
+    final hh = (_timeMinutes ~/ 60).toString().padLeft(2, '0');
+    final mm = (_timeMinutes % 60).toString().padLeft(2, '0');
+    return Padding(
+      padding: EdgeInsets.only(bottom: insets),
+      child: Container(
+        decoration: BoxDecoration(
+          color: p.card,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: p.textMuted.withValues(alpha: 0.35),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                s.s('viewer.edit.editSheetTitle'),
+                style: TextStyle(
+                  color: p.textPrimary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                widget.item.title,
+                style: TextStyle(
+                  color: p.textSecondary,
+                  fontSize: 13,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                s.s('viewer.edit.dayLabel'),
+                style: TextStyle(
+                  color: p.textMuted,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 44,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    for (final d in widget.allDays)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: _EditDayChip(
+                          label: s
+                              .p('viewer.edit.dayShort', {'n': '${d.dayNumber}'}),
+                          date: d.date,
+                          active: identical(d, _targetDay),
+                          palette: p,
+                          onTap: () => _pickDay(d),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                s.s('viewer.edit.timeLabel'),
+                style: TextStyle(
+                  color: p.textMuted,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 8),
+              InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: _pickTime,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: p.accent.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: p.accent.withValues(alpha: 0.4), width: 1),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.access_time, size: 18, color: p.accent),
+                      const SizedBox(width: 10),
+                      Text(
+                        '$hh:$mm',
+                        style: TextStyle(
+                          color: p.accent,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 22),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: p.textPrimary,
+                        side: BorderSide(color: p.border),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: Text(s.s('viewer.edit.cancel')),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () => Navigator.pop(
+                        context,
+                        _EditItemResult(
+                          targetDay: _targetDay,
+                          timeMinutes: _timeMinutes,
+                        ),
+                      ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: p.accent,
+                        foregroundColor: Colors.white,
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: Text(s.s('viewer.edit.save')),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EditDayChip extends StatelessWidget {
+  const _EditDayChip({
+    required this.label,
+    required this.date,
+    required this.active,
+    required this.palette,
+    required this.onTap,
+  });
+  final String label;
+  final String date;
+  final bool active;
+  final ViewerPalette palette;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: active
+              ? palette.accent
+              : palette.accent.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: active
+                ? palette.accent
+                : palette.accent.withValues(alpha: 0.30),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: active ? Colors.white : palette.accent,
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// Şehir bazlı autocomplete + saat girişli durak ekleme sheet'i.
@@ -3243,7 +3720,8 @@ class _ViewerDrawer extends ConsumerWidget {
     final avatarInitial =
         isGuest ? '?' : email.trim().substring(0, 1).toUpperCase();
 
-    final actions = <_DrawerActionSpec>[
+    // KEŞFET — geziyi keşfetmek için 4 çekirdek araç.
+    final discoverActions = <_DrawerActionSpec>[
       _DrawerActionSpec(
           icon: Icons.map_outlined,
           label: s.s('viewer.tt.map'),
@@ -3260,6 +3738,9 @@ class _ViewerDrawer extends ConsumerWidget {
           icon: Icons.account_balance_wallet_outlined,
           label: s.s('viewer.tt.budget'),
           onTap: onOpenBudget),
+    ];
+    // ARAÇLAR — hazırlık + referans (valiz, hazırlık, sözlük, bilmen gerekenler).
+    final toolActions = <_DrawerActionSpec>[
       _DrawerActionSpec(
           icon: Icons.luggage_outlined,
           label: s.s('viewer.tt.checklist'),
@@ -3281,8 +3762,7 @@ class _ViewerDrawer extends ConsumerWidget {
           label: s.s('viewer.tt.theme'),
           onTap: onOpenThemePicker),
       // Tüm rotayı Google Maps'te aç — günlerden ilk konumlu duraklarını
-      // sırayla waypoint yapıp Google Maps `dir` URL'i ile açar. Kompakt
-      // rota özeti (max ~9 gün); günlerin detay pinleri day map ekranında.
+      // sırayla waypoint yapıp Google Maps `dir` URL'i ile açar.
       _DrawerActionSpec(
           icon: Icons.travel_explore,
           label: s.s('map.openInGoogleMaps'),
@@ -3297,46 +3777,40 @@ class _ViewerDrawer extends ConsumerWidget {
           bottomRight: Radius.circular(20),
         ),
       ),
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
-              child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _DrawerHero(palette: p),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _DrawerBrandMark(palette: p),
-                  const SizedBox(width: 12),
-                  Text(
-                    s.s('drawer.brand'),
-                    style: TextStyle(
-                      color: p.textPrimary,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.3,
-                    ),
+                  _DrawerMetricsMini(
+                      trip: trip, palette: p, dayCount: dayCount),
+                  const SizedBox(height: 14),
+                  _DrawerFlightsMini(trip: trip, palette: p),
+                  const SizedBox(height: 10),
+                  _DrawerHotelsMini(trip: trip, palette: p),
+                  const SizedBox(height: 18),
+                  _DrawerSectionLabel(
+                    label: s.s('drawer.section.discover'),
+                    palette: p,
                   ),
+                  const SizedBox(height: 10),
+                  _DrawerActionGrid(actions: discoverActions, palette: p),
+                  const SizedBox(height: 18),
+                  _DrawerSectionLabel(
+                    label: s.s('drawer.section.tools'),
+                    palette: p,
+                  ),
+                  const SizedBox(height: 10),
+                  _DrawerActionGrid(actions: toolActions, palette: p),
                 ],
               ),
             ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _DrawerFlightsMini(trip: trip, palette: p),
-                    const SizedBox(height: 10),
-                    _DrawerHotelsMini(trip: trip, palette: p),
-                    const SizedBox(height: 10),
-                    _DrawerMetricsMini(
-                        trip: trip, palette: p, dayCount: dayCount),
-                    const SizedBox(height: 14),
-                    _DrawerActionGrid(actions: actions, palette: p),
-                  ],
-                ),
-              ),
-            ),
+          ),
             Divider(color: p.border, height: 1),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
@@ -3442,37 +3916,235 @@ class _ViewerDrawer extends ConsumerWidget {
             const SizedBox(height: 8),
           ],
         ),
-      ),
     );
   }
 }
 
 /// Drawer'ın 32x32 mor rozeti + 旅 karakteri.
 class _DrawerBrandMark extends StatelessWidget {
-  const _DrawerBrandMark({required this.palette});
+  const _DrawerBrandMark({required this.palette, this.size = 32});
   final ViewerPalette palette;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 32,
-      height: 32,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [palette.accent, palette.fuji],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(size * 0.28),
       ),
       alignment: Alignment.center,
-      child: const Text(
+      child: Text(
         '旅',
         style: TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w700,
-          fontSize: 18,
+          fontSize: size * 0.56,
           height: 1.0,
+        ),
+      ),
+    );
+  }
+}
+
+/// Drawer'ın üst kısmındaki "hero" bandı — dawn gradient arka plan üzerinde
+/// 旅 rozet + "Rotori" başlığı, sağ tarafta stilize edilmiş Fuji dağı silüeti
+/// ve batan kırmızı güneş. Fuji siluetini yerel çizimle üretiyoruz (harici
+/// asset yok) — dosya boyutu artmasın ve tema paletiyle uyum sürsün diye.
+class _DrawerHero extends StatelessWidget {
+  const _DrawerHero({required this.palette});
+  final ViewerPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    return SafeArea(
+      bottom: false,
+      child: SizedBox(
+        height: 160,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Dawn / dusk gradient — deep purple → coral → soft peach.
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    const Color(0xFF2A1F4A),
+                    p.fuji.withValues(alpha: 0.85),
+                    const Color(0xFFEE7F6A),
+                  ],
+                  stops: const [0.0, 0.55, 1.0],
+                ),
+              ),
+            ),
+            // Fuji silueti + kırmızı güneş (sağ tarafta).
+            const Positioned.fill(
+              child: CustomPaint(painter: _FujiPainter()),
+            ),
+            // Alt kenar — drawer body'sine yumuşak geçiş.
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 24,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      p.card.withValues(alpha: 0.0),
+                      p.card.withValues(alpha: 0.9),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Rozet + marka + kapatma butonu.
+            Positioned(
+              left: 20,
+              right: 12,
+              top: 20,
+              child: Row(
+                children: [
+                  _DrawerBrandMark(palette: p, size: 44),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      LanguageScope.of(context).s('drawer.brand'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70),
+                    onPressed: () => Navigator.of(context).pop(),
+                    tooltip: MaterialLocalizations.of(context)
+                        .closeButtonTooltip,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Stilize Fuji + batan güneş — hero arka planında dekoratif katman.
+class _FujiPainter extends CustomPainter {
+  const _FujiPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // Kırmızı batan güneş — sağ üst.
+    final sunCenter = Offset(w * 0.75, h * 0.28);
+    final sunRadius = h * 0.13;
+    canvas.drawCircle(
+      sunCenter,
+      sunRadius + 4,
+      Paint()..color = const Color(0x33FFB4A2),
+    );
+    canvas.drawCircle(
+      sunCenter,
+      sunRadius,
+      Paint()..color = const Color(0xFFE45B4B),
+    );
+
+    // Uzak dağ — açık siluet.
+    final farMountain = Path()
+      ..moveTo(0, h)
+      ..lineTo(w * 0.15, h * 0.72)
+      ..lineTo(w * 0.35, h * 0.85)
+      ..lineTo(w * 0.55, h * 0.65)
+      ..lineTo(w * 0.7, h * 0.8)
+      ..lineTo(w, h * 0.7)
+      ..lineTo(w, h)
+      ..close();
+    canvas.drawPath(
+      farMountain,
+      Paint()..color = const Color(0x552A1F4A),
+    );
+
+    // Fuji ana silüeti — sağa yakın, klasik konik.
+    final fujiPeak = Offset(w * 0.62, h * 0.42);
+    final fuji = Path()
+      ..moveTo(w * 0.28, h)
+      ..lineTo(w * 0.5, h * 0.62)
+      ..lineTo(fujiPeak.dx - 12, h * 0.52)
+      ..lineTo(fujiPeak.dx, fujiPeak.dy)
+      ..lineTo(fujiPeak.dx + 12, h * 0.52)
+      ..lineTo(w * 0.78, h * 0.62)
+      ..lineTo(w, h)
+      ..close();
+    canvas.drawPath(
+      fuji,
+      Paint()..color = const Color(0xCC1B1233),
+    );
+
+    // Karla kaplı zirve — üstte küçük beyaz cap.
+    final cap = Path()
+      ..moveTo(fujiPeak.dx - 12, h * 0.52)
+      ..quadraticBezierTo(
+        fujiPeak.dx - 6,
+        h * 0.58,
+        fujiPeak.dx - 8,
+        h * 0.6,
+      )
+      ..lineTo(fujiPeak.dx, h * 0.56)
+      ..lineTo(fujiPeak.dx + 8, h * 0.6)
+      ..quadraticBezierTo(
+        fujiPeak.dx + 6,
+        h * 0.58,
+        fujiPeak.dx + 12,
+        h * 0.52,
+      )
+      ..lineTo(fujiPeak.dx, fujiPeak.dy)
+      ..close();
+    canvas.drawPath(
+      cap,
+      Paint()..color = const Color(0xE6FFFFFF),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Küçük harfli bölüm başlığı — "KEŞFET", "ARAÇLAR" gibi drawer içi ayraçlar.
+class _DrawerSectionLabel extends StatelessWidget {
+  const _DrawerSectionLabel({required this.label, required this.palette});
+  final String label;
+  final ViewerPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: palette.textMuted,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.6,
         ),
       ),
     );
@@ -3534,10 +4206,17 @@ class _DrawerNavTile extends StatelessWidget {
 
 /// Kompakt uçuş özeti — drawer içi. Gidiş/Dönüş yönlerini tek satırda
 /// IATA + saat olarak gösterir.
-class _DrawerFlightsMini extends StatelessWidget {
+class _DrawerFlightsMini extends StatefulWidget {
   const _DrawerFlightsMini({required this.trip, required this.palette});
   final Trip trip;
   final ViewerPalette palette;
+
+  @override
+  State<_DrawerFlightsMini> createState() => _DrawerFlightsMiniState();
+}
+
+class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
+  bool _expanded = false;
 
   static String _iata(FlightLeg l) {
     final ap = l.airport.trim();
@@ -3553,205 +4232,485 @@ class _DrawerFlightsMini extends StatelessWidget {
     return '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
   }
 
-  Widget _row({
+  static String _dateShort(String iso, AppLang lang) {
+    final d = DateTime.tryParse(iso);
+    if (d == null) return '';
+    const trMonths = [
+      '', 'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz',
+      'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara',
+    ];
+    const enMonths = [
+      '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    final m = lang == AppLang.en ? enMonths[d.month] : trMonths[d.month];
+    return '${d.day} $m ${d.year}';
+  }
+
+  /// Aynı gün olmayan varış — "+1" göstermek için.
+  int _dayOffset(String depIso, String arrIso) {
+    final dep = DateTime.tryParse(depIso);
+    final arr = DateTime.tryParse(arrIso);
+    if (dep == null || arr == null) return 0;
+    final depDate = DateTime(dep.year, dep.month, dep.day);
+    final arrDate = DateTime(arr.year, arr.month, arr.day);
+    return arrDate.difference(depDate).inDays;
+  }
+
+  Widget _legCard({
     required BuildContext context,
-    required String label,
+    required String tripLabel,
     required List<FlightLeg> legs,
   }) {
+    final p = widget.palette;
+    final s = LanguageScope.of(context);
     if (legs.isEmpty) return const SizedBox.shrink();
-    final p = palette;
     final from = legs.first;
     final to = legs.last;
+    final offset = _dayOffset(from.dateTime, to.dateTime);
+    final hopsCount = legs.length - 1; // aktarma sayısı
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Container(
-            width: 5,
-            height: 5,
-            decoration:
-                BoxDecoration(color: p.sakura, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 48,
-            child: Text(
-              label,
-              style: TextStyle(
-                color: p.textSecondary,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.6,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Row(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: p.card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: p.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
                 Text(
-                  _iata(from),
+                  tripLabel,
                   style: TextStyle(
-                    color: p.textPrimary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
+                    color: p.textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
                     letterSpacing: 0.4,
                   ),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 6),
                 Text(
-                  _time(from.dateTime),
+                  '·',
+                  style: TextStyle(color: p.textMuted, fontSize: 11),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _dateShort(from.dateTime, s.lang),
                   style: TextStyle(
                     color: p.textSecondary,
-                    fontSize: 11,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-                Icon(Icons.arrow_forward, size: 10, color: p.sakura),
-                Text(
-                  _iata(to),
-                  style: TextStyle(
-                    color: p.textPrimary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  _time(to.dateTime),
-                  style: TextStyle(
-                    color: p.textSecondary,
-                    fontSize: 11,
-                    fontFeatures: const [FontFeature.tabularFigures()],
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _time(from.dateTime),
+                        style: TextStyle(
+                          color: p.textPrimary,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.5,
+                          fontFeatures:
+                              const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        from.city.isNotEmpty
+                            ? '${from.city} (${_iata(from)})'
+                            : _iata(from),
+                        style: TextStyle(
+                          color: p.textSecondary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: Icon(Icons.flight, size: 18, color: p.sakura),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _time(to.dateTime),
+                            style: TextStyle(
+                              color: p.textPrimary,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                              fontFeatures:
+                                  const [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                          if (offset > 0)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 2, top: 2),
+                              child: Text(
+                                '+$offset',
+                                style: TextStyle(
+                                  color: p.sakura,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        to.city.isNotEmpty
+                            ? '${to.city} (${_iata(to)})'
+                            : _iata(to),
+                        style: TextStyle(
+                          color: p.textSecondary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.end,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (hopsCount > 0) ...[
+              const SizedBox(height: 6),
+              Text(
+                s.p(
+                  hopsCount == 1
+                      ? 'drawer.flights.stops'
+                      : 'drawer.flights.stops.plural',
+                  {'n': '$hopsCount'},
+                ),
+                style: TextStyle(
+                  color: p.textMuted,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final outbound = trip.flights.outbound;
-    final ret = trip.flights.returnLegs;
-    if (outbound.isEmpty && ret.isEmpty) return const SizedBox.shrink();
-    final p = palette;
+    final outbound = widget.trip.flights.outbound;
+    final ret = widget.trip.flights.returnLegs;
+    final tripsCount =
+        (outbound.isNotEmpty ? 1 : 0) + (ret.isNotEmpty ? 1 : 0);
+    final p = widget.palette;
     final s = LanguageScope.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: p.elevated,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: p.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.flight_takeoff, size: 14, color: p.sakura),
-              const SizedBox(width: 6),
-              Text(
-                s.s('viewer.flights'),
-                style: TextStyle(
-                  color: p.textPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
+    return _DrawerCollapsible(
+      palette: p,
+      expanded: _expanded,
+      onToggle: () => setState(() => _expanded = !_expanded),
+      icon: Icons.flight_takeoff,
+      iconColor: p.sakura,
+      title: s.s('viewer.flights').replaceAll('✈️ ', ''),
+      badge: tripsCount == 0
+          ? s.s('drawer.flights.empty')
+          : s.p('drawer.flights.count', {'n': '$tripsCount'}),
+      child: tripsCount == 0
+          ? const SizedBox.shrink()
+          : Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (outbound.isNotEmpty)
+                    _legCard(
+                      context: context,
+                      tripLabel: 'Gezi 1',
+                      legs: outbound,
+                    ),
+                  if (ret.isNotEmpty)
+                    _legCard(
+                      context: context,
+                      tripLabel: outbound.isNotEmpty ? 'Gezi 2' : 'Gezi 1',
+                      legs: ret,
+                    ),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          _row(context: context, label: s.s('viewer.flights.outbound'), legs: outbound),
-          _row(context: context, label: s.s('viewer.flights.return'), legs: ret),
-        ],
-      ),
+            ),
     );
   }
 }
 
-/// Drawer içi kompakt konaklama listesi (ilk 3 + "+N daha").
-class _DrawerHotelsMini extends StatelessWidget {
+/// Drawer içi konaklama bölümü — default kapalı, "N otel" badge; açıldığında
+/// her otel kartı (ad + şehir + check-in/out tarih aralığı).
+class _DrawerHotelsMini extends StatefulWidget {
   const _DrawerHotelsMini({required this.trip, required this.palette});
   final Trip trip;
   final ViewerPalette palette;
 
   @override
+  State<_DrawerHotelsMini> createState() => _DrawerHotelsMiniState();
+}
+
+class _DrawerHotelsMiniState extends State<_DrawerHotelsMini> {
+  bool _expanded = false;
+
+  static String _dateShort(String iso, AppLang lang) {
+    final d = DateTime.tryParse(iso);
+    if (d == null) return '';
+    const trMonths = [
+      '', 'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz',
+      'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara',
+    ];
+    const enMonths = [
+      '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    final m = lang == AppLang.en ? enMonths[d.month] : trMonths[d.month];
+    return '${d.day} $m';
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (trip.hotels.isEmpty) return const SizedBox.shrink();
-    final p = palette;
+    final p = widget.palette;
     final s = LanguageScope.of(context);
-    final visible = trip.hotels.take(3).toList();
-    final extra = trip.hotels.length - visible.length;
+    final hotels = widget.trip.hotels;
+    return _DrawerCollapsible(
+      palette: p,
+      expanded: _expanded,
+      onToggle: () => setState(() => _expanded = !_expanded),
+      icon: Icons.hotel_outlined,
+      iconColor: p.gold,
+      title: s.s('viewer.hotels').replaceAll('🏨 ', ''),
+      badge: hotels.isEmpty
+          ? s.s('drawer.hotels.empty')
+          : s.p('drawer.hotels.count', {'n': '${hotels.length}'}),
+      child: hotels.isEmpty
+          ? const SizedBox.shrink()
+          : Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final h in hotels)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: p.card,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: p.border),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 34,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                color: p.gold.withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              alignment: Alignment.center,
+                              child: Icon(
+                                Icons.business_center_outlined,
+                                size: 18,
+                                color: p.gold,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    h.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: p.textPrimary,
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    h.city,
+                                    style: TextStyle(
+                                      color: p.textSecondary,
+                                      fontSize: 11.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.calendar_today_outlined,
+                                        size: 11,
+                                        color: p.textMuted,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${_dateShort(h.checkIn, s.lang)} — ${_dateShort(h.checkOut, s.lang)}',
+                                        style: TextStyle(
+                                          color: p.textMuted,
+                                          fontSize: 11,
+                                          fontFeatures: const [
+                                            FontFeature.tabularFigures()
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+    );
+  }
+}
+
+/// Uçuşlar/Konaklama gibi drawer içi açılabilir bölümler için ortak kabuk.
+/// Başlıkta: ikon + başlık + badge (sağda) + döner chevron. AnimatedSize
+/// ile smooth aç/kapa.
+class _DrawerCollapsible extends StatelessWidget {
+  const _DrawerCollapsible({
+    required this.palette,
+    required this.expanded,
+    required this.onToggle,
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.badge,
+    required this.child,
+  });
+
+  final ViewerPalette palette;
+  final bool expanded;
+  final VoidCallback onToggle;
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String badge;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: p.elevated,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: p.border),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Icon(Icons.hotel_outlined, size: 14, color: p.gold),
-              const SizedBox(width: 6),
-              Text(
-                s.s('viewer.hotels'),
-                style: TextStyle(
-                  color: p.textPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          for (final h in visible)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
+          InkWell(
+            onTap: onToggle,
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Row(
                 children: [
                   Container(
-                    width: 4,
-                    height: 4,
+                    width: 30,
+                    height: 30,
                     decoration: BoxDecoration(
-                      color: p.textMuted,
-                      shape: BoxShape.circle,
+                      color: iconColor.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(8),
                     ),
+                    alignment: Alignment.center,
+                    child: Icon(icon, size: 16, color: iconColor),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      h.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      title,
                       style: TextStyle(
                         color: p.textPrimary,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
                       ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: iconColor.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      badge,
+                      style: TextStyle(
+                        color: iconColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  AnimatedRotation(
+                    turns: expanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
+                    child: Icon(
+                      Icons.expand_more,
+                      size: 20,
+                      color: p.textMuted,
                     ),
                   ),
                 ],
               ),
             ),
-          if (extra > 0)
-            Padding(
-              padding: const EdgeInsets.only(top: 2, left: 12),
-              child: Text(
-                s.p('viewer.hotels.more', {'n': '$extra'}),
-                style: TextStyle(
-                  color: p.textMuted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeInOutCubic,
+            alignment: Alignment.topCenter,
+            clipBehavior: Clip.hardEdge,
+            child: expanded
+                ? Padding(
+                    padding:
+                        const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                    child: child,
+                  )
+                : const SizedBox(width: double.infinity),
+          ),
         ],
       ),
     );

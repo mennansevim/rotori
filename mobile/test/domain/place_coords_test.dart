@@ -68,5 +68,55 @@ void main() {
       expect(stops.first.lat, 12.34);
       expect(stops.first.lng, 56.78);
     });
+
+    test('fallback verilince çözülemeyen öğeler de nokta olur (hepsi görünür)',
+        () {
+      final day = DayPlan(
+        dayNumber: 1,
+        date: '2026-05-13',
+        theme: 'Test',
+        items: [
+          TimelineItem(id: 'a', title: 'Tokyo Skytree'),
+          TimelineItem(id: 'b', title: 'Zxqw Uydurma Yer 1'),
+          TimelineItem(id: 'c', title: 'Zxqw Uydurma Yer 2'),
+          TimelineItem(id: 'd', title: 'Zxqw Uydurma Yer 3'),
+          TimelineItem(id: 'e', title: 'Zxqw Uydurma Yer 4'),
+        ],
+      );
+      final stops = resolveDayStops(
+        day,
+        cityKey: 'Tokyo',
+        fallbackLat: 35.68,
+        fallbackLng: 139.76,
+      );
+      // Tüm 5 öğe nokta olmalı.
+      expect(stops.length, 5);
+      // Sıra 1..5 korunur.
+      expect(stops.map((s) => s.order).toList(), [1, 2, 3, 4, 5]);
+      // Fallback noktaları şehir merkezi civarında ama üst üste değil (farklı).
+      final fallbackPoints = stops.skip(1).toList();
+      final uniqueCoords =
+          fallbackPoints.map((s) => '${s.lat},${s.lng}').toSet();
+      expect(uniqueCoords.length, fallbackPoints.length,
+          reason: 'fallback noktaları üst üste binmemeli');
+      for (final s in fallbackPoints) {
+        expect(s.lat, closeTo(35.68, 0.05));
+        expect(s.lng, closeTo(139.76, 0.05));
+      }
+    });
+
+    test('fallback verilmezse çözülemeyen öğeler eskisi gibi atlanır', () {
+      final day = DayPlan(
+        dayNumber: 1,
+        date: '2026-05-13',
+        theme: 'Test',
+        items: [
+          TimelineItem(id: 'a', title: 'Tokyo Skytree'),
+          TimelineItem(id: 'b', title: 'Zxqw Uydurma Yer'),
+        ],
+      );
+      final stops = resolveDayStops(day, cityKey: 'Tokyo');
+      expect(stops.length, 1);
+    });
   });
 }

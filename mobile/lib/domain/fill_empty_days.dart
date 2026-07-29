@@ -67,6 +67,17 @@ const List<MealPreset> kMealPresets = [
       tip: 'gen.mealTip.japaneseCurry'),
 ];
 
+/// "HH:mm" → dakika (0..1439). Geçersizse null.
+int? _hhmmToMin(String? t) {
+  if (t == null || t.isEmpty) return null;
+  final parts = t.split(':');
+  if (parts.length < 2) return null;
+  final h = int.tryParse(parts[0]);
+  final m = int.tryParse(parts[1]);
+  if (h == null || m == null) return null;
+  return h * 60 + m;
+}
+
 /// Şehir adından (örn "Tokyo (Haneda)") sade şehir döndür.
 String _cleanCity(String city) =>
     city.replaceAll(RegExp(r'\s*\(.*\)\s*$'), '').trim();
@@ -208,6 +219,14 @@ List<DayPlan> fillEmptyDays(
       final k = it.kind?.name ?? 'activity';
       usedKindCounts[k] = (usedKindCounts[k] ?? 0) + 1;
     }
+    // Gün içinde zaten planlanmış yemeklerin saatleri (dakika). Yeni bir yemek
+    // eklemeden önce bunlara yakınlık kontrol edilir — böylece 11:30'daki öğle
+    // yemeğinin üstüne 13:00'e ikinci bir öğle yemeği eklenmez.
+    final existingMealMins = <int>[
+      for (final it in day.items)
+        if (it.kind == TimelineItemKind.meal)
+          if (_hhmmToMin(it.time ?? it.scheduledTime) case final int m) m,
+    ];
 
     final supplements = <TimelineItem>[];
     var stepsSum = day.stepsEstimate ?? 0;
@@ -215,10 +234,15 @@ List<DayPlan> fillEmptyDays(
 
     for (final slot in _fillSlots) {
       if (usedTimes.contains(slot.time)) continue;
-      // Yemek slot'u: gün içinde aynı kind 2'den az ise ekle
-      if (slot.kind == TimelineItemKind.meal &&
-          (usedKindCounts['meal'] ?? 0) >= 2) {
-        continue;
+      // Yemek slot'u: (a) günde en fazla 2 yemek, (b) bu slot'un saatine
+      // ±2.5 saat içinde zaten bir yemek varsa ekleme (üst üste öğün olmasın).
+      if (slot.kind == TimelineItemKind.meal) {
+        if ((usedKindCounts['meal'] ?? 0) >= 2) continue;
+        final slotMin = _hhmmToMin(slot.time);
+        if (slotMin != null &&
+            existingMealMins.any((m) => (m - slotMin).abs() < 150)) {
+          continue;
+        }
       }
       // Activity slot'u: havuz yoksa atla
       _FillPlace? place;
@@ -245,7 +269,13 @@ List<DayPlan> fillEmptyDays(
         tags.add(place.name);
       }
       final preset = kMealPresets[mealCursor % kMealPresets.length];
-      if (slot.kind == TimelineItemKind.meal) mealCursor++;
+      if (slot.kind == TimelineItemKind.meal) {
+        mealCursor++;
+        // Bu döngüde eklenen yemeği de kaydet ki bir sonraki yemek slot'u
+        // buna yakınsa atlansın (aynı gün iki öğle olmasın).
+        final m = _hhmmToMin(slot.time);
+        if (m != null) existingMealMins.add(m);
+      }
       supplements
           .add(_buildItem(day.dayNumber, slot, cityKey, place, preset, lang));
 

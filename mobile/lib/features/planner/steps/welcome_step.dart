@@ -4,8 +4,9 @@ import '../../../core/l10n.dart';
 import '../../../domain/types.dart';
 import '../planner_theme.dart';
 
-/// apps/planner/src/components/steps/WelcomeStep.tsx birebir port.
-/// Üç görünüm: choose (hero + 2 kart), ticket (bilet formu), plan (mevsim seçimi).
+/// Welcome adımı — esnek gezi (Google Flights tarzı). "Biletim var" akışı
+/// kaldırıldı; kullanıcı doğrudan hedef şehir kartları + tarih önerileri
+/// ekranına girer.
 class WelcomeStep extends StatefulWidget {
   const WelcomeStep({
     super.key,
@@ -22,19 +23,18 @@ class WelcomeStep extends StatefulWidget {
   State<WelcomeStep> createState() => _WelcomeStepState();
 }
 
-enum _View { choose, ticket, plan }
-
 class _WelcomeStepState extends State<WelcomeStep> {
-  _View _view = _View.choose;
-
-  // Ticket draft
-  String _outboundDate = '';
-  String _returnDate = '';
-  String _airline = '';
-  String _outFlightNo = '';
-  String _retFlightNo = '';
-
-  bool get _ticketReady => _outboundDate.trim().isNotEmpty;
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      // "Biletim var" akışı yok — hasTicket her zaman false.
+      if (widget.trip.preferences.hasTicket != false) {
+        widget.onChange((t) => t.preferences.hasTicket = false);
+      }
+    });
+  }
 
   void _applyDates(String start, String end) {
     widget.onChange((t) {
@@ -50,250 +50,8 @@ class _WelcomeStepState extends State<WelcomeStep> {
     });
   }
 
-  String _addDays(String iso, int days) {
-    final d = DateTime.parse('${iso}T00:00:00Z').add(Duration(days: days));
-    return d.toIso8601String().substring(0, 10);
-  }
-
   @override
   Widget build(BuildContext context) {
-    return switch (_view) {
-      _View.choose => _buildChoose(),
-      _View.ticket => _buildTicket(),
-      _View.plan => _buildPlan(),
-    };
-  }
-
-  // ---- choose ----------------------------------------------------------
-  // Kaydırma YOK — hero + iki seçenek ekrana sığar (dar: alt alta, geniş: yan
-  // yana). Kartlar kalan yüksekliği paylaşır (Expanded) → her cihazda tam sığar.
-  Widget _buildChoose() {
-    return LayoutBuilder(
-      builder: (context, c) {
-        final s = LanguageScope.of(context);
-        final twoCol = c.maxWidth >= 560;
-        final card0 = _WelcomeCard(
-          icon: '✈️',
-          title: s.s('welcome.choose.ticket.title'),
-          desc: s.s('welcome.choose.ticket.desc'),
-          onTap: () {
-            widget.onChange((t) => t.preferences.hasTicket = true);
-            setState(() => _view = _View.ticket);
-          },
-        );
-        final card1 = _WelcomeCard(
-          icon: '📅',
-          title: s.s('welcome.choose.plan.title'),
-          desc: s.s('welcome.choose.plan.desc'),
-          onTap: () {
-            widget.onChange((t) => t.preferences.hasTicket = false);
-            setState(() => _view = _View.plan);
-          },
-        );
-        final Widget choices = twoCol
-            ? Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(child: card0),
-                  const SizedBox(width: 16),
-                  Expanded(child: card1),
-                ],
-              )
-            : Column(
-                // stretch: iki kart da tam genişlik — içerik uzunluğundan
-                // bağımsız eşit. (Column varsayılanı center → içeriğe göre
-                // boyutlanır ve genişlikler farklı çıkardı.)
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(child: card0),
-                  const SizedBox(height: 14),
-                  Expanded(child: card1),
-                ],
-              );
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-          child: Column(
-            children: [
-              const Text('🇯🇵', style: TextStyle(fontSize: 48)),
-              const SizedBox(height: 10),
-              Text(
-                s.s('welcome.choose.heading'),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 27,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.5,
-                  color: PT.text,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                s.s('welcome.choose.subheading'),
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16, color: PT.textSecondary),
-              ),
-              const SizedBox(height: 18),
-              // Kartlar kalan alanı doldurur (maks ~380px, dikey ortalı).
-              Expanded(
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 380),
-                    child: choices,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  // ---- ticket ----------------------------------------------------------
-  Widget _buildTicket() {
-    final s = LanguageScope.of(context);
-    final tooLong = _outboundDate.isNotEmpty &&
-        _returnDate.isNotEmpty &&
-        _daysBetween(_outboundDate, _returnDate) > kMaxTripDays;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
-      children: [
-        _BackButton(onTap: () => setState(() => _view = _View.choose)),
-        Text(s.s('welcome.ticket.title'),
-            style: const TextStyle(
-                fontSize: 26, fontWeight: FontWeight.w700, color: PT.text)),
-        const SizedBox(height: 4),
-        Text(
-          s.p('welcome.ticket.sub', {'n': '$kMaxTripDays'}),
-          style: const TextStyle(fontSize: 15, color: PT.textSecondary),
-        ),
-        const SizedBox(height: 24),
-        PCard(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _DateField(
-                      label: s.s('welcome.ticket.outDate'),
-                      value: _outboundDate,
-                      onPick: (v) => setState(() => _outboundDate = v),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _DateField(
-                      label: s.s('welcome.ticket.retDate'),
-                      value: _returnDate,
-                      minDate: _outboundDate.isEmpty ? null : _outboundDate,
-                      maxDate: _outboundDate.isEmpty
-                          ? null
-                          : _addDays(_outboundDate, kMaxTripDays - 1),
-                      onPick: (v) => setState(() => _returnDate = v),
-                    ),
-                  ),
-                ],
-              ),
-              if (tooLong)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    s.p('welcome.ticket.tooLong', {
-                      'max': '$kMaxTripDays',
-                      'sel': '${_daysBetween(_outboundDate, _returnDate)}',
-                    }),
-                    style: const TextStyle(
-                        fontSize: 12, color: Color(0xFFB45309), height: 1.4),
-                  ),
-                ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: _TextField(
-                      label: s.s('welcome.ticket.airline'),
-                      hint: 'THY, JAL…',
-                      onChanged: (v) => _airline = v,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _TextField(
-                      label: s.s('welcome.ticket.outFlightNo'),
-                      hint: 'TK198',
-                      onChanged: (v) => _outFlightNo = v,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: _TextField(
-                      label: s.s('welcome.ticket.retFlightNo'),
-                      hint: 'TK199',
-                      onChanged: (v) => _retFlightNo = v,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  const Expanded(child: SizedBox()),
-                ],
-              ),
-              const SizedBox(height: 12),
-              const Divider(color: PT.border),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: PButton(
-                  label: s.s('welcome.ticket.upload'),
-                  primary: false,
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(s.s('welcome.ticket.ocrSoon')),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Align(
-          alignment: Alignment.centerRight,
-          child: PButton(
-            label: s.s('welcome.continue'),
-            onPressed: _ticketReady
-                ? () {
-                    final start = _outboundDate;
-                    var end = _returnDate.isEmpty ? _outboundDate : _returnDate;
-                    final maxEnd = _addDays(start, kMaxTripDays - 1);
-                    if (end.compareTo(maxEnd) > 0) end = maxEnd;
-                    _applyDates(start, end);
-                    if (_airline.isNotEmpty || _outFlightNo.isNotEmpty) {
-                      widget.onChange((t) {
-                        t.preferences.returnFlightNo =
-                            _retFlightNo.isEmpty ? null : _retFlightNo;
-                      });
-                    }
-                    widget.onContinue();
-                  }
-                : null,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ---- plan (esnek gezi) ----------------------------------------------
-  // Google Flights "esnek gezi" tarzı: Kalkış pili + hedef şehir kartları.
-  // Her kartta hero görsel + 3 önerilen tarih aralığı; tıklayınca
-  // Google Flights deep-link açılır (GERÇEK fiyata orada bakılır).
-  Widget _buildPlan() {
     final s = LanguageScope.of(context);
     final trip = widget.trip;
     final origin = _resolveOrigin(trip);
@@ -302,7 +60,6 @@ class _WelcomeStepState extends State<WelcomeStep> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
       children: [
-        _BackButton(onTap: () => setState(() => _view = _View.choose)),
         Text(s.s('welcome.plan.title'),
             style: const TextStyle(
                 fontSize: 22, fontWeight: FontWeight.w700, color: PT.text)),
@@ -322,7 +79,8 @@ class _WelcomeStepState extends State<WelcomeStep> {
             dest: dests[i],
             year: year,
             fromCity: origin,
-            onRangeTap: (r) => _onPickRange(dest: dests[i], range: r, year: year, from: origin),
+            onRangeTap: (r) => _onPickRange(
+                dest: dests[i], range: r, year: year, from: origin),
           ),
           if (i < dests.length - 1) const SizedBox(height: 14),
         ],
@@ -461,14 +219,6 @@ class _WelcomeStepState extends State<WelcomeStep> {
     final (start, end) = range.dates(year);
     _applyDates(_isoDate(start), _isoDate(end));
     widget.onContinue();
-  }
-
-  int _daysBetween(String a, String b) {
-    final ms = DateTime.parse('${b}T00:00:00Z')
-            .difference(DateTime.parse('${a}T00:00:00Z'))
-            .inDays +
-        1;
-    return ms;
   }
 }
 
@@ -670,79 +420,6 @@ const _enShortWeekdays = [
 // ===========================================================================
 // Alt bileşenler
 // ===========================================================================
-
-class _WelcomeCard extends StatelessWidget {
-  const _WelcomeCard({
-    required this.icon,
-    required this.title,
-    required this.desc,
-    required this.onTap,
-  });
-  final String icon;
-  final String title;
-  final String desc;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: PT.bgElevated,
-      borderRadius: BorderRadius.circular(PT.radiusLg),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(PT.radiusLg),
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(PT.radiusLg),
-            border: Border.all(color: PT.border),
-            boxShadow: PT.shadowSm,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(icon, style: const TextStyle(fontSize: 38)),
-              const SizedBox(height: 12),
-              Text(title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: PT.text)),
-              const SizedBox(height: 6),
-              Text(desc,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 13.5, color: PT.textSecondary, height: 1.4)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _BackButton extends StatelessWidget {
-  const _BackButton({required this.onTap});
-  final VoidCallback onTap;
-  @override
-  Widget build(BuildContext context) {
-    final s = LanguageScope.of(context);
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: TextButton(
-        onPressed: onTap,
-        style: TextButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          foregroundColor: PT.accent,
-        ),
-        child: Text(s.s('welcome.back'), style: const TextStyle(fontSize: 14)),
-      ),
-    );
-  }
-}
 
 /// "Kalkış: {city} ✎" — küçük kalem ikonu ile origin değiştirme pili.
 class _OriginPill extends StatelessWidget {
@@ -994,112 +671,3 @@ class _RangeRow extends StatelessWidget {
     );
   }
 }
-
-// ---- form primitifleri ----------------------------------------------------
-
-class _DateField extends StatelessWidget {
-  const _DateField({
-    required this.label,
-    required this.value,
-    required this.onPick,
-    this.minDate,
-    this.maxDate,
-  });
-  final String label;
-  final String value;
-  final ValueChanged<String> onPick;
-  final String? minDate;
-  final String? maxDate;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = LanguageScope.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: PT.textSecondary)),
-        const SizedBox(height: 6),
-        InkWell(
-          borderRadius: BorderRadius.circular(10),
-          onTap: () async {
-            final now = DateTime.now();
-            final initial = value.isEmpty ? now : DateTime.parse(value);
-            final first = minDate != null ? DateTime.parse(minDate!) : now;
-            final last = maxDate != null
-                ? DateTime.parse(maxDate!)
-                : DateTime(now.year + 3);
-            final picked = await showDatePicker(
-              context: context,
-              initialDate: initial.isBefore(first) ? first : initial,
-              firstDate: first,
-              lastDate: last,
-            );
-            if (picked != null) {
-              onPick(picked.toIso8601String().substring(0, 10));
-            }
-          },
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: PT.borderStrong),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(value.isEmpty ? s.s('welcome.date.placeholder') : value,
-                style: TextStyle(
-                    fontSize: 15,
-                    color: value.isEmpty ? PT.textTertiary : PT.text)),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _TextField extends StatelessWidget {
-  const _TextField(
-      {required this.label, required this.hint, required this.onChanged});
-  final String label;
-  final String hint;
-  final ValueChanged<String> onChanged;
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: PT.textSecondary)),
-        const SizedBox(height: 6),
-        TextField(
-          onChanged: onChanged,
-          style: const TextStyle(fontSize: 15),
-          decoration: InputDecoration(
-            hintText: hint,
-            isDense: true,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-            filled: true,
-            fillColor: Colors.white,
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: PT.borderStrong),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: PT.accent),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-

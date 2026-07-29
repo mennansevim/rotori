@@ -101,7 +101,6 @@ const List<CityData> kCityData = [
       CityPlace(id: 'os-castle', name: 'Osaka Kalesi', emoji: '🏯', category: LText('Kale', 'Castle'), lat: 34.6873, lng: 135.5259),
       CityPlace(id: 'os-usj', name: 'Universal Studios', emoji: '🎢', category: LText('Eğlence', 'Entertainment'), lat: 34.6654, lng: 135.4323),
       CityPlace(id: 'os-shinsekai', name: 'Shinsekai · Tsutenkaku', emoji: '🗼', category: LText('Şehir', 'City'), lat: 34.6525, lng: 135.5063),
-      CityPlace(id: 'os-umeda', name: 'Umeda Sky Building', emoji: '🌆', category: LText('Manzara', 'View'), lat: 34.7054, lng: 135.4902),
       CityPlace(id: 'os-kuromon', name: 'Kuromon Pazarı', emoji: '🐟', category: LText('Yemek', 'Food'), lat: 34.6657, lng: 135.506),
       CityPlace(id: 'os-namba', name: 'Namba', emoji: '🛍️', category: LText('Alışveriş', 'Shopping'), lat: 34.6627, lng: 135.5023),
       CityPlace(id: 'os-sumiyoshi', name: 'Sumiyoshi Taisha', emoji: '⛩️', category: LText('Tapınak', 'Temple'), lat: 34.6126, lng: 135.4933),
