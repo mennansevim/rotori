@@ -54,8 +54,9 @@
   öncesi mutlaka çalıştır.
 - [ ] `place_coords.dart` +32 satır ve `city_places.dart` -1 satır — yeni
   yerlerin koordinatları eklenmiş mi doğrula.
-- [ ] Yeni `img/` ve `website/img/hand-mobile.svg` untracked — ne oldukları
-  netleşince ya commit'le ya `.gitignore`'a al.
+- [ ] Kök `img/hand-mobile.svg` tasarım kaynak dosyasıdır. Yayında bunun
+  `website/img/rotori-hand-mobile.svg` adlı kopyası kullanılır; kök kopya
+  deploy paketine girmez.
 - [ ] Supabase Auth "Confirm email" prod öncesi **aç** (hâlâ kapalı — `[[supabase-backend]]`).
 - [ ] App Store submission checklist — Sign in with Apple Services ID
   yapılandırması ($99/yıl Developer + Services ID) — `[[supabase-backend]]`.
@@ -104,8 +105,8 @@ mobile/test/domain/fill_empty_days_test.dart
 mobile/test/domain/place_coords_test.dart
 mobile/test/domain/place_image_resolver_test.dart (yeni)
 website/index.html
-img/                                          (untracked — kaynağını netleştir)
-website/img/hand-mobile.svg                   (untracked — commit adayı)
+img/                                          (untracked — tasarım kaynağı)
+website/img/rotori-hand-mobile.svg            (yayın asset'i)
 ```
 
 ## Son Commit'ler (referans)
