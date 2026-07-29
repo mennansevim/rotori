@@ -606,6 +606,16 @@
   .modal-title small{color:var(--muted);font-weight:400;font-size:12px;margin-left:8px}
   .modal-body{padding:16px 22px;overflow-y:auto;flex:1}
   /* İçeriği Göster modal blokları */
+  /* İçerik önizleme — kart görseli modal içinde 4:5 preview */
+  .content-preview{
+    margin: 0 auto 18px; max-width: 340px;
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 12px; overflow: hidden;
+  }
+  .content-preview img{
+    display: block; width: 100%; aspect-ratio: 4/5;
+    object-fit: cover; cursor: zoom-in; background: #000;
+  }
   .content-block{margin-bottom:18px}
   .content-block:last-child{margin-bottom:0}
   .content-label{display:flex;justify-content:space-between;align-items:center;
@@ -625,7 +635,7 @@
   .picker-card:hover{transform:translateY(-2px);border-color:var(--line-strong)}
   .picker-card.selected{border-color:var(--accent);
     box-shadow:0 0 0 3px var(--accent-soft)}
-  .picker-card img{width:100%;aspect-ratio:9/16;object-fit:cover;background:#000;
+  .picker-card img{width:100%;aspect-ratio:4/5;object-fit:cover;background:#000;
     display:block}
   .picker-check{position:absolute;top:8px;right:8px;width:26px;height:26px;
     background:rgba(0,0,0,.6);backdrop-filter:blur(6px);border-radius:50%;
@@ -1025,7 +1035,7 @@ body.studio{background:
 .fa-card{background:var(--surface-2);border:1px solid var(--line);border-radius:11px;
   overflow:hidden;cursor:pointer;transition:all var(--dur) var(--ease)}
 .fa-card:hover{border-color:var(--line-strong);transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.28)}
-.fa-card img{width:100%;aspect-ratio:9/16;object-fit:cover;display:block;background:#0a0f18}
+.fa-card img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;background:#0a0f18}
 .fa-card .fa-cap{padding:8px 10px;display:flex;flex-direction:column;gap:4px}
 .fa-card .fa-badges{display:flex;gap:5px;flex-wrap:wrap}
 .fa-card .fa-b{font-size:8.5px;font-weight:700;padding:2px 6px;border-radius:5px}
@@ -3444,25 +3454,33 @@ function openLightbox(url){
 
 // Kartın içeriğini (kart metni + Instagram caption) modal'da göster.
 async function showStoryContent(name){
-  let meta;
+  let payload;
   try{
     const r = await fetch(`/api/story/meta/${encodeURIComponent(name)}`);
     if(!r.ok){
       let m = r.statusText; try{ const j = await r.json(); m = j.detail || m; }catch(e){}
       toast("İçerik alınamadı: " + m, "err"); return;
     }
-    meta = (await r.json()).meta || {};
+    payload = await r.json();
   }catch(e){ toast("Bağlantı hatası.", "err"); return; }
+  const meta = payload.meta || {};
 
   const aciklama = (meta.aciklama || "").trim();
   const caption = (meta.post_caption || "").trim();
-  if(!aciklama && !caption){
-    toast("Bu kartta gösterilecek metin yok.", "warn"); return;
-  }
+  const imgUrl = payload.url
+    ? `${payload.url}?v=${payload.mtime || 0}`
+    : "";
 
   const back = document.createElement("div");
   back.className = "modal-backdrop";
   back.onclick = () => back.remove();
+
+  const imgBlok = imgUrl ? `
+      <div class="content-preview">
+        <img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(name)}"
+          onclick="openLightbox('${imgUrl.replace(/'/g, "\\'")}')"
+          title="Büyük görmek için tıkla" />
+      </div>` : "";
   const kartBlok = aciklama ? `
       <div class="content-block">
         <div class="content-label">📝 Kart metni</div>
@@ -3477,6 +3495,12 @@ async function showStoryContent(name){
         </div>
         <div class="content-text caption" data-caption="${escapeHtml(caption)}">${escapeHtml(caption)}</div>
       </div>` : "";
+  const emptyBlok = (!aciklama && !caption) ? `
+      <div class="content-block">
+        <div class="content-text" style="color:var(--muted);font-style:italic">
+          Bu kartta gösterilecek metin yok — sadece görsel var.
+        </div>
+      </div>` : "";
   back.innerHTML = `
     <div class="modal-content" onclick="event.stopPropagation()">
       <div class="modal-head">
@@ -3484,8 +3508,10 @@ async function showStoryContent(name){
         <button class="ghost sm" onclick="this.closest('.modal-backdrop').remove()">✕ Kapat</button>
       </div>
       <div class="modal-body">
+        ${imgBlok}
         ${kartBlok}
         ${capBlok}
+        ${emptyBlok}
       </div>
     </div>`;
   document.body.appendChild(back);
