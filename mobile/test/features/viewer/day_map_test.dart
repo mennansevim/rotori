@@ -107,17 +107,41 @@ void main() {
     expect(find.textContaining('Tokyo'), findsWidgets);
   });
 
-  testWidgets('konumlu durağı olmayan günde boş mesaj gösterilir',
+  testWidgets(
+      'koordinatı çözülemeyen durak şehir merkezi etrafında fallback ile pin olur',
       (tester) async {
     final trip = _sampleTrip();
     trip.days = [
       DayPlan(
         dayNumber: 2,
         date: '2026-05-14',
-        theme: 'Boş gün',
+        theme: 'Eşleşmeyen durak',
         items: [
           TimelineItem(id: 'z', title: 'Uydurma Yer Xyz'),
         ],
+      ),
+    ];
+    await tester.pumpWidget(harness(trip, 2));
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    // Başlık küratörlü yerlerle eşleşmese de, destinasyonun şehir merkezi
+    // fallback olarak verildiğinden durak yine pin olarak gösterilir.
+    expect(find.text('1'), findsOneWidget);
+    expect(
+      find.text('Bu güne haritada gösterilecek konumlu durak yok.'),
+      findsNothing,
+    );
+  });
+
+  testWidgets('hiç öğesi olmayan günde boş mesaj gösterilir', (tester) async {
+    final trip = _sampleTrip();
+    trip.days = [
+      DayPlan(
+        dayNumber: 2,
+        date: '2026-05-14',
+        theme: 'Boş gün',
+        items: const [],
       ),
     ];
     await tester.pumpWidget(harness(trip, 2));
