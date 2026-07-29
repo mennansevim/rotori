@@ -41,7 +41,7 @@ konumları korunarak tek blok olarak ortalandı.
 Tanıtım sitesi ve App Store önizlemesindeki tüm `teamLab` marka yazımları,
 `TeamLab` biçiminde standartlaştırıldı. Son site değişiklikleri commit edilip
 GitHub'a gönderildikten sonra Raspberry Pi üzerindeki `deploy.sh` ile
-yayınlanacak.
+yayınlandı.
 
 ## Tamamlananlar (bu ve önceki oturumlardan)
 
@@ -89,6 +89,9 @@ yayınlanacak.
   genişliklerde 0 px, yatay taşma 0 px ölçüldü.
 - ✅ **2026-07-30** `website/` altındaki tüm `teamLab` marka yazımları
   `TeamLab` olarak düzeltildi; TR/EN sözlüklerinde eski yazım kalmadı.
+- ✅ **2026-07-30** Site değişiklikleri `japan-trip` (`da3a659`) ve yayın
+  paketi `rotori-web` (`fa5d353`) depolarına gönderildi; Pi deploy'u
+  tamamlandı, container healthy ve `https://rotori.app` HTTP 200 doğrulandı.
 - ✅ **2026-07-22** Website F1 seti (privacy + support + footer link + copy
   tazeleme) — `08d7449`, `cbd592a`.
 - ✅ **2026-07-22** F1 App Store hazırlığı: Info.plist, hesap silme, aydınlık
@@ -101,8 +104,6 @@ yayınlanacak.
 
 ## Kalanlar (kısa vadeli)
 
-- [ ] Son site değişikliklerini GitHub'a gönder, Pi'de `~/rotori-web/deploy.sh`
-  çalıştır ve canlı HTTP durumunu doğrula.
 - [ ] `flutter analyze` ve `flutter test` yeşile boyanmalı — commit
   öncesi mutlaka çalıştır.
 - [ ] `place_coords.dart` +32 satır ve `city_places.dart` -1 satır — yeni
