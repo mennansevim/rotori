@@ -1733,7 +1733,18 @@ def story_meta(name: str) -> dict[str, Any]:
     meta.setdefault("post_caption", "")
     # eski kart (sidecar yok) → bg bilgisi eksik, düzenlenemez uyarısı için
     meta["editable"] = bool(meta.get("bg_local") or meta.get("background_url"))
-    return {"ok": True, "name": name, "ready": is_ready, "meta": meta}
+    # Görsel URL — modal'da preview için (dizine göre değişir: top / ready / pending)
+    if cfg.stories:
+        try:
+            rel = jpg.relative_to(cfg.stories.output_dir)
+            url = "/media/stories/" + "/".join(quote(p) for p in rel.parts)
+        except ValueError:
+            url = f"/media/stories/{quote(name)}"
+    else:
+        url = f"/media/stories/{quote(name)}"
+    mtime = int(jpg.stat().st_mtime) if jpg.exists() else 0
+    return {"ok": True, "name": name, "ready": is_ready, "url": url,
+            "mtime": mtime, "meta": meta}
 
 
 @app.delete("/api/story/{name}")
