@@ -3,35 +3,92 @@
 > Bu dosya *bugünkü* çalışmanın canlı görünümüdür. Her tamamlanan görevden
 > hemen sonra güncellenir.
 
-**Bugünün tarihi:** 2026-07-29
+**Bugünün tarihi:** 2026-07-30
 **Aktif branch:** `main`
-**Sprint hedefi:** F2 — Rebrand (Tabi → Rotori) sonrası viewer/planner cilası +
-  App Store gönderim öncesi son regresyonlar.
+**Sprint hedefi:** Tanıtım sitesi etkileşim regresyonları + mobil F2 son
+regresyonları.
 
 ---
 
 ## Aktif Hedef
 
-`main` üstünde 17 dosyalık büyük bir *commit-edilmemiş* refaktor duruyor
-(≈ +1685 / −921 satır, `git diff --stat`). Ana yük:
-
-- `plan_viewer_screen.dart` **+1615 satır** — viewer'ın plan görüntüleyicisi
-  büyük bir yeniden yazımdan geçmiş (satır içi düzenleme + top-down shinkansen
-  planı gibi son commit'lerin devamı).
-- `welcome_step.dart` **-464 satır** — welcome adımı sadeleştirildi (muhtemelen
-  içerik `day_schedule.dart` / `place_image_resolver.dart` gibi yeni domain
-  dosyalarına dağıtıldı).
-- Yeni domain dosyaları: `mobile/lib/domain/day_schedule.dart`,
-  `mobile/lib/domain/place_image_resolver.dart`.
-- Yeni test dosyaları: `mobile/test/domain/day_schedule_test.dart`,
-  `mobile/test/domain/place_image_resolver_test.dart`, `mobile/test/core/*`.
-- `website/index.html` yenilenmiş (+132/-132 net) — Design System v2
-  cilalaması (`4578280` sonrası ince ayar).
+Tanıtım sitesinin hero bölümündeki el ve telefon SVG'si masaüstünde %40
+büyütüldü; mobil genişlik sınırı korundu. Japonca örnek seslerin oynatma hızı
+0,78× değerine düşürüldü ve cümle kartının masaüstü genişliği ile iç yerleşimi
+%40 küçültüldü. Güven bölümündeki altı kartın geniş ekranda 5+1 biçiminde
+taşması düzeltilerek geniş ekranda tek sıra, orta ekranda dengeli 3×2 düzen
+hedeflendi. Alışveriş kategorisindeki “Ikura desu ka? / Ne kadar?” örneği,
+metin ve ses birlikte değiştirilerek kartla ödeme sorusuna dönüştürüldü.
+Hero sahnesi referans görseldeki oranlara yaklaştırıldı: el/telefon merkezde
+daha baskın, bildirim kartları iki yanda katmanlı ve aşama çubuğu görselin
+altına bindirilmiş durumda. Bu düzenlemelerin tamamı masaüstü ve mobil
+görünümlerde taşma olmadan doğrulandı. Hero sahnesi ayrıca geniş ekranlarda
+iki yanda daha belirgin ve dengeli boşluk bırakacak şekilde daraltıldı.
+Referans siteyle yapılan oran karşılaştırmasında kompozisyonun hâlâ fazla
+büyük ve yüksek kaldığı görüldü; telefon/el, bildirim kartları ve sahne
+birlikte küçültüldü. Kullanıcının gerçek masaüstü genişliğinde sahne yine
+ekranın büyük bölümünü kapladığı için bu kez yalnızca piksel üst sınırı değil,
+ekran genişliği oranı da %84 ile sınırlandırıldı.
+Sağ taraftaki bildirim kartları, telefonla aralarındaki gereksiz boşluğu
+azaltacak şekilde sahne genişliğinin %7–8'i kadar sola yaklaştırıldı.
+Referans görseldeki gibi bildirim kartlarının iç kenarları telefon
+kompozisyonuna bitiştirildi; iki taraftaki boşluklar birlikte kaldırıldı.
+Telefon çevresindeki bildirim başlıkları ve alt açıklamalar, her kelimenin
+ilk harfi büyük olacak biçimde ortak yazım düzenine geçirildi. Hero bildirim
+gruplarının dış kenarlarını tek tek eşitleme yaklaşımı kompozisyonun ilişkisini
+bozduğu için geri alındı; sol kartlar, telefon/el ve sağ kartlar göreli
+konumları korunarak tek blok olarak ortalandı.
+Tanıtım sitesi ve App Store önizlemesindeki tüm `teamLab` marka yazımları,
+`TeamLab` biçiminde standartlaştırıldı. Son site değişiklikleri commit edilip
+GitHub'a gönderildikten sonra Raspberry Pi üzerindeki `deploy.sh` ile
+yayınlanacak.
 
 ## Tamamlananlar (bu ve önceki oturumlardan)
 
 - ✅ **2026-07-22** Marka ismi Rotori olarak rebrand + sitede/uygulamada
   tutarlı hale getirildi (`360e5ae`).
+- ✅ **2026-07-29** Mobil planner/viewer refaktörü ve site cilası commit edilip
+  gönderildi (`f9b1207`).
+- ✅ **2026-07-29** Hero görseli `rotori-hand-mobile.svg` adıyla yayın asset'i
+  olarak sabitlendi (`4c0f735`).
+- ✅ **2026-07-30** Hero “Planla / Yolculuk / Sahada” öğeleri erişilebilir
+  bölüm bağlantılarına dönüştürüldü; aktif durum ve kaydırma doğrulandı.
+- ✅ **2026-07-30** Altı Japonca kategori uygulamadaki yerel MP3'lere bağlandı;
+  oynat/durdur, kategori seçimi, TR/EN metinleri ve romaji görünümü doğrulandı.
+- ✅ **2026-07-30** Site genelindeki TR/EN pazarlama metinleri baştan sona
+  gözden geçirildi; belirsiz vaatler somut fayda ve gizlilik açıklamalarıyla
+  değiştirildi.
+- ✅ **2026-07-30** Hero el ve telefon SVG'si masaüstünde %40 büyütüldü;
+  Japonca cümle kartı %40 küçültüldü ve sesler 0,78× hızda oynatıldı.
+- ✅ **2026-07-30** Hero sahnesi referanstaki merkez telefon, iki yandaki
+  katmanlı bildirimler ve görsele binen koyu aşama çubuğuyla yeniden düzenlendi.
+- ✅ **2026-07-30** Güven kartları geniş ekranda 6×1, orta ekranda 3×2,
+  mobilde 1×6 olacak şekilde dengelendi.
+- ✅ **2026-07-30** Alışveriş ses örneği “Kaado wa tsukaemasu ka?” /
+  “Kart kullanabilir miyim?” cümlesi ve eşleşen MP3 ile değiştirildi.
+- ✅ **2026-07-30** Hero sahnesi 1.600 px maksimum genişlikte ortalandı;
+  2.048 px ekranda iki yanda 224 px, mobilde 36 px güvenli boşluk doğrulandı.
+- ✅ **2026-07-30** Referans site oranına göre hero sahnesi 1.400 px'e,
+  el/telefon 520 px'e ve bildirim kartları 460 px'e indirildi; sahne yüksekliği
+  901 px'den 759 px'e düşürüldü.
+- ✅ **2026-07-30** Hero sahnesi en fazla 1.120 px ve ekranın %84'ü olacak
+  şekilde daraltıldı; el/telefon 460 px, bildirim kartları en fazla 400 px oldu.
+- ✅ **2026-07-30** Hero sahnesindeki sağ bildirim kartları telefona 75–86 px
+  yaklaştırıldı; 1.280 px ve 1.024 px genişliklerde yatay taşma olmadığı
+  doğrulandı.
+- ✅ **2026-07-30** Hero bildirim kartları iki tarafta telefonun arkasına
+  bitişecek biçimde içeri alındı; 1.280 px ve 1.024 px genişliklerde katmanlama
+  ve yatay taşma kontrol edildi.
+- ✅ **2026-07-30** Hero bildirimlerindeki başlık, alt açıklama ve zaman
+  etiketleri TR/EN için kelime başları büyük olacak biçimde düzenlendi.
+- ✅ **2026-07-30** Hero kartlarının dış boşluklarını kartları ayrı ayrı
+  taşıyarak eşitleme denemesi yapıldı; kompozisyonu bozduğu için sonraki
+  düzenlemede geri alınmasına karar verildi.
+- ✅ **2026-07-30** Sol bildirimler, telefon/el ve sağ bildirimler tek bir
+  görsel blok olarak ortalandı; merkez sapması 1.280 px ve 1.024 px
+  genişliklerde 0 px, yatay taşma 0 px ölçüldü.
+- ✅ **2026-07-30** `website/` altındaki tüm `teamLab` marka yazımları
+  `TeamLab` olarak düzeltildi; TR/EN sözlüklerinde eski yazım kalmadı.
 - ✅ **2026-07-22** Website F1 seti (privacy + support + footer link + copy
   tazeleme) — `08d7449`, `cbd592a`.
 - ✅ **2026-07-22** F1 App Store hazırlığı: Info.plist, hesap silme, aydınlık
@@ -44,12 +101,8 @@
 
 ## Kalanlar (kısa vadeli)
 
-- [ ] **Commit disiplini:** 17-dosyalık diff'i mantıksal parçalara böl:
-  1. Yeni domain + testleri (`day_schedule` + `place_image_resolver`).
-  2. `plan_viewer_screen.dart` yeniden yazımı + ilgili viewer değişiklikleri.
-  3. `welcome_step.dart` sadeleştirmesi + planner değişiklikleri.
-  4. `l10n.dart` yeni anahtarlar.
-  5. `website/index.html` ince ayar.
+- [ ] Son site değişikliklerini GitHub'a gönder, Pi'de `~/rotori-web/deploy.sh`
+  çalıştır ve canlı HTTP durumunu doğrula.
 - [ ] `flutter analyze` ve `flutter test` yeşile boyanmalı — commit
   öncesi mutlaka çalıştır.
 - [ ] `place_coords.dart` +32 satır ve `city_places.dart` -1 satır — yeni
@@ -74,40 +127,12 @@
 
 1. Başarısız 10 widget testini güncel welcome/viewer davranışıyla hizala.
 2. `flutter analyze` bildirimlerini temizle ve `flutter test`i yeşile boya.
-3. Yeni domain dosyalarını + testlerini ayrı bir commit'te sabitle
-   (küçük, geri alınabilir).
-4. Sonra `plan_viewer_screen.dart` yeniden yazımını tek commit'te at.
-5. En son planner sadeleştirmesi + l10n anahtar farkını commit'le.
-6. Website ince ayarı ayrı commit (yalnızca `website/index.html`).
+3. Site düzeltmesini ayrı bir commit olarak gönder.
 
 ## Şu An Değişen Dosyalar
 
-```
-mobile/lib/core/l10n.dart
-mobile/lib/core/router.dart
-mobile/lib/domain/city_places.dart
-mobile/lib/domain/day_schedule.dart          (yeni)
-mobile/lib/domain/fill_empty_days.dart
-mobile/lib/domain/itinerary_generator.dart
-mobile/lib/domain/place_coords.dart
-mobile/lib/domain/place_image_resolver.dart  (yeni)
-mobile/lib/features/planner/planner_screen.dart
-mobile/lib/features/planner/steps/journey_step.dart
-mobile/lib/features/planner/steps/welcome_step.dart
-mobile/lib/features/plans/plan_viewer_screen.dart
-mobile/lib/features/plans/plans_list_screen.dart
-mobile/lib/features/shared/place_detail_sheet.dart
-mobile/lib/features/viewer/day_map_screen.dart
-mobile/lib/features/viewer/offline_tile_provider.dart
-mobile/test/core/                            (yeni klasör)
-mobile/test/domain/day_schedule_test.dart    (yeni)
-mobile/test/domain/fill_empty_days_test.dart
-mobile/test/domain/place_coords_test.dart
-mobile/test/domain/place_image_resolver_test.dart (yeni)
-website/index.html
-img/                                          (untracked — tasarım kaynağı)
-website/img/rotori-hand-mobile.svg            (yayın asset'i)
-```
+`docs/*.md`, `website/index.html` ve `website/audio/`. Kök `img/` klasörü
+yalnızca untracked tasarım kaynağıdır ve bu düzeltmenin parçası değildir.
 
 ## Son Commit'ler (referans)
 

@@ -147,9 +147,12 @@ mobile/lib/
 - App Store meta zorunluluğu: `App-Store-Meta/`, Privacy Policy sayfası
   (`website/privacy.html`), hesap silme akışı (F1'de eklendi · `11f3541`).
 
-## 11. Tanıtım Sitesi Kuralları (`website/index.html`)
+## 11. Tanıtım Sitesi Kuralları (`website/`)
 
-- **Tek dosya, self-contained.** Harici asset yok (inline CSS/JS/SVG).
+- HTML, CSS ve JavaScript `website/index.html` içinde kalır. Büyük medya
+  dosyaları (`website/img/`, `website/audio/`) ayrı, yerel ve
+  versiyonlanmış asset olarak yayınlanabilir; üçüncü taraf çalışma zamanı
+  bağımlılığı eklenmez.
 - TR/EN, `data-i18n` anahtar sistemi; `window.__i18nAudit()` eksiklik denetimi.
 - Design System v2 devrede (`4578280`) — koyu sinematik, pembe→mor gradyan.
 - Yerel servis: `cd website && python3 -m http.server 8091`.

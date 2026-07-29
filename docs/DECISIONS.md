@@ -212,3 +212,21 @@ oturum yardımcısıdır; repo içi `/docs` tek gerçek kaynağıdır.
 
 **Sonuç:** Bu dosya bugün eklendi. `PHASE2-ROUTING.md` (Haziran '26) tarihsel
 referans olarak `docs/` altında kalır.
+
+---
+
+## 2026-07-30 — Tanıtım sitesi yerel medya asset'lerini destekler
+
+**Supersedes:** 2026-07-x — Tanıtım sitesi **tek dosya, self-contained**
+
+**Karar:** CSS ve JavaScript tek `website/index.html` dosyasında kalır; büyük
+görsel ve sesler `website/img/` ile `website/audio/` altında yerel,
+versiyonlanmış dosyalar olarak yayınlanabilir.
+
+**Neden:** Hero illüstrasyonu ve gerçek Japonca MP3 örnekleri HTML içine
+gömüldüğünde dosyayı gereksiz büyütüyor. Ayrı yerel asset'ler tarayıcı
+önbelleğini ve ses akışını iyileştiriyor.
+
+**Kısıt:** Üçüncü taraf CDN veya çalışma zamanı servisi yoktur. Site deploy'u
+`website/` ağacını bütünüyle taşımalıdır; yalnızca `index.html` kopyalamak
+artık yeterli değildir.

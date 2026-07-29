@@ -3,7 +3,7 @@
 > Bu belge **şu anki** mimariyi anlatır. Kod değiştikçe güncellenir.
 > Kalıcı kurallar için `CLAUDE.md`, günlük iş için `CURRENT_TASK.md`.
 
-Son güncelleme: **2026-07-29** (çalışan-dizin snapshot'ı, `mobile/lib` + web workspace).
+Son güncelleme: **2026-07-30** (tanıtım sitesi yerel medya asset'leri).
 
 ---
 
@@ -189,7 +189,8 @@ packages/
 
 - **Web:** `npm run build` → `dist/` → nginx/pi rsync (bkz. `README.md`).
 - **Mobil:** Xcode → App Store Connect (F1 hazırlığı `11f3541`).
-- **Site:** `website/index.html` tek dosya — repo'da versiyonlanır, statik host.
+- **Site:** `website/index.html` + `website/img/` + `website/audio/` birlikte
+  versiyonlanır ve statik host'a kopyalanır.
 
 ## 15. Bilinen Yumuşak Noktalar
 
