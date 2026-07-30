@@ -146,7 +146,7 @@ export default function App() {
             onExport={exportJson}
             onImport={importJson}
             username={username}
-            onJumpToStep={(s) => setStep(s)}
+            onJumpToStep={(s) => setStep(s === 'calendar' ? 'journey' : s)}
           />
         )}
       </main>

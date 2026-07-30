@@ -206,15 +206,10 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
-    const t = loadTrip(username);
-    setTrip(t);
-    try {
-      const k = `viewer:morning-dismissed:${username}`;
-      setMorningDismissed(localStorage.getItem(k));
-    } catch {
-      /* ignore */
-    }
-    if (t) {
+    let cancelled = false;
+    const activateTrip = (t: Trip) => {
+      if (cancelled) return;
+      setTrip(t);
       const initial = loadStats(username);
       // İlk plan açılışında "plan-created" sayacını da yükselt (idempotent).
       if ((initial.actionCounts['plan-created'] ?? 0) === 0) {
@@ -224,7 +219,37 @@ export default function App() {
         const { next, newBadges } = evaluatePassive(initial, t);
         updateStats(next, newBadges);
       }
+    };
+
+    const storedTrip = loadTrip(username);
+    if (storedTrip) {
+      activateTrip(storedTrip);
+    } else {
+      fetch(`/data/trips/${encodeURIComponent(username)}-japan-2026.json`)
+        .then((response) => {
+          if (!response.ok) throw new Error('trip-not-found');
+          return response.json();
+        })
+        .then((raw) =>
+          ensureTripGuide(
+            ensureTripPreferences(ensureTripDestinations(tripSchema.parse(raw))),
+          ),
+        )
+        .then(activateTrip)
+        .catch(() => {
+          if (!cancelled) setTrip(null);
+        });
     }
+
+    try {
+      const k = `viewer:morning-dismissed:${username}`;
+      setMorningDismissed(localStorage.getItem(k));
+    } catch {
+      /* ignore */
+    }
+    return () => {
+      cancelled = true;
+    };
     // updateStats stable enough; suppress dep warning
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username]);

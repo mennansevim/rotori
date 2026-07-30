@@ -3,6 +3,64 @@ import type { DayPlan, Trip } from '@japan-trip/shared';
 import { TipBubble } from './TipBubble';
 import { TimelineProgress } from './TimelineProgress';
 
+function parseDayDate(value: string) {
+  try {
+    const date = new Date(`${value}T12:00:00`);
+    if (Number.isNaN(date.getTime())) throw new Error('invalid date');
+    return {
+      dateNumber: new Intl.DateTimeFormat('tr-TR', { day: '2-digit' }).format(date),
+      month: new Intl.DateTimeFormat('tr-TR', { month: 'short' })
+        .format(date)
+        .replace('.', ''),
+      weekday: new Intl.DateTimeFormat('tr-TR', { weekday: 'short' })
+        .format(date)
+        .replace('.', ''),
+    };
+  } catch {
+    return { dateNumber: String(value).slice(-2), month: '', weekday: '' };
+  }
+}
+
+function itemVisual(kind: string | undefined, text: string) {
+  const source = `${kind ?? ''} ${text}`.toLocaleLowerCase('tr-TR');
+  if (/(uçuş|havaliman|airport|flight|varış)/.test(source)) return { icon: '✈️', tone: 'sky' };
+  if (/(tren|metro|otobüs|otobü|shinkansen|transfer|taksi|ulaşım)/.test(source)) {
+    return { icon: '🚆', tone: 'violet' };
+  }
+  if (/(otel|hotel|check-in|konaklama)/.test(source)) return { icon: '🛏️', tone: 'indigo' };
+  if (/(kahvaltı|öğle|akşam|yemek|ramen|sushi|restoran|kafe|cafe)/.test(source)) {
+    return { icon: '🍜', tone: 'coral' };
+  }
+  if (/(tapınak|senso|müze|saray|kale|kültür)/.test(source)) {
+    return { icon: '⛩️', tone: 'sakura' };
+  }
+  if (/(park|bahçe|orman|göl|sahil|doğa)/.test(source)) return { icon: '🌿', tone: 'matcha' };
+  if (/(alışveriş|mağaza|market|avm)/.test(source)) return { icon: '🛍️', tone: 'gold' };
+  return { icon: '📍', tone: 'violet' };
+}
+
+function findNextItemIndex(items: DayPlan['items'], timezone: string) {
+  try {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: timezone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(new Date());
+    const currentHour = Number(parts.find((part) => part.type === 'hour')?.value ?? 0);
+    const currentMinute = Number(parts.find((part) => part.type === 'minute')?.value ?? 0);
+    const nowInMinutes = currentHour * 60 + currentMinute;
+    const index = items.findIndex((item) => {
+      const match = (item.scheduledTime ?? item.time ?? '').match(/(\d{1,2}):(\d{2})/);
+      if (!match) return false;
+      return Number(match[1]) * 60 + Number(match[2]) >= nowInMinutes;
+    });
+    return index;
+  } catch {
+    return items.length > 0 ? 0 : -1;
+  }
+}
+
 function money(n: number, cur?: string) {
   try {
     return new Intl.NumberFormat('tr-TR', {
@@ -39,6 +97,8 @@ export function DayCard({ day, trip, expanded, isActive, isPast, onToggle }: Pro
 
   const dayTotal = day.items.reduce((s, it) => s + (it.cost ?? 0), 0);
   const dayCurrency = day.items.find((it) => it.costCurrency)?.costCurrency;
+  const dateParts = parseDayDate(day.date);
+  const nextItemIndex = isActive ? findNextItemIndex(day.items, trip.timezone) : -1;
 
   useEffect(() => {
     if (isActive && expanded && ref.current) {
@@ -55,7 +115,7 @@ export function DayCard({ day, trip, expanded, isActive, isPast, onToggle }: Pro
         ? `~${day.stepsEstimate.toLocaleString('tr-TR')}`
         : null;
 
-  const weekday = day.weekday ?? '';
+  const weekday = day.weekday ?? dateParts.weekday;
 
   return (
     <article
@@ -65,11 +125,14 @@ export function DayCard({ day, trip, expanded, isActive, isPast, onToggle }: Pro
     >
       <button type="button" className="day-header" onClick={onToggle} aria-expanded={expanded}>
         <div className="day-num">
-          <span className="num">{day.dayNumber}</span>
-          {weekday && <span className="day">{weekday}</span>}
+          <span className="num">{dateParts.dateNumber}</span>
+          {dateParts.month && <span className="day">{dateParts.month}</span>}
         </div>
         <div className="day-meta">
-          <div className="day-date">{day.date}</div>
+          <div className="day-kicker">
+            <span>{day.dayNumber}. Gün{weekday ? ` · ${weekday}` : ''}</span>
+            {isActive && <span className="day-status">Bugün</span>}
+          </div>
           <div className="day-theme">{day.theme || `Gün ${day.dayNumber}`}</div>
           {day.tags.length > 0 && (
             <div className="day-tags">
@@ -81,9 +144,10 @@ export function DayCard({ day, trip, expanded, isActive, isPast, onToggle }: Pro
             </div>
           )}
         </div>
-        <span className="day-toggle" aria-hidden>
-          ▾
-        </span>
+        <div className="day-header-side" aria-hidden>
+          <span className="day-country">🇯🇵</span>
+          <span className="day-toggle">⌄</span>
+        </div>
       </button>
 
       {expanded && (
@@ -110,29 +174,40 @@ export function DayCard({ day, trip, expanded, isActive, isPast, onToggle }: Pro
           {isActive && <TimelineProgress day={day} timezone={trip.timezone} />}
 
           <div className="timeline">
-            {day.items.map((item) => {
+            {day.items.map((item, itemIndex) => {
               const time = item.scheduledTime ?? item.time;
+              const visual = itemVisual(item.kind, item.title);
               return (
-                <div key={item.id} className="timeline-item">
-                  {time && <div className="timeline-time">{time}</div>}
-                  <div className="timeline-title">
-                    {item.mapUrl ? (
-                      <a href={item.mapUrl} target="_blank" rel="noopener noreferrer">
-                        {item.title}
-                      </a>
-                    ) : (
-                      item.title
-                    )}
-                    {item.cost != null && item.cost > 0 && (
-                      <span className="timeline-cost">{money(item.cost, item.costCurrency)}</span>
+                <div
+                  key={item.id}
+                  className={`timeline-item${itemIndex === nextItemIndex ? ' timeline-item-next' : ''}`}
+                >
+                  <div className="timeline-time">{time || 'Esnek'}</div>
+                  <div className={`timeline-icon timeline-icon-${visual.tone}`} aria-hidden>
+                    {visual.icon}
+                  </div>
+                  <div className="timeline-content">
+                    <div className="timeline-title">
+                      {item.mapUrl ? (
+                        <a href={item.mapUrl} target="_blank" rel="noopener noreferrer">
+                          {item.title}
+                        </a>
+                      ) : (
+                        item.title
+                      )}
+                      {item.cost != null && item.cost > 0 && (
+                        <span className="timeline-cost">{money(item.cost, item.costCurrency)}</span>
+                      )}
+                    </div>
+                    {item.description && <div className="timeline-desc">{item.description}</div>}
+                    {item.tips && (
+                      <div className="timeline-tips">
+                        <span aria-hidden>💡</span> {item.tips}
+                      </div>
                     )}
                   </div>
-                  {item.description && <div className="timeline-desc">{item.description}</div>}
-                  {item.tips && (
-                    <div className="timeline-tips">
-                      💡 {item.tips}
-                    </div>
-                  )}
+                  {itemIndex === nextItemIndex && <span className="timeline-next-badge">Sıradaki</span>}
+                  {item.mapUrl && <span className="timeline-chevron" aria-hidden>›</span>}
                 </div>
               );
             })}

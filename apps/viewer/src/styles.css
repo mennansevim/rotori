@@ -3319,3 +3319,561 @@ a {
 .city-place-chip.visited .city-place-cat {
   color: rgba(129, 199, 132, 0.7);
 }
+
+/* ============================================================
+   2026 itinerary refresh — daha canlı, taranabilir günlük akış
+   ============================================================ */
+
+:root,
+[data-theme='japan-dark'] {
+  --bg: #090910;
+  --bg-card: #15151f;
+  --bg-card-hover: #1b1b28;
+  --bg-elevated: #202031;
+  --accent: #8a78ff;
+  --accent-fuji: #9383ff;
+  --accent-sakura: #ff86ad;
+  --text-secondary: #b1b0c1;
+  --text-muted: #7d7c92;
+  --border: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --shadow-glow: 0 18px 60px rgba(104, 82, 214, 0.2);
+}
+
+body {
+  background-image:
+    radial-gradient(circle at 10% 12%, rgba(116, 91, 255, 0.12), transparent 28rem),
+    radial-gradient(circle at 88% 24%, rgba(255, 101, 155, 0.09), transparent 30rem);
+  background-attachment: fixed;
+}
+
+.top-countdown-bar {
+  box-shadow: 0 8px 28px rgba(20, 10, 45, 0.2);
+}
+
+.header {
+  padding-top: 68px;
+}
+
+.header h1 {
+  text-wrap: balance;
+}
+
+.app-container {
+  max-width: 980px;
+}
+
+.section-header {
+  padding: 0 4px;
+}
+
+.day-card {
+  position: relative;
+  border-radius: 24px;
+  margin-bottom: 18px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.025), transparent 42%),
+    var(--bg-card);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.13);
+}
+
+.day-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(120deg, rgba(148, 131, 255, 0.05), transparent 36%, rgba(255, 134, 173, 0.035));
+}
+
+.day-card.expanded {
+  border-color: rgba(147, 131, 255, 0.42);
+  box-shadow: 0 22px 70px rgba(38, 24, 84, 0.25);
+}
+
+.day-card.active {
+  border-color: rgba(255, 134, 173, 0.58);
+  box-shadow:
+    0 0 0 1px rgba(255, 134, 173, 0.12),
+    0 24px 76px rgba(86, 35, 75, 0.26);
+}
+
+.day-header {
+  position: relative;
+  z-index: 1;
+  min-height: 112px;
+  padding: 20px 24px;
+  gap: 20px;
+  border-bottom: 0;
+}
+
+.day-card.expanded .day-header {
+  border-bottom: 1px solid var(--border);
+}
+
+.day-num {
+  width: 74px;
+  height: 78px;
+  border-radius: 22px;
+  background: linear-gradient(145deg, #458dff 0%, #6c65f7 100%);
+  box-shadow: 0 12px 26px rgba(70, 116, 245, 0.28);
+}
+
+.day-num .num {
+  font-size: 29px;
+  letter-spacing: -0.04em;
+}
+
+.day-num .day {
+  margin-top: 5px;
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+.day-kicker {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+  font-size: 17px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.day-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(255, 134, 173, 0.15);
+  color: var(--accent-sakura);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.day-theme {
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.day-tags {
+  margin-top: 10px;
+}
+
+.tag {
+  padding: 5px 11px;
+  border: 1px solid rgba(147, 131, 255, 0.14);
+  background: rgba(147, 131, 255, 0.12);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.day-header-side {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-left: auto;
+}
+
+.day-country {
+  font-size: 27px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+}
+
+.day-toggle {
+  background: transparent;
+  font-size: 26px;
+}
+
+.day-card.expanded .day-toggle {
+  background: rgba(147, 131, 255, 0.12);
+}
+
+.day-body {
+  position: relative;
+  z-index: 1;
+  padding: 22px 24px 26px;
+}
+
+.day-route-bar {
+  gap: 9px;
+  margin-bottom: 22px;
+  padding: 10px;
+  border: 0;
+  background: transparent;
+}
+
+.day-route-bar > * {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 12px;
+  border: 1px solid rgba(147, 131, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(147, 131, 255, 0.1);
+  color: var(--text-secondary);
+  line-height: 1;
+}
+
+.day-route-bar a {
+  color: var(--accent-fuji);
+}
+
+.timeline {
+  padding-left: 0;
+}
+
+.timeline::before {
+  left: 118px;
+  top: 28px;
+  bottom: 28px;
+  width: 3px;
+  background: linear-gradient(to bottom, var(--accent-fuji), rgba(255, 134, 173, 0.36));
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: 76px 52px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 16px;
+  min-height: 92px;
+  margin: 0 -10px 6px;
+  padding: 16px 14px 18px 10px;
+  border: 1px solid transparent;
+  border-radius: 19px;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.timeline-item:hover {
+  background: rgba(255, 255, 255, 0.025);
+  transform: translateX(2px);
+}
+
+.timeline-item.timeline-item-next {
+  background: linear-gradient(120deg, rgba(112, 91, 235, 0.17), rgba(255, 134, 173, 0.07));
+  border-color: rgba(147, 131, 255, 0.48);
+  box-shadow: inset 0 0 30px rgba(122, 97, 235, 0.04);
+}
+
+.timeline-item::before {
+  display: none;
+}
+
+.timeline-time {
+  padding-top: 9px;
+  margin: 0;
+  color: var(--accent-fuji);
+  font-size: 15px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+}
+
+.timeline-icon {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  background: var(--bg-elevated);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  font-size: 20px;
+}
+
+.timeline-icon-sky { background: rgba(61, 155, 255, 0.14); border-color: rgba(61, 155, 255, 0.3); }
+.timeline-icon-violet { background: rgba(147, 131, 255, 0.14); border-color: rgba(147, 131, 255, 0.32); }
+.timeline-icon-indigo { background: rgba(105, 110, 225, 0.14); border-color: rgba(105, 110, 225, 0.3); }
+.timeline-icon-coral { background: rgba(255, 112, 96, 0.13); border-color: rgba(255, 112, 96, 0.3); }
+.timeline-icon-sakura { background: rgba(255, 134, 173, 0.14); border-color: rgba(255, 134, 173, 0.3); }
+.timeline-icon-matcha { background: rgba(129, 199, 132, 0.14); border-color: rgba(129, 199, 132, 0.3); }
+.timeline-icon-gold { background: rgba(255, 213, 79, 0.13); border-color: rgba(255, 213, 79, 0.3); }
+
+.timeline-content {
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.timeline-title {
+  margin-bottom: 5px;
+  font-size: 17px;
+  font-weight: 720;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+}
+
+.timeline-title a {
+  border-bottom: 0;
+}
+
+.timeline-desc {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.timeline-tips {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  border: 0;
+  background: rgba(147, 131, 255, 0.08);
+}
+
+.timeline-next-badge {
+  position: absolute;
+  top: 13px;
+  right: 42px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--accent-fuji);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.timeline-item-next .timeline-content {
+  padding-right: 78px;
+}
+
+.timeline-chevron {
+  align-self: center;
+  color: var(--text-muted);
+  font-size: 26px;
+  line-height: 1;
+}
+
+@media (max-width: 768px) {
+  .top-countdown-bar {
+    padding: 10px 14px;
+  }
+
+  .top-countdown-content {
+    flex-wrap: nowrap;
+  }
+
+  .top-countdown-center {
+    margin-left: auto;
+  }
+
+  .top-countdown-tickets,
+  .settings-button {
+    display: none;
+  }
+
+  .top-countdown-timer {
+    padding: 5px 10px;
+  }
+
+  .top-cd-value {
+    min-width: 19px;
+    font-size: 15px;
+  }
+
+  .header {
+    padding: 40px 20px 28px;
+  }
+
+  .header h1 {
+    font-size: 38px;
+  }
+
+  .stats-bar {
+    margin-bottom: 34px;
+  }
+
+  .app-container {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .section-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .section-icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .section-title {
+    font-size: 22px;
+  }
+
+  .day-view-toggle {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .day-view-btn {
+    flex: 1;
+  }
+
+  .day-card {
+    border-radius: 22px;
+  }
+
+  .day-header {
+    flex-wrap: nowrap;
+    min-height: 104px;
+    padding: 16px;
+    gap: 14px;
+  }
+
+  .day-num {
+    width: 64px;
+    height: 68px;
+    border-radius: 19px;
+  }
+
+  .day-num .num {
+    font-size: 25px;
+  }
+
+  .day-kicker {
+    font-size: 16px;
+  }
+
+  .day-theme {
+    font-size: 13px;
+  }
+
+  .day-tags {
+    flex-wrap: nowrap;
+    max-width: calc(100vw - 150px);
+    overflow: hidden;
+  }
+
+  .tag {
+    flex: 0 0 auto;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .day-country {
+    display: none;
+  }
+
+  .day-toggle {
+    width: 30px;
+    height: 30px;
+  }
+
+  .day-body {
+    padding: 16px 12px 20px;
+  }
+
+  .day-route-bar {
+    padding: 0 4px;
+    gap: 7px;
+  }
+
+  .day-route-bar > * {
+    padding: 7px 10px;
+    font-size: 11px;
+  }
+
+  .timeline::before {
+    left: 88px;
+  }
+
+  .timeline-item {
+    grid-template-columns: 57px 46px minmax(0, 1fr);
+    gap: 8px;
+    margin: 0 0 7px;
+    padding: 12px 9px 15px 5px;
+    border-radius: 17px;
+  }
+
+  .timeline-time {
+    padding-top: 8px;
+    font-size: 13px;
+  }
+
+  .timeline-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    font-size: 18px;
+  }
+
+  .timeline-content {
+    padding-top: 3px;
+  }
+
+  .timeline-title {
+    padding-right: 4px;
+    font-size: 15px;
+  }
+
+  .timeline-desc {
+    font-size: 12.5px;
+    -webkit-line-clamp: 2;
+  }
+
+  .timeline-next-badge {
+    top: 8px;
+    right: 8px;
+    padding: 4px 8px;
+    font-size: 9px;
+  }
+
+  .timeline-item-next .timeline-title {
+    padding-right: 58px;
+  }
+
+  .timeline-item-next .timeline-content {
+    padding-right: 0;
+  }
+
+  .timeline-chevron {
+    display: none;
+  }
+
+  .timeline-cost {
+    display: inline-block;
+    margin: 5px 0 0;
+  }
+}
+
+@media (max-width: 390px) {
+  .header-badge-row,
+  .flight-info {
+    display: none;
+  }
+
+  .header {
+    padding-top: 30px;
+  }
+
+  .day-status {
+    display: none;
+  }
+
+  .day-num {
+    width: 58px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline-item,
+  .day-card,
+  .day-toggle {
+    transition: none;
+  }
+}

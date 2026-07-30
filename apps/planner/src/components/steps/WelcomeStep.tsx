@@ -68,7 +68,7 @@ function formatDateTR(iso: string): string {
   return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-export function WelcomeStep({ trip, onChange, onContinue }: Props) {
+export function WelcomeStep({ onChange, onContinue }: Props) {
   const { t } = useTranslation();
   const [view, setView] = useState<View>('choose');
   const [ticket, setTicket] = useState<TicketDraft>(emptyTicket);
