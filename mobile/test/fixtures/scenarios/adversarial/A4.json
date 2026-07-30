@@ -1,0 +1,827 @@
+{
+  "id": "A4",
+  "date": "2026-11-08",
+  "city": "osaka",
+  "hotel": {
+    "id": "hotel-namba",
+    "name": "Namba Central Hotel",
+    "lat": 34.6666,
+    "lng": 135.5012,
+    "cluster": "namba"
+  },
+  "dayStart": "2026-11-08T14:00:00",
+  "dayEnd": "2026-11-08T20:00:00",
+  "activities": [
+    {
+      "id": "os-castle",
+      "name": "Osaka Castle",
+      "lat": 34.6873,
+      "lng": 135.5259,
+      "cluster": "chuo",
+      "category": "sightseeing",
+      "durationMinutes": 90,
+      "openingTime": "09:00",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "os-usj",
+      "name": "Universal Studios Japan",
+      "lat": 34.6654,
+      "lng": 135.4323,
+      "cluster": "bay",
+      "category": "sightseeing",
+      "durationMinutes": 180,
+      "openingTime": "09:00",
+      "closingTime": "20:00"
+    },
+    {
+      "id": "os-kaiyukan",
+      "name": "Osaka Aquarium Kaiyukan",
+      "lat": 34.6547,
+      "lng": 135.4323,
+      "cluster": "bay",
+      "category": "museum",
+      "durationMinutes": 120,
+      "openingTime": "09:30",
+      "closingTime": "20:00"
+    },
+    {
+      "id": "os-harukas",
+      "name": "Abeno Harukas",
+      "lat": 34.6456,
+      "lng": 135.5136,
+      "cluster": "abeno",
+      "category": "sightseeing",
+      "durationMinutes": 60,
+      "openingTime": "10:00",
+      "closingTime": "20:00"
+    },
+    {
+      "id": "os-sumiyoshi",
+      "name": "Sumiyoshi Taisha",
+      "lat": 34.6126,
+      "lng": 135.4933,
+      "cluster": "sumiyoshi",
+      "category": "shrine",
+      "durationMinutes": 60,
+      "openingTime": "06:00",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "os-dotonbori",
+      "name": "Dotonbori",
+      "lat": 34.6687,
+      "lng": 135.5031,
+      "cluster": "namba",
+      "category": "meal",
+      "durationMinutes": 60,
+      "openingTime": "18:00",
+      "closingTime": "22:00"
+    },
+    {
+      "id": "os-shinsekai",
+      "name": "Shinsekai / Tsutenkaku",
+      "lat": 34.6525,
+      "lng": 135.5063,
+      "cluster": "shinsekai",
+      "category": "sightseeing",
+      "durationMinutes": 45,
+      "openingTime": "09:00",
+      "closingTime": "21:00"
+    },
+    {
+      "id": "os-history-museum",
+      "name": "Osaka Museum of History",
+      "lat": 34.6827,
+      "lng": 135.5259,
+      "cluster": "chuo",
+      "category": "museum",
+      "durationMinutes": 75,
+      "openingTime": "09:30",
+      "closingTime": "17:00"
+    }
+  ],
+  "routeMatrix": [
+    {
+      "fromId": "hotel-namba",
+      "toId": "os-castle",
+      "mode": "metro",
+      "doorToDoorMinutes": 22,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9032248296920556
+    },
+    {
+      "fromId": "hotel-namba",
+      "toId": "os-usj",
+      "mode": "metro",
+      "doorToDoorMinutes": 40,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9063027166832702
+    },
+    {
+      "fromId": "hotel-namba",
+      "toId": "os-kaiyukan",
+      "mode": "metro",
+      "doorToDoorMinutes": 41,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9064391358619378
+    },
+    {
+      "fromId": "hotel-namba",
+      "toId": "os-harukas",
+      "mode": "metro",
+      "doorToDoorMinutes": 18,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9025959665526435
+    },
+    {
+      "fromId": "hotel-namba",
+      "toId": "os-sumiyoshi",
+      "mode": "metro",
+      "doorToDoorMinutes": 39,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9060478651467755
+    },
+    {
+      "fromId": "hotel-namba",
+      "toId": "os-dotonbori",
+      "mode": "walking",
+      "doorToDoorMinutes": 4,
+      "walkingMinutes": 4,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9002910670671255
+    },
+    {
+      "fromId": "hotel-namba",
+      "toId": "os-shinsekai",
+      "mode": "metro",
+      "doorToDoorMinutes": 12,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9016357672633312
+    },
+    {
+      "fromId": "hotel-namba",
+      "toId": "os-history-museum",
+      "mode": "metro",
+      "doorToDoorMinutes": 20,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9028821483769888
+    },
+    {
+      "fromId": "os-castle",
+      "toId": "hotel-namba",
+      "mode": "metro",
+      "doorToDoorMinutes": 22,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9032248296920556
+    },
+    {
+      "fromId": "os-castle",
+      "toId": "os-usj",
+      "mode": "metro",
+      "doorToDoorMinutes": 56,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9088988662850087
+    },
+    {
+      "fromId": "os-castle",
+      "toId": "os-kaiyukan",
+      "mode": "metro",
+      "doorToDoorMinutes": 58,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9092956727338668
+    },
+    {
+      "fromId": "os-castle",
+      "toId": "os-harukas",
+      "mode": "metro",
+      "doorToDoorMinutes": 31,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.904771328767811
+    },
+    {
+      "fromId": "os-castle",
+      "toId": "os-sumiyoshi",
+      "mode": "metro",
+      "doorToDoorMinutes": 55,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9088253334046232
+    },
+    {
+      "fromId": "os-castle",
+      "toId": "os-dotonbori",
+      "mode": "metro",
+      "doorToDoorMinutes": 20,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.902936719875925
+    },
+    {
+      "fromId": "os-castle",
+      "toId": "os-shinsekai",
+      "mode": "metro",
+      "doorToDoorMinutes": 28,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9042645691282303
+    },
+    {
+      "fromId": "os-castle",
+      "toId": "os-history-museum",
+      "mode": "walking",
+      "doorToDoorMinutes": 6,
+      "walkingMinutes": 6,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9005114966625654
+    },
+    {
+      "fromId": "os-usj",
+      "toId": "hotel-namba",
+      "mode": "metro",
+      "doorToDoorMinutes": 40,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9063027166832702
+    },
+    {
+      "fromId": "os-usj",
+      "toId": "os-castle",
+      "mode": "metro",
+      "doorToDoorMinutes": 56,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9088988662850087
+    },
+    {
+      "fromId": "os-usj",
+      "toId": "os-kaiyukan",
+      "mode": "metro",
+      "doorToDoorMinutes": 10,
+      "walkingMinutes": 15,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9011897857150968
+    },
+    {
+      "fromId": "os-usj",
+      "toId": "os-harukas",
+      "mode": "metro",
+      "doorToDoorMinutes": 49,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9077553743757756
+    },
+    {
+      "fromId": "os-usj",
+      "toId": "os-sumiyoshi",
+      "mode": "metro",
+      "doorToDoorMinutes": 51,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9081001880041282
+    },
+    {
+      "fromId": "os-usj",
+      "toId": "os-dotonbori",
+      "mode": "metro",
+      "doorToDoorMinutes": 41,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9064853771670395
+    },
+    {
+      "fromId": "os-usj",
+      "toId": "os-shinsekai",
+      "mode": "metro",
+      "doorToDoorMinutes": 44,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9069186334931769
+    },
+    {
+      "fromId": "os-usj",
+      "toId": "os-history-museum",
+      "mode": "metro",
+      "doorToDoorMinutes": 55,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9087729332778969
+    },
+    {
+      "fromId": "os-kaiyukan",
+      "toId": "hotel-namba",
+      "mode": "metro",
+      "doorToDoorMinutes": 41,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9064391358619378
+    },
+    {
+      "fromId": "os-kaiyukan",
+      "toId": "os-castle",
+      "mode": "metro",
+      "doorToDoorMinutes": 58,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9092956727338668
+    },
+    {
+      "fromId": "os-kaiyukan",
+      "toId": "os-usj",
+      "mode": "metro",
+      "doorToDoorMinutes": 10,
+      "walkingMinutes": 15,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9011897857150968
+    },
+    {
+      "fromId": "os-kaiyukan",
+      "toId": "os-harukas",
+      "mode": "metro",
+      "doorToDoorMinutes": 48,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9075053018131264
+    },
+    {
+      "fromId": "os-kaiyukan",
+      "toId": "os-sumiyoshi",
+      "mode": "metro",
+      "doorToDoorMinutes": 46,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.907284364936184
+    },
+    {
+      "fromId": "os-kaiyukan",
+      "toId": "os-dotonbori",
+      "mode": "metro",
+      "doorToDoorMinutes": 42,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9066599015665974
+    },
+    {
+      "fromId": "os-kaiyukan",
+      "toId": "os-shinsekai",
+      "mode": "metro",
+      "doorToDoorMinutes": 43,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9067731604536251
+    },
+    {
+      "fromId": "os-kaiyukan",
+      "toId": "os-history-museum",
+      "mode": "metro",
+      "doorToDoorMinutes": 57,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9091086182283421
+    },
+    {
+      "fromId": "os-harukas",
+      "toId": "hotel-namba",
+      "mode": "metro",
+      "doorToDoorMinutes": 18,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9025959665526435
+    },
+    {
+      "fromId": "os-harukas",
+      "toId": "os-castle",
+      "mode": "metro",
+      "doorToDoorMinutes": 31,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.904771328767811
+    },
+    {
+      "fromId": "os-harukas",
+      "toId": "os-usj",
+      "mode": "metro",
+      "doorToDoorMinutes": 49,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9077553743757756
+    },
+    {
+      "fromId": "os-harukas",
+      "toId": "os-kaiyukan",
+      "mode": "metro",
+      "doorToDoorMinutes": 48,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9075053018131264
+    },
+    {
+      "fromId": "os-harukas",
+      "toId": "os-sumiyoshi",
+      "mode": "metro",
+      "doorToDoorMinutes": 27,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9041127353832578
+    },
+    {
+      "fromId": "os-harukas",
+      "toId": "os-dotonbori",
+      "mode": "metro",
+      "doorToDoorMinutes": 19,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9027422739141074
+    },
+    {
+      "fromId": "os-harukas",
+      "toId": "os-shinsekai",
+      "mode": "metro",
+      "doorToDoorMinutes": 9,
+      "walkingMinutes": 13,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9010171398336893
+    },
+    {
+      "fromId": "os-harukas",
+      "toId": "os-history-museum",
+      "mode": "metro",
+      "doorToDoorMinutes": 28,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9042759598673161
+    },
+    {
+      "fromId": "os-sumiyoshi",
+      "toId": "hotel-namba",
+      "mode": "metro",
+      "doorToDoorMinutes": 39,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9060478651467755
+    },
+    {
+      "fromId": "os-sumiyoshi",
+      "toId": "os-castle",
+      "mode": "metro",
+      "doorToDoorMinutes": 55,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9088253334046232
+    },
+    {
+      "fromId": "os-sumiyoshi",
+      "toId": "os-usj",
+      "mode": "metro",
+      "doorToDoorMinutes": 51,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9081001880041282
+    },
+    {
+      "fromId": "os-sumiyoshi",
+      "toId": "os-kaiyukan",
+      "mode": "metro",
+      "doorToDoorMinutes": 46,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.907284364936184
+    },
+    {
+      "fromId": "os-sumiyoshi",
+      "toId": "os-harukas",
+      "mode": "metro",
+      "doorToDoorMinutes": 27,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9041127353832578
+    },
+    {
+      "fromId": "os-sumiyoshi",
+      "toId": "os-dotonbori",
+      "mode": "metro",
+      "doorToDoorMinutes": 40,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.906302132252963
+    },
+    {
+      "fromId": "os-sumiyoshi",
+      "toId": "os-shinsekai",
+      "mode": "metro",
+      "doorToDoorMinutes": 30,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9045933421726182
+    },
+    {
+      "fromId": "os-sumiyoshi",
+      "toId": "os-history-museum",
+      "mode": "metro",
+      "doorToDoorMinutes": 53,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9083457403954993
+    },
+    {
+      "fromId": "os-dotonbori",
+      "toId": "hotel-namba",
+      "mode": "walking",
+      "doorToDoorMinutes": 4,
+      "walkingMinutes": 4,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9002910670671255
+    },
+    {
+      "fromId": "os-dotonbori",
+      "toId": "os-castle",
+      "mode": "metro",
+      "doorToDoorMinutes": 20,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.902936719875925
+    },
+    {
+      "fromId": "os-dotonbori",
+      "toId": "os-usj",
+      "mode": "metro",
+      "doorToDoorMinutes": 41,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9064853771670395
+    },
+    {
+      "fromId": "os-dotonbori",
+      "toId": "os-kaiyukan",
+      "mode": "metro",
+      "doorToDoorMinutes": 42,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9066599015665974
+    },
+    {
+      "fromId": "os-dotonbori",
+      "toId": "os-harukas",
+      "mode": "metro",
+      "doorToDoorMinutes": 19,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9027422739141074
+    },
+    {
+      "fromId": "os-dotonbori",
+      "toId": "os-sumiyoshi",
+      "mode": "metro",
+      "doorToDoorMinutes": 40,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.906302132252963
+    },
+    {
+      "fromId": "os-dotonbori",
+      "toId": "os-shinsekai",
+      "mode": "metro",
+      "doorToDoorMinutes": 13,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9018249794929503
+    },
+    {
+      "fromId": "os-dotonbori",
+      "toId": "os-history-museum",
+      "mode": "metro",
+      "doorToDoorMinutes": 18,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9026020017159123
+    },
+    {
+      "fromId": "os-shinsekai",
+      "toId": "hotel-namba",
+      "mode": "metro",
+      "doorToDoorMinutes": 12,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9016357672633312
+    },
+    {
+      "fromId": "os-shinsekai",
+      "toId": "os-castle",
+      "mode": "metro",
+      "doorToDoorMinutes": 28,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9042645691282303
+    },
+    {
+      "fromId": "os-shinsekai",
+      "toId": "os-usj",
+      "mode": "metro",
+      "doorToDoorMinutes": 44,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9069186334931769
+    },
+    {
+      "fromId": "os-shinsekai",
+      "toId": "os-kaiyukan",
+      "mode": "metro",
+      "doorToDoorMinutes": 43,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9067731604536251
+    },
+    {
+      "fromId": "os-shinsekai",
+      "toId": "os-harukas",
+      "mode": "metro",
+      "doorToDoorMinutes": 9,
+      "walkingMinutes": 13,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9010171398336893
+    },
+    {
+      "fromId": "os-shinsekai",
+      "toId": "os-sumiyoshi",
+      "mode": "metro",
+      "doorToDoorMinutes": 30,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9045933421726182
+    },
+    {
+      "fromId": "os-shinsekai",
+      "toId": "os-dotonbori",
+      "mode": "metro",
+      "doorToDoorMinutes": 13,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9018249794929503
+    },
+    {
+      "fromId": "os-shinsekai",
+      "toId": "os-history-museum",
+      "mode": "metro",
+      "doorToDoorMinutes": 25,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9038065468753608
+    },
+    {
+      "fromId": "os-history-museum",
+      "toId": "hotel-namba",
+      "mode": "metro",
+      "doorToDoorMinutes": 20,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9028821483769888
+    },
+    {
+      "fromId": "os-history-museum",
+      "toId": "os-castle",
+      "mode": "walking",
+      "doorToDoorMinutes": 6,
+      "walkingMinutes": 6,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9005114966625654
+    },
+    {
+      "fromId": "os-history-museum",
+      "toId": "os-usj",
+      "mode": "metro",
+      "doorToDoorMinutes": 55,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9087729332778969
+    },
+    {
+      "fromId": "os-history-museum",
+      "toId": "os-kaiyukan",
+      "mode": "metro",
+      "doorToDoorMinutes": 57,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9091086182283421
+    },
+    {
+      "fromId": "os-history-museum",
+      "toId": "os-harukas",
+      "mode": "metro",
+      "doorToDoorMinutes": 28,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9042759598673161
+    },
+    {
+      "fromId": "os-history-museum",
+      "toId": "os-sumiyoshi",
+      "mode": "metro",
+      "doorToDoorMinutes": 53,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9083457403954993
+    },
+    {
+      "fromId": "os-history-museum",
+      "toId": "os-dotonbori",
+      "mode": "metro",
+      "doorToDoorMinutes": 18,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9026020017159123
+    },
+    {
+      "fromId": "os-history-museum",
+      "toId": "os-shinsekai",
+      "mode": "metro",
+      "doorToDoorMinutes": 25,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9038065468753608
+    }
+  ],
+  "notes": "8 aktivite (toplam süre ~11.75 saat) yalnızca 6 saatlik gün penceresine sığdırılamaz — model dropped[] üretmeli."
+}

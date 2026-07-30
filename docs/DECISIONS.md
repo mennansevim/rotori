@@ -230,3 +230,110 @@ gömüldüğünde dosyayı gereksiz büyütüyor. Ayrı yerel asset'ler tarayıc
 **Kısıt:** Üçüncü taraf CDN veya çalışma zamanı servisi yoktur. Site deploy'u
 `website/` ağacını bütünüyle taşımalıdır; yalnızca `index.html` kopyalamak
 artık yeterli değildir.
+
+---
+
+## 2026-07-30 — Plan düzenleme tek domain komut hattından geçer
+
+**Karar:** Viewer ve planner'daki bütün plan mutasyonları saf Dart
+`PlanScheduleEngine` komutlarıyla yapılır. Uçuş/varış, otel check-in/out ve
+satın alınmış bilet kısıtları başlık/emoji tahminine bırakılmaz; `TimelineItem`
+üzerinde geriye uyumlu lock ve capability alanlarıyla açıkça saklanır.
+
+**Neden:** Widget içinde ayrı ayrı yapılan liste/saat mutasyonları çakışma,
+veri kaybı ve iki ekran arasında farklı davranış üretiyordu. Immutable komut
+sonucu aynı validasyonu planner, viewer ve unit testler için yeniden
+kullanılabilir kılar.
+
+**Kalıcılık:** `PlanEditSession` komutları cihaz içinde sıraya alır, UI'a
+optimistic uygular, yerel yazma hatasında snapshot'ı geri yükler ve başarılı
+işlemler için undo tutar. Dirty yerel snapshot realtime sunucu verisiyle
+ezilmez.
+
+**Alternatifler:** Her widget'ın kendi listelerini doğrudan değiştirmesi;
+yalnızca repository seviyesinde validasyon; bütün günü her değişiklikte
+yeniden üretmek.
+
+**Trade-off:** Sunucuda revision/compare-and-swap alanı henüz yoktur; iki
+cihazın aynı planı eşzamanlı düzenlemesi son-yazan davranışına düşebilir.
+Gezi saatleri yerel duvar saati dakikalarıdır ve gece yarısını aşan tek
+aktivite otomatik bölünmek yerine reddedilir.
+
+---
+
+## 2026-07-30 — Mevcut zaman çakışması ilgisiz düzenlemeyi engellemez
+
+**Karar:** Plan düzenleme sırasında tarih, kimlik, süre, sabit saat ve gün
+sınırı gibi yapısal invariant'lar her komutta eksiksiz doğrulanır. Zaman
+çakışmalarında ise komut öncesi ve sonrası karşılaştırılır; yalnızca yeni
+oluşan veya dakika olarak büyüyen çakışma reddedilir.
+
+**Neden:** Eski veya generator kaynaklı bir transfer/check-in çakışması,
+kendisiyle ilgisiz akşam yemeği saatini değiştirmeyi ve aktiviteyi başka güne
+taşımayı tamamen kilitliyordu. Kullanıcı geçerli düzenlemeler yapabilmeli ve
+planı adım adım iyileştirebilmelidir.
+
+**Güvence:** Yeni çakışma oluşturmak hâlâ engellenir. Mevcut çakışma
+küçültülebilir veya başka düzenlemeler yapılırken aynı seviyede kalabilir;
+büyütülemez.
+
+---
+
+## 2026-07-30 — Edit slotları ortak 15 dakikalık tampon kullanır
+
+**Supersedes:** 2026-07-30 — Plan düzenleme tek domain komut hattından geçer
+kararındaki yemek için ayrı 30 dakikalık boşluk ayrıntısı.
+
+**Karar:** Plan düzenleme sırasında bütün ardışık aktiviteler arasında 15
+dakikalık minimum geçiş vardır. Yemek kategorisi de aynı 15 dakikalık
+sonraki-aktivite tamponunu kullanır; ayrıca 30 dakikalık özel boşluk istemez.
+Saat ve gün değiştirme yüzeyleri serbest metin veya tüm saatleri sunmak yerine
+motorun hesapladığı uygun slotları gösterir; uygun olmayan slotlar gri ve
+pasiftir.
+
+**Taşıma:** Günler arası taşıma seçilen uygun başlangıç saatine yapılır.
+Komut hem kaynak hem hedef günü yeniden optimize eder. Hedef günün aktivite
+süresi ve 15 dakikalık görünmez tamponları içinde uygun slot yoksa plan
+değişmez ve kullanıcıya “Bu günde uygun zaman aralığı bulunamadı.” bilgisi
+verilir.
+
+**UX:** Sabit uçuş ve tren varış/kalkışları gün, saat, sıra ve drag
+yeteneklerini kapatır. Başarılı her mutasyon 5 saniyelik “Değişiklik
+kaydedildi / Geri Al” snackbar'ı üretir.
+
+---
+
+## 2026-07-30 — Rota sırasını AI değil yönlü matris + deterministik motor belirler
+
+**Karar:** Günlük coğrafi sıra ve ulaşım modu, gerçek kapıdan kapıya
+alternatifler içeren yönlü `RouteMatrix` üzerinde çalışan saf Dart
+`BeamSearchItineraryOptimizer` tarafından belirlenir. Varsayılan beam width
+6'dır; arama sonrası sınırlı swap/move iyileştirmesi uygulanır. Sabit saat,
+açılış-kapanış, minimum süre ve gün sonu kısıtları yüksek ceza yerine hard
+failure/pruning üretir.
+
+**Neden:** Eski `day_optimizer.dart` koordinat tabanlı nearest-neighbor
+yaklaşımı nehir, büyük istasyon, aktarma ve kapıdan kapıya süre farklarını
+bilemez. Dil modeli de bu verileri güvenilir biçimde üretemez. Rota matrisi
+gerçek ulaşım verisini, deterministik motor ise tekrar üretilebilir ve test
+edilebilir kararı sağlar.
+
+**Ulaşım sağlayıcısı sınırı:** Flutter belirli harita sağlayıcısına veya API
+anahtarına bağlanmaz. `RouteMatrixBackendGateway`, backend/Supabase Edge
+Function tarafından uygulanır; anahtar sunucu ortamında tutulur. Fallback
+sırası taze cache, birincil sağlayıcı, alternatif sağlayıcı, stale/estimated
+cache ve typed unavailable'dır. Koordinat mesafesi yalnızca ön eleme/kümeleme
+içindir; gerçek süre olarak kullanılamaz.
+
+**AI sınırı:** AI varsayılan olarak çağrılmaz ve rotayı değiştiremez.
+`CostOptimizedAiUsagePolicy` yalnızca kullanıcı açıklama istediğinde, güven
+düşük olduğunda veya açık bir uyarı/anomali bulunduğunda yapılandırılmış review
+çağrısına izin verir. Bütçe, model adı, token sınırı ve cache tek merkezden
+yönetilir. AI hatası deterministik planı engellemez.
+
+**Trade-off:** Gerçek route gateway henüz yapılandırılmadığı için üretim
+provider'ı typed unavailable döndürür; cache'ler ilk sürümde bellek içidir.
+Bu sınırlar bilinçli olarak kabul edildi: önce sağlayıcıdan bağımsız domain
+sözleşmesi, testler ve Flutter ön izleme/onay akışı tamamlandı. Kalıcı cache,
+Edge Function ve görünür son kullanıcı optimizasyon yüzeyi sonraki entegrasyon
+adımıdır.

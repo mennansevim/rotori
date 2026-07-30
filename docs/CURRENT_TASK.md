@@ -5,43 +5,23 @@
 
 **Bugünün tarihi:** 2026-07-30
 **Aktif branch:** `main`
-**Sprint hedefi:** Tanıtım sitesi etkileşim regresyonları + mobil F2 son
-regresyonları.
+**Sprint hedefi:** Mobil planlama motorunu gerçek rota verisini tüketebilen,
+düşük maliyetli ve deterministik bir Japonya güzergâh optimizasyon katmanıyla
+genişletmek.
 
 ---
 
 ## Aktif Hedef
 
-Tanıtım sitesinin hero bölümündeki el ve telefon SVG'si masaüstünde %40
-büyütüldü; mobil genişlik sınırı korundu. Japonca örnek seslerin oynatma hızı
-0,78× değerine düşürüldü ve cümle kartının masaüstü genişliği ile iç yerleşimi
-%40 küçültüldü. Güven bölümündeki altı kartın geniş ekranda 5+1 biçiminde
-taşması düzeltilerek geniş ekranda tek sıra, orta ekranda dengeli 3×2 düzen
-hedeflendi. Alışveriş kategorisindeki “Ikura desu ka? / Ne kadar?” örneği,
-metin ve ses birlikte değiştirilerek kartla ödeme sorusuna dönüştürüldü.
-Hero sahnesi referans görseldeki oranlara yaklaştırıldı: el/telefon merkezde
-daha baskın, bildirim kartları iki yanda katmanlı ve aşama çubuğu görselin
-altına bindirilmiş durumda. Bu düzenlemelerin tamamı masaüstü ve mobil
-görünümlerde taşma olmadan doğrulandı. Hero sahnesi ayrıca geniş ekranlarda
-iki yanda daha belirgin ve dengeli boşluk bırakacak şekilde daraltıldı.
-Referans siteyle yapılan oran karşılaştırmasında kompozisyonun hâlâ fazla
-büyük ve yüksek kaldığı görüldü; telefon/el, bildirim kartları ve sahne
-birlikte küçültüldü. Kullanıcının gerçek masaüstü genişliğinde sahne yine
-ekranın büyük bölümünü kapladığı için bu kez yalnızca piksel üst sınırı değil,
-ekran genişliği oranı da %84 ile sınırlandırıldı.
-Sağ taraftaki bildirim kartları, telefonla aralarındaki gereksiz boşluğu
-azaltacak şekilde sahne genişliğinin %7–8'i kadar sola yaklaştırıldı.
-Referans görseldeki gibi bildirim kartlarının iç kenarları telefon
-kompozisyonuna bitiştirildi; iki taraftaki boşluklar birlikte kaldırıldı.
-Telefon çevresindeki bildirim başlıkları ve alt açıklamalar, her kelimenin
-ilk harfi büyük olacak biçimde ortak yazım düzenine geçirildi. Hero bildirim
-gruplarının dış kenarlarını tek tek eşitleme yaklaşımı kompozisyonun ilişkisini
-bozduğu için geri alındı; sol kartlar, telefon/el ve sağ kartlar göreli
-konumları korunarak tek blok olarak ortalandı.
-Tanıtım sitesi ve App Store önizlemesindeki tüm `teamLab` marka yazımları,
-`TeamLab` biçiminde standartlaştırıldı. Son site değişiklikleri commit edilip
-GitHub'a gönderildikten sonra Raspberry Pi üzerindeki `deploy.sh` ile
-yayınlandı.
+Mevcut `PlanScheduleEngine` sözleşmesini bozmadan günlük aktiviteleri gerçek
+kapıdan kapıya ulaşım seçenekleriyle değerlendiren deterministik rota
+optimizasyonunun ilk sürümünü kurmak. Kapsam: yönlü rota matrisi abstraction'ı,
+fake repository, beam search + local improvement, sabit aktivite/zaman
+penceresi kuralları, geri dönüş ve aktarma maliyetleri, Balanced/Fastest/
+Least Walking/Cheapest profilleri, cache ve Riverpod üzerinden ön izleme/onay.
+AI rota hesaplamaz; yalnızca açık politika izin verirse isteğe bağlı açıklama
+katmanı olarak modellenir. Gün kartındaki görünür ön izleme/onay akışı da
+tamamlandı; tam paket **418/418** başarılı, `flutter analyze` temiz.
 
 ## Tamamlananlar (bu ve önceki oturumlardan)
 
@@ -101,13 +81,109 @@ yayınlandı.
 - ✅ Daha önce: Supabase auth uçtan uca (`233a57e` · Google OAuth),
   QA framework 100 senaryo (`13969b9`, `888feb2`), viewer satır içi düzenleme
   (`e66429c`), top-down shinkansen planı (`c7ef17f`).
+- ✅ **2026-07-30** Saf Dart `PlanScheduleEngine` ile gün içi/günler arası
+  taşıma, yeniden sıralama, saat/süre, ekleme/silme, gün başlığı/tarihi ve gün
+  sırası komutları tek immutable işlem hattında toplandı.
+- ✅ **2026-07-30** Çakışma, o tarihte geçerli 30 dakikalık yemek boşluğu, gün sınırı, tekrar
+  eden komut ve sabit rezervasyon kuralları typed failure'larla güvenceye
+  alındı.
+- ✅ **2026-07-30** Uçuş/varış, otel check-in/out ve satın alınmış biletler
+  açık lock/capability metadatasıyla geriye uyumlu JSON modeline taşındı.
+- ✅ **2026-07-30** `PlanEditSession` optimistic update, seri kayıt, yerel
+  yazma hatasında rollback, undo ve remote snapshot yenilemesini uyguladı.
+- ✅ **2026-07-30** Viewer'a uzun-bas drag/drop, gün hedefi vurgusu, kapalı
+  günü bekleyince açma, sabit satır görünümü, haptic geri bildirim ve
+  erişilebilir “güne taşı” alternatifi eklendi; planner aynı motora bağlandı.
+- ✅ **2026-07-30** Küçük ekran ve dark mode web preview elle kontrol edildi.
+  `flutter analyze` temiz, tam test paketi 370/370 başarılı.
+- ✅ **2026-07-30** Osaka yer sayısı (9), toplam geofence koordinat kapsamı
+  (52) ve ilgili testler güncel veriyle doğrulandı.
+- ✅ **2026-07-30** Eski plandaki ilgisiz transfer/check-in çakışmasının
+  akşam yemeğini 19:30'dan 18:30/17:30'a alma ve günler arası taşıma
+  komutlarını engellemesi düzeltildi. Motor artık yalnızca yeni veya büyüyen
+  zaman çakışmasını reddediyor.
+- ✅ **2026-07-30** Demo üzerinde 17:30 saat kaydı, menüden 2. güne taşıma ve
+  hedef günde 16:15'e yeniden saatleme elle doğrulandı. Menü ve uzun-bas
+  drag/drop için widget regresyonları eklendi; `flutter analyze` temiz,
+  tam paket 374/374 başarılı.
+- ✅ **2026-07-30** Edit Engine ortak 15 dakikalık aktivite/yemek tamponuna
+  geçirildi. Saat değişikliğinde seçilen aktivite korunup aynı günün devamı;
+  günler arası taşımada kaynak ve hedef gün otomatik yeniden saatleniyor.
+- ✅ **2026-07-30** 08:00–22:00 arasındaki 15 dakikalık slot ızgarası eklendi.
+  Geçersiz saatler gri ve pasif; hedef günde boşluk yoksa kaydetme kapalı ve
+  “Bu günde uygun zaman aralığı bulunamadı.” bilgisi gösteriliyor.
+- ✅ **2026-07-30** Menüden taşıma ve uzun-bas drag/drop aynı uygun-saat
+  seçimini açıyor; kenar sürüklemede auto-scroll, lift/gölge, hedef gün
+  highlight ve haptic davranışları birlikte çalışıyor.
+- ✅ **2026-07-30** Flight/Train Arrival ve Departure satırlarının eski
+  planlarda da gün/saat/sıra/drag yetenekleri kapatıldı. Başarılı mutasyon
+  sonrası undo yalnızca 5 saniyelik snackbar üzerinden sunuluyor.
+- ✅ **2026-07-30** Yeni domain/widget regresyonları dahil `flutter analyze`
+  temiz, tam mobil test paketi **380/380 başarılı**.
+- ✅ **2026-07-30** Aksiyonlu snackbar'ın erişilebilirlik modunda süresiz açık
+  kalması düzeltildi; uygulama tarafındaki zamanlayıcı undo yüzeyini her
+  durumda 5 saniye sonunda kapatıyor.
+- ✅ **2026-07-30** Viewer hamburger menüsünde konaklama sonrası içerik
+  referansa göre yeniden sıralandı: üçlü metrikler, dört yuvarlak Keşfet
+  kısayolu, dört satırlı Araçlar kartı, profil ve hesap/navigasyon işlemleri.
+  Tema ve tüm rotayı Google Maps'te açma işlevleri ikincil satır olarak
+  korundu.
+- ✅ **2026-07-30** Hamburger menü web preview'de üst ve alt bölümleriyle
+  görsel kontrol edildi; temiz hot restart sonrasında konsol hatası yok.
+  `flutter analyze` temiz, güncel tam mobil paket **381/381 başarılı**.
+- ✅ **2026-07-30** Günlük “Haritada gör” ekranında duraklar kırmızı numaralı
+  noktalarla gösterilip beyaz konturlu kırmızı rota çizgisiyle birbirine
+  bağlandı. Web preview'de görsel doğrulandı; `flutter analyze` temiz ve
+  günlük harita widget testleri **4/4 başarılı**.
+- ✅ **2026-07-30** Harita doğrudan URL ile açıldığında geri okunun tepkisiz
+  kalması düzeltildi. Geçmiş yoksa ilgili plan görünümüne güvenli dönüş
+  yapıyor; çalışan web preview üzerinde rota değişimi elle doğrulandı.
+- ✅ **2026-07-30** Yönlü kapıdan kapıya rota matrisi, yedi ulaşım modu,
+  deterministik fake repository ve sağlayıcıdan bağımsız backend gateway
+  sözleşmesi eklendi; mobil uygulamaya API anahtarı konulmadı.
+- ✅ **2026-07-30** Beam width 6 kullanan saf Dart optimizer; hard feasibility
+  pruning, artımlı state, local swap/move, geri dönüş/küme/aktarma maliyetleri
+  ve Balanced/Fastest/Least Walking/Cheapest profilleriyle tamamlandı.
+- ✅ **2026-07-30** Tokyo, Osaka, 14:00 sabit rezervasyon, kapanış/minimum süre,
+  otel dönüşü, ulaşım profili ve yönlü matris regresyonları eklendi.
+- ✅ **2026-07-30** Rota cache anahtarı koordinat hassasiyeti, yön, ulaşım
+  modu, gün tipi, zaman dilimi, profil ve sağlayıcıyı kapsayacak biçimde
+  modellendi; primary/alternative/stale fallback ve typed failure eklendi.
+- ✅ **2026-07-30** AI review policy, bütçe/model/token config'i, yapılandırılmış
+  çıktı, scope doğrulama ve cache eklendi. Normal optimizasyonda AI çağrısı
+  yok; AI hatası deterministik rotayı veya kaydı bozmuyor.
+- ✅ **2026-07-30** Riverpod `PlanOptimizationController`, mevcut
+  `TimelineItem` modelini adapter ile kullanarak eski/yeni metrik ön izlemesi,
+  açık onay, vazgeçme ve plan-version/activity-hash sonuç cache'i sağladı.
+- ✅ **2026-07-30** Birleştirilmiş rota optimizasyon çalışmasında
+  `flutter analyze` temiz ve tam mobil test paketi **416/416 başarılı**.
+- ✅ **2026-07-30** Viewer gün kartına “Rotayı optimize et” eylemi eklendi.
+  Dengeli/En hızlı/Az yürüyüş/En ucuz profilleri, yükleme/hata durumları,
+  Önce/Sonra ulaşım-yürüyüş-aktarma-maliyet karşılaştırması ve açık
+  “Rotayı uygula / Vazgeç” onayı tek bottom sheet'te bağlandı.
+- ✅ **2026-07-30** Optimizasyon sonucu onaydan önce kalıcı planı değiştirmiyor;
+  onayda repository + edit session + home widget birlikte yenileniyor.
+  Güvenilir koordinat veya route matrix yoksa plan korunup anlaşılır hata
+  gösteriliyor. QA preview deterministik fake matrix ile elle doğrulandı.
+- ✅ **2026-07-30** Web'de üst bar zilindeki üçüncü taraf ikon getter'ının
+  oluşturduğu stack overflow Material ikonla giderildi. `flutter analyze`
+  temiz, tam mobil test paketi **418/418 başarılı** ve temiz preview açılışında
+  konsol hatası yok.
+- ✅ **2026-07-30** Gelecekteki ilk gezi gününün bugünün saatine göre yanlışlıkla
+  “geçmiş” sayılıp soluk gösterilmesi düzeltildi. Saat karşılaştırması artık
+  yalnız plan tarihi bugünse çalışıyor; gelecek günün ilk aktivitesi doğru
+  “Sıradaki” öğe oluyor. `flutter analyze` temiz, viewer testleri **19/19**
+  başarılı.
 
 ## Kalanlar (kısa vadeli)
 
-- [ ] `flutter analyze` ve `flutter test` yeşile boyanmalı — commit
-  öncesi mutlaka çalıştır.
-- [ ] `place_coords.dart` +32 satır ve `city_places.dart` -1 satır — yeni
-  yerlerin koordinatları eklenmiş mi doğrula.
+- [ ] Supabase Edge Function veya mevcut backend üzerinde gerçek route matrix
+  gateway'ini uygula; sağlayıcı seçimi ve gizli anahtarlar sunucuda kalsın.
+- [ ] Bellek içi rota/ön izleme cache'lerini cihazda kalıcı cache'e taşı.
+- [ ] Planner içine görünür optimizasyon karşılaştırmasını ve günler arası
+  taşımada iki-günlük atomik coğrafi ön izlemeyi bağla.
+- [ ] Büyük Japonya istasyonları için tek merkezli metadata/tampon kaynağını
+  backend route normalizasyonuna ekle.
 - [ ] Kök `img/hand-mobile.svg` tasarım kaynak dosyasıdır. Yayında bunun
   `website/img/rotori-hand-mobile.svg` adlı kopyası kullanılır; kök kopya
   deploy paketine girmez.
@@ -117,23 +193,34 @@ yayınlandı.
 
 ## Bilinen Blocker'lar
 
-- **2026-07-29 regresyon kontrolü:** `flutter test` sonucunda 327 test geçti,
-  10 widget testi başarısız oldu. Hatalar ağırlıkla sadeleştirilen welcome
-  akışının eski metinlerini ve viewer'ın eski menü/tema davranışını bekleyen
-  testlerde. Push sonrasında testleri güncel ürün davranışıyla hizalama öncelikli.
-- `flutter analyze` uygulama hatası üretmedi; 1 deprecated API bildirimi ve
-  testlerde 4 lint bilgisi nedeniyle komut 5 issue ile kapandı.
+- Native `integration_test` koşusu için bağlı iOS/Android cihaz veya emulator
+  yok. Web integration runner desteklenmiyor; macOS desktop hedefi projede
+  yapılandırılmamış. Aynı kritik sözleşmeler normal Flutter test paketinde
+  çalışıyor.
+- Sunucuda plan revision/CAS alanı yok; aynı plan iki cihazda aynı anda
+  değiştirilirse cihaz içi sıra ve dirty-cache korumasına rağmen son yazan
+  kazanabilir.
 
 ## Sıradaki Uygulama Adımı
 
-1. Başarısız 10 widget testini güncel welcome/viewer davranışıyla hizala.
-2. `flutter analyze` bildirimlerini temizle ve `flutter test`i yeşile boya.
-3. Site düzeltmesini ayrı bir commit olarak gönder.
+1. Route matrix backend/Edge Function sağlayıcısını ve merkezi büyük-istasyon
+   metadata normalizasyonunu uygula.
+2. Rota cache'ini kalıcılaştırıp API çağrı/hit-rate ölçümlerini gerçek
+   sağlayıcı üzerinde doğrula.
+3. Planner'a aynı karşılaştırma/onay yüzeyini bağla; günler arası taşımada iki
+   günü tek ön izlemede göster.
+4. Gerçek bir iOS cihaz veya simulator üzerinde offline→online cache/fallback
+   ve sürükle-bırak sonrası yeniden optimizasyonu doğrula.
 
 ## Şu An Değişen Dosyalar
 
-`docs/*.md`, `website/index.html` ve `website/audio/`. Kök `img/` klasörü
-yalnızca untracked tasarım kaynağıdır ve bu düzeltmenin parçası değildir.
+Başlangıçta kullanıcıya ait `docs/CLAUDE.md` değişikliği ve untracked kök
+`img/` tasarım kaynağı vardı; ikisine de dokunulmadı. Bu görev kapsamında
+domain motoru, edit session, viewer/planner, repository, l10n, testler ve
+ilgili mimari belgelerdeki mevcut değişiklikler korunacaktır. Yeni rota
+optimizasyonu bu dirty worktree üzerinde yeni izole domain/data/controller/test
+dosyalarıyla eklendi; mevcut kullanıcı değişiklikleri geri alınmadı veya
+üzerlerine yazılmadı.
 
 ## Son Commit'ler (referans)
 

@@ -15,6 +15,7 @@ import '../../../domain/fill_empty_days.dart';
 import '../../../domain/itinerary_generator.dart';
 import '../../../domain/japan_suggestions.dart';
 import '../../../domain/place_guide.dart';
+import '../../../domain/plan_schedule_engine.dart';
 import '../../../domain/rules.dart';
 import '../../../domain/trip_factory.dart';
 import '../../../domain/types.dart';
@@ -55,6 +56,7 @@ class PlanStep extends StatefulWidget {
 }
 
 class _PlanStepState extends State<PlanStep> {
+  static const _scheduleEngine = PlanScheduleEngine();
   late Set<int> _expanded;
   bool _planRevealed = false;
   bool _generating = false;
@@ -120,8 +122,8 @@ class _PlanStepState extends State<PlanStep> {
     setState(() => _forecast = result);
   }
 
-  List<TripDestination> get _destinations =>
-      [...trip.preferences.destinations]..sort((a, b) => a.order.compareTo(b.order));
+  List<TripDestination> get _destinations => [...trip.preferences.destinations]
+    ..sort((a, b) => a.order.compareTo(b.order));
 
   /// Her destinasyon için görüntülenecek gün sayısı: dest.days doluysa onu,
   /// yoksa eşit dağıtım (total ~/ n, kalan son destinasyona) kullanır.
@@ -235,8 +237,8 @@ class _PlanStepState extends State<PlanStep> {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: PT.borderStrong),
         ),
-        child: Icon(icon,
-            size: 18, color: enabled ? PT.accent : PT.textTertiary),
+        child:
+            Icon(icon, size: 18, color: enabled ? PT.accent : PT.textTertiary),
       ),
     );
   }
@@ -248,6 +250,33 @@ class _PlanStepState extends State<PlanStep> {
   }
 
   // --- Gün / öğe mutasyonları -------------------------------------------------
+
+  bool _applyScheduleCommand(PlanEditCommand command) {
+    var applied = false;
+    PlanEditFailure? failure;
+    widget.onChange((trip) {
+      final result = _scheduleEngine.apply(trip, command);
+      if (result.isSuccess) {
+        trip.days = result.trip!.days;
+        applied = true;
+      } else {
+        failure = result.failure;
+      }
+    });
+    if (!applied && mounted) {
+      final s = LanguageScope.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            failure?.code == PlanEditFailureCode.lockedActivity
+                ? s.s('viewer.edit.locked')
+                : s.s('viewer.edit.invalidChange'),
+          ),
+        ),
+      );
+    }
+    return applied;
+  }
 
   void _updateDay(int dayNumber, void Function(DayPlan) mutate) {
     widget.onChange((t) {
@@ -261,22 +290,46 @@ class _PlanStepState extends State<PlanStep> {
   }
 
   void _removeItem(int dayNumber, String itemId) {
-    widget.onChange((t) {
-      for (final d in t.days) {
-        if (d.dayNumber == dayNumber) {
-          d.items.removeWhere((it) => it.id == itemId);
-          break;
-        }
-      }
-    });
+    _applyScheduleCommand(
+      DeleteActivity(dayNumber: dayNumber, activityId: itemId),
+    );
   }
 
   void _replaceItem(int dayNumber, TimelineItem updated) {
+    final currentDay =
+        trip.days.firstWhere((day) => day.dayNumber == dayNumber);
+    final current =
+        currentDay.items.firstWhere((item) => item.id == updated.id);
+    final timeParts = (updated.time ?? updated.scheduledTime ?? '').split(':');
+    if (timeParts.length == 2) {
+      final hour = int.tryParse(timeParts[0]);
+      final minute = int.tryParse(timeParts[1]);
+      if (hour != null &&
+          minute != null &&
+          (updated.time != current.time ||
+              updated.scheduledTime != current.scheduledTime ||
+              updated.durationMin != current.durationMin)) {
+        final changed = _applyScheduleCommand(UpdateActivitySchedule(
+          dayNumber: dayNumber,
+          activityId: updated.id,
+          startMinutes: hour * 60 + minute,
+          durationMinutes: updated.durationMin ?? current.durationMin ?? 60,
+        ));
+        if (!changed) return;
+      }
+    }
     widget.onChange((t) {
       for (final d in t.days) {
         if (d.dayNumber == dayNumber) {
           final idx = d.items.indexWhere((it) => it.id == updated.id);
-          if (idx >= 0) d.items[idx] = updated;
+          if (idx >= 0) {
+            final scheduled = d.items[idx];
+            scheduled.title = updated.title;
+            scheduled.description = updated.description;
+            scheduled.tips = updated.tips;
+            scheduled.cost = updated.cost;
+            scheduled.costCurrency = updated.costCurrency;
+          }
           break;
         }
       }
@@ -289,20 +342,17 @@ class _PlanStepState extends State<PlanStep> {
     required String time,
     required TimelineItemKind kind,
   }) {
-    widget.onChange((t) {
-      for (final d in t.days) {
-        if (d.dayNumber == dayNumber) {
-          d.items.add(TimelineItem(
+    _applyScheduleCommand(AddActivity(
+      dayNumber: dayNumber,
+      activity: TimelineItem(
             id: newItemId(dayNumber),
             title: title,
             kind: kind,
             time: time,
             scheduledTime: time,
+        durationMin: 90,
+      ),
           ));
-          break;
-        }
-      }
-    });
   }
 
   /// "+ Aktivite" akışı: bottom-sheet ile yer adı + boş saat dilimi + tür seçtir.
@@ -333,31 +383,24 @@ class _PlanStepState extends State<PlanStep> {
   /// ReorderableListView.onReorderItem sonrası: newIndex zaten kaldırma için
   /// düzeltilmiş gelir. Listeyi yeniden diz + resequenceTimes.
   void _reorder(int dayNumber, int oldIndex, int newIndex) {
-    widget.onChange((t) {
-      for (final d in t.days) {
-        if (d.dayNumber != dayNumber) continue;
-        final items = [...d.items];
-        final moved = items.removeAt(oldIndex);
-        items.insert(newIndex, moved);
-        d.items = resequenceTimes(items);
-        break;
-      }
-    });
+    final day = trip.days.firstWhere((day) => day.dayNumber == dayNumber);
+    if (oldIndex < 0 || oldIndex >= day.items.length) return;
+    _applyScheduleCommand(MoveActivityWithinDay(
+      dayNumber: dayNumber,
+      activityId: day.items[oldIndex].id,
+      targetIndex: newIndex,
+    ));
   }
 
   /// rules.dart moveItemBetweenDays(days, itemId, fromDay, toDay) + resequence.
   void _moveItemToDay(int fromDay, String itemId, int toDay) {
-    widget.onChange((t) {
-      final moved = moveItemBetweenDays(t.days, itemId, fromDay, toDay);
-      // resequence her iki gün için.
-      for (final d in moved) {
-        if (d.dayNumber == fromDay || d.dayNumber == toDay) {
-          d.items = resequenceTimes(d.items);
-        }
-      }
-      t.days = moved;
-    });
+    if (_applyScheduleCommand(MoveActivityToDay(
+      sourceDayNumber: fromDay,
+      activityId: itemId,
+      targetDayNumber: toDay,
+    ))) {
     setState(() => _expanded.add(toDay));
+  }
   }
 
   void _optimizeDay(int dayNumber) {
@@ -496,9 +539,8 @@ class _PlanStepState extends State<PlanStep> {
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(hasPlan
-            ? s.s('plan.regenerated')
-            : s.s('plan.generated')),
+        content:
+            Text(hasPlan ? s.s('plan.regenerated') : s.s('plan.generated')),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -523,8 +565,8 @@ class _PlanStepState extends State<PlanStep> {
       final s = LanguageScope.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              s.p('plan.remindersAdded', {'n': '${result.addedCount}'})),
+          content:
+              Text(s.p('plan.remindersAdded', {'n': '${result.addedCount}'})),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -699,7 +741,10 @@ class _PlanStepState extends State<PlanStep> {
         places: places,
         onPick: (p) {
           widget.onChange((t) {
-            t.days = addPlaceToDay(t.days, dayNumber, PlaceToAdd(
+            t.days = addPlaceToDay(
+                t.days,
+                dayNumber,
+                PlaceToAdd(
               name: p.name,
               emoji: p.emoji,
               steps: p.typicalSteps,
@@ -717,6 +762,17 @@ class _PlanStepState extends State<PlanStep> {
   // --- Öğe düzenle sheet ------------------------------------------------------
 
   void _editItem(int dayNumber, TimelineItem item) {
+    if (item.isFixed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            item.lockReason ??
+                LanguageScope.of(context).s('viewer.edit.locked'),
+          ),
+        ),
+      );
+      return;
+    }
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -828,8 +884,8 @@ class _PlanStepState extends State<PlanStep> {
                         child: PChip(
                           label: e.$2,
                           active: trip.preferences.pace == e.$1,
-                          onTap: () => widget
-                              .onChange((t) => t.preferences.pace = e.$1),
+                          onTap: () =>
+                              widget.onChange((t) => t.preferences.pace = e.$1),
                         ),
                       )),
                 ],
@@ -859,9 +915,10 @@ class _PlanStepState extends State<PlanStep> {
               ),
               if (totalSteps > 0) ...[
                 const SizedBox(height: 12),
-                Text(s.p('plan.stepsK', {'n': '${(totalSteps / 1000).round()}'}),
-                    style: const TextStyle(
-                        fontSize: 13, color: PT.textSecondary)),
+                Text(
+                    s.p('plan.stepsK', {'n': '${(totalSteps / 1000).round()}'}),
+                    style:
+                        const TextStyle(fontSize: 13, color: PT.textSecondary)),
               ],
 
               // Gün dağılımı — her şehir için gün adedi stepper'ı.
@@ -893,8 +950,8 @@ class _PlanStepState extends State<PlanStep> {
                 ),
                 const SizedBox(height: 10),
                 Text(s.s('plan.generating'),
-                    style: const TextStyle(
-                        fontSize: 13, color: PT.textSecondary)),
+                    style:
+                        const TextStyle(fontSize: 13, color: PT.textSecondary)),
               ] else
                 PButton(
                   label: trip.days.any((d) => d.items.isNotEmpty)
@@ -1166,8 +1223,7 @@ class _YamatoTip extends StatelessWidget {
 /// Bir günde şehir-arası transfer öğesi (transport + title'da "→") var mı?
 bool _dayHasCityTransition(DayPlan day) {
   return day.items.any(
-    (it) =>
-        it.kind == TimelineItemKind.transport && it.title.contains('→'),
+    (it) => it.kind == TimelineItemKind.transport && it.title.contains('→'),
   );
 }
 
@@ -1282,7 +1338,8 @@ class _DayCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = LanguageScope.of(context);
     final dest = getDestinationForDate(destinations, day.date);
-    final profile = dest != null ? getDestinationProfile(dest.countryCode) : null;
+    final profile =
+        dest != null ? getDestinationProfile(dest.countryCode) : null;
     final overLimit = suggestTaxiForDay(day, prefs);
 
     return PCard(
@@ -1381,7 +1438,8 @@ class _DayCard extends StatelessWidget {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('👣 ${((day.stepsEstimate ?? 0) / 1000).round()}k',
+                            Text(
+                                '👣 ${((day.stepsEstimate ?? 0) / 1000).round()}k',
                                 style: const TextStyle(
                                     fontSize: 12, color: PT.textSecondary)),
                             if (overLimit) ...[
@@ -1451,10 +1509,9 @@ class _DayCard extends StatelessWidget {
             if (day.items.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                    s.s('plan.dayEmpty'),
-                    style: const TextStyle(
-                        fontSize: 13, color: PT.textTertiary)),
+                child: Text(s.s('plan.dayEmpty'),
+                    style:
+                        const TextStyle(fontSize: 13, color: PT.textTertiary)),
               )
             else ...[
               if (_dayHasCityTransition(day)) ...[
@@ -1591,8 +1648,8 @@ class _TimelineTile extends StatelessWidget {
                 index: index,
                 child: const Padding(
                   padding: EdgeInsets.only(top: 2, right: 4),
-                  child: Icon(Icons.drag_handle,
-                      size: 20, color: PT.textTertiary),
+                  child:
+                      Icon(Icons.drag_handle, size: 20, color: PT.textTertiary),
                 ),
               ),
               SizedBox(
@@ -1624,7 +1681,8 @@ class _TimelineTile extends StatelessWidget {
                             style: const TextStyle(
                                 fontSize: 11, color: PT.textTertiary)),
                       ),
-                    if (item.description != null && item.description!.isNotEmpty)
+                    if (item.description != null &&
+                        item.description!.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(item.description!,
@@ -1661,9 +1719,8 @@ class _TimelineTile extends StatelessWidget {
                         value: d.dayNumber,
                         child: Text(s.p('plan.dayWithDate', {
                           'n': '${d.dayNumber}',
-                          'date': d.date.length >= 5
-                              ? d.date.substring(5)
-                              : d.date,
+                          'date':
+                              d.date.length >= 5 ? d.date.substring(5) : d.date,
                         })),
                       ),
                   ],
@@ -1723,6 +1780,14 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
       costCurrency: _cost == null ? null : _costCurrency,
       cityId: src.cityId,
       mapUrl: src.mapUrl,
+      lockType: src.lockType,
+      fixedStartTime: src.fixedStartTime,
+      fixedEndTime: src.fixedEndTime,
+      canChangeDay: src.canChangeDay,
+      canChangeTime: src.canChangeTime,
+      canReorder: src.canReorder,
+      canDelete: src.canDelete,
+      lockReason: src.lockReason,
     );
     widget.onSave(updated);
     Navigator.pop(context);
@@ -1848,8 +1913,7 @@ class _ItemEditSheetState extends State<_ItemEditSheet> {
                   onChanged: (v) => _tips = v,
                 ),
               ),
-              if (widget.item.mapUrl != null &&
-                  widget.item.mapUrl!.isNotEmpty)
+              if (widget.item.mapUrl != null && widget.item.mapUrl!.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: PButton(
@@ -1973,14 +2037,16 @@ class _DiscoverSheetState extends State<_DiscoverSheet> {
                           letterSpacing: 0.5,
                           color: PT.textTertiary)),
                   const SizedBox(height: 4),
-                  Text(headline.isEmpty ? s.s('plan.placeSuggestions') : headline,
+                  Text(
+                      headline.isEmpty
+                          ? s.s('plan.placeSuggestions')
+                          : headline,
                       style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
                           color: PT.text)),
                   const SizedBox(height: 4),
-                  Text(
-                      s.s('plan.discoverSub'),
+                  Text(s.s('plan.discoverSub'),
                       style: const TextStyle(
                           fontSize: 13, color: PT.textSecondary)),
                 ],
@@ -2011,8 +2077,8 @@ class _DiscoverSheetState extends State<_DiscoverSheet> {
                     child: Text(
                         _picked.isEmpty
                             ? s.s('plan.pickMultiple')
-                            : s.p('plan.placesAdded',
-                                {'n': '${_picked.length}'}),
+                            : s.p(
+                                'plan.placesAdded', {'n': '${_picked.length}'}),
                         style: const TextStyle(
                             fontSize: 13, color: PT.textSecondary)),
                   ),
@@ -2079,7 +2145,8 @@ class _DiscoverCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Row(
                       children: [
-                        Text('${ratingStars(rating)} ${rating.toStringAsFixed(1)}',
+                        Text(
+                            '${ratingStars(rating)} ${rating.toStringAsFixed(1)}',
                             style: const TextStyle(
                                 fontSize: 12, color: Color(0xFFF59E0B))),
                         if (isKidFriendly(place)) ...[
@@ -2155,9 +2222,17 @@ class _AddItemSheetState extends State<_AddItemSheet> {
 
   static const List<({TimelineItemKind kind, String labelKey, String emoji})>
       _kindOptions = [
-    (kind: TimelineItemKind.activity, labelKey: 'plan.kindActivity', emoji: '📍'),
+    (
+      kind: TimelineItemKind.activity,
+      labelKey: 'plan.kindActivity',
+      emoji: '📍'
+    ),
     (kind: TimelineItemKind.meal, labelKey: 'plan.kindMeal', emoji: '🍽️'),
-    (kind: TimelineItemKind.transport, labelKey: 'plan.kindTransport', emoji: '🚆'),
+    (
+      kind: TimelineItemKind.transport,
+      labelKey: 'plan.kindTransport',
+      emoji: '🚆'
+    ),
     (kind: TimelineItemKind.hotel, labelKey: 'plan.kindHotel', emoji: '🏨'),
   ];
 

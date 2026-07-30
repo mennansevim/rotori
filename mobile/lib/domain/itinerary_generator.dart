@@ -52,9 +52,40 @@ int _interestScore(PlaceSuggestion p, List<InterestTag> interests) {
   return score;
 }
 
-const _timesRelaxed = ['10:00', '14:00', '18:00'];
-const _timesModerate = ['09:00', '11:30', '14:00', '17:30'];
-const _timesIntense = ['08:00', '10:00', '12:00', '14:30', '17:00', '19:00'];
+// Aktivite slotları — yemek saatlerine (13:00 öğle, 19:30 akşam) ve 15 dk
+// tamponlarına saygı gösterecek şekilde seçildi. `plan_warnings.dart` bu
+// aralıkları doğrular; buradaki değerler üretimde uyarı çıkarmaz.
+const _timesRelaxed = ['10:00', '15:30'];
+const _timesModerate = ['09:00', '11:00', '15:00', '17:00'];
+const _timesIntense = ['08:00', '10:00', '14:30', '16:30', '20:30'];
+
+/// Öğle yemeği için ayrılan sabit slot — hiçbir aktivite slotuyla çakışmaz,
+/// 11:00-15:00 pencere içindedir.
+const _kLunchTime = '13:00';
+
+/// Bir öğeyi listeye saatine göre doğru kronolojik konumda ekler.
+///
+/// **Why:** Öğle yemeği eskiden sabit index 1'e ekleniyordu ve "hiçbir
+/// aktivite dizisi 13:00'a çakışmaz" varsayımına dayanıyordu. Bu varsayım
+/// yanlıştı: moderate tempo saatleri 09:00/11:00/15:00 olduğundan 13:00'lık
+/// öğle ikinci sıraya girip listeyi 09:00 → 13:00 → 11:00 → 15:00 sırasına
+/// sokuyordu; viewer öğeleri liste sırasında gösterdiği için saatler geriye
+/// atlıyor görünüyordu.
+void _insertChronologically(List<TimelineItem> items, TimelineItem item) {
+  final target = _parseHhmm(item.time);
+  if (target == null) {
+    items.add(item);
+    return;
+  }
+  for (var i = 0; i < items.length; i++) {
+    final other = _parseHhmm(items[i].time);
+    if (other != null && other > target) {
+      items.insert(i, item);
+      return;
+    }
+  }
+  items.add(item);
+}
 
 List<String> _timesForPace(Pace pace) {
   if (pace == Pace.relaxed) return _timesRelaxed;
@@ -91,8 +122,7 @@ List<PlaceSuggestion> _pickPlaces(
     if (used.contains(p.id)) continue;
     var score = 0;
     final nameLower = p.name.toLowerCase();
-    if (mustLower
-        .any((m) => nameLower.contains(m) || m.contains(nameLower))) {
+    if (mustLower.any((m) => nameLower.contains(m) || m.contains(nameLower))) {
       score += 100;
     }
     if (kidMode && isKidFriendly(p)) score += 20;
@@ -108,8 +138,7 @@ List<PlaceSuggestion> _pickPlaces(
     scored.add((p: p, score: score, idx: idx++));
   }
   // Puan azalan, eşitlikte orijinal sıra (JS stable sort davranışı).
-  scored.sort(
-      (a, b) => b.score != a.score ? b.score - a.score : a.idx - b.idx);
+  scored.sort((a, b) => b.score != a.score ? b.score - a.score : a.idx - b.idx);
 
   final out = <PlaceSuggestion>[];
   for (final e in scored) {
@@ -171,11 +200,14 @@ DayPlan _buildFromTemplate(
     final time = i < times.length ? times[i] : times.last;
     items.add(_makeItem(day.dayNumber, time, place, lang, cityId: cityId));
     stepSum += place.typicalSteps ?? 8000;
-    if (i == 0 && times.length > 1) {
-      items.add(_mealItem(day.dayNumber, times[1],
-          L10n.resolve('gen.meal.lunchBreak', lang),
-          cityId: cityId));
-    }
+  }
+  if (items.isNotEmpty && times.length > 1) {
+    _insertChronologically(
+      items,
+      _mealItem(
+          day.dayNumber, _kLunchTime, L10n.resolve('gen.meal.lunchBreak', lang),
+          cityId: cityId),
+    );
   }
 
   if (items.isEmpty && template.id.contains('arrival')) {
@@ -266,6 +298,13 @@ DayPlan _buildDepartureDay(
         title: '🧳 ${L10n.resolve('gen.departure.checkoutTitle', lang)}',
         kind: TimelineItemKind.activity,
         cityId: destName,
+        lockType: ActivityLockType.hotel,
+        fixedStartTime: _fmtHhmm(safe(checkOutMin)),
+        canChangeDay: false,
+        canChangeTime: false,
+        canReorder: false,
+        canDelete: false,
+        lockReason: L10n.resolve('viewer.edit.hotelLockReason', lang),
       ),
       TimelineItem(
         id: newItemId(day.dayNumber),
@@ -292,6 +331,13 @@ DayPlan _buildDepartureDay(
         title: '✈️ ${L10n.resolve('gen.departure.flightTitle', lang)}',
         kind: TimelineItemKind.transport,
         cityId: destName,
+        lockType: ActivityLockType.flight,
+        fixedStartTime: _fmtHhmm(flightMin),
+        canChangeDay: false,
+        canChangeTime: false,
+        canReorder: false,
+        canDelete: false,
+        lockReason: L10n.resolve('viewer.edit.flightLockReason', lang),
       ),
     ],
     highlights: [
@@ -331,11 +377,12 @@ DayPlan _buildFromPlaces(
   }
 
   if (picked.length >= 2 && times.length > 1) {
-    items.insert(
-        1,
-        _mealItem(day.dayNumber, times[1],
-            L10n.resolve('gen.meal.lunchStop', lang),
-            cityId: cityId));
+    _insertChronologically(
+      items,
+      _mealItem(
+          day.dayNumber, _kLunchTime, L10n.resolve('gen.meal.lunchStop', lang),
+          cityId: cityId),
+    );
   }
 
   final themePlace = picked.isNotEmpty ? picked.first : null;
@@ -497,7 +544,8 @@ DayPlan _buildArrivalDayLegacy(
   bool isLateArrival,
 ) =>
     day.copyWith(
-      theme: '🛬 ${L10n.parametrize(L10n.resolve('gen.arrival.cityTheme', lang), {
+      theme:
+          '🛬 ${L10n.parametrize(L10n.resolve('gen.arrival.cityTheme', lang), {
             'city': city
           })}',
       tags: [city, L10n.resolve('gen.arrival.checkinTitle', lang)],
@@ -512,6 +560,13 @@ DayPlan _buildArrivalDayLegacy(
           description: L10n.resolve('gen.arrival.airportDesc', lang),
           kind: TimelineItemKind.transport,
           cityId: city,
+          lockType: ActivityLockType.flight,
+          fixedStartTime: _fmtHhmm(landMin),
+          canChangeDay: false,
+          canChangeTime: false,
+          canReorder: false,
+          canDelete: false,
+          lockReason: L10n.resolve('viewer.edit.flightLockReason', lang),
         ),
         TimelineItem(
           id: newItemId(day.dayNumber),
@@ -530,6 +585,13 @@ DayPlan _buildArrivalDayLegacy(
           description: L10n.resolve('gen.arrival.checkinDesc', lang),
           kind: TimelineItemKind.hotel,
           cityId: city,
+          lockType: ActivityLockType.hotel,
+          fixedStartTime: _fmtHhmm(checkInMin),
+          canChangeDay: false,
+          canChangeTime: false,
+          canReorder: false,
+          canDelete: false,
+          lockReason: L10n.resolve('viewer.edit.hotelLockReason', lang),
         ),
         // Çok geç iniş → sadece uyu. Aksi halde hafif akşam yemeği.
         if (!isLateArrival)
@@ -671,7 +733,8 @@ DayPlan _applyCoverage(DayPlan day, AppLang lang) {
 /// [lang] üretilen gün temaları, öğün/aktivite başlıkları ve ipuçlarının dilini
 /// belirler; içerik seçili dilde trip'e yazılır (sonradan dil değişimi mevcut
 /// planı yeniden çevirmez).
-List<DayPlan> generateItineraryFromTrip(Trip trip, {AppLang lang = AppLang.tr}) {
+List<DayPlan> generateItineraryFromTrip(Trip trip,
+    {AppLang lang = AppLang.tr}) {
   final pace = trip.preferences.pace;
   final childCount = trip.preferences.childProfiles.isNotEmpty
       ? trip.preferences.childProfiles.length
@@ -724,7 +787,8 @@ List<DayPlan> generateItineraryFromTrip(Trip trip, {AppLang lang = AppLang.tr}) 
     // şehirlerin son günü normal gündür; şehirler-arası geçiş (Shinkansen)
     // ayrıca eklenir (detectCityTransitions + insertCityTransfer).
     if (isLastOfSeg && isLastDest && trip.days.length > 1) {
-      final returnAirport = (trip.preferences.returnDepartAirport ?? '').isNotEmpty
+      final returnAirport =
+          (trip.preferences.returnDepartAirport ?? '').isNotEmpty
           ? trip.preferences.returnDepartAirport
           : dest.airport;
       return _buildDepartureDay(

@@ -71,24 +71,56 @@ class L10n {
 
 const List<String> _trMonths = [
   '',
-  'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-  'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
+  'Ocak',
+  'Şubat',
+  'Mart',
+  'Nisan',
+  'Mayıs',
+  'Haziran',
+  'Temmuz',
+  'Ağustos',
+  'Eylül',
+  'Ekim',
+  'Kasım',
+  'Aralık',
 ];
 
 const List<String> _enMonths = [
   '',
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 const List<String> _trWeekdays = [
   '',
-  'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar',
+  'Pazartesi',
+  'Salı',
+  'Çarşamba',
+  'Perşembe',
+  'Cuma',
+  'Cumartesi',
+  'Pazar',
 ];
 
 const List<String> _enWeekdays = [
   '',
-  'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
 ];
 
 // ---------------------------------------------------------------------------
@@ -172,26 +204,56 @@ const Map<String, Map<AppLang, String>> _strings = {
   'viewer.tt.mustKnow': {AppLang.tr: 'Bilmelisin', AppLang.en: 'Must-know'},
   'viewer.tt.theme': {AppLang.tr: 'Tema', AppLang.en: 'Theme'},
   'viewer.tt.edit': {AppLang.tr: 'Düzenle', AppLang.en: 'Edit'},
-  'viewer.tt.viewTrain': {AppLang.tr: 'Tren görünümü', AppLang.en: 'Train view'},
+  'viewer.tt.viewTrain': {
+    AppLang.tr: 'Tren görünümü',
+    AppLang.en: 'Train view'
+  },
   'viewer.tt.viewList': {AppLang.tr: 'Liste görünümü', AppLang.en: 'List view'},
   'viewer.tt.editDone': {AppLang.tr: 'Bitir', AppLang.en: 'Done'},
-  'viewer.tt.editRebuild': {AppLang.tr: 'Baştan oluştur', AppLang.en: 'Rebuild plan'},
-  'viewer.tt.editRebuildConfirmTitle': {AppLang.tr: 'Plan baştan oluşturulsun mu?', AppLang.en: 'Rebuild the plan?'},
+  'viewer.tt.editRebuild': {
+    AppLang.tr: 'Baştan oluştur',
+    AppLang.en: 'Rebuild plan'
+  },
+  'viewer.tt.editRebuildConfirmTitle': {
+    AppLang.tr: 'Plan baştan oluşturulsun mu?',
+    AppLang.en: 'Rebuild the plan?'
+  },
   'viewer.tt.editRebuildConfirmBody': {
-    AppLang.tr: 'Mevcut plan silinir ve tercihlerin üzerinden yeniden üretilir. Bu geri alınamaz.',
-    AppLang.en: 'Your current plan will be discarded and regenerated from your preferences. This cannot be undone.',
+    AppLang.tr:
+        'Mevcut plan silinir ve tercihlerin üzerinden yeniden üretilir. Bu geri alınamaz.',
+    AppLang.en:
+        'Your current plan will be discarded and regenerated from your preferences. This cannot be undone.',
   },
   'viewer.edit.moveUp': {AppLang.tr: 'Yukarı taşı', AppLang.en: 'Move up'},
   'viewer.edit.moveDown': {AppLang.tr: 'Aşağı taşı', AppLang.en: 'Move down'},
-  'viewer.edit.moveToDay': {AppLang.tr: 'Başka güne al', AppLang.en: 'Move to another day'},
-  'viewer.edit.moveToDayTitle': {AppLang.tr: 'Hangi güne alalım?', AppLang.en: 'Move to which day?'},
+  'viewer.edit.moveToDay': {
+    AppLang.tr: 'Başka güne al',
+    AppLang.en: 'Move to another day'
+  },
+  'viewer.edit.moveToDayTitle': {
+    AppLang.tr: 'Hangi güne alalım?',
+    AppLang.en: 'Move to which day?'
+  },
   'viewer.edit.deleteItem': {AppLang.tr: 'Kaldır', AppLang.en: 'Remove'},
-  'viewer.edit.deletedSnack': {AppLang.tr: 'Kaldırıldı: {title}', AppLang.en: 'Removed: {title}'},
-  'viewer.edit.movedSnack': {AppLang.tr: '{title} → Gün {day}', AppLang.en: '{title} → Day {day}'},
+  'viewer.edit.deletedSnack': {
+    AppLang.tr: 'Kaldırıldı: {title}',
+    AppLang.en: 'Removed: {title}'
+  },
+  'viewer.edit.movedSnack': {
+    AppLang.tr: '{title} → Gün {day}',
+    AppLang.en: '{title} → Day {day}'
+  },
+  'viewer.edit.droppedSnack': {
+    AppLang.tr: '{title} → Gün {day}, {time}',
+    AppLang.en: '{title} → Day {day}, {time}'
+  },
   'viewer.edit.undo': {AppLang.tr: 'Geri al', AppLang.en: 'Undo'},
   'viewer.edit.cancel': {AppLang.tr: 'Vazgeç', AppLang.en: 'Cancel'},
   'viewer.edit.rebuild': {AppLang.tr: 'Baştan oluştur', AppLang.en: 'Rebuild'},
-  'viewer.edit.editTime': {AppLang.tr: 'Saati düzenle', AppLang.en: 'Edit time'},
+  'viewer.edit.editTime': {
+    AppLang.tr: 'Saati düzenle',
+    AppLang.en: 'Edit time'
+  },
   'viewer.edit.editSheetTitle': {
     AppLang.tr: 'Aktiviteyi düzenle',
     AppLang.en: 'Edit activity',
@@ -216,20 +278,102 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Devam et',
     AppLang.en: 'Continue',
   },
-  'viewer.edit.addPlace': {AppLang.tr: 'Bu güne durak ekle', AppLang.en: 'Add a stop to this day'},
-  'viewer.edit.addSheetTitle': {AppLang.tr: 'Yeni durak ekle', AppLang.en: 'Add a stop'},
-  'viewer.edit.searchPlace': {AppLang.tr: 'Gezmek istediğin yeri yaz…', AppLang.en: 'Search a place…'},
+  'viewer.edit.addPlace': {
+    AppLang.tr: 'Bu güne durak ekle',
+    AppLang.en: 'Add a stop to this day'
+  },
+  'viewer.edit.addSheetTitle': {
+    AppLang.tr: 'Yeni durak ekle',
+    AppLang.en: 'Add a stop'
+  },
+  'viewer.edit.searchPlace': {
+    AppLang.tr: 'Gezmek istediğin yeri yaz…',
+    AppLang.en: 'Search a place…'
+  },
   'viewer.edit.timeLabel': {AppLang.tr: 'Saat', AppLang.en: 'Time'},
+  'viewer.edit.availableTimeHint': {
+    AppLang.tr: 'Yalnızca uygun saatler seçilebilir.',
+    AppLang.en: 'Only available times can be selected.',
+  },
+  'viewer.edit.noAvailableTime': {
+    AppLang.tr: 'Bu günde uygun zaman aralığı bulunamadı.',
+    AppLang.en: 'No available time slot was found on this day.',
+  },
+  'viewer.edit.durationLabel': {AppLang.tr: 'Süre', AppLang.en: 'Duration'},
+  'viewer.edit.durationMinutes': {
+    AppLang.tr: '{minutes} dakika',
+    AppLang.en: '{minutes} minutes',
+  },
   'viewer.edit.add': {AppLang.tr: 'Ekle', AppLang.en: 'Add'},
-  'viewer.edit.addedSnack': {AppLang.tr: 'Eklendi: {title}', AppLang.en: 'Added: {title}'},
-  'viewer.edit.noResults': {AppLang.tr: 'Eşleşme yok — yine de ekleyebilirsin', AppLang.en: 'No matches — you can still add it'},
-  'viewer.edit.customPlace': {AppLang.tr: '“{q}” olarak ekle', AppLang.en: 'Add as “{q}”'},
+  'viewer.edit.addedSnack': {
+    AppLang.tr: 'Eklendi: {title}',
+    AppLang.en: 'Added: {title}'
+  },
+  'viewer.edit.saved': {
+    AppLang.tr: 'Değişiklik kaydedildi',
+    AppLang.en: 'Change saved',
+  },
+  'viewer.edit.saveFailed': {
+    AppLang.tr: 'Kaydedilemedi; plan eski haline getirildi.',
+    AppLang.en: 'Could not save; the plan was restored.',
+  },
+  'viewer.edit.retry': {AppLang.tr: 'Tekrar dene', AppLang.en: 'Retry'},
+  'viewer.edit.locked': {
+    AppLang.tr: 'Bu bilgi bir rezervasyondan geliyor ve değiştirilemez.',
+    AppLang.en:
+        'This information comes from a reservation and cannot be changed.',
+  },
+  'viewer.edit.conflict': {
+    AppLang.tr:
+        '{first} ile {second} arasında {minutes} dakikalık çakışma var.',
+    AppLang.en:
+        'There is a {minutes}-minute conflict between {first} and {second}.',
+  },
+  'viewer.edit.invalidChange': {
+    AppLang.tr: 'Bu değişiklik geçerli bir plan oluşturmuyor.',
+    AppLang.en: 'This change would create an invalid plan.',
+  },
+  'viewer.edit.fixedReason': {
+    AppLang.tr: 'Sabit rezervasyon',
+    AppLang.en: 'Fixed reservation',
+  },
+  'viewer.edit.dragHint': {
+    AppLang.tr: 'Taşımak için uzun basıp sürükle',
+    AppLang.en: 'Long press and drag to move',
+  },
+  'viewer.edit.editDay': {AppLang.tr: 'Günü düzenle', AppLang.en: 'Edit day'},
+  'viewer.edit.dayTitle': {AppLang.tr: 'Gün başlığı', AppLang.en: 'Day title'},
+  'viewer.edit.dayDate': {AppLang.tr: 'Tarih', AppLang.en: 'Date'},
+  'viewer.edit.flightLockReason': {
+    AppLang.tr: 'Bu saat uçuş bilgisinden geliyor ve değiştirilemez.',
+    AppLang.en:
+        'This time comes from the flight details and cannot be changed.',
+  },
+  'viewer.edit.hotelLockReason': {
+    AppLang.tr: 'Bu saat konaklama bilgisinden geliyor ve değiştirilemez.',
+    AppLang.en:
+        'This time comes from the accommodation details and cannot be changed.',
+  },
+  'viewer.edit.noResults': {
+    AppLang.tr: 'Eşleşme yok — yine de ekleyebilirsin',
+    AppLang.en: 'No matches — you can still add it'
+  },
+  'viewer.edit.customPlace': {
+    AppLang.tr: '“{q}” olarak ekle',
+    AppLang.en: 'Add as “{q}”'
+  },
   'viewer.heroPill': {
     AppLang.tr: '✈️ {days} Gün · {nights} Gece',
     AppLang.en: '✈️ {days} Days · {nights} Nights',
   },
-  'viewer.days.title': {AppLang.tr: '📅 Günler ({n})', AppLang.en: '📅 Days ({n})'},
-  'viewer.stat.nights': {AppLang.tr: 'Gece Konaklama', AppLang.en: 'Nights Stay'},
+  'viewer.days.title': {
+    AppLang.tr: '📅 Günler ({n})',
+    AppLang.en: '📅 Days ({n})'
+  },
+  'viewer.stat.nights': {
+    AppLang.tr: 'Gece Konaklama',
+    AppLang.en: 'Nights Stay'
+  },
   'viewer.stat.cityNights': {
     AppLang.tr: '{city} Gecesi',
     AppLang.en: '{city} Nights',
@@ -306,7 +450,10 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Japonya · dokun, kopyalansın',
     AppLang.en: 'Japan · tap to copy',
   },
-  'compass.hotel.title': {AppLang.tr: 'Otel adresi', AppLang.en: 'Hotel address'},
+  'compass.hotel.title': {
+    AppLang.tr: 'Otel adresi',
+    AppLang.en: 'Hotel address'
+  },
   'compass.hotel.subtitle': {
     AppLang.tr: 'Taksiciye göster',
     AppLang.en: 'Show to the taxi driver',
@@ -344,8 +491,14 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: '{done}/{total} öğede maliyet girili',
     AppLang.en: '{done}/{total} items have a cost',
   },
-  'budget.exchangeRate': {AppLang.tr: 'Döviz kuru', AppLang.en: 'Exchange rate'},
-  'budget.byCategory': {AppLang.tr: 'Kategoriye göre', AppLang.en: 'By category'},
+  'budget.exchangeRate': {
+    AppLang.tr: 'Döviz kuru',
+    AppLang.en: 'Exchange rate'
+  },
+  'budget.byCategory': {
+    AppLang.tr: 'Kategoriye göre',
+    AppLang.en: 'By category'
+  },
   'budget.byDay': {AppLang.tr: 'Güne göre', AppLang.en: 'By day'},
   'budget.foodBudget': {AppLang.tr: 'Yemek bütçesi', AppLang.en: 'Food budget'},
   'budget.planned': {AppLang.tr: 'Planlanan ', AppLang.en: 'Planned '},
@@ -364,7 +517,10 @@ const Map<String, Map<AppLang, String>> _strings = {
   },
   'budget.converter': {AppLang.tr: 'Çevirici', AppLang.en: 'Converter'},
   'budget.yen': {AppLang.tr: 'Japon Yeni (¥)', AppLang.en: 'Japanese Yen (¥)'},
-  'budget.lira': {AppLang.tr: 'Türk Lirası (₺)', AppLang.en: 'Turkish Lira (₺)'},
+  'budget.lira': {
+    AppLang.tr: 'Türk Lirası (₺)',
+    AppLang.en: 'Turkish Lira (₺)'
+  },
   'budget.empty': {
     AppLang.tr:
         'Planda henüz maliyet girilmemiş — Plan adımında aktivitelere ücret ekleyin.',
@@ -401,7 +557,10 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: '✅ Her şey hazır!',
     AppLang.en: '✅ All set!',
   },
-  'checklist.status': {AppLang.tr: 'Hazırlık durumu', AppLang.en: 'Prep status'},
+  'checklist.status': {
+    AppLang.tr: 'Hazırlık durumu',
+    AppLang.en: 'Prep status'
+  },
   'checklist.ready': {
     AppLang.tr: '{done} / {total} hazır',
     AppLang.en: '{done} / {total} ready',
@@ -488,7 +647,8 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Bank / ATM card',
   },
   'prep.item.bankCard.desc': {
-    AppLang.tr: 'Japonya ATM\'lerinde çalıştığını (7-Eleven / Japan Post) teyit et.',
+    AppLang.tr:
+        'Japonya ATM\'lerinde çalıştığını (7-Eleven / Japan Post) teyit et.',
     AppLang.en: 'Confirm it works at Japan ATMs (7-Eleven / Japan Post).',
   },
   'prep.item.cashYen.title': {
@@ -553,7 +713,8 @@ const Map<String, Map<AppLang, String>> _strings = {
   },
   'prep.item.trashBags.desc': {
     AppLang.tr: 'Japonya\'da sokakta çöp kutusu neredeyse yok — cebinde taşı.',
-    AppLang.en: 'Public trash cans are rare — carry your trash in a pocket bag.',
+    AppLang.en:
+        'Public trash cans are rare — carry your trash in a pocket bag.',
   },
   'prep.item.waterBottle.title': {
     AppLang.tr: 'Boş su şişesi',
@@ -595,162 +756,496 @@ const Map<String, Map<AppLang, String>> _strings = {
 
   // ===== Planner + shared UI (Wave 1, agent-generated) =====
   'explore.title': {AppLang.tr: 'Keşfet', AppLang.en: 'Explore'},
-  'explore.emptyAirports': {AppLang.tr: 'Önce Rota adımında varış havaalanlarını seçin.', AppLang.en: 'First choose your arrival airports in the Route step.'},
-  'explore.sub': {AppLang.tr: 'Uçuş güzergahınıza göre popüler yerler ve varışta yapılacaklar. Beğendiğinizi tek dokunuşla plana ekleyin.', AppLang.en: 'Popular places and things to do along your flight route. Add the ones you like to your plan with a single tap.'},
-  'explore.interests.title': {AppLang.tr: '🎯 İlgi alanların', AppLang.en: '🎯 Your interests'},
-  'explore.interests.hint': {AppLang.tr: 'Birden fazla seç. Plan bunlara göre yönlendirilir.', AppLang.en: 'Pick several. Your plan is guided by these.'},
-  'explore.style.title': {AppLang.tr: '🚶 Gezi stili', AppLang.en: '🚶 Travel style'},
-  'explore.style.hint': {AppLang.tr: 'Yürüyüş hedefi, ulaşım ve ödeme tercihini seç.', AppLang.en: 'Choose your walking goal, transport and payment preference.'},
-  'explore.style.walkLabel': {AppLang.tr: 'Yürüyüş tempon', AppLang.en: 'Walking pace'},
-  'explore.style.transportLabel': {AppLang.tr: 'Ulaşım tercihi', AppLang.en: 'Transport preference'},
-  'explore.style.paymentLabel': {AppLang.tr: 'Ödeme tercihi', AppLang.en: 'Payment preference'},
-  'explore.mustSee.title': {AppLang.tr: '📌 Mutlaka görmek istediklerin', AppLang.en: '📌 Your must-see places'},
-  'explore.mustSee.hint': {AppLang.tr: 'Serbest liste — plan oluştururken önceliklendirilir.', AppLang.en: 'Free-form list — prioritized when building your plan.'},
-  'explore.popularPlaces': {AppLang.tr: '⭐ Popüler gezilecek yerler', AppLang.en: '⭐ Popular places to visit'},
-  'explore.suggestKidRoute': {AppLang.tr: '🧸 Çocuk dostu rota öner', AppLang.en: '🧸 Suggest a kid-friendly route'},
-  'explore.tapToAddHint': {AppLang.tr: 'Dokunarak ekle · ✓ rozetli karta tekrar dokun → çıkar', AppLang.en: 'Tap to add · tap a ✓ card again → remove'},
-  'explore.removedFromPlan': {AppLang.tr: '✓ Plandan çıkarıldı', AppLang.en: '✓ Removed from plan'},
-  'explore.addedToDay': {AppLang.tr: '✓ Gün {day}\'e eklendi', AppLang.en: '✓ Added to day {day}'},
-  'explore.kidRouteDistributed': {AppLang.tr: '✓ {places} yer {days} güne dağıtıldı', AppLang.en: '✓ {places} spots spread across {days} days'},
+  'explore.emptyAirports': {
+    AppLang.tr: 'Önce Rota adımında varış havaalanlarını seçin.',
+    AppLang.en: 'First choose your arrival airports in the Route step.'
+  },
+  'explore.sub': {
+    AppLang.tr:
+        'Uçuş güzergahınıza göre popüler yerler ve varışta yapılacaklar. Beğendiğinizi tek dokunuşla plana ekleyin.',
+    AppLang.en:
+        'Popular places and things to do along your flight route. Add the ones you like to your plan with a single tap.'
+  },
+  'explore.interests.title': {
+    AppLang.tr: '🎯 İlgi alanların',
+    AppLang.en: '🎯 Your interests'
+  },
+  'explore.interests.hint': {
+    AppLang.tr: 'Birden fazla seç. Plan bunlara göre yönlendirilir.',
+    AppLang.en: 'Pick several. Your plan is guided by these.'
+  },
+  'explore.style.title': {
+    AppLang.tr: '🚶 Gezi stili',
+    AppLang.en: '🚶 Travel style'
+  },
+  'explore.style.hint': {
+    AppLang.tr: 'Yürüyüş hedefi, ulaşım ve ödeme tercihini seç.',
+    AppLang.en: 'Choose your walking goal, transport and payment preference.'
+  },
+  'explore.style.walkLabel': {
+    AppLang.tr: 'Yürüyüş tempon',
+    AppLang.en: 'Walking pace'
+  },
+  'explore.style.transportLabel': {
+    AppLang.tr: 'Ulaşım tercihi',
+    AppLang.en: 'Transport preference'
+  },
+  'explore.style.paymentLabel': {
+    AppLang.tr: 'Ödeme tercihi',
+    AppLang.en: 'Payment preference'
+  },
+  'explore.mustSee.title': {
+    AppLang.tr: '📌 Mutlaka görmek istediklerin',
+    AppLang.en: '📌 Your must-see places'
+  },
+  'explore.mustSee.hint': {
+    AppLang.tr: 'Serbest liste — plan oluştururken önceliklendirilir.',
+    AppLang.en: 'Free-form list — prioritized when building your plan.'
+  },
+  'explore.popularPlaces': {
+    AppLang.tr: '⭐ Popüler gezilecek yerler',
+    AppLang.en: '⭐ Popular places to visit'
+  },
+  'explore.suggestKidRoute': {
+    AppLang.tr: '🧸 Çocuk dostu rota öner',
+    AppLang.en: '🧸 Suggest a kid-friendly route'
+  },
+  'explore.tapToAddHint': {
+    AppLang.tr: 'Dokunarak ekle · ✓ rozetli karta tekrar dokun → çıkar',
+    AppLang.en: 'Tap to add · tap a ✓ card again → remove'
+  },
+  'explore.removedFromPlan': {
+    AppLang.tr: '✓ Plandan çıkarıldı',
+    AppLang.en: '✓ Removed from plan'
+  },
+  'explore.addedToDay': {
+    AppLang.tr: '✓ Gün {day}\'e eklendi',
+    AppLang.en: '✓ Added to day {day}'
+  },
+  'explore.kidRouteDistributed': {
+    AppLang.tr: '✓ {places} yer {days} güne dağıtıldı',
+    AppLang.en: '✓ {places} spots spread across {days} days'
+  },
   'explore.dayFallback': {AppLang.tr: 'Gün {n}', AppLang.en: 'Day {n}'},
   'food.title': {AppLang.tr: 'Yemek', AppLang.en: 'Food'},
-  'food.emptyStops': {AppLang.tr: 'Önce Rota adımında durak ekleyin.', AppLang.en: 'First add stops in the Route step.'},
-  'food.prefsTitle': {AppLang.tr: 'Yemek tercihleri', AppLang.en: 'Food preferences'},
-  'food.prefsSub': {AppLang.tr: 'Hassasiyetlerini seç — plan ve restoran önerileri buna göre filtrelenir.', AppLang.en: 'Pick your sensitivities — plans and restaurant suggestions are filtered accordingly.'},
-  'food.sensTitle': {AppLang.tr: '🍽️ Yemek hassasiyetleri', AppLang.en: '🍽️ Food sensitivities'},
-  'food.sensNote': {AppLang.tr: 'Bu seçimler tüm gezi için geçerlidir; viewer\'da hap bilgi ve fraz kartlarına yansır.', AppLang.en: 'These choices apply to the whole trip; they show up as info pills and phrase cards in the viewer.'},
-  'food.mealPerPerson': {AppLang.tr: 'Kişi başı öğün ({currency})', AppLang.en: 'Per-person meal ({currency})'},
+  'food.emptyStops': {
+    AppLang.tr: 'Önce Rota adımında durak ekleyin.',
+    AppLang.en: 'First add stops in the Route step.'
+  },
+  'food.prefsTitle': {
+    AppLang.tr: 'Yemek tercihleri',
+    AppLang.en: 'Food preferences'
+  },
+  'food.prefsSub': {
+    AppLang.tr:
+        'Hassasiyetlerini seç — plan ve restoran önerileri buna göre filtrelenir.',
+    AppLang.en:
+        'Pick your sensitivities — plans and restaurant suggestions are filtered accordingly.'
+  },
+  'food.sensTitle': {
+    AppLang.tr: '🍽️ Yemek hassasiyetleri',
+    AppLang.en: '🍽️ Food sensitivities'
+  },
+  'food.sensNote': {
+    AppLang.tr:
+        'Bu seçimler tüm gezi için geçerlidir; viewer\'da hap bilgi ve fraz kartlarına yansır.',
+    AppLang.en:
+        'These choices apply to the whole trip; they show up as info pills and phrase cards in the viewer.'
+  },
+  'food.mealPerPerson': {
+    AppLang.tr: 'Kişi başı öğün ({currency})',
+    AppLang.en: 'Per-person meal ({currency})'
+  },
   'food.currency': {AppLang.tr: 'Para birimi', AppLang.en: 'Currency'},
-  'food.addMeals': {AppLang.tr: 'Öğünleri plana ekle', AppLang.en: 'Add meals to the plan'},
-  'food.addMealsHint': {AppLang.tr: 'Gezi planı oluşturulurken öğle/akşam yemeği durakları eklenir.', AppLang.en: 'Lunch and dinner stops are added when the trip plan is generated.'},
-  'food.viewerNote': {AppLang.tr: 'Yemek önerileri Rehber\'de (viewer) — bu hassasiyetlere göre restoranları orada listeliyoruz.', AppLang.en: 'Food suggestions live in the Guide (viewer) — we list restaurants there based on these sensitivities.'},
-  'food.sens.noPork': {AppLang.tr: 'Domuz eti istemiyorum', AppLang.en: 'No pork'},
-  'food.sens.noPorkDerivatives': {AppLang.tr: 'Domuz yağı / jelatin yok', AppLang.en: 'No pork fat / gelatin'},
-  'food.sens.noSeafood': {AppLang.tr: 'Deniz ürünü istemiyorum', AppLang.en: 'No seafood'},
-  'food.sens.halal': {AppLang.tr: 'Helal seçenek istiyorum', AppLang.en: 'Halal options'},
+  'food.addMeals': {
+    AppLang.tr: 'Öğünleri plana ekle',
+    AppLang.en: 'Add meals to the plan'
+  },
+  'food.addMealsHint': {
+    AppLang.tr:
+        'Gezi planı oluşturulurken öğle/akşam yemeği durakları eklenir.',
+    AppLang.en:
+        'Lunch and dinner stops are added when the trip plan is generated.'
+  },
+  'food.viewerNote': {
+    AppLang.tr:
+        'Yemek önerileri Rehber\'de (viewer) — bu hassasiyetlere göre restoranları orada listeliyoruz.',
+    AppLang.en:
+        'Food suggestions live in the Guide (viewer) — we list restaurants there based on these sensitivities.'
+  },
+  'food.sens.noPork': {
+    AppLang.tr: 'Domuz eti istemiyorum',
+    AppLang.en: 'No pork'
+  },
+  'food.sens.noPorkDerivatives': {
+    AppLang.tr: 'Domuz yağı / jelatin yok',
+    AppLang.en: 'No pork fat / gelatin'
+  },
+  'food.sens.noSeafood': {
+    AppLang.tr: 'Deniz ürünü istemiyorum',
+    AppLang.en: 'No seafood'
+  },
+  'food.sens.halal': {
+    AppLang.tr: 'Helal seçenek istiyorum',
+    AppLang.en: 'Halal options'
+  },
   'food.sens.vegetarian': {AppLang.tr: 'Vejetaryen', AppLang.en: 'Vegetarian'},
-  'food.sens.chicken': {AppLang.tr: 'Tavuk ağırlıklı', AppLang.en: 'Chicken-focused'},
-  'food.sens.noFattyMeat': {AppLang.tr: 'Yağlı et sevmiyorum', AppLang.en: 'No fatty meat'},
-  'food.sens.kidFriendly': {AppLang.tr: 'Çocuk dostu restoran', AppLang.en: 'Kid-friendly restaurants'},
-  'food.sens.turkishPalate': {AppLang.tr: 'Türk damak tadına yakın', AppLang.en: 'Close to Turkish taste'},
-  'opt.interest.anime': {AppLang.tr: 'Anime / Manga', AppLang.en: 'Anime / Manga'},
+  'food.sens.chicken': {
+    AppLang.tr: 'Tavuk ağırlıklı',
+    AppLang.en: 'Chicken-focused'
+  },
+  'food.sens.noFattyMeat': {
+    AppLang.tr: 'Yağlı et sevmiyorum',
+    AppLang.en: 'No fatty meat'
+  },
+  'food.sens.kidFriendly': {
+    AppLang.tr: 'Çocuk dostu restoran',
+    AppLang.en: 'Kid-friendly restaurants'
+  },
+  'food.sens.turkishPalate': {
+    AppLang.tr: 'Türk damak tadına yakın',
+    AppLang.en: 'Close to Turkish taste'
+  },
+  'opt.interest.anime': {
+    AppLang.tr: 'Anime / Manga',
+    AppLang.en: 'Anime / Manga'
+  },
   'opt.interest.pokemon': {AppLang.tr: 'Pokémon', AppLang.en: 'Pokémon'},
   'opt.interest.shopping': {AppLang.tr: 'Alışveriş', AppLang.en: 'Shopping'},
   'opt.interest.temples': {AppLang.tr: 'Tapınaklar', AppLang.en: 'Temples'},
-  'opt.interest.traditional': {AppLang.tr: 'Geleneksel Japonya', AppLang.en: 'Traditional Japan'},
-  'opt.interest.tech': {AppLang.tr: 'Teknoloji mağazaları', AppLang.en: 'Tech stores'},
-  'opt.interest.kids': {AppLang.tr: 'Çocuk aktiviteleri', AppLang.en: 'Kids activities'},
-  'opt.interest.themeParks': {AppLang.tr: 'Tema parkları', AppLang.en: 'Theme parks'},
-  'opt.interest.photography': {AppLang.tr: 'Fotoğraf noktaları', AppLang.en: 'Photo spots'},
-  'opt.interest.food': {AppLang.tr: 'Yemek keşfi', AppLang.en: 'Food discovery'},
+  'opt.interest.traditional': {
+    AppLang.tr: 'Geleneksel Japonya',
+    AppLang.en: 'Traditional Japan'
+  },
+  'opt.interest.tech': {
+    AppLang.tr: 'Teknoloji mağazaları',
+    AppLang.en: 'Tech stores'
+  },
+  'opt.interest.kids': {
+    AppLang.tr: 'Çocuk aktiviteleri',
+    AppLang.en: 'Kids activities'
+  },
+  'opt.interest.themeParks': {
+    AppLang.tr: 'Tema parkları',
+    AppLang.en: 'Theme parks'
+  },
+  'opt.interest.photography': {
+    AppLang.tr: 'Fotoğraf noktaları',
+    AppLang.en: 'Photo spots'
+  },
+  'opt.interest.food': {
+    AppLang.tr: 'Yemek keşfi',
+    AppLang.en: 'Food discovery'
+  },
   'opt.interestW.temples': {AppLang.tr: 'Tapınaklar', AppLang.en: 'Temples'},
-  'opt.interestW.traditional': {AppLang.tr: 'Geleneksel', AppLang.en: 'Traditional'},
-  'opt.interestW.anime': {AppLang.tr: 'Anime & manga', AppLang.en: 'Anime & manga'},
-  'opt.interestW.pokemon': {AppLang.tr: 'Pokemon & oyun', AppLang.en: 'Pokémon & games'},
+  'opt.interestW.traditional': {
+    AppLang.tr: 'Geleneksel',
+    AppLang.en: 'Traditional'
+  },
+  'opt.interestW.anime': {
+    AppLang.tr: 'Anime & manga',
+    AppLang.en: 'Anime & manga'
+  },
+  'opt.interestW.pokemon': {
+    AppLang.tr: 'Pokemon & oyun',
+    AppLang.en: 'Pokémon & games'
+  },
   'opt.interestW.tech': {AppLang.tr: 'Teknoloji', AppLang.en: 'Tech'},
   'opt.interestW.shopping': {AppLang.tr: 'Alışveriş', AppLang.en: 'Shopping'},
-  'opt.interestW.food': {AppLang.tr: 'Yemek odaklı', AppLang.en: 'Food-focused'},
-  'opt.interestW.themeParks': {AppLang.tr: 'Tema parklar', AppLang.en: 'Theme parks'},
+  'opt.interestW.food': {
+    AppLang.tr: 'Yemek odaklı',
+    AppLang.en: 'Food-focused'
+  },
+  'opt.interestW.themeParks': {
+    AppLang.tr: 'Tema parklar',
+    AppLang.en: 'Theme parks'
+  },
   'opt.interestW.kids': {AppLang.tr: 'Çocuk dostu', AppLang.en: 'Kid-friendly'},
-  'opt.interestW.photography': {AppLang.tr: 'Fotoğrafçılık', AppLang.en: 'Photography'},
-  'opt.sens.noPork': {AppLang.tr: 'Domuz eti istemiyorum', AppLang.en: 'No pork'},
-  'opt.sens.noPorkDerivatives': {AppLang.tr: 'Domuz yağı / jelatin yok', AppLang.en: 'No pork fat / gelatin'},
-  'opt.sens.noSeafood': {AppLang.tr: 'Deniz ürünü istemiyorum', AppLang.en: 'No seafood'},
-  'opt.sens.halal': {AppLang.tr: 'Helal seçenek istiyorum', AppLang.en: 'Halal options'},
+  'opt.interestW.photography': {
+    AppLang.tr: 'Fotoğrafçılık',
+    AppLang.en: 'Photography'
+  },
+  'opt.sens.noPork': {
+    AppLang.tr: 'Domuz eti istemiyorum',
+    AppLang.en: 'No pork'
+  },
+  'opt.sens.noPorkDerivatives': {
+    AppLang.tr: 'Domuz yağı / jelatin yok',
+    AppLang.en: 'No pork fat / gelatin'
+  },
+  'opt.sens.noSeafood': {
+    AppLang.tr: 'Deniz ürünü istemiyorum',
+    AppLang.en: 'No seafood'
+  },
+  'opt.sens.halal': {
+    AppLang.tr: 'Helal seçenek istiyorum',
+    AppLang.en: 'Halal options'
+  },
   'opt.sens.vegetarian': {AppLang.tr: 'Vejetaryen', AppLang.en: 'Vegetarian'},
-  'opt.sens.chicken': {AppLang.tr: 'Tavuk ağırlıklı', AppLang.en: 'Chicken-focused'},
-  'opt.sens.noFattyMeat': {AppLang.tr: 'Yağlı et sevmiyorum', AppLang.en: 'No fatty meat'},
-  'opt.sens.kidFriendly': {AppLang.tr: 'Çocuk dostu restoran', AppLang.en: 'Kid-friendly restaurants'},
-  'opt.sens.turkishPalate': {AppLang.tr: 'Türk damak tadına yakın', AppLang.en: 'Close to Turkish taste'},
+  'opt.sens.chicken': {
+    AppLang.tr: 'Tavuk ağırlıklı',
+    AppLang.en: 'Chicken-focused'
+  },
+  'opt.sens.noFattyMeat': {
+    AppLang.tr: 'Yağlı et sevmiyorum',
+    AppLang.en: 'No fatty meat'
+  },
+  'opt.sens.kidFriendly': {
+    AppLang.tr: 'Çocuk dostu restoran',
+    AppLang.en: 'Kid-friendly restaurants'
+  },
+  'opt.sens.turkishPalate': {
+    AppLang.tr: 'Türk damak tadına yakın',
+    AppLang.en: 'Close to Turkish taste'
+  },
   'opt.walk.light': {AppLang.tr: 'Az', AppLang.en: 'Light'},
-  'opt.walk.light.hint': {AppLang.tr: '~7k adım/gün', AppLang.en: '~7k steps/day'},
+  'opt.walk.light.hint': {
+    AppLang.tr: '~7k adım/gün',
+    AppLang.en: '~7k steps/day'
+  },
   'opt.walk.moderate': {AppLang.tr: 'Orta', AppLang.en: 'Moderate'},
-  'opt.walk.moderate.hint': {AppLang.tr: '~11k adım/gün', AppLang.en: '~11k steps/day'},
+  'opt.walk.moderate.hint': {
+    AppLang.tr: '~11k adım/gün',
+    AppLang.en: '~11k steps/day'
+  },
   'opt.walk.intense': {AppLang.tr: 'Yoğun', AppLang.en: 'Intense'},
-  'opt.walk.intense.hint': {AppLang.tr: '~15k+ adım/gün', AppLang.en: '~15k+ steps/day'},
-  'opt.transport.transit': {AppLang.tr: 'Toplu taşıma', AppLang.en: 'Public transit'},
+  'opt.walk.intense.hint': {
+    AppLang.tr: '~15k+ adım/gün',
+    AppLang.en: '~15k+ steps/day'
+  },
+  'opt.transport.transit': {
+    AppLang.tr: 'Toplu taşıma',
+    AppLang.en: 'Public transit'
+  },
   'opt.transport.mixed': {AppLang.tr: 'Karışık', AppLang.en: 'Mixed'},
-  'opt.transport.taxi': {AppLang.tr: 'Taksi destekli', AppLang.en: 'Taxi-assisted'},
-  'opt.transport.walking': {AppLang.tr: 'Yürüyüş ağırlıklı', AppLang.en: 'Mostly walking'},
+  'opt.transport.taxi': {
+    AppLang.tr: 'Taksi destekli',
+    AppLang.en: 'Taxi-assisted'
+  },
+  'opt.transport.walking': {
+    AppLang.tr: 'Yürüyüş ağırlıklı',
+    AppLang.en: 'Mostly walking'
+  },
   'opt.payment.card': {AppLang.tr: 'Kredi kartı', AppLang.en: 'Credit card'},
   'opt.payment.cash': {AppLang.tr: 'Nakit', AppLang.en: 'Cash'},
-  'opt.payment.cardCash': {AppLang.tr: 'Kart + nakit', AppLang.en: 'Card + cash'},
-  'opt.payment.ic': {AppLang.tr: 'IC kart (Suica/Pasmo)', AppLang.en: 'IC card (Suica/Pasmo)'},
+  'opt.payment.cardCash': {
+    AppLang.tr: 'Kart + nakit',
+    AppLang.en: 'Card + cash'
+  },
+  'opt.payment.ic': {
+    AppLang.tr: 'IC kart (Suica/Pasmo)',
+    AppLang.en: 'IC card (Suica/Pasmo)'
+  },
   'opt.pace.relaxed': {AppLang.tr: 'Rahat', AppLang.en: 'Relaxed'},
-  'opt.pace.relaxed.hint': {AppLang.tr: 'Az durak, uzun molalar', AppLang.en: 'Fewer stops, long breaks'},
+  'opt.pace.relaxed.hint': {
+    AppLang.tr: 'Az durak, uzun molalar',
+    AppLang.en: 'Fewer stops, long breaks'
+  },
   'opt.pace.moderate': {AppLang.tr: 'Dengeli', AppLang.en: 'Balanced'},
-  'opt.pace.moderate.hint': {AppLang.tr: 'Standart tempo', AppLang.en: 'Standard pace'},
+  'opt.pace.moderate.hint': {
+    AppLang.tr: 'Standart tempo',
+    AppLang.en: 'Standard pace'
+  },
   'opt.pace.intense': {AppLang.tr: 'Yoğun', AppLang.en: 'Intense'},
-  'opt.pace.intense.hint': {AppLang.tr: 'Çok yer, sıkı program', AppLang.en: 'Many spots, packed schedule'},
+  'opt.pace.intense.hint': {
+    AppLang.tr: 'Çok yer, sıkı program',
+    AppLang.en: 'Many spots, packed schedule'
+  },
   'diet.halal.label': {AppLang.tr: 'Helal', AppLang.en: 'Halal'},
-  'diet.halal.desc': {AppLang.tr: 'Helal sertifikalı veya domuzsuz seçenekler', AppLang.en: 'Halal-certified or pork-free options'},
+  'diet.halal.desc': {
+    AppLang.tr: 'Helal sertifikalı veya domuzsuz seçenekler',
+    AppLang.en: 'Halal-certified or pork-free options'
+  },
   'diet.noPork.label': {AppLang.tr: 'Domuz yok', AppLang.en: 'No pork'},
-  'diet.noPork.desc': {AppLang.tr: 'Domuz eti ve domuz yağı içermesin', AppLang.en: 'No pork meat or pork fat'},
+  'diet.noPork.desc': {
+    AppLang.tr: 'Domuz eti ve domuz yağı içermesin',
+    AppLang.en: 'No pork meat or pork fat'
+  },
   'diet.vegetarian.label': {AppLang.tr: 'Vejetaryen', AppLang.en: 'Vegetarian'},
-  'diet.vegetarian.desc': {AppLang.tr: 'Et ve balık yok, yumurta/süt olabilir', AppLang.en: 'No meat or fish; eggs/dairy allowed'},
+  'diet.vegetarian.desc': {
+    AppLang.tr: 'Et ve balık yok, yumurta/süt olabilir',
+    AppLang.en: 'No meat or fish; eggs/dairy allowed'
+  },
   'diet.vegan.label': {AppLang.tr: 'Vegan', AppLang.en: 'Vegan'},
-  'diet.vegan.desc': {AppLang.tr: 'Hayvansal ürün yok', AppLang.en: 'No animal products'},
-  'diet.lowFat.label': {AppLang.tr: 'Yağsız / hafif', AppLang.en: 'Low-fat / light'},
-  'diet.lowFat.desc': {AppLang.tr: 'Kızartma ve ağır soslardan kaçın', AppLang.en: 'Avoid fried food and heavy sauces'},
+  'diet.vegan.desc': {
+    AppLang.tr: 'Hayvansal ürün yok',
+    AppLang.en: 'No animal products'
+  },
+  'diet.lowFat.label': {
+    AppLang.tr: 'Yağsız / hafif',
+    AppLang.en: 'Low-fat / light'
+  },
+  'diet.lowFat.desc': {
+    AppLang.tr: 'Kızartma ve ağır soslardan kaçın',
+    AppLang.en: 'Avoid fried food and heavy sauces'
+  },
   'diet.noAlcohol.label': {AppLang.tr: 'Alkolsüz', AppLang.en: 'Alcohol-free'},
-  'diet.noAlcohol.desc': {AppLang.tr: 'Yemeklerde alkol kullanılmasın', AppLang.en: 'No alcohol used in dishes'},
-  'diet.bakeryOk.label': {AppLang.tr: 'Hamur işi OK', AppLang.en: 'Baked goods OK'},
-  'diet.bakeryOk.desc': {AppLang.tr: 'Ekmek, noodle, unlu atıştırmalıklar uygun', AppLang.en: 'Bread, noodles and flour-based snacks are fine'},
+  'diet.noAlcohol.desc': {
+    AppLang.tr: 'Yemeklerde alkol kullanılmasın',
+    AppLang.en: 'No alcohol used in dishes'
+  },
+  'diet.bakeryOk.label': {
+    AppLang.tr: 'Hamur işi OK',
+    AppLang.en: 'Baked goods OK'
+  },
+  'diet.bakeryOk.desc': {
+    AppLang.tr: 'Ekmek, noodle, unlu atıştırmalıklar uygun',
+    AppLang.en: 'Bread, noodles and flour-based snacks are fine'
+  },
   'diet.meatOk.label': {AppLang.tr: 'Et sever', AppLang.en: 'Meat lover'},
-  'diet.meatOk.desc': {AppLang.tr: 'Wagyu, yakiniku, et ağırlıklı menüler', AppLang.en: 'Wagyu, yakiniku, meat-heavy menus'},
-  'diet.chickenOnly.label': {AppLang.tr: 'Tavuk / hindi', AppLang.en: 'Chicken / turkey'},
-  'diet.chickenOnly.desc': {AppLang.tr: 'Kırmızı et yerine tavuk tercih', AppLang.en: 'Prefer chicken over red meat'},
+  'diet.meatOk.desc': {
+    AppLang.tr: 'Wagyu, yakiniku, et ağırlıklı menüler',
+    AppLang.en: 'Wagyu, yakiniku, meat-heavy menus'
+  },
+  'diet.chickenOnly.label': {
+    AppLang.tr: 'Tavuk / hindi',
+    AppLang.en: 'Chicken / turkey'
+  },
+  'diet.chickenOnly.desc': {
+    AppLang.tr: 'Kırmızı et yerine tavuk tercih',
+    AppLang.en: 'Prefer chicken over red meat'
+  },
   'diet.seafoodOk.label': {AppLang.tr: 'Deniz ürünü', AppLang.en: 'Seafood'},
-  'diet.seafoodOk.desc': {AppLang.tr: 'Sushi, sashimi, deniz ürünleri uygun', AppLang.en: 'Sushi, sashimi and seafood are fine'},
+  'diet.seafoodOk.desc': {
+    AppLang.tr: 'Sushi, sashimi, deniz ürünleri uygun',
+    AppLang.en: 'Sushi, sashimi and seafood are fine'
+  },
   'diet.glutenFree.label': {AppLang.tr: 'Glutensiz', AppLang.en: 'Gluten-free'},
-  'diet.glutenFree.desc': {AppLang.tr: 'Buğday / gluten hassasiyeti', AppLang.en: 'Wheat / gluten sensitivity'},
+  'diet.glutenFree.desc': {
+    AppLang.tr: 'Buğday / gluten hassasiyeti',
+    AppLang.en: 'Wheat / gluten sensitivity'
+  },
   'diet.spicyOk.label': {AppLang.tr: 'Acı sever', AppLang.en: 'Loves spicy'},
-  'diet.spicyOk.desc': {AppLang.tr: 'Acı ve baharatlı yemekler uygun', AppLang.en: 'Spicy and heavily seasoned food is fine'},
-  'diet.spicyAvoid.label': {AppLang.tr: 'Acı istemiyorum', AppLang.en: 'No spicy'},
-  'diet.spicyAvoid.desc': {AppLang.tr: 'Acı sos ve gochujang azaltılsın', AppLang.en: 'Reduce chili sauce and gochujang'},
+  'diet.spicyOk.desc': {
+    AppLang.tr: 'Acı ve baharatlı yemekler uygun',
+    AppLang.en: 'Spicy and heavily seasoned food is fine'
+  },
+  'diet.spicyAvoid.label': {
+    AppLang.tr: 'Acı istemiyorum',
+    AppLang.en: 'No spicy'
+  },
+  'diet.spicyAvoid.desc': {
+    AppLang.tr: 'Acı sos ve gochujang azaltılsın',
+    AppLang.en: 'Reduce chili sauce and gochujang'
+  },
   'hotels.title': {AppLang.tr: 'Konaklama', AppLang.en: 'Stays'},
-  'hotels.subtitle': {AppLang.tr: 'Otel eklemek zorunda değilsin — konaklanacak bölgeyi yazmak yeter (taksi/rehber için). Otel ekleyeceksen açık adres gerekir.', AppLang.en: 'You don\'t have to add a hotel — just naming the area you\'ll stay in is enough (for taxis and guides). If you do add one, a full address is required.'},
-  'hotels.stayArea': {AppLang.tr: '🏘️ Konaklanacak bölge (opsiyonel)', AppLang.en: '🏘️ Area to stay (optional)'},
-  'hotels.stayAreaHint': {AppLang.tr: 'Otel eklemesen de bu bölge adı taksi/rehberde kullanılır.', AppLang.en: 'Even without a hotel, this area name is used for taxis and guides.'},
-  'hotels.stayAreaPlaceholder': {AppLang.tr: 'Örn. Shinjuku, Namba, Kyoto istasyon çevresi', AppLang.en: 'e.g. Shinjuku, Namba, around Kyoto Station'},
-  'hotels.emptyHint': {AppLang.tr: 'Otel eklemek istersen aşağıdan ekle — istemiyorsan bölge yazmak yeterli.', AppLang.en: 'Add a hotel below if you\'d like — otherwise naming the area is enough.'},
+  'hotels.subtitle': {
+    AppLang.tr:
+        'Otel eklemek zorunda değilsin — konaklanacak bölgeyi yazmak yeter (taksi/rehber için). Otel ekleyeceksen açık adres gerekir.',
+    AppLang.en:
+        'You don\'t have to add a hotel — just naming the area you\'ll stay in is enough (for taxis and guides). If you do add one, a full address is required.'
+  },
+  'hotels.stayArea': {
+    AppLang.tr: '🏘️ Konaklanacak bölge (opsiyonel)',
+    AppLang.en: '🏘️ Area to stay (optional)'
+  },
+  'hotels.stayAreaHint': {
+    AppLang.tr: 'Otel eklemesen de bu bölge adı taksi/rehberde kullanılır.',
+    AppLang.en:
+        'Even without a hotel, this area name is used for taxis and guides.'
+  },
+  'hotels.stayAreaPlaceholder': {
+    AppLang.tr: 'Örn. Shinjuku, Namba, Kyoto istasyon çevresi',
+    AppLang.en: 'e.g. Shinjuku, Namba, around Kyoto Station'
+  },
+  'hotels.emptyHint': {
+    AppLang.tr:
+        'Otel eklemek istersen aşağıdan ekle — istemiyorsan bölge yazmak yeterli.',
+    AppLang.en:
+        'Add a hotel below if you\'d like — otherwise naming the area is enough.'
+  },
   'hotels.addHotel': {AppLang.tr: '+ Otel ekle', AppLang.en: '+ Add hotel'},
-  'hotels.addAnother': {AppLang.tr: '+ Başka otel ekle', AppLang.en: '+ Add another hotel'},
+  'hotels.addAnother': {
+    AppLang.tr: '+ Başka otel ekle',
+    AppLang.en: '+ Add another hotel'
+  },
   'hotels.deleteTitle': {AppLang.tr: 'Oteli sil', AppLang.en: 'Delete hotel'},
-  'hotels.deleteConfirm': {AppLang.tr: '"{name}" silinsin mi?', AppLang.en: 'Delete "{name}"?'},
+  'hotels.deleteConfirm': {
+    AppLang.tr: '"{name}" silinsin mi?',
+    AppLang.en: 'Delete "{name}"?'
+  },
   'hotels.cancel': {AppLang.tr: 'Vazgeç', AppLang.en: 'Cancel'},
   'hotels.delete': {AppLang.tr: 'Sil', AppLang.en: 'Delete'},
   'hotels.hotelN': {AppLang.tr: 'Otel {n}', AppLang.en: 'Hotel {n}'},
-  'hotels.addressRequired': {AppLang.tr: 'Taksi ve harita için adres gerekli', AppLang.en: 'Address required for taxis and maps'},
+  'hotels.addressRequired': {
+    AppLang.tr: 'Taksi ve harita için adres gerekli',
+    AppLang.en: 'Address required for taxis and maps'
+  },
   'hotels.edit': {AppLang.tr: 'Düzenle', AppLang.en: 'Edit'},
   'hotels.city': {AppLang.tr: 'Şehir *', AppLang.en: 'City *'},
   'hotels.hotelName': {AppLang.tr: 'Otel adı *', AppLang.en: 'Hotel name *'},
   'hotels.checkIn': {AppLang.tr: 'Giriş *', AppLang.en: 'Check-in *'},
   'hotels.checkOut': {AppLang.tr: 'Çıkış *', AppLang.en: 'Check-out *'},
-  'hotels.address': {AppLang.tr: 'Açık adres (sokak, posta kodu) *', AppLang.en: 'Full address (street, postal code) *'},
-  'hotels.addressLocal': {AppLang.tr: 'Adres (yerel dil)', AppLang.en: 'Address (local language)'},
-  'hotels.addressLocalHint': {AppLang.tr: 'Japonca — taksiciye göster', AppLang.en: 'Japanese — show it to the taxi driver'},
-  'hotels.mapsUrl': {AppLang.tr: 'Google Maps linki', AppLang.en: 'Google Maps link'},
+  'hotels.address': {
+    AppLang.tr: 'Açık adres (sokak, posta kodu) *',
+    AppLang.en: 'Full address (street, postal code) *'
+  },
+  'hotels.addressLocal': {
+    AppLang.tr: 'Adres (yerel dil)',
+    AppLang.en: 'Address (local language)'
+  },
+  'hotels.addressLocalHint': {
+    AppLang.tr: 'Japonca — taksiciye göster',
+    AppLang.en: 'Japanese — show it to the taxi driver'
+  },
+  'hotels.mapsUrl': {
+    AppLang.tr: 'Google Maps linki',
+    AppLang.en: 'Google Maps link'
+  },
   'hotels.phone': {AppLang.tr: 'Telefon', AppLang.en: 'Phone'},
   'hotels.notes': {AppLang.tr: 'Notlar', AppLang.en: 'Notes'},
-  'hotels.notesPlaceholder': {AppLang.tr: 'Check-in saati, kat, ek notlar', AppLang.en: 'Check-in time, floor, extra notes'},
+  'hotels.notesPlaceholder': {
+    AppLang.tr: 'Check-in saati, kat, ek notlar',
+    AppLang.en: 'Check-in time, floor, extra notes'
+  },
   'hotels.done': {AppLang.tr: 'Bitti', AppLang.en: 'Done'},
   'hotels.pickDate': {AppLang.tr: 'Tarih seç', AppLang.en: 'Pick a date'},
   'publish.title': {AppLang.tr: 'Yayına hazır', AppLang.en: 'Ready to publish'},
-  'publish.subtitle': {AppLang.tr: 'Planınız "{slug}" kullanıcısı altında kaydedildi. Uyarıları çözüp Rehber\'e (viewer) geçebilirsin.', AppLang.en: 'Your plan is saved under the "{slug}" user. Resolve the warnings, then move on to the Guide (viewer).'},
-  'publish.backToStep': {AppLang.tr: '{step} adımına dön →', AppLang.en: 'Back to {step} →'},
+  'publish.subtitle': {
+    AppLang.tr:
+        'Planınız "{slug}" kullanıcısı altında kaydedildi. Uyarıları çözüp Rehber\'e (viewer) geçebilirsin.',
+    AppLang.en:
+        'Your plan is saved under the "{slug}" user. Resolve the warnings, then move on to the Guide (viewer).'
+  },
+  'publish.backToStep': {
+    AppLang.tr: '{step} adımına dön →',
+    AppLang.en: 'Back to {step} →'
+  },
   'publish.export': {AppLang.tr: 'Dışa aktar', AppLang.en: 'Export'},
   'publish.import': {AppLang.tr: 'İçe aktar', AppLang.en: 'Import'},
-  'publish.lockNote': {AppLang.tr: 'Yayın kilidi: plan boşsa yayın adımı kilitli kalır — viewer boş ekran açmasın diye. En az bir aktivite ekle.', AppLang.en: 'Publish lock: if the plan is empty, the publish step stays locked — so the viewer never opens to a blank screen. Add at least one activity.'},
-  'publish.exportTitle': {AppLang.tr: 'JSON dışa aktar', AppLang.en: 'Export JSON'},
-  'publish.jsonCopied': {AppLang.tr: '✓ JSON kopyalandı', AppLang.en: '✓ JSON copied'},
+  'publish.lockNote': {
+    AppLang.tr:
+        'Yayın kilidi: plan boşsa yayın adımı kilitli kalır — viewer boş ekran açmasın diye. En az bir aktivite ekle.',
+    AppLang.en:
+        'Publish lock: if the plan is empty, the publish step stays locked — so the viewer never opens to a blank screen. Add at least one activity.'
+  },
+  'publish.exportTitle': {
+    AppLang.tr: 'JSON dışa aktar',
+    AppLang.en: 'Export JSON'
+  },
+  'publish.jsonCopied': {
+    AppLang.tr: '✓ JSON kopyalandı',
+    AppLang.en: '✓ JSON copied'
+  },
   'publish.copy': {AppLang.tr: 'Kopyala', AppLang.en: 'Copy'},
   'publish.close': {AppLang.tr: 'Kapat', AppLang.en: 'Close'},
-  'publish.importTitle': {AppLang.tr: 'JSON içe aktar', AppLang.en: 'Import JSON'},
-  'publish.importHint': {AppLang.tr: 'Buraya Trip JSON yapıştır…', AppLang.en: 'Paste Trip JSON here…'},
+  'publish.importTitle': {
+    AppLang.tr: 'JSON içe aktar',
+    AppLang.en: 'Import JSON'
+  },
+  'publish.importHint': {
+    AppLang.tr: 'Buraya Trip JSON yapıştır…',
+    AppLang.en: 'Paste Trip JSON here…'
+  },
   'publish.cancel': {AppLang.tr: 'Vazgeç', AppLang.en: 'Cancel'},
-  'publish.imported': {AppLang.tr: '✓ Plan içe aktarıldı', AppLang.en: '✓ Plan imported'},
-  'publish.invalidJson': {AppLang.tr: 'Geçersiz JSON: {err}', AppLang.en: 'Invalid JSON: {err}'},
+  'publish.imported': {
+    AppLang.tr: '✓ Plan içe aktarıldı',
+    AppLang.en: '✓ Plan imported'
+  },
+  'publish.invalidJson': {
+    AppLang.tr: 'Geçersiz JSON: {err}',
+    AppLang.en: 'Invalid JSON: {err}'
+  },
   'publish.step.journey': {AppLang.tr: 'Rota', AppLang.en: 'Route'},
   'publish.step.explore': {AppLang.tr: 'Keşfet', AppLang.en: 'Explore'},
   'publish.step.title': {AppLang.tr: 'Başlık', AppLang.en: 'Title'},
@@ -758,21 +1253,62 @@ const Map<String, Map<AppLang, String>> _strings = {
   'publish.step.food': {AppLang.tr: 'Yemek', AppLang.en: 'Food'},
   'publish.step.plan': {AppLang.tr: 'Plan', AppLang.en: 'Plan'},
   'publish.step.calendar': {AppLang.tr: 'Takvim', AppLang.en: 'Calendar'},
-  'booking.title': {AppLang.tr: 'Bilet açılış tarihleri', AppLang.en: 'Ticket sale dates'},
-  'booking.body': {AppLang.tr: 'Planına eklenen aşağıdaki deneyimlerin biletleri sınırlı süreyle satışa açılıyor. Hatırlatma açarsan bilet satışa çıktığı gün sabah 09:00\'da bildirim geleceğim.', AppLang.en: 'Tickets for the experiences below in your plan go on sale for a limited time. Turn on a reminder and I\'ll notify you at 09:00 on the morning they open.'},
+  'booking.title': {
+    AppLang.tr: 'Bilet açılış tarihleri',
+    AppLang.en: 'Ticket sale dates'
+  },
+  'booking.body': {
+    AppLang.tr:
+        'Planına eklenen aşağıdaki deneyimlerin biletleri sınırlı süreyle satışa açılıyor. Hatırlatma açarsan bilet satışa çıktığı gün sabah 09:00\'da bildirim geleceğim.',
+    AppLang.en:
+        'Tickets for the experiences below in your plan go on sale for a limited time. Turn on a reminder and I\'ll notify you at 09:00 on the morning they open.'
+  },
   'booking.notNow': {AppLang.tr: 'Şimdi değil', AppLang.en: 'Not now'},
   'booking.adding': {AppLang.tr: 'Ekleniyor…', AppLang.en: 'Adding…'},
-  'booking.addReminders': {AppLang.tr: 'Hatırlatmaları ekle', AppLang.en: 'Add reminders'},
-  'booking.reminderSubtitle': {AppLang.tr: 'Bilet bugün satışa açıldı — {date} planı için.', AppLang.en: 'Tickets went on sale today — for your {date} plan.'},
-  'booking.salePill': {AppLang.tr: 'Satış: {date} · {days} gün önce', AppLang.en: 'On sale: {date} · {days} days before'},
-  'booking.planDayPill': {AppLang.tr: 'Plan günü: {date}', AppLang.en: 'Plan day: {date}'},
-  'booking.windowPassed': {AppLang.tr: 'Satış penceresi geçti / bugün', AppLang.en: 'Sale window passed / today'},
-  'pickers.airportPlaceholder': {AppLang.tr: 'Havaalanı, şehir veya ülke', AppLang.en: 'Airport, city or country'},
-  'pickers.airlinePlaceholder': {AppLang.tr: 'Havayolu (örn. Turkish Airlines, TK)', AppLang.en: 'Airline (e.g. Turkish Airlines, TK)'},
-  'pickers.pickAirport': {AppLang.tr: 'Havaalanı seç', AppLang.en: 'Select airport'},
-  'pickers.airportSearchHint': {AppLang.tr: 'IATA, şehir veya ülke', AppLang.en: 'IATA, city or country'},
-  'pickers.pickAirline': {AppLang.tr: 'Havayolu seç', AppLang.en: 'Select airline'},
-  'pickers.airlineSearchHint': {AppLang.tr: 'Ad veya kod (TK, JL…)', AppLang.en: 'Name or code (TK, JL…)'},
+  'booking.addReminders': {
+    AppLang.tr: 'Hatırlatmaları ekle',
+    AppLang.en: 'Add reminders'
+  },
+  'booking.reminderSubtitle': {
+    AppLang.tr: 'Bilet bugün satışa açıldı — {date} planı için.',
+    AppLang.en: 'Tickets went on sale today — for your {date} plan.'
+  },
+  'booking.salePill': {
+    AppLang.tr: 'Satış: {date} · {days} gün önce',
+    AppLang.en: 'On sale: {date} · {days} days before'
+  },
+  'booking.planDayPill': {
+    AppLang.tr: 'Plan günü: {date}',
+    AppLang.en: 'Plan day: {date}'
+  },
+  'booking.windowPassed': {
+    AppLang.tr: 'Satış penceresi geçti / bugün',
+    AppLang.en: 'Sale window passed / today'
+  },
+  'pickers.airportPlaceholder': {
+    AppLang.tr: 'Havaalanı, şehir veya ülke',
+    AppLang.en: 'Airport, city or country'
+  },
+  'pickers.airlinePlaceholder': {
+    AppLang.tr: 'Havayolu (örn. Turkish Airlines, TK)',
+    AppLang.en: 'Airline (e.g. Turkish Airlines, TK)'
+  },
+  'pickers.pickAirport': {
+    AppLang.tr: 'Havaalanı seç',
+    AppLang.en: 'Select airport'
+  },
+  'pickers.airportSearchHint': {
+    AppLang.tr: 'IATA, şehir veya ülke',
+    AppLang.en: 'IATA, city or country'
+  },
+  'pickers.pickAirline': {
+    AppLang.tr: 'Havayolu seç',
+    AppLang.en: 'Select airline'
+  },
+  'pickers.airlineSearchHint': {
+    AppLang.tr: 'Ad veya kod (TK, JL…)',
+    AppLang.en: 'Name or code (TK, JL…)'
+  },
   'pickers.close': {AppLang.tr: 'Kapat', AppLang.en: 'Close'},
   'steps.welcome': {AppLang.tr: 'Başla', AppLang.en: 'Start'},
   'steps.journey': {AppLang.tr: 'Rota', AppLang.en: 'Route'},
@@ -783,45 +1319,140 @@ const Map<String, Map<AppLang, String>> _strings = {
   'steps.plan': {AppLang.tr: 'Plan', AppLang.en: 'Plan'},
   'steps.publish': {AppLang.tr: 'Yayın', AppLang.en: 'Publish'},
   'title.autoTitle': {AppLang.tr: 'Japonya {year}', AppLang.en: 'Japan {year}'},
-  'title.headline': {AppLang.tr: 'Planına isim ver', AppLang.en: 'Name your plan'},
-  'title.routeSummary': {AppLang.tr: 'Rotanız: {route} · {n} gün', AppLang.en: 'Your route: {route} · {n} days'},
-  'title.routeIncomplete': {AppLang.tr: 'Önce Rota adımında rotayı tamamlayın.', AppLang.en: 'First complete your route in the Route step.'},
+  'title.headline': {
+    AppLang.tr: 'Planına isim ver',
+    AppLang.en: 'Name your plan'
+  },
+  'title.routeSummary': {
+    AppLang.tr: 'Rotanız: {route} · {n} gün',
+    AppLang.en: 'Your route: {route} · {n} days'
+  },
+  'title.routeIncomplete': {
+    AppLang.tr: 'Önce Rota adımında rotayı tamamlayın.',
+    AppLang.en: 'First complete your route in the Route step.'
+  },
   'title.displayName': {AppLang.tr: 'Görünen ad', AppLang.en: 'Display name'},
   'title.field.title': {AppLang.tr: 'Başlık', AppLang.en: 'Title'},
-  'title.titleHint': {AppLang.tr: 'Gezinin yılına göre otomatik belirlenir (örn. {sample}). İstersen elle değiştirebilirsin.', AppLang.en: 'Set automatically from the trip\'s year (e.g. {sample}). You can change it by hand if you like.'},
-  'title.field.subtitle': {AppLang.tr: 'Açıklama (opsiyonel)', AppLang.en: 'Description (optional)'},
-  'title.subtitleHint': {AppLang.tr: 'Kısa bir not', AppLang.en: 'A short note'},
+  'title.titleHint': {
+    AppLang.tr:
+        'Gezinin yılına göre otomatik belirlenir (örn. {sample}). İstersen elle değiştirebilirsin.',
+    AppLang.en:
+        'Set automatically from the trip\'s year (e.g. {sample}). You can change it by hand if you like.'
+  },
+  'title.field.subtitle': {
+    AppLang.tr: 'Açıklama (opsiyonel)',
+    AppLang.en: 'Description (optional)'
+  },
+  'title.subtitleHint': {
+    AppLang.tr: 'Kısa bir not',
+    AppLang.en: 'A short note'
+  },
   'title.field.pace': {AppLang.tr: 'Tempo', AppLang.en: 'Pace'},
   'title.pace.relaxed': {AppLang.tr: 'Rahat', AppLang.en: 'Relaxed'},
   'title.pace.moderate': {AppLang.tr: 'Dengeli', AppLang.en: 'Balanced'},
   'title.pace.intense': {AppLang.tr: 'Yoğun', AppLang.en: 'Intense'},
-  'journey.title': {AppLang.tr: '🇯🇵 Japonya rotası', AppLang.en: '🇯🇵 Japan route'},
-  'journey.sub.ticket': {AppLang.tr: 'Kalkış ve dönüş uçuşlarını gir. Her uçuş kartında havayolu, uçuş no, tarih ve havaalanları var.', AppLang.en: 'Enter your outbound and return flights. Each flight card has the airline, flight number, date and airports.'},
-  'journey.sub.plan': {AppLang.tr: 'Nereden kalkacaksın ve Japonya\'da hangi şehre ineceksin? Şimdilik şehir ve tarih yeter.', AppLang.en: 'Where will you take off from, and which city in Japan will you land in? For now, city and date are enough.'},
+  'journey.title': {
+    AppLang.tr: '🇯🇵 Japonya rotası',
+    AppLang.en: '🇯🇵 Japan route'
+  },
+  'journey.sub.ticket': {
+    AppLang.tr:
+        'Kalkış ve dönüş uçuşlarını gir. Her uçuş kartında havayolu, uçuş no, tarih ve havaalanları var.',
+    AppLang.en:
+        'Enter your outbound and return flights. Each flight card has the airline, flight number, date and airports.'
+  },
+  'journey.sub.plan': {
+    AppLang.tr:
+        'Nereden kalkacaksın ve Japonya\'da hangi şehre ineceksin? Şimdilik şehir ve tarih yeter.',
+    AppLang.en:
+        'Where will you take off from, and which city in Japan will you land in? For now, city and date are enough.'
+  },
   'journey.routeLabel': {AppLang.tr: 'Rota: ', AppLang.en: 'Route: '},
-  'journey.continueHint': {AppLang.tr: 'Devam için: kalkış ve Japonya varış havaalanını seç.', AppLang.en: 'To continue, choose your departure and Japan arrival airports.'},
-  'journey.shinkansen.title': {AppLang.tr: '🚄 Şehirler arası Shinkansen', AppLang.en: '🚄 Shinkansen between cities'},
-  'journey.shinkansen.body': {AppLang.tr: 'Birden fazla şehir gezeceksin → Shinkansen (yüksek hızlı tren) en pratiği.', AppLang.en: 'You\'ll be visiting more than one city → the Shinkansen (bullet train) is the most practical way.'},
-  'journey.shinkansen.note': {AppLang.tr: 'JR Pass / Smart-EX önerilir. Plan adımında otomatik şehir geçiş kartları çıkar.', AppLang.en: 'JR Pass / Smart-EX recommended. City-to-city transfer cards appear automatically in the Plan step.'},
-  'journey.cities.title': {AppLang.tr: '🏙️ Gezilecek şehirler', AppLang.en: '🏙️ Cities to visit'},
-  'journey.cities.hint': {AppLang.tr: 'Listeden seç — rotana eklenir. Tekrar dokun → çıkar. İkinci şehri seçtiğinde şehirler arası Shinkansen önerilir.', AppLang.en: 'Pick from the list to add it to your route. Tap again to remove. Choosing a second city suggests the Shinkansen between cities.'},
-  'journey.banner.title': {AppLang.tr: '🇯🇵 Japonya 14 günlük tam plan', AppLang.en: '🇯🇵 Full 14-day Japan plan'},
-  'journey.banner.body': {AppLang.tr: 'Tokyo → Kyoto → Nara → Osaka rotası; günler, tarihler ve oteller hazır.', AppLang.en: 'Tokyo → Kyoto → Nara → Osaka route; days, dates and hotels are ready.'},
+  'journey.continueHint': {
+    AppLang.tr: 'Devam için: kalkış ve Japonya varış havaalanını seç.',
+    AppLang.en: 'To continue, choose your departure and Japan arrival airports.'
+  },
+  'journey.shinkansen.title': {
+    AppLang.tr: '🚄 Şehirler arası Shinkansen',
+    AppLang.en: '🚄 Shinkansen between cities'
+  },
+  'journey.shinkansen.body': {
+    AppLang.tr:
+        'Birden fazla şehir gezeceksin → Shinkansen (yüksek hızlı tren) en pratiği.',
+    AppLang.en:
+        'You\'ll be visiting more than one city → the Shinkansen (bullet train) is the most practical way.'
+  },
+  'journey.shinkansen.note': {
+    AppLang.tr:
+        'JR Pass / Smart-EX önerilir. Plan adımında otomatik şehir geçiş kartları çıkar.',
+    AppLang.en:
+        'JR Pass / Smart-EX recommended. City-to-city transfer cards appear automatically in the Plan step.'
+  },
+  'journey.cities.title': {
+    AppLang.tr: '🏙️ Gezilecek şehirler',
+    AppLang.en: '🏙️ Cities to visit'
+  },
+  'journey.cities.hint': {
+    AppLang.tr:
+        'Listeden seç — rotana eklenir. Tekrar dokun → çıkar. İkinci şehri seçtiğinde şehirler arası Shinkansen önerilir.',
+    AppLang.en:
+        'Pick from the list to add it to your route. Tap again to remove. Choosing a second city suggests the Shinkansen between cities.'
+  },
+  'journey.banner.title': {
+    AppLang.tr: '🇯🇵 Japonya 14 günlük tam plan',
+    AppLang.en: '🇯🇵 Full 14-day Japan plan'
+  },
+  'journey.banner.body': {
+    AppLang.tr:
+        'Tokyo → Kyoto → Nara → Osaka rotası; günler, tarihler ve oteller hazır.',
+    AppLang.en:
+        'Tokyo → Kyoto → Nara → Osaka route; days, dates and hotels are ready.'
+  },
   'journey.banner.load': {AppLang.tr: 'Planı yükle', AppLang.en: 'Load plan'},
-  'journey.leg.outbound': {AppLang.tr: '✈︎ Gidiş — Japonya\'ya', AppLang.en: '✈︎ Outbound — to Japan'},
-  'journey.leg.route': {AppLang.tr: '📍 Rota — Japonya\'ya', AppLang.en: '📍 Route — to Japan'},
-  'journey.leg.return': {AppLang.tr: '🏠 Dönüş — Japonya\'dan', AppLang.en: '🏠 Return — from Japan'},
+  'journey.leg.outbound': {
+    AppLang.tr: '✈︎ Gidiş — Japonya\'ya',
+    AppLang.en: '✈︎ Outbound — to Japan'
+  },
+  'journey.leg.route': {
+    AppLang.tr: '📍 Rota — Japonya\'ya',
+    AppLang.en: '📍 Route — to Japan'
+  },
+  'journey.leg.return': {
+    AppLang.tr: '🏠 Dönüş — Japonya\'dan',
+    AppLang.en: '🏠 Return — from Japan'
+  },
   'journey.field.airline': {AppLang.tr: 'Havayolu', AppLang.en: 'Airline'},
-  'journey.field.flightNo': {AppLang.tr: 'Uçuş numarası', AppLang.en: 'Flight number'},
+  'journey.field.flightNo': {
+    AppLang.tr: 'Uçuş numarası',
+    AppLang.en: 'Flight number'
+  },
   'journey.field.date': {AppLang.tr: 'Tarih', AppLang.en: 'Date'},
   'journey.field.departureTr': {AppLang.tr: 'Kalkış', AppLang.en: 'Departure'},
-  'journey.field.arrivalJp': {AppLang.tr: 'Varış (Japonya)', AppLang.en: 'Arrival (Japan)'},
-  'journey.field.departureJp': {AppLang.tr: 'Kalkış (Japonya)', AppLang.en: 'Departure (Japan)'},
+  'journey.field.arrivalJp': {
+    AppLang.tr: 'Varış (Japonya)',
+    AppLang.en: 'Arrival (Japan)'
+  },
+  'journey.field.departureJp': {
+    AppLang.tr: 'Kalkış (Japonya)',
+    AppLang.en: 'Departure (Japan)'
+  },
   'journey.field.arrivalTr': {AppLang.tr: 'Varış', AppLang.en: 'Arrival'},
-  'journey.ph.returnDep': {AppLang.tr: 'Japonya\'dan kalkış havalimanı', AppLang.en: 'Departure airport in Japan'},
-  'journey.ph.returnArr': {AppLang.tr: 'Kalkış ülkene varış havalimanı', AppLang.en: 'Arrival airport back home'},
-  'journey.pax.title': {AppLang.tr: 'Yolcu & seçenekler', AppLang.en: 'Passengers & options'},
-  'journey.pax.subtitle': {AppLang.tr: 'Kaç kişi + kaç çocuk?', AppLang.en: 'How many adults + children?'},
+  'journey.ph.returnDep': {
+    AppLang.tr: 'Japonya\'dan kalkış havalimanı',
+    AppLang.en: 'Departure airport in Japan'
+  },
+  'journey.ph.returnArr': {
+    AppLang.tr: 'Kalkış ülkene varış havalimanı',
+    AppLang.en: 'Arrival airport back home'
+  },
+  'journey.pax.title': {
+    AppLang.tr: 'Yolcu & seçenekler',
+    AppLang.en: 'Passengers & options'
+  },
+  'journey.pax.subtitle': {
+    AppLang.tr: 'Kaç kişi + kaç çocuk?',
+    AppLang.en: 'How many adults + children?'
+  },
   'journey.pax.adult': {AppLang.tr: 'Yetişkin', AppLang.en: 'Adults'},
   'journey.pax.child': {AppLang.tr: 'Çocuk', AppLang.en: 'Children'},
   'journey.pax.pace': {AppLang.tr: 'Tempo', AppLang.en: 'Pace'},
@@ -830,56 +1461,187 @@ const Map<String, Map<AppLang, String>> _strings = {
   'journey.pace.intense': {AppLang.tr: 'Yoğun', AppLang.en: 'Intense'},
   'journey.date.pick': {AppLang.tr: 'Tarih seç', AppLang.en: 'Pick a date'},
   'journey.time.pick': {AppLang.tr: 'Saat seç', AppLang.en: 'Pick a time'},
-  'journey.field.arrivalTime': {AppLang.tr: 'İniş saati (Japonya)', AppLang.en: 'Arrival time (Japan)'},
-  'journey.field.departureTime': {AppLang.tr: 'Kalkış saati (Japonya)', AppLang.en: 'Departure time (Japan)'},
-  'journey.city.other': {AppLang.tr: '+ Başka şehir', AppLang.en: '+ Another city'},
-  'journey.city.sheetTitle': {AppLang.tr: 'Şehir seç', AppLang.en: 'Choose a city'},
+  'journey.field.arrivalTime': {
+    AppLang.tr: 'İniş saati (Japonya)',
+    AppLang.en: 'Arrival time (Japan)'
+  },
+  'journey.field.departureTime': {
+    AppLang.tr: 'Kalkış saati (Japonya)',
+    AppLang.en: 'Departure time (Japan)'
+  },
+  'journey.city.other': {
+    AppLang.tr: '+ Başka şehir',
+    AppLang.en: '+ Another city'
+  },
+  'journey.city.sheetTitle': {
+    AppLang.tr: 'Şehir seç',
+    AppLang.en: 'Choose a city'
+  },
   'journey.city.close': {AppLang.tr: 'Kapat', AppLang.en: 'Close'},
-  'journey.city.searchHint': {AppLang.tr: 'Şehir ara — Kyoto, Hakone, Nikko…', AppLang.en: 'Search cities — Kyoto, Hakone, Nikko…'},
+  'journey.city.searchHint': {
+    AppLang.tr: 'Şehir ara — Kyoto, Hakone, Nikko…',
+    AppLang.en: 'Search cities — Kyoto, Hakone, Nikko…'
+  },
   'journey.city.airport': {AppLang.tr: 'Havalimanı', AppLang.en: 'Airport'},
-  'journey.city.byTrain': {AppLang.tr: 'Shinkansen / tren erişimli', AppLang.en: 'Reachable by Shinkansen / train'},
-  'journey.cities.inertHint': {AppLang.tr: 'Seçmek yalnızca şehri ekler — rota ve tarihler değişmez.', AppLang.en: 'Selecting only adds the city — route and dates stay.'},
+  'journey.city.byTrain': {
+    AppLang.tr: 'Shinkansen / tren erişimli',
+    AppLang.en: 'Reachable by Shinkansen / train'
+  },
+  'journey.cities.inertHint': {
+    AppLang.tr: 'Seçmek yalnızca şehri ekler — rota ve tarihler değişmez.',
+    AppLang.en: 'Selecting only adds the city — route and dates stay.'
+  },
   'journey.badge.arrival': {AppLang.tr: 'iniş', AppLang.en: 'arrival'},
   'journey.badge.return': {AppLang.tr: 'dönüş', AppLang.en: 'return'},
-  'journey.cityPlaces.title': {AppLang.tr: '{city} · gezilecekler', AppLang.en: '{city} · things to do'},
-  'journey.cityPlaces.selected': {AppLang.tr: '{n} seçili', AppLang.en: '{n} selected'},
-  'welcome.choose.ticket.title': {AppLang.tr: 'Biletim var', AppLang.en: 'I have a ticket'},
-  'welcome.choose.ticket.desc': {AppLang.tr: 'Uçuş bilgilerini gir ya da bilet fotoğrafını yükle', AppLang.en: 'Enter your flight details or upload a photo of your ticket'},
-  'welcome.choose.plan.title': {AppLang.tr: 'Gezi planla', AppLang.en: 'Plan a trip'},
-  'welcome.choose.plan.desc': {AppLang.tr: 'Sana en uygun tarihleri birlikte seçelim', AppLang.en: 'Let\'s pick the dates that suit you best, together'},
-  'welcome.choose.heading': {AppLang.tr: 'Japonya\'yı planlayalım', AppLang.en: 'Let\'s plan Japan'},
-  'welcome.choose.subheading': {AppLang.tr: 'Nereden başlayalım?', AppLang.en: 'Where shall we start?'},
-  'welcome.ticket.title': {AppLang.tr: 'Bilet bilgilerin', AppLang.en: 'Your ticket details'},
-  'welcome.ticket.sub': {AppLang.tr: 'Sadece tarihler zorunlu — diğer alanları boş bırakabilirsin. En fazla {n} günlük plan oluşturuyoruz.', AppLang.en: 'Only the dates are required — you can leave the other fields blank. We build plans of up to {n} days.'},
-  'welcome.ticket.outDate': {AppLang.tr: 'Gidiş tarihi', AppLang.en: 'Departure date'},
-  'welcome.ticket.retDate': {AppLang.tr: 'Dönüş tarihi', AppLang.en: 'Return date'},
-  'welcome.ticket.tooLong': {AppLang.tr: 'En fazla {max} günlük plan oluşturuyoruz — {sel} gün seçildi, otomatik kısaltılacak.', AppLang.en: 'We build plans of up to {max} days — you selected {sel} days, so it will be shortened automatically.'},
+  'journey.cityPlaces.title': {
+    AppLang.tr: '{city} · gezilecekler',
+    AppLang.en: '{city} · things to do'
+  },
+  'journey.cityPlaces.selected': {
+    AppLang.tr: '{n} seçili',
+    AppLang.en: '{n} selected'
+  },
+  'welcome.choose.ticket.title': {
+    AppLang.tr: 'Biletim var',
+    AppLang.en: 'I have a ticket'
+  },
+  'welcome.choose.ticket.desc': {
+    AppLang.tr: 'Uçuş bilgilerini gir ya da bilet fotoğrafını yükle',
+    AppLang.en: 'Enter your flight details or upload a photo of your ticket'
+  },
+  'welcome.choose.plan.title': {
+    AppLang.tr: 'Gezi planla',
+    AppLang.en: 'Plan a trip'
+  },
+  'welcome.choose.plan.desc': {
+    AppLang.tr: 'Sana en uygun tarihleri birlikte seçelim',
+    AppLang.en: 'Let\'s pick the dates that suit you best, together'
+  },
+  'welcome.choose.heading': {
+    AppLang.tr: 'Japonya\'yı planlayalım',
+    AppLang.en: 'Let\'s plan Japan'
+  },
+  'welcome.choose.subheading': {
+    AppLang.tr: 'Nereden başlayalım?',
+    AppLang.en: 'Where shall we start?'
+  },
+  'welcome.ticket.title': {
+    AppLang.tr: 'Bilet bilgilerin',
+    AppLang.en: 'Your ticket details'
+  },
+  'welcome.ticket.sub': {
+    AppLang.tr:
+        'Sadece tarihler zorunlu — diğer alanları boş bırakabilirsin. En fazla {n} günlük plan oluşturuyoruz.',
+    AppLang.en:
+        'Only the dates are required — you can leave the other fields blank. We build plans of up to {n} days.'
+  },
+  'welcome.ticket.outDate': {
+    AppLang.tr: 'Gidiş tarihi',
+    AppLang.en: 'Departure date'
+  },
+  'welcome.ticket.retDate': {
+    AppLang.tr: 'Dönüş tarihi',
+    AppLang.en: 'Return date'
+  },
+  'welcome.ticket.tooLong': {
+    AppLang.tr:
+        'En fazla {max} günlük plan oluşturuyoruz — {sel} gün seçildi, otomatik kısaltılacak.',
+    AppLang.en:
+        'We build plans of up to {max} days — you selected {sel} days, so it will be shortened automatically.'
+  },
   'welcome.ticket.airline': {AppLang.tr: 'Havayolu', AppLang.en: 'Airline'},
-  'welcome.ticket.outFlightNo': {AppLang.tr: 'Uçuş no (gidiş)', AppLang.en: 'Flight no. (outbound)'},
-  'welcome.ticket.retFlightNo': {AppLang.tr: 'Uçuş no (dönüş)', AppLang.en: 'Flight no. (return)'},
-  'welcome.ticket.upload': {AppLang.tr: '📷 Bilet fotoğrafı yükle', AppLang.en: '📷 Upload a photo of your ticket'},
-  'welcome.ticket.ocrSoon': {AppLang.tr: 'Bilet OCR (AI) sonraki iterasyonda bağlanacak.', AppLang.en: 'Ticket OCR (AI) will be connected in a future update.'},
+  'welcome.ticket.outFlightNo': {
+    AppLang.tr: 'Uçuş no (gidiş)',
+    AppLang.en: 'Flight no. (outbound)'
+  },
+  'welcome.ticket.retFlightNo': {
+    AppLang.tr: 'Uçuş no (dönüş)',
+    AppLang.en: 'Flight no. (return)'
+  },
+  'welcome.ticket.upload': {
+    AppLang.tr: '📷 Bilet fotoğrafı yükle',
+    AppLang.en: '📷 Upload a photo of your ticket'
+  },
+  'welcome.ticket.ocrSoon': {
+    AppLang.tr: 'Bilet OCR (AI) sonraki iterasyonda bağlanacak.',
+    AppLang.en: 'Ticket OCR (AI) will be connected in a future update.'
+  },
   'welcome.continue': {AppLang.tr: 'Devam', AppLang.en: 'Continue'},
-  'welcome.plan.title': {AppLang.tr: 'Japonya\'da esnek gezi', AppLang.en: 'Flexible trip in Japan'},
-  'welcome.plan.sub': {AppLang.tr: 'Bir tarih aralığı seç — otomatik gidiş-dönüş olarak Rota adımına geçelim.', AppLang.en: 'Pick a date range — we\'ll set it up as a round trip and move on to the Route step.'},
-  'welcome.plan.customRange': {AppLang.tr: '📅 Kendim seçmek istiyorum', AppLang.en: '📅 I\'ll choose the dates myself'},
-  'welcome.range.help': {AppLang.tr: 'Gidiş — Dönüş tarihlerini seç', AppLang.en: 'Select departure — return dates'},
+  'welcome.plan.title': {
+    AppLang.tr: 'Japonya\'da esnek gezi',
+    AppLang.en: 'Flexible trip in Japan'
+  },
+  'welcome.plan.sub': {
+    AppLang.tr:
+        'Gidiş ve dönüş tarihini seç — otomatik gidiş-dönüş olarak Rota adımına geçelim.',
+    AppLang.en:
+        'Pick your departure and return dates — we\'ll set it up as a round trip and continue to Route.'
+  },
+  'welcome.plan.customRange': {
+    AppLang.tr: '📅 Tarih aralığı seç',
+    AppLang.en: '📅 Pick dates'
+  },
+  'welcome.plan.dateSummary.title': {
+    AppLang.tr: 'Seçilen tarihler',
+    AppLang.en: 'Selected dates'
+  },
+  'welcome.plan.dateSummary.edit': {
+    AppLang.tr: 'Değiştir',
+    AppLang.en: 'Change'
+  },
+  'welcome.range.help': {
+    AppLang.tr: 'Gidiş — Dönüş tarihlerini seç',
+    AppLang.en: 'Select departure — return dates'
+  },
   'welcome.range.cancel': {AppLang.tr: 'Vazgeç', AppLang.en: 'Cancel'},
   'welcome.range.confirm': {AppLang.tr: 'Uygula', AppLang.en: 'Apply'},
   'welcome.save': {AppLang.tr: 'Kaydet', AppLang.en: 'Save'},
-  'welcome.origin.title': {AppLang.tr: 'Kalkış şehri', AppLang.en: 'Departure city'},
+  'welcome.origin.title': {
+    AppLang.tr: 'Kalkış şehri',
+    AppLang.en: 'Departure city'
+  },
   'welcome.back': {AppLang.tr: '← Geri', AppLang.en: '← Back'},
-  'welcome.originPill': {AppLang.tr: 'Kalkış: {city}', AppLang.en: 'From: {city}'},
-  'welcome.date.placeholder': {AppLang.tr: 'gg.aa.yyyy', AppLang.en: 'dd.mm.yyyy'},
+  'welcome.originPill': {
+    AppLang.tr: 'Kalkış: {city}',
+    AppLang.en: 'From: {city}'
+  },
+  'welcome.date.placeholder': {
+    AppLang.tr: 'gg.aa.yyyy',
+    AppLang.en: 'dd.mm.yyyy'
+  },
   'welcome.dest.country': {AppLang.tr: 'Japonya', AppLang.en: 'Japan'},
-  'welcome.dest.tokyo.tag': {AppLang.tr: 'Meiji, İmparatorluk Sarayı ve müzeler', AppLang.en: 'Meiji, the Imperial Palace and museums'},
-  'welcome.dest.osaka.tag': {AppLang.tr: 'Osaka Kalesi\'nin bulunduğu liman şehri', AppLang.en: 'The port city home to Osaka Castle'},
-  'welcome.range.tokyo.sakuraPeak': {AppLang.tr: '🌸 Sakura zirvesi', AppLang.en: '🌸 Peak sakura'},
-  'welcome.range.tokyo.lateSakura': {AppLang.tr: '🌸 Geç sakura, ılıman', AppLang.en: '🌸 Late sakura, mild'},
-  'welcome.range.tokyo.autumn': {AppLang.tr: '🍁 Sonbahar renkleri', AppLang.en: '🍁 Autumn colors'},
-  'welcome.range.osaka.sakuraKansai': {AppLang.tr: '🌸 Sakura + Kansai', AppLang.en: '🌸 Sakura + Kansai'},
-  'welcome.range.osaka.mild': {AppLang.tr: 'Ilıman, kalabalık az', AppLang.en: 'Mild, fewer crowds'},
-  'welcome.range.osaka.autumnFood': {AppLang.tr: '🍁 Sonbahar + gastronomi', AppLang.en: '🍁 Autumn + cuisine'},
+  'welcome.dest.tokyo.tag': {
+    AppLang.tr: 'Meiji, İmparatorluk Sarayı ve müzeler',
+    AppLang.en: 'Meiji, the Imperial Palace and museums'
+  },
+  'welcome.dest.osaka.tag': {
+    AppLang.tr: 'Osaka Kalesi\'nin bulunduğu liman şehri',
+    AppLang.en: 'The port city home to Osaka Castle'
+  },
+  'welcome.range.tokyo.sakuraPeak': {
+    AppLang.tr: '🌸 Sakura zirvesi',
+    AppLang.en: '🌸 Peak sakura'
+  },
+  'welcome.range.tokyo.lateSakura': {
+    AppLang.tr: '🌸 Geç sakura, ılıman',
+    AppLang.en: '🌸 Late sakura, mild'
+  },
+  'welcome.range.tokyo.autumn': {
+    AppLang.tr: '🍁 Sonbahar renkleri',
+    AppLang.en: '🍁 Autumn colors'
+  },
+  'welcome.range.osaka.sakuraKansai': {
+    AppLang.tr: '🌸 Sakura + Kansai',
+    AppLang.en: '🌸 Sakura + Kansai'
+  },
+  'welcome.range.osaka.mild': {
+    AppLang.tr: 'Ilıman, kalabalık az',
+    AppLang.en: 'Mild, fewer crowds'
+  },
+  'welcome.range.osaka.autumnFood': {
+    AppLang.tr: '🍁 Sonbahar + gastronomi',
+    AppLang.en: '🍁 Autumn + cuisine'
+  },
   'welcome.range.week': {AppLang.tr: '~{n} hafta', AppLang.en: '~{n} week'},
   'welcome.range.weeks': {AppLang.tr: '~{n} hafta', AppLang.en: '~{n} weeks'},
   'welcome.range.days': {AppLang.tr: '~{n} gün', AppLang.en: '~{n} days'},
@@ -889,49 +1651,125 @@ const Map<String, Map<AppLang, String>> _strings = {
   'placeDetail.duration': {AppLang.tr: 'Süre', AppLang.en: 'Duration'},
   'placeDetail.walking': {AppLang.tr: 'Yürüme', AppLang.en: 'Walking'},
   'placeDetail.ticketLabel': {AppLang.tr: 'Bilet', AppLang.en: 'Ticket'},
-  'placeDetail.daysBefore': {AppLang.tr: '{n} gün önce', AppLang.en: '{n} days ahead'},
+  'placeDetail.daysBefore': {
+    AppLang.tr: '{n} gün önce',
+    AppLang.en: '{n} days ahead'
+  },
   'placeDetail.steps': {AppLang.tr: '~{n} adım', AppLang.en: '~{n} steps'},
-  'placeDetail.stepsThousand': {AppLang.tr: '~{n} bin adım', AppLang.en: '~{n}k steps'},
+  'placeDetail.stepsThousand': {
+    AppLang.tr: '~{n} bin adım',
+    AppLang.en: '~{n}k steps'
+  },
   'placeDetail.durationMin': {AppLang.tr: '{n} dk', AppLang.en: '{n} min'},
   'placeDetail.durationHour': {AppLang.tr: '{n} saat', AppLang.en: '{n} hr'},
-  'placeDetail.durationHourMin': {AppLang.tr: '{h} sa {m} dk', AppLang.en: '{h} hr {m} min'},
+  'placeDetail.durationHourMin': {
+    AppLang.tr: '{h} sa {m} dk',
+    AppLang.en: '{h} hr {m} min'
+  },
   'placeDetail.thousandShort': {AppLang.tr: 'bin', AppLang.en: 'k'},
-  'placeDetail.reviewCount': {AppLang.tr: '({n} yorum)', AppLang.en: '({n} reviews)'},
-  'placeDetail.defaultIntro': {AppLang.tr: 'Planınızdaki bir durak.', AppLang.en: 'A stop on your itinerary.'},
-  'placeDetail.openMap': {AppLang.tr: 'Haritada aç', AppLang.en: 'Open in Maps'},
+  'placeDetail.reviewCount': {
+    AppLang.tr: '({n} yorum)',
+    AppLang.en: '({n} reviews)'
+  },
+  'placeDetail.defaultIntro': {
+    AppLang.tr: 'Planınızdaki bir durak.',
+    AppLang.en: 'A stop on your itinerary.'
+  },
+  'placeDetail.openMap': {
+    AppLang.tr: 'Haritada aç',
+    AppLang.en: 'Open in Maps'
+  },
   'placeDetail.edit': {AppLang.tr: 'Düzenle', AppLang.en: 'Edit'},
-  'placeDetail.mapOpenFailed': {AppLang.tr: 'Harita açılamadı — bağlantı panoya kopyalandı', AppLang.en: 'Couldn\'t open the map — link copied to clipboard'},
+  'placeDetail.mapOpenFailed': {
+    AppLang.tr: 'Harita açılamadı — bağlantı panoya kopyalandı',
+    AppLang.en: 'Couldn\'t open the map — link copied to clipboard'
+  },
   'placeDetail.camera': {AppLang.tr: 'Kamera', AppLang.en: 'Camera'},
   'placeDetail.gallery': {AppLang.tr: 'Galeri', AppLang.en: 'Gallery'},
   'placeDetail.cancel': {AppLang.tr: 'Vazgeç', AppLang.en: 'Cancel'},
   'placeDetail.addTicket': {AppLang.tr: 'Bilet ekle', AppLang.en: 'Add ticket'},
   'placeDetail.adding': {AppLang.tr: 'Ekleniyor…', AppLang.en: 'Adding…'},
-  'placeDetail.ticketCardTitle': {AppLang.tr: '🎫 Bilet', AppLang.en: '🎫 Ticket'},
-  'placeDetail.ticketAdded': {AppLang.tr: '🎫 Bilet eklendi', AppLang.en: '🎫 Ticket added'},
-  'placeDetail.ticketAddedStatus': {AppLang.tr: 'Bilet eklendi', AppLang.en: 'Ticket added'},
-  'placeDetail.ticketAddedWeb': {AppLang.tr: '🎫 Bilet eklendi · Otomatik metin çıkarımı cihazda (iOS) çalışır', AppLang.en: '🎫 Ticket added · Automatic text extraction runs on device (iOS)'},
-  'placeDetail.ticketAddFailed': {AppLang.tr: 'Bilet eklenemedi — tekrar deneyin', AppLang.en: 'Couldn\'t add the ticket — please try again'},
-  'placeDetail.visitDate': {AppLang.tr: 'Ziyaret: {date}', AppLang.en: 'Visit: {date}'},
-  'placeDetail.scannedText': {AppLang.tr: '📄 Okunan metin', AppLang.en: '📄 Scanned text'},
+  'placeDetail.ticketCardTitle': {
+    AppLang.tr: '🎫 Bilet',
+    AppLang.en: '🎫 Ticket'
+  },
+  'placeDetail.ticketAdded': {
+    AppLang.tr: '🎫 Bilet eklendi',
+    AppLang.en: '🎫 Ticket added'
+  },
+  'placeDetail.ticketAddedStatus': {
+    AppLang.tr: 'Bilet eklendi',
+    AppLang.en: 'Ticket added'
+  },
+  'placeDetail.ticketAddedWeb': {
+    AppLang.tr:
+        '🎫 Bilet eklendi · Otomatik metin çıkarımı cihazda (iOS) çalışır',
+    AppLang.en:
+        '🎫 Ticket added · Automatic text extraction runs on device (iOS)'
+  },
+  'placeDetail.ticketAddFailed': {
+    AppLang.tr: 'Bilet eklenemedi — tekrar deneyin',
+    AppLang.en: 'Couldn\'t add the ticket — please try again'
+  },
+  'placeDetail.visitDate': {
+    AppLang.tr: 'Ziyaret: {date}',
+    AppLang.en: 'Visit: {date}'
+  },
+  'placeDetail.scannedText': {
+    AppLang.tr: '📄 Okunan metin',
+    AppLang.en: '📄 Scanned text'
+  },
   'placeDetail.category.temple': {AppLang.tr: 'Tapınak', AppLang.en: 'Temple'},
   'placeDetail.category.shrine': {AppLang.tr: 'Tapınak', AppLang.en: 'Shrine'},
   'placeDetail.category.view': {AppLang.tr: 'Manzara', AppLang.en: 'View'},
   'placeDetail.category.city': {AppLang.tr: 'Şehir', AppLang.en: 'City'},
   'placeDetail.category.museum': {AppLang.tr: 'Müze', AppLang.en: 'Museum'},
   'placeDetail.category.park': {AppLang.tr: 'Park', AppLang.en: 'Park'},
-  'placeDetail.category.shopping': {AppLang.tr: 'Alışveriş', AppLang.en: 'Shopping'},
-  'placeDetail.category.fun': {AppLang.tr: 'Eğlence', AppLang.en: 'Entertainment'},
+  'placeDetail.category.shopping': {
+    AppLang.tr: 'Alışveriş',
+    AppLang.en: 'Shopping'
+  },
+  'placeDetail.category.fun': {
+    AppLang.tr: 'Eğlence',
+    AppLang.en: 'Entertainment'
+  },
   'placeDetail.category.nature': {AppLang.tr: 'Doğa', AppLang.en: 'Nature'},
   'placeDetail.category.food': {AppLang.tr: 'Yemek', AppLang.en: 'Food'},
   'placeDetail.category.culture': {AppLang.tr: 'Kültür', AppLang.en: 'Culture'},
-  'placeDetail.category.landmark': {AppLang.tr: 'Simge yapı', AppLang.en: 'Landmark'},
-  'plan.generate': {AppLang.tr: '✨ Gezi planı oluştur', AppLang.en: '✨ Build trip plan'},
-  'plan.regenerate': {AppLang.tr: '✨ Planı yeniden oluştur', AppLang.en: '✨ Rebuild trip plan'},
-  'plan.generating': {AppLang.tr: '✨ Plan oluşturuluyor…', AppLang.en: '✨ Building your plan…'},
-  'plan.generated': {AppLang.tr: '✨ Gezi planı oluşturuldu', AppLang.en: '✨ Trip plan ready'},
-  'plan.regenerated': {AppLang.tr: '✨ Plan yeniden oluşturuldu', AppLang.en: '✨ Plan rebuilt'},
-  'plan.regenConfirmTitle': {AppLang.tr: 'Planı yeniden oluştur', AppLang.en: 'Rebuild the plan'},
-  'plan.regenConfirmBody': {AppLang.tr: 'Mevcut plan küratörlü şablonlardan yeniden üretilecek. Elle yaptığınız düzenlemeler değişebilir. Devam edilsin mi?', AppLang.en: 'Your current plan will be rebuilt from curated templates. Your manual edits may change. Continue?'},
+  'placeDetail.category.landmark': {
+    AppLang.tr: 'Simge yapı',
+    AppLang.en: 'Landmark'
+  },
+  'plan.generate': {
+    AppLang.tr: '✨ Gezi planı oluştur',
+    AppLang.en: '✨ Build trip plan'
+  },
+  'plan.regenerate': {
+    AppLang.tr: '✨ Planı yeniden oluştur',
+    AppLang.en: '✨ Rebuild trip plan'
+  },
+  'plan.generating': {
+    AppLang.tr: '✨ Plan oluşturuluyor…',
+    AppLang.en: '✨ Building your plan…'
+  },
+  'plan.generated': {
+    AppLang.tr: '✨ Gezi planı oluşturuldu',
+    AppLang.en: '✨ Trip plan ready'
+  },
+  'plan.regenerated': {
+    AppLang.tr: '✨ Plan yeniden oluşturuldu',
+    AppLang.en: '✨ Plan rebuilt'
+  },
+  'plan.regenConfirmTitle': {
+    AppLang.tr: 'Planı yeniden oluştur',
+    AppLang.en: 'Rebuild the plan'
+  },
+  'plan.regenConfirmBody': {
+    AppLang.tr:
+        'Mevcut plan küratörlü şablonlardan yeniden üretilecek. Elle yaptığınız düzenlemeler değişebilir. Devam edilsin mi?',
+    AppLang.en:
+        'Your current plan will be rebuilt from curated templates. Your manual edits may change. Continue?'
+  },
   'plan.regenConfirm': {AppLang.tr: 'Yeniden oluştur', AppLang.en: 'Rebuild'},
   'plan.cancel': {AppLang.tr: 'Vazgeç', AppLang.en: 'Cancel'},
   'plan.delete': {AppLang.tr: 'Sil', AppLang.en: 'Delete'},
@@ -941,76 +1779,227 @@ const Map<String, Map<AppLang, String>> _strings = {
   'plan.addPlain': {AppLang.tr: 'Ekle', AppLang.en: 'Add'},
   'plan.addActivity': {AppLang.tr: '+ Aktivite', AppLang.en: '+ Activity'},
   'plan.optimize': {AppLang.tr: '⚡ Optimize et', AppLang.en: '⚡ Optimize'},
-  'plan.discover': {AppLang.tr: '🌍 Yeni durak keşfet', AppLang.en: '🌍 Discover a new stop'},
-  'plan.remindersAdded': {AppLang.tr: '🔔 {n} hatırlatma eklendi', AppLang.en: '🔔 {n} reminders added'},
+  'plan.discover': {
+    AppLang.tr: '🌍 Yeni durak keşfet',
+    AppLang.en: '🌍 Discover a new stop'
+  },
+  'plan.remindersAdded': {
+    AppLang.tr: '🔔 {n} hatırlatma eklendi',
+    AppLang.en: '🔔 {n} reminders added'
+  },
   'popular.title': {AppLang.tr: 'Popüler yerler', AppLang.en: 'Popular places'},
-  'popular.sub': {AppLang.tr: 'Plana eklemek istediklerini seç — istersen atla.', AppLang.en: 'Pick the ones to add to your plan — or skip.'},
+  'popular.sub': {
+    AppLang.tr: 'Plana eklemek istediklerini seç — istersen atla.',
+    AppLang.en: 'Pick the ones to add to your plan — or skip.'
+  },
   'popular.skip': {AppLang.tr: 'Atla', AppLang.en: 'Skip'},
-  'popular.confirm': {AppLang.tr: 'Ekle ve oluştur', AppLang.en: 'Add & generate'},
-  'popular.cityWarn.title': {AppLang.tr: 'Farklı şehir', AppLang.en: 'Different city'},
-  'popular.cityWarn.body': {AppLang.tr: '{place} {city} şehrinde. Rotana {city} eklenip plan ona göre yapılsın mı?', AppLang.en: '{place} is in {city}. Add {city} to your route and plan accordingly?'},
-  'popular.cityWarn.confirm': {AppLang.tr: 'Evet, ekle', AppLang.en: 'Yes, add'},
+  'popular.confirm': {
+    AppLang.tr: 'Ekle ve oluştur',
+    AppLang.en: 'Add & generate'
+  },
+  'popular.cityWarn.title': {
+    AppLang.tr: 'Farklı şehir',
+    AppLang.en: 'Different city'
+  },
+  'popular.cityWarn.body': {
+    AppLang.tr:
+        '{place} {city} şehrinde. Rotana {city} eklenip plan ona göre yapılsın mı?',
+    AppLang.en:
+        '{place} is in {city}. Add {city} to your route and plan accordingly?'
+  },
+  'popular.cityWarn.confirm': {
+    AppLang.tr: 'Evet, ekle',
+    AppLang.en: 'Yes, add'
+  },
   'popular.cityWarn.cancel': {AppLang.tr: 'Vazgeç', AppLang.en: 'Cancel'},
-  'plan.emptyRouteSub': {AppLang.tr: 'Önce Rota adımında havaalanı/durak ekleyin.', AppLang.en: 'Add an airport or stop in the Route step first.'},
-  'plan.daysRoute': {AppLang.tr: '{n} gün · {route}', AppLang.en: '{n} days · {route}'},
-  'plan.childrenSuffix': {AppLang.tr: ' · {n} çocuk', AppLang.en: ' · {n} children'},
+  'plan.emptyRouteSub': {
+    AppLang.tr: 'Önce Rota adımında havaalanı/durak ekleyin.',
+    AppLang.en: 'Add an airport or stop in the Route step first.'
+  },
+  'plan.daysRoute': {
+    AppLang.tr: '{n} gün · {route}',
+    AppLang.en: '{n} days · {route}'
+  },
+  'plan.childrenSuffix': {
+    AppLang.tr: ' · {n} çocuk',
+    AppLang.en: ' · {n} children'
+  },
   'plan.pace': {AppLang.tr: 'Tempo', AppLang.en: 'Pace'},
   'plan.childrenQuestion': {AppLang.tr: 'Çocuk', AppLang.en: 'Children'},
   'plan.pace.relaxed': {AppLang.tr: 'Rahat', AppLang.en: 'Relaxed'},
   'plan.pace.moderate': {AppLang.tr: 'Dengeli', AppLang.en: 'Balanced'},
   'plan.pace.intense': {AppLang.tr: 'Yoğun', AppLang.en: 'Intense'},
   'plan.stepsK': {AppLang.tr: '👣 {n}k adım', AppLang.en: '👣 {n}k steps'},
-  'plan.dayAlloc.title': {AppLang.tr: 'Gün dağılımı', AppLang.en: 'Days per city'},
-  'plan.dayAlloc.summary': {AppLang.tr: 'Toplam {total} gün · kalan {left}', AppLang.en: '{total} days total · {left} left'},
-  'plan.introBlurb': {AppLang.tr: 'Saat saat aktivite, ulaşım, restoran ve ipuçları küratörlü şablonlardan üretilir. Günleri sürükleyerek düzenleyebilirsiniz.', AppLang.en: 'Hour-by-hour activities, transport, restaurants and tips are generated from curated templates. Drag the days to rearrange them.'},
-  'plan.transitionsTitle': {AppLang.tr: '🚄 Şehirler arası geçiş önerisi', AppLang.en: '🚄 Suggested city-to-city transfer'},
-  'plan.addAll': {AppLang.tr: 'Hepsini ekle ({n})', AppLang.en: 'Add all ({n})'},
+  'plan.dayAlloc.title': {
+    AppLang.tr: 'Gün dağılımı',
+    AppLang.en: 'Days per city'
+  },
+  'plan.dayAlloc.summary': {
+    AppLang.tr: 'Toplam {total} gün · kalan {left}',
+    AppLang.en: '{total} days total · {left} left'
+  },
+  'plan.introBlurb': {
+    AppLang.tr:
+        'Saat saat aktivite, ulaşım, restoran ve ipuçları küratörlü şablonlardan üretilir. Günleri sürükleyerek düzenleyebilirsiniz.',
+    AppLang.en:
+        'Hour-by-hour activities, transport, restaurants and tips are generated from curated templates. Drag the days to rearrange them.'
+  },
+  'plan.transitionsTitle': {
+    AppLang.tr: '🚄 Şehirler arası geçiş önerisi',
+    AppLang.en: '🚄 Suggested city-to-city transfer'
+  },
+  'plan.addAll': {
+    AppLang.tr: 'Hepsini ekle ({n})',
+    AppLang.en: 'Add all ({n})'
+  },
   'plan.noPlanTitle': {AppLang.tr: 'Henüz plan yok', AppLang.en: 'No plan yet'},
-  'plan.noPlanBody': {AppLang.tr: 'Yukarıdaki butonla kur — sonra saat saat düzenleyebilirsin.', AppLang.en: 'Build it with the button above — then fine-tune it hour by hour.'},
-  'plan.emptyDaysTitle': {AppLang.tr: 'Gün listesi boş kaldı', AppLang.en: 'Your days are empty'},
-  'plan.emptyDaysBody': {AppLang.tr: 'Rota veya tarihleri güncelleyip "Planı yeniden oluştur"a bas.', AppLang.en: 'Update your route or dates, then tap "Rebuild trip plan".'},
-  'plan.pickTransportTitle': {AppLang.tr: 'Ulaşım modunu seç', AppLang.en: 'Choose transport mode'},
-  'plan.mode.shinkansenNote': {AppLang.tr: 'Yüksek hızlı tren — en hızlı, konforlu.', AppLang.en: 'High-speed rail — the fastest and most comfortable.'},
-  'plan.mode.trainLabel': {AppLang.tr: 'Yerel / hızlı tren', AppLang.en: 'Local / rapid train'},
-  'plan.mode.trainNote': {AppLang.tr: 'Daha ucuz, sürelidir. IC kart yeter.', AppLang.en: 'Cheaper but slower. An IC card is all you need.'},
-  'plan.mode.busLabel': {AppLang.tr: 'Gecelik otobüs', AppLang.en: 'Overnight bus'},
-  'plan.mode.busNote': {AppLang.tr: 'Ucuz ama 8+ saat sürer. Willer Express popüler.', AppLang.en: 'Cheap but takes 8+ hours. Willer Express is popular.'},
+  'plan.noPlanBody': {
+    AppLang.tr: 'Yukarıdaki butonla kur — sonra saat saat düzenleyebilirsin.',
+    AppLang.en:
+        'Build it with the button above — then fine-tune it hour by hour.'
+  },
+  'plan.emptyDaysTitle': {
+    AppLang.tr: 'Gün listesi boş kaldı',
+    AppLang.en: 'Your days are empty'
+  },
+  'plan.emptyDaysBody': {
+    AppLang.tr: 'Rota veya tarihleri güncelleyip "Planı yeniden oluştur"a bas.',
+    AppLang.en: 'Update your route or dates, then tap "Rebuild trip plan".'
+  },
+  'plan.pickTransportTitle': {
+    AppLang.tr: 'Ulaşım modunu seç',
+    AppLang.en: 'Choose transport mode'
+  },
+  'plan.mode.shinkansenNote': {
+    AppLang.tr: 'Yüksek hızlı tren — en hızlı, konforlu.',
+    AppLang.en: 'High-speed rail — the fastest and most comfortable.'
+  },
+  'plan.mode.trainLabel': {
+    AppLang.tr: 'Yerel / hızlı tren',
+    AppLang.en: 'Local / rapid train'
+  },
+  'plan.mode.trainNote': {
+    AppLang.tr: 'Daha ucuz, sürelidir. IC kart yeter.',
+    AppLang.en: 'Cheaper but slower. An IC card is all you need.'
+  },
+  'plan.mode.busLabel': {
+    AppLang.tr: 'Gecelik otobüs',
+    AppLang.en: 'Overnight bus'
+  },
+  'plan.mode.busNote': {
+    AppLang.tr: 'Ucuz ama 8+ saat sürer. Willer Express popüler.',
+    AppLang.en: 'Cheap but takes 8+ hours. Willer Express is popular.'
+  },
   'plan.mode.carLabel': {AppLang.tr: 'Kiralık araç', AppLang.en: 'Rental car'},
-  'plan.mode.carNote': {AppLang.tr: 'Uluslararası ehliyet gerekir. Kırsalda mantıklı.', AppLang.en: 'Requires an international license. Makes sense in rural areas.'},
-  'plan.dayRange': {AppLang.tr: 'Gün {from} → Gün {to} · {duration} · {fare}', AppLang.en: 'Day {from} → Day {to} · {duration} · {fare}'},
-  'plan.changeTransport': {AppLang.tr: 'Ulaşım değiştir', AppLang.en: 'Change transport'},
-  'plan.yamatoTitle': {AppLang.tr: 'Yamato Takkyubin — valiz transferi', AppLang.en: 'Yamato Takkyubin — luggage transfer'},
-  'plan.yamatoBody': {AppLang.tr: 'Valizini Yamato Takkyubin ile otele önceden gönderebilirsin — ~2000¥/parça, 1 gün sürer. Otel resepsiyonuna "takkyubin" de yeter.', AppLang.en: 'You can send your luggage ahead to the hotel with Yamato Takkyubin — about ¥2000 per piece, takes 1 day. Just say "takkyubin" at the hotel front desk.'},
+  'plan.mode.carNote': {
+    AppLang.tr: 'Uluslararası ehliyet gerekir. Kırsalda mantıklı.',
+    AppLang.en: 'Requires an international license. Makes sense in rural areas.'
+  },
+  'plan.dayRange': {
+    AppLang.tr: 'Gün {from} → Gün {to} · {duration} · {fare}',
+    AppLang.en: 'Day {from} → Day {to} · {duration} · {fare}'
+  },
+  'plan.changeTransport': {
+    AppLang.tr: 'Ulaşım değiştir',
+    AppLang.en: 'Change transport'
+  },
+  'plan.yamatoTitle': {
+    AppLang.tr: 'Yamato Takkyubin — valiz transferi',
+    AppLang.en: 'Yamato Takkyubin — luggage transfer'
+  },
+  'plan.yamatoBody': {
+    AppLang.tr:
+        'Valizini Yamato Takkyubin ile otele önceden gönderebilirsin — ~2000¥/parça, 1 gün sürer. Otel resepsiyonuna "takkyubin" de yeter.',
+    AppLang.en:
+        'You can send your luggage ahead to the hotel with Yamato Takkyubin — about ¥2000 per piece, takes 1 day. Just say "takkyubin" at the hotel front desk.'
+  },
   'plan.dayN': {AppLang.tr: 'Gün {n}', AppLang.en: 'Day {n}'},
   'plan.stops': {AppLang.tr: '{n} durak', AppLang.en: '{n} stops'},
   'plan.dayTheme': {AppLang.tr: 'Gün teması', AppLang.en: 'Day theme'},
-  'plan.dayThemeHint': {AppLang.tr: 'Örn. Asakusa & Skytree', AppLang.en: 'e.g. Asakusa & Skytree'},
-  'plan.dayEmpty': {AppLang.tr: 'Bu güne aktivite ekleyin veya başka günden taşıyın.', AppLang.en: 'Add an activity to this day, or move one from another day.'},
-  'plan.removeConfirmTitle': {AppLang.tr: 'Aktiviteyi sil', AppLang.en: 'Remove activity'},
-  'plan.removeConfirmBody': {AppLang.tr: '"{title}" silinsin mi?', AppLang.en: 'Remove "{title}"?'},
-  'plan.movedFrom': {AppLang.tr: '↕ Gün {n}\'den taşındı', AppLang.en: '↕ Moved from Day {n}'},
-  'plan.moveToDay': {AppLang.tr: 'Başka güne taşı', AppLang.en: 'Move to another day'},
-  'plan.dayWithDate': {AppLang.tr: 'Gün {n} · {date}', AppLang.en: 'Day {n} · {date}'},
-  'plan.editActivity': {AppLang.tr: 'Aktiviteyi düzenle', AppLang.en: 'Edit activity'},
+  'plan.dayThemeHint': {
+    AppLang.tr: 'Örn. Asakusa & Skytree',
+    AppLang.en: 'e.g. Asakusa & Skytree'
+  },
+  'plan.dayEmpty': {
+    AppLang.tr: 'Bu güne aktivite ekleyin veya başka günden taşıyın.',
+    AppLang.en: 'Add an activity to this day, or move one from another day.'
+  },
+  'plan.removeConfirmTitle': {
+    AppLang.tr: 'Aktiviteyi sil',
+    AppLang.en: 'Remove activity'
+  },
+  'plan.removeConfirmBody': {
+    AppLang.tr: '"{title}" silinsin mi?',
+    AppLang.en: 'Remove "{title}"?'
+  },
+  'plan.movedFrom': {
+    AppLang.tr: '↕ Gün {n}\'den taşındı',
+    AppLang.en: '↕ Moved from Day {n}'
+  },
+  'plan.moveToDay': {
+    AppLang.tr: 'Başka güne taşı',
+    AppLang.en: 'Move to another day'
+  },
+  'plan.dayWithDate': {
+    AppLang.tr: 'Gün {n} · {date}',
+    AppLang.en: 'Day {n} · {date}'
+  },
+  'plan.editActivity': {
+    AppLang.tr: 'Aktiviteyi düzenle',
+    AppLang.en: 'Edit activity'
+  },
   'plan.fieldTitle': {AppLang.tr: 'Başlık', AppLang.en: 'Title'},
   'plan.fieldTime': {AppLang.tr: 'Saat', AppLang.en: 'Time'},
   'plan.fieldDuration': {AppLang.tr: 'Süre (dk)', AppLang.en: 'Duration (min)'},
   'plan.fieldCost': {AppLang.tr: 'Ücret', AppLang.en: 'Cost'},
   'plan.fieldCurrency': {AppLang.tr: 'Birim', AppLang.en: 'Currency'},
   'plan.fieldDescription': {AppLang.tr: 'Açıklama', AppLang.en: 'Description'},
-  'plan.fieldDescriptionHint': {AppLang.tr: 'Kısa açıklama', AppLang.en: 'Short description'},
+  'plan.fieldDescriptionHint': {
+    AppLang.tr: 'Kısa açıklama',
+    AppLang.en: 'Short description'
+  },
   'plan.fieldTips': {AppLang.tr: 'İpucu', AppLang.en: 'Tip'},
-  'plan.fieldTipsHint': {AppLang.tr: 'Örn. Erken git, sıra uzun olur', AppLang.en: 'e.g. Go early, the line gets long'},
-  'plan.copyMapLink': {AppLang.tr: '🗺️ Harita linkini kopyala', AppLang.en: '🗺️ Copy map link'},
-  'plan.mapLinkCopied': {AppLang.tr: 'Harita linki kopyalandı', AppLang.en: 'Map link copied'},
+  'plan.fieldTipsHint': {
+    AppLang.tr: 'Örn. Erken git, sıra uzun olur',
+    AppLang.en: 'e.g. Go early, the line gets long'
+  },
+  'plan.copyMapLink': {
+    AppLang.tr: '🗺️ Harita linkini kopyala',
+    AppLang.en: '🗺️ Copy map link'
+  },
+  'plan.mapLinkCopied': {
+    AppLang.tr: 'Harita linki kopyalandı',
+    AppLang.en: 'Map link copied'
+  },
   'plan.pickTime': {AppLang.tr: 'Saat seç', AppLang.en: 'Pick a time'},
-  'plan.discoverPortal': {AppLang.tr: 'Keşif portalı', AppLang.en: 'Discovery portal'},
-  'plan.placeSuggestions': {AppLang.tr: 'Yer önerileri', AppLang.en: 'Place suggestions'},
-  'plan.discoverSub': {AppLang.tr: 'En çok ziyaret edilen yerler — karta dokununca plana eklenir.', AppLang.en: 'The most-visited places — tap a card to add it to your plan.'},
-  'plan.pickMultiple': {AppLang.tr: 'Birden fazla seçebilirsin', AppLang.en: 'You can pick more than one'},
-  'plan.placesAdded': {AppLang.tr: '{n} yer eklendi', AppLang.en: '{n} places added'},
-  'plan.advanceBooking': {AppLang.tr: '🎟 {n} gün önce bilet', AppLang.en: '🎟 Book {n} days ahead'},
-  'plan.kidFriendly': {AppLang.tr: '🧒 Çocuk dostu', AppLang.en: '🧒 Kid-friendly'},
+  'plan.discoverPortal': {
+    AppLang.tr: 'Keşif portalı',
+    AppLang.en: 'Discovery portal'
+  },
+  'plan.placeSuggestions': {
+    AppLang.tr: 'Yer önerileri',
+    AppLang.en: 'Place suggestions'
+  },
+  'plan.discoverSub': {
+    AppLang.tr: 'En çok ziyaret edilen yerler — karta dokununca plana eklenir.',
+    AppLang.en: 'The most-visited places — tap a card to add it to your plan.'
+  },
+  'plan.pickMultiple': {
+    AppLang.tr: 'Birden fazla seçebilirsin',
+    AppLang.en: 'You can pick more than one'
+  },
+  'plan.placesAdded': {
+    AppLang.tr: '{n} yer eklendi',
+    AppLang.en: '{n} places added'
+  },
+  'plan.advanceBooking': {
+    AppLang.tr: '🎟 {n} gün önce bilet',
+    AppLang.en: '🎟 Book {n} days ahead'
+  },
+  'plan.kidFriendly': {
+    AppLang.tr: '🧒 Çocuk dostu',
+    AppLang.en: '🧒 Kid-friendly'
+  },
   'plan.durMin': {AppLang.tr: '{n} dk', AppLang.en: '{n} min'},
   'plan.durHour': {AppLang.tr: '{n} saat', AppLang.en: '{n} hr'},
   'plan.durHourMin': {AppLang.tr: '{h} sa {m} dk', AppLang.en: '{h}h {m}m'},
@@ -1018,12 +2007,27 @@ const Map<String, Map<AppLang, String>> _strings = {
   'plan.kindMeal': {AppLang.tr: 'Yemek', AppLang.en: 'Food'},
   'plan.kindTransport': {AppLang.tr: 'Ulaşım', AppLang.en: 'Transport'},
   'plan.kindHotel': {AppLang.tr: 'Otel', AppLang.en: 'Hotel'},
-  'plan.addActivityTitle': {AppLang.tr: 'Yeni aktivite ekle', AppLang.en: 'Add new activity'},
+  'plan.addActivityTitle': {
+    AppLang.tr: 'Yeni aktivite ekle',
+    AppLang.en: 'Add new activity'
+  },
   'plan.placeName': {AppLang.tr: 'Yer adı', AppLang.en: 'Place name'},
-  'plan.placeNameRequired': {AppLang.tr: 'Yer adı gerekli', AppLang.en: 'Place name is required'},
-  'plan.placeNameHint': {AppLang.tr: 'Örn. Senso-ji, teamLab, ramen molası', AppLang.en: 'e.g. Senso-ji, teamLab, ramen break'},
-  'plan.noSlots': {AppLang.tr: 'Boş dilim yok — mevcut aktivitelerden birini kaldır.', AppLang.en: 'No open slots — remove one of the existing activities.'},
-  'plan.kindOptional': {AppLang.tr: 'Tür (opsiyonel)', AppLang.en: 'Type (optional)'},
+  'plan.placeNameRequired': {
+    AppLang.tr: 'Yer adı gerekli',
+    AppLang.en: 'Place name is required'
+  },
+  'plan.placeNameHint': {
+    AppLang.tr: 'Örn. Senso-ji, teamLab, ramen molası',
+    AppLang.en: 'e.g. Senso-ji, teamLab, ramen break'
+  },
+  'plan.noSlots': {
+    AppLang.tr: 'Boş dilim yok — mevcut aktivitelerden birini kaldır.',
+    AppLang.en: 'No open slots — remove one of the existing activities.'
+  },
+  'plan.kindOptional': {
+    AppLang.tr: 'Tür (opsiyonel)',
+    AppLang.en: 'Type (optional)'
+  },
   'shell.brand': {AppLang.tr: 'Seyahat', AppLang.en: 'Trip'},
   'shell.newPlan': {AppLang.tr: 'Yeni plan', AppLang.en: 'New plan'},
   'shell.guide': {AppLang.tr: 'Rehber', AppLang.en: 'Guide'},
@@ -1033,149 +2037,613 @@ const Map<String, Map<AppLang, String>> _strings = {
 
   // ===== Screens + data labels (Wave 2/3, agent-generated) =====
   'compassData.cat.basic': {AppLang.tr: 'Temel', AppLang.en: 'Basics'},
-  'compassData.cat.food': {AppLang.tr: 'Yemekte sor', AppLang.en: 'Ask about food'},
-  'compassData.cat.directions': {AppLang.tr: 'Yol sor', AppLang.en: 'Ask for directions'},
+  'compassData.cat.food': {
+    AppLang.tr: 'Yemekte sor',
+    AppLang.en: 'Ask about food'
+  },
+  'compassData.cat.directions': {
+    AppLang.tr: 'Yol sor',
+    AppLang.en: 'Ask for directions'
+  },
   'compassData.cat.emergency': {AppLang.tr: 'Acil', AppLang.en: 'Emergency'},
-  'compassData.phrase.basic.excuseMe': {AppLang.tr: 'Affedersiniz / Pardon', AppLang.en: 'Excuse me / Sorry'},
-  'compassData.phrase.basic.thanks': {AppLang.tr: 'Çok teşekkürler', AppLang.en: 'Thank you very much'},
-  'compassData.phrase.basic.english': {AppLang.tr: 'İngilizce biliyor musunuz?', AppLang.en: 'Do you speak English?'},
-  'compassData.phrase.basic.howMuch': {AppLang.tr: 'Kaç para?', AppLang.en: 'How much is it?'},
-  'compassData.phrase.basic.toilet': {AppLang.tr: 'Tuvalet nerede?', AppLang.en: 'Where is the toilet?'},
-  'compassData.phrase.food.pork': {AppLang.tr: 'Bu yemekte domuz eti var mı?', AppLang.en: 'Does this dish contain pork?'},
-  'compassData.phrase.food.lard': {AppLang.tr: 'Domuz yağı kullanılıyor mu?', AppLang.en: 'Is lard used in this?'},
-  'compassData.phrase.food.alcohol': {AppLang.tr: 'Alkol içeriyor mu?', AppLang.en: 'Does it contain alcohol?'},
-  'compassData.phrase.food.chicken': {AppLang.tr: 'Tavuklu seçenek var mı?', AppLang.en: 'Is there a chicken option?'},
-  'compassData.phrase.food.seafood': {AppLang.tr: 'Deniz ürünü içeriyor mu?', AppLang.en: 'Does it contain seafood?'},
-  'compassData.phrase.food.kidMild': {AppLang.tr: 'Çocuk için acısız bir seçenek var mı?', AppLang.en: 'Is there a non-spicy option for kids?'},
-  'compassData.phrase.food.vegetarian': {AppLang.tr: 'Vejetaryen menü var mı?', AppLang.en: 'Is there a vegetarian menu?'},
-  'compassData.phrase.directions.station': {AppLang.tr: 'İstasyon nerede?', AppLang.en: 'Where is the station?'},
-  'compassData.phrase.directions.trainGoes': {AppLang.tr: 'Bu tren __ a gidiyor mu?', AppLang.en: 'Does this train go to __?'},
-  'compassData.phrase.directions.takeMeTo': {AppLang.tr: 'Lütfen __ a kadar', AppLang.en: 'Please take me to __'},
-  'compassData.phrase.directions.showMap': {AppLang.tr: 'Haritayı gösterir misiniz?', AppLang.en: 'Could you show me on the map?'},
-  'compassData.phrase.emergency.help': {AppLang.tr: 'İmdat!', AppLang.en: 'Help!'},
-  'compassData.phrase.emergency.ambulance': {AppLang.tr: 'Ambulans çağırın', AppLang.en: 'Please call an ambulance'},
-  'compassData.phrase.emergency.police': {AppLang.tr: 'Polis çağırın', AppLang.en: 'Please call the police'},
-  'compassData.phrase.emergency.feelSick': {AppLang.tr: 'Kendimi iyi hissetmiyorum', AppLang.en: 'I feel unwell'},
-  'compassData.phrase.emergency.lostPassport': {AppLang.tr: 'Pasaportumu kaybettim', AppLang.en: 'I lost my passport'},
+  'compassData.phrase.basic.excuseMe': {
+    AppLang.tr: 'Affedersiniz / Pardon',
+    AppLang.en: 'Excuse me / Sorry'
+  },
+  'compassData.phrase.basic.thanks': {
+    AppLang.tr: 'Çok teşekkürler',
+    AppLang.en: 'Thank you very much'
+  },
+  'compassData.phrase.basic.english': {
+    AppLang.tr: 'İngilizce biliyor musunuz?',
+    AppLang.en: 'Do you speak English?'
+  },
+  'compassData.phrase.basic.howMuch': {
+    AppLang.tr: 'Kaç para?',
+    AppLang.en: 'How much is it?'
+  },
+  'compassData.phrase.basic.toilet': {
+    AppLang.tr: 'Tuvalet nerede?',
+    AppLang.en: 'Where is the toilet?'
+  },
+  'compassData.phrase.food.pork': {
+    AppLang.tr: 'Bu yemekte domuz eti var mı?',
+    AppLang.en: 'Does this dish contain pork?'
+  },
+  'compassData.phrase.food.lard': {
+    AppLang.tr: 'Domuz yağı kullanılıyor mu?',
+    AppLang.en: 'Is lard used in this?'
+  },
+  'compassData.phrase.food.alcohol': {
+    AppLang.tr: 'Alkol içeriyor mu?',
+    AppLang.en: 'Does it contain alcohol?'
+  },
+  'compassData.phrase.food.chicken': {
+    AppLang.tr: 'Tavuklu seçenek var mı?',
+    AppLang.en: 'Is there a chicken option?'
+  },
+  'compassData.phrase.food.seafood': {
+    AppLang.tr: 'Deniz ürünü içeriyor mu?',
+    AppLang.en: 'Does it contain seafood?'
+  },
+  'compassData.phrase.food.kidMild': {
+    AppLang.tr: 'Çocuk için acısız bir seçenek var mı?',
+    AppLang.en: 'Is there a non-spicy option for kids?'
+  },
+  'compassData.phrase.food.vegetarian': {
+    AppLang.tr: 'Vejetaryen menü var mı?',
+    AppLang.en: 'Is there a vegetarian menu?'
+  },
+  'compassData.phrase.directions.station': {
+    AppLang.tr: 'İstasyon nerede?',
+    AppLang.en: 'Where is the station?'
+  },
+  'compassData.phrase.directions.trainGoes': {
+    AppLang.tr: 'Bu tren __ a gidiyor mu?',
+    AppLang.en: 'Does this train go to __?'
+  },
+  'compassData.phrase.directions.takeMeTo': {
+    AppLang.tr: 'Lütfen __ a kadar',
+    AppLang.en: 'Please take me to __'
+  },
+  'compassData.phrase.directions.showMap': {
+    AppLang.tr: 'Haritayı gösterir misiniz?',
+    AppLang.en: 'Could you show me on the map?'
+  },
+  'compassData.phrase.emergency.help': {
+    AppLang.tr: 'İmdat!',
+    AppLang.en: 'Help!'
+  },
+  'compassData.phrase.emergency.ambulance': {
+    AppLang.tr: 'Ambulans çağırın',
+    AppLang.en: 'Please call an ambulance'
+  },
+  'compassData.phrase.emergency.police': {
+    AppLang.tr: 'Polis çağırın',
+    AppLang.en: 'Please call the police'
+  },
+  'compassData.phrase.emergency.feelSick': {
+    AppLang.tr: 'Kendimi iyi hissetmiyorum',
+    AppLang.en: 'I feel unwell'
+  },
+  'compassData.phrase.emergency.lostPassport': {
+    AppLang.tr: 'Pasaportumu kaybettim',
+    AppLang.en: 'I lost my passport'
+  },
   'compassData.emergency.police': {AppLang.tr: 'Polis', AppLang.en: 'Police'},
-  'compassData.emergency.ambulanceFire': {AppLang.tr: 'Ambulans / İtfaiye', AppLang.en: 'Ambulance / Fire'},
-  'compassData.emergency.foreignHelp': {AppLang.tr: 'Yabancı danışma (Tokyo)', AppLang.en: 'Foreign assistance (Tokyo)'},
-  'compassData.emergency.trEmbassy': {AppLang.tr: 'TR Tokyo Büyükelçiliği', AppLang.en: 'Turkish Embassy, Tokyo'},
-  'compassData.money.title': {AppLang.tr: 'Para & Döviz', AppLang.en: 'Money & Currency'},
+  'compassData.emergency.ambulanceFire': {
+    AppLang.tr: 'Ambulans / İtfaiye',
+    AppLang.en: 'Ambulance / Fire'
+  },
+  'compassData.emergency.foreignHelp': {
+    AppLang.tr: 'Yabancı danışma (Tokyo)',
+    AppLang.en: 'Foreign assistance (Tokyo)'
+  },
+  'compassData.emergency.trEmbassy': {
+    AppLang.tr: 'TR Tokyo Büyükelçiliği',
+    AppLang.en: 'Turkish Embassy, Tokyo'
+  },
+  'compassData.money.title': {
+    AppLang.tr: 'Para & Döviz',
+    AppLang.en: 'Money & Currency'
+  },
   'compassData.money.subtitle': {AppLang.tr: 'JPY', AppLang.en: 'JPY'},
-  'compassData.money.line': {AppLang.tr: '1.000 ¥ ≈ kur değişir · 7-Eleven ATM yabancı kart kabul · Suica/Pasmo IC kart metro + konbini için pratik.', AppLang.en: '¥1,000 ≈ varies with the rate · 7-Eleven ATMs accept foreign cards · a Suica/Pasmo IC card is handy for the metro + konbini.'},
-  'compassData.culture.title': {AppLang.tr: 'Kültür kuralları', AppLang.en: 'Cultural etiquette'},
-  'compassData.culture.subtitle': {AppLang.tr: 'Yerel etiket', AppLang.en: 'Local etiquette'},
-  'compassData.culture.metro.label': {AppLang.tr: 'Metro:', AppLang.en: 'Metro:'},
-  'compassData.culture.metro.text': {AppLang.tr: 'Sessiz ol, telefonda konuşma; önce inenlere yol ver.', AppLang.en: 'Stay quiet, don\'t talk on the phone; let passengers off first.'},
-  'compassData.culture.tipping.label': {AppLang.tr: 'Bahşiş:', AppLang.en: 'Tipping:'},
-  'compassData.culture.tipping.text': {AppLang.tr: 'Verilmez — hakaret sayılabilir.', AppLang.en: 'Not expected — it can even be taken as an insult.'},
-  'compassData.culture.temple.label': {AppLang.tr: 'Tapınak:', AppLang.en: 'Temple:'},
-  'compassData.culture.temple.text': {AppLang.tr: 'Bazı yerlerde ayakkabı çıkarılır; çekim yasaklarına dikkat.', AppLang.en: 'Shoes come off in some places; mind the photography bans.'},
+  'compassData.money.line': {
+    AppLang.tr:
+        '1.000 ¥ ≈ kur değişir · 7-Eleven ATM yabancı kart kabul · Suica/Pasmo IC kart metro + konbini için pratik.',
+    AppLang.en:
+        '¥1,000 ≈ varies with the rate · 7-Eleven ATMs accept foreign cards · a Suica/Pasmo IC card is handy for the metro + konbini.'
+  },
+  'compassData.culture.title': {
+    AppLang.tr: 'Kültür kuralları',
+    AppLang.en: 'Cultural etiquette'
+  },
+  'compassData.culture.subtitle': {
+    AppLang.tr: 'Yerel etiket',
+    AppLang.en: 'Local etiquette'
+  },
+  'compassData.culture.metro.label': {
+    AppLang.tr: 'Metro:',
+    AppLang.en: 'Metro:'
+  },
+  'compassData.culture.metro.text': {
+    AppLang.tr: 'Sessiz ol, telefonda konuşma; önce inenlere yol ver.',
+    AppLang.en:
+        'Stay quiet, don\'t talk on the phone; let passengers off first.'
+  },
+  'compassData.culture.tipping.label': {
+    AppLang.tr: 'Bahşiş:',
+    AppLang.en: 'Tipping:'
+  },
+  'compassData.culture.tipping.text': {
+    AppLang.tr: 'Verilmez — hakaret sayılabilir.',
+    AppLang.en: 'Not expected — it can even be taken as an insult.'
+  },
+  'compassData.culture.temple.label': {
+    AppLang.tr: 'Tapınak:',
+    AppLang.en: 'Temple:'
+  },
+  'compassData.culture.temple.text': {
+    AppLang.tr: 'Bazı yerlerde ayakkabı çıkarılır; çekim yasaklarına dikkat.',
+    AppLang.en: 'Shoes come off in some places; mind the photography bans.'
+  },
   'compassData.culture.trash.label': {AppLang.tr: 'Çöp:', AppLang.en: 'Trash:'},
-  'compassData.culture.trash.text': {AppLang.tr: 'Sokakta çöp kutusu yok; yanında taşı, otele götür.', AppLang.en: 'No bins on the street; carry it with you and take it back to the hotel.'},
-  'gps.title': {AppLang.tr: 'GPS Simülatörü (test)', AppLang.en: 'GPS Simulator (test)'},
-  'gps.snack.teleport': {AppLang.tr: '📍 {emoji} {name} konumuna gidildi (dwell başladı)', AppLang.en: '📍 Arrived at {emoji} {name} (dwell started)'},
-  'gps.snack.autoTourDone': {AppLang.tr: '🎲 Otomatik tur tamamlandı', AppLang.en: '🎲 Auto tour complete'},
-  'gps.intro': {AppLang.tr: 'Bu araç sahte konum verisi besler; gerçek GPS gerektirmez. Buradaki keşifler kalıcıdır ve keşif haritasında da görünür.', AppLang.en: 'This tool feeds mock location data — no real GPS required. Discoveries made here are permanent and also appear on the explore map.'},
-  'gps.simClock': {AppLang.tr: '🕒 Simüle saat: {time}', AppLang.en: '🕒 Sim clock: {time}'},
+  'compassData.culture.trash.text': {
+    AppLang.tr: 'Sokakta çöp kutusu yok; yanında taşı, otele götür.',
+    AppLang.en:
+        'No bins on the street; carry it with you and take it back to the hotel.'
+  },
+  'gps.title': {
+    AppLang.tr: 'GPS Simülatörü (test)',
+    AppLang.en: 'GPS Simulator (test)'
+  },
+  'gps.snack.teleport': {
+    AppLang.tr: '📍 {emoji} {name} konumuna gidildi (dwell başladı)',
+    AppLang.en: '📍 Arrived at {emoji} {name} (dwell started)'
+  },
+  'gps.snack.autoTourDone': {
+    AppLang.tr: '🎲 Otomatik tur tamamlandı',
+    AppLang.en: '🎲 Auto tour complete'
+  },
+  'gps.intro': {
+    AppLang.tr:
+        'Bu araç sahte konum verisi besler; gerçek GPS gerektirmez. Buradaki keşifler kalıcıdır ve keşif haritasında da görünür.',
+    AppLang.en:
+        'This tool feeds mock location data — no real GPS required. Discoveries made here are permanent and also appear on the explore map.'
+  },
+  'gps.simClock': {
+    AppLang.tr: '🕒 Simüle saat: {time}',
+    AppLang.en: '🕒 Sim clock: {time}'
+  },
   'gps.plus1min': {AppLang.tr: '+1 dk', AppLang.en: '+1 min'},
   'gps.plus10min': {AppLang.tr: '+10 dk (bekle)', AppLang.en: '+10 min (wait)'},
   'gps.readout.discoveries': {AppLang.tr: 'Keşif', AppLang.en: 'Discoveries'},
   'gps.readout.badges': {AppLang.tr: 'Rozet', AppLang.en: 'Badges'},
-  'gps.autoTour': {AppLang.tr: '🎲 Otomatik tur (ilk 6 nokta)', AppLang.en: '🎲 Auto tour (first 6 spots)'},
-  'gps.emptyFences': {AppLang.tr: 'Bu rotada küratörlü nokta yok. Planlayıcıda Tokyo, Kyoto, Osaka gibi şehirler ekle.', AppLang.en: 'No curated spots on this route. Add cities like Tokyo, Kyoto or Osaka in the planner.'},
-  'gps.fence.discovered': {AppLang.tr: 'keşfedildi ✓', AppLang.en: 'discovered ✓'},
+  'gps.autoTour': {
+    AppLang.tr: '🎲 Otomatik tur (ilk 6 nokta)',
+    AppLang.en: '🎲 Auto tour (first 6 spots)'
+  },
+  'gps.emptyFences': {
+    AppLang.tr:
+        'Bu rotada küratörlü nokta yok. Planlayıcıda Tokyo, Kyoto, Osaka gibi şehirler ekle.',
+    AppLang.en:
+        'No curated spots on this route. Add cities like Tokyo, Kyoto or Osaka in the planner.'
+  },
+  'gps.fence.discovered': {
+    AppLang.tr: 'keşfedildi ✓',
+    AppLang.en: 'discovered ✓'
+  },
   'gps.fence.goHere': {AppLang.tr: '📍 Buraya git', AppLang.en: '📍 Go here'},
-  'gps.fence.dwell': {AppLang.tr: '⏱️ 10 dk kal & onayla', AppLang.en: '⏱️ Stay 10 min & confirm'},
+  'gps.fence.dwell': {
+    AppLang.tr: '⏱️ 10 dk kal & onayla',
+    AppLang.en: '⏱️ Stay 10 min & confirm'
+  },
   'map.dayTitle': {AppLang.tr: '🗺️ Gün {day}', AppLang.en: '🗺️ Day {day}'},
-  'map.prewarm': {AppLang.tr: '📥 Çevrimdışı hazırla', AppLang.en: '📥 Prepare offline'},
-  'map.prewarmDone': {AppLang.tr: 'Çevrimdışı hazır — {count} kare', AppLang.en: 'Offline ready — {count} tiles'},
-  'map.prewarmSkipped': {AppLang.tr: 'Çevrimdışı hazırlama atlandı (alan çok geniş ya da web).', AppLang.en: 'Offline prep skipped (area too large, or running on web).'},
-  'map.prewarmFailed': {AppLang.tr: 'Çevrimdışı hazırlama başarısız: {err}', AppLang.en: 'Offline prep failed: {err}'},
-  'map.osmAttribution': {AppLang.tr: '© OpenStreetMap katkıda bulunanlar', AppLang.en: '© OpenStreetMap contributors'},
-  'map.emptyBanner': {AppLang.tr: 'Bu güne haritada gösterilecek konumlu durak yok.', AppLang.en: 'No located stops to show on the map for this day.'},
-  'map.openInGoogleMaps': {AppLang.tr: 'Google Maps\'te aç', AppLang.en: 'Open in Google Maps'},
-  'map.openFailed': {AppLang.tr: 'Harita açılamadı — URL panoya kopyalandı', AppLang.en: 'Couldn\'t open the map — URL copied to clipboard'},
-  'map.truncatedWaypoints': {AppLang.tr: 'Google Maps sınırı: sadece ilk 9 durak yönlendirmeye eklendi.', AppLang.en: 'Google Maps limit: only the first 9 stops added to the route.'},
-  'map.openTripInGoogleMaps': {AppLang.tr: 'Tüm rotayı Google Maps\'te aç', AppLang.en: 'Open the full trip in Google Maps'},
-  'home.appTitle': {AppLang.tr: 'Rotori Önizleme', AppLang.en: 'Rotori Preview'},
-  'home.appBar': {AppLang.tr: 'Rotori · Önizleme', AppLang.en: 'Rotori · Preview'},
-  'home.planLoadFailed': {AppLang.tr: 'Plan yüklenemedi: {err}', AppLang.en: 'Failed to load plan: {err}'},
-  'home.demoLoaded': {AppLang.tr: '🇯🇵 Demo veri yüklendi', AppLang.en: '🇯🇵 Demo data loaded'},
-  'home.demoSub': {AppLang.tr: 'Tokyo + Kyoto rotalı, dolu günlü örnek plan. Supabase/login yok — sadece görsel kontrol.', AppLang.en: 'A full sample itinerary along a Tokyo + Kyoto route. No Supabase or login — just a visual preview.'},
-  'home.card.new.title': {AppLang.tr: 'Sıfırdan yeni plan', AppLang.en: 'New plan from scratch'},
-  'home.card.new.sub': {AppLang.tr: 'Boş bir gezi ile Welcome adımından başla', AppLang.en: 'Start from the Welcome step with an empty trip'},
-  'home.card.planner.title': {AppLang.tr: 'Planlayıcı (demo)', AppLang.en: 'Planner (demo)'},
-  'home.card.planner.sub': {AppLang.tr: 'Dolu Tokyo+Kyoto demo planında adımları gez', AppLang.en: 'Walk the steps in the full Tokyo+Kyoto demo plan'},
-  'home.card.viewer.title': {AppLang.tr: 'Rehber (Viewer)', AppLang.en: 'Guide (Viewer)'},
-  'home.card.viewer.sub': {AppLang.tr: 'Geri sayım, günlük plan, keşif haritası girişi', AppLang.en: 'Countdown, daily plan, explore-map entry'},
+  'map.prewarm': {
+    AppLang.tr: '📥 Çevrimdışı hazırla',
+    AppLang.en: '📥 Prepare offline'
+  },
+  'map.prewarmDone': {
+    AppLang.tr: 'Çevrimdışı hazır — {count} kare',
+    AppLang.en: 'Offline ready — {count} tiles'
+  },
+  'map.prewarmSkipped': {
+    AppLang.tr: 'Çevrimdışı hazırlama atlandı (alan çok geniş ya da web).',
+    AppLang.en: 'Offline prep skipped (area too large, or running on web).'
+  },
+  'map.prewarmFailed': {
+    AppLang.tr: 'Çevrimdışı hazırlama başarısız: {err}',
+    AppLang.en: 'Offline prep failed: {err}'
+  },
+  'map.osmAttribution': {
+    AppLang.tr: '© OpenStreetMap katkıda bulunanlar',
+    AppLang.en: '© OpenStreetMap contributors'
+  },
+  'map.emptyBanner': {
+    AppLang.tr: 'Bu güne haritada gösterilecek konumlu durak yok.',
+    AppLang.en: 'No located stops to show on the map for this day.'
+  },
+  'map.openInGoogleMaps': {
+    AppLang.tr: 'Google Maps\'te aç',
+    AppLang.en: 'Open in Google Maps'
+  },
+  'map.openFailed': {
+    AppLang.tr: 'Harita açılamadı — URL panoya kopyalandı',
+    AppLang.en: 'Couldn\'t open the map — URL copied to clipboard'
+  },
+  'map.truncatedWaypoints': {
+    AppLang.tr: 'Google Maps sınırı: sadece ilk 9 durak yönlendirmeye eklendi.',
+    AppLang.en: 'Google Maps limit: only the first 9 stops added to the route.'
+  },
+  'map.openTripInGoogleMaps': {
+    AppLang.tr: 'Tüm rotayı Google Maps\'te aç',
+    AppLang.en: 'Open the full trip in Google Maps'
+  },
+  'routeOptimization.action': {
+    AppLang.tr: 'Rotayı optimize et',
+    AppLang.en: 'Optimize route'
+  },
+  'routeOptimization.title': {
+    AppLang.tr: 'Akıllı rota',
+    AppLang.en: 'Smart route'
+  },
+  'routeOptimization.subtitle': {
+    AppLang.tr:
+        'Sabit saatler korunur. Değişiklikler yalnızca onayladığında kaydedilir.',
+    AppLang.en:
+        'Fixed times stay protected. Changes are saved only after approval.'
+  },
+  'routeOptimization.loading': {
+    AppLang.tr: 'En uygun günlük rota hesaplanıyor…',
+    AppLang.en: 'Calculating the best daily route…'
+  },
+  'routeOptimization.before': {AppLang.tr: 'Önce', AppLang.en: 'Before'},
+  'routeOptimization.after': {AppLang.tr: 'Sonra', AppLang.en: 'After'},
+  'routeOptimization.travel': {AppLang.tr: 'Ulaşım', AppLang.en: 'Travel'},
+  'routeOptimization.walking': {AppLang.tr: 'Yürüyüş', AppLang.en: 'Walking'},
+  'routeOptimization.transfers': {
+    AppLang.tr: 'Aktarma',
+    AppLang.en: 'Transfers'
+  },
+  'routeOptimization.cost': {AppLang.tr: 'Maliyet', AppLang.en: 'Cost'},
+  'routeOptimization.minute': {AppLang.tr: 'dk', AppLang.en: 'min'},
+  'routeOptimization.changes': {
+    AppLang.tr: 'Yapılacak değişiklikler',
+    AppLang.en: 'Proposed changes'
+  },
+  'routeOptimization.apply': {
+    AppLang.tr: 'Rotayı uygula',
+    AppLang.en: 'Apply route'
+  },
+  'routeOptimization.cancel': {AppLang.tr: 'Vazgeç', AppLang.en: 'Cancel'},
+  'routeOptimization.retry': {
+    AppLang.tr: 'Tekrar dene',
+    AppLang.en: 'Try again'
+  },
+  'routeOptimization.unavailable': {
+    AppLang.tr:
+        'Güvenilir rota verisine şu anda ulaşılamıyor. Planın değiştirilmedi.',
+    AppLang.en:
+        'Reliable route data is unavailable right now. Your plan was not changed.'
+  },
+  'routeOptimization.needTwoStops': {
+    AppLang.tr: 'Optimizasyon için en az iki durak gerekli.',
+    AppLang.en: 'At least two stops are required for optimization.'
+  },
+  'routeOptimization.missingLocation': {
+    AppLang.tr:
+        'Bu gün için güvenilir konum bilgisi eksik. Planın değiştirilmedi.',
+    AppLang.en:
+        'Reliable location data is missing for this day. Your plan was not changed.'
+  },
+  'routeOptimization.stopLocationMissing': {
+    AppLang.tr: '{name} için konum bulunamadı. Planın değiştirilmedi.',
+    AppLang.en: 'Location was not found for {name}. Your plan was not changed.'
+  },
+  'routeOptimization.dayBase': {
+    AppLang.tr: 'Gün başlangıcı',
+    AppLang.en: 'Day base'
+  },
+  'routeOptimization.profile.balanced': {
+    AppLang.tr: 'Dengeli',
+    AppLang.en: 'Balanced'
+  },
+  'routeOptimization.profile.fastest': {
+    AppLang.tr: 'En hızlı',
+    AppLang.en: 'Fastest'
+  },
+  'routeOptimization.profile.leastWalking': {
+    AppLang.tr: 'Az yürüyüş',
+    AppLang.en: 'Less walking'
+  },
+  'routeOptimization.profile.cheapest': {
+    AppLang.tr: 'En ucuz',
+    AppLang.en: 'Cheapest'
+  },
+  'home.appTitle': {
+    AppLang.tr: 'Rotori Önizleme',
+    AppLang.en: 'Rotori Preview'
+  },
+  'home.appBar': {
+    AppLang.tr: 'Rotori · Önizleme',
+    AppLang.en: 'Rotori · Preview'
+  },
+  'home.planLoadFailed': {
+    AppLang.tr: 'Plan yüklenemedi: {err}',
+    AppLang.en: 'Failed to load plan: {err}'
+  },
+  'home.demoLoaded': {
+    AppLang.tr: '🇯🇵 Demo veri yüklendi',
+    AppLang.en: '🇯🇵 Demo data loaded'
+  },
+  'home.demoSub': {
+    AppLang.tr:
+        'Tokyo + Kyoto rotalı, dolu günlü örnek plan. Supabase/login yok — sadece görsel kontrol.',
+    AppLang.en:
+        'A full sample itinerary along a Tokyo + Kyoto route. No Supabase or login — just a visual preview.'
+  },
+  'home.card.new.title': {
+    AppLang.tr: 'Sıfırdan yeni plan',
+    AppLang.en: 'New plan from scratch'
+  },
+  'home.card.new.sub': {
+    AppLang.tr: 'Boş bir gezi ile Welcome adımından başla',
+    AppLang.en: 'Start from the Welcome step with an empty trip'
+  },
+  'home.card.planner.title': {
+    AppLang.tr: 'Planlayıcı (demo)',
+    AppLang.en: 'Planner (demo)'
+  },
+  'home.card.planner.sub': {
+    AppLang.tr: 'Dolu Tokyo+Kyoto demo planında adımları gez',
+    AppLang.en: 'Walk the steps in the full Tokyo+Kyoto demo plan'
+  },
+  'home.card.viewer.title': {
+    AppLang.tr: 'Rehber (Viewer)',
+    AppLang.en: 'Guide (Viewer)'
+  },
+  'home.card.viewer.sub': {
+    AppLang.tr: 'Geri sayım, günlük plan, keşif haritası girişi',
+    AppLang.en: 'Countdown, daily plan, explore-map entry'
+  },
   'packing.cat.documents': {AppLang.tr: 'Belgeler', AppLang.en: 'Documents'},
-  'packing.cat.connectivity': {AppLang.tr: 'Bağlantı', AppLang.en: 'Connectivity'},
+  'packing.cat.connectivity': {
+    AppLang.tr: 'Bağlantı',
+    AppLang.en: 'Connectivity'
+  },
   'packing.cat.payment': {AppLang.tr: 'Ödeme', AppLang.en: 'Payment'},
-  'packing.cat.electronics': {AppLang.tr: 'Elektronik', AppLang.en: 'Electronics'},
+  'packing.cat.electronics': {
+    AppLang.tr: 'Elektronik',
+    AppLang.en: 'Electronics'
+  },
   'packing.cat.health': {AppLang.tr: 'Sağlık', AppLang.en: 'Health'},
   'packing.cat.clothing': {AppLang.tr: 'Giyim', AppLang.en: 'Clothing'},
-  'packing.cat.taxRefund': {AppLang.tr: 'Vergi iadesi & alışveriş', AppLang.en: 'Tax refund & shopping'},
-  'packing.cat.culture': {AppLang.tr: 'Kültür / pratik', AppLang.en: 'Culture / practical'},
+  'packing.cat.taxRefund': {
+    AppLang.tr: 'Vergi iadesi & alışveriş',
+    AppLang.en: 'Tax refund & shopping'
+  },
+  'packing.cat.culture': {
+    AppLang.tr: 'Kültür / pratik',
+    AppLang.en: 'Culture / practical'
+  },
   'packing.cat.other': {AppLang.tr: 'Diğer', AppLang.en: 'Other'},
-  'packing.doc-passport.label': {AppLang.tr: 'Pasaport', AppLang.en: 'Passport'},
-  'packing.doc-passport.note': {AppLang.tr: 'Son kullanma tarihi dönüşten en az 6 ay sonra olmalı', AppLang.en: 'Must stay valid for at least 6 months after your return'},
-  'packing.doc-visa.label': {AppLang.tr: '(Varsa) vize', AppLang.en: 'Visa (if required)'},
-  'packing.doc-visa.note': {AppLang.tr: 'Vize gerekiyorsa yanına al veya e-vize çıktısını sakla', AppLang.en: 'If you need a visa, bring it or keep a printout of your e-visa'},
-  'packing.doc-jrpass.label': {AppLang.tr: 'JR Pass voucher / QR', AppLang.en: 'JR Pass voucher / QR'},
-  'packing.doc-jrpass.note': {AppLang.tr: 'Aktivasyon için voucher veya dijital QR gerekir', AppLang.en: 'A voucher or digital QR is required for activation'},
-  'packing.doc-hotel.label': {AppLang.tr: 'Otel rezervasyon çıktısı', AppLang.en: 'Hotel reservation printout'},
-  'packing.doc-hotel.note': {AppLang.tr: 'Girişte istenebilir; çevrimdışı erişim için çıktı al', AppLang.en: 'May be asked for at check-in; print it for offline access'},
-  'packing.doc-flight.label': {AppLang.tr: 'Uçuş bileti / biniş kartı', AppLang.en: 'Flight ticket / boarding pass'},
-  'packing.doc-insurance.label': {AppLang.tr: 'Seyahat sigortası poliçesi', AppLang.en: 'Travel insurance policy'},
-  'packing.net-wifi-esim.label': {AppLang.tr: 'Cep wifi veya eSIM', AppLang.en: 'Pocket Wi-Fi or eSIM'},
-  'packing.net-wifi-esim.note': {AppLang.tr: 'Japonya\'da ücretsiz wifi az — internetini garantiye al', AppLang.en: 'Free Wi-Fi is scarce in Japan — lock in your connection ahead of time'},
-  'packing.net-ic-card.label': {AppLang.tr: 'IC kart (Suica / Pasmo)', AppLang.en: 'IC card (Suica / Pasmo)'},
-  'packing.net-ic-card.note': {AppLang.tr: 'Metro + konbini ödemesi için pratik', AppLang.en: 'Handy for metro rides and konbini payments'},
-  'packing.pay-cash-yen.label': {AppLang.tr: 'Bir miktar nakit yen', AppLang.en: 'Some cash in yen'},
-  'packing.pay-cash-yen.note': {AppLang.tr: 'Küçük dükkanlar ve tapınaklar kart almaz', AppLang.en: 'Small shops and temples don\'t take cards'},
-  'packing.pay-credit-card.label': {AppLang.tr: 'Kredi kartı (temassız)', AppLang.en: 'Credit card (contactless)'},
-  'packing.pay-bank-notice.label': {AppLang.tr: 'Bankaya yurtdışı / kart kullanım bildirimi', AppLang.en: 'Notify your bank of overseas card use'},
-  'packing.pay-bank-notice.note': {AppLang.tr: 'Kartın yurtdışında bloke olmasın', AppLang.en: 'So your card isn\'t blocked abroad'},
-  'packing.elec-adapter.label': {AppLang.tr: 'Priz adaptörü', AppLang.en: 'Plug adapter'},
-  'packing.elec-adapter.note': {AppLang.tr: 'Japonya A tipi priz, 100V', AppLang.en: 'Japan uses Type A outlets, 100V'},
-  'packing.elec-powerbank.label': {AppLang.tr: 'Powerbank', AppLang.en: 'Power bank'},
-  'packing.elec-powerbank.note': {AppLang.tr: 'Uzun yürüyüş günlerinde telefon şarjı için', AppLang.en: 'For charging your phone on long walking days'},
-  'packing.elec-cables.label': {AppLang.tr: 'Şarj kabloları', AppLang.en: 'Charging cables'},
-  'packing.elec-headphones.label': {AppLang.tr: 'Kulaklık', AppLang.en: 'Headphones'},
-  'packing.health-meds.label': {AppLang.tr: 'Kişisel ilaçlar + reçete', AppLang.en: 'Personal medication + prescription'},
-  'packing.health-meds.note': {AppLang.tr: 'Bazı ilaçlar Japonya\'da yasak — önceden kontrol et', AppLang.en: 'Some medicines are banned in Japan — check beforehand'},
+  'packing.doc-passport.label': {
+    AppLang.tr: 'Pasaport',
+    AppLang.en: 'Passport'
+  },
+  'packing.doc-passport.note': {
+    AppLang.tr: 'Son kullanma tarihi dönüşten en az 6 ay sonra olmalı',
+    AppLang.en: 'Must stay valid for at least 6 months after your return'
+  },
+  'packing.doc-visa.label': {
+    AppLang.tr: '(Varsa) vize',
+    AppLang.en: 'Visa (if required)'
+  },
+  'packing.doc-visa.note': {
+    AppLang.tr: 'Vize gerekiyorsa yanına al veya e-vize çıktısını sakla',
+    AppLang.en: 'If you need a visa, bring it or keep a printout of your e-visa'
+  },
+  'packing.doc-jrpass.label': {
+    AppLang.tr: 'JR Pass voucher / QR',
+    AppLang.en: 'JR Pass voucher / QR'
+  },
+  'packing.doc-jrpass.note': {
+    AppLang.tr: 'Aktivasyon için voucher veya dijital QR gerekir',
+    AppLang.en: 'A voucher or digital QR is required for activation'
+  },
+  'packing.doc-hotel.label': {
+    AppLang.tr: 'Otel rezervasyon çıktısı',
+    AppLang.en: 'Hotel reservation printout'
+  },
+  'packing.doc-hotel.note': {
+    AppLang.tr: 'Girişte istenebilir; çevrimdışı erişim için çıktı al',
+    AppLang.en: 'May be asked for at check-in; print it for offline access'
+  },
+  'packing.doc-flight.label': {
+    AppLang.tr: 'Uçuş bileti / biniş kartı',
+    AppLang.en: 'Flight ticket / boarding pass'
+  },
+  'packing.doc-insurance.label': {
+    AppLang.tr: 'Seyahat sigortası poliçesi',
+    AppLang.en: 'Travel insurance policy'
+  },
+  'packing.net-wifi-esim.label': {
+    AppLang.tr: 'Cep wifi veya eSIM',
+    AppLang.en: 'Pocket Wi-Fi or eSIM'
+  },
+  'packing.net-wifi-esim.note': {
+    AppLang.tr: 'Japonya\'da ücretsiz wifi az — internetini garantiye al',
+    AppLang.en:
+        'Free Wi-Fi is scarce in Japan — lock in your connection ahead of time'
+  },
+  'packing.net-ic-card.label': {
+    AppLang.tr: 'IC kart (Suica / Pasmo)',
+    AppLang.en: 'IC card (Suica / Pasmo)'
+  },
+  'packing.net-ic-card.note': {
+    AppLang.tr: 'Metro + konbini ödemesi için pratik',
+    AppLang.en: 'Handy for metro rides and konbini payments'
+  },
+  'packing.pay-cash-yen.label': {
+    AppLang.tr: 'Bir miktar nakit yen',
+    AppLang.en: 'Some cash in yen'
+  },
+  'packing.pay-cash-yen.note': {
+    AppLang.tr: 'Küçük dükkanlar ve tapınaklar kart almaz',
+    AppLang.en: 'Small shops and temples don\'t take cards'
+  },
+  'packing.pay-credit-card.label': {
+    AppLang.tr: 'Kredi kartı (temassız)',
+    AppLang.en: 'Credit card (contactless)'
+  },
+  'packing.pay-bank-notice.label': {
+    AppLang.tr: 'Bankaya yurtdışı / kart kullanım bildirimi',
+    AppLang.en: 'Notify your bank of overseas card use'
+  },
+  'packing.pay-bank-notice.note': {
+    AppLang.tr: 'Kartın yurtdışında bloke olmasın',
+    AppLang.en: 'So your card isn\'t blocked abroad'
+  },
+  'packing.elec-adapter.label': {
+    AppLang.tr: 'Priz adaptörü',
+    AppLang.en: 'Plug adapter'
+  },
+  'packing.elec-adapter.note': {
+    AppLang.tr: 'Japonya A tipi priz, 100V',
+    AppLang.en: 'Japan uses Type A outlets, 100V'
+  },
+  'packing.elec-powerbank.label': {
+    AppLang.tr: 'Powerbank',
+    AppLang.en: 'Power bank'
+  },
+  'packing.elec-powerbank.note': {
+    AppLang.tr: 'Uzun yürüyüş günlerinde telefon şarjı için',
+    AppLang.en: 'For charging your phone on long walking days'
+  },
+  'packing.elec-cables.label': {
+    AppLang.tr: 'Şarj kabloları',
+    AppLang.en: 'Charging cables'
+  },
+  'packing.elec-headphones.label': {
+    AppLang.tr: 'Kulaklık',
+    AppLang.en: 'Headphones'
+  },
+  'packing.health-meds.label': {
+    AppLang.tr: 'Kişisel ilaçlar + reçete',
+    AppLang.en: 'Personal medication + prescription'
+  },
+  'packing.health-meds.note': {
+    AppLang.tr: 'Bazı ilaçlar Japonya\'da yasak — önceden kontrol et',
+    AppLang.en: 'Some medicines are banned in Japan — check beforehand'
+  },
   'packing.health-mask.label': {AppLang.tr: 'Maske', AppLang.en: 'Face mask'},
-  'packing.health-mask.note': {AppLang.tr: 'Kalabalık metro ve hastalıkta yaygın kullanılır', AppLang.en: 'Widely worn on crowded trains and when you\'re unwell'},
-  'packing.health-firstaid.label': {AppLang.tr: 'Küçük ilk yardım seti', AppLang.en: 'Small first-aid kit'},
-  'packing.cloth-layers.label': {AppLang.tr: 'Mevsime uygun katmanlı giysi', AppLang.en: 'Season-appropriate layered clothing'},
-  'packing.cloth-shoes.label': {AppLang.tr: 'Rahat yürüyüş ayakkabısı', AppLang.en: 'Comfortable walking shoes'},
-  'packing.cloth-shoes.note': {AppLang.tr: 'Günde 15–20 bin adım yürüyeceksin', AppLang.en: 'You\'ll walk 15,000–20,000 steps a day'},
-  'packing.cloth-rain.label': {AppLang.tr: 'Yağmurluk / katlanır şemsiye', AppLang.en: 'Raincoat / folding umbrella'},
-  'packing.tax-passport.label': {AppLang.tr: 'Pasaport (tax-free için)', AppLang.en: 'Passport (for tax-free)'},
-  'packing.tax-passport.note': {AppLang.tr: 'Vergisiz alışverişte pasaport gösterilir', AppLang.en: 'Your passport is shown for tax-free purchases'},
-  'packing.tax-foldable-bag.label': {AppLang.tr: 'Katlanır çanta', AppLang.en: 'Foldable bag'},
-  'packing.tax-foldable-bag.note': {AppLang.tr: 'Alışverişler için ekstra taşıma alanı', AppLang.en: 'Extra carrying space for your shopping'},
-  'packing.tax-keep-receipts.label': {AppLang.tr: 'Fiş / makbuz saklama', AppLang.en: 'Keep your receipts'},
-  'packing.tax-keep-receipts.note': {AppLang.tr: 'Tax-free fişleri pasaporta iliştirilir, çıkışta kontrol edilir', AppLang.en: 'Tax-free receipts are attached to your passport and checked on departure'},
-  'packing.culture-towel.label': {AppLang.tr: 'Küçük havlu / mendil', AppLang.en: 'Small towel / handkerchief'},
-  'packing.culture-towel.note': {AppLang.tr: 'Umumi tuvaletlerde kağıt havlu yok', AppLang.en: 'Public restrooms often have no paper towels'},
-  'packing.culture-trash-bag.label': {AppLang.tr: 'Çöp için poşet', AppLang.en: 'Bag for your trash'},
-  'packing.culture-trash-bag.note': {AppLang.tr: 'Sokakta çöp kutusu az — çöpünü yanında taşı', AppLang.en: 'Street bins are rare — carry your trash with you'},
-  'packing.culture-coin-wallet.label': {AppLang.tr: 'Bozuk para için küçük cüzdan', AppLang.en: 'Small coin purse'},
-  'packing.culture-coin-wallet.note': {AppLang.tr: 'Nakit ağırlıklı — çok madeni para birikir', AppLang.en: 'It\'s a cash-heavy country — coins pile up fast'},
+  'packing.health-mask.note': {
+    AppLang.tr: 'Kalabalık metro ve hastalıkta yaygın kullanılır',
+    AppLang.en: 'Widely worn on crowded trains and when you\'re unwell'
+  },
+  'packing.health-firstaid.label': {
+    AppLang.tr: 'Küçük ilk yardım seti',
+    AppLang.en: 'Small first-aid kit'
+  },
+  'packing.cloth-layers.label': {
+    AppLang.tr: 'Mevsime uygun katmanlı giysi',
+    AppLang.en: 'Season-appropriate layered clothing'
+  },
+  'packing.cloth-shoes.label': {
+    AppLang.tr: 'Rahat yürüyüş ayakkabısı',
+    AppLang.en: 'Comfortable walking shoes'
+  },
+  'packing.cloth-shoes.note': {
+    AppLang.tr: 'Günde 15–20 bin adım yürüyeceksin',
+    AppLang.en: 'You\'ll walk 15,000–20,000 steps a day'
+  },
+  'packing.cloth-rain.label': {
+    AppLang.tr: 'Yağmurluk / katlanır şemsiye',
+    AppLang.en: 'Raincoat / folding umbrella'
+  },
+  'packing.tax-passport.label': {
+    AppLang.tr: 'Pasaport (tax-free için)',
+    AppLang.en: 'Passport (for tax-free)'
+  },
+  'packing.tax-passport.note': {
+    AppLang.tr: 'Vergisiz alışverişte pasaport gösterilir',
+    AppLang.en: 'Your passport is shown for tax-free purchases'
+  },
+  'packing.tax-foldable-bag.label': {
+    AppLang.tr: 'Katlanır çanta',
+    AppLang.en: 'Foldable bag'
+  },
+  'packing.tax-foldable-bag.note': {
+    AppLang.tr: 'Alışverişler için ekstra taşıma alanı',
+    AppLang.en: 'Extra carrying space for your shopping'
+  },
+  'packing.tax-keep-receipts.label': {
+    AppLang.tr: 'Fiş / makbuz saklama',
+    AppLang.en: 'Keep your receipts'
+  },
+  'packing.tax-keep-receipts.note': {
+    AppLang.tr:
+        'Tax-free fişleri pasaporta iliştirilir, çıkışta kontrol edilir',
+    AppLang.en:
+        'Tax-free receipts are attached to your passport and checked on departure'
+  },
+  'packing.culture-towel.label': {
+    AppLang.tr: 'Küçük havlu / mendil',
+    AppLang.en: 'Small towel / handkerchief'
+  },
+  'packing.culture-towel.note': {
+    AppLang.tr: 'Umumi tuvaletlerde kağıt havlu yok',
+    AppLang.en: 'Public restrooms often have no paper towels'
+  },
+  'packing.culture-trash-bag.label': {
+    AppLang.tr: 'Çöp için poşet',
+    AppLang.en: 'Bag for your trash'
+  },
+  'packing.culture-trash-bag.note': {
+    AppLang.tr: 'Sokakta çöp kutusu az — çöpünü yanında taşı',
+    AppLang.en: 'Street bins are rare — carry your trash with you'
+  },
+  'packing.culture-coin-wallet.label': {
+    AppLang.tr: 'Bozuk para için küçük cüzdan',
+    AppLang.en: 'Small coin purse'
+  },
+  'packing.culture-coin-wallet.note': {
+    AppLang.tr: 'Nakit ağırlıklı — çok madeni para birikir',
+    AppLang.en: 'It\'s a cash-heavy country — coins pile up fast'
+  },
   'reminders.title': {AppLang.tr: 'Hatırlatmalar', AppLang.en: 'Reminders'},
   'reminders.clearAll': {AppLang.tr: 'Tümünü temizle', AppLang.en: 'Clear all'},
-  'reminders.clearAllTitle': {AppLang.tr: 'Tümünü sil', AppLang.en: 'Delete all'},
-  'reminders.clearAllBody': {AppLang.tr: 'Tüm hatırlatmalar silinsin mi? Bildirim planlamaları da iptal edilir.', AppLang.en: 'Delete all reminders? Their scheduled notifications will be cancelled too.'},
+  'reminders.clearAllTitle': {
+    AppLang.tr: 'Tümünü sil',
+    AppLang.en: 'Delete all'
+  },
+  'reminders.clearAllBody': {
+    AppLang.tr:
+        'Tüm hatırlatmalar silinsin mi? Bildirim planlamaları da iptal edilir.',
+    AppLang.en:
+        'Delete all reminders? Their scheduled notifications will be cancelled too.'
+  },
   'reminders.cancel': {AppLang.tr: 'Vazgeç', AppLang.en: 'Cancel'},
   'reminders.delete': {AppLang.tr: 'Sil', AppLang.en: 'Delete'},
-  'reminders.passed': {AppLang.tr: 'Bugün / geçti', AppLang.en: 'Today / passed'},
+  'reminders.passed': {
+    AppLang.tr: 'Bugün / geçti',
+    AppLang.en: 'Today / passed'
+  },
   'reminders.inDays': {AppLang.tr: '{n} gün sonra', AppLang.en: 'in {n} days'},
-  'reminders.inHours': {AppLang.tr: '{n} saat sonra', AppLang.en: 'in {n} hours'},
-  'reminders.emptyTitle': {AppLang.tr: 'Henüz hatırlatma yok', AppLang.en: 'No reminders yet'},
-  'reminders.emptyBody': {AppLang.tr: 'Planına USJ, Tokyo Disney veya Shinkansen eklediğinde "Planı yeniden oluştur" adımında sana bilet açılış tarihi için hatırlatma teklif edeceğim.', AppLang.en: 'When you add USJ, Tokyo Disney or the Shinkansen to your plan, I\'ll offer a reminder for the ticket sale date in the "Rebuild plan" step.'},
+  'reminders.inHours': {
+    AppLang.tr: '{n} saat sonra',
+    AppLang.en: 'in {n} hours'
+  },
+  'reminders.emptyTitle': {
+    AppLang.tr: 'Henüz hatırlatma yok',
+    AppLang.en: 'No reminders yet'
+  },
+  'reminders.emptyBody': {
+    AppLang.tr:
+        'Planına USJ, Tokyo Disney veya Shinkansen eklediğinde "Planı yeniden oluştur" adımında sana bilet açılış tarihi için hatırlatma teklif edeceğim.',
+    AppLang.en:
+        'When you add USJ, Tokyo Disney or the Shinkansen to your plan, I\'ll offer a reminder for the ticket sale date in the "Rebuild plan" step.'
+  },
   'reminders.mon.1': {AppLang.tr: 'Oca', AppLang.en: 'Jan'},
   'reminders.mon.2': {AppLang.tr: 'Şub', AppLang.en: 'Feb'},
   'reminders.mon.3': {AppLang.tr: 'Mar', AppLang.en: 'Mar'},
@@ -1188,18 +2656,39 @@ const Map<String, Map<AppLang, String>> _strings = {
   'reminders.mon.10': {AppLang.tr: 'Eki', AppLang.en: 'Oct'},
   'reminders.mon.11': {AppLang.tr: 'Kas', AppLang.en: 'Nov'},
   'reminders.mon.12': {AppLang.tr: 'Ara', AppLang.en: 'Dec'},
-  'auth.createAccount': {AppLang.tr: 'Hesap oluştur', AppLang.en: 'Create account'},
+  'auth.createAccount': {
+    AppLang.tr: 'Hesap oluştur',
+    AppLang.en: 'Create account'
+  },
   'auth.signIn': {AppLang.tr: 'Giriş yap', AppLang.en: 'Sign in'},
   'auth.email': {AppLang.tr: 'E-posta', AppLang.en: 'Email'},
-  'auth.emailInvalid': {AppLang.tr: 'Geçerli bir e-posta gir', AppLang.en: 'Enter a valid email'},
+  'auth.emailInvalid': {
+    AppLang.tr: 'Geçerli bir e-posta gir',
+    AppLang.en: 'Enter a valid email'
+  },
   'auth.password': {AppLang.tr: 'Şifre', AppLang.en: 'Password'},
-  'auth.passwordTooShort': {AppLang.tr: 'En az 6 karakter', AppLang.en: 'At least 6 characters'},
+  'auth.passwordTooShort': {
+    AppLang.tr: 'En az 6 karakter',
+    AppLang.en: 'At least 6 characters'
+  },
   'auth.register': {AppLang.tr: 'Kayıt ol', AppLang.en: 'Sign up'},
-  'auth.haveAccount': {AppLang.tr: 'Zaten hesabın var mı? Giriş yap', AppLang.en: 'Already have an account? Sign in'},
-  'auth.noAccount': {AppLang.tr: 'Hesabın yok mu? Kayıt ol', AppLang.en: 'Don\'t have an account? Sign up'},
+  'auth.haveAccount': {
+    AppLang.tr: 'Zaten hesabın var mı? Giriş yap',
+    AppLang.en: 'Already have an account? Sign in'
+  },
+  'auth.noAccount': {
+    AppLang.tr: 'Hesabın yok mu? Kayıt ol',
+    AppLang.en: 'Don\'t have an account? Sign up'
+  },
   'auth.or': {AppLang.tr: 'veya', AppLang.en: 'or'},
-  'auth.signInWithApple': {AppLang.tr: '🍎 Apple ile Giriş Yap', AppLang.en: '🍎 Sign in with Apple'},
-  'auth.signInWithGoogle': {AppLang.tr: 'G Google ile Giriş Yap', AppLang.en: 'G Sign in with Google'},
+  'auth.signInWithApple': {
+    AppLang.tr: '🍎 Apple ile Giriş Yap',
+    AppLang.en: '🍎 Sign in with Apple'
+  },
+  'auth.signInWithGoogle': {
+    AppLang.tr: 'G Google ile Giriş Yap',
+    AppLang.en: 'G Sign in with Google'
+  },
   'auth.tagline': {
     AppLang.tr: 'Sürpriz yok, plan var.',
     AppLang.en: 'No surprises. Just the plan.',
@@ -1240,7 +2729,10 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Reminders',
   },
   'drawer.signout': {AppLang.tr: 'Çıkış yap', AppLang.en: 'Sign out'},
-  'drawer.deleteAccount': {AppLang.tr: 'Hesabı sil', AppLang.en: 'Delete account'},
+  'drawer.deleteAccount': {
+    AppLang.tr: 'Hesabı sil',
+    AppLang.en: 'Delete account'
+  },
   'account.delete.title': {
     AppLang.tr: 'Hesabı silmek istiyor musun?',
     AppLang.en: 'Delete your account?',
@@ -1251,7 +2743,10 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en:
         'This action cannot be undone. Your account, plans and all data will be permanently deleted. Do you want to continue?',
   },
-  'account.delete.confirm': {AppLang.tr: 'Evet, sil', AppLang.en: 'Yes, delete'},
+  'account.delete.confirm': {
+    AppLang.tr: 'Evet, sil',
+    AppLang.en: 'Yes, delete'
+  },
   'account.delete.cancel': {AppLang.tr: 'Vazgeç', AppLang.en: 'Cancel'},
   'account.delete.error': {
     AppLang.tr: 'Hesap silinemedi. Lütfen tekrar dene.',
@@ -1266,10 +2761,24 @@ const Map<String, Map<AppLang, String>> _strings = {
   'plans.refresh': {AppLang.tr: 'Yenile', AppLang.en: 'Refresh'},
   'plans.signOut': {AppLang.tr: 'Çıkış yap', AppLang.en: 'Sign out'},
   'plans.newPlan': {AppLang.tr: 'Yeni plan', AppLang.en: 'New plan'},
-  'plans.emptyTitle': {AppLang.tr: 'Henüz planın yok', AppLang.en: 'No plans yet'},
-  'plans.emptyBody': {AppLang.tr: 'Sağ alttaki "Yeni plan" ile başla — sonra günleri, uçuşları ve otelleri ekleriz.', AppLang.en: 'Start with "New plan" at the bottom right — then we\'ll add the days, flights and hotels.'},
-  'plans.offline': {AppLang.tr: 'Çevrimdışı — yerel kopya gösteriliyor', AppLang.en: 'Offline — showing your local copy'},
-  'plans.dateRange': {AppLang.tr: '{start} → {end}  ·  {n} gün', AppLang.en: '{start} → {end}  ·  {n} days'},
+  'plans.emptyTitle': {
+    AppLang.tr: 'Henüz planın yok',
+    AppLang.en: 'No plans yet'
+  },
+  'plans.emptyBody': {
+    AppLang.tr:
+        'Sağ alttaki "Yeni plan" ile başla — sonra günleri, uçuşları ve otelleri ekleriz.',
+    AppLang.en:
+        'Start with "New plan" at the bottom right — then we\'ll add the days, flights and hotels.'
+  },
+  'plans.offline': {
+    AppLang.tr: 'Çevrimdışı — yerel kopya gösteriliyor',
+    AppLang.en: 'Offline — showing your local copy'
+  },
+  'plans.dateRange': {
+    AppLang.tr: '{start} → {end}  ·  {n} gün',
+    AppLang.en: '{start} → {end}  ·  {n} days'
+  },
   'plans.view': {AppLang.tr: 'Görüntüle', AppLang.en: 'View'},
   'plans.edit': {AppLang.tr: 'Düzenle', AppLang.en: 'Edit'},
   'plans.delete': {AppLang.tr: 'Sil', AppLang.en: 'Delete'},
@@ -1278,192 +2787,696 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Delete plan',
   },
   'plans.deleteConfirmBody': {
-    AppLang.tr: '"{title}" planı ve içindeki tüm günler kalıcı olarak silinsin mi?',
+    AppLang.tr:
+        '"{title}" planı ve içindeki tüm günler kalıcı olarak silinsin mi?',
     AppLang.en: 'Delete "{title}" and all its days permanently?',
   },
   'plans.deleteConfirmAction': {AppLang.tr: 'Sil', AppLang.en: 'Delete'},
   'plans.cancel': {AppLang.tr: 'Vazgeç', AppLang.en: 'Cancel'},
   'reward.title': {AppLang.tr: 'Keşif haritası', AppLang.en: 'Explore Map'},
-  'reward.gpsSimTooltip': {AppLang.tr: 'GPS Simülatörü (test)', AppLang.en: 'GPS Simulator (test)'},
-  'reward.discovered': {AppLang.tr: '🎉 {emoji} {name} keşfedildi! +{xp} XP', AppLang.en: '🎉 {emoji} {name} discovered! +{xp} XP'},
-  'reward.badgeEarned': {AppLang.tr: '🎉 {emoji} {title} rozeti kazanıldı!', AppLang.en: '🎉 {emoji} {title} badge earned!'},
-  'reward.summary': {AppLang.tr: '{cities} şehir · {visited}/{total} nokta gezildi · Level {level}', AppLang.en: '{cities} cities · {visited}/{total} spots visited · Level {level}'},
+  'reward.gpsSimTooltip': {
+    AppLang.tr: 'GPS Simülatörü (test)',
+    AppLang.en: 'GPS Simulator (test)'
+  },
+  'reward.discovered': {
+    AppLang.tr: '🎉 {emoji} {name} keşfedildi! +{xp} XP',
+    AppLang.en: '🎉 {emoji} {name} discovered! +{xp} XP'
+  },
+  'reward.badgeEarned': {
+    AppLang.tr: '🎉 {emoji} {title} rozeti kazanıldı!',
+    AppLang.en: '🎉 {emoji} {title} badge earned!'
+  },
+  'reward.summary': {
+    AppLang.tr:
+        '{cities} şehir · {visited}/{total} nokta gezildi · Level {level}',
+    AppLang.en:
+        '{cities} cities · {visited}/{total} spots visited · Level {level}'
+  },
   'reward.level': {AppLang.tr: 'Level {n}', AppLang.en: 'Level {n}'},
-  'reward.xpToNext': {AppLang.tr: '{xp} XP sonraki seviyeye', AppLang.en: '{xp} XP to next level'},
-  'reward.noCities': {AppLang.tr: 'Rotanda tanıdık bir şehir bulamadık. Planlayıcıda Tokyo, Kyoto, Osaka gibi şehirler eklersen keşif haritası burada belirir.', AppLang.en: 'We couldn\'t find a familiar city on your route. Add cities like Tokyo, Kyoto or Osaka in the planner and the explore map will appear here.'},
-  'reward.cityIntro': {AppLang.tr: 'Her şehrin popüler noktaları aşağıda. Konum takibi açıkken bir noktada 10 dakikadan fazla kalırsan otomatik yeşillenir ve sana bildirim gelir. 📍', AppLang.en: 'Each city\'s popular spots are below. With location tracking on, staying at a spot for more than 10 minutes turns it green automatically and sends you a notification. 📍'},
+  'reward.xpToNext': {
+    AppLang.tr: '{xp} XP sonraki seviyeye',
+    AppLang.en: '{xp} XP to next level'
+  },
+  'reward.noCities': {
+    AppLang.tr:
+        'Rotanda tanıdık bir şehir bulamadık. Planlayıcıda Tokyo, Kyoto, Osaka gibi şehirler eklersen keşif haritası burada belirir.',
+    AppLang.en:
+        'We couldn\'t find a familiar city on your route. Add cities like Tokyo, Kyoto or Osaka in the planner and the explore map will appear here.'
+  },
+  'reward.cityIntro': {
+    AppLang.tr:
+        'Her şehrin popüler noktaları aşağıda. Konum takibi açıkken bir noktada 10 dakikadan fazla kalırsan otomatik yeşillenir ve sana bildirim gelir. 📍',
+    AppLang.en:
+        'Each city\'s popular spots are below. With location tracking on, staying at a spot for more than 10 minutes turns it green automatically and sends you a notification. 📍'
+  },
   'reward.stat.visited': {AppLang.tr: 'Gezilen', AppLang.en: 'Visited'},
   'reward.stat.total': {AppLang.tr: 'Toplam', AppLang.en: 'Total'},
   'reward.stat.cities': {AppLang.tr: 'Şehir', AppLang.en: 'Cities'},
   'reward.stat.pointsValue': {AppLang.tr: '{n} nokta', AppLang.en: '{n} spots'},
-  'reward.badgesTitle': {AppLang.tr: '🏅 Aktivite rozetleri', AppLang.en: '🏅 Activity badges'},
-  'reward.badgesSubtitle': {AppLang.tr: 'Bunlar manuel planlama/kullanım rozetleridir (GPS doğrulaması gerekmiyor).', AppLang.en: 'These are manual planning/usage badges (no GPS verification required).'},
-  'reward.chip': {AppLang.tr: 'Level {level} · {xp} XP · {earned}/{total}', AppLang.en: 'Level {level} · {xp} XP · {earned}/{total}'},
-  'reward.tracking.unsupported': {AppLang.tr: '📵 Konum servisleri kullanılamıyor', AppLang.en: '📵 Location services unavailable'},
-  'reward.tracking.denied': {AppLang.tr: '🔒 Konum izni reddedildi', AppLang.en: '🔒 Location permission denied'},
-  'reward.tracking.deniedForever': {AppLang.tr: '🔒 Konum izni kalıcı olarak reddedildi', AppLang.en: '🔒 Location permission permanently denied'},
-  'reward.tracking.on': {AppLang.tr: '📡 Konum takibi açık', AppLang.en: '📡 Location tracking on'},
-  'reward.tracking.off': {AppLang.tr: '📍 Konum takibini aç', AppLang.en: '📍 Turn on location tracking'},
-  'reward.tracking.body': {AppLang.tr: 'Noktaların otomatik gezildi olması için konum takibi gerekir. Bir yerde 10 dk+ kalınca kendiliğinden yeşillenir ve bildirim alırsın. Batarya için uygulama arka plandayken takip duraklatılır.', AppLang.en: 'Location tracking is needed for spots to be marked visited automatically. Staying somewhere for 10+ min turns it green on its own and sends you a notification. To save battery, tracking pauses while the app is in the background.'},
-  'reward.tracking.openSettings': {AppLang.tr: 'Ayarlar\'dan konum iznini aç', AppLang.en: 'Open location permission in Settings'},
+  'reward.badgesTitle': {
+    AppLang.tr: '🏅 Aktivite rozetleri',
+    AppLang.en: '🏅 Activity badges'
+  },
+  'reward.badgesSubtitle': {
+    AppLang.tr:
+        'Bunlar manuel planlama/kullanım rozetleridir (GPS doğrulaması gerekmiyor).',
+    AppLang.en:
+        'These are manual planning/usage badges (no GPS verification required).'
+  },
+  'reward.chip': {
+    AppLang.tr: 'Level {level} · {xp} XP · {earned}/{total}',
+    AppLang.en: 'Level {level} · {xp} XP · {earned}/{total}'
+  },
+  'reward.tracking.unsupported': {
+    AppLang.tr: '📵 Konum servisleri kullanılamıyor',
+    AppLang.en: '📵 Location services unavailable'
+  },
+  'reward.tracking.denied': {
+    AppLang.tr: '🔒 Konum izni reddedildi',
+    AppLang.en: '🔒 Location permission denied'
+  },
+  'reward.tracking.deniedForever': {
+    AppLang.tr: '🔒 Konum izni kalıcı olarak reddedildi',
+    AppLang.en: '🔒 Location permission permanently denied'
+  },
+  'reward.tracking.on': {
+    AppLang.tr: '📡 Konum takibi açık',
+    AppLang.en: '📡 Location tracking on'
+  },
+  'reward.tracking.off': {
+    AppLang.tr: '📍 Konum takibini aç',
+    AppLang.en: '📍 Turn on location tracking'
+  },
+  'reward.tracking.body': {
+    AppLang.tr:
+        'Noktaların otomatik gezildi olması için konum takibi gerekir. Bir yerde 10 dk+ kalınca kendiliğinden yeşillenir ve bildirim alırsın. Batarya için uygulama arka plandayken takip duraklatılır.',
+    AppLang.en:
+        'Location tracking is needed for spots to be marked visited automatically. Staying somewhere for 10+ min turns it green on its own and sends you a notification. To save battery, tracking pauses while the app is in the background.'
+  },
+  'reward.tracking.openSettings': {
+    AppLang.tr: 'Ayarlar\'dan konum iznini aç',
+    AppLang.en: 'Open location permission in Settings'
+  },
   'reward.tracking.stop': {AppLang.tr: 'Durdur', AppLang.en: 'Stop'},
-  'reward.tracking.start': {AppLang.tr: 'Konumu izlemeye başla', AppLang.en: 'Start tracking location'},
+  'reward.tracking.start': {
+    AppLang.tr: 'Konumu izlemeye başla',
+    AppLang.en: 'Start tracking location'
+  },
   'reward.locked': {AppLang.tr: '🔒 Kilitli', AppLang.en: '🔒 Locked'},
-  'badge.firstJapanPlan.title': {AppLang.tr: 'İlk Japonya Planı', AppLang.en: 'First Japan Plan'},
-  'badge.firstJapanPlan.desc': {AppLang.tr: 'Japonya gezi planını oluşturdun.', AppLang.en: 'You created your Japan trip plan.'},
-  'badge.firstJapanPlan.hint': {AppLang.tr: 'Planlayıcıdan ilk planı kaydet.', AppLang.en: 'Save your first plan from the planner.'},
-  'badge.osakaExplorer.title': {AppLang.tr: 'Osaka Kaşifi', AppLang.en: 'Osaka Explorer'},
-  'badge.osakaExplorer.desc': {AppLang.tr: 'Osaka\'yı rotana ekledin.', AppLang.en: 'You added Osaka to your route.'},
-  'badge.osakaExplorer.hint': {AppLang.tr: 'Rotaya Osaka eklendiğinde açılır.', AppLang.en: 'Unlocks when Osaka is added to your route.'},
-  'badge.kyotoTempleWanderer.title': {AppLang.tr: 'Kyoto Tapınak Gezgini', AppLang.en: 'Kyoto Temple Wanderer'},
-  'badge.kyotoTempleWanderer.desc': {AppLang.tr: 'Kyoto’da tapınak rotası planladın.', AppLang.en: 'You planned a temple route in Kyoto.'},
-  'badge.kyotoTempleWanderer.hint': {AppLang.tr: 'Kyoto\'ya git + Fushimi Inari / tapınak ekle.', AppLang.en: 'Go to Kyoto and add Fushimi Inari or a temple.'},
-  'badge.naraDeerFriend.title': {AppLang.tr: 'Nara Geyik Dostu', AppLang.en: 'Nara Deer Friend'},
-  'badge.naraDeerFriend.desc': {AppLang.tr: 'Nara durağı planına girdi.', AppLang.en: 'A Nara stop made it into your plan.'},
-  'badge.naraDeerFriend.hint': {AppLang.tr: 'Rotana Nara ekle.', AppLang.en: 'Add Nara to your route.'},
-  'badge.pokemonHunter.title': {AppLang.tr: 'Pokémon Avcısı', AppLang.en: 'Pokémon Hunter'},
-  'badge.pokemonHunter.desc': {AppLang.tr: 'Pokémon ilgisini açtın.', AppLang.en: 'You turned on the Pokémon interest.'},
-  'badge.pokemonHunter.hint': {AppLang.tr: 'Onboarding\'de Pokémon ilgi alanını seç.', AppLang.en: 'Pick the Pokémon interest during onboarding.'},
-  'badge.donkiExpert.title': {AppLang.tr: 'Donki Uzmanı', AppLang.en: 'Donki Expert'},
-  'badge.donkiExpert.desc': {AppLang.tr: 'Alışverişe odaklı bir plan kurdun.', AppLang.en: 'You built a shopping-focused plan.'},
-  'badge.donkiExpert.hint': {AppLang.tr: 'Shopping ilgi alanını seç.', AppLang.en: 'Pick the Shopping interest.'},
-  'badge.kidsJapan.title': {AppLang.tr: 'Çocukla Japonya', AppLang.en: 'Japan with Kids'},
-  'badge.kidsJapan.desc': {AppLang.tr: 'Çocuklu bir Japonya gezisi planladın.', AppLang.en: 'You planned a Japan trip with children.'},
-  'badge.kidsJapan.hint': {AppLang.tr: 'Çocuk profili gir.', AppLang.en: 'Add a child profile.'},
-  'badge.rainyDaySaviour.title': {AppLang.tr: 'Yağmurlu Gün Kurtarıcısı', AppLang.en: 'Rainy Day Saviour'},
-  'badge.rainyDaySaviour.desc': {AppLang.tr: 'Hava\'ya göre planla özelliğini kullandın.', AppLang.en: 'You used the plan-by-weather feature.'},
-  'badge.rainyDaySaviour.hint': {AppLang.tr: 'WeatherStrip\'teki "🪄 Hava\'ya göre planla" butonunu kullan.', AppLang.en: 'Use the "🪄 Plan by weather" button in the WeatherStrip.'},
-  'badge.firstRevision.title': {AppLang.tr: 'İlk Plan Revizyonu', AppLang.en: 'First Plan Revision'},
-  'badge.firstRevision.desc': {AppLang.tr: 'AI düzenleme kullandın.', AppLang.en: 'You used AI editing.'},
-  'badge.firstRevision.hint': {AppLang.tr: 'Düzenle butonuyla planı revize et.', AppLang.en: 'Revise the plan with the Edit button.'},
-  'badge.longWalker.title': {AppLang.tr: '20.000 Adım Günü', AppLang.en: '20,000-Step Day'},
-  'badge.longWalker.desc': {AppLang.tr: 'Plana çok yürüyüşlü bir gün koydun.', AppLang.en: 'You added a big walking day to your plan.'},
-  'badge.longWalker.hint': {AppLang.tr: 'Bir günün adım tahmini 20.000+ olsun.', AppLang.en: 'Make a day\'s step estimate 20,000+.'},
-  'badge.mediumWalker.title': {AppLang.tr: '10.000 Adım Günü', AppLang.en: '10,000-Step Day'},
-  'badge.mediumWalker.desc': {AppLang.tr: '10.000+ adım hedefli bir gün hazırladın.', AppLang.en: 'You prepared a day targeting 10,000+ steps.'},
-  'badge.mediumWalker.hint': {AppLang.tr: 'Bir günün adım tahmini 10.000+ olsun.', AppLang.en: 'Make a day\'s step estimate 10,000+.'},
-  'badge.communityJoined.title': {AppLang.tr: 'Topluluğa Katkı', AppLang.en: 'Community Contributor'},
-  'badge.communityJoined.desc': {AppLang.tr: 'Beta topluluğa ilgi gösterdin.', AppLang.en: 'You showed interest in the beta community.'},
-  'badge.communityJoined.hint': {AppLang.tr: 'Beta topluluk bölümünden bir oda seç.', AppLang.en: 'Pick a room in the beta community section.'},
-  'badge.firstDiscovery.title': {AppLang.tr: 'İlk Keşif', AppLang.en: 'First Discovery'},
-  'badge.firstDiscovery.desc': {AppLang.tr: 'GPS ile ilk yerini keşfettin.', AppLang.en: 'You discovered your first place with GPS.'},
-  'badge.firstDiscovery.hint': {AppLang.tr: 'Rotandaki bir yere git ve 10 dk kal.', AppLang.en: 'Go to a place on your route and stay 10 min.'},
+  'badge.firstJapanPlan.title': {
+    AppLang.tr: 'İlk Japonya Planı',
+    AppLang.en: 'First Japan Plan'
+  },
+  'badge.firstJapanPlan.desc': {
+    AppLang.tr: 'Japonya gezi planını oluşturdun.',
+    AppLang.en: 'You created your Japan trip plan.'
+  },
+  'badge.firstJapanPlan.hint': {
+    AppLang.tr: 'Planlayıcıdan ilk planı kaydet.',
+    AppLang.en: 'Save your first plan from the planner.'
+  },
+  'badge.osakaExplorer.title': {
+    AppLang.tr: 'Osaka Kaşifi',
+    AppLang.en: 'Osaka Explorer'
+  },
+  'badge.osakaExplorer.desc': {
+    AppLang.tr: 'Osaka\'yı rotana ekledin.',
+    AppLang.en: 'You added Osaka to your route.'
+  },
+  'badge.osakaExplorer.hint': {
+    AppLang.tr: 'Rotaya Osaka eklendiğinde açılır.',
+    AppLang.en: 'Unlocks when Osaka is added to your route.'
+  },
+  'badge.kyotoTempleWanderer.title': {
+    AppLang.tr: 'Kyoto Tapınak Gezgini',
+    AppLang.en: 'Kyoto Temple Wanderer'
+  },
+  'badge.kyotoTempleWanderer.desc': {
+    AppLang.tr: 'Kyoto’da tapınak rotası planladın.',
+    AppLang.en: 'You planned a temple route in Kyoto.'
+  },
+  'badge.kyotoTempleWanderer.hint': {
+    AppLang.tr: 'Kyoto\'ya git + Fushimi Inari / tapınak ekle.',
+    AppLang.en: 'Go to Kyoto and add Fushimi Inari or a temple.'
+  },
+  'badge.naraDeerFriend.title': {
+    AppLang.tr: 'Nara Geyik Dostu',
+    AppLang.en: 'Nara Deer Friend'
+  },
+  'badge.naraDeerFriend.desc': {
+    AppLang.tr: 'Nara durağı planına girdi.',
+    AppLang.en: 'A Nara stop made it into your plan.'
+  },
+  'badge.naraDeerFriend.hint': {
+    AppLang.tr: 'Rotana Nara ekle.',
+    AppLang.en: 'Add Nara to your route.'
+  },
+  'badge.pokemonHunter.title': {
+    AppLang.tr: 'Pokémon Avcısı',
+    AppLang.en: 'Pokémon Hunter'
+  },
+  'badge.pokemonHunter.desc': {
+    AppLang.tr: 'Pokémon ilgisini açtın.',
+    AppLang.en: 'You turned on the Pokémon interest.'
+  },
+  'badge.pokemonHunter.hint': {
+    AppLang.tr: 'Onboarding\'de Pokémon ilgi alanını seç.',
+    AppLang.en: 'Pick the Pokémon interest during onboarding.'
+  },
+  'badge.donkiExpert.title': {
+    AppLang.tr: 'Donki Uzmanı',
+    AppLang.en: 'Donki Expert'
+  },
+  'badge.donkiExpert.desc': {
+    AppLang.tr: 'Alışverişe odaklı bir plan kurdun.',
+    AppLang.en: 'You built a shopping-focused plan.'
+  },
+  'badge.donkiExpert.hint': {
+    AppLang.tr: 'Shopping ilgi alanını seç.',
+    AppLang.en: 'Pick the Shopping interest.'
+  },
+  'badge.kidsJapan.title': {
+    AppLang.tr: 'Çocukla Japonya',
+    AppLang.en: 'Japan with Kids'
+  },
+  'badge.kidsJapan.desc': {
+    AppLang.tr: 'Çocuklu bir Japonya gezisi planladın.',
+    AppLang.en: 'You planned a Japan trip with children.'
+  },
+  'badge.kidsJapan.hint': {
+    AppLang.tr: 'Çocuk profili gir.',
+    AppLang.en: 'Add a child profile.'
+  },
+  'badge.rainyDaySaviour.title': {
+    AppLang.tr: 'Yağmurlu Gün Kurtarıcısı',
+    AppLang.en: 'Rainy Day Saviour'
+  },
+  'badge.rainyDaySaviour.desc': {
+    AppLang.tr: 'Hava\'ya göre planla özelliğini kullandın.',
+    AppLang.en: 'You used the plan-by-weather feature.'
+  },
+  'badge.rainyDaySaviour.hint': {
+    AppLang.tr: 'WeatherStrip\'teki "🪄 Hava\'ya göre planla" butonunu kullan.',
+    AppLang.en: 'Use the "🪄 Plan by weather" button in the WeatherStrip.'
+  },
+  'badge.firstRevision.title': {
+    AppLang.tr: 'İlk Plan Revizyonu',
+    AppLang.en: 'First Plan Revision'
+  },
+  'badge.firstRevision.desc': {
+    AppLang.tr: 'AI düzenleme kullandın.',
+    AppLang.en: 'You used AI editing.'
+  },
+  'badge.firstRevision.hint': {
+    AppLang.tr: 'Düzenle butonuyla planı revize et.',
+    AppLang.en: 'Revise the plan with the Edit button.'
+  },
+  'badge.longWalker.title': {
+    AppLang.tr: '20.000 Adım Günü',
+    AppLang.en: '20,000-Step Day'
+  },
+  'badge.longWalker.desc': {
+    AppLang.tr: 'Plana çok yürüyüşlü bir gün koydun.',
+    AppLang.en: 'You added a big walking day to your plan.'
+  },
+  'badge.longWalker.hint': {
+    AppLang.tr: 'Bir günün adım tahmini 20.000+ olsun.',
+    AppLang.en: 'Make a day\'s step estimate 20,000+.'
+  },
+  'badge.mediumWalker.title': {
+    AppLang.tr: '10.000 Adım Günü',
+    AppLang.en: '10,000-Step Day'
+  },
+  'badge.mediumWalker.desc': {
+    AppLang.tr: '10.000+ adım hedefli bir gün hazırladın.',
+    AppLang.en: 'You prepared a day targeting 10,000+ steps.'
+  },
+  'badge.mediumWalker.hint': {
+    AppLang.tr: 'Bir günün adım tahmini 10.000+ olsun.',
+    AppLang.en: 'Make a day\'s step estimate 10,000+.'
+  },
+  'badge.communityJoined.title': {
+    AppLang.tr: 'Topluluğa Katkı',
+    AppLang.en: 'Community Contributor'
+  },
+  'badge.communityJoined.desc': {
+    AppLang.tr: 'Beta topluluğa ilgi gösterdin.',
+    AppLang.en: 'You showed interest in the beta community.'
+  },
+  'badge.communityJoined.hint': {
+    AppLang.tr: 'Beta topluluk bölümünden bir oda seç.',
+    AppLang.en: 'Pick a room in the beta community section.'
+  },
+  'badge.firstDiscovery.title': {
+    AppLang.tr: 'İlk Keşif',
+    AppLang.en: 'First Discovery'
+  },
+  'badge.firstDiscovery.desc': {
+    AppLang.tr: 'GPS ile ilk yerini keşfettin.',
+    AppLang.en: 'You discovered your first place with GPS.'
+  },
+  'badge.firstDiscovery.hint': {
+    AppLang.tr: 'Rotandaki bir yere git ve 10 dk kal.',
+    AppLang.en: 'Go to a place on your route and stay 10 min.'
+  },
   'badge.explorer5.title': {AppLang.tr: 'Kaşif', AppLang.en: 'Explorer'},
-  'badge.explorer5.desc': {AppLang.tr: '5 yer keşfettin.', AppLang.en: 'You discovered 5 places.'},
-  'badge.explorer5.hint': {AppLang.tr: 'GPS ile 5 farklı yeri gez.', AppLang.en: 'Visit 5 different places with GPS.'},
-  'badge.explorer10.title': {AppLang.tr: 'Japonya Gezgini', AppLang.en: 'Japan Voyager'},
-  'badge.explorer10.desc': {AppLang.tr: '10 yer keşfettin.', AppLang.en: 'You discovered 10 places.'},
-  'badge.explorer10.hint': {AppLang.tr: 'GPS ile 10 farklı yeri gez.', AppLang.en: 'Visit 10 different places with GPS.'},
-  'badge.tokyoRoamer.title': {AppLang.tr: 'Tokyo Kâşifi', AppLang.en: 'Tokyo Roamer'},
-  'badge.tokyoRoamer.desc': {AppLang.tr: 'Tokyo\'da 3 yer gezdin.', AppLang.en: 'You explored 3 places in Tokyo.'},
-  'badge.tokyoRoamer.hint': {AppLang.tr: 'Tokyo\'da GPS ile 3 yer keşfet.', AppLang.en: 'Discover 3 places in Tokyo with GPS.'},
-  'badge.kyotoRoamer.title': {AppLang.tr: 'Kyoto Kâşifi', AppLang.en: 'Kyoto Roamer'},
-  'badge.kyotoRoamer.desc': {AppLang.tr: 'Kyoto\'da 3 yer gezdin.', AppLang.en: 'You explored 3 places in Kyoto.'},
-  'badge.kyotoRoamer.hint': {AppLang.tr: 'Kyoto\'da GPS ile 3 yer keşfet.', AppLang.en: 'Discover 3 places in Kyoto with GPS.'},
-  'badge.osakaRoamer.title': {AppLang.tr: 'Osaka Kâşifi', AppLang.en: 'Osaka Roamer'},
-  'badge.osakaRoamer.desc': {AppLang.tr: 'Osaka\'da 3 yer gezdin.', AppLang.en: 'You explored 3 places in Osaka.'},
-  'badge.osakaRoamer.hint': {AppLang.tr: 'Osaka\'da GPS ile 3 yer keşfet.', AppLang.en: 'Discover 3 places in Osaka with GPS.'},
+  'badge.explorer5.desc': {
+    AppLang.tr: '5 yer keşfettin.',
+    AppLang.en: 'You discovered 5 places.'
+  },
+  'badge.explorer5.hint': {
+    AppLang.tr: 'GPS ile 5 farklı yeri gez.',
+    AppLang.en: 'Visit 5 different places with GPS.'
+  },
+  'badge.explorer10.title': {
+    AppLang.tr: 'Japonya Gezgini',
+    AppLang.en: 'Japan Voyager'
+  },
+  'badge.explorer10.desc': {
+    AppLang.tr: '10 yer keşfettin.',
+    AppLang.en: 'You discovered 10 places.'
+  },
+  'badge.explorer10.hint': {
+    AppLang.tr: 'GPS ile 10 farklı yeri gez.',
+    AppLang.en: 'Visit 10 different places with GPS.'
+  },
+  'badge.tokyoRoamer.title': {
+    AppLang.tr: 'Tokyo Kâşifi',
+    AppLang.en: 'Tokyo Roamer'
+  },
+  'badge.tokyoRoamer.desc': {
+    AppLang.tr: 'Tokyo\'da 3 yer gezdin.',
+    AppLang.en: 'You explored 3 places in Tokyo.'
+  },
+  'badge.tokyoRoamer.hint': {
+    AppLang.tr: 'Tokyo\'da GPS ile 3 yer keşfet.',
+    AppLang.en: 'Discover 3 places in Tokyo with GPS.'
+  },
+  'badge.kyotoRoamer.title': {
+    AppLang.tr: 'Kyoto Kâşifi',
+    AppLang.en: 'Kyoto Roamer'
+  },
+  'badge.kyotoRoamer.desc': {
+    AppLang.tr: 'Kyoto\'da 3 yer gezdin.',
+    AppLang.en: 'You explored 3 places in Kyoto.'
+  },
+  'badge.kyotoRoamer.hint': {
+    AppLang.tr: 'Kyoto\'da GPS ile 3 yer keşfet.',
+    AppLang.en: 'Discover 3 places in Kyoto with GPS.'
+  },
+  'badge.osakaRoamer.title': {
+    AppLang.tr: 'Osaka Kâşifi',
+    AppLang.en: 'Osaka Roamer'
+  },
+  'badge.osakaRoamer.desc': {
+    AppLang.tr: 'Osaka\'da 3 yer gezdin.',
+    AppLang.en: 'You explored 3 places in Osaka.'
+  },
+  'badge.osakaRoamer.hint': {
+    AppLang.tr: 'Osaka\'da GPS ile 3 yer keşfet.',
+    AppLang.en: 'Discover 3 places in Osaka with GPS.'
+  },
 
   // ===== Domain content (Wave 4: transfers/generators/weather/rules/booking) =====
-  'bw.usj.title': {AppLang.tr: 'USJ Express Pass', AppLang.en: 'USJ Express Pass'},
-  'bw.usj.subtitle': {AppLang.tr: 'Universal Studios Japan bilet ve Express Pass', AppLang.en: 'Universal Studios Japan tickets & Express Pass'},
-  'bw.usj.tip': {AppLang.tr: 'Express Pass ~2 ay öncesinden satışa açılır ve sezonda hızla tükenir. Resmî USJ sitesinden ya da klook üzerinden ayır.', AppLang.en: 'Express Passes go on sale ~2 months ahead and sell out fast in peak season. Book via the official USJ site or Klook.'},
-  'bw.disney.title': {AppLang.tr: 'Tokyo Disney passport + Premier Access', AppLang.en: 'Tokyo Disney passport + Premier Access'},
-  'bw.disney.subtitle': {AppLang.tr: 'Tokyo Disneyland / DisneySea giriş bileti', AppLang.en: 'Tokyo Disneyland / DisneySea entry ticket'},
-  'bw.disney.tip': {AppLang.tr: 'Giriş biletleri ~2 ay öncesinden Tokyo Disney Resort resmi sitesinden. Premier Access uygulama üzerinden gün içi alınır ama giriş bileti şart.', AppLang.en: 'Entry tickets open ~2 months ahead on the official Tokyo Disney Resort site. Premier Access is bought in-app on the day, but an entry ticket is required first.'},
-  'bw.shinkansen.title': {AppLang.tr: 'Shinkansen (Smart-EX)', AppLang.en: 'Shinkansen (Smart-EX)'},
-  'bw.shinkansen.subtitle': {AppLang.tr: 'Tokyo ↔ Kyoto / Osaka arası yüksek hızlı tren', AppLang.en: 'High-speed train between Tokyo ↔ Kyoto / Osaka'},
-  'bw.shinkansen.tip': {AppLang.tr: 'Smart-EX üzerinden 1 ay öncesinden koltuk seçerek ayır. Nozomi için JR Pass geçmez. Sabah erken seferler oturmayı kolaylaştırır.', AppLang.en: 'Reserve a seat via Smart-EX up to 1 month ahead. The JR Pass is not valid on Nozomi trains. Early-morning departures make it easier to get a seat.'},
-  'bw.reason.tokyoKansai': {AppLang.tr: 'Tokyo → Kansai geçişi', AppLang.en: 'Tokyo → Kansai transfer'},
-  'rules.stepsOverLimit': {AppLang.tr: 'Gün {day}: tahmini {estimate} adım, limit {limit}. Taksi veya aktivite azaltmayı düşünün.', AppLang.en: 'Day {day}: about {estimate} steps estimated, limit {limit}. Consider a taxi or fewer activities.'},
-  'rules.mustSeeUnassigned': {AppLang.tr: '"{place}" henüz günlük plana eklenmemiş.', AppLang.en: '"{place}" hasn\'t been added to any day yet.'},
-  'rules.shinkansenUrgent': {AppLang.tr: 'Shinkansen rezervasyon penceresi geçti veya bugün son gün.', AppLang.en: 'The Shinkansen booking window has closed, or today is the last day.'},
-  'rules.shinkansenSoon': {AppLang.tr: 'Shinkansen rezervasyonuna {days} gün kaldı.', AppLang.en: '{days} days left to book the Shinkansen.'},
-  'rules.hotelsMissing': {AppLang.tr: 'Henüz otel eklenmedi. Konaklama adımında en az bir otel ekle.', AppLang.en: 'No hotels added yet. Add at least one in the Stays step.'},
-  'rules.hotelsIncomplete': {AppLang.tr: '{count} otel için şehir, ad veya açık adres eksik.', AppLang.en: '{count} hotel(s) are missing a city, name or full address.'},
-  'rules.planEmpty': {AppLang.tr: 'Plan günleri tamamen boş. Plan adımından gezi planını oluştur.', AppLang.en: 'Your itinerary days are all empty. Build the plan from the Plan step.'},
-  'rules.titleDefault': {AppLang.tr: 'Plan başlığı varsayılan. Kendi başlığını yazmak istersen Başlık adımına dön.', AppLang.en: 'Your plan still has the default title. Go back to the Title step to name it yourself.'},
-  'xfer.mode.localTrain': {AppLang.tr: 'Yerel/hızlı tren', AppLang.en: 'Local / rapid train'},
-  'xfer.mode.overnightBus': {AppLang.tr: 'Gecelik/otobüs', AppLang.en: 'Overnight bus'},
+  'bw.usj.title': {
+    AppLang.tr: 'USJ Express Pass',
+    AppLang.en: 'USJ Express Pass'
+  },
+  'bw.usj.subtitle': {
+    AppLang.tr: 'Universal Studios Japan bilet ve Express Pass',
+    AppLang.en: 'Universal Studios Japan tickets & Express Pass'
+  },
+  'bw.usj.tip': {
+    AppLang.tr:
+        'Express Pass ~2 ay öncesinden satışa açılır ve sezonda hızla tükenir. Resmî USJ sitesinden ya da klook üzerinden ayır.',
+    AppLang.en:
+        'Express Passes go on sale ~2 months ahead and sell out fast in peak season. Book via the official USJ site or Klook.'
+  },
+  'bw.disney.title': {
+    AppLang.tr: 'Tokyo Disney passport + Premier Access',
+    AppLang.en: 'Tokyo Disney passport + Premier Access'
+  },
+  'bw.disney.subtitle': {
+    AppLang.tr: 'Tokyo Disneyland / DisneySea giriş bileti',
+    AppLang.en: 'Tokyo Disneyland / DisneySea entry ticket'
+  },
+  'bw.disney.tip': {
+    AppLang.tr:
+        'Giriş biletleri ~2 ay öncesinden Tokyo Disney Resort resmi sitesinden. Premier Access uygulama üzerinden gün içi alınır ama giriş bileti şart.',
+    AppLang.en:
+        'Entry tickets open ~2 months ahead on the official Tokyo Disney Resort site. Premier Access is bought in-app on the day, but an entry ticket is required first.'
+  },
+  'bw.shinkansen.title': {
+    AppLang.tr: 'Shinkansen (Smart-EX)',
+    AppLang.en: 'Shinkansen (Smart-EX)'
+  },
+  'bw.shinkansen.subtitle': {
+    AppLang.tr: 'Tokyo ↔ Kyoto / Osaka arası yüksek hızlı tren',
+    AppLang.en: 'High-speed train between Tokyo ↔ Kyoto / Osaka'
+  },
+  'bw.shinkansen.tip': {
+    AppLang.tr:
+        'Smart-EX üzerinden 1 ay öncesinden koltuk seçerek ayır. Nozomi için JR Pass geçmez. Sabah erken seferler oturmayı kolaylaştırır.',
+    AppLang.en:
+        'Reserve a seat via Smart-EX up to 1 month ahead. The JR Pass is not valid on Nozomi trains. Early-morning departures make it easier to get a seat.'
+  },
+  'bw.reason.tokyoKansai': {
+    AppLang.tr: 'Tokyo → Kansai geçişi',
+    AppLang.en: 'Tokyo → Kansai transfer'
+  },
+  'rules.stepsOverLimit': {
+    AppLang.tr:
+        'Gün {day}: tahmini {estimate} adım, limit {limit}. Taksi veya aktivite azaltmayı düşünün.',
+    AppLang.en:
+        'Day {day}: about {estimate} steps estimated, limit {limit}. Consider a taxi or fewer activities.'
+  },
+  'rules.mustSeeUnassigned': {
+    AppLang.tr: '"{place}" henüz günlük plana eklenmemiş.',
+    AppLang.en: '"{place}" hasn\'t been added to any day yet.'
+  },
+  'rules.shinkansenUrgent': {
+    AppLang.tr: 'Shinkansen rezervasyon penceresi geçti veya bugün son gün.',
+    AppLang.en:
+        'The Shinkansen booking window has closed, or today is the last day.'
+  },
+  'rules.shinkansenSoon': {
+    AppLang.tr: 'Shinkansen rezervasyonuna {days} gün kaldı.',
+    AppLang.en: '{days} days left to book the Shinkansen.'
+  },
+  'rules.hotelsMissing': {
+    AppLang.tr: 'Henüz otel eklenmedi. Konaklama adımında en az bir otel ekle.',
+    AppLang.en: 'No hotels added yet. Add at least one in the Stays step.'
+  },
+  'rules.hotelsIncomplete': {
+    AppLang.tr: '{count} otel için şehir, ad veya açık adres eksik.',
+    AppLang.en: '{count} hotel(s) are missing a city, name or full address.'
+  },
+  'rules.planEmpty': {
+    AppLang.tr:
+        'Plan günleri tamamen boş. Plan adımından gezi planını oluştur.',
+    AppLang.en:
+        'Your itinerary days are all empty. Build the plan from the Plan step.'
+  },
+  'rules.titleDefault': {
+    AppLang.tr:
+        'Plan başlığı varsayılan. Kendi başlığını yazmak istersen Başlık adımına dön.',
+    AppLang.en:
+        'Your plan still has the default title. Go back to the Title step to name it yourself.'
+  },
+  'xfer.mode.localTrain': {
+    AppLang.tr: 'Yerel/hızlı tren',
+    AppLang.en: 'Local / rapid train'
+  },
+  'xfer.mode.overnightBus': {
+    AppLang.tr: 'Gecelik/otobüs',
+    AppLang.en: 'Overnight bus'
+  },
   'xfer.mode.rentalCar': {AppLang.tr: 'Kiralık araç', AppLang.en: 'Rental car'},
-  'xfer.tip.tokyoOsaka': {AppLang.tr: 'IC kart yerine gişe/Smart-EX. JR Pass kullanılmaz Nozomi için.', AppLang.en: 'Use a ticket window or Smart-EX instead of an IC card — the JR Pass isn\'t valid on the Nozomi.'},
-  'xfer.tip.tokyoKyoto': {AppLang.tr: 'Sabah erken Nozomi sefer aralıkları sık, oturma kolaylığı için ayırtılabilir.', AppLang.en: 'Early-morning Nozomi departures are frequent; reserve a seat for an easy ride.'},
-  'xfer.tip.tokyoHakone': {AppLang.tr: 'Hakone Free Pass al, gün boyu dağ ulaşımı dahil.', AppLang.en: 'Get the Hakone Free Pass — it covers mountain transport all day.'},
-  'xfer.tip.osakaKyoto': {AppLang.tr: 'IC kart (Suica/Icoca) ile bin, ek bilet gerekmez.', AppLang.en: 'Just tap in with an IC card (Suica/Icoca) — no extra ticket needed.'},
-  'xfer.tip.train': {AppLang.tr: 'Daha ucuz, sürelidir. IC kart yeter.', AppLang.en: 'Cheaper but slower. An IC card is all you need.'},
-  'xfer.tip.bus': {AppLang.tr: 'Ucuz ama 8+ saat sürer. Willer Express popüler.', AppLang.en: 'Cheap but takes 8+ hours. Willer Express is popular.'},
-  'xfer.tip.car': {AppLang.tr: 'Uluslararası ehliyet gerekir. Kırsalda mantıklı.', AppLang.en: 'Requires an international license. Makes sense in rural areas.'},
-  'xfer.tip.shinkansen': {AppLang.tr: 'JR Pass geçmez Nozomi\'de; Smart-EX kullan.', AppLang.en: 'The JR Pass isn\'t valid on the Nozomi — use Smart-EX.'},
-  'tmpl.tokyoArrival.label': {AppLang.tr: 'Varış günü', AppLang.en: 'Arrival day'},
-  'tmpl.tokyoArrival.theme': {AppLang.tr: 'Tokyo\'ya varış & check-in', AppLang.en: 'Arrival in Tokyo & check-in'},
-  'tmpl.asakusaSkytree.label': {AppLang.tr: 'Asakusa + Skytree', AppLang.en: 'Asakusa + Skytree'},
-  'tmpl.asakusaSkytree.theme': {AppLang.tr: 'Asakusa & Skytree', AppLang.en: 'Asakusa & Skytree'},
+  'xfer.tip.tokyoOsaka': {
+    AppLang.tr:
+        'IC kart yerine gişe/Smart-EX. JR Pass kullanılmaz Nozomi için.',
+    AppLang.en:
+        'Use a ticket window or Smart-EX instead of an IC card — the JR Pass isn\'t valid on the Nozomi.'
+  },
+  'xfer.tip.tokyoKyoto': {
+    AppLang.tr:
+        'Sabah erken Nozomi sefer aralıkları sık, oturma kolaylığı için ayırtılabilir.',
+    AppLang.en:
+        'Early-morning Nozomi departures are frequent; reserve a seat for an easy ride.'
+  },
+  'xfer.tip.tokyoHakone': {
+    AppLang.tr: 'Hakone Free Pass al, gün boyu dağ ulaşımı dahil.',
+    AppLang.en:
+        'Get the Hakone Free Pass — it covers mountain transport all day.'
+  },
+  'xfer.tip.osakaKyoto': {
+    AppLang.tr: 'IC kart (Suica/Icoca) ile bin, ek bilet gerekmez.',
+    AppLang.en:
+        'Just tap in with an IC card (Suica/Icoca) — no extra ticket needed.'
+  },
+  'xfer.tip.train': {
+    AppLang.tr: 'Daha ucuz, sürelidir. IC kart yeter.',
+    AppLang.en: 'Cheaper but slower. An IC card is all you need.'
+  },
+  'xfer.tip.bus': {
+    AppLang.tr: 'Ucuz ama 8+ saat sürer. Willer Express popüler.',
+    AppLang.en: 'Cheap but takes 8+ hours. Willer Express is popular.'
+  },
+  'xfer.tip.car': {
+    AppLang.tr: 'Uluslararası ehliyet gerekir. Kırsalda mantıklı.',
+    AppLang.en: 'Requires an international license. Makes sense in rural areas.'
+  },
+  'xfer.tip.shinkansen': {
+    AppLang.tr: 'JR Pass geçmez Nozomi\'de; Smart-EX kullan.',
+    AppLang.en: 'The JR Pass isn\'t valid on the Nozomi — use Smart-EX.'
+  },
+  'tmpl.tokyoArrival.label': {
+    AppLang.tr: 'Varış günü',
+    AppLang.en: 'Arrival day'
+  },
+  'tmpl.tokyoArrival.theme': {
+    AppLang.tr: 'Tokyo\'ya varış & check-in',
+    AppLang.en: 'Arrival in Tokyo & check-in'
+  },
+  'tmpl.asakusaSkytree.label': {
+    AppLang.tr: 'Asakusa + Skytree',
+    AppLang.en: 'Asakusa + Skytree'
+  },
+  'tmpl.asakusaSkytree.theme': {
+    AppLang.tr: 'Asakusa & Skytree',
+    AppLang.en: 'Asakusa & Skytree'
+  },
   'tmpl.shibuya.label': {AppLang.tr: 'Shibuya günü', AppLang.en: 'Shibuya day'},
-  'tmpl.shibuya.theme': {AppLang.tr: 'Shibuya & Harajuku', AppLang.en: 'Shibuya & Harajuku'},
+  'tmpl.shibuya.theme': {
+    AppLang.tr: 'Shibuya & Harajuku',
+    AppLang.en: 'Shibuya & Harajuku'
+  },
   'tmpl.disney.label': {AppLang.tr: 'Disneyland', AppLang.en: 'Disneyland'},
-  'tmpl.disney.theme': {AppLang.tr: 'Tokyo Disneyland', AppLang.en: 'Tokyo Disneyland'},
+  'tmpl.disney.theme': {
+    AppLang.tr: 'Tokyo Disneyland',
+    AppLang.en: 'Tokyo Disneyland'
+  },
   'tmpl.teamlabDay.label': {AppLang.tr: 'teamLab', AppLang.en: 'teamLab'},
-  'tmpl.teamlabDay.theme': {AppLang.tr: 'teamLab Planets — ışık ve su', AppLang.en: 'teamLab Planets — light & water'},
-  'tmpl.usjDay.label': {AppLang.tr: 'Universal Studios', AppLang.en: 'Universal Studios'},
-  'tmpl.usjDay.theme': {AppLang.tr: 'Universal Studios Japan', AppLang.en: 'Universal Studios Japan'},
-  'gen.coverage.parkLunch': {AppLang.tr: 'Park içinde öğle molası', AppLang.en: 'Lunch inside the park'},
-  'gen.coverage.parkLunchDesc': {AppLang.tr: 'Restoranlar sıralı — 11:30 civarı git.', AppLang.en: 'Restaurants queue up — head there around 11:30.'},
-  'gen.coverage.postDinner': {AppLang.tr: 'Çıkışta akşam yemeği', AppLang.en: 'Dinner after leaving'},
-  'gen.coverage.postDinnerDesc': {AppLang.tr: 'Park çıkışı yakınında ramen/izakaya.', AppLang.en: 'Ramen or izakaya near the park exit.'},
-  'gen.coverage.halfMorning': {AppLang.tr: 'Sabah gezisi', AppLang.en: 'Morning stroll'},
-  'gen.coverage.halfMorningDesc': {AppLang.tr: 'Yakın bir tapınak veya sokak — teamLab öncesi hafif tempo.', AppLang.en: 'A nearby shrine or street — easy pace before teamLab.'},
-  'tmpl.osakaMove.label': {AppLang.tr: 'Osaka geçiş', AppLang.en: 'Osaka transfer'},
-  'tmpl.osakaMove.theme': {AppLang.tr: 'Shinkansen & Dotonbori', AppLang.en: 'Shinkansen & Dotonbori'},
-  'tmpl.kyotoDay.label': {AppLang.tr: 'Kyoto günübirlik', AppLang.en: 'Kyoto day trip'},
-  'tmpl.kyotoDay.theme': {AppLang.tr: 'Kyoto & Fushimi Inari', AppLang.en: 'Kyoto & Fushimi Inari'},
-  'tmpl.naraDay.label': {AppLang.tr: 'Nara günübirlik', AppLang.en: 'Nara day trip'},
+  'tmpl.teamlabDay.theme': {
+    AppLang.tr: 'teamLab Planets — ışık ve su',
+    AppLang.en: 'teamLab Planets — light & water'
+  },
+  'tmpl.usjDay.label': {
+    AppLang.tr: 'Universal Studios',
+    AppLang.en: 'Universal Studios'
+  },
+  'tmpl.usjDay.theme': {
+    AppLang.tr: 'Universal Studios Japan',
+    AppLang.en: 'Universal Studios Japan'
+  },
+  'gen.coverage.parkLunch': {
+    AppLang.tr: 'Park içinde öğle molası',
+    AppLang.en: 'Lunch inside the park'
+  },
+  'gen.coverage.parkLunchDesc': {
+    AppLang.tr: 'Restoranlar sıralı — 11:30 civarı git.',
+    AppLang.en: 'Restaurants queue up — head there around 11:30.'
+  },
+  'gen.coverage.postDinner': {
+    AppLang.tr: 'Çıkışta akşam yemeği',
+    AppLang.en: 'Dinner after leaving'
+  },
+  'gen.coverage.postDinnerDesc': {
+    AppLang.tr: 'Park çıkışı yakınında ramen/izakaya.',
+    AppLang.en: 'Ramen or izakaya near the park exit.'
+  },
+  'gen.coverage.halfMorning': {
+    AppLang.tr: 'Sabah gezisi',
+    AppLang.en: 'Morning stroll'
+  },
+  'gen.coverage.halfMorningDesc': {
+    AppLang.tr: 'Yakın bir tapınak veya sokak — teamLab öncesi hafif tempo.',
+    AppLang.en: 'A nearby shrine or street — easy pace before teamLab.'
+  },
+  'tmpl.osakaMove.label': {
+    AppLang.tr: 'Osaka geçiş',
+    AppLang.en: 'Osaka transfer'
+  },
+  'tmpl.osakaMove.theme': {
+    AppLang.tr: 'Shinkansen & Dotonbori',
+    AppLang.en: 'Shinkansen & Dotonbori'
+  },
+  'tmpl.kyotoDay.label': {
+    AppLang.tr: 'Kyoto günübirlik',
+    AppLang.en: 'Kyoto day trip'
+  },
+  'tmpl.kyotoDay.theme': {
+    AppLang.tr: 'Kyoto & Fushimi Inari',
+    AppLang.en: 'Kyoto & Fushimi Inari'
+  },
+  'tmpl.naraDay.label': {
+    AppLang.tr: 'Nara günübirlik',
+    AppLang.en: 'Nara day trip'
+  },
   'tmpl.naraDay.theme': {AppLang.tr: 'Nara turu', AppLang.en: 'Nara tour'},
-  'gen.tip.cultureEarly': {AppLang.tr: 'Sabah erken gitmek kalabalığı azaltır.', AppLang.en: 'Going early helps you beat the crowds.'},
-  'gen.tip.foodMeal': {AppLang.tr: 'Öğle veya akşam için ideal.', AppLang.en: 'Ideal for lunch or dinner.'},
-  'gen.meal.lunchBreak': {AppLang.tr: 'Öğle yemeği molası', AppLang.en: 'Lunch break'},
+  'gen.tip.cultureEarly': {
+    AppLang.tr: 'Sabah erken gitmek kalabalığı azaltır.',
+    AppLang.en: 'Going early helps you beat the crowds.'
+  },
+  'gen.tip.foodMeal': {
+    AppLang.tr: 'Öğle veya akşam için ideal.',
+    AppLang.en: 'Ideal for lunch or dinner.'
+  },
+  'gen.meal.lunchBreak': {
+    AppLang.tr: 'Öğle yemeği molası',
+    AppLang.en: 'Lunch break'
+  },
   'gen.meal.lunchStop': {AppLang.tr: 'Öğle molası', AppLang.en: 'Lunch stop'},
   'gen.meal.lunch': {AppLang.tr: 'Öğle yemeği', AppLang.en: 'Lunch'},
   'gen.meal.dinner': {AppLang.tr: 'Akşam yemeği', AppLang.en: 'Dinner'},
   'gen.meal.ramen': {AppLang.tr: 'Ramen molası', AppLang.en: 'Ramen stop'},
-  'gen.meal.conveyorSushi': {AppLang.tr: 'Conveyor sushi', AppLang.en: 'Conveyor-belt sushi'},
-  'gen.meal.yakitori': {AppLang.tr: 'Yakitori izakaya', AppLang.en: 'Yakitori izakaya'},
-  'gen.meal.konbiniBento': {AppLang.tr: 'Konbini bento', AppLang.en: 'Konbini bento'},
-  'gen.meal.japaneseCurry': {AppLang.tr: 'Japon curry', AppLang.en: 'Japanese curry'},
-  'gen.mealTip.ramen': {AppLang.tr: 'Tonkotsu veya shoyu — Ichiran, Ippudo, Afuri gibi zincirlerden biri.', AppLang.en: 'Tonkotsu or shoyu — try a chain like Ichiran, Ippudo or Afuri.'},
-  'gen.mealTip.conveyorSushi': {AppLang.tr: 'Sushiro / Kura Sushi — uygun fiyatlı, çocuk dostu.', AppLang.en: 'Sushiro / Kura Sushi — affordable and kid-friendly.'},
-  'gen.mealTip.yakitori': {AppLang.tr: 'Tori-kizoku zinciri ya da Omoide Yokocho ara sokakları.', AppLang.en: 'The Tori-kizoku chain or the back alleys of Omoide Yokocho.'},
-  'gen.mealTip.konbiniBento': {AppLang.tr: 'Family Mart / Lawson — taze onigiri & bento, hızlı seçenek.', AppLang.en: 'Family Mart / Lawson — fresh onigiri & bento, a quick option.'},
-  'gen.mealTip.japaneseCurry': {AppLang.tr: 'CoCo Ichibanya — acılığı + topping seçilebilir.', AppLang.en: 'CoCo Ichibanya — choose your spice level and toppings.'},
-  'gen.arrival.checkinTitle': {AppLang.tr: 'Varış & check-in', AppLang.en: 'Arrival & check-in'},
-  'gen.arrival.checkinDesc': {AppLang.tr: 'Otele yerleş, jet lag için hafif tempo.', AppLang.en: 'Settle into the hotel; keep it light for jet lag.'},
-  'gen.arrival.exploreTitle': {AppLang.tr: 'Çevre keşfi & konbini', AppLang.en: 'Explore nearby & konbini'},
-  'gen.arrival.exploreDesc': {AppLang.tr: 'Yakın çevrede kısa yürüyüş, akşam atıştırmalığı.', AppLang.en: 'A short walk nearby and an evening snack.'},
-  'gen.arrival.cityTheme': {AppLang.tr: '{city} · Varış & yerleşme', AppLang.en: '{city} · Arrival & check-in'},
-  'gen.arrival.airportTitle': {AppLang.tr: 'Havaalanına iniş', AppLang.en: 'Landing at the airport'},
-  'gen.arrival.airportDesc': {AppLang.tr: 'Immigration, bagaj ve SIM/eSIM aktivasyonu.', AppLang.en: 'Immigration, luggage, and SIM/eSIM setup.'},
-  'gen.arrival.transferTitle': {AppLang.tr: 'Otele transfer', AppLang.en: 'Transfer to the hotel'},
-  'gen.arrival.transferDesc': {AppLang.tr: 'Airport Limousine ya da ekspres trenle otele (Narita Express, Haruka…).', AppLang.en: 'Airport Limousine or express train to the hotel (Narita Express, Haruka…).'},
-  'gen.arrival.lightDinnerTitle': {AppLang.tr: 'Hafif akşam yemeği', AppLang.en: 'Light dinner nearby'},
-  'gen.arrival.lightDinnerDesc': {AppLang.tr: 'Otele yakın ramen ya da konbini — jet lag için ağır olmasın.', AppLang.en: 'Ramen or konbini near the hotel — go easy on the jet lag.'},
+  'gen.meal.conveyorSushi': {
+    AppLang.tr: 'Conveyor sushi',
+    AppLang.en: 'Conveyor-belt sushi'
+  },
+  'gen.meal.yakitori': {
+    AppLang.tr: 'Yakitori izakaya',
+    AppLang.en: 'Yakitori izakaya'
+  },
+  'gen.meal.konbiniBento': {
+    AppLang.tr: 'Konbini bento',
+    AppLang.en: 'Konbini bento'
+  },
+  'gen.meal.japaneseCurry': {
+    AppLang.tr: 'Japon curry',
+    AppLang.en: 'Japanese curry'
+  },
+  'gen.mealTip.ramen': {
+    AppLang.tr:
+        'Tonkotsu veya shoyu — Ichiran, Ippudo, Afuri gibi zincirlerden biri.',
+    AppLang.en: 'Tonkotsu or shoyu — try a chain like Ichiran, Ippudo or Afuri.'
+  },
+  'gen.mealTip.conveyorSushi': {
+    AppLang.tr: 'Sushiro / Kura Sushi — uygun fiyatlı, çocuk dostu.',
+    AppLang.en: 'Sushiro / Kura Sushi — affordable and kid-friendly.'
+  },
+  'gen.mealTip.yakitori': {
+    AppLang.tr: 'Tori-kizoku zinciri ya da Omoide Yokocho ara sokakları.',
+    AppLang.en: 'The Tori-kizoku chain or the back alleys of Omoide Yokocho.'
+  },
+  'gen.mealTip.konbiniBento': {
+    AppLang.tr: 'Family Mart / Lawson — taze onigiri & bento, hızlı seçenek.',
+    AppLang.en: 'Family Mart / Lawson — fresh onigiri & bento, a quick option.'
+  },
+  'gen.mealTip.japaneseCurry': {
+    AppLang.tr: 'CoCo Ichibanya — acılığı + topping seçilebilir.',
+    AppLang.en: 'CoCo Ichibanya — choose your spice level and toppings.'
+  },
+  'gen.arrival.checkinTitle': {
+    AppLang.tr: 'Varış & check-in',
+    AppLang.en: 'Arrival & check-in'
+  },
+  'gen.arrival.checkinDesc': {
+    AppLang.tr: 'Otele yerleş, jet lag için hafif tempo.',
+    AppLang.en: 'Settle into the hotel; keep it light for jet lag.'
+  },
+  'gen.arrival.exploreTitle': {
+    AppLang.tr: 'Çevre keşfi & konbini',
+    AppLang.en: 'Explore nearby & konbini'
+  },
+  'gen.arrival.exploreDesc': {
+    AppLang.tr: 'Yakın çevrede kısa yürüyüş, akşam atıştırmalığı.',
+    AppLang.en: 'A short walk nearby and an evening snack.'
+  },
+  'gen.arrival.cityTheme': {
+    AppLang.tr: '{city} · Varış & yerleşme',
+    AppLang.en: '{city} · Arrival & check-in'
+  },
+  'gen.arrival.airportTitle': {
+    AppLang.tr: 'Havaalanına iniş',
+    AppLang.en: 'Landing at the airport'
+  },
+  'gen.arrival.airportDesc': {
+    AppLang.tr: 'Immigration, bagaj ve SIM/eSIM aktivasyonu.',
+    AppLang.en: 'Immigration, luggage, and SIM/eSIM setup.'
+  },
+  'gen.arrival.transferTitle': {
+    AppLang.tr: 'Otele transfer',
+    AppLang.en: 'Transfer to the hotel'
+  },
+  'gen.arrival.transferDesc': {
+    AppLang.tr:
+        'Airport Limousine ya da ekspres trenle otele (Narita Express, Haruka…).',
+    AppLang.en:
+        'Airport Limousine or express train to the hotel (Narita Express, Haruka…).'
+  },
+  'gen.arrival.lightDinnerTitle': {
+    AppLang.tr: 'Hafif akşam yemeği',
+    AppLang.en: 'Light dinner nearby'
+  },
+  'gen.arrival.lightDinnerDesc': {
+    AppLang.tr: 'Otele yakın ramen ya da konbini — jet lag için ağır olmasın.',
+    AppLang.en: 'Ramen or konbini near the hotel — go easy on the jet lag.'
+  },
   'gen.tempoLabel': {AppLang.tr: 'tempo', AppLang.en: 'pace'},
-  'gen.departure.theme': {AppLang.tr: 'Ayrılış & havaalanı', AppLang.en: 'Departure & airport'},
+  'gen.departure.theme': {
+    AppLang.tr: 'Ayrılış & havaalanı',
+    AppLang.en: 'Departure & airport'
+  },
   'gen.departure.tag': {AppLang.tr: 'Ayrılış', AppLang.en: 'Departure'},
-  'gen.departure.checkoutTitle': {AppLang.tr: 'Check-out & valiz', AppLang.en: 'Check-out & luggage'},
-  'gen.departure.transferTitle': {AppLang.tr: 'Havaalanı transferi', AppLang.en: 'Airport transfer'},
-  'gen.departure.transferDesc': {AppLang.tr: 'Tren veya taksi — uçuş saatine göre erken çık.', AppLang.en: 'Train or taxi — leave early depending on your flight time.'},
-  'gen.departure.flightTitle': {AppLang.tr: 'Dönüş uçuşu', AppLang.en: 'Return flight'},
-  'gen.departure.atAirportTitle': {AppLang.tr: 'Havaalanında', AppLang.en: 'At the airport'},
-  'gen.departure.atAirportDesc': {AppLang.tr: 'Check-in, bagaj ve güvenlik.', AppLang.en: 'Check-in, luggage, and security.'},
-  'gen.departure.highlightTitle': {AppLang.tr: 'Ayrılış günü', AppLang.en: 'Departure day'},
-  'gen.departure.highlightBody': {AppLang.tr: 'Havaalanına en az 2–3 saat önce varın.', AppLang.en: 'Arrive at the airport at least 2–3 hours early.'},
+  'gen.departure.checkoutTitle': {
+    AppLang.tr: 'Check-out & valiz',
+    AppLang.en: 'Check-out & luggage'
+  },
+  'gen.departure.transferTitle': {
+    AppLang.tr: 'Havaalanı transferi',
+    AppLang.en: 'Airport transfer'
+  },
+  'gen.departure.transferDesc': {
+    AppLang.tr: 'Tren veya taksi — uçuş saatine göre erken çık.',
+    AppLang.en: 'Train or taxi — leave early depending on your flight time.'
+  },
+  'gen.departure.flightTitle': {
+    AppLang.tr: 'Dönüş uçuşu',
+    AppLang.en: 'Return flight'
+  },
+  'gen.departure.atAirportTitle': {
+    AppLang.tr: 'Havaalanında',
+    AppLang.en: 'At the airport'
+  },
+  'gen.departure.atAirportDesc': {
+    AppLang.tr: 'Check-in, bagaj ve güvenlik.',
+    AppLang.en: 'Check-in, luggage, and security.'
+  },
+  'gen.departure.highlightTitle': {
+    AppLang.tr: 'Ayrılış günü',
+    AppLang.en: 'Departure day'
+  },
+  'gen.departure.highlightBody': {
+    AppLang.tr: 'Havaalanına en az 2–3 saat önce varın.',
+    AppLang.en: 'Arrive at the airport at least 2–3 hours early.'
+  },
   'gen.highlight.featured': {AppLang.tr: 'Öne çıkan', AppLang.en: 'Highlights'},
-  'gen.fill.mealDesc': {AppLang.tr: 'Hızlı, yerel bir mola.', AppLang.en: 'A quick, local bite.'},
-  'gen.fill.neighborhoodWalk': {AppLang.tr: 'Mahalle yürüyüşü', AppLang.en: 'Neighborhood walk'},
-  'gen.fill.popularStop': {AppLang.tr: '{city} bölgesinde popüler durak.', AppLang.en: 'A popular stop in the {city} area.'},
-  'gen.fill.freeExplore': {AppLang.tr: 'Bölgede serbest keşif.', AppLang.en: 'Free exploration around the area.'},
-  'gen.fill.exploreDay': {AppLang.tr: '{city} keşif günü', AppLang.en: '{city} exploration day'},
+  'gen.fill.mealDesc': {
+    AppLang.tr: 'Hızlı, yerel bir mola.',
+    AppLang.en: 'A quick, local bite.'
+  },
+  'gen.fill.neighborhoodWalk': {
+    AppLang.tr: 'Mahalle yürüyüşü',
+    AppLang.en: 'Neighborhood walk'
+  },
+  'gen.fill.popularStop': {
+    AppLang.tr: '{city} bölgesinde popüler durak.',
+    AppLang.en: 'A popular stop in the {city} area.'
+  },
+  'gen.fill.freeExplore': {
+    AppLang.tr: 'Bölgede serbest keşif.',
+    AppLang.en: 'Free exploration around the area.'
+  },
+  'gen.fill.exploreDay': {
+    AppLang.tr: '{city} keşif günü',
+    AppLang.en: '{city} exploration day'
+  },
   'wx.clear': {AppLang.tr: 'Açık', AppLang.en: 'Clear'},
-  'wx.partlyCloudy': {AppLang.tr: 'Parçalı bulutlu', AppLang.en: 'Partly cloudy'},
+  'wx.partlyCloudy': {
+    AppLang.tr: 'Parçalı bulutlu',
+    AppLang.en: 'Partly cloudy'
+  },
   'wx.fog': {AppLang.tr: 'Sisli', AppLang.en: 'Foggy'},
   'wx.rain': {AppLang.tr: 'Yağmurlu', AppLang.en: 'Rainy'},
   'wx.snow': {AppLang.tr: 'Karlı', AppLang.en: 'Snowy'},
@@ -1476,8 +3489,14 @@ const Map<String, Map<AppLang, String>> _strings = {
   'wx.close': {AppLang.tr: 'Kapat', AppLang.en: 'Close'},
 
   // ===== City discovery card (Wave 4 polish) =====
-  'cityCard.visitedCount': {AppLang.tr: '{done}/{total} gezildi', AppLang.en: '{done}/{total} visited'},
+  'cityCard.visitedCount': {
+    AppLang.tr: '{done}/{total} gezildi',
+    AppLang.en: '{done}/{total} visited'
+  },
   'cityCard.visited': {AppLang.tr: 'gezildi', AppLang.en: 'visited'},
   'cityCard.detecting': {AppLang.tr: 'algılanıyor…', AppLang.en: 'detecting…'},
-  'welcome.origin.hint': {AppLang.tr: 'İstanbul, Londra, New York…', AppLang.en: 'Istanbul, London, New York…'},
+  'welcome.origin.hint': {
+    AppLang.tr: 'İstanbul, Londra, New York…',
+    AppLang.en: 'Istanbul, London, New York…'
+  },
 };

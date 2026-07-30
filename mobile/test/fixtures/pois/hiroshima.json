@@ -1,0 +1,103 @@
+{
+  "hotels": [
+    {
+      "id": "hotel-nakaku",
+      "name": "Hiroshima Peace Hotel",
+      "lat": 34.3963,
+      "lng": 132.459,
+      "cluster": "nakaku"
+    }
+  ],
+  "pois": [
+    {
+      "id": "hr-peace",
+      "name": "Peace Memorial Park",
+      "lat": 34.3955,
+      "lng": 132.4536,
+      "cluster": "nakaku",
+      "category": "sightseeing",
+      "durationMinutes": 60
+    },
+    {
+      "id": "hr-dome",
+      "name": "Atomic Bomb Dome",
+      "lat": 34.3955,
+      "lng": 132.4537,
+      "cluster": "nakaku",
+      "category": "sightseeing",
+      "durationMinutes": 30
+    },
+    {
+      "id": "hr-miyajima",
+      "name": "Itsukushima Shrine (Miyajima)",
+      "lat": 34.296,
+      "lng": 132.3197,
+      "cluster": "miyajima",
+      "category": "shrine",
+      "durationMinutes": 90,
+      "openingTime": "06:30",
+      "closingTime": "18:00"
+    },
+    {
+      "id": "hr-castle",
+      "name": "Hiroshima Castle",
+      "lat": 34.4026,
+      "lng": 132.4593,
+      "cluster": "nakaku",
+      "category": "sightseeing",
+      "durationMinutes": 60,
+      "openingTime": "09:00",
+      "closingTime": "18:00"
+    },
+    {
+      "id": "hr-shukkeien",
+      "name": "Shukkeien Garden",
+      "lat": 34.4019,
+      "lng": 132.4664,
+      "cluster": "nakaku",
+      "category": "park",
+      "durationMinutes": 45,
+      "openingTime": "09:00",
+      "closingTime": "18:00"
+    },
+    {
+      "id": "hr-okonomimura",
+      "name": "Okonomimura",
+      "lat": 34.3928,
+      "lng": 132.4657,
+      "cluster": "nakaku",
+      "category": "meal",
+      "durationMinutes": 60,
+      "openingTime": "11:00"
+    },
+    {
+      "id": "hr-hondori",
+      "name": "Hondori Shopping Street",
+      "lat": 34.3917,
+      "lng": 132.4592,
+      "cluster": "nakaku",
+      "category": "shopping",
+      "durationMinutes": 45
+    },
+    {
+      "id": "hr-momiji-manju",
+      "name": "Momiji Manju Bakery (Miyajima)",
+      "lat": 34.2969,
+      "lng": 132.3197,
+      "cluster": "miyajima",
+      "category": "meal",
+      "durationMinutes": 30
+    },
+    {
+      "id": "hr-mitaki-dera",
+      "name": "Mitaki-dera",
+      "lat": 34.4193,
+      "lng": 132.4276,
+      "cluster": "nishiku",
+      "category": "shrine",
+      "durationMinutes": 60,
+      "openingTime": "08:00",
+      "closingTime": "17:00"
+    }
+  ]
+}

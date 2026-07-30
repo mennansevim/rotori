@@ -1,0 +1,93 @@
+{
+  "hotels": [
+    {
+      "id": "hotel-sanmachi",
+      "name": "Takayama Sanmachi Inn",
+      "lat": 36.142,
+      "lng": 137.253,
+      "cluster": "sanmachi"
+    }
+  ],
+  "pois": [
+    {
+      "id": "ty-sanmachi",
+      "name": "Sanmachi Suji Old Town",
+      "lat": 36.142,
+      "lng": 137.253,
+      "cluster": "sanmachi",
+      "category": "sightseeing",
+      "durationMinutes": 75
+    },
+    {
+      "id": "ty-morning-market",
+      "name": "Miyagawa Morning Market",
+      "lat": 36.1441,
+      "lng": 137.252,
+      "cluster": "miyagawa",
+      "category": "shopping",
+      "durationMinutes": 45,
+      "openingTime": "07:00",
+      "closingTime": "12:00"
+    },
+    {
+      "id": "ty-jinya",
+      "name": "Takayama Jinya",
+      "lat": 36.14,
+      "lng": 137.251,
+      "cluster": "sanmachi",
+      "category": "museum",
+      "durationMinutes": 60,
+      "openingTime": "09:30",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "ty-hida-folk-village",
+      "name": "Hida Folk Village",
+      "lat": 36.1467,
+      "lng": 137.235,
+      "cluster": "hidanosato",
+      "category": "museum",
+      "durationMinutes": 90,
+      "openingTime": "08:30",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "ty-hida-beef",
+      "name": "Hida Beef Yakiniku",
+      "lat": 36.142,
+      "lng": 137.254,
+      "cluster": "sanmachi",
+      "category": "meal",
+      "durationMinutes": 60
+    },
+    {
+      "id": "ty-kadoya-soba",
+      "name": "Kadoya Soba",
+      "lat": 36.1425,
+      "lng": 137.2532,
+      "cluster": "sanmachi",
+      "category": "meal",
+      "durationMinutes": 45
+    },
+    {
+      "id": "ty-shiroyama-park",
+      "name": "Shiroyama Park",
+      "lat": 36.1443,
+      "lng": 137.2569,
+      "cluster": "shiroyama",
+      "category": "park",
+      "durationMinutes": 45
+    },
+    {
+      "id": "ty-showa-museum",
+      "name": "Takayama Showa Museum",
+      "lat": 36.1449,
+      "lng": 137.2508,
+      "cluster": "sanmachi",
+      "category": "museum",
+      "durationMinutes": 45,
+      "openingTime": "09:30",
+      "closingTime": "17:00"
+    }
+  ]
+}

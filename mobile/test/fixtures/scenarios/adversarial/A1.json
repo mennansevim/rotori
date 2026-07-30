@@ -1,0 +1,374 @@
+{
+  "id": "A1",
+  "date": "2026-11-05",
+  "city": "kyoto",
+  "hotel": {
+    "id": "hotel-nakagyo",
+    "name": "Kyoto Riverside Inn",
+    "lat": 35.0038,
+    "lng": 135.77,
+    "cluster": "nakagyo"
+  },
+  "dayStart": "2026-11-05T08:30:00",
+  "dayEnd": "2026-11-05T21:30:00",
+  "activities": [
+    {
+      "id": "ky-kiyomizu",
+      "name": "Kiyomizu-dera",
+      "lat": 34.9948,
+      "lng": 135.785,
+      "cluster": "higashiyama",
+      "category": "shrine",
+      "durationMinutes": 75,
+      "openingTime": "06:00",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "ky-yasaka",
+      "name": "Yasaka Shrine",
+      "lat": 35.0037,
+      "lng": 135.7788,
+      "cluster": "higashiyama",
+      "category": "shrine",
+      "durationMinutes": 45
+    },
+    {
+      "id": "ky-nanzenji",
+      "name": "Nanzen-ji",
+      "lat": 35.0116,
+      "lng": 135.7834,
+      "cluster": "higashiyama",
+      "category": "shrine",
+      "durationMinutes": 60,
+      "openingTime": "08:40",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "ky-nishiki-koji-sushi",
+      "name": "Nishiki Koji Sushi",
+      "lat": 35.0051,
+      "lng": 135.7649,
+      "cluster": "nakagyo",
+      "category": "meal",
+      "durationMinutes": 45,
+      "openingTime": "11:30",
+      "closingTime": "14:00"
+    },
+    {
+      "id": "ky-pontocho",
+      "name": "Pontocho",
+      "lat": 35.005,
+      "lng": 135.7708,
+      "cluster": "nakagyo",
+      "category": "meal",
+      "durationMinutes": 60,
+      "fixedStartTime": "19:00",
+      "fixedEndTime": "20:00",
+      "isFixed": true,
+      "hasReservation": true
+    }
+  ],
+  "routeMatrix": [
+    {
+      "fromId": "hotel-nakagyo",
+      "toId": "ky-kiyomizu",
+      "mode": "metro",
+      "doorToDoorMinutes": 13,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9016935971048747
+    },
+    {
+      "fromId": "hotel-nakagyo",
+      "toId": "ky-yasaka",
+      "mode": "metro",
+      "doorToDoorMinutes": 7,
+      "walkingMinutes": 10,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9008015932441233
+    },
+    {
+      "fromId": "hotel-nakagyo",
+      "toId": "ky-nanzenji",
+      "mode": "metro",
+      "doorToDoorMinutes": 11,
+      "walkingMinutes": 18,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9014972300495399
+    },
+    {
+      "fromId": "hotel-nakagyo",
+      "toId": "ky-nishiki-koji-sushi",
+      "mode": "walking",
+      "doorToDoorMinutes": 5,
+      "walkingMinutes": 5,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9004864835049728
+    },
+    {
+      "fromId": "hotel-nakagyo",
+      "toId": "ky-pontocho",
+      "mode": "walking",
+      "doorToDoorMinutes": 3,
+      "walkingMinutes": 3,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9001520323897373
+    },
+    {
+      "fromId": "ky-kiyomizu",
+      "toId": "hotel-nakagyo",
+      "mode": "metro",
+      "doorToDoorMinutes": 13,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9016935971048747
+    },
+    {
+      "fromId": "ky-kiyomizu",
+      "toId": "ky-yasaka",
+      "mode": "metro",
+      "doorToDoorMinutes": 9,
+      "walkingMinutes": 14,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9011394311833192
+    },
+    {
+      "fromId": "ky-kiyomizu",
+      "toId": "ky-nanzenji",
+      "mode": "metro",
+      "doorToDoorMinutes": 14,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9018737504942541
+    },
+    {
+      "fromId": "ky-kiyomizu",
+      "toId": "ky-nishiki-koji-sushi",
+      "mode": "metro",
+      "doorToDoorMinutes": 15,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9021595449158902
+    },
+    {
+      "fromId": "ky-kiyomizu",
+      "toId": "ky-pontocho",
+      "mode": "metro",
+      "doorToDoorMinutes": 13,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9017202642211537
+    },
+    {
+      "fromId": "ky-yasaka",
+      "toId": "hotel-nakagyo",
+      "mode": "metro",
+      "doorToDoorMinutes": 7,
+      "walkingMinutes": 10,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9008015932441233
+    },
+    {
+      "fromId": "ky-yasaka",
+      "toId": "ky-kiyomizu",
+      "mode": "metro",
+      "doorToDoorMinutes": 9,
+      "walkingMinutes": 14,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9011394311833192
+    },
+    {
+      "fromId": "ky-yasaka",
+      "toId": "ky-nanzenji",
+      "mode": "metro",
+      "doorToDoorMinutes": 8,
+      "walkingMinutes": 12,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9009732314473217
+    },
+    {
+      "fromId": "ky-yasaka",
+      "toId": "ky-nishiki-koji-sushi",
+      "mode": "metro",
+      "doorToDoorMinutes": 10,
+      "walkingMinutes": 16,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9012755561246147
+    },
+    {
+      "fromId": "ky-yasaka",
+      "toId": "ky-pontocho",
+      "mode": "walking",
+      "doorToDoorMinutes": 7,
+      "walkingMinutes": 7,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9007428460149334
+    },
+    {
+      "fromId": "ky-nanzenji",
+      "toId": "hotel-nakagyo",
+      "mode": "metro",
+      "doorToDoorMinutes": 11,
+      "walkingMinutes": 18,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9014972300495399
+    },
+    {
+      "fromId": "ky-nanzenji",
+      "toId": "ky-kiyomizu",
+      "mode": "metro",
+      "doorToDoorMinutes": 14,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9018737504942541
+    },
+    {
+      "fromId": "ky-nanzenji",
+      "toId": "ky-yasaka",
+      "mode": "metro",
+      "doorToDoorMinutes": 8,
+      "walkingMinutes": 12,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9009732314473217
+    },
+    {
+      "fromId": "ky-nanzenji",
+      "toId": "ky-nishiki-koji-sushi",
+      "mode": "metro",
+      "doorToDoorMinutes": 14,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9018333892996773
+    },
+    {
+      "fromId": "ky-nanzenji",
+      "toId": "ky-pontocho",
+      "mode": "metro",
+      "doorToDoorMinutes": 11,
+      "walkingMinutes": 17,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9013621625683611
+    },
+    {
+      "fromId": "ky-nishiki-koji-sushi",
+      "toId": "hotel-nakagyo",
+      "mode": "walking",
+      "doorToDoorMinutes": 5,
+      "walkingMinutes": 5,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9004864835049728
+    },
+    {
+      "fromId": "ky-nishiki-koji-sushi",
+      "toId": "ky-kiyomizu",
+      "mode": "metro",
+      "doorToDoorMinutes": 15,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9021595449158902
+    },
+    {
+      "fromId": "ky-nishiki-koji-sushi",
+      "toId": "ky-yasaka",
+      "mode": "metro",
+      "doorToDoorMinutes": 10,
+      "walkingMinutes": 16,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9012755561246147
+    },
+    {
+      "fromId": "ky-nishiki-koji-sushi",
+      "toId": "ky-nanzenji",
+      "mode": "metro",
+      "doorToDoorMinutes": 14,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9018333892996773
+    },
+    {
+      "fromId": "ky-nishiki-koji-sushi",
+      "toId": "ky-pontocho",
+      "mode": "walking",
+      "doorToDoorMinutes": 6,
+      "walkingMinutes": 6,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9005374866172652
+    },
+    {
+      "fromId": "ky-pontocho",
+      "toId": "hotel-nakagyo",
+      "mode": "walking",
+      "doorToDoorMinutes": 3,
+      "walkingMinutes": 3,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9001520323897373
+    },
+    {
+      "fromId": "ky-pontocho",
+      "toId": "ky-kiyomizu",
+      "mode": "metro",
+      "doorToDoorMinutes": 13,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9017202642211537
+    },
+    {
+      "fromId": "ky-pontocho",
+      "toId": "ky-yasaka",
+      "mode": "walking",
+      "doorToDoorMinutes": 7,
+      "walkingMinutes": 7,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9007428460149334
+    },
+    {
+      "fromId": "ky-pontocho",
+      "toId": "ky-nanzenji",
+      "mode": "metro",
+      "doorToDoorMinutes": 11,
+      "walkingMinutes": 17,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9013621625683611
+    },
+    {
+      "fromId": "ky-pontocho",
+      "toId": "ky-nishiki-koji-sushi",
+      "mode": "walking",
+      "doorToDoorMinutes": 6,
+      "walkingMinutes": 6,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9005374866172652
+    }
+  ],
+  "notes": "Kapanış vs. rezervasyon: kiyomizu/nanzenji 17:00 kapanır, pontocho 19:00 fixed."
+}

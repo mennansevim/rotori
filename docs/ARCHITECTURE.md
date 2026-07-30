@@ -2,8 +2,10 @@
 
 > Bu belge **şu anki** mimariyi anlatır. Kod değiştikçe güncellenir.
 > Kalıcı kurallar için `CLAUDE.md`, günlük iş için `CURRENT_TASK.md`.
+> Rota motorunun ayrıntılı akış ve maliyet notu: `ROUTE_OPTIMIZATION.md`.
 
-Son güncelleme: **2026-07-30** (tanıtım sitesi yerel medya asset'leri).
+Son güncelleme: **2026-07-30** (deterministik yönlü rota optimizasyonu,
+backend/cache sınırı ve maliyet kontrollü AI review politikası).
 
 ---
 
@@ -32,7 +34,7 @@ Son güncelleme: **2026-07-30** (tanıtım sitesi yerel medya asset'leri).
 | Modül | Sorumluluk | Bağımlılıklar |
 |---|---|---|
 | `lib/domain/` | Saf iş kuralları — plan üretimi, geofence matematiği, city_places, itinerary. | Sıfır Flutter/Supabase importu. Yalnızca `dart:core`. |
-| `lib/data/` | Store'lar (Riverpod state + kalıcılık), Supabase repo katmanı, OCR köprüsü. | `flutter_riverpod`, `shared_preferences`, `supabase_flutter`, ML kit. |
+| `lib/data/` | Store'lar, Supabase repo, OCR köprüsü, rota backend/cache/fallback ve AI review adapter'ları. | `flutter_riverpod`, `shared_preferences`, `supabase_flutter`, ML kit; rota domain abstraction'ları. |
 | `lib/core/` | l10n, router, Supabase client init. | Flutter + go_router. |
 | `lib/features/*` | UI ekranlar + widget'lar. `domain/data`'yı kullanır; asla `domain` içine kaçırılmamış Supabase koymaz. | Flutter widget katmanı. |
 | `lib/theme.dart` | Renk paleti + tipografi. | Yalnızca Material. |
@@ -57,6 +59,7 @@ mobile/lib/features/
 │                            # → hotels → food → plan → publish
 ├─ plans/
 │  ├─ plan_providers.dart    # planları çeken/senkronlayan Riverpod
+│  ├─ plan_edit_session.dart # optimistic edit, seri kayıt, rollback + undo
 │  ├─ plans_list_screen.dart # kaydedilmiş planlar
 │  └─ plan_viewer_screen.dart# aktif plan görüntüleyici (viewer entry)
 ├─ reminders/                # bilet hatırlatmaları
@@ -92,6 +95,31 @@ mobile/lib/features/
   yazar, ardından provider `invalidate()` edilir.
 - **Optimistic UI** planner adımlarında bilinçli kullanılır (kullanıcı
   yazdıkça yerelde tutulur, publish adımında senkronlanır).
+- **Plan düzenleme:** UI mutasyonları `PlanEditSession` üzerinden
+  `PlanScheduleEngine` komutlarına gider. Session komutları sıraya alır,
+  sonucu önce ekrana uygular, yerel kayıt başarısız olursa önceki snapshot'a
+  döner ve başarılı değişiklikleri undo yığınında tutar.
+- Saat ve gün seçiciler motordan gelen uygunluk listesini kullanır. Her
+  aktivitenin süresi ile öncesi/sonrasındaki 15 dakikalık tampon görünmez
+  biçimde bloke edilir; geçersiz slotlar seçim yüzeyinde gri ve pasiftir.
+- Saat değişikliği yalnızca seçilen aktiviteyi sabitler; aynı gündeki sonraki
+  aktiviteler 15 dakikalık minimum geçişle yeniden saatlenir. Günler arası
+  taşımada hem kaynak hem hedef gün yeniden optimize edilir; hedefte uygun
+  slot yoksa komut planı değiştirmeden typed failure döndürür.
+- Motor, eski/ithal planda zaten bulunan zaman çakışmasını ilgisiz bir
+  düzenlemenin hatası saymaz. Yapısal invariant'lar her zaman zorunludur;
+  zaman tarafında yalnızca komutun oluşturduğu yeni veya büyüttüğü çakışma
+  reddedilir. Böylece kullanıcı mevcut planı parça parça düzeltebilir.
+- **Rota optimizasyon ön izlemesi:** `PlanOptimizationController`,
+  `TimelineItem` verisini yeni model kopyalamadan `OptimizationActivity`
+  girdisine çevirir. Yönlü rota matrisini repository'den alır, saf Dart
+  optimizer'ı çalıştırır ve eski/yeni rota metriklerini state'te sunar.
+  Optimize plan yalnızca `confirm()` sonrasında repository'ye yazılır;
+  `discard()` kalıcı değişiklik yapmaz.
+- Viewer gün kartı controller'ı “Rotayı optimize et” bottom sheet'iyle
+  tüketir. Dört tercih profili yeniden hesaplama tetikler; eski/yeni
+  ulaşım-yürüyüş-aktarma-maliyet özeti gösterilir. Yalnız açık kullanıcı
+  onayı repository, edit session ve home widget snapshot'ını yeniler.
 
 ## 6. Domain Katmanı (özet)
 
@@ -108,7 +136,11 @@ Pure Dart dosyaları — `flutter test` altında hızlı çalışır.
 | `place_guide.dart` | Uzun-form yer rehberi metinleri (LText). |
 | `place_image_resolver.dart` | *(yeni)* Yer adı → asset görsel çözümleyicisi. |
 | `day_schedule.dart` | *(yeni)* Gün içi zaman-çizelgesi hesaplaması. |
+| `plan_schedule_engine.dart` | Immutable plan düzenleme komutları, sabit aktivite politikası, 15 dakikalık tampon/slot uygunluğu, çakışma/gün sınırı validasyonu ve etkilenen günlerin yeniden zamanlanması. |
 | `day_optimizer.dart` | Aynı gün içi yerlerin en verimli sırasını arar. |
+| `route_matrix.dart` | Yönlü kapıdan kapıya rota matrisi, yedi ulaşım modu, profil/tercih ve repository abstraction'ı. |
+| `itinerary_optimizer.dart` | Beam search (varsayılan width 6), artımlı rota state'i, hard feasibility pruning, local swap/move ve dört profil için maliyet fonksiyonu. |
+| `ai_route_review.dart` | AI'ın rotayı değiştirmeden yalnızca yapılandırılmış açıklama/denetim yapabileceği politika, bütçe ve çıktı sözleşmeleri. |
 | `geofence.dart` | Konum akışı üzerine geofence matematiği. |
 | `japan_suggestions.dart` | Ülke düzeyi öneriler (mevsim / bölge). |
 | `budget.dart` | Bütçe kırılım/mantık. |
@@ -127,6 +159,20 @@ Pure Dart dosyaları — `flutter test` altında hızlı çalışır.
   - `ticket_ocr.dart` — mobilde ML Kit köprüsü, web'de conditional import ile no-op.
 - **Yerel plan cache:** `shared_preferences` içinde JSON serileştirme. Ağ
   yoksa uygulama son senkronla açılır.
+- Plan cache'i yerelde dirty iken realtime Supabase satırı bu snapshot'ı
+  ezmez. Edit komutları cihaz içinde seri kaydedilir; bağlantı geldiğinde
+  repository mevcut dirty snapshot'ı sunucuya taşır.
+- **Rota matrisi:** `route_matrix_remote.dart` API anahtarı kabul etmeyen
+  `RouteMatrixBackendGateway` sınırını ve normalize sonuç doğrulamasını taşır.
+  `route_matrix_resolution.dart` taze cache → birincil sağlayıcı → alternatif
+  sağlayıcı → stale/estimated cache → typed unavailable sırasını uygular.
+- **Rota cache:** Koordinatları dört ondalığa yuvarlayan, yönü koruyan ve
+  mod/gün tipi/zaman dilimi/profil/sağlayıcıyı anahtara katan cache
+  sözleşmeleri `route_matrix_cache.dart` içindedir. İlk sürüm bellek içidir.
+- **AI review:** `ai_route_reviewer.dart` policy+bütçe kontrolünden geçmeyen
+  çağrıyı yapmaz; aynı rota için cache kullanır ve her hata/skip durumunda
+  deterministik rota nesnesini aynen döndürür. Varsayılan gerçek AI bağlantısı
+  yoktur.
 
 ## 8. Auth
 
@@ -140,6 +186,10 @@ Katmanlar:
 ## 9. Yerel Depolama & Çevrimdışı Destek
 
 - **`shared_preferences`** — dil, tema, kullanıcı istatistiği, plan snapshot.
+- **Plan edit snapshot'ı** — lock/capability alanları JSON'da geriye uyumlu
+  tutulur. Eski planlar varsayılan olarak düzenlenebilir; generator sabit
+  uçuş/varış, otel check-in/out ve satın alınmış biletleri açık kilit
+  metadatasıyla üretir.
 - **`flutter_cache_manager`** — OSM harita karoları (iOS/Android). Web'de
   `kIsWeb` kapısı; `NetworkImage`'e düşer.
 - **Home widget (iOS)** — App Group üzerinden `UserDefaults`'a yazar; web/Android'de no-op.
@@ -152,8 +202,12 @@ getirecekse mimari karar `DECISIONS.md`'ye yazılır.
 
 - Yalnızca **Supabase RPC** ve tablo erişimi (repo katmanı).
 - Faz 2 için `apps/api/` altında Express stub (`/api/trips/*`) — canlı değil.
-- Third-party ağ çağrıları: **Open-Meteo** (hava — anahtar yok), **OSM tile**
-  (harita — anahtar yok). Sadece bu ikisi.
+- Mevcut canlı third-party çağrıları: **Open-Meteo** (hava — anahtar yok) ve
+  **OSM tile** (harita — anahtar yok).
+- Gerçek ulaşım sağlayıcısı doğrudan Flutter'dan çağrılmaz. Mobil yalnızca
+  `RouteMatrixBackendGateway` üzerinden backend/Supabase Edge Function
+  sınırını bilir; sağlayıcı anahtarı backend ortamında kalır. Gateway şu an
+  `UnavailableRouteMatrixBackendGateway` ile kapalıdır.
 
 ## 11. Background Jobs
 
@@ -163,11 +217,26 @@ getirecekse mimari karar `DECISIONS.md`'ye yazılır.
 ## 12. Test Mimarisi
 
 - **Konum:** `mobile/test/` — Flutter test paketi.
-- **Odak:** domain katmanı (saf Dart) + kritik core sınıfları.
+- **Odak:** domain katmanı (saf Dart) + kritik core sınıfları + kritik viewer
+  widget davranışları.
 - **Yeni test dosyaları:** `mobile/test/domain/day_schedule_test.dart`,
   `mobile/test/domain/place_image_resolver_test.dart`, `mobile/test/core/*`
   (çalışan diff'te). Bunlar F2.0 test regresyonlarını karşılıyor (`70c82d2`).
 - **Komut:** `cd mobile && flutter test`.
+- **Plan düzenleme kapsamı:** `plan_schedule_engine_test.dart` komut,
+  çakışma, 15 dakikalık slot uygunluğu, çift gün optimizasyonu, sabit aktivite
+  ve gün sınırı matrisini;
+  `plan_edit_session_test.dart` optimistic update, seri kayıt, rollback ve
+  undo'yu; `plan_viewer_test.dart` kilit, pasif slot, uygun-slot-yok,
+  erişilebilir drag/drop ve 5 saniyelik undo UI'ını doğrular.
+- **Rota optimizasyon kapsamı:** `itinerary_optimizer_test.dart` Tokyo/Osaka
+  küme akışı, sabit 14:00 rezervasyonu, ulaşım profilleri, geri dönüş,
+  kapanış/minimum süre ve otel dönüşünü; data testleri cache TTL/yönlülük,
+  primary/alternate/stale fallback ve AI çağrı/bütçe/cache politikasını;
+  `plan_optimization_controller_test.dart` ön izleme/onay ve sonuç cache'ini;
+  `plan_viewer_test.dart` görünür aksiyon, güvenli ön koşul ve eski/yeni
+  karşılaştırma/onay yüzeyini doğrular. Güncel tam paket **418/418**
+  başarılıdır.
 - **CI:** Şu anda GitHub Actions henüz kurulu değil (aday karar — `DECISIONS.md`).
 - **Web QA:** `apps/planner` altında Playwright benzeri kurulum yok; F1'de QA
   dashboard'u eklendi (`888feb2`, `13969b9`) — 110 senaryo · 95 otomatik %100 pass.
@@ -198,3 +267,19 @@ packages/
 - Google OAuth iOS bundle'da uçtan uca doğrulanmalı (`233a57e` genel akış geldi).
 - Home widget yalnızca iOS'ta; Android widget yok.
 - Test kapsamı domain'de yüksek, UI'da düşük — bilinçli.
+- Plan editleri cihaz içinde seri ve offline-first'tür; sunucuda henüz
+  compare-and-swap/revision alanı bulunmadığından aynı planın iki cihazda
+  eşzamanlı düzenlenmesi son-yazan davranışına düşebilir.
+- Aktivite saatleri gezi yerel saatinin duvar saati dakikaları olarak
+  saklanır. Gün sonunu aşan aktivite bölünmez; validasyonla reddedilir.
+- Rota matrisi backend/Edge Function taşıyıcısı henüz canlı değildir; provider
+  varsayılan olarak typed unavailable döndürür. Harita API anahtarı mobilde
+  bulunmaz.
+- Rota matrisi ve optimizasyon ön izleme cache'leri ilk sürümde bellek içidir;
+  uygulama yeniden başladığında kaybolur. Kalıcı cihaz cache'i gerçek sağlayıcı
+  entegrasyonuyla birlikte eklenecektir.
+- Viewer tek günlük ön izleme/onay sözleşmesini görünür biçimde tamamlar.
+  Planner henüz eski optimizasyon yüzeyini kullanır. Günler arası
+  taşımada mevcut `PlanScheduleEngine` iki günü zamansal olarak yeniden kurar;
+  coğrafi rota ön izlemesinin iki günü tek atomik karşılaştırmada göstermesi
+  gerçek route gateway/UI işiyle birlikte tamamlanacaktır.

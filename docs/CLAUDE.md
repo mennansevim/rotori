@@ -45,6 +45,11 @@ ve rehber. Marka önce "Tabi" (旅) olarak öneriliydi, 2026-07 civarında
   büyük içerik için `LText(tr, en)` (bkz. `domain/localized_text.dart`).
 - **Harita:** `flutter_map` + OSM raster tile (API key yok) + offline tile
   cache (`flutter_cache_manager`, web'de kIsWeb ile no-op).
+- **Rota optimizasyonu:** Saf Dart yönlü `RouteMatrix` +
+  `BeamSearchItineraryOptimizer` (beam width 6, local improvement, dört
+  profil). Gerçek ulaşım sağlayıcısı yalnızca backend/Edge Function gateway'i
+  arkasından çağrılır; API anahtarı mobil uygulamaya girmez. AI rota
+  hesaplamaz ve varsayılan akışta çağrılmaz.
 - **GPS:** `geolocator` + `lib/features/viewer/geofence_service.dart` —
   dwell 600 s, grace 120 s, radius+min(accuracy, 80) eşiği.
 - **OCR:** `google_mlkit_text_recognition` — yalnızca mobil, web'de conditional
@@ -89,7 +94,8 @@ mobile/lib/
 ├─ theme.dart              # AppTheme.dark, japanDark #0A0A0F + pembe→mor
 ├─ core/                   # l10n, router, supabase_client
 ├─ data/                   # store'lar, ticket_ocr, language_store, ...
-├─ domain/                 # pure Dart iş kuralları — Flutter yok
+├─ domain/                 # pure Dart iş kuralları — Flutter yok; route matrix
+│                          # + deterministic itinerary optimizer burada
 ├─ features/
 │  ├─ auth/                # login / signup / apple / google
 │  ├─ planner/steps/       # 8 adımlı planner (welcome→publish)
@@ -157,7 +163,16 @@ mobile/lib/
 - Design System v2 devrede (`4578280`) — koyu sinematik, pembe→mor gradyan.
 - Yerel servis: `cd website && python3 -m http.server 8091`.
 
-## 12. Definition of Done
+## 12. `run` Kısayolu
+
+- Kullanıcı yalnızca **“run”** dediğinde birincil ürün olan `mobile/` altındaki
+  Rotori Flutter uygulaması beklemeden başlatılır.
+- Mevcut ve uygun cihaz/simülatör tercih edilir; gerekli gizli değerler yalnızca
+  yerel yapılandırmadan okunur ve çıktıda gösterilmez.
+- Tanıtım sitesi ancak kullanıcı açıkça “siteyi run” veya eşdeğerini söylediğinde
+  yerel web sunucusuyla başlatılır.
+
+## 13. Definition of Done
 
 Bir feature ancak şu koşullar sağlandığında bitmiş sayılır:
 

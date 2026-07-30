@@ -195,9 +195,9 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: LanguageScope(
+          child: const LanguageScope(
             lang: AppLang.tr,
-            child: const MaterialApp(home: RemindersScreen()),
+            child: MaterialApp(home: RemindersScreen()),
           ),
         ),
       );
@@ -258,9 +258,9 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: LanguageScope(
+          child: const LanguageScope(
             lang: AppLang.tr,
-            child: const MaterialApp(home: RemindersScreen()),
+            child: MaterialApp(home: RemindersScreen()),
           ),
         ),
       );
@@ -323,9 +323,9 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: LanguageScope(
+          child: const LanguageScope(
             lang: AppLang.en,
-            child: const MaterialApp(home: RemindersScreen()),
+            child: MaterialApp(home: RemindersScreen()),
           ),
         ),
       );

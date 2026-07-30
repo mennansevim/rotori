@@ -23,6 +23,7 @@ import 'viewer_theme.dart';
 
 /// Japonya kaba merkezi — şehir de duraklar da yoksa haritayı buraya odakla.
 const LatLng _kJapanCenter = LatLng(36.2048, 138.2529);
+const Color _kRouteRed = Color(0xFFE23D4D);
 
 class DayMapScreen extends ConsumerWidget {
   const DayMapScreen({
@@ -30,10 +31,12 @@ class DayMapScreen extends ConsumerWidget {
     required this.trip,
     required this.dayNumber,
     this.tileProvider,
+    this.onBack,
   });
 
   final Trip trip;
   final int dayNumber;
+  final VoidCallback? onBack;
 
   /// Test'lerde ağ tile isteğini bypass etmek için enjekte edilir; üretimde
   /// null → [CachingTileProvider.shared] — çevrimdışı-aware raster tile
@@ -59,6 +62,7 @@ class DayMapScreen extends ConsumerWidget {
           day: _day,
           palette: palette,
           tileProvider: tileProvider,
+          onBack: onBack,
         ),
       ),
     );
@@ -71,12 +75,14 @@ class _DayMapView extends StatefulWidget {
     required this.day,
     required this.palette,
     this.tileProvider,
+    this.onBack,
   });
 
   final Trip trip;
   final DayPlan? day;
   final ViewerPalette palette;
   final TileProvider? tileProvider;
+  final VoidCallback? onBack;
 
   @override
   State<_DayMapView> createState() => _DayMapViewState();
@@ -96,12 +102,10 @@ class _DayMapViewState extends State<_DayMapView> {
     final s = LanguageScope.of(context);
     final dests = [...trip.preferences.destinations]
       ..sort((a, b) => a.order.compareTo(b.order));
-    final dest =
-        day != null ? getDestinationForDate(dests, day!.date) : null;
+    final dest = day != null ? getDestinationForDate(dests, day!.date) : null;
     final cityData = cityDataForKey(dest?.city);
-    final cityLabel = dest?.city.isNotEmpty == true
-        ? dest!.city
-        : (cityData?.label ?? '');
+    final cityLabel =
+        dest?.city.isNotEmpty == true ? dest!.city : (cityData?.label ?? '');
     // Kamera merkezi: duraklar varsa CameraFit ile sınırlara oturur; tek durak
     // varsa o noktaya; hiç durak yoksa şehir merkezine (yoksa Japonya).
     final cityCenter = _cityCenter(dest, cityData);
@@ -126,7 +130,7 @@ class _DayMapViewState extends State<_DayMapView> {
     return Scaffold(
       backgroundColor: palette.bg,
       appBar: AppBar(
-        leading: const BackButton(),
+        leading: BackButton(onPressed: _handleBack),
         title: Text(
           s.p('map.dayTitle', {'day': '${day?.dayNumber ?? '?'}'}) +
               (cityLabel.isNotEmpty ? ' · $cityLabel' : ''),
@@ -146,8 +150,7 @@ class _DayMapViewState extends State<_DayMapView> {
             tooltip: s.s('map.openInGoogleMaps'),
             icon: const Icon(Icons.open_in_new),
             color: palette.textPrimary,
-            onPressed: () =>
-                _openInGoogleMaps(stops, cityCenter, cityLabel),
+            onPressed: () => _openInGoogleMaps(stops, cityCenter, cityLabel),
           ),
           if (canPrewarm)
             TextButton.icon(
@@ -197,6 +200,15 @@ class _DayMapViewState extends State<_DayMapView> {
         ],
       ),
     );
+  }
+
+  void _handleBack() {
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
+    widget.onBack?.call();
   }
 
   Future<void> _prewarmCurrentDay(
@@ -313,10 +325,17 @@ class _DayMapViewState extends State<_DayMapView> {
         if (points.length >= 2)
           PolylineLayer(
             polylines: [
+              // Açık harita zemininde rota kaybolmasın: önce beyaz halo,
+              // üstüne Japon kırmızısı ana çizgi.
               Polyline(
                 points: points,
-                color: palette.fuji.withValues(alpha: 0.75),
-                strokeWidth: 4,
+                color: Colors.white.withValues(alpha: 0.92),
+                strokeWidth: 8,
+              ),
+              Polyline(
+                points: points,
+                color: _kRouteRed,
+                strokeWidth: 4.5,
               ),
             ],
           ),
@@ -330,7 +349,6 @@ class _DayMapViewState extends State<_DayMapView> {
                 alignment: Alignment.center,
                 child: _NumberedPin(
                   order: stop.order,
-                  palette: palette,
                   onTap: () => _openStop(context, stop),
                 ),
               ),
@@ -407,8 +425,7 @@ class _DayMapViewState extends State<_DayMapView> {
   void _openStop(BuildContext context, ResolvedStop stop) {
     final dests = [...trip.preferences.destinations]
       ..sort((a, b) => a.order.compareTo(b.order));
-    final dest =
-        day != null ? getDestinationForDate(dests, day!.date) : null;
+    final dest = day != null ? getDestinationForDate(dests, day!.date) : null;
     final existing = trip.tickets
         .where((t) => t.label == stop.item.title)
         .cast<Ticket?>()
@@ -442,17 +459,15 @@ class _DayMapViewState extends State<_DayMapView> {
   }
 }
 
-/// Numaralı yuvarlak pin — palette.accent zemin, beyaz numara. Dokununca
+/// Numaralı yuvarlak pin — rota kırmızısı zemin, beyaz numara. Dokununca
 /// yer detay popup'ını açar.
 class _NumberedPin extends StatelessWidget {
   const _NumberedPin({
     required this.order,
-    required this.palette,
     required this.onTap,
   });
 
   final int order;
-  final ViewerPalette palette;
   final VoidCallback onTap;
 
   @override
@@ -460,8 +475,9 @@ class _NumberedPin extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        key: ValueKey('route-stop-$order'),
         decoration: BoxDecoration(
-          color: palette.accent,
+          color: _kRouteRed,
           shape: BoxShape.circle,
           border: Border.all(color: Colors.white, width: 2),
           boxShadow: [

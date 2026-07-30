@@ -1,0 +1,505 @@
+{
+  "id": "A2",
+  "date": "2026-11-06",
+  "city": "tokyo",
+  "hotel": {
+    "id": "hotel-shinjuku",
+    "name": "Shinjuku Grand Hotel",
+    "lat": 35.6905,
+    "lng": 139.7005,
+    "cluster": "shinjuku"
+  },
+  "dayStart": "2026-11-06T08:30:00",
+  "dayEnd": "2026-11-06T21:30:00",
+  "activities": [
+    {
+      "id": "tk-shibuya",
+      "name": "Shibuya Crossing",
+      "lat": 35.6595,
+      "lng": 139.7005,
+      "cluster": "shibuya",
+      "category": "sightseeing",
+      "durationMinutes": 30
+    },
+    {
+      "id": "tk-meiji",
+      "name": "Meiji Jingu",
+      "lat": 35.6764,
+      "lng": 139.6993,
+      "cluster": "shibuya",
+      "category": "shrine",
+      "durationMinutes": 75,
+      "openingTime": "05:00",
+      "closingTime": "18:00"
+    },
+    {
+      "id": "tk-ichiran-shibuya",
+      "name": "Ichiran Ramen Shibuya",
+      "lat": 35.6598,
+      "lng": 139.6989,
+      "cluster": "shibuya",
+      "category": "meal",
+      "durationMinutes": 45,
+      "openingTime": "11:30",
+      "closingTime": "14:00"
+    },
+    {
+      "id": "tk-sensoji",
+      "name": "Senso-ji (Asakusa)",
+      "lat": 35.7148,
+      "lng": 139.7967,
+      "cluster": "asakusa",
+      "category": "shrine",
+      "durationMinutes": 60,
+      "openingTime": "06:00",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "tk-skytree",
+      "name": "Tokyo Skytree",
+      "lat": 35.7101,
+      "lng": 139.8107,
+      "cluster": "asakusa",
+      "category": "sightseeing",
+      "durationMinutes": 90,
+      "openingTime": "09:00",
+      "closingTime": "21:00"
+    },
+    {
+      "id": "tk-asakusa-tempura",
+      "name": "Asakusa Tempura Dinner",
+      "lat": 35.7135,
+      "lng": 139.7959,
+      "cluster": "asakusa",
+      "category": "meal",
+      "durationMinutes": 60,
+      "fixedStartTime": "19:00",
+      "fixedEndTime": "20:00",
+      "isFixed": true,
+      "hasReservation": true
+    }
+  ],
+  "routeMatrix": [
+    {
+      "fromId": "hotel-shinjuku",
+      "toId": "tk-shibuya",
+      "mode": "metro",
+      "doorToDoorMinutes": 23,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9034470427259812
+    },
+    {
+      "fromId": "hotel-shinjuku",
+      "toId": "tk-meiji",
+      "mode": "metro",
+      "doorToDoorMinutes": 12,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9015715901063306
+    },
+    {
+      "fromId": "hotel-shinjuku",
+      "toId": "tk-ichiran-shibuya",
+      "mode": "metro",
+      "doorToDoorMinutes": 23,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9034167422237727
+    },
+    {
+      "fromId": "hotel-shinjuku",
+      "toId": "tk-sensoji",
+      "mode": "metro",
+      "doorToDoorMinutes": 57,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9090970760432804
+    },
+    {
+      "fromId": "hotel-shinjuku",
+      "toId": "tk-skytree",
+      "mode": "metro",
+      "doorToDoorMinutes": 64,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.910186842695197
+    },
+    {
+      "fromId": "hotel-shinjuku",
+      "toId": "tk-asakusa-tempura",
+      "mode": "metro",
+      "doorToDoorMinutes": 56,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.908985986736538
+    },
+    {
+      "fromId": "tk-shibuya",
+      "toId": "hotel-shinjuku",
+      "mode": "metro",
+      "doorToDoorMinutes": 23,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9034470427259812
+    },
+    {
+      "fromId": "tk-shibuya",
+      "toId": "tk-meiji",
+      "mode": "metro",
+      "doorToDoorMinutes": 14,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.901882318326568
+    },
+    {
+      "fromId": "tk-shibuya",
+      "toId": "tk-ichiran-shibuya",
+      "mode": "walking",
+      "doorToDoorMinutes": 3,
+      "walkingMinutes": 3,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9001483515438785
+    },
+    {
+      "fromId": "tk-shibuya",
+      "toId": "tk-sensoji",
+      "mode": "metro",
+      "doorToDoorMinutes": 66,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9106440731101718
+    },
+    {
+      "fromId": "tk-shibuya",
+      "toId": "tk-skytree",
+      "mode": "metro",
+      "doorToDoorMinutes": 71,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9114331736841523
+    },
+    {
+      "fromId": "tk-shibuya",
+      "toId": "tk-asakusa-tempura",
+      "mode": "metro",
+      "doorToDoorMinutes": 66,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9105019240339891
+    },
+    {
+      "fromId": "tk-meiji",
+      "toId": "hotel-shinjuku",
+      "mode": "metro",
+      "doorToDoorMinutes": 12,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9015715901063306
+    },
+    {
+      "fromId": "tk-meiji",
+      "toId": "tk-shibuya",
+      "mode": "metro",
+      "doorToDoorMinutes": 14,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.901882318326568
+    },
+    {
+      "fromId": "tk-meiji",
+      "toId": "tk-ichiran-shibuya",
+      "mode": "metro",
+      "doorToDoorMinutes": 14,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.901846189432541
+    },
+    {
+      "fromId": "tk-meiji",
+      "toId": "tk-sensoji",
+      "mode": "metro",
+      "doorToDoorMinutes": 61,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9097773001320633
+    },
+    {
+      "fromId": "tk-meiji",
+      "toId": "tk-skytree",
+      "mode": "metro",
+      "doorToDoorMinutes": 67,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9107354600177454
+    },
+    {
+      "fromId": "tk-meiji",
+      "toId": "tk-asakusa-tempura",
+      "mode": "metro",
+      "doorToDoorMinutes": 60,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9096497481650417
+    },
+    {
+      "fromId": "tk-ichiran-shibuya",
+      "toId": "hotel-shinjuku",
+      "mode": "metro",
+      "doorToDoorMinutes": 23,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9034167422237727
+    },
+    {
+      "fromId": "tk-ichiran-shibuya",
+      "toId": "tk-shibuya",
+      "mode": "walking",
+      "doorToDoorMinutes": 3,
+      "walkingMinutes": 3,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9001483515438785
+    },
+    {
+      "fromId": "tk-ichiran-shibuya",
+      "toId": "tk-meiji",
+      "mode": "metro",
+      "doorToDoorMinutes": 14,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.901846189432541
+    },
+    {
+      "fromId": "tk-ichiran-shibuya",
+      "toId": "tk-sensoji",
+      "mode": "metro",
+      "doorToDoorMinutes": 67,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.91074330881109
+    },
+    {
+      "fromId": "tk-ichiran-shibuya",
+      "toId": "tk-skytree",
+      "mode": "metro",
+      "doorToDoorMinutes": 72,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9115429726544113
+    },
+    {
+      "fromId": "tk-ichiran-shibuya",
+      "toId": "tk-asakusa-tempura",
+      "mode": "metro",
+      "doorToDoorMinutes": 66,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9106019625139892
+    },
+    {
+      "fromId": "tk-sensoji",
+      "toId": "hotel-shinjuku",
+      "mode": "metro",
+      "doorToDoorMinutes": 57,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9090970760432804
+    },
+    {
+      "fromId": "tk-sensoji",
+      "toId": "tk-shibuya",
+      "mode": "metro",
+      "doorToDoorMinutes": 66,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9106440731101718
+    },
+    {
+      "fromId": "tk-sensoji",
+      "toId": "tk-meiji",
+      "mode": "metro",
+      "doorToDoorMinutes": 61,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9097773001320633
+    },
+    {
+      "fromId": "tk-sensoji",
+      "toId": "tk-ichiran-shibuya",
+      "mode": "metro",
+      "doorToDoorMinutes": 67,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.91074330881109
+    },
+    {
+      "fromId": "tk-sensoji",
+      "toId": "tk-skytree",
+      "mode": "metro",
+      "doorToDoorMinutes": 11,
+      "walkingMinutes": 17,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9013677773481614
+    },
+    {
+      "fromId": "tk-sensoji",
+      "toId": "tk-asakusa-tempura",
+      "mode": "walking",
+      "doorToDoorMinutes": 3,
+      "walkingMinutes": 3,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9001615933233061
+    },
+    {
+      "fromId": "tk-skytree",
+      "toId": "hotel-shinjuku",
+      "mode": "metro",
+      "doorToDoorMinutes": 64,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.910186842695197
+    },
+    {
+      "fromId": "tk-skytree",
+      "toId": "tk-shibuya",
+      "mode": "metro",
+      "doorToDoorMinutes": 71,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9114331736841523
+    },
+    {
+      "fromId": "tk-skytree",
+      "toId": "tk-meiji",
+      "mode": "metro",
+      "doorToDoorMinutes": 67,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9107354600177454
+    },
+    {
+      "fromId": "tk-skytree",
+      "toId": "tk-ichiran-shibuya",
+      "mode": "metro",
+      "doorToDoorMinutes": 72,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9115429726544113
+    },
+    {
+      "fromId": "tk-skytree",
+      "toId": "tk-sensoji",
+      "mode": "metro",
+      "doorToDoorMinutes": 11,
+      "walkingMinutes": 17,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9013677773481614
+    },
+    {
+      "fromId": "tk-skytree",
+      "toId": "tk-asakusa-tempura",
+      "mode": "metro",
+      "doorToDoorMinutes": 11,
+      "walkingMinutes": 17,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9013886891518572
+    },
+    {
+      "fromId": "tk-asakusa-tempura",
+      "toId": "hotel-shinjuku",
+      "mode": "metro",
+      "doorToDoorMinutes": 56,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.908985986736538
+    },
+    {
+      "fromId": "tk-asakusa-tempura",
+      "toId": "tk-shibuya",
+      "mode": "metro",
+      "doorToDoorMinutes": 66,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9105019240339891
+    },
+    {
+      "fromId": "tk-asakusa-tempura",
+      "toId": "tk-meiji",
+      "mode": "metro",
+      "doorToDoorMinutes": 60,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9096497481650417
+    },
+    {
+      "fromId": "tk-asakusa-tempura",
+      "toId": "tk-ichiran-shibuya",
+      "mode": "metro",
+      "doorToDoorMinutes": 66,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9106019625139892
+    },
+    {
+      "fromId": "tk-asakusa-tempura",
+      "toId": "tk-sensoji",
+      "mode": "walking",
+      "doorToDoorMinutes": 3,
+      "walkingMinutes": 3,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9001615933233061
+    },
+    {
+      "fromId": "tk-asakusa-tempura",
+      "toId": "tk-skytree",
+      "mode": "metro",
+      "doorToDoorMinutes": 11,
+      "walkingMinutes": 17,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9013886891518572
+    }
+  ],
+  "notes": "Shibuya kümesi (shibuya/meiji/ichiran) ile Asakusa kümesi (sensoji/skytree/tempura) ayrı kalmalı, aralarında tek geçiş olmalı."
+}

@@ -1,0 +1,217 @@
+{
+  "hotels": [
+    {
+      "id": "hotel-namba",
+      "name": "Namba Central Hotel",
+      "lat": 34.6666,
+      "lng": 135.5012,
+      "cluster": "namba"
+    }
+  ],
+  "pois": [
+    {
+      "id": "os-dotonbori",
+      "name": "Dotonbori",
+      "lat": 34.6687,
+      "lng": 135.5031,
+      "cluster": "namba",
+      "category": "meal",
+      "durationMinutes": 60,
+      "openingTime": "11:00"
+    },
+    {
+      "id": "os-castle",
+      "name": "Osaka Castle",
+      "lat": 34.6873,
+      "lng": 135.5259,
+      "cluster": "chuo",
+      "category": "sightseeing",
+      "durationMinutes": 90,
+      "openingTime": "09:00",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "os-usj",
+      "name": "Universal Studios Japan",
+      "lat": 34.6654,
+      "lng": 135.4323,
+      "cluster": "bay",
+      "category": "sightseeing",
+      "durationMinutes": 180,
+      "openingTime": "09:00",
+      "closingTime": "20:00"
+    },
+    {
+      "id": "os-shinsekai",
+      "name": "Shinsekai / Tsutenkaku",
+      "lat": 34.6525,
+      "lng": 135.5063,
+      "cluster": "shinsekai",
+      "category": "sightseeing",
+      "durationMinutes": 45,
+      "openingTime": "09:00",
+      "closingTime": "21:00"
+    },
+    {
+      "id": "os-kuromon",
+      "name": "Kuromon Market",
+      "lat": 34.6657,
+      "lng": 135.506,
+      "cluster": "namba",
+      "category": "meal",
+      "durationMinutes": 45,
+      "openingTime": "09:00",
+      "closingTime": "18:00"
+    },
+    {
+      "id": "os-namba",
+      "name": "Namba",
+      "lat": 34.6627,
+      "lng": 135.5023,
+      "cluster": "namba",
+      "category": "shopping",
+      "durationMinutes": 60
+    },
+    {
+      "id": "os-sumiyoshi",
+      "name": "Sumiyoshi Taisha",
+      "lat": 34.6126,
+      "lng": 135.4933,
+      "cluster": "sumiyoshi",
+      "category": "shrine",
+      "durationMinutes": 60,
+      "openingTime": "06:00",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "os-harukas",
+      "name": "Abeno Harukas",
+      "lat": 34.6456,
+      "lng": 135.5136,
+      "cluster": "abeno",
+      "category": "sightseeing",
+      "durationMinutes": 60,
+      "openingTime": "10:00",
+      "closingTime": "20:00"
+    },
+    {
+      "id": "os-shitennoji",
+      "name": "Shitenno-ji",
+      "lat": 34.6543,
+      "lng": 135.5165,
+      "cluster": "tennoji",
+      "category": "shrine",
+      "durationMinutes": 60,
+      "openingTime": "08:30",
+      "closingTime": "16:00"
+    },
+    {
+      "id": "os-umeda-sky",
+      "name": "Umeda Sky Building",
+      "lat": 34.7055,
+      "lng": 135.49,
+      "cluster": "umeda",
+      "category": "sightseeing",
+      "durationMinutes": 60,
+      "openingTime": "09:30",
+      "closingTime": "22:30"
+    },
+    {
+      "id": "os-kaiyukan",
+      "name": "Osaka Aquarium Kaiyukan",
+      "lat": 34.6547,
+      "lng": 135.4323,
+      "cluster": "bay",
+      "category": "museum",
+      "durationMinutes": 120,
+      "openingTime": "09:30",
+      "closingTime": "20:00"
+    },
+    {
+      "id": "os-tempozan",
+      "name": "Tempozan Ferris Wheel",
+      "lat": 34.6553,
+      "lng": 135.4309,
+      "cluster": "bay",
+      "category": "sightseeing",
+      "durationMinutes": 30,
+      "openingTime": "10:00",
+      "closingTime": "22:00"
+    },
+    {
+      "id": "os-hep-five",
+      "name": "Hep Five",
+      "lat": 34.7025,
+      "lng": 135.4959,
+      "cluster": "umeda",
+      "category": "shopping",
+      "durationMinutes": 45
+    },
+    {
+      "id": "os-shinsaibashi",
+      "name": "Shinsaibashi",
+      "lat": 34.6712,
+      "lng": 135.5013,
+      "cluster": "namba",
+      "category": "shopping",
+      "durationMinutes": 60
+    },
+    {
+      "id": "os-ichiran-namba",
+      "name": "Ichiran Ramen Namba",
+      "lat": 34.6656,
+      "lng": 135.5013,
+      "cluster": "namba",
+      "category": "meal",
+      "durationMinutes": 45
+    },
+    {
+      "id": "os-ganko-sushi",
+      "name": "Ganko Sushi Dotonbori",
+      "lat": 34.6686,
+      "lng": 135.5013,
+      "cluster": "namba",
+      "category": "meal",
+      "durationMinutes": 60
+    },
+    {
+      "id": "os-history-museum",
+      "name": "Osaka Museum of History",
+      "lat": 34.6827,
+      "lng": 135.5259,
+      "cluster": "chuo",
+      "category": "museum",
+      "durationMinutes": 75,
+      "openingTime": "09:30",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "os-tenmangu",
+      "name": "Osaka Tenmangu",
+      "lat": 34.6902,
+      "lng": 135.5157,
+      "cluster": "kita",
+      "category": "shrine",
+      "durationMinutes": 45
+    },
+    {
+      "id": "os-spa-world",
+      "name": "Spa World",
+      "lat": 34.6521,
+      "lng": 135.5063,
+      "cluster": "shinsekai",
+      "category": "onsen",
+      "durationMinutes": 90,
+      "closingTime": "22:00"
+    },
+    {
+      "id": "os-nakanoshima-park",
+      "name": "Nakanoshima Park",
+      "lat": 34.6913,
+      "lng": 135.4977,
+      "cluster": "kita",
+      "category": "park",
+      "durationMinutes": 45
+    }
+  ]
+}

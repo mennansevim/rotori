@@ -1,0 +1,95 @@
+{
+  "hotels": [
+    {
+      "id": "hotel-ekimae",
+      "name": "Kanazawa Ekimae Hotel",
+      "lat": 36.5776,
+      "lng": 136.6486,
+      "cluster": "ekimae"
+    }
+  ],
+  "pois": [
+    {
+      "id": "kz-kenrokuen",
+      "name": "Kenroku-en",
+      "lat": 36.5622,
+      "lng": 136.6624,
+      "cluster": "kenrokuen",
+      "category": "park",
+      "durationMinutes": 60,
+      "openingTime": "07:00",
+      "closingTime": "18:00"
+    },
+    {
+      "id": "kz-castle",
+      "name": "Kanazawa Castle",
+      "lat": 36.5653,
+      "lng": 136.6592,
+      "cluster": "kenrokuen",
+      "category": "sightseeing",
+      "durationMinutes": 45,
+      "openingTime": "09:00",
+      "closingTime": "16:30"
+    },
+    {
+      "id": "kz-higashi",
+      "name": "Higashi Chaya District",
+      "lat": 36.5719,
+      "lng": 136.6669,
+      "cluster": "higashi",
+      "category": "sightseeing",
+      "durationMinutes": 60
+    },
+    {
+      "id": "kz-omicho",
+      "name": "Omicho Market",
+      "lat": 36.5715,
+      "lng": 136.6573,
+      "cluster": "omicho",
+      "category": "meal",
+      "durationMinutes": 45,
+      "openingTime": "09:00",
+      "closingTime": "17:30"
+    },
+    {
+      "id": "kz-21c",
+      "name": "21st Century Museum",
+      "lat": 36.5606,
+      "lng": 136.6585,
+      "cluster": "kenrokuen",
+      "category": "museum",
+      "durationMinutes": 90,
+      "openingTime": "09:30",
+      "closingTime": "18:00"
+    },
+    {
+      "id": "kz-nagamachi",
+      "name": "Nagamachi Samurai District",
+      "lat": 36.5615,
+      "lng": 136.6486,
+      "cluster": "nagamachi",
+      "category": "sightseeing",
+      "durationMinutes": 45
+    },
+    {
+      "id": "kz-omicho-sushi",
+      "name": "Omicho Market Sushi",
+      "lat": 36.5717,
+      "lng": 136.6577,
+      "cluster": "omicho",
+      "category": "meal",
+      "durationMinutes": 45
+    },
+    {
+      "id": "kz-ninja-temple",
+      "name": "Myoryu-ji (Ninja Temple)",
+      "lat": 36.5507,
+      "lng": 136.6494,
+      "cluster": "teramachi",
+      "category": "shrine",
+      "durationMinutes": 60,
+      "openingTime": "09:00",
+      "closingTime": "16:00"
+    }
+  ]
+}

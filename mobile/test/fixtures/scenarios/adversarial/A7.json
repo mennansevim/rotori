@@ -1,0 +1,372 @@
+{
+  "id": "A7",
+  "date": "2026-11-11",
+  "city": "kamakura",
+  "hotel": {
+    "id": "hotel-kamakura",
+    "name": "Kamakura Station Hotel",
+    "lat": 35.319,
+    "lng": 139.5502,
+    "cluster": "central"
+  },
+  "dayStart": "2026-11-11T08:30:00",
+  "dayEnd": "2026-11-11T20:00:00",
+  "activities": [
+    {
+      "id": "km-daibutsu",
+      "name": "Great Buddha (Kotoku-in)",
+      "lat": 35.3168,
+      "lng": 139.5359,
+      "cluster": "hase",
+      "category": "shrine",
+      "durationMinutes": 45,
+      "openingTime": "08:00",
+      "closingTime": "17:15"
+    },
+    {
+      "id": "km-hasedera",
+      "name": "Hase-dera",
+      "lat": 35.3122,
+      "lng": 139.5343,
+      "cluster": "hase",
+      "category": "shrine",
+      "durationMinutes": 60,
+      "openingTime": "08:00",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "km-hachimangu",
+      "name": "Tsurugaoka Hachimangu",
+      "lat": 35.326,
+      "lng": 139.5563,
+      "cluster": "central",
+      "category": "shrine",
+      "durationMinutes": 60,
+      "openingTime": "06:00",
+      "closingTime": "20:30"
+    },
+    {
+      "id": "km-komachi-dori",
+      "name": "Komachi-dori",
+      "lat": 35.323,
+      "lng": 139.552,
+      "cluster": "central",
+      "category": "shopping",
+      "durationMinutes": 45
+    },
+    {
+      "id": "km-komachi-soba",
+      "name": "Komachi Soba House",
+      "lat": 35.3235,
+      "lng": 139.5524,
+      "cluster": "central",
+      "category": "meal",
+      "durationMinutes": 60,
+      "openingTime": "18:00",
+      "closingTime": "20:00"
+    }
+  ],
+  "routeMatrix": [
+    {
+      "fromId": "hotel-kamakura",
+      "toId": "km-daibutsu",
+      "mode": "metro",
+      "doorToDoorMinutes": 10,
+      "walkingMinutes": 16,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9013203036197172
+    },
+    {
+      "fromId": "hotel-kamakura",
+      "toId": "km-hasedera",
+      "mode": "metro",
+      "doorToDoorMinutes": 12,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9016287946418796
+    },
+    {
+      "fromId": "hotel-kamakura",
+      "toId": "km-hachimangu",
+      "mode": "metro",
+      "doorToDoorMinutes": 8,
+      "walkingMinutes": 12,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9009550542100625
+    },
+    {
+      "fromId": "hotel-kamakura",
+      "toId": "km-komachi-dori",
+      "mode": "walking",
+      "doorToDoorMinutes": 5,
+      "walkingMinutes": 5,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9004738128008165
+    },
+    {
+      "fromId": "hotel-kamakura",
+      "toId": "km-komachi-soba",
+      "mode": "walking",
+      "doorToDoorMinutes": 6,
+      "walkingMinutes": 6,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9005387177489088
+    },
+    {
+      "fromId": "km-daibutsu",
+      "toId": "hotel-kamakura",
+      "mode": "metro",
+      "doorToDoorMinutes": 10,
+      "walkingMinutes": 16,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9013203036197172
+    },
+    {
+      "fromId": "km-daibutsu",
+      "toId": "km-hasedera",
+      "mode": "walking",
+      "doorToDoorMinutes": 6,
+      "walkingMinutes": 6,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9005316996205793
+    },
+    {
+      "fromId": "km-daibutsu",
+      "toId": "km-hachimangu",
+      "mode": "metro",
+      "doorToDoorMinutes": 15,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.902114720117449
+    },
+    {
+      "fromId": "km-daibutsu",
+      "toId": "km-komachi-dori",
+      "mode": "metro",
+      "doorToDoorMinutes": 12,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9016152371734392
+    },
+    {
+      "fromId": "km-daibutsu",
+      "toId": "km-komachi-soba",
+      "mode": "metro",
+      "doorToDoorMinutes": 13,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9016721443831707
+    },
+    {
+      "fromId": "km-hasedera",
+      "toId": "hotel-kamakura",
+      "mode": "metro",
+      "doorToDoorMinutes": 12,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9016287946418796
+    },
+    {
+      "fromId": "km-hasedera",
+      "toId": "km-daibutsu",
+      "mode": "walking",
+      "doorToDoorMinutes": 6,
+      "walkingMinutes": 6,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9005316996205793
+    },
+    {
+      "fromId": "km-hasedera",
+      "toId": "km-hachimangu",
+      "mode": "metro",
+      "doorToDoorMinutes": 18,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9025177016121947
+    },
+    {
+      "fromId": "km-hasedera",
+      "toId": "km-komachi-dori",
+      "mode": "metro",
+      "doorToDoorMinutes": 15,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9020052906661241
+    },
+    {
+      "fromId": "km-hasedera",
+      "toId": "km-komachi-soba",
+      "mode": "metro",
+      "doorToDoorMinutes": 15,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.902067772353494
+    },
+    {
+      "fromId": "km-hachimangu",
+      "toId": "hotel-kamakura",
+      "mode": "metro",
+      "doorToDoorMinutes": 8,
+      "walkingMinutes": 12,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9009550542100625
+    },
+    {
+      "fromId": "km-hachimangu",
+      "toId": "km-daibutsu",
+      "mode": "metro",
+      "doorToDoorMinutes": 15,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.902114720117449
+    },
+    {
+      "fromId": "km-hachimangu",
+      "toId": "km-hasedera",
+      "mode": "metro",
+      "doorToDoorMinutes": 18,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9025177016121947
+    },
+    {
+      "fromId": "km-hachimangu",
+      "toId": "km-komachi-dori",
+      "mode": "walking",
+      "doorToDoorMinutes": 6,
+      "walkingMinutes": 6,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9005132868021265
+    },
+    {
+      "fromId": "km-hachimangu",
+      "toId": "km-komachi-soba",
+      "mode": "walking",
+      "doorToDoorMinutes": 5,
+      "walkingMinutes": 5,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9004499602318461
+    },
+    {
+      "fromId": "km-komachi-dori",
+      "toId": "hotel-kamakura",
+      "mode": "walking",
+      "doorToDoorMinutes": 5,
+      "walkingMinutes": 5,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9004738128008165
+    },
+    {
+      "fromId": "km-komachi-dori",
+      "toId": "km-daibutsu",
+      "mode": "metro",
+      "doorToDoorMinutes": 12,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9016152371734392
+    },
+    {
+      "fromId": "km-komachi-dori",
+      "toId": "km-hasedera",
+      "mode": "metro",
+      "doorToDoorMinutes": 15,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9020052906661241
+    },
+    {
+      "fromId": "km-komachi-dori",
+      "toId": "km-hachimangu",
+      "mode": "walking",
+      "doorToDoorMinutes": 6,
+      "walkingMinutes": 6,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9005132868021265
+    },
+    {
+      "fromId": "km-komachi-dori",
+      "toId": "km-komachi-soba",
+      "mode": "walking",
+      "doorToDoorMinutes": 3,
+      "walkingMinutes": 3,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9000663929293622
+    },
+    {
+      "fromId": "km-komachi-soba",
+      "toId": "hotel-kamakura",
+      "mode": "walking",
+      "doorToDoorMinutes": 6,
+      "walkingMinutes": 6,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9005387177489088
+    },
+    {
+      "fromId": "km-komachi-soba",
+      "toId": "km-daibutsu",
+      "mode": "metro",
+      "doorToDoorMinutes": 13,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9016721443831707
+    },
+    {
+      "fromId": "km-komachi-soba",
+      "toId": "km-hasedera",
+      "mode": "metro",
+      "doorToDoorMinutes": 15,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.902067772353494
+    },
+    {
+      "fromId": "km-komachi-soba",
+      "toId": "km-hachimangu",
+      "mode": "walking",
+      "doorToDoorMinutes": 5,
+      "walkingMinutes": 5,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9004499602318461
+    },
+    {
+      "fromId": "km-komachi-soba",
+      "toId": "km-komachi-dori",
+      "mode": "walking",
+      "doorToDoorMinutes": 3,
+      "walkingMinutes": 3,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9000663929293622
+    }
+  ],
+  "notes": "dayEnd=20:00 → dinner penceresi fiilen 18:00-19:45 (dönüş süresi düşülünce). komachi-soba (meal, serbest saat) bu daralmış pencereye sıkışmalı."
+}

@@ -1,0 +1,93 @@
+{
+  "hotels": [
+    {
+      "id": "hotel-nikko-town",
+      "name": "Nikko Onsen Ryokan",
+      "lat": 36.7514,
+      "lng": 139.5991,
+      "cluster": "nikko-town"
+    }
+  ],
+  "pois": [
+    {
+      "id": "nk-toshogu",
+      "name": "Nikko Toshogu",
+      "lat": 36.7581,
+      "lng": 139.5989,
+      "cluster": "shrine-area",
+      "category": "shrine",
+      "durationMinutes": 90,
+      "openingTime": "08:00",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "nk-futarasan",
+      "name": "Futarasan Shrine",
+      "lat": 36.7563,
+      "lng": 139.5949,
+      "cluster": "shrine-area",
+      "category": "shrine",
+      "durationMinutes": 45,
+      "openingTime": "08:00",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "nk-rinnoji",
+      "name": "Rinno-ji",
+      "lat": 36.7595,
+      "lng": 139.5985,
+      "cluster": "shrine-area",
+      "category": "shrine",
+      "durationMinutes": 45,
+      "openingTime": "08:00",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "nk-kanmangafuchi",
+      "name": "Kanmangafuchi Abyss",
+      "lat": 36.7481,
+      "lng": 139.6067,
+      "cluster": "nikko-town",
+      "category": "park",
+      "durationMinutes": 45
+    },
+    {
+      "id": "nk-chuzenji",
+      "name": "Lake Chuzenji",
+      "lat": 36.7378,
+      "lng": 139.4831,
+      "cluster": "chuzenji",
+      "category": "sightseeing",
+      "durationMinutes": 60
+    },
+    {
+      "id": "nk-kegon-falls",
+      "name": "Kegon Falls",
+      "lat": 36.7397,
+      "lng": 139.4894,
+      "cluster": "chuzenji",
+      "category": "sightseeing",
+      "durationMinutes": 45,
+      "openingTime": "08:00",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "nk-yuba-tofu",
+      "name": "Yuba Tofu Restaurant",
+      "lat": 36.7514,
+      "lng": 139.5991,
+      "cluster": "nikko-town",
+      "category": "meal",
+      "durationMinutes": 60
+    },
+    {
+      "id": "nk-nikko-soba",
+      "name": "Nikko Soba House",
+      "lat": 36.7505,
+      "lng": 139.6001,
+      "cluster": "nikko-town",
+      "category": "meal",
+      "durationMinutes": 45
+    }
+  ]
+}

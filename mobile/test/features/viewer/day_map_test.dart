@@ -71,7 +71,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  Widget harness(Trip trip, int dayNumber) {
+  Widget harness(Trip trip, int dayNumber, {VoidCallback? onBack}) {
     return ProviderScope(
       overrides: [
         sharedPrefsProvider.overrideWith(
@@ -86,6 +86,7 @@ void main() {
               trip: trip,
               dayNumber: dayNumber,
               tileProvider: _FakeTileProvider(),
+              onBack: onBack,
             ),
           ),
         ),
@@ -103,8 +104,39 @@ void main() {
     // İki durak → iki numaralı pin.
     expect(find.text('1'), findsOneWidget);
     expect(find.text('2'), findsOneWidget);
+    final routeLayer = tester.widget<PolylineLayer>(
+      find.byType(PolylineLayer),
+    );
+    expect(routeLayer.polylines, hasLength(2));
+    expect(routeLayer.polylines.last.color, const Color(0xFFE23D4D));
+    expect(routeLayer.polylines.last.strokeWidth, 4.5);
+    final firstStop = tester.widget<Container>(
+      find.byKey(const ValueKey('route-stop-1')),
+    );
+    expect(
+      (firstStop.decoration! as BoxDecoration).color,
+      const Color(0xFFE23D4D),
+    );
     // Başlık şehir adını içerir.
     expect(find.textContaining('Tokyo'), findsWidgets);
+  });
+
+  testWidgets('kök rota doğrudan açıldığında geri işlemi fallback çağırır',
+      (tester) async {
+    var didGoBack = false;
+    await tester.pumpWidget(
+      harness(
+        _sampleTrip(),
+        1,
+        onBack: () => didGoBack = true,
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pump();
+
+    expect(didGoBack, isTrue);
   });
 
   testWidgets(

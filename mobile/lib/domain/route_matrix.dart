@@ -1,0 +1,184 @@
+/// Rota sağlayıcısından gelen kapıdan kapıya seçeneklerin saf Dart modeli.
+///
+/// Matris yönlüdür: A → B kaydı, B → A için kullanılamaz. Süre üretmek veya
+/// koordinatlardan tahmin yapmak bu katmanın sorumluluğu değildir.
+enum TransportMode {
+  walking,
+  train,
+  metro,
+  bus,
+  taxi,
+  shinkansen,
+  regionalTrain,
+}
+
+enum RouteOptimizationProfile {
+  balanced,
+  fastest,
+  leastWalking,
+  cheapest,
+}
+
+class TripLocation {
+  const TripLocation({
+    required this.id,
+    required this.name,
+    required this.latitude,
+    required this.longitude,
+    this.city,
+    this.district,
+    this.clusterId,
+  });
+
+  final String id;
+  final String name;
+  final double latitude;
+  final double longitude;
+  final String? city;
+  final String? district;
+  final String? clusterId;
+}
+
+class RoutePreferences {
+  const RoutePreferences({
+    this.profile = RouteOptimizationProfile.balanced,
+    this.maximumWalkingMinutes = 180,
+    this.partySize = 1,
+    this.hasLuggage = false,
+  });
+
+  final RouteOptimizationProfile profile;
+  final int maximumWalkingMinutes;
+  final int partySize;
+  final bool hasLuggage;
+}
+
+class TransportOption {
+  const TransportOption({
+    required this.mode,
+    required this.doorToDoorMinutes,
+    required this.walkingMinutes,
+    required this.waitingMinutes,
+    required this.transferCount,
+    required this.estimatedCostYen,
+    required this.reliabilityScore,
+    this.lineId,
+    this.directionId,
+    this.complexityPenalty = 0,
+    this.isEstimated = false,
+  });
+
+  final TransportMode mode;
+  final int doorToDoorMinutes;
+  final int walkingMinutes;
+  final int waitingMinutes;
+  final int transferCount;
+  final int estimatedCostYen;
+  final double reliabilityScore;
+
+  /// Aynı hatta ters yön hareketini saptamak için sağlayıcının normalize ettiği
+  /// isteğe bağlı değerlerdir. Bilinmiyorsa geri dönüş kararı bunlara dayanmaz.
+  final String? lineId;
+  final String? directionId;
+
+  /// Büyük istasyon, zor aktarma veya sağlayıcıya özgü karmaşıklık puanı.
+  final double complexityPenalty;
+  final bool isEstimated;
+
+  bool get isValid =>
+      doorToDoorMinutes >= 0 &&
+      walkingMinutes >= 0 &&
+      waitingMinutes >= 0 &&
+      transferCount >= 0 &&
+      estimatedCostYen >= 0 &&
+      reliabilityScore >= 0 &&
+      reliabilityScore <= 1;
+}
+
+class RouteMatrixEntry {
+  RouteMatrixEntry({
+    required this.fromLocationId,
+    required this.toLocationId,
+    required List<TransportOption> options,
+  }) : options = List.unmodifiable(options);
+
+  final String fromLocationId;
+  final String toLocationId;
+  final List<TransportOption> options;
+}
+
+class RouteMatrix {
+  RouteMatrix({
+    required List<RouteMatrixEntry> entries,
+    this.version = 'unknown',
+  })  : entries = List.unmodifiable(entries),
+        _byDirection = {
+          for (final entry in entries)
+            _directionKey(entry.fromLocationId, entry.toLocationId): entry,
+        };
+
+  final List<RouteMatrixEntry> entries;
+  final String version;
+  final Map<String, RouteMatrixEntry> _byDirection;
+
+  RouteMatrixEntry? entry(String fromLocationId, String toLocationId) {
+    if (fromLocationId == toLocationId) {
+      return RouteMatrixEntry(
+        fromLocationId: fromLocationId,
+        toLocationId: toLocationId,
+        options: const [
+          TransportOption(
+            mode: TransportMode.walking,
+            doorToDoorMinutes: 0,
+            walkingMinutes: 0,
+            waitingMinutes: 0,
+            transferCount: 0,
+            estimatedCostYen: 0,
+            reliabilityScore: 1,
+          ),
+        ],
+      );
+    }
+    return _byDirection[_directionKey(fromLocationId, toLocationId)];
+  }
+
+  List<TransportOption> options(String fromLocationId, String toLocationId) =>
+      entry(fromLocationId, toLocationId)?.options ?? const [];
+
+  static String _directionKey(String from, String to) => '$from\u0000$to';
+}
+
+abstract interface class RouteMatrixRepository {
+  Future<RouteMatrix> getRouteMatrix({
+    required List<TripLocation> locations,
+    required DateTime day,
+    required RoutePreferences preferences,
+  });
+}
+
+/// Test ve çevrimdışı geliştirme için deterministik repository.
+///
+/// Verilen matrisi değiştirmeden döndürür ve çağrı bilgilerini kaydeder.
+class FakeRouteMatrixRepository implements RouteMatrixRepository {
+  FakeRouteMatrixRepository(this.matrix);
+
+  final RouteMatrix matrix;
+  int callCount = 0;
+  List<String> lastRequestedLocationIds = const [];
+  DateTime? lastRequestedDay;
+  RoutePreferences? lastRequestedPreferences;
+
+  @override
+  Future<RouteMatrix> getRouteMatrix({
+    required List<TripLocation> locations,
+    required DateTime day,
+    required RoutePreferences preferences,
+  }) async {
+    callCount++;
+    lastRequestedLocationIds =
+        List.unmodifiable(locations.map((location) => location.id));
+    lastRequestedDay = day;
+    lastRequestedPreferences = preferences;
+    return matrix;
+  }
+}

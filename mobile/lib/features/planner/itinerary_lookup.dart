@@ -67,7 +67,9 @@ Future<ItineraryResult> generateItinerary(
     req.write(jsonEncode(trip.toJson()));
     final resp = await req.close().timeout(const Duration(seconds: 120));
 
-    if (resp.statusCode == 501) return _rules(trip, ItineraryReason.notConfigured);
+    if (resp.statusCode == 501) {
+      return _rules(trip, ItineraryReason.notConfigured);
+    }
     if (resp.statusCode == 502) return _rules(trip, ItineraryReason.aiFailed);
     if (resp.statusCode < 200 || resp.statusCode >= 300) {
       return _rules(trip, ItineraryReason.unknown);

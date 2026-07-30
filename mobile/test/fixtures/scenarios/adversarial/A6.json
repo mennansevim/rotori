@@ -1,0 +1,523 @@
+{
+  "id": "A6",
+  "date": "2026-11-10",
+  "city": "kanazawa",
+  "hotel": {
+    "id": "hotel-ekimae",
+    "name": "Kanazawa Ekimae Hotel",
+    "lat": 36.5776,
+    "lng": 136.6486,
+    "cluster": "ekimae"
+  },
+  "dayStart": "2026-11-10T08:30:00",
+  "dayEnd": "2026-11-10T20:30:00",
+  "activities": [
+    {
+      "id": "kz-kenrokuen",
+      "name": "Kenroku-en",
+      "lat": 36.5622,
+      "lng": 136.6624,
+      "cluster": "kenrokuen",
+      "category": "park",
+      "durationMinutes": 60,
+      "openingTime": "07:00",
+      "closingTime": "18:00"
+    },
+    {
+      "id": "kz-castle",
+      "name": "Kanazawa Castle",
+      "lat": 36.5653,
+      "lng": 136.6592,
+      "cluster": "kenrokuen",
+      "category": "sightseeing",
+      "durationMinutes": 45,
+      "openingTime": "09:00",
+      "closingTime": "16:30"
+    },
+    {
+      "id": "kz-higashi",
+      "name": "Higashi Chaya District",
+      "lat": 36.5719,
+      "lng": 136.6669,
+      "cluster": "higashi",
+      "category": "sightseeing",
+      "durationMinutes": 60
+    },
+    {
+      "id": "kz-omicho",
+      "name": "Omicho Market",
+      "lat": 36.5715,
+      "lng": 136.6573,
+      "cluster": "omicho",
+      "category": "meal",
+      "durationMinutes": 45,
+      "openingTime": "09:00",
+      "closingTime": "17:30"
+    },
+    {
+      "id": "kz-21c",
+      "name": "21st Century Museum",
+      "lat": 36.5606,
+      "lng": 136.6585,
+      "cluster": "kenrokuen",
+      "category": "museum",
+      "durationMinutes": 90,
+      "openingTime": "09:30",
+      "closingTime": "18:00"
+    },
+    {
+      "id": "kz-omicho-sushi",
+      "name": "Omicho Market Sushi",
+      "lat": 36.5717,
+      "lng": 136.6577,
+      "cluster": "omicho",
+      "category": "meal",
+      "durationMinutes": 45,
+      "openingTime": "18:00",
+      "closingTime": "21:30"
+    }
+  ],
+  "routeMatrix": [
+    {
+      "fromId": "hotel-ekimae",
+      "toId": "kz-kenrokuen",
+      "mode": "metro",
+      "doorToDoorMinutes": 15,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9021097676788403
+    },
+    {
+      "fromId": "hotel-ekimae",
+      "toId": "kz-castle",
+      "mode": "metro",
+      "doorToDoorMinutes": 12,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9016633266810704
+    },
+    {
+      "fromId": "hotel-ekimae",
+      "toId": "kz-higashi",
+      "mode": "bus",
+      "doorToDoorMinutes": 22,
+      "walkingMinutes": 5,
+      "transferCount": 1,
+      "yenCost": 230,
+      "reliability": 0.45
+    },
+    {
+      "fromId": "hotel-ekimae",
+      "toId": "kz-omicho",
+      "mode": "metro",
+      "doorToDoorMinutes": 9,
+      "walkingMinutes": 13,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9010313327312404
+    },
+    {
+      "fromId": "hotel-ekimae",
+      "toId": "kz-21c",
+      "mode": "metro",
+      "doorToDoorMinutes": 15,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9020868523822438
+    },
+    {
+      "fromId": "hotel-ekimae",
+      "toId": "kz-omicho-sushi",
+      "mode": "metro",
+      "doorToDoorMinutes": 9,
+      "walkingMinutes": 13,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9010443887309055
+    },
+    {
+      "fromId": "kz-kenrokuen",
+      "toId": "hotel-ekimae",
+      "mode": "metro",
+      "doorToDoorMinutes": 15,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9021097676788403
+    },
+    {
+      "fromId": "kz-kenrokuen",
+      "toId": "kz-castle",
+      "mode": "walking",
+      "doorToDoorMinutes": 5,
+      "walkingMinutes": 5,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9004477725089371
+    },
+    {
+      "fromId": "kz-kenrokuen",
+      "toId": "kz-higashi",
+      "mode": "metro",
+      "doorToDoorMinutes": 9,
+      "walkingMinutes": 14,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9011510291330825
+    },
+    {
+      "fromId": "kz-kenrokuen",
+      "toId": "kz-omicho",
+      "mode": "metro",
+      "doorToDoorMinutes": 9,
+      "walkingMinutes": 14,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9011299738873346
+    },
+    {
+      "fromId": "kz-kenrokuen",
+      "toId": "kz-21c",
+      "mode": "walking",
+      "doorToDoorMinutes": 5,
+      "walkingMinutes": 5,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9003911295478113
+    },
+    {
+      "fromId": "kz-kenrokuen",
+      "toId": "kz-omicho-sushi",
+      "mode": "metro",
+      "doorToDoorMinutes": 9,
+      "walkingMinutes": 14,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9011366903883
+    },
+    {
+      "fromId": "kz-castle",
+      "toId": "hotel-ekimae",
+      "mode": "metro",
+      "doorToDoorMinutes": 12,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9016633266810704
+    },
+    {
+      "fromId": "kz-castle",
+      "toId": "kz-kenrokuen",
+      "mode": "walking",
+      "doorToDoorMinutes": 5,
+      "walkingMinutes": 5,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9004477725089371
+    },
+    {
+      "fromId": "kz-castle",
+      "toId": "kz-higashi",
+      "mode": "metro",
+      "doorToDoorMinutes": 9,
+      "walkingMinutes": 13,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9010057115389926
+    },
+    {
+      "fromId": "kz-castle",
+      "toId": "kz-omicho",
+      "mode": "walking",
+      "doorToDoorMinutes": 7,
+      "walkingMinutes": 7,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9007099829424173
+    },
+    {
+      "fromId": "kz-castle",
+      "toId": "kz-21c",
+      "mode": "walking",
+      "doorToDoorMinutes": 6,
+      "walkingMinutes": 6,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9005263422871508
+    },
+    {
+      "fromId": "kz-castle",
+      "toId": "kz-omicho-sushi",
+      "mode": "walking",
+      "doorToDoorMinutes": 7,
+      "walkingMinutes": 7,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9007241457635902
+    },
+    {
+      "fromId": "kz-higashi",
+      "toId": "hotel-ekimae",
+      "mode": "bus",
+      "doorToDoorMinutes": 22,
+      "walkingMinutes": 5,
+      "transferCount": 1,
+      "yenCost": 230,
+      "reliability": 0.45
+    },
+    {
+      "fromId": "kz-higashi",
+      "toId": "kz-kenrokuen",
+      "mode": "metro",
+      "doorToDoorMinutes": 9,
+      "walkingMinutes": 14,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9011510291330825
+    },
+    {
+      "fromId": "kz-higashi",
+      "toId": "kz-castle",
+      "mode": "metro",
+      "doorToDoorMinutes": 9,
+      "walkingMinutes": 13,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9010057115389926
+    },
+    {
+      "fromId": "kz-higashi",
+      "toId": "kz-omicho",
+      "mode": "metro",
+      "doorToDoorMinutes": 8,
+      "walkingMinutes": 11,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9008584518847061
+    },
+    {
+      "fromId": "kz-higashi",
+      "toId": "kz-21c",
+      "mode": "metro",
+      "doorToDoorMinutes": 11,
+      "walkingMinutes": 18,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9014634148959868
+    },
+    {
+      "fromId": "kz-higashi",
+      "toId": "kz-omicho-sushi",
+      "mode": "metro",
+      "doorToDoorMinutes": 7,
+      "walkingMinutes": 10,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9008218779523061
+    },
+    {
+      "fromId": "kz-omicho",
+      "toId": "hotel-ekimae",
+      "mode": "metro",
+      "doorToDoorMinutes": 9,
+      "walkingMinutes": 13,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9010313327312404
+    },
+    {
+      "fromId": "kz-omicho",
+      "toId": "kz-kenrokuen",
+      "mode": "metro",
+      "doorToDoorMinutes": 9,
+      "walkingMinutes": 14,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9011299738873346
+    },
+    {
+      "fromId": "kz-omicho",
+      "toId": "kz-castle",
+      "mode": "walking",
+      "doorToDoorMinutes": 7,
+      "walkingMinutes": 7,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9007099829424173
+    },
+    {
+      "fromId": "kz-omicho",
+      "toId": "kz-higashi",
+      "mode": "metro",
+      "doorToDoorMinutes": 8,
+      "walkingMinutes": 11,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9008584518847061
+    },
+    {
+      "fromId": "kz-omicho",
+      "toId": "kz-21c",
+      "mode": "metro",
+      "doorToDoorMinutes": 10,
+      "walkingMinutes": 15,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9012167536010525
+    },
+    {
+      "fromId": "kz-omicho",
+      "toId": "kz-omicho-sushi",
+      "mode": "walking",
+      "doorToDoorMinutes": 3,
+      "walkingMinutes": 3,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9000420779079489
+    },
+    {
+      "fromId": "kz-21c",
+      "toId": "hotel-ekimae",
+      "mode": "metro",
+      "doorToDoorMinutes": 15,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9020868523822438
+    },
+    {
+      "fromId": "kz-21c",
+      "toId": "kz-kenrokuen",
+      "mode": "walking",
+      "doorToDoorMinutes": 5,
+      "walkingMinutes": 5,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9003911295478113
+    },
+    {
+      "fromId": "kz-21c",
+      "toId": "kz-castle",
+      "mode": "walking",
+      "doorToDoorMinutes": 6,
+      "walkingMinutes": 6,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9005263422871508
+    },
+    {
+      "fromId": "kz-21c",
+      "toId": "kz-higashi",
+      "mode": "metro",
+      "doorToDoorMinutes": 11,
+      "walkingMinutes": 18,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9014634148959868
+    },
+    {
+      "fromId": "kz-21c",
+      "toId": "kz-omicho",
+      "mode": "metro",
+      "doorToDoorMinutes": 10,
+      "walkingMinutes": 15,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9012167536010525
+    },
+    {
+      "fromId": "kz-21c",
+      "toId": "kz-omicho-sushi",
+      "mode": "metro",
+      "doorToDoorMinutes": 10,
+      "walkingMinutes": 15,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9012363298418083
+    },
+    {
+      "fromId": "kz-omicho-sushi",
+      "toId": "hotel-ekimae",
+      "mode": "metro",
+      "doorToDoorMinutes": 9,
+      "walkingMinutes": 13,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9010443887309055
+    },
+    {
+      "fromId": "kz-omicho-sushi",
+      "toId": "kz-kenrokuen",
+      "mode": "metro",
+      "doorToDoorMinutes": 9,
+      "walkingMinutes": 14,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9011366903883
+    },
+    {
+      "fromId": "kz-omicho-sushi",
+      "toId": "kz-castle",
+      "mode": "walking",
+      "doorToDoorMinutes": 7,
+      "walkingMinutes": 7,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9007241457635902
+    },
+    {
+      "fromId": "kz-omicho-sushi",
+      "toId": "kz-higashi",
+      "mode": "metro",
+      "doorToDoorMinutes": 7,
+      "walkingMinutes": 10,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9008218779523061
+    },
+    {
+      "fromId": "kz-omicho-sushi",
+      "toId": "kz-omicho",
+      "mode": "walking",
+      "doorToDoorMinutes": 3,
+      "walkingMinutes": 3,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9000420779079489
+    },
+    {
+      "fromId": "kz-omicho-sushi",
+      "toId": "kz-21c",
+      "mode": "metro",
+      "doorToDoorMinutes": 10,
+      "walkingMinutes": 15,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9012363298418083
+    },
+    {
+      "fromId": "hotel-ekimae",
+      "toId": "kz-higashi",
+      "mode": "taxi",
+      "doorToDoorMinutes": 12,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 1200,
+      "reliability": 0.97
+    },
+    {
+      "fromId": "kz-higashi",
+      "toId": "hotel-ekimae",
+      "mode": "taxi",
+      "doorToDoorMinutes": 12,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 1200,
+      "reliability": 0.97
+    }
+  ],
+  "notes": "hotel↔higashi arası bus reliability=0.45; aynı çift için taxi reliability=0.97 mevcut. Model güvenilirlik riski yüksek modu taksiyle değiştirmeli."
+}

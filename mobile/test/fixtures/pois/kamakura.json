@@ -1,0 +1,93 @@
+{
+  "hotels": [
+    {
+      "id": "hotel-kamakura",
+      "name": "Kamakura Station Hotel",
+      "lat": 35.319,
+      "lng": 139.5502,
+      "cluster": "central"
+    }
+  ],
+  "pois": [
+    {
+      "id": "km-daibutsu",
+      "name": "Great Buddha (Kotoku-in)",
+      "lat": 35.3168,
+      "lng": 139.5359,
+      "cluster": "hase",
+      "category": "shrine",
+      "durationMinutes": 45,
+      "openingTime": "08:00",
+      "closingTime": "17:15"
+    },
+    {
+      "id": "km-hasedera",
+      "name": "Hase-dera",
+      "lat": 35.3122,
+      "lng": 139.5343,
+      "cluster": "hase",
+      "category": "shrine",
+      "durationMinutes": 60,
+      "openingTime": "08:00",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "km-hachimangu",
+      "name": "Tsurugaoka Hachimangu",
+      "lat": 35.326,
+      "lng": 139.5563,
+      "cluster": "central",
+      "category": "shrine",
+      "durationMinutes": 60,
+      "openingTime": "06:00",
+      "closingTime": "20:30"
+    },
+    {
+      "id": "km-komachi-dori",
+      "name": "Komachi-dori",
+      "lat": 35.323,
+      "lng": 139.552,
+      "cluster": "central",
+      "category": "shopping",
+      "durationMinutes": 45
+    },
+    {
+      "id": "km-hokokuji",
+      "name": "Hokoku-ji Bamboo Garden",
+      "lat": 35.3067,
+      "lng": 139.5629,
+      "cluster": "jomyoji",
+      "category": "park",
+      "durationMinutes": 45,
+      "openingTime": "09:00",
+      "closingTime": "16:00"
+    },
+    {
+      "id": "km-enoshima",
+      "name": "Enoshima Island",
+      "lat": 35.2998,
+      "lng": 139.4803,
+      "cluster": "enoshima",
+      "category": "sightseeing",
+      "durationMinutes": 90
+    },
+    {
+      "id": "km-shirasu-don",
+      "name": "Shirasu-don Seafood",
+      "lat": 35.3103,
+      "lng": 139.5326,
+      "cluster": "hase",
+      "category": "meal",
+      "durationMinutes": 45
+    },
+    {
+      "id": "km-komachi-soba",
+      "name": "Komachi Soba House",
+      "lat": 35.3235,
+      "lng": 139.5524,
+      "cluster": "central",
+      "category": "meal",
+      "durationMinutes": 45
+    }
+  ]
+}

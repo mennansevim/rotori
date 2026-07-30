@@ -369,7 +369,7 @@ void main() {
           lat: 35.6604, lng: 139.7292),
     ];
 
-    double _totalDist(List<TimelineItem> xs) {
+    double totalDist(List<TimelineItem> xs) {
       var d = 0.0;
       for (var i = 1; i < xs.length; i++) {
         d += distanceMeters(
@@ -381,9 +381,9 @@ void main() {
     }
 
     test('ru40 · Nearest-neighbor toplam mesafeyi ham sıradan azaltır', () {
-      final naive = _totalDist(places);
+      final naive = totalDist(places);
       final optimized = optimizeDayItems(places);
-      final smart = _totalDist(optimized);
+      final smart = totalDist(optimized);
       expect(smart, lessThanOrEqualTo(naive),
           reason: 'optimize sonrası total mesafe artmamalı');
     });

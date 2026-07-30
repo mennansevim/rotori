@@ -1,0 +1,115 @@
+{
+  "hotels": [
+    {
+      "id": "hotel-gora",
+      "name": "Gora Ryokan",
+      "lat": 35.2359,
+      "lng": 139.0472,
+      "cluster": "gora"
+    }
+  ],
+  "pois": [
+    {
+      "id": "hk-owakudani",
+      "name": "Owakudani Valley",
+      "lat": 35.2325,
+      "lng": 139.0197,
+      "cluster": "owakudani",
+      "category": "sightseeing",
+      "durationMinutes": 75,
+      "openingTime": "09:00",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "hk-ashinoko",
+      "name": "Lake Ashi",
+      "lat": 35.2043,
+      "lng": 139.0247,
+      "cluster": "ashinoko",
+      "category": "sightseeing",
+      "durationMinutes": 60
+    },
+    {
+      "id": "hk-hakone-shrine",
+      "name": "Hakone Shrine",
+      "lat": 35.2013,
+      "lng": 139.0271,
+      "cluster": "ashinoko",
+      "category": "shrine",
+      "durationMinutes": 45,
+      "openingTime": "09:00",
+      "closingTime": "16:30"
+    },
+    {
+      "id": "hk-open-air-museum",
+      "name": "Hakone Open-Air Museum",
+      "lat": 35.234,
+      "lng": 139.0453,
+      "cluster": "gora",
+      "category": "museum",
+      "durationMinutes": 90,
+      "openingTime": "09:30",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "hk-gora-park",
+      "name": "Gora Park",
+      "lat": 35.2359,
+      "lng": 139.0472,
+      "cluster": "gora",
+      "category": "park",
+      "durationMinutes": 45,
+      "openingTime": "09:00",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "hk-onsen-tenzan",
+      "name": "Tenzan Onsen",
+      "lat": 35.2436,
+      "lng": 139.0491,
+      "cluster": "gora",
+      "category": "onsen",
+      "durationMinutes": 90,
+      "closingTime": "22:00"
+    },
+    {
+      "id": "hk-odawara-castle",
+      "name": "Odawara Castle",
+      "lat": 35.2494,
+      "lng": 139.1541,
+      "cluster": "odawara",
+      "category": "sightseeing",
+      "durationMinutes": 60,
+      "openingTime": "09:00",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "hk-yunessun",
+      "name": "Yunessun Onsen",
+      "lat": 35.2379,
+      "lng": 139.048,
+      "cluster": "gora",
+      "category": "onsen",
+      "durationMinutes": 90,
+      "closingTime": "22:00"
+    },
+    {
+      "id": "hk-soba-hatsuhana",
+      "name": "Soba Hatsuhana",
+      "lat": 35.234,
+      "lng": 139.0453,
+      "cluster": "gora",
+      "category": "meal",
+      "durationMinutes": 45
+    },
+    {
+      "id": "hk-unagi-yamasho",
+      "name": "Unagi Yamasho",
+      "lat": 35.2043,
+      "lng": 139.0247,
+      "cluster": "ashinoko",
+      "category": "meal",
+      "durationMinutes": 60
+    }
+  ]
+}

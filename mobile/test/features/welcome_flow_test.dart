@@ -22,46 +22,25 @@ void main() {
     );
   }
 
-  testWidgets('choose görünümü hero + 2 kartı gösterir', (tester) async {
+  testWidgets('esnek gezi görünümü doğrudan hedef kartlarını gösterir',
+      (tester) async {
     await tester.pumpWidget(harness(createEmptyTrip()));
-    expect(find.text("Japonya'yı planlayalım"), findsOneWidget);
-    expect(find.text('Biletim var'), findsOneWidget);
-    expect(find.text('Gezi planla'), findsOneWidget);
-  });
-
-  testWidgets('"Biletim var" kartına tıklayınca bilet formu açılır',
-      (tester) async {
-    final trip = createEmptyTrip();
-    await tester.pumpWidget(harness(trip));
-
-    await tester.tap(find.text('Biletim var'));
-    await tester.pumpAndSettle();
-
-    // Bilet görünümüne geçmeli
-    expect(find.text('Bilet bilgilerin'), findsOneWidget);
-    expect(find.text('Gidiş tarihi'), findsOneWidget);
-    // hasTicket işaretlenmeli
-    expect(trip.preferences.hasTicket, isTrue);
-  });
-
-  testWidgets('"Gezi planla" kartına tıklayınca esnek gezi görünümü açılır',
-      (tester) async {
-    final trip = createEmptyTrip();
-    await tester.pumpWidget(harness(trip));
-
-    await tester.tap(find.text('Gezi planla'));
-    await tester.pumpAndSettle();
-
-    // Yeni Google Flights tarzı başlık + iki hedef kartı
     expect(find.text("Japonya'da esnek gezi"), findsOneWidget);
     expect(find.text('Tokyo'), findsOneWidget);
-    // Osaka kartı alta düşer — scroll ile bulunur.
     await tester.scrollUntilVisible(
       find.text('Osaka'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('Osaka'), findsOneWidget);
+  });
+
+  testWidgets('eski bilet tercihini false değerine normalize eder',
+      (tester) async {
+    final trip = createEmptyTrip();
+    trip.preferences.hasTicket = true;
+    await tester.pumpWidget(harness(trip));
+    await tester.pump();
     expect(trip.preferences.hasTicket, isFalse);
   });
 
@@ -69,9 +48,6 @@ void main() {
       (tester) async {
     final trip = createEmptyTrip();
     await tester.pumpWidget(harness(trip));
-
-    await tester.tap(find.text('Gezi planla'));
-    await tester.pumpAndSettle();
 
     // Tokyo'nun ilk aralık satırı: 26 Mart · 10 gün · Sakura zirvesi.
     // Yıl: trip.tripStart boşsa now.year+1 → tarih yılı buna göre değişir.
@@ -86,14 +62,15 @@ void main() {
         reason: 'travelDates.start beklenen "-03-26" ile bitmiyor: $start');
   });
 
-  testWidgets('bilet formu → geri butonu choose görünümüne döner',
-      (tester) async {
-    await tester.pumpWidget(harness(createEmptyTrip()));
-    await tester.tap(find.text('Biletim var'));
+  testWidgets('kalkış şehri düzenlenebilir', (tester) async {
+    final trip = createEmptyTrip();
+    await tester.pumpWidget(harness(trip));
+    await tester.tap(find.textContaining('İstanbul').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('← Geri'));
+    await tester.enterText(find.byType(TextField), 'İzmir');
+    await tester.tap(find.text('Kaydet'));
     await tester.pumpAndSettle();
-    expect(find.text("Japonya'yı planlayalım"), findsOneWidget);
+    expect(trip.preferences.originCity, 'İzmir');
   });
 
   group('googleFlightsUrl', () {
@@ -110,7 +87,8 @@ void main() {
         'https://www.google.com/travel/flights?q='
         '${Uri.encodeComponent('Flights from İzmir to NRT on 2027-08-23 through 2027-08-31')}',
       );
-      expect(url.startsWith('https://www.google.com/travel/flights?q='), isTrue);
+      expect(
+          url.startsWith('https://www.google.com/travel/flights?q='), isTrue);
     });
   });
 

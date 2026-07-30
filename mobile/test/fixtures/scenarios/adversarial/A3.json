@@ -1,0 +1,505 @@
+{
+  "id": "A3",
+  "date": "2026-11-07",
+  "city": "hakone",
+  "hotel": {
+    "id": "hotel-gora",
+    "name": "Gora Ryokan",
+    "lat": 35.2359,
+    "lng": 139.0472,
+    "cluster": "gora"
+  },
+  "dayStart": "2026-11-07T08:00:00",
+  "dayEnd": "2026-11-07T22:15:00",
+  "activities": [
+    {
+      "id": "hk-odawara-castle",
+      "name": "Odawara Castle",
+      "lat": 35.2494,
+      "lng": 139.1541,
+      "cluster": "odawara",
+      "category": "sightseeing",
+      "durationMinutes": 60,
+      "openingTime": "09:00",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "hk-owakudani",
+      "name": "Owakudani Valley (Ropeway)",
+      "lat": 35.2325,
+      "lng": 139.0197,
+      "cluster": "owakudani",
+      "category": "sightseeing",
+      "durationMinutes": 75,
+      "openingTime": "09:00",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "hk-ashinoko",
+      "name": "Lake Ashi",
+      "lat": 35.2043,
+      "lng": 139.0247,
+      "cluster": "ashinoko",
+      "category": "sightseeing",
+      "durationMinutes": 60
+    },
+    {
+      "id": "hk-unagi-yamasho",
+      "name": "Unagi Yamasho",
+      "lat": 35.2043,
+      "lng": 139.0247,
+      "cluster": "ashinoko",
+      "category": "meal",
+      "durationMinutes": 60,
+      "openingTime": "11:30",
+      "closingTime": "14:00"
+    },
+    {
+      "id": "hk-soba-hatsuhana",
+      "name": "Soba Hatsuhana",
+      "lat": 35.234,
+      "lng": 139.0453,
+      "cluster": "gora",
+      "category": "meal",
+      "durationMinutes": 60,
+      "fixedStartTime": "19:00",
+      "fixedEndTime": "20:00",
+      "isFixed": true,
+      "hasReservation": true
+    },
+    {
+      "id": "hk-onsen-tenzan",
+      "name": "Tenzan Onsen",
+      "lat": 35.2436,
+      "lng": 139.0491,
+      "cluster": "gora",
+      "category": "onsen",
+      "durationMinutes": 90,
+      "openingTime": "09:00",
+      "closingTime": "22:00"
+    }
+  ],
+  "routeMatrix": [
+    {
+      "fromId": "hotel-gora",
+      "toId": "hk-odawara-castle",
+      "mode": "metro",
+      "doorToDoorMinutes": 61,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9098234555413751
+    },
+    {
+      "fromId": "hotel-gora",
+      "toId": "hk-owakudani",
+      "mode": "metro",
+      "doorToDoorMinutes": 18,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9025261135075683
+    },
+    {
+      "fromId": "hotel-gora",
+      "toId": "hk-ashinoko",
+      "mode": "metro",
+      "doorToDoorMinutes": 27,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.904064975104477
+    },
+    {
+      "fromId": "hotel-gora",
+      "toId": "hk-unagi-yamasho",
+      "mode": "metro",
+      "doorToDoorMinutes": 27,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.904064975104477
+    },
+    {
+      "fromId": "hotel-gora",
+      "toId": "hk-soba-hatsuhana",
+      "mode": "walking",
+      "doorToDoorMinutes": 4,
+      "walkingMinutes": 4,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.90027278849126
+    },
+    {
+      "fromId": "hotel-gora",
+      "toId": "hk-onsen-tenzan",
+      "mode": "metro",
+      "doorToDoorMinutes": 8,
+      "walkingMinutes": 11,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9008734156585742
+    },
+    {
+      "fromId": "hk-odawara-castle",
+      "toId": "hotel-gora",
+      "mode": "metro",
+      "doorToDoorMinutes": 61,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9098234555413751
+    },
+    {
+      "fromId": "hk-odawara-castle",
+      "toId": "hk-owakudani",
+      "mode": "train",
+      "doorToDoorMinutes": 77,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9123495540601378
+    },
+    {
+      "fromId": "hk-odawara-castle",
+      "toId": "hk-ashinoko",
+      "mode": "train",
+      "doorToDoorMinutes": 79,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9127788345484055
+    },
+    {
+      "fromId": "hk-odawara-castle",
+      "toId": "hk-unagi-yamasho",
+      "mode": "train",
+      "doorToDoorMinutes": 79,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9127788345484055
+    },
+    {
+      "fromId": "hk-odawara-castle",
+      "toId": "hk-soba-hatsuhana",
+      "mode": "metro",
+      "doorToDoorMinutes": 63,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9100280346604124
+    },
+    {
+      "fromId": "hk-odawara-castle",
+      "toId": "hk-onsen-tenzan",
+      "mode": "metro",
+      "doorToDoorMinutes": 60,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9095568688316827
+    },
+    {
+      "fromId": "hk-owakudani",
+      "toId": "hotel-gora",
+      "mode": "metro",
+      "doorToDoorMinutes": 18,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9025261135075683
+    },
+    {
+      "fromId": "hk-owakudani",
+      "toId": "hk-odawara-castle",
+      "mode": "train",
+      "doorToDoorMinutes": 77,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9123495540601378
+    },
+    {
+      "fromId": "hk-owakudani",
+      "toId": "hk-ashinoko",
+      "mode": "metro",
+      "doorToDoorMinutes": 22,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9031684224706628
+    },
+    {
+      "fromId": "hk-owakudani",
+      "toId": "hk-unagi-yamasho",
+      "mode": "metro",
+      "doorToDoorMinutes": 22,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9031684224706628
+    },
+    {
+      "fromId": "hk-owakudani",
+      "toId": "hk-soba-hatsuhana",
+      "mode": "metro",
+      "doorToDoorMinutes": 16,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9023310987028146
+    },
+    {
+      "fromId": "hk-owakudani",
+      "toId": "hk-onsen-tenzan",
+      "mode": "metro",
+      "doorToDoorMinutes": 20,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9029415725466952
+    },
+    {
+      "fromId": "hk-ashinoko",
+      "toId": "hotel-gora",
+      "mode": "metro",
+      "doorToDoorMinutes": 27,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.904064975104477
+    },
+    {
+      "fromId": "hk-ashinoko",
+      "toId": "hk-odawara-castle",
+      "mode": "train",
+      "doorToDoorMinutes": 79,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9127788345484055
+    },
+    {
+      "fromId": "hk-ashinoko",
+      "toId": "hk-owakudani",
+      "mode": "metro",
+      "doorToDoorMinutes": 22,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9031684224706628
+    },
+    {
+      "fromId": "hk-ashinoko",
+      "toId": "hk-unagi-yamasho",
+      "mode": "walking",
+      "doorToDoorMinutes": 2,
+      "walkingMinutes": 2,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9
+    },
+    {
+      "fromId": "hk-ashinoko",
+      "toId": "hk-soba-hatsuhana",
+      "mode": "metro",
+      "doorToDoorMinutes": 25,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9037958248859254
+    },
+    {
+      "fromId": "hk-ashinoko",
+      "toId": "hk-onsen-tenzan",
+      "mode": "metro",
+      "doorToDoorMinutes": 32,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9048998908416771
+    },
+    {
+      "fromId": "hk-unagi-yamasho",
+      "toId": "hotel-gora",
+      "mode": "metro",
+      "doorToDoorMinutes": 27,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.904064975104477
+    },
+    {
+      "fromId": "hk-unagi-yamasho",
+      "toId": "hk-odawara-castle",
+      "mode": "train",
+      "doorToDoorMinutes": 79,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9127788345484055
+    },
+    {
+      "fromId": "hk-unagi-yamasho",
+      "toId": "hk-owakudani",
+      "mode": "metro",
+      "doorToDoorMinutes": 22,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9031684224706628
+    },
+    {
+      "fromId": "hk-unagi-yamasho",
+      "toId": "hk-ashinoko",
+      "mode": "walking",
+      "doorToDoorMinutes": 2,
+      "walkingMinutes": 2,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9
+    },
+    {
+      "fromId": "hk-unagi-yamasho",
+      "toId": "hk-soba-hatsuhana",
+      "mode": "metro",
+      "doorToDoorMinutes": 25,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9037958248859254
+    },
+    {
+      "fromId": "hk-unagi-yamasho",
+      "toId": "hk-onsen-tenzan",
+      "mode": "metro",
+      "doorToDoorMinutes": 32,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9048998908416771
+    },
+    {
+      "fromId": "hk-soba-hatsuhana",
+      "toId": "hotel-gora",
+      "mode": "walking",
+      "doorToDoorMinutes": 4,
+      "walkingMinutes": 4,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.90027278849126
+    },
+    {
+      "fromId": "hk-soba-hatsuhana",
+      "toId": "hk-odawara-castle",
+      "mode": "metro",
+      "doorToDoorMinutes": 63,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9100280346604124
+    },
+    {
+      "fromId": "hk-soba-hatsuhana",
+      "toId": "hk-owakudani",
+      "mode": "metro",
+      "doorToDoorMinutes": 16,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9023310987028146
+    },
+    {
+      "fromId": "hk-soba-hatsuhana",
+      "toId": "hk-ashinoko",
+      "mode": "metro",
+      "doorToDoorMinutes": 25,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9037958248859254
+    },
+    {
+      "fromId": "hk-soba-hatsuhana",
+      "toId": "hk-unagi-yamasho",
+      "mode": "metro",
+      "doorToDoorMinutes": 25,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9037958248859254
+    },
+    {
+      "fromId": "hk-soba-hatsuhana",
+      "toId": "hk-onsen-tenzan",
+      "mode": "metro",
+      "doorToDoorMinutes": 9,
+      "walkingMinutes": 14,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.901121872204082
+    },
+    {
+      "fromId": "hk-onsen-tenzan",
+      "toId": "hotel-gora",
+      "mode": "metro",
+      "doorToDoorMinutes": 8,
+      "walkingMinutes": 11,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9008734156585742
+    },
+    {
+      "fromId": "hk-onsen-tenzan",
+      "toId": "hk-odawara-castle",
+      "mode": "metro",
+      "doorToDoorMinutes": 60,
+      "walkingMinutes": 0,
+      "transferCount": 1,
+      "yenCost": 250,
+      "reliability": 0.9095568688316827
+    },
+    {
+      "fromId": "hk-onsen-tenzan",
+      "toId": "hk-owakudani",
+      "mode": "metro",
+      "doorToDoorMinutes": 20,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9029415725466952
+    },
+    {
+      "fromId": "hk-onsen-tenzan",
+      "toId": "hk-ashinoko",
+      "mode": "metro",
+      "doorToDoorMinutes": 32,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9048998908416771
+    },
+    {
+      "fromId": "hk-onsen-tenzan",
+      "toId": "hk-unagi-yamasho",
+      "mode": "metro",
+      "doorToDoorMinutes": 32,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9048998908416771
+    },
+    {
+      "fromId": "hk-onsen-tenzan",
+      "toId": "hk-soba-hatsuhana",
+      "mode": "metro",
+      "doorToDoorMinutes": 9,
+      "walkingMinutes": 14,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.901121872204082
+    }
+  ],
+  "notes": "Ropeway (owakudani) 17:00 kapanır → öğleden önce ziyaret edilmeli. Onsen 22:00 kapanır, dinner (19:00 fixed) sonrası uygun."
+}

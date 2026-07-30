@@ -54,6 +54,15 @@ enum TicketKind {
 
 enum TimelineItemKind { activity, transport, meal, hotel }
 
+enum ActivityLockType {
+  none,
+  flight,
+  trainReservation,
+  hotel,
+  ticketedEvent,
+  external,
+}
+
 /// Walking target → günlük adım üst sınırı eşlemesi.
 const Map<WalkingTarget, int> kWalkingTargetSteps = {
   WalkingTarget.light: 7000,
@@ -114,6 +123,24 @@ TimelineItemKind? _timelineKindFromJson(dynamic v) => switch (v) {
       'meal' => TimelineItemKind.meal,
       'hotel' => TimelineItemKind.hotel,
       _ => null,
+    };
+
+String _activityLockTypeToJson(ActivityLockType value) => switch (value) {
+      ActivityLockType.none => 'none',
+      ActivityLockType.flight => 'flight',
+      ActivityLockType.trainReservation => 'train_reservation',
+      ActivityLockType.hotel => 'hotel',
+      ActivityLockType.ticketedEvent => 'ticketed_event',
+      ActivityLockType.external => 'external',
+    };
+
+ActivityLockType _activityLockTypeFromJson(dynamic value) => switch (value) {
+      'flight' => ActivityLockType.flight,
+      'train_reservation' => ActivityLockType.trainReservation,
+      'hotel' => ActivityLockType.hotel,
+      'ticketed_event' => ActivityLockType.ticketedEvent,
+      'external' => ActivityLockType.external,
+      _ => ActivityLockType.none,
     };
 
 // ---------------------------------------------------------------------------
@@ -432,13 +459,17 @@ class TripPreferences {
   double? originLng;
   String? returnAirline;
   String? returnFlightNo;
+
   /// Dönüş uçuşunda Japonya tarafından kalkış havalimanı IATA.
   String? returnDepartAirport;
+
   /// Dönüş uçuşunda Türkiye tarafına iniş havalimanı IATA.
   String? returnArrivalAirport;
+
   /// Gidiş uçuşunun Japonya'ya iniş saati (HH:MM). Varış günü akışı bu
   /// saate göre kurulur (havaalanı → immigration → transfer → check-in).
   String? outboundArrivalTime;
+
   /// Dönüş uçuşunun Japonya'dan kalkış saati (HH:MM). Ayrılış günü akışı
   /// bu saate göre kurulur (check-out → transfer → havaalanı → uçuş).
   String? returnDepartTime;
@@ -612,9 +643,12 @@ class TripPreferences {
         if (originLng != null) 'originLng': originLng,
         if (returnAirline != null) 'returnAirline': returnAirline,
         if (returnFlightNo != null) 'returnFlightNo': returnFlightNo,
-        if (returnDepartAirport != null) 'returnDepartAirport': returnDepartAirport,
-        if (returnArrivalAirport != null) 'returnArrivalAirport': returnArrivalAirport,
-        if (outboundArrivalTime != null) 'outboundArrivalTime': outboundArrivalTime,
+        if (returnDepartAirport != null)
+          'returnDepartAirport': returnDepartAirport,
+        if (returnArrivalAirport != null)
+          'returnArrivalAirport': returnArrivalAirport,
+        if (outboundArrivalTime != null)
+          'outboundArrivalTime': outboundArrivalTime,
         if (returnDepartTime != null) 'returnDepartTime': returnDepartTime,
         if (destinationCity != null) 'destinationCity': destinationCity,
         if (destinationCountry != null)
@@ -657,6 +691,14 @@ class TimelineItem {
     this.cost,
     this.costCurrency,
     this.cityId,
+    this.lockType = ActivityLockType.none,
+    this.fixedStartTime,
+    this.fixedEndTime,
+    this.canChangeDay = true,
+    this.canChangeTime = true,
+    this.canReorder = true,
+    this.canDelete = true,
+    this.lockReason,
   });
 
   final String id;
@@ -674,6 +716,20 @@ class TimelineItem {
   int? cost;
   String? costCurrency;
   String? cityId;
+  ActivityLockType lockType;
+  String? fixedStartTime;
+  String? fixedEndTime;
+  bool canChangeDay;
+  bool canChangeTime;
+  bool canReorder;
+  bool canDelete;
+  String? lockReason;
+
+  bool get isFixed =>
+      lockType != ActivityLockType.none ||
+      fixedStartTime != null ||
+      !canChangeTime ||
+      !canReorder;
 
   TimelineItem copyWith({
     String? time,
@@ -684,6 +740,14 @@ class TimelineItem {
     TimelineItemKind? kind,
     int? durationMin,
     int? movedFromDay,
+    ActivityLockType? lockType,
+    String? fixedStartTime,
+    String? fixedEndTime,
+    bool? canChangeDay,
+    bool? canChangeTime,
+    bool? canReorder,
+    bool? canDelete,
+    String? lockReason,
   }) =>
       TimelineItem(
         id: id,
@@ -701,6 +765,14 @@ class TimelineItem {
         cost: cost,
         costCurrency: costCurrency,
         cityId: cityId,
+        lockType: lockType ?? this.lockType,
+        fixedStartTime: fixedStartTime ?? this.fixedStartTime,
+        fixedEndTime: fixedEndTime ?? this.fixedEndTime,
+        canChangeDay: canChangeDay ?? this.canChangeDay,
+        canChangeTime: canChangeTime ?? this.canChangeTime,
+        canReorder: canReorder ?? this.canReorder,
+        canDelete: canDelete ?? this.canDelete,
+        lockReason: lockReason ?? this.lockReason,
       );
 
   factory TimelineItem.fromJson(Map<String, dynamic> j) => TimelineItem(
@@ -719,6 +791,14 @@ class TimelineItem {
         cost: (j['cost'] as num?)?.toInt(),
         costCurrency: j['costCurrency'] as String?,
         cityId: j['cityId'] as String?,
+        lockType: _activityLockTypeFromJson(j['lockType']),
+        fixedStartTime: j['fixedStartTime'] as String?,
+        fixedEndTime: j['fixedEndTime'] as String?,
+        canChangeDay: (j['canChangeDay'] as bool?) ?? true,
+        canChangeTime: (j['canChangeTime'] as bool?) ?? true,
+        canReorder: (j['canReorder'] as bool?) ?? true,
+        canDelete: (j['canDelete'] as bool?) ?? true,
+        lockReason: j['lockReason'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -737,6 +817,15 @@ class TimelineItem {
         if (cost != null) 'cost': cost,
         if (costCurrency != null) 'costCurrency': costCurrency,
         if (cityId != null) 'cityId': cityId,
+        if (lockType != ActivityLockType.none)
+          'lockType': _activityLockTypeToJson(lockType),
+        if (fixedStartTime != null) 'fixedStartTime': fixedStartTime,
+        if (fixedEndTime != null) 'fixedEndTime': fixedEndTime,
+        if (!canChangeDay) 'canChangeDay': false,
+        if (!canChangeTime) 'canChangeTime': false,
+        if (!canReorder) 'canReorder': false,
+        if (!canDelete) 'canDelete': false,
+        if (lockReason != null) 'lockReason': lockReason,
       };
 }
 

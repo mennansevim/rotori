@@ -9,9 +9,9 @@
 //   list()         → yerel liste (offline-first).
 //   syncDirty()    → dirty tüm kayıtları Supabase'e push eder.
 //
-// Çakışma: last-write-wins. Sunucudan gelen `version` yereldekiden büyükse
-//   yerel kayıt üzerine yazılır ve stream'e emit edilir. `onConflict` callback
-//   ile UI kullanıcıya "başka cihazdan güncellendi" toast'ı gösterebilir.
+// Çakışma: dirty yerel snapshot uzak yayınla ezilmez. Yerel temizse sunucudan
+//   gelen daha yeni/eş sürüm uygulanır. Dirty kayıt `syncDirty` ile push
+//   edilene kadar offline kullanıcının değişikliği korunur.
 
 import 'dart:async';
 import 'dart:convert';
@@ -43,10 +43,10 @@ final localPlanCacheProvider = Provider<LocalPlanCache?>((ref) {
 
 /// Repository — tüm plan işlemlerinin tek girişi.
 final plansRepositoryProvider = Provider<PlansRepository?>((ref) {
-  final client = ref.watch(supabaseProvider);
   final cache = ref.watch(localPlanCacheProvider);
   final userId = ref.watch(currentUserProvider)?.id;
   if (cache == null || userId == null) return null;
+  final client = ref.watch(supabaseProvider);
   return PlansRepository(client: client, cache: cache, userId: userId);
 });
 
@@ -95,7 +95,9 @@ class PlansRepository {
           : (doc as Map).cast<String, dynamic>();
       final trip = Trip.fromJson(docMap);
       final cur = _cache.load(planId);
-      // last-write-wins: sunucu > yerel ise yereli ez.
+      // Offline/optimistic yerel değişikliği realtime yankısı veya başka
+      // cihaz yayınıyla ezme. Push bitince dirty=false olur.
+      if (cur?.dirty == true) return;
       if (cur == null || serverVersion >= cur.version) {
         await _cache.save(
           CachedPlan(

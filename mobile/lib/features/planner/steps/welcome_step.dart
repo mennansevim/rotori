@@ -24,6 +24,12 @@ class WelcomeStep extends StatefulWidget {
 }
 
 class _WelcomeStepState extends State<WelcomeStep> {
+  /// Adıma ilk giriş: hemen native date-range picker açılır. Böylece
+  /// kullanıcı `Başla` sekmesinden hızla tarih girip Rota'ya geçer. Bir kez
+  /// tetiklenir; kullanıcı geri gelirse veya iptal ederse tekrar açılmaz —
+  /// büyük "Tarih aralığı seç" butonu kullanılır.
+  bool _autoOpened = false;
+
   @override
   void initState() {
     super.initState();
@@ -32,6 +38,13 @@ class _WelcomeStepState extends State<WelcomeStep> {
       // "Biletim var" akışı yok — hasTicket her zaman false.
       if (widget.trip.preferences.hasTicket != false) {
         widget.onChange((t) => t.preferences.hasTicket = false);
+      }
+      if (!_autoOpened) {
+        _autoOpened = true;
+        final dates = widget.trip.preferences.travelDates;
+        if (dates.start.isEmpty || dates.end.isEmpty) {
+          _pickCustomRange();
+        }
       }
     });
   }
@@ -55,8 +68,9 @@ class _WelcomeStepState extends State<WelcomeStep> {
     final s = LanguageScope.of(context);
     final trip = widget.trip;
     final origin = _resolveOrigin(trip);
-    final year = _resolveYear(trip);
-    final dests = _japanDestinations();
+    final travelDates = trip.preferences.travelDates;
+    final hasDates =
+        travelDates.start.isNotEmpty && travelDates.end.isNotEmpty;
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
       children: [
@@ -68,31 +82,34 @@ class _WelcomeStepState extends State<WelcomeStep> {
           s.s('welcome.plan.sub'),
           style: const TextStyle(fontSize: 14, color: PT.textSecondary),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         _OriginPill(
           city: origin,
           onEdit: () => _editOrigin(origin),
         ),
-        const SizedBox(height: 18),
-        for (var i = 0; i < dests.length; i++) ...[
-          _DestCard(
-            dest: dests[i],
-            year: year,
-            fromCity: origin,
-            onRangeTap: (r) => _onPickRange(
-                dest: dests[i], range: r, year: year, from: origin),
+        const SizedBox(height: 20),
+        if (hasDates) ...[
+          _DateSummaryCard(
+            startIso: travelDates.start,
+            endIso: travelDates.end,
+            lang: s.lang,
+            onEdit: _pickCustomRange,
           ),
-          if (i < dests.length - 1) const SizedBox(height: 14),
+          const SizedBox(height: 14),
+          PButton(
+            label: s.s('welcome.continue'),
+            block: true,
+            primary: true,
+            onPressed: widget.onContinue,
+          ),
+        ] else ...[
+          PButton(
+            label: s.s('welcome.plan.customRange'),
+            block: true,
+            primary: true,
+            onPressed: _pickCustomRange,
+          ),
         ],
-        const SizedBox(height: 22),
-        // Öneriler dışında kendi tarih aralığını seçmek isteyene çıkış:
-        // native date-range picker → gidiş-dönüş olarak doldur + Rota'ya geç.
-        PButton(
-          label: s.s('welcome.plan.customRange'),
-          block: true,
-          primary: false,
-          onPressed: _pickCustomRange,
-        ),
       ],
     );
   }
@@ -128,16 +145,6 @@ class _WelcomeStepState extends State<WelcomeStep> {
   String _resolveOrigin(Trip trip) {
     final c = (trip.preferences.originCity ?? '').trim();
     return c.isEmpty ? 'İstanbul' : c;
-  }
-
-  int _resolveYear(Trip trip) {
-    final ts = trip.tripStart;
-    if (ts.length >= 4) {
-      final y = int.tryParse(ts.substring(0, 4));
-      if (y != null && y >= 2000) return y;
-    }
-    final now = DateTime.now();
-    return now.year + 1;
   }
 
   Future<void> _editOrigin(String current) async {
@@ -210,36 +217,14 @@ class _WelcomeStepState extends State<WelcomeStep> {
 
   /// Bir tarih aralığını gidiş-dönüş olarak uygula ve Rota adımına geç.
   /// Harici link AÇMAZ — uçuşları planner'ın Rota adımı listeler.
-  void _onPickRange({
-    required _JpDest dest,
-    required _JpRange range,
-    required int year,
-    required String from,
-  }) {
-    final (start, end) = range.dates(year);
-    _applyDates(_isoDate(start), _isoDate(end));
-    widget.onContinue();
-  }
 }
 
 // ===========================================================================
 // Esnek gezi verileri + biçimleyiciler
 // ===========================================================================
 
-String _isoDate(DateTime d) =>
-    '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-
-/// "23 Ağu Paz" biçimi — Google Flights satırındaki tarih etiketi.
-String formatTrShortDate(DateTime d) =>
-    '${d.day} ${_trShortMonths[d.month]} ${_trShortWeekdays[d.weekday]}';
-
-/// Aktif dile göre kısa tarih etiketi ("23 Ağu Paz" / "23 Aug Sun").
-String _formatShortDate(DateTime d, AppLang lang) => lang == AppLang.en
-    ? '${d.day} ${_enShortMonths[d.month]} ${_enShortWeekdays[d.weekday]}'
-    : formatTrShortDate(d);
-
-/// Google Flights derin bağlantısı. GERÇEK fiyata orada bakılır — sahte
-/// fiyat üretmiyoruz.
+/// Google Flights derin bağlantısı. Uçuş özelliği yeniden devreye girdiğinde
+/// kullanılacak — şu an test ile korunuyor.
 String googleFlightsUrl({
   required String from,
   required String toIata,
@@ -248,120 +233,16 @@ String googleFlightsUrl({
 }) {
   final startIso = _isoDate(start);
   final endIso = _isoDate(end);
-  final q =
-      'Flights from $from to $toIata on $startIso through $endIso';
+  final q = 'Flights from $from to $toIata on $startIso through $endIso';
   return 'https://www.google.com/travel/flights?q=${Uri.encodeComponent(q)}';
 }
 
-class _JpDest {
-  final String city;
-  final String country;
-  final String emoji;
-  final String tag;
-  final String imageUrl;
-  final String iataHint;
-  final List<_JpRange> ranges;
-  const _JpDest({
-    required this.city,
-    required this.country,
-    required this.emoji,
-    required this.tag,
-    required this.imageUrl,
-    required this.iataHint,
-    required this.ranges,
-  });
-}
+String _isoDate(DateTime d) =>
+    '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
-class _JpRange {
-  final int monthStart;
-  final int startDay;
-  final int lengthDays;
-  final String label;
-  const _JpRange({
-    required this.monthStart,
-    required this.startDay,
-    required this.lengthDays,
-    required this.label,
-  });
-
-  (DateTime, DateTime) dates(int year) {
-    // Önerilen aralık her zaman bugünden EN AZ 1 AY sonrası olmalı. Mevsimi
-    // (ay/gün) koruyup en yakın gelecekteki yıla yuvarla.
-    final now = DateTime.now();
-    final minStart = DateTime(now.year, now.month + 1, now.day);
-    var y = year < now.year ? now.year : year;
-    var start = DateTime(y, monthStart, startDay);
-    while (start.isBefore(minStart)) {
-      y++;
-      start = DateTime(y, monthStart, startDay);
-    }
-    final end = start.add(Duration(days: lengthDays - 1));
-    return (start, end);
-  }
-
-  String durationLabel(LanguageScope s) {
-    if (lengthDays % 7 == 0) {
-      final wk = lengthDays ~/ 7;
-      return s.p(wk == 1 ? 'welcome.range.week' : 'welcome.range.weeks', {'n': '$wk'});
-    }
-    return s.p('welcome.range.days', {'n': '$lengthDays'});
-  }
-}
-
-List<_JpDest> _japanDestinations() => const [
-      _JpDest(
-        city: 'Tokyo',
-        country: 'welcome.dest.country',
-        emoji: '🗼',
-        tag: 'welcome.dest.tokyo.tag',
-        imageUrl:
-            'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&q=60',
-        iataHint: 'NRT',
-        ranges: [
-          _JpRange(
-              monthStart: 3,
-              startDay: 26,
-              lengthDays: 10,
-              label: 'welcome.range.tokyo.sakuraPeak'),
-          _JpRange(
-              monthStart: 4,
-              startDay: 20,
-              lengthDays: 7,
-              label: 'welcome.range.tokyo.lateSakura'),
-          _JpRange(
-              monthStart: 11,
-              startDay: 8,
-              lengthDays: 10,
-              label: 'welcome.range.tokyo.autumn'),
-        ],
-      ),
-      _JpDest(
-        city: 'Osaka',
-        country: 'welcome.dest.country',
-        emoji: '🏯',
-        tag: 'welcome.dest.osaka.tag',
-        imageUrl:
-            'https://images.unsplash.com/photo-1590559899731-a382839e5549?w=800&q=60',
-        iataHint: 'KIX',
-        ranges: [
-          _JpRange(
-              monthStart: 3,
-              startDay: 28,
-              lengthDays: 8,
-              label: 'welcome.range.osaka.sakuraKansai'),
-          _JpRange(
-              monthStart: 5,
-              startDay: 3,
-              lengthDays: 7,
-              label: 'welcome.range.osaka.mild'),
-          _JpRange(
-              monthStart: 11,
-              startDay: 12,
-              lengthDays: 10,
-              label: 'welcome.range.osaka.autumnFood'),
-        ],
-      ),
-    ];
+/// "23 Ağu Paz" biçimi — Google Flights satırındaki tarih etiketi.
+String formatTrShortDate(DateTime d) =>
+    '${d.day} ${_trShortMonths[d.month]} ${_trShortWeekdays[d.weekday]}';
 
 const _trShortMonths = [
   '',
@@ -390,36 +271,148 @@ const _trShortWeekdays = [
   'Paz',
 ];
 
-const _enShortMonths = [
-  '',
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
-
-const _enShortWeekdays = [
-  '',
-  'Mon',
-  'Tue',
-  'Wed',
-  'Thu',
-  'Fri',
-  'Sat',
-  'Sun',
-];
-
 // ===========================================================================
 // Alt bileşenler
 // ===========================================================================
+
+/// Seçilen kalkış/dönüş tarihi özet kartı. Sağda "Değiştir" TextButton'u
+/// picker'ı yeniden açar. Görsel: iki sütun, üstte küçük etiket (Kalkış / Dönüş)
+/// altta büyük tarih. Böylece kullanıcı seçtiği aralığı bir bakışta görür.
+class _DateSummaryCard extends StatelessWidget {
+  const _DateSummaryCard({
+    required this.startIso,
+    required this.endIso,
+    required this.lang,
+    required this.onEdit,
+  });
+
+  final String startIso;
+  final String endIso;
+  final AppLang lang;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
+    final start = DateTime.tryParse(startIso);
+    final end = DateTime.tryParse(endIso);
+    if (start == null || end == null) return const SizedBox.shrink();
+    final nights = end.difference(start).inDays;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+      decoration: BoxDecoration(
+        color: PT.bgElevated,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: PT.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _DatePart(
+                  labelKey: 'welcome.originPill',
+                  fallback: 'Kalkış',
+                  date: start,
+                  lang: lang,
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: Icon(Icons.arrow_forward_rounded,
+                    size: 16, color: PT.textTertiary),
+              ),
+              Expanded(
+                child: _DatePart(
+                  labelKey: 'welcome.plan.dateSummary.title',
+                  fallback: 'Dönüş',
+                  date: end,
+                  lang: lang,
+                  isReturn: true,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Text(
+                nights <= 0
+                    ? ''
+                    : (lang == AppLang.en
+                        ? '$nights night${nights == 1 ? '' : 's'}'
+                        : '$nights gece'),
+                style: const TextStyle(
+                    fontSize: 12,
+                    color: PT.textSecondary,
+                    fontWeight: FontWeight.w600),
+              ),
+              const Spacer(),
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: PT.accent,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                ),
+                onPressed: onEdit,
+                child: Text(
+                  s.s('welcome.plan.dateSummary.edit'),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w700, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DatePart extends StatelessWidget {
+  const _DatePart({
+    required this.labelKey,
+    required this.fallback,
+    required this.date,
+    required this.lang,
+    this.isReturn = false,
+  });
+
+  final String labelKey;
+  final String fallback;
+  final DateTime date;
+  final AppLang lang;
+  final bool isReturn;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          isReturn
+              ? (lang == AppLang.en ? 'Return' : 'Dönüş')
+              : (lang == AppLang.en ? 'Departure' : 'Kalkış'),
+          style: const TextStyle(
+              fontSize: 11,
+              color: PT.textTertiary,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.4),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          formatTrShortDate(date),
+          style: const TextStyle(
+              fontSize: 15,
+              color: PT.text,
+              fontWeight: FontWeight.w700,
+              fontFeatures: [FontFeature.tabularFigures()]),
+        ),
+      ],
+    );
+  }
+}
 
 /// "Kalkış: {city} ✎" — küçük kalem ikonu ile origin değiştirme pili.
 class _OriginPill extends StatelessWidget {
@@ -464,210 +457,3 @@ class _OriginPill extends StatelessWidget {
   }
 }
 
-/// Google Flights "esnek gezi" tarzı hedef kartı: üstte hero görsel +
-/// altında 2-3 önerilen tarih aralığı satırı + Google Flights CTA.
-class _DestCard extends StatelessWidget {
-  const _DestCard({
-    required this.dest,
-    required this.year,
-    required this.fromCity,
-    required this.onRangeTap,
-  });
-  final _JpDest dest;
-  final int year;
-  final String fromCity;
-  final void Function(_JpRange range) onRangeTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = LanguageScope.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: PT.bgElevated,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: PT.border),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _DestHero(city: dest.city, country: s.s(dest.country),
-              emoji: dest.emoji, imageUrl: dest.imageUrl),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
-            child: Text(s.s(dest.tag),
-                style: const TextStyle(
-                    fontSize: 13,
-                    color: PT.textSecondary,
-                    height: 1.4)),
-          ),
-          const Divider(height: 1, color: PT.border),
-          for (var i = 0; i < dest.ranges.length; i++) ...[
-            _RangeRow(
-              range: dest.ranges[i],
-              year: year,
-              onTap: () => onRangeTap(dest.ranges[i]),
-            ),
-            if (i < dest.ranges.length - 1)
-              const Divider(height: 1, color: PT.border, indent: 14, endIndent: 14),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _DestHero extends StatelessWidget {
-  const _DestHero({
-    required this.city,
-    required this.country,
-    required this.emoji,
-    required this.imageUrl,
-  });
-  final String city;
-  final String country;
-  final String emoji;
-  final String imageUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 180,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.network(
-            imageUrl,
-            fit: BoxFit.cover,
-            loadingBuilder: (ctx, child, progress) {
-              if (progress == null) return child;
-              return Container(color: const Color(0xFFEFEFF3));
-            },
-            errorBuilder: (ctx, err, stack) => _HeroFallback(
-                city: city, emoji: emoji),
-          ),
-          // gradient overlay
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0x00000000), Color(0xB3000000)],
-                stops: [0.4, 1.0],
-              ),
-            ),
-          ),
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 12,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(city,
-                    style: const TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5,
-                      color: Colors.white,
-                    )),
-                Text(country,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white70,
-                    )),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroFallback extends StatelessWidget {
-  const _HeroFallback({required this.city, required this.emoji});
-  final String city;
-  final String emoji;
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFFFB4C1), Color(0xFF7C6AEF)],
-        ),
-      ),
-      child: Center(
-        child: Text('$emoji $city',
-            style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: Colors.white)),
-      ),
-    );
-  }
-}
-
-class _RangeRow extends StatelessWidget {
-  const _RangeRow({
-    required this.range,
-    required this.year,
-    required this.onTap,
-  });
-  final _JpRange range;
-  final int year;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = LanguageScope.of(context);
-    final (start, end) = range.dates(year);
-    final startLabel = _formatShortDate(start, s.lang);
-    final endLabel = _formatShortDate(end, s.lang);
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '$startLabel — $endLabel',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: PT.text,
-                      fontFeatures: [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${range.durationLabel(s)} · ${s.s(range.label)}',
-                    style: const TextStyle(
-                        fontSize: 12,
-                        color: PT.textSecondary,
-                        height: 1.35),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Text('›',
-                style: TextStyle(
-                    fontSize: 22,
-                    color: PT.textTertiary,
-                    fontWeight: FontWeight.w400)),
-          ],
-        ),
-      ),
-    );
-  }
-}

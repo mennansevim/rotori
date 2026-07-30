@@ -1,0 +1,127 @@
+{
+  "hotels": [
+    {
+      "id": "hotel-nara-station",
+      "name": "Nara Station Hotel",
+      "lat": 34.6851,
+      "lng": 135.8048,
+      "cluster": "nara-station"
+    }
+  ],
+  "pois": [
+    {
+      "id": "nr-park",
+      "name": "Nara Park (deer)",
+      "lat": 34.6851,
+      "lng": 135.843,
+      "cluster": "nara-park",
+      "category": "park",
+      "durationMinutes": 60
+    },
+    {
+      "id": "nr-todaiji",
+      "name": "Todai-ji",
+      "lat": 34.689,
+      "lng": 135.8398,
+      "cluster": "nara-park",
+      "category": "shrine",
+      "durationMinutes": 75,
+      "openingTime": "07:30",
+      "closingTime": "17:30"
+    },
+    {
+      "id": "nr-kasuga",
+      "name": "Kasuga Taisha",
+      "lat": 34.6818,
+      "lng": 135.8483,
+      "cluster": "nara-park",
+      "category": "shrine",
+      "durationMinutes": 60,
+      "openingTime": "06:00",
+      "closingTime": "18:00"
+    },
+    {
+      "id": "nr-kofukuji",
+      "name": "Kofuku-ji",
+      "lat": 34.6833,
+      "lng": 135.8327,
+      "cluster": "nara-park",
+      "category": "shrine",
+      "durationMinutes": 45,
+      "openingTime": "09:00",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "nr-isuien",
+      "name": "Isuien Garden",
+      "lat": 34.6868,
+      "lng": 135.8366,
+      "cluster": "nara-park",
+      "category": "park",
+      "durationMinutes": 45,
+      "openingTime": "09:30",
+      "closingTime": "16:30"
+    },
+    {
+      "id": "nr-naramachi",
+      "name": "Naramachi",
+      "lat": 34.6786,
+      "lng": 135.8295,
+      "cluster": "naramachi",
+      "category": "shopping",
+      "durationMinutes": 60
+    },
+    {
+      "id": "nr-nakatanidou",
+      "name": "Nakatanidou Mochi",
+      "lat": 34.6821,
+      "lng": 135.8273,
+      "cluster": "naramachi",
+      "category": "meal",
+      "durationMinutes": 30
+    },
+    {
+      "id": "nr-yoshikien",
+      "name": "Yoshiki-en Garden",
+      "lat": 34.6857,
+      "lng": 135.8378,
+      "cluster": "nara-park",
+      "category": "park",
+      "durationMinutes": 45,
+      "openingTime": "09:00",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "nr-izakaya",
+      "name": "Naramachi Izakaya",
+      "lat": 34.6788,
+      "lng": 135.828,
+      "cluster": "naramachi",
+      "category": "meal",
+      "durationMinutes": 60,
+      "openingTime": "17:30"
+    },
+    {
+      "id": "nr-museum",
+      "name": "Nara National Museum",
+      "lat": 34.6841,
+      "lng": 135.8395,
+      "cluster": "nara-park",
+      "category": "museum",
+      "durationMinutes": 75,
+      "openingTime": "09:30",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "nr-yakushiji",
+      "name": "Yakushi-ji",
+      "lat": 34.6698,
+      "lng": 135.785,
+      "cluster": "nishinokyo",
+      "category": "shrine",
+      "durationMinutes": 60,
+      "openingTime": "08:30",
+      "closingTime": "17:00"
+    }
+  ]
+}

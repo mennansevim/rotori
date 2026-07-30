@@ -33,7 +33,7 @@ void main() {
     expect(counts, {
       'tokyo': 12,
       'kyoto': 10,
-      'osaka': 10,
+      'osaka': 9,
       'nara': 6,
       'hiroshima': 5,
       'sapporo': 5,
@@ -43,7 +43,7 @@ void main() {
 
   test('cityPlacesToGeofences sabitleri uygular (120 m, 600 sn, 25 XP)', () {
     final fences = cityPlacesToGeofences(kCityData);
-    expect(fences.length, 12 + 10 + 10 + 6 + 5 + 5 + 5);
+    expect(fences.length, 12 + 10 + 9 + 6 + 5 + 5 + 5);
     for (final f in fences) {
       expect(f.radiusMeters, kPlaceRadiusM);
       expect(f.minDwellSeconds, kDefaultMinDwell);

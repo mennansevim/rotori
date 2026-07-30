@@ -1,0 +1,372 @@
+{
+  "id": "A5",
+  "date": "2026-11-09",
+  "city": "takayama",
+  "hotel": {
+    "id": "hotel-sanmachi",
+    "name": "Takayama Sanmachi Inn",
+    "lat": 36.142,
+    "lng": 137.253,
+    "cluster": "sanmachi"
+  },
+  "dayStart": "2026-11-09T08:30:00",
+  "dayEnd": "2026-11-09T21:30:00",
+  "activities": [
+    {
+      "id": "ty-sanmachi",
+      "name": "Sanmachi Suji Old Town",
+      "lat": 36.142,
+      "lng": 137.253,
+      "cluster": "sanmachi",
+      "category": "sightseeing",
+      "durationMinutes": 75
+    },
+    {
+      "id": "ty-jinya",
+      "name": "Takayama Jinya",
+      "lat": 36.14,
+      "lng": 137.251,
+      "cluster": "sanmachi",
+      "category": "museum",
+      "durationMinutes": 60,
+      "openingTime": "09:30",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "ty-hida-folk-village",
+      "name": "Hida Folk Village",
+      "lat": 36.1467,
+      "lng": 137.235,
+      "cluster": "hidanosato",
+      "category": "museum",
+      "durationMinutes": 90,
+      "openingTime": "08:30",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "ty-shiroyama-park",
+      "name": "Shiroyama Park",
+      "lat": 36.1443,
+      "lng": 137.2569,
+      "cluster": "shiroyama",
+      "category": "park",
+      "durationMinutes": 45
+    },
+    {
+      "id": "ty-hida-beef",
+      "name": "Hida Beef Yakiniku",
+      "lat": 36.142,
+      "lng": 137.254,
+      "cluster": "sanmachi",
+      "category": "meal",
+      "durationMinutes": 60,
+      "fixedStartTime": "20:00",
+      "fixedEndTime": "21:00",
+      "isFixed": true,
+      "hasReservation": true
+    }
+  ],
+  "routeMatrix": [
+    {
+      "fromId": "hotel-sanmachi",
+      "toId": "ty-sanmachi",
+      "mode": "walking",
+      "doorToDoorMinutes": 2,
+      "walkingMinutes": 2,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9
+    },
+    {
+      "fromId": "hotel-sanmachi",
+      "toId": "ty-jinya",
+      "mode": "walking",
+      "doorToDoorMinutes": 4,
+      "walkingMinutes": 4,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9002858523918487
+    },
+    {
+      "fromId": "hotel-sanmachi",
+      "toId": "ty-hida-folk-village",
+      "mode": "metro",
+      "doorToDoorMinutes": 13,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9016986778104669
+    },
+    {
+      "fromId": "hotel-sanmachi",
+      "toId": "ty-shiroyama-park",
+      "mode": "walking",
+      "doorToDoorMinutes": 5,
+      "walkingMinutes": 5,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9004336445851564
+    },
+    {
+      "fromId": "hotel-sanmachi",
+      "toId": "ty-hida-beef",
+      "mode": "walking",
+      "doorToDoorMinutes": 3,
+      "walkingMinutes": 3,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9000897963262586
+    },
+    {
+      "fromId": "ty-sanmachi",
+      "toId": "hotel-sanmachi",
+      "mode": "walking",
+      "doorToDoorMinutes": 2,
+      "walkingMinutes": 2,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9
+    },
+    {
+      "fromId": "ty-sanmachi",
+      "toId": "ty-jinya",
+      "mode": "walking",
+      "doorToDoorMinutes": 4,
+      "walkingMinutes": 4,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9002858523918487
+    },
+    {
+      "fromId": "ty-sanmachi",
+      "toId": "ty-hida-folk-village",
+      "mode": "metro",
+      "doorToDoorMinutes": 13,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9016986778104669
+    },
+    {
+      "fromId": "ty-sanmachi",
+      "toId": "ty-shiroyama-park",
+      "mode": "walking",
+      "doorToDoorMinutes": 5,
+      "walkingMinutes": 5,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9004336445851564
+    },
+    {
+      "fromId": "ty-sanmachi",
+      "toId": "ty-hida-beef",
+      "mode": "walking",
+      "doorToDoorMinutes": 3,
+      "walkingMinutes": 3,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9000897963262586
+    },
+    {
+      "fromId": "ty-jinya",
+      "toId": "hotel-sanmachi",
+      "mode": "walking",
+      "doorToDoorMinutes": 4,
+      "walkingMinutes": 4,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9002858523918487
+    },
+    {
+      "fromId": "ty-jinya",
+      "toId": "ty-sanmachi",
+      "mode": "walking",
+      "doorToDoorMinutes": 4,
+      "walkingMinutes": 4,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9002858523918487
+    },
+    {
+      "fromId": "ty-jinya",
+      "toId": "ty-hida-folk-village",
+      "mode": "metro",
+      "doorToDoorMinutes": 12,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9016183906302583
+    },
+    {
+      "fromId": "ty-jinya",
+      "toId": "ty-shiroyama-park",
+      "mode": "walking",
+      "doorToDoorMinutes": 7,
+      "walkingMinutes": 7,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9007136534977539
+    },
+    {
+      "fromId": "ty-jinya",
+      "toId": "ty-hida-beef",
+      "mode": "walking",
+      "doorToDoorMinutes": 5,
+      "walkingMinutes": 5,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9003493272373756
+    },
+    {
+      "fromId": "ty-hida-folk-village",
+      "toId": "hotel-sanmachi",
+      "mode": "metro",
+      "doorToDoorMinutes": 13,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9016986778104669
+    },
+    {
+      "fromId": "ty-hida-folk-village",
+      "toId": "ty-sanmachi",
+      "mode": "metro",
+      "doorToDoorMinutes": 13,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9016986778104669
+    },
+    {
+      "fromId": "ty-hida-folk-village",
+      "toId": "ty-jinya",
+      "mode": "metro",
+      "doorToDoorMinutes": 12,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9016183906302583
+    },
+    {
+      "fromId": "ty-hida-folk-village",
+      "toId": "ty-shiroyama-park",
+      "mode": "metro",
+      "doorToDoorMinutes": 14,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9019844775448793
+    },
+    {
+      "fromId": "ty-hida-folk-village",
+      "toId": "ty-hida-beef",
+      "mode": "metro",
+      "doorToDoorMinutes": 13,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9017843299849683
+    },
+    {
+      "fromId": "ty-shiroyama-park",
+      "toId": "hotel-sanmachi",
+      "mode": "walking",
+      "doorToDoorMinutes": 5,
+      "walkingMinutes": 5,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9004336445851564
+    },
+    {
+      "fromId": "ty-shiroyama-park",
+      "toId": "ty-sanmachi",
+      "mode": "walking",
+      "doorToDoorMinutes": 5,
+      "walkingMinutes": 5,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9004336445851564
+    },
+    {
+      "fromId": "ty-shiroyama-park",
+      "toId": "ty-jinya",
+      "mode": "walking",
+      "doorToDoorMinutes": 7,
+      "walkingMinutes": 7,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9007136534977539
+    },
+    {
+      "fromId": "ty-shiroyama-park",
+      "toId": "ty-hida-folk-village",
+      "mode": "metro",
+      "doorToDoorMinutes": 14,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9019844775448793
+    },
+    {
+      "fromId": "ty-shiroyama-park",
+      "toId": "ty-hida-beef",
+      "mode": "walking",
+      "doorToDoorMinutes": 5,
+      "walkingMinutes": 5,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9003649907510637
+    },
+    {
+      "fromId": "ty-hida-beef",
+      "toId": "hotel-sanmachi",
+      "mode": "walking",
+      "doorToDoorMinutes": 3,
+      "walkingMinutes": 3,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9000897963262586
+    },
+    {
+      "fromId": "ty-hida-beef",
+      "toId": "ty-sanmachi",
+      "mode": "walking",
+      "doorToDoorMinutes": 3,
+      "walkingMinutes": 3,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9000897963262586
+    },
+    {
+      "fromId": "ty-hida-beef",
+      "toId": "ty-jinya",
+      "mode": "walking",
+      "doorToDoorMinutes": 5,
+      "walkingMinutes": 5,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9003493272373756
+    },
+    {
+      "fromId": "ty-hida-beef",
+      "toId": "ty-hida-folk-village",
+      "mode": "metro",
+      "doorToDoorMinutes": 13,
+      "walkingMinutes": 0,
+      "transferCount": 0,
+      "yenCost": 250,
+      "reliability": 0.9017843299849683
+    },
+    {
+      "fromId": "ty-hida-beef",
+      "toId": "ty-shiroyama-park",
+      "mode": "walking",
+      "doorToDoorMinutes": 5,
+      "walkingMinutes": 5,
+      "transferCount": 0,
+      "yenCost": 0,
+      "reliability": 0.9003649907510637
+    }
+  ],
+  "notes": "Tek restoran var ve 20:00 fixed — öğle yemeği penceresinde hiçbir meal yok. Model synthetic:meal eklemeli veya warnings ile bildirmeli."
+}

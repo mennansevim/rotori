@@ -78,6 +78,38 @@ int? _hhmmToMin(String? t) {
   return h * 60 + m;
 }
 
+/// Slot'un ürettiği öğenin süresi — `_buildSupplement` ile aynı değerler.
+int _slotDuration(_SlotTemplate slot) =>
+    slot.kind == TimelineItemKind.meal ? 45 : 90;
+
+/// Süre bilinmeyen mevcut öğeler için çakışma kontrolünde kullanılan varsayım.
+/// Yemek daha kısa sürer; ikisi de kaba ama slot ızgarasıyla uyumlu.
+int _assumedExistingDuration(TimelineItem item) =>
+    item.durationMin ?? (item.kind == TimelineItemKind.meal ? 45 : 90);
+
+/// Ardışık iki öğe arasında beklenen en az geçiş süresi.
+const _kFillTransitionMinutes = 15;
+
+/// [slot] mevcut ya da bu turda eklenmiş bir öğeyle zaman olarak örtüşüyor mu?
+bool _slotCollides(
+  _SlotTemplate slot,
+  List<TimelineItem> existing,
+  List<TimelineItem> pending,
+) {
+  final start = _hhmmToMin(slot.time);
+  if (start == null) return false;
+  final end = start + _slotDuration(slot);
+  for (final item in [...existing, ...pending]) {
+    final otherStart = _hhmmToMin(item.time ?? item.scheduledTime);
+    if (otherStart == null) continue;
+    final otherEnd = otherStart + _assumedExistingDuration(item);
+    final latestStart = start > otherStart ? start : otherStart;
+    final earliestEnd = end < otherEnd ? end : otherEnd;
+    if (earliestEnd + _kFillTransitionMinutes > latestStart) return true;
+  }
+  return false;
+}
+
 /// Şehir adından (örn "Tokyo (Haneda)") sade şehir döndür.
 String _cleanCity(String city) =>
     city.replaceAll(RegExp(r'\s*\(.*\)\s*$'), '').trim();
@@ -234,6 +266,11 @@ List<DayPlan> fillEmptyDays(
 
     for (final slot in _fillSlots) {
       if (usedTimes.contains(slot.time)) continue;
+      // Birebir aynı saat yetmez: slot'un süresi mevcut bir aktivitenin
+      // üstüne binmemeli. Eskiden yalnızca `usedTimes` eşitliğine bakılıyordu,
+      // bu yüzden 10:00'daki bir aktivitenin üzerine 09:00 (90 dk) slot'u
+      // eklenip gerçek çakışma üretiliyordu.
+      if (_slotCollides(slot, day.items, supplements)) continue;
       // Yemek slot'u: (a) günde en fazla 2 yemek, (b) bu slot'un saatine
       // ±2.5 saat içinde zaten bir yemek varsa ekleme (üst üste öğün olmasın).
       if (slot.kind == TimelineItemKind.meal) {

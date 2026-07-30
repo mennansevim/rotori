@@ -1,0 +1,217 @@
+{
+  "hotels": [
+    {
+      "id": "hotel-nakagyo",
+      "name": "Kyoto Riverside Inn",
+      "lat": 35.0038,
+      "lng": 135.77,
+      "cluster": "nakagyo"
+    }
+  ],
+  "pois": [
+    {
+      "id": "ky-fushimi",
+      "name": "Fushimi Inari",
+      "lat": 34.9671,
+      "lng": 135.7727,
+      "cluster": "fushimi",
+      "category": "shrine",
+      "durationMinutes": 90,
+      "openingTime": "05:00"
+    },
+    {
+      "id": "ky-kinkakuji",
+      "name": "Kinkaku-ji",
+      "lat": 35.0394,
+      "lng": 135.7292,
+      "cluster": "kinkakuji",
+      "category": "shrine",
+      "durationMinutes": 60,
+      "openingTime": "09:00",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "ky-arashiyama",
+      "name": "Arashiyama Bamboo Grove",
+      "lat": 35.017,
+      "lng": 135.6716,
+      "cluster": "arashiyama",
+      "category": "sightseeing",
+      "durationMinutes": 45
+    },
+    {
+      "id": "ky-kiyomizu",
+      "name": "Kiyomizu-dera",
+      "lat": 34.9948,
+      "lng": 135.785,
+      "cluster": "higashiyama",
+      "category": "shrine",
+      "durationMinutes": 75,
+      "openingTime": "06:00",
+      "closingTime": "18:00"
+    },
+    {
+      "id": "ky-gion",
+      "name": "Gion",
+      "lat": 35.0036,
+      "lng": 135.7752,
+      "cluster": "higashiyama",
+      "category": "sightseeing",
+      "durationMinutes": 60
+    },
+    {
+      "id": "ky-nijo",
+      "name": "Nijo Castle",
+      "lat": 35.0142,
+      "lng": 135.7483,
+      "cluster": "nakagyo",
+      "category": "sightseeing",
+      "durationMinutes": 90,
+      "openingTime": "08:45",
+      "closingTime": "16:00"
+    },
+    {
+      "id": "ky-ginkakuji",
+      "name": "Ginkaku-ji",
+      "lat": 35.027,
+      "lng": 135.7982,
+      "cluster": "higashiyama",
+      "category": "shrine",
+      "durationMinutes": 60,
+      "openingTime": "08:30",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "ky-pontocho",
+      "name": "Pontocho",
+      "lat": 35.005,
+      "lng": 135.7708,
+      "cluster": "nakagyo",
+      "category": "meal",
+      "durationMinutes": 75,
+      "openingTime": "17:00"
+    },
+    {
+      "id": "ky-nishiki",
+      "name": "Nishiki Market",
+      "lat": 35.005,
+      "lng": 135.7649,
+      "cluster": "nakagyo",
+      "category": "meal",
+      "durationMinutes": 45,
+      "openingTime": "09:00",
+      "closingTime": "18:00"
+    },
+    {
+      "id": "ky-tofukuji",
+      "name": "Tofuku-ji",
+      "lat": 34.9766,
+      "lng": 135.774,
+      "cluster": "fushimi",
+      "category": "shrine",
+      "durationMinutes": 60,
+      "openingTime": "09:00",
+      "closingTime": "16:00"
+    },
+    {
+      "id": "ky-nanzenji",
+      "name": "Nanzen-ji",
+      "lat": 35.0116,
+      "lng": 135.7834,
+      "cluster": "higashiyama",
+      "category": "shrine",
+      "durationMinutes": 60,
+      "openingTime": "08:40",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "ky-philosophers-path",
+      "name": "Philosopher's Path",
+      "lat": 35.0273,
+      "lng": 135.7952,
+      "cluster": "higashiyama",
+      "category": "park",
+      "durationMinutes": 45
+    },
+    {
+      "id": "ky-tenryuji",
+      "name": "Tenryu-ji",
+      "lat": 35.0161,
+      "lng": 135.6712,
+      "cluster": "arashiyama",
+      "category": "shrine",
+      "durationMinutes": 45,
+      "openingTime": "08:30",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "ky-imperial-palace",
+      "name": "Kyoto Imperial Palace",
+      "lat": 35.0247,
+      "lng": 135.7622,
+      "cluster": "kamigyo",
+      "category": "sightseeing",
+      "durationMinutes": 60,
+      "openingTime": "09:00",
+      "closingTime": "16:00"
+    },
+    {
+      "id": "ky-daigoji",
+      "name": "Daigo-ji",
+      "lat": 34.9514,
+      "lng": 135.8206,
+      "cluster": "yamashina",
+      "category": "shrine",
+      "durationMinutes": 75,
+      "openingTime": "09:00",
+      "closingTime": "17:00"
+    },
+    {
+      "id": "ky-uji-byodoin",
+      "name": "Byodo-in (Uji)",
+      "lat": 34.8845,
+      "lng": 135.8083,
+      "cluster": "uji",
+      "category": "shrine",
+      "durationMinutes": 60,
+      "openingTime": "08:30",
+      "closingTime": "17:15"
+    },
+    {
+      "id": "ky-handicraft-center",
+      "name": "Kyoto Handicraft Center",
+      "lat": 35.0117,
+      "lng": 135.7822,
+      "cluster": "higashiyama",
+      "category": "shopping",
+      "durationMinutes": 45
+    },
+    {
+      "id": "ky-yasaka",
+      "name": "Yasaka Shrine",
+      "lat": 35.0037,
+      "lng": 135.7788,
+      "cluster": "higashiyama",
+      "category": "shrine",
+      "durationMinutes": 45
+    },
+    {
+      "id": "ky-nishiki-koji-sushi",
+      "name": "Nishiki Koji Sushi",
+      "lat": 35.0051,
+      "lng": 135.7649,
+      "cluster": "nakagyo",
+      "category": "meal",
+      "durationMinutes": 60
+    },
+    {
+      "id": "ky-ichiran-kyoto",
+      "name": "Ichiran Ramen Kyoto",
+      "lat": 35.0038,
+      "lng": 135.7594,
+      "cluster": "nakagyo",
+      "category": "meal",
+      "durationMinutes": 45
+    }
+  ]
+}
