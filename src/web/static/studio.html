@@ -853,7 +853,7 @@
       <div class="gen-log" id="genLog"></div>
       <div class="form-actions" id="genActions" hidden>
         <button class="btn ghost" id="genCancelBtn">İptal</button>
-        <button class="btn primary" id="genCloseBtn" hidden>Sonucu gör</button>
+        <button class="btn primary" id="genCloseBtn" hidden disabled>Sonuç hazırlanıyor…</button>
       </div>
     </div>
   </div>
@@ -1479,6 +1479,7 @@
   // ---- HABER pipeline ----
   async function generateNews(){
     const autoPub = document.getElementById("newsAutoPublish").classList.contains("on");
+    let resultFile = null;
     openGenOverlay("Japon haber üretiliyor", "RSS → editorial gate → render → onay bekliyor.");
     setGenStages([
       {key:"rss", label:"RSS akışları taranıyor"},
@@ -1497,6 +1498,8 @@
       const ok = await pollJobUntilDone((line, s) => {
         if(!line) return;
         genAppendLog(line);
+        const resultMatch = line.match(/(?:haber|konu):\s*([^\s]+\.jpg)/i);
+        if(resultMatch) resultFile = resultMatch[1];
         const l = line.toLowerCase();
         if(l.includes("editor")||l.includes("puan")||l.includes("gate")) setGenStages(null, "gate", ["rss"]);
         else if(l.includes("unsplash")||l.includes("arka plan")||l.includes("görsel")) setGenStages(null, "visual", ["rss","gate"]);
@@ -1505,7 +1508,7 @@
       });
       if(ok){
         setGenStages(null, null, ["rss","gate","visual","render","queue"]);
-        finishGenOverlay(true, "haber", null);
+        finishGenOverlay(true, resultFile || "haber", null);
         toast("Haberden kart hazır — Yayın Kuyruğu / Onay bekliyor.", "ok");
         pageLoaders.queue && pageLoaders.queue(true);
       } else {
@@ -1545,6 +1548,8 @@
     document.getElementById("genActions").hidden = false;
     document.getElementById("genCancelBtn").hidden = false;
     document.getElementById("genCloseBtn").hidden = true;
+    document.getElementById("genCloseBtn").disabled = true;
+    document.getElementById("genCloseBtn").textContent = "Sonuç hazırlanıyor…";
     _genActiveKey = null;
     document.getElementById("genOverlay").classList.add("open");
   }
@@ -1641,6 +1646,9 @@
     document.getElementById("genCurrentDetail").textContent = ok ? "Sonuç bir sonraki adıma hazır." : cancelled ? "İşlem kullanıcı tarafından güvenli biçimde durduruldu." : "Ayrıntılar işlem akışında tutuldu.";
     document.getElementById("genCancelBtn").hidden = true;
     document.getElementById("genCloseBtn").hidden = false;
+    const hasResult = Boolean(ok && file && file !== "haber");
+    document.getElementById("genCloseBtn").disabled = !hasResult;
+    document.getElementById("genCloseBtn").textContent = hasResult ? "Sonucu gör" : "Sonuç hazırlanıyor…";
     if(ok){
       document.getElementById("genTitle").textContent = "✓ Hazır";
       document.getElementById("genSub").textContent = file ? `Sonuç: ${file}` : "Sonuç kaydedildi.";
