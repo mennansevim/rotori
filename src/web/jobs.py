@@ -24,7 +24,12 @@ _PROGRESS_RE = re.compile(r"\d+%\|| it/s|\d+/\d+ \[|\(\d+%\)")
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
 # in-process üretimde (generate) logları JobManager'a köprülemek için
-_BRIDGE_LOGGER_NAMES = ("step3", "step4", "step1", "step2")
+_BRIDGE_LOGGER_NAMES = (
+    "step3", "step4", "step1", "step2",
+    # Haber üretimi de aynı JobManager üzerinden çalışır. Bu logger'lar
+    # bağlanmadığında RSS/GPT/render aşamaları UI'da sessiz kalıyordu.
+    "news", "openai", "story",
+)
 
 
 class _EmitLogHandler(logging.Handler):
