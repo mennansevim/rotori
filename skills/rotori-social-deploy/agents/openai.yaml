@@ -1,0 +1,6 @@
+interface:
+  display_name: "Rotori Social Deploy"
+  short_description: "Push and deploy Rotori Social to the Pi"
+  default_prompt: "Use $rotori-social-deploy to push the current app and deploy it to api.rotori.app."
+policy:
+  allow_implicit_invocation: true
