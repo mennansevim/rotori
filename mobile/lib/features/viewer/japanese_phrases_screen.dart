@@ -4,8 +4,8 @@
 // compass_screen.dart'taki _PhrasesSection görünümünün birebir taklidi: kategori
 // sekmeleri (Wrap) + kopyalanabilir fraz satırları (jp büyük, romaji gri italik,
 // anlam üstte). Uzun içerik olduğu için ListView. Viewer paletine uyumlu
-// (Theme + ViewerPaletteScope). Dokununca Japonca metni panoya kopyalar ve
-// SnackBar ile geri bildirim verir — otomatik çağrı YOK.
+// (Theme + ViewerPaletteScope). Satıra dokununca Japonca telaffuzu sesli okunur;
+// kopyalama ayrı küçük aksiyon olarak korunur.
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -106,7 +106,8 @@ class _PhrasesViewState extends ConsumerState<_PhrasesView> {
       appBar: AppBar(
         leading: const BackButton(),
         title: Text(
-          const LText('Japonca Kelimeler & Cümleler', 'Japanese Words & Phrases')
+          const LText(
+                  'Japonca Kelimeler & Cümleler', 'Japanese Words & Phrases')
               .of(lang),
           style: TextStyle(
             color: palette.textPrimary,
@@ -123,8 +124,8 @@ class _PhrasesViewState extends ConsumerState<_PhrasesView> {
         children: [
           Text(
             const LText(
-              'Dokunduğunuz frazın Japoncası panoya kopyalanır — göstermek için idealdir.',
-              'Tap a phrase to copy its Japanese — perfect for showing to someone.',
+              'Bir ifadeye dokununca Japonca telaffuzu duyarsınız. Kopyalamak için sağdaki simgeyi kullanın.',
+              'Tap a phrase to hear the Japanese pronunciation. Use the copy icon to copy it.',
             ).of(lang),
             style: TextStyle(color: palette.textSecondary, fontSize: 14),
           ),
@@ -136,8 +137,8 @@ class _PhrasesViewState extends ConsumerState<_PhrasesView> {
               'Practical Japanese',
             ).of(lang),
             subtitle: const LText(
-              'Kategori seç, satıra dokunup kopyala',
-              'Pick a category, tap a row to copy',
+              'Kategori seç, satıra dokunup dinle',
+              'Pick a category, tap a row to listen',
             ).of(lang),
             accent: palette.gold,
             palette: palette,
@@ -278,9 +279,8 @@ class _CategoryTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected
-          ? palette.accent.withValues(alpha: 0.18)
-          : palette.elevated,
+      color:
+          selected ? palette.accent.withValues(alpha: 0.18) : palette.elevated,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
@@ -336,7 +336,7 @@ class _PhraseRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: onCopy,
+          onTap: onSpeak,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(
@@ -383,27 +383,21 @@ class _PhraseRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                // Seslendirme butonu: Japonca telaffuzu offline TTS ile
-                // oynatır. Kart tıklaması hâlâ kopyala; buton yalnızca
-                // ses için ayrı dokunulacak alan sunar.
-                Material(
-                  color: palette.sakura.withValues(alpha: 0.10),
-                  shape: const CircleBorder(),
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: onSpeak,
+                Tooltip(
+                  message: const LText('Kopyala', 'Copy').of(lang),
+                  child: InkResponse(
+                    onTap: onCopy,
+                    radius: 22,
                     child: Padding(
-                      padding: const EdgeInsets.all(6),
+                      padding: const EdgeInsets.all(8),
                       child: Icon(
-                        Icons.volume_up_rounded,
-                        size: 18,
-                        color: palette.sakura,
+                        Icons.copy_rounded,
+                        size: 19,
+                        color: palette.textMuted,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 4),
-                Icon(Icons.copy_rounded, size: 18, color: palette.textMuted),
               ],
             ),
           ),

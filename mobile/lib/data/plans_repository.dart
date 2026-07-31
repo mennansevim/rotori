@@ -22,6 +22,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/supabase_client.dart';
 import '../domain/types.dart';
+import '../domain/bug_report.dart';
 import 'local_plan_cache.dart';
 
 // ---------------------------------------------------------------------------
@@ -72,6 +73,14 @@ class PlansRepository {
   final SupabaseClient _client;
   final LocalPlanCache _cache;
   final String _userId;
+
+  /// Kullanıcı planlama hatasını destek tablosuna gönderir.
+  Future<void> submitBugReport(BugReport report) async {
+    await _client.from('bug_reports').insert({
+      ...report.toJson(),
+      'user_id': _userId,
+    });
+  }
 
   /// Uzak `plans` satırını dinler + yerel değişiklikleri birleştirir.
   Stream<Trip> watch(String planId) {

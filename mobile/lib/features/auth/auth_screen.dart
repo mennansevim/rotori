@@ -2,9 +2,38 @@ import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/l10n.dart';
 import 'auth_repository.dart';
+
+String _friendlyAuthError(Object error, AppLang lang) {
+  final raw = error.toString().toLowerCase();
+  final code = error is AuthException ? (error.code?.toLowerCase() ?? '') : '';
+  String tr(String key) => L10n.resolve(key, lang);
+
+  if (code == 'invalid_credentials' ||
+      raw.contains('invalid login credentials') ||
+      raw.contains('invalid_credentials')) {
+    return tr('auth.error.invalidCredentials');
+  }
+  if (code == 'email_not_confirmed' || raw.contains('email not confirmed')) {
+    return tr('auth.error.emailNotConfirmed');
+  }
+  if (code == 'user_already_exists' || raw.contains('already registered')) {
+    return tr('auth.error.userExists');
+  }
+  if (code == 'weak_password' || raw.contains('password should')) {
+    return tr('auth.error.weakPassword');
+  }
+  if (code == 'over_request_rate_limit' || raw.contains('too many')) {
+    return tr('auth.error.rateLimit');
+  }
+  if (raw.contains('network') || raw.contains('socket')) {
+    return tr('auth.error.network');
+  }
+  return tr('auth.error.generic');
+}
 
 /// Login / Kayıt ekranı — e-posta + şifre + Sign in with Apple (iOS/macOS).
 class AuthScreen extends ConsumerStatefulWidget {
@@ -52,7 +81,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       }
       // Başarı: authStateProvider tetikler → router HomeScreen'e yönlendirir.
     } on Exception catch (e) {
-      setState(() => _error = e.toString());
+      setState(() => _error = _friendlyAuthError(
+            e,
+            LanguageScope.of(context).lang,
+          ));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -76,9 +108,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       // Başarı: authStateProvider tetikler → router yönlendirir.
     } on Exception catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() => _error = _friendlyAuthError(
+            e,
+            LanguageScope.of(context).lang,
+          ));
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(content: Text(_error!)),
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -95,9 +130,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       // Başarı: Supabase OAuth deep link ile döner → authStateProvider tetikler.
     } on Exception catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() => _error = _friendlyAuthError(
+            e,
+            LanguageScope.of(context).lang,
+          ));
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(content: Text(_error!)),
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -135,8 +173,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       autofillHints: const [AutofillHints.email],
-                      decoration:
-                          InputDecoration(labelText: s.s('auth.email')),
+                      decoration: InputDecoration(labelText: s.s('auth.email')),
                       validator: (v) => (v == null || !v.contains('@'))
                           ? s.s('auth.emailInvalid')
                           : null,
@@ -193,8 +230,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         children: [
                           const Expanded(child: Divider()),
                           Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
                             child: Text(
                               s.s('auth.or'),
                               style: Theme.of(context).textTheme.bodySmall,
@@ -224,8 +260,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         children: [
                           const Expanded(child: Divider()),
                           Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
                             child: Text(
                               s.s('auth.or'),
                               style: Theme.of(context).textTheme.bodySmall,
@@ -310,10 +345,8 @@ class _AuthBrandHero extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 14,
-            color: Theme.of(context)
-                .colorScheme
-                .onSurface
-                .withValues(alpha: 0.60),
+            color:
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.60),
             fontWeight: FontWeight.w500,
           ),
         ),

@@ -39,9 +39,34 @@ Future<bool> openGoogleMapsPoint({
   return _launchWithFallback(appUri: appUri, webUri: webUri);
 }
 
+/// Adres veya otel adı gibi koordinatı olmayan bir aramayı Google Maps'te aç.
+Future<bool> openGoogleMapsSearch(String query, {String? mapsUrl}) async {
+  final cleanQuery = query.trim();
+  if (mapsUrl != null && mapsUrl.trim().isNotEmpty) {
+    try {
+      final ok = await launchUrl(
+        Uri.tryParse(mapsUrl.trim()) ?? Uri(),
+        mode: LaunchMode.externalApplication,
+      );
+      if (ok) return true;
+    } catch (_) {}
+  }
+  if (cleanQuery.isEmpty) return false;
+  final webUri = Uri.parse(
+    'https://www.google.com/maps/search/?api=1&query='
+    '${Uri.encodeQueryComponent(cleanQuery)}',
+  );
+  return _launchWithFallback(
+    appUri:
+        Uri.parse('comgooglemaps://?q=${Uri.encodeQueryComponent(cleanQuery)}'),
+    webUri: webUri,
+  );
+}
+
 /// Sonuç: Google Maps `dir` URL'i açıldı mı + waypoint sayısı kesilmiş mi.
 class GoogleMapsRouteResult {
-  const GoogleMapsRouteResult({required this.launched, required this.truncated});
+  const GoogleMapsRouteResult(
+      {required this.launched, required this.truncated});
   final bool launched;
   final bool truncated;
 }
@@ -72,9 +97,8 @@ Future<GoogleMapsRouteResult> openGoogleMapsRoute({
 
   final originStr = point(lat: origin.lat, lng: origin.lng);
   final destStr = point(lat: destination.lat, lng: destination.lng);
-  final waypointsStr = middle
-      .map((p) => point(lat: p.lat, lng: p.lng))
-      .join('|');
+  final waypointsStr =
+      middle.map((p) => point(lat: p.lat, lng: p.lng)).join('|');
 
   final params = <String, String>{
     'api': '1',

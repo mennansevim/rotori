@@ -113,8 +113,14 @@ class RouteScorer {
     );
     final walking = _walkingScore(metrics.totalWalkingMinutes);
     final cluster = _clusterScore(scenario: scenario, output: output);
-    final backtracking = metrics.backtracking == 0 ? 100.0 : 0.0;
-    final idle = _idleScore(output);
+    // Tek bir yön değişimi bütün rota puanını silmemeli; şiddetiyle orantılı
+    // bir ceza kullan.
+    final backtracking =
+        (100 - metrics.backtracking.clamp(0, 4) * 25).toDouble();
+    final idle = _idleScore(
+      output: output,
+      scenario: scenario,
+    );
     final mealWindow = _mealWindowScore(
       output: output,
       activityById: activityById,
@@ -155,9 +161,8 @@ class RouteScorer {
   double _walkingScore(int minutes) {
     if (minutes >= walkingLowerBound && minutes <= walkingUpperBound) {
       final distance = (minutes - optimalWalkingMinutes).abs();
-      final peakDistance =
-          max(optimalWalkingMinutes - walkingLowerBound,
-              walkingUpperBound - optimalWalkingMinutes);
+      final peakDistance = max(optimalWalkingMinutes - walkingLowerBound,
+          walkingUpperBound - optimalWalkingMinutes);
       if (peakDistance <= 0) return 100;
       return (100 * (1 - distance / peakDistance)).clamp(0, 100).toDouble();
     }
@@ -187,10 +192,35 @@ class RouteScorer {
     return (100 * (1 - (ratio - 1) / 2)).clamp(0, 100).toDouble();
   }
 
-  double _idleScore(RoutePlanOutput output) {
+  double _idleScore({
+    required RoutePlanOutput output,
+    required RoutePlanScenario scenario,
+  }) {
     var idleMinutes = 0;
+    final fixedIds = {
+      for (final activity in scenario.activities)
+        if (activity.hasFixedSchedule) activity.id,
+    };
     for (final entry in output.timeline) {
       if (entry.kind != PromptTimelineKind.idle) continue;
+      // Sabit rezervasyon öncesindeki uzun aralık her zaman optimizer'ın
+      // kötü seçimi değildir: mekanların açılış/kapanış pencereleri ve sabit
+      // rezervasyon birlikte o boşluğu zorunlu kılabilir. Bu beklemeyi
+      // serbest gün içi boşlukla aynı cezalandırma havuzuna koyma.
+      final nextActivity = output.timeline
+          .skipWhile((candidate) => !identical(candidate, entry))
+          .skip(1)
+          .firstWhere(
+            (candidate) => candidate.kind == PromptTimelineKind.activity,
+            orElse: () => const PromptTimelineEntry.idle(
+              startTime: '00:00',
+              endTime: '00:00',
+            ),
+          );
+      if (nextActivity.activityId != null &&
+          fixedIds.contains(nextActivity.activityId)) {
+        continue;
+      }
       idleMinutes +=
           minutesOfDay(entry.endTime) - minutesOfDay(entry.startTime);
     }
@@ -214,13 +244,22 @@ class RouteScorer {
       final startMin = minutesOfDay(entry.startTime);
       final endMin = minutesOfDay(entry.endTime);
       final middle = (startMin + endMin) / 2;
+      final window = middle < 15 * 60
+          ? (start: 11 * 60 + 30, end: 14 * 60)
+          : (start: 18 * 60, end: 22 * 60);
+      final inWindow = startMin >= window.start && startMin < window.end;
       if (middle < 15 * 60) {
-        lunchDistance =
-            _closerDistance(lunchDistance, (middle - lunchOptimumMinutes).abs());
+        lunchDistance = _closerDistance(
+            lunchDistance,
+            inWindow
+                ? (middle - lunchOptimumMinutes).abs()
+                : 180 + (middle - lunchOptimumMinutes).abs());
       } else {
         dinnerDistance = _closerDistance(
           dinnerDistance,
-          (middle - dinnerOptimumMinutes).abs(),
+          inWindow
+              ? (middle - dinnerOptimumMinutes).abs()
+              : 180 + (middle - dinnerOptimumMinutes).abs(),
         );
       }
     }
@@ -236,8 +275,11 @@ class RouteScorer {
 
   double _mealSubScore(double? distance) {
     if (distance == null) return 0;
-    if (distance >= mealWindowRadiusMinutes) return 0;
-    return (100 * (1 - distance / mealWindowRadiusMinutes))
+    // Pencere içindeki yemek temel puanı alır; optimum saatten uzaklık
+    // yalnızca yumuşak bonus/ceza olarak uygulanır.
+    if (distance >= 180) return 0;
+    if (distance >= mealWindowRadiusMinutes) return 70;
+    return (70 + 30 * (1 - distance / mealWindowRadiusMinutes))
         .clamp(0, 100)
         .toDouble();
   }

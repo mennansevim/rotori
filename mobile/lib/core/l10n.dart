@@ -172,6 +172,64 @@ const Map<String, Map<AppLang, String>> _strings = {
   'common.delete': {AppLang.tr: 'Sil', AppLang.en: 'Delete'},
   'common.copy': {AppLang.tr: 'Kopyala', AppLang.en: 'Copy'},
 
+  // ----- Hata bildirimi -----
+  'bugReport.menu': {
+    AppLang.tr: 'Hata bildir',
+    AppLang.en: 'Report a problem',
+  },
+  'bugReport.title': {
+    AppLang.tr: 'Planlama hatası bildir',
+    AppLang.en: 'Report a planning issue',
+  },
+  'bugReport.body': {
+    AppLang.tr:
+        'Ne olduğunu kısaca anlat. Tanı için bu planın sınırlı özeti ve uygulama bilgisi eklenir.',
+    AppLang.en:
+        'Tell us briefly what happened. A limited plan summary and app diagnostics will be attached.',
+  },
+  'bugReport.category': {AppLang.tr: 'Kategori', AppLang.en: 'Category'},
+  'bugReport.category.planning': {
+    AppLang.tr: 'Rota / planlama',
+    AppLang.en: 'Route / planning',
+  },
+  'bugReport.category.schedule': {
+    AppLang.tr: 'Saat / çakışma',
+    AppLang.en: 'Time / conflict',
+  },
+  'bugReport.category.save': {
+    AppLang.tr: 'Kayıt / senkronizasyon',
+    AppLang.en: 'Save / sync',
+  },
+  'bugReport.category.ui': {
+    AppLang.tr: 'Görünüm / kullanım',
+    AppLang.en: 'UI / interaction',
+  },
+  'bugReport.category.other': {AppLang.tr: 'Diğer', AppLang.en: 'Other'},
+  'bugReport.message': {AppLang.tr: 'Sorun', AppLang.en: 'Issue'},
+  'bugReport.messageHint': {
+    AppLang.tr: 'Örn. 14:00 aktivitesi 13:00 aktivitesinin üstüne geldi.',
+    AppLang.en: 'E.g. the 14:00 activity overlapped the 13:00 activity.',
+  },
+  'bugReport.emailOptional': {
+    AppLang.tr: 'E-posta (isteğe bağlı)',
+    AppLang.en: 'Email (optional)',
+  },
+  'bugReport.privacy': {
+    AppLang.tr:
+        'Kişisel notlar ve bilet içerikleri gönderilmez; yalnızca hata ayıklama özeti paylaşılır.',
+    AppLang.en:
+        'Personal notes and ticket contents are not sent; only a debugging summary is shared.',
+  },
+  'bugReport.send': {AppLang.tr: 'Gönder', AppLang.en: 'Send'},
+  'bugReport.success': {
+    AppLang.tr: 'Hata bildirimin alındı, teşekkürler.',
+    AppLang.en: 'Your report was received. Thank you.',
+  },
+  'bugReport.error': {
+    AppLang.tr: 'Bildirim gönderilemedi. İnternet bağlantını kontrol et.',
+    AppLang.en: 'Could not send the report. Check your connection.',
+  },
+
   // ----- Dil seçici -----
   'lang.title': {AppLang.tr: 'Dil / Language', AppLang.en: 'Dil / Language'},
 
@@ -180,26 +238,54 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Yüklenemedi: {err}',
     AppLang.en: 'Failed to load: {err}',
   },
-  'viewer.phase.new': {AppLang.tr: '✈️ Yeni plan', AppLang.en: '✈️ New plan'},
+  'viewer.phase.new': {AppLang.tr: 'Yeni plan', AppLang.en: 'New plan'},
   'viewer.phase.done': {
-    AppLang.tr: '✨ Plan tamamlandı',
-    AppLang.en: '✨ Trip complete',
+    AppLang.tr: 'Plan tamamlandı',
+    AppLang.en: 'Trip complete',
   },
   'viewer.phase.during': {
-    AppLang.tr: '🎉 Tatil başladı',
-    AppLang.en: '🎉 Trip started',
+    AppLang.tr: 'Tatil başladı',
+    AppLang.en: 'Trip started',
   },
   'viewer.phase.countdown': {
-    AppLang.tr: '🇯🇵 Tatile {d}g {h}s',
-    AppLang.en: '🇯🇵 {d}d {h}h to go',
+    AppLang.tr: 'Tatile {d}g {h}s',
+    AppLang.en: '{d}d {h}h to go',
   },
   'viewer.tt.back': {AppLang.tr: 'Geri', AppLang.en: 'Back'},
   'viewer.tt.reminders': {AppLang.tr: 'Hatırlatmalar', AppLang.en: 'Reminders'},
   'viewer.tt.map': {AppLang.tr: 'Keşif haritası', AppLang.en: 'Explore map'},
   'viewer.tt.compass': {AppLang.tr: 'Pusula', AppLang.en: 'Compass'},
   'viewer.tt.weather': {AppLang.tr: 'Hava', AppLang.en: 'Weather'},
+  'viewer.quick.explore': {AppLang.tr: 'Keşfet', AppLang.en: 'Explore'},
+  'viewer.quick.tickets': {AppLang.tr: 'Biletler', AppLang.en: 'Tickets'},
+  'viewer.quick.weather': {AppLang.tr: 'Hava', AppLang.en: 'Weather'},
+  'viewer.quick.japanese': {AppLang.tr: 'Japonca', AppLang.en: 'Japanese'},
+  'viewer.quick.guide': {AppLang.tr: 'Rehber', AppLang.en: 'Guide'},
+  'viewer.quick.transport': {
+    AppLang.tr: 'Ulaşım ve biletler',
+    AppLang.en: 'Transport and tickets',
+  },
+  'viewer.quick.flight': {AppLang.tr: 'Uçuş', AppLang.en: 'Flight'},
+  'viewer.quick.outbound': {AppLang.tr: 'Gidiş uçuşu', AppLang.en: 'Outbound'},
+  'viewer.quick.return': {AppLang.tr: 'Dönüş uçuşu', AppLang.en: 'Return'},
+  'viewer.quick.noFlights': {
+    AppLang.tr: 'Uçuş bilgisi eklenmedi.',
+    AppLang.en: 'No flight information added.',
+  },
+  'viewer.quick.noTickets': {
+    AppLang.tr: 'Henüz bilet eklenmedi.',
+    AppLang.en: 'No tickets added yet.',
+  },
+  'viewer.quick.ticketPurchased': {
+    AppLang.tr: 'Satın alındı',
+    AppLang.en: 'Purchased',
+  },
+  'viewer.quick.ticketPending': {
+    AppLang.tr: 'Rezervasyon bekliyor',
+    AppLang.en: 'Reservation pending',
+  },
   'viewer.tt.budget': {AppLang.tr: 'Bütçe', AppLang.en: 'Budget'},
-  'viewer.tt.checklist': {AppLang.tr: 'Valiz', AppLang.en: 'Packing'},
+  'viewer.tt.checklist': {AppLang.tr: 'Checklist', AppLang.en: 'Checklist'},
   'viewer.tt.phrases': {AppLang.tr: 'Japonca', AppLang.en: 'Japanese'},
   'viewer.tt.mustKnow': {AppLang.tr: 'Bilmelisin', AppLang.en: 'Must-know'},
   'viewer.tt.theme': {AppLang.tr: 'Tema', AppLang.en: 'Theme'},
@@ -535,8 +621,8 @@ const Map<String, Map<AppLang, String>> _strings = {
 
   // ----- Valiz & Hazırlık (checklist) -----
   'checklist.title': {
-    AppLang.tr: '🎒 Valiz & Hazırlık',
-    AppLang.en: '🎒 Packing & Prep',
+    AppLang.tr: '✓ Checklist',
+    AppLang.en: '✓ Checklist',
   },
   'checklist.reset': {AppLang.tr: 'Sıfırla', AppLang.en: 'Reset'},
   'checklist.resetConfirmTitle': {
@@ -568,10 +654,10 @@ const Map<String, Map<AppLang, String>> _strings = {
   'checklist.customBadge': {AppLang.tr: 'özel', AppLang.en: 'custom'},
 
   // ----- Yolculuk öncesi hazırlık (pre-departure) -----
-  'viewer.tt.prep': {AppLang.tr: 'Hazırlık', AppLang.en: 'Prep'},
+  'viewer.tt.prep': {AppLang.tr: 'Checklist', AppLang.en: 'Checklist'},
   'prep.title': {
-    AppLang.tr: '🎒 Hazırlık listesi',
-    AppLang.en: '🎒 Prep checklist',
+    AppLang.tr: '✓ Checklist',
+    AppLang.en: '✓ Checklist',
   },
   'prep.countdown.before': {
     AppLang.tr: 'Gezine {n} gün kaldı',
@@ -1191,6 +1277,10 @@ const Map<String, Map<AppLang, String>> _strings = {
   'hotels.mapsUrl': {
     AppLang.tr: 'Google Maps linki',
     AppLang.en: 'Google Maps link'
+  },
+  'hotels.openMap': {
+    AppLang.tr: 'Haritada aç',
+    AppLang.en: 'Open in Maps',
   },
   'hotels.phone': {AppLang.tr: 'Telefon', AppLang.en: 'Phone'},
   'hotels.notes': {AppLang.tr: 'Notlar', AppLang.en: 'Notes'},
@@ -2693,6 +2783,36 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Sürpriz yok, plan var.',
     AppLang.en: 'No surprises. Just the plan.',
   },
+  'auth.error.invalidCredentials': {
+    AppLang.tr:
+        'E-posta veya şifre hatalı. Bilgilerini kontrol edip tekrar dene.',
+    AppLang.en:
+        'The email or password is incorrect. Check your details and try again.',
+  },
+  'auth.error.emailNotConfirmed': {
+    AppLang.tr: 'E-posta adresini doğrulamak için gelen kutunu kontrol et.',
+    AppLang.en: 'Check your inbox to confirm your email address.',
+  },
+  'auth.error.userExists': {
+    AppLang.tr: 'Bu e-posta ile zaten bir hesap var. Giriş yapmayı dene.',
+    AppLang.en: 'An account already exists for this email. Try signing in.',
+  },
+  'auth.error.weakPassword': {
+    AppLang.tr: 'Daha güçlü bir şifre seç. En az 6 karakter kullan.',
+    AppLang.en: 'Choose a stronger password with at least 6 characters.',
+  },
+  'auth.error.rateLimit': {
+    AppLang.tr: 'Çok fazla deneme yapıldı. Birkaç dakika sonra tekrar dene.',
+    AppLang.en: 'Too many attempts. Please try again in a few minutes.',
+  },
+  'auth.error.network': {
+    AppLang.tr: 'Bağlantı kurulamadı. İnternetini kontrol edip tekrar dene.',
+    AppLang.en: 'Could not connect. Check your internet and try again.',
+  },
+  'auth.error.generic': {
+    AppLang.tr: 'Giriş sırasında bir sorun oluştu. Lütfen tekrar dene.',
+    AppLang.en: 'Something went wrong while signing in. Please try again.',
+  },
   'drawer.brand': {AppLang.tr: 'Rotori', AppLang.en: 'Rotori'},
   'drawer.section.discover': {AppLang.tr: 'KEŞFET', AppLang.en: 'DISCOVER'},
   'drawer.section.tools': {AppLang.tr: 'ARAÇLAR', AppLang.en: 'TOOLS'},
@@ -2758,6 +2878,10 @@ const Map<String, Map<AppLang, String>> _strings = {
   },
   'drawer.tt.menu': {AppLang.tr: 'Menü', AppLang.en: 'Menu'},
   'plans.title': {AppLang.tr: 'Planlarım', AppLang.en: 'My plans'},
+  'plans.headerSubtitle': {
+    AppLang.tr: '旅 · yolculuklarını tek yerde tut',
+    AppLang.en: '旅 · keep every journey in one place',
+  },
   'plans.refresh': {AppLang.tr: 'Yenile', AppLang.en: 'Refresh'},
   'plans.signOut': {AppLang.tr: 'Çıkış yap', AppLang.en: 'Sign out'},
   'plans.newPlan': {AppLang.tr: 'Yeni plan', AppLang.en: 'New plan'},

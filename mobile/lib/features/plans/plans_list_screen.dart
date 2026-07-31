@@ -6,9 +6,10 @@ import '../../core/l10n.dart';
 import '../../data/plans_repository.dart';
 import '../../domain/trip_factory.dart';
 import '../auth/auth_repository.dart';
+import '../viewer/viewer_theme.dart';
 import 'plan_providers.dart';
 
-/// Kullanıcının planları — offline-first liste + yeni plan oluşturma.
+/// Apple sadeliği + Japon seyahat günlüğü hissi veren planlar ana ekranı.
 class PlansListScreen extends ConsumerWidget {
   const PlansListScreen({super.key});
 
@@ -17,97 +18,151 @@ class PlansListScreen extends ConsumerWidget {
     if (repo == null) return;
     final trip = createEmptyTrip();
     await repo.save(trip);
-    // pullProvider'ı invalidate ki liste yenilensin
     ref.invalidate(plansPullProvider);
-    if (context.mounted) {
-      context.go('/plans/${trip.id}/edit');
-    }
+    if (context.mounted) context.go('/plans/${trip.id}/edit');
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = LanguageScope.of(context);
+    final palette = ref.watch(viewerPaletteProvider);
     final pull = ref.watch(plansPullProvider);
     final plans = ref.watch(localPlansProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
+      backgroundColor: palette.bg,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
           children: [
-            // Küçük mor 旅 rozet — marka izi (avatar-mini).
-            const _BrandBadge(),
-            const SizedBox(width: 10),
-            Flexible(
-              child: Text(
-                s.s('plans.title'),
-                overflow: TextOverflow.ellipsis,
+            _PlansHeader(
+              palette: palette,
+              title: s.s('plans.title'),
+              onRefresh: () => ref.invalidate(plansPullProvider),
+              onSignOut: () => ref.read(authRepositoryProvider).signOut(),
+            ),
+            Expanded(
+              child: pull.when(
+                loading: () => plans.isEmpty
+                    ? Center(
+                        child: CircularProgressIndicator(color: palette.accent))
+                    : _PlansList(plans: plans, palette: palette),
+                error: (err, _) => _PlansList(
+                  plans: plans,
+                  palette: palette,
+                  offlineHint: '$err',
+                ),
+                data: (_) => plans.isEmpty
+                    ? _EmptyState(palette: palette)
+                    : _PlansList(plans: plans, palette: palette),
               ),
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: s.s('plans.refresh'),
-            onPressed: () => ref.invalidate(plansPullProvider),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: s.s('plans.signOut'),
-            onPressed: () => ref.read(authRepositoryProvider).signOut(),
-          ),
-        ],
-      ),
-      body: pull.when(
-        loading: () => plans.isEmpty
-            ? const Center(child: CircularProgressIndicator())
-            : _PlansList(plans: plans),
-        error: (err, _) => _PlansList(plans: plans, offlineHint: '$err'),
-        data: (_) =>
-            plans.isEmpty ? const _EmptyState() : _PlansList(plans: plans),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _createNew(context, ref),
         icon: const Icon(Icons.add),
         label: Text(s.s('plans.newPlan')),
+        backgroundColor: palette.accent,
+        foregroundColor: palette.topBarOnColor,
       ),
     );
   }
 }
 
-/// AppBar title yanındaki küçük mor 旅 rozet — Rotori marka izi.
-class _BrandBadge extends StatelessWidget {
-  const _BrandBadge();
+class _PlansHeader extends StatelessWidget {
+  const _PlansHeader({
+    required this.palette,
+    required this.title,
+    required this.onRefresh,
+    required this.onSignOut,
+  });
+
+  final ViewerPalette palette;
+  final String title;
+  final VoidCallback onRefresh;
+  final VoidCallback onSignOut;
 
   @override
   Widget build(BuildContext context) {
+    final onColor = palette.topBarOnColor;
+    final s = LanguageScope.of(context);
     return Container(
-      width: 28,
-      height: 28,
+      padding: const EdgeInsets.fromLTRB(20, 18, 12, 20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF7C6AEF), Color(0xFFB07CD6)],
+        gradient: LinearGradient(
+          colors: palette.topBar,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
       ),
-      alignment: Alignment.center,
-      child: const Text(
-        '旅',
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w700,
-          fontSize: 16,
-          height: 1.0,
-        ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: onColor.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: onColor.withValues(alpha: 0.24)),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '旅',
+              style: TextStyle(
+                color: onColor,
+                fontSize: 25,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: onColor,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.6,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  s.s('plans.headerSubtitle'),
+                  style: TextStyle(
+                    color: onColor.withValues(alpha: 0.78),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.refresh_rounded, color: onColor),
+            tooltip: s.s('plans.refresh'),
+            onPressed: onRefresh,
+          ),
+          IconButton(
+            icon: Icon(Icons.logout_rounded, color: onColor),
+            tooltip: s.s('plans.signOut'),
+            onPressed: onSignOut,
+          ),
+        ],
       ),
     );
   }
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({required this.palette});
+  final ViewerPalette palette;
 
   @override
   Widget build(BuildContext context) {
@@ -118,16 +173,21 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('🗾', style: TextStyle(fontSize: 64)),
+            Text('旅', style: TextStyle(fontSize: 64, color: palette.accent)),
             const SizedBox(height: 16),
             Text(
               s.s('plans.emptyTitle'),
-              style: Theme.of(context).textTheme.headlineSmall,
+              style: TextStyle(
+                color: palette.textPrimary,
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               s.s('plans.emptyBody'),
               textAlign: TextAlign.center,
+              style: TextStyle(color: palette.textSecondary),
             ),
           ],
         ),
@@ -137,20 +197,34 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _PlansList extends ConsumerWidget {
-  const _PlansList({required this.plans, this.offlineHint});
+  const _PlansList({
+    required this.plans,
+    required this.palette,
+    this.offlineHint,
+  });
+
   final List<dynamic> plans;
+  final ViewerPalette palette;
   final String? offlineHint;
 
   Future<void> _confirmDelete(
-      BuildContext context, WidgetRef ref, dynamic trip) async {
+    BuildContext context,
+    WidgetRef ref,
+    dynamic trip,
+  ) async {
     final s = LanguageScope.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(s.s('plans.deleteConfirmTitle')),
-        content: Text(s.p('plans.deleteConfirmBody', {
-          'title': trip.title as String,
-        })),
+        backgroundColor: palette.card,
+        title: Text(
+          s.s('plans.deleteConfirmTitle'),
+          style: TextStyle(color: palette.textPrimary),
+        ),
+        content: Text(
+          s.p('plans.deleteConfirmBody', {'title': trip.title as String}),
+          style: TextStyle(color: palette.textSecondary),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -178,52 +252,70 @@ class _PlansList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = LanguageScope.of(context);
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 110),
       itemCount: plans.length + (offlineHint != null ? 1 : 0),
       itemBuilder: (context, index) {
         if (offlineHint != null && index == 0) {
           return Card(
+            color: palette.card,
+            elevation: 0,
             child: ListTile(
-              leading: const Icon(Icons.cloud_off, color: Colors.orange),
-              title: Text(s.s('plans.offline')),
+              leading: Icon(Icons.cloud_off, color: palette.gold),
+              title: Text(s.s('plans.offline'),
+                  style: TextStyle(color: palette.textPrimary)),
               subtitle: Text(
                 offlineHint!,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: palette.textSecondary),
               ),
             ),
           );
         }
         final trip = plans[offlineHint != null ? index - 1 : index];
         return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          color: palette.card,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: BorderSide(color: palette.border),
+          ),
           child: ListTile(
-            leading: const CircleAvatar(child: Text('🇯🇵')),
-            title: Text(trip.title as String),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            leading: CircleAvatar(
+              backgroundColor: palette.accent.withValues(alpha: 0.16),
+              child: Text('旅', style: TextStyle(color: palette.accent)),
+            ),
+            title: Text(
+              trip.title as String,
+              style: TextStyle(
+                  color: palette.textPrimary, fontWeight: FontWeight.w700),
+            ),
             subtitle: Text(
               s.p('plans.dateRange', {
                 'start': trip.tripStart.toString().substring(0, 10),
                 'end': trip.tripEnd.toString().substring(0, 10),
                 'n': '${(trip.days as List).length}',
               }),
+              style: TextStyle(color: palette.textSecondary),
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.visibility),
+                  icon: Icon(Icons.visibility_outlined, color: palette.accent),
                   tooltip: s.s('plans.view'),
                   onPressed: () => context.go('/plans/${trip.id}/view'),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.edit),
+                  icon: Icon(Icons.edit_outlined, color: palette.textSecondary),
                   tooltip: s.s('plans.edit'),
                   onPressed: () => context.go('/plans/${trip.id}/edit'),
                 ),
                 IconButton(
-                  icon: Icon(
-                    Icons.delete_outline,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
+                  icon: Icon(Icons.delete_outline, color: palette.sunset),
                   tooltip: s.s('plans.delete'),
                   onPressed: () => _confirmDelete(context, ref, trip),
                 ),

@@ -137,7 +137,7 @@ class OptimizationWeights {
 
 class OptimizerConfig {
   const OptimizerConfig({
-    this.beamWidth = 6,
+    this.beamWidth = 7,
     this.simpleTransitionBufferMinutes = 10,
     this.complexTransitionBufferMinutes = 15,
     this.fixedActivityBufferMinutes = 20,
@@ -418,8 +418,7 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
         return OptimizationResult.failure(
           const OptimizationFailure(
             code: OptimizationFailureCode.noFeasibleRoute,
-            message:
-                'Sabit aktiviteler bile gün sınırı içinde planlanamadı.',
+            message: 'Sabit aktiviteler bile gün sınırı içinde planlanamadı.',
           ),
         );
       }
@@ -432,9 +431,8 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
       OptimizationActivity? bestDrop;
       for (final pool in [nonMealDroppable, mealDroppable]) {
         for (final candidate in pool) {
-          final trialActivities = current
-              .where((activity) => activity.id != candidate.id)
-              .toList();
+          final trialActivities =
+              current.where((activity) => activity.id != candidate.id).toList();
           final trialResult = await _solve(_withActivities(
             original,
             trialActivities,
@@ -1198,6 +1196,22 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
           swapped[i] = swapped[j];
           swapped[j] = temporary;
           candidates.add(swapped);
+        }
+      }
+
+      // 2-opt: iki esnek durak arasındaki parçayı ters çevir. Swap/move tek
+      // başına bazı cluster sıralarını bulamıyor; bu küçük hamle özellikle
+      // şehir içi “gidip geri dönme” rotalarını düzeltir.
+      for (var i = 0; i < order.length - 2; i++) {
+        if (order[i].hasFixedSchedule) continue;
+        for (var j = i + 2; j < order.length; j++) {
+          if (order[j].hasFixedSchedule) continue;
+          final reversed = [
+            ...order.sublist(0, i),
+            ...order.sublist(i, j + 1).reversed,
+            ...order.sublist(j + 1),
+          ];
+          candidates.add(reversed);
         }
       }
       for (var from = 0; from < order.length; from++) {

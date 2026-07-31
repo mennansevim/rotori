@@ -107,5 +107,26 @@ void main() {
             reason: 'iki yemek üst üste gelmemeli (min 2.5 saat ara)');
       }
     });
+
+    test('uzun mevcut aktivitenin üstüne çakışan slot eklenmez', () {
+      final existing = TimelineItem(
+        id: 'long',
+        title: 'Uzun aktivite',
+        kind: TimelineItemKind.activity,
+        time: '10:00',
+        durationMin: 90,
+      );
+      final filled = fillEmptyDays([
+        _day(items: [existing])
+      ], [
+        _tokyoDest
+      ]);
+      final times = filled[0].items.map((item) => item.time).toSet();
+
+      // 09:00 slotu 10:00–11:30 aktivitesine çakışır; 11:00 slotu da
+      // aktivite bitişi ile 15 dk geçiş payına sığmaz.
+      expect(times, isNot(contains('09:00')));
+      expect(times, isNot(contains('11:00')));
+    });
   });
 }
