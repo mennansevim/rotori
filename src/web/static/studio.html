@@ -1551,9 +1551,13 @@
   function closeGenOverlay(){ document.getElementById("genOverlay").classList.remove("open") }
   function setGenStages(stages, activeKey, doneKeys){
     if(stages) _genStagesData = stages;
-    if(activeKey && _genActiveKey &&
-       (_genStageRank[activeKey] ?? 0) < (_genStageRank[_genActiveKey] ?? 0)) return;
+    const stageRank = key => {
+      const localIndex = _genStagesData.findIndex(s => s.key === key);
+      return localIndex >= 0 ? localIndex : (_genStageRank[key] ?? 0);
+    };
+    if(activeKey && _genActiveKey && stageRank(activeKey) < stageRank(_genActiveKey)) return;
     if(activeKey) _genActiveKey = activeKey;
+    else if(activeKey === null) _genActiveKey = null;
     const done = new Set(doneKeys||[]);
     const active = _genStagesData.find(s => s.key===activeKey);
     const completed = done.size + (active && !done.has(activeKey) ? .45 : 0);
@@ -1621,6 +1625,11 @@
   }
   function finishGenOverlay(ok, file, url, nextPage, outcome="error"){
     clearInterval(_genElapsedTimer);
+    if(ok && _genStagesData.length){
+      setGenStages(null, null, _genStagesData.map(s => s.key));
+    } else if(!ok){
+      setGenStages(null, null, []);
+    }
     const elapsed = Math.max(1, Math.floor((Date.now() - _genStartedAt) / 1000));
     document.getElementById("genElapsed").textContent = ok ? `Tamamlandı · ${elapsed} sn` : `Durduruldu · ${elapsed} sn`;
     const cancelled = outcome === "cancelled";
