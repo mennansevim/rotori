@@ -9,14 +9,16 @@ from typing import Any, Callable
 from urllib.parse import quote
 
 import requests
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from src.config import Config, load_config
 from src.utils.logging import get_logger
+from src.web import dependencies as deps
 from src.web.jobs import JobManager
+from src.web.routers import system as system_router
 
 log = get_logger("web")
 
@@ -25,58 +27,17 @@ VIDEO_EXT = {".mp4", ".mov", ".m4v", ".avi", ".mkv", ".webm"}
 cfg: Config = load_config()
 manager = JobManager(cfg.project_root)
 
+# Router'lar bu iki singleton'a dependencies modülü üzerinden erişir.
+# Bkz. docs/DECISIONS.md — Karar 6 (strangler pattern router split).
+deps.set_runtime(cfg, manager)
+
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 app = FastAPI(title="Japan Reels Maker", docs_url=None, redoc_url=None)
 
-
-# ---------------------------------------------------------------------------
-# Sürüm bilgisi — deploy takibi için. Öncelik: build zamanı yazılan VERSION
-# dosyası (Docker) → yoksa canlı git → yoksa "dev".
-# ---------------------------------------------------------------------------
-def _read_version() -> dict[str, str]:
-    root = cfg.project_root
-    # Semver — elle bump'lanan git-tracked VERSION dosyası (ör. "1.0.1").
-    version = ""
-    try:
-        version = (root / "VERSION").read_text(encoding="utf-8").strip()
-    except OSError:
-        version = ""
-    if version and not version.lower().startswith("v"):
-        version = "v" + version
-
-    # Build damgası (commit/tarih) — Docker'da BUILD_INFO'dan.
-    bfile = root / "BUILD_INFO"
-    if bfile.exists():
-        try:
-            raw = json.loads(bfile.read_text(encoding="utf-8"))
-            if isinstance(raw, dict) and raw.get("commit"):
-                return {"version": version or "v?",
-                        "commit": str(raw.get("commit", "")).strip()[:7],
-                        "date": str(raw.get("date", "")).strip(),
-                        "source": "build"}
-        except (OSError, ValueError):
-            pass
-    # git fallback (yerel geliştirme)
-    try:
-        import subprocess
-        commit = subprocess.check_output(
-            ["git", "-C", str(root), "rev-parse", "--short", "HEAD"],
-            stderr=subprocess.DEVNULL, timeout=3).decode().strip()
-        date = subprocess.check_output(
-            ["git", "-C", str(root), "log", "-1", "--format=%cd", "--date=format:%Y-%m-%d %H:%M"],
-            stderr=subprocess.DEVNULL, timeout=3).decode().strip()
-        return {"version": version or "dev", "commit": commit, "date": date, "source": "git"}
-    except Exception:
-        return {"version": version or "dev", "commit": "dev", "date": "", "source": "none"}
-
-
-_VERSION = _read_version()
-
-
-@app.get("/api/version")
-def api_version() -> dict[str, str]:
-    return _VERSION
+# system.py: /api/version, /api/status, /api/logs — sözleşmesi contract test
+# ile kilitlidir (tests/test_contracts_system.py).
+app.include_router(system_router.router)
 
 
 # Üretilen medya + kareler (StaticFiles HTTP Range destekler → video seek çalışır)
@@ -114,39 +75,9 @@ def _start_scheduler() -> None:
 
 
 
-_src_cache: dict[str, Any] = {"count": None, "ts": 0.0}
-
-
-def _source_video_count() -> int:
-    now = time.time()
-    if _src_cache["count"] is not None and now - _src_cache["ts"] < 60:
-        return int(_src_cache["count"])
-    src = cfg.paths.video_source_dir
-    count = 0
-    if str(src) != "REPLACE_ME" and src.exists():
-        count = sum(1 for p in src.rglob("*") if p.is_file() and p.suffix.lower() in VIDEO_EXT)
-    _src_cache.update(count=count, ts=now)
-    return count
-
-
-def _metadata_count() -> int:
-    p = cfg.paths.metadata_csv
-    if not p.exists():
-        return 0
-    with p.open("r", encoding="utf-8") as fh:
-        return max(0, sum(1 for _ in fh) - 1)
-
-
-def _glob_count(directory: Path, pattern: str) -> int:
-    return sum(1 for _ in directory.glob(pattern))
-
-
-def _ollama_ok() -> bool:
-    try:
-        r = requests.get(f"{cfg.ollama.base_url.rstrip('/')}/api/tags", timeout=2)
-        return r.status_code == 200
-    except requests.RequestException:
-        return False
+# NOT: _source_video_count / _metadata_count / _glob_count / _ollama_ok
+# yardımcıları ve /api/status, /api/logs, /api/version endpoint'leri
+# src/web/routers/system.py'ye taşındı. Sözleşme aynen aynıdır.
 
 
 # ---------------- modeller ----------------
@@ -204,6 +135,7 @@ class RenderFromSelectionRequest(BaseModel):
     post_caption: str = ""     # Instagram post caption — üretilirse JPG yanına
                                 #   aynı basename ile .txt olarak kaydedilir
     vurgu_kelimeler: list[str] = []   # (yeni tasarımda kullanılmıyor — bwd compat)
+    style: str = "style2"            # style1: yeni editöryel · style2: eski wordmark
 
 
 class AICaptionRequest(BaseModel):
@@ -243,7 +175,15 @@ class AIFromTextRequest(BaseModel):
 
 # ---------------- endpoint'ler ----------------
 @app.get("/")
-def index() -> FileResponse:
+def index(request: Request) -> FileResponse:
+    # Feature flag: ?ui=new veya ?ui=studio yeni tasarımı sunar (docs/DECISIONS.md — Karar 10).
+    # Yerleşim kalıcı hale gelince /'ye default olur; şimdilik opt-in.
+    ui = request.query_params.get("ui", "").lower()
+    if ui in {"new", "studio"}:
+        return FileResponse(
+            str(STATIC_DIR / "studio.html"),
+            headers={"Cache-Control": "no-cache"},
+        )
     return FileResponse(
         str(STATIC_DIR / "index.html"),
         headers={"Cache-Control": "no-cache, no-store, must-revalidate",
@@ -251,29 +191,16 @@ def index() -> FileResponse:
     )
 
 
-@app.get("/api/status")
-def status() -> dict[str, Any]:
-    src_total = _source_video_count()
-    meta = _metadata_count()
-    reels = _glob_count(cfg.paths.output_dir, "*.mp4")
-    ready = _glob_count(cfg.paths.ready_dir, "*.mp4")
-    return {
-        "job": manager.state,
-        "counts": {
-            "source_videos": src_total,
-            "metadata": meta,
-            "reels": reels,
-            "ready": ready,
-        },
-        "env": {
-            "source_dir": str(cfg.paths.video_source_dir),
-            "source_ready": str(cfg.paths.video_source_dir) != "REPLACE_ME"
-            and cfg.paths.video_source_dir.exists(),
-            "ollama_url": cfg.ollama.base_url,
-            "ollama_ok": _ollama_ok(),
-            "ready_dir": str(cfg.paths.ready_dir),
-        },
-    }
+@app.get("/studio")
+def studio_index() -> FileResponse:
+    """Yeni içerik stüdyosu arayüzü (design spec — 2026-07-30)."""
+    return FileResponse(
+        str(STATIC_DIR / "studio.html"),
+        headers={"Cache-Control": "no-cache"},
+    )
+
+
+# /api/status → src/web/routers/system.py
 
 
 @app.post("/api/generate/prompt")
@@ -922,6 +849,7 @@ def story_render_direct(req: RenderFromSelectionRequest) -> dict[str, Any]:
             vurgu=None,
             photographer=req.photographer,
             ust_tag=req.ust_tag or "GEZİ DEFTERİ",
+            style=req.style if req.style in ("style1", "style2") else "style2",
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Render hatası: {exc}") from exc
@@ -944,10 +872,12 @@ def story_render_direct(req: RenderFromSelectionRequest) -> dict[str, Any]:
         "background_url": req.background_url,
         "background_id": req.background_id,
         "query": req.query,
+        "baslik": req.baslik,
         "photographer": req.photographer,
         "bg_local": bg_local,
         "aciklama": req.aciklama,
         "ust_tag": req.ust_tag or "GEZİ DEFTERİ",
+        "style": req.style if req.style in ("style1", "style2") else "style2",
         "post_caption": (req.post_caption or "").strip(),
     })
 
@@ -1284,11 +1214,18 @@ def approval_update(name: str, req: ApprovalUpdateRequest) -> dict[str, Any]:
             bg_path = cfg.stories.backgrounds_dir / bg_local if bg_local else None
             if bg_path and bg_path.exists():
                 kart = {
-                    "baslik": "",
+                    "baslik": meta.get("baslik", ""),
                     "aciklama": meta["aciklama"],
                     "ust_tag": meta["ust_tag"],
                 }
-                story_generator.render_card(cfg, kart, bg_path, jpg)
+                style = meta.get("style", "style2")
+                if style == "style1":
+                    story_generator.render_card_style1(
+                        cfg, kart, bg_path, jpg, bg_query=meta.get("query", "")
+                    )
+                else:
+                    # Sidecar'ı olmayan eski kartlar da eski tasarımda kalır.
+                    story_generator.render_card(cfg, kart, bg_path, jpg)
         except Exception as exc:
             log.warning(f"onay-güncelleme render başarısız: {exc}")
 
@@ -1655,6 +1592,8 @@ def automation_run_now(req: RunNowRequest) -> dict[str, Any]:
         emit(f"{label} otomasyonu başladı (auto_publish={req.auto_publish})", "info")
         if kind == "news":
             from src import news_automation
+            emit("① RSS kaynaklarına bağlanılıyor — son 48 saat taranacak.", "info")
+            emit("② Haber adayları toplanıyor; erişilemeyen akışlar atlanabilir.", "log")
             res = news_automation.run_once_with_publish(cfg, auto_publish=req.auto_publish)
         else:
             from src import topic_automation
@@ -2045,10 +1984,7 @@ def cancel() -> dict[str, Any]:
     return {"ok": stopped}
 
 
-@app.get("/api/logs")
-def logs(since: int = 0) -> dict[str, Any]:
-    entries, seq = manager.logs_since(since)
-    return {"entries": entries, "seq": seq, "progress_line": manager.state.get("progress_line", "")}
+# /api/logs → src/web/routers/system.py
 
 
 def _reel_item(mp4: Path, media_prefix: str) -> dict[str, Any]:
@@ -2343,8 +2279,15 @@ class SchedulerEnqueueRequest(BaseModel):
 def scheduler_queue_list() -> dict[str, Any]:
     """Tüm kuyruk içeriğini + özet istatistiklerini döndür."""
     from src import scheduler as sched_mod
-    return sched_mod.queue_summary(cfg.project_root,
-                                   cfg.scheduler.queue_file if cfg.scheduler else "data/scheduler_queue.json")
+    summary = sched_mod.queue_summary(
+        cfg.project_root,
+        cfg.scheduler.queue_file if cfg.scheduler else "data/scheduler_queue.json",
+    )
+    summary["config_enabled"] = bool(cfg.scheduler and cfg.scheduler.enabled)
+    summary["auto_upload"] = bool(cfg.scheduler and cfg.scheduler.auto_upload)
+    summary["daily_limit"] = cfg.scheduler.daily_limit if cfg.scheduler else None
+    summary["default_times"] = cfg.scheduler.default_times if cfg.scheduler else None
+    return summary
 
 
 @app.post("/api/scheduler/queue")
@@ -2571,7 +2514,3 @@ def domain_verification(verify_file: str) -> FileResponse:
     if not path.exists():
         raise HTTPException(status_code=404, detail="Doğrulama dosyası bulunamadı")
     return FileResponse(str(path), media_type="text/plain")
-
-
-
-

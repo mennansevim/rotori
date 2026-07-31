@@ -146,8 +146,15 @@
   .cap-generate{background:linear-gradient(135deg,var(--accent),#c81e56);color:#fff;border:none;
     border-radius:var(--r-md);padding:13px;font-weight:700;font-size:14px;cursor:pointer;
     font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;
-    transition:all var(--dur) var(--ease)}
-  .cap-generate:hover{transform:translateY(-1px);box-shadow:var(--sh-accent)}
+    transition:all var(--dur) var(--ease);position:relative}
+  .cap-generate:hover:not(:disabled){transform:translateY(-1px);box-shadow:var(--sh-accent)}
+  .cap-generate:focus-visible{outline:2px solid #fff;outline-offset:2px}
+  .cap-generate:disabled{opacity:.6;cursor:not-allowed;transform:none}
+  .cap-generate.loading{color:transparent;pointer-events:none}
+  .cap-generate.loading::after{content:"";position:absolute;left:50%;top:50%;
+    width:18px;height:18px;margin:-9px 0 0 -9px;
+    border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;
+    border-radius:50%;animation:btnspin .7s linear infinite}
   .cap-result{margin-top:16px;display:flex;flex-direction:column;gap:14px}
   .cap-block{background:var(--bg-elev);border:1px solid var(--line);border-radius:var(--r-md);padding:14px}
   .cap-block-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
@@ -236,6 +243,95 @@
     margin-left:auto;flex-shrink:0;display:none}
   .action-card.busy .spin{display:block}
   @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ═══ Bugün paneli (İçerik Operasyon Merkezi) ═══ */
+  .today-hero{display:flex;align-items:flex-end;justify-content:space-between;
+    gap:16px;margin-bottom:20px;padding:4px 0}
+  .today-title{font-size:32px;font-weight:800;letter-spacing:-.03em;margin:0;
+    background:linear-gradient(90deg,var(--txt),#c7cede);-webkit-background-clip:text;
+    background-clip:text;-webkit-text-fill-color:transparent}
+  .today-sub{color:var(--muted);font-size:14px;margin:4px 0 0;line-height:1.5;
+    max-width:640px}
+  .today-refresh{align-self:flex-end;white-space:nowrap}
+
+  .today-quick{display:grid;gap:12px;margin-bottom:22px;
+    grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+  .today-quick-btn{display:flex;align-items:center;gap:12px;text-align:left;
+    padding:14px 16px;border:1px solid var(--line);background:var(--surface);
+    color:var(--txt);border-radius:14px;cursor:pointer;font-family:inherit;
+    transition:all var(--dur) var(--ease);min-height:64px}
+  .today-quick-btn:hover:not(:disabled){border-color:var(--line-strong);
+    background:var(--surface-2);transform:translateY(-1px);
+    box-shadow:0 6px 18px rgba(0,0,0,.25)}
+  .today-quick-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .today-quick-btn.primary{background:linear-gradient(135deg,var(--accent),#c81e56);
+    border-color:transparent;color:#fff}
+  .today-quick-btn.primary:hover:not(:disabled){filter:brightness(1.08);
+    box-shadow:0 8px 22px rgba(255,45,85,.35)}
+  .tq-ico{width:38px;height:38px;flex-shrink:0;border-radius:10px;
+    background:rgba(255,255,255,.06);display:flex;align-items:center;
+    justify-content:center;font-size:20px}
+  .today-quick-btn.primary .tq-ico{background:rgba(255,255,255,.18)}
+  .tq-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .tq-txt b{font-size:14px;font-weight:700;letter-spacing:-.01em}
+  .tq-txt small{font-size:11.5px;opacity:.75;font-weight:500}
+
+  .today-stats{display:grid;gap:12px;margin-bottom:24px;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+  .today-stat{display:flex;gap:14px;align-items:center;padding:16px 18px;
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    transition:all var(--dur) var(--ease)}
+  .today-stat.skeleton .ts-val{color:var(--muted);opacity:.55}
+  .today-stat.ok{border-color:rgba(52,211,153,.35)}
+  .today-stat.warn{border-color:rgba(251,191,36,.45);
+    background:linear-gradient(180deg,var(--surface),rgba(251,191,36,.06))}
+  .today-stat.err{border-color:rgba(248,113,113,.45);
+    background:linear-gradient(180deg,var(--surface),rgba(248,113,113,.06))}
+  .ts-ico{width:42px;height:42px;flex-shrink:0;border-radius:11px;
+    background:var(--surface-2);display:flex;align-items:center;
+    justify-content:center;font-size:22px}
+  .ts-body{min-width:0;flex:1}
+  .ts-title{font-size:11.5px;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.05em;font-weight:600;margin-bottom:4px}
+  .ts-val{font-size:18px;font-weight:700;color:var(--txt);letter-spacing:-.01em;
+    line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ts-sub{font-size:11.5px;color:var(--muted);margin-top:2px;font-weight:500}
+
+  .today-recent{display:grid;gap:10px;
+    grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+  .today-recent-item{display:flex;flex-direction:column;gap:6px;padding:12px;
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    transition:all var(--dur) var(--ease);text-align:left;font-family:inherit;
+    color:var(--txt);cursor:pointer}
+  .today-recent-item:hover{border-color:var(--line-strong);
+    background:var(--surface-2);transform:translateY(-1px)}
+  .today-recent-thumb{width:100%;aspect-ratio:4/5;background:var(--bg-elev);
+    border-radius:8px;overflow:hidden;position:relative}
+  .today-recent-thumb img{width:100%;height:100%;object-fit:cover}
+  .today-recent-thumb .video-badge{position:absolute;top:6px;left:6px;
+    background:rgba(0,0,0,.7);color:#fff;font-size:10px;font-weight:700;
+    padding:2px 6px;border-radius:4px}
+  .today-recent-title{font-size:12.5px;font-weight:600;line-height:1.35;
+    max-height:2.7em;overflow:hidden;text-overflow:ellipsis;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .today-recent-meta{font-size:11px;color:var(--muted);display:flex;
+    justify-content:space-between}
+  .section-hint{color:var(--muted);font-size:11.5px}
+
+  @media (prefers-reduced-motion:reduce){
+    .today-quick-btn,.today-stat,.today-recent-item,
+    .action-card,.acct-btn{transition:none !important}
+    .today-quick-btn:hover,.today-recent-item:hover{transform:none}
+    @keyframes btnspin,spin{from,to{transform:none}}
+  }
+  @media (max-width:620px){
+    .today-hero{flex-direction:column;align-items:flex-start;gap:8px}
+    .today-title{font-size:26px}
+    .today-quick{grid-template-columns:1fr 1fr}
+    .today-quick-btn{padding:12px 14px;min-height:58px}
+    .tq-ico{width:34px;height:34px;font-size:18px}
+    .today-recent{grid-template-columns:repeat(2,1fr)}
+  }
 
   /* ------ Reels Fikirleri ------ */
   .idea-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
@@ -331,10 +427,12 @@
     border:1px solid var(--line);background:var(--surface);color:var(--txt);
     padding:10px 16px;font-size:13.5px;font-weight:500;
     transition:all var(--dur) var(--ease);
-    display:inline-flex;align-items:center;gap:6px}
+    display:inline-flex;align-items:center;gap:6px;
+    position:relative}
   button:hover:not(:disabled){border-color:var(--line-strong);
     background:var(--surface-2)}
   button:active:not(:disabled){transform:translateY(1px)}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   button:disabled{opacity:.4;cursor:not-allowed}
   button.primary{background:linear-gradient(135deg,var(--accent),#e02a52);
     border-color:var(--accent);color:#fff;font-weight:600;padding:12px 22px;
@@ -345,6 +443,16 @@
   button.danger{border-color:transparent;color:var(--err);background:transparent}
   button.danger:hover:not(:disabled){background:rgba(248,113,113,.08)}
   button.sm{padding:6px 12px;font-size:12px}
+  /* Loading state — inline spinner on any button */
+  button.is-loading{color:transparent !important;pointer-events:none}
+  button.is-loading::after{
+    content:"";position:absolute;left:50%;top:50%;
+    width:14px;height:14px;margin:-7px 0 0 -7px;
+    border:2px solid rgba(255,255,255,.35);
+    border-top-color:currentColor;border-radius:50%;
+    animation:btnspin .7s linear infinite;color:var(--txt)}
+  button.primary.is-loading::after{color:#fff}
+  @keyframes btnspin{to{transform:rotate(360deg)}}
 
   .actions-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;
     padding-top:4px}
@@ -605,6 +713,21 @@
   .modal-title{font-size:16px;font-weight:700;color:var(--txt);margin:0}
   .modal-title small{color:var(--muted);font-weight:400;font-size:12px;margin-left:8px}
   .modal-body{padding:16px 22px;overflow-y:auto;flex:1}
+  /* Modal alt aksiyon çubuğu — buton hierarchy */
+  .modal-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:14px 22px;border-top:1px solid var(--line);
+    background:var(--surface)}
+  .modal-actions .primary.sm{padding:9px 16px;font-size:13px;font-weight:600}
+  /* Durum notu — kullanıcı kararı olduğunu vurgular */
+  .modal-status-note{padding:12px 14px;border-radius:10px;font-size:13px;
+    line-height:1.5;margin-bottom:16px;border:1px solid transparent}
+  .modal-status-note.pending{background:rgba(251,191,36,.08);
+    border-color:rgba(251,191,36,.35);color:#f3d270}
+  .modal-status-note.ready{background:rgba(52,211,153,.08);
+    border-color:rgba(52,211,153,.35);color:#7bd9b3}
+  .modal-status-note.ok{background:rgba(96,165,250,.08);
+    border-color:rgba(96,165,250,.35);color:#93bfff}
+  .modal-status-note b{color:var(--txt);font-weight:700}
   /* İçeriği Göster modal blokları */
   /* İçerik önizleme — kart görseli modal içinde 4:5 preview */
   .content-preview{
@@ -904,7 +1027,12 @@ body.studio{background:
 .acct-row .v{font-size:14px;font-weight:600}
 .acct-btn{margin-top:2px;width:100%;padding:9px;border-radius:10px;border:none;
   cursor:pointer;font:600 12.5px/1 var(--font);color:#fff;
-  background:linear-gradient(135deg,var(--blue),var(--blue-2))}
+  background:linear-gradient(135deg,var(--blue),var(--blue-2));
+  transition:all var(--dur) var(--ease);box-shadow:0 2px 8px rgba(60,120,220,.2)}
+.acct-btn:hover{filter:brightness(1.1);transform:translateY(-1px);
+  box-shadow:0 4px 14px rgba(60,120,220,.35)}
+.acct-btn:active{transform:translateY(0)}
+.acct-btn:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .acct-art{height:96px;background:
   linear-gradient(180deg,transparent,rgba(0,0,0,.4)),
   radial-gradient(120px 80px at 50% 120%,rgba(255,59,92,.5),transparent),
@@ -1182,9 +1310,148 @@ body.studio{background:
   .ring-wrap{justify-self:center}
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   SADE İÇERİK İŞ AKIŞI — Hazırla → Onayla → Planla → Yayınla
+   Mevcut endpoint ve içerik üretim fonksiyonları korunur.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root{
+  --sb-w:220px;
+  --content-max:1180px;
+}
+.studio main{max-width:var(--content-max)}
+.topbar{padding-inline:24px}
+.tb-logo{box-shadow:none}
+.tb-sub{font-size:11px}
+.sidebar{gap:10px}
+.side-nav{padding:6px}
+.side-item{font-size:13px;padding:10px 12px}
+.side-item.active{box-shadow:none;border-color:rgba(59,130,246,.28);
+  background:rgba(59,130,246,.11);color:#fff}
+.side-item .si-ico{font-size:15px}
+.side-item .nav-count{margin-left:auto;min-width:22px;text-align:center;
+  border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700;
+  background:var(--surface-2);color:var(--txt-dim)}
+.side-item .nav-count.has-items{background:rgba(251,191,36,.15);color:var(--warn)}
+.channel-card{padding:14px;border:1px solid var(--line);background:var(--bg-elev);
+  border-radius:14px}
+.channel-label{font-size:10px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.08em;margin-bottom:8px}
+.channel-row{display:flex;align-items:center;gap:9px}
+.channel-avatar{width:30px;height:30px;border-radius:9px;background:#fff;
+  color:#bc002d;display:grid;place-items:center;font-weight:800}
+.channel-name{font-size:12.5px;font-weight:700}
+.channel-state{font-size:10.5px;color:var(--ok)}
+
+.mobile-nav{display:none}
+.view-head{display:none;align-items:flex-end;justify-content:space-between;
+  gap:18px;margin:0 0 18px}
+.view-head-copy h1{font-size:27px;line-height:1.15;letter-spacing:-.03em;
+  margin:0 0 6px}
+.view-head-copy p{max-width:650px;margin:0;color:var(--muted);font-size:13px}
+body[data-workspace-view="prep"] .view-head.prep,
+body[data-workspace-view="ready"] .view-head.ready,
+body[data-workspace-view="automation"] .view-head.automation{display:flex}
+
+/* Kartlar paneli aynı DOM'u üç sade görünüme böler. */
+body[data-workspace-view="prep"] #panel-cards>.hero{display:block}
+body[data-workspace-view="ready"] #panel-cards>.hero,
+body[data-workspace-view="automation"] #panel-cards>.hero{display:none}
+body[data-workspace-view="prep"] #autoflow{
+  display:flex;background:transparent;border:0;padding:0;box-shadow:none}
+body[data-workspace-view="prep"] #autoflow>.af-head,
+body[data-workspace-view="prep"] #autoflow .flow-row,
+body[data-workspace-view="prep"] #autoflow .flow-steps-bar{display:none}
+body[data-workspace-view="prep"] #autoflow .af-grid{width:100%;gap:10px}
+body[data-workspace-view="prep"] #autoflow .flow-acc{
+  display:block;margin:0;border:1px solid var(--line);border-radius:14px}
+body[data-workspace-view="prep"] #autoflow .flow-acc-body{grid-template-rows:1fr}
+body[data-workspace-view="prep"] #autoflow .fa-chevron{display:none}
+body[data-workspace-view="ready"] #autoflow{display:none}
+body[data-workspace-view="automation"] #autoflow{display:flex}
+body[data-workspace-view="automation"] #autoflow .flow-acc,
+body[data-workspace-view="automation"] #autoflow .flow-steps-bar{display:none}
+body[data-workspace-view="prep"] #approvalSection,
+body[data-workspace-view="automation"] #approvalSection,
+body[data-workspace-view="prep"] #publishedCard,
+body[data-workspace-view="automation"] #publishedCard{display:none!important}
+body:not([data-workspace-view="ready"]) #readyEmpty{display:none!important}
+
+.ready-empty{display:none;padding:34px 24px;text-align:center;border:1px dashed var(--line);
+  background:var(--bg-elev);border-radius:16px;color:var(--muted)}
+.ready-empty .empty-mark{width:48px;height:48px;border-radius:15px;margin:0 auto 12px;
+  display:grid;place-items:center;background:rgba(52,211,153,.12);font-size:22px}
+.ready-empty b{display:block;color:var(--txt);font-size:15px;margin-bottom:4px}
+
+.studio .hero{margin:0}
+.studio .hero-actions{grid-template-columns:repeat(4,1fr);gap:10px}
+.studio .action-card{min-height:108px;padding:16px;box-shadow:none}
+.studio .action-card:hover{transform:translateY(-1px)}
+.studio .action-ico{width:42px;height:42px;font-size:20px;border-radius:12px}
+.studio .action-txt b{font-size:14px}
+.studio .action-txt small{font-size:11px;line-height:1.4}
+.action-reel{background:linear-gradient(135deg,#7c3aed,#4f46e5);border:none!important}
+
+/* Bugün: yalnızca üç karar noktası. */
+.today-hero{align-items:center;margin-bottom:16px}
+.today-title{font-size:29px}
+.today-quick{grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.today-quick-btn{min-height:82px;padding:15px}
+.today-quick-btn .tq-txt b{font-size:14px}
+.today-quick-btn .tq-txt small{font-size:11px}
+.today-stats{grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.today-stat{padding:12px 14px;min-height:72px}
+.today-stat[data-key="integrations"]{display:none}
+.today-stat .ts-ico{font-size:18px}
+.today-stat .ts-title{font-size:10px}
+.today-stat .ts-val{font-size:13px}
+.today-stat .ts-sub{font-size:10px}
+.today-recent{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px}
+.today-recent-item{padding:8px}
+
+/* Otomasyon: ayarlar satırda değil modalda; burada yalnız durum + sıradaki içerik. */
+body[data-workspace-view="automation"] .flow-row{
+  grid-template-columns:190px 110px 1fr 280px;gap:16px;padding:14px}
+body[data-workspace-view="automation"] .ring-wrap{width:100px;height:100px}
+body[data-workspace-view="automation"] .fr-days-lbl,
+body[data-workspace-view="automation"] .rp-days.sm{display:none}
+body[data-workspace-view="automation"] .fr-toggle{justify-content:flex-start;gap:10px}
+body[data-workspace-view="automation"] .af-sub{display:block;margin-top:3px}
+
+@media(max-width:1100px){
+  .studio .hero-actions{grid-template-columns:1fr 1fr}
+  body[data-workspace-view="automation"] .flow-row{grid-template-columns:1fr 110px 1fr}
+}
+@media(max-width:920px){
+  .shell{padding:14px}
+  .mobile-nav{display:grid;grid-template-columns:repeat(4,1fr);position:sticky;
+    top:var(--top-h);z-index:30;background:rgba(8,11,18,.94);
+    backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:7px 10px}
+  .mobile-nav button{border:0;background:transparent;color:var(--muted);
+    font:600 10.5px/1.2 var(--font);padding:7px 3px;border-radius:9px}
+  .mobile-nav button span{display:block;font-size:16px;margin-bottom:3px}
+  .mobile-nav button.active{color:#fff;background:rgba(59,130,246,.12)}
+}
+@media(max-width:640px){
+  .topbar{padding-inline:14px}
+  .tb-title{font-size:13px}
+  .tb-icon,.tb-avatar{display:none}
+  .shell{padding:12px}
+  .view-head{align-items:flex-start}
+  .view-head-copy h1{font-size:23px}
+  .view-head .sm{flex-shrink:0}
+  .today-quick{grid-template-columns:1fr}
+  .today-quick-btn{min-height:66px}
+  .today-stats{grid-template-columns:1fr}
+  .today-recent{grid-template-columns:repeat(2,1fr)}
+  .studio .hero-actions{grid-template-columns:1fr}
+  .studio .action-card{min-height:82px}
+  body[data-workspace-view="automation"] .flow-row{grid-template-columns:1fr}
+  body[data-workspace-view="automation"] .ring-wrap{display:none}
+}
+
 </style>
 </head>
-<body class="studio">
+<body class="studio" data-workspace-view="prep">
 <!-- Adaptif yükleme/işlem overlay -->
 <div id="adaptiveOverlay" aria-live="polite">
   <div class="ov-card">
@@ -1233,59 +1500,149 @@ body.studio{background:
 
 <div class="toast-host" id="toastHost"></div>
 
+<!-- Mobilde dört ana iş adımı -->
+<nav class="mobile-nav" aria-label="Ana menü">
+  <button class="active" data-mobile-nav="today" onclick="openWorkspace('today', this)"><span>⌂</span>Bugün</button>
+  <button data-mobile-nav="prep" onclick="openWorkspace('prep', this)"><span>＋</span>Hazırlık</button>
+  <button data-mobile-nav="ready" onclick="openWorkspace('ready', this)"><span>✓</span>Hazır</button>
+  <button data-mobile-nav="automation" onclick="openWorkspace('automation', this)"><span>↻</span>Otomasyon</button>
+</nav>
 
 <div class="shell">
 <!-- ═══ Sol Sidebar ═══ -->
 <aside class="sidebar">
   <nav class="side-nav">
-    <div class="side-item active" data-nav="home" onclick="sideNav('home', this)"><span class="si-ico">🏠</span> Ana Sayfa</div>
-    <div class="side-item" data-nav="cards" onclick="sideNav('cards', this)"><span class="si-ico">🃏</span> Üretilen Kartlar</div>
-    <div class="side-item" data-nav="queue" onclick="sideNav('queue', this)"><span class="si-ico">🗓️</span> Yayın Kuyruğu</div>
-    <div class="side-item" data-nav="automation" onclick="sideNav('automation', this)"><span class="si-ico">⚙️</span> Otomasyon <span class="si-dot"></span></div>
-    <div class="side-item" data-nav="stats" onclick="sideNav('stats', this)"><span class="si-ico">📊</span> İstatistikler</div>
-    <div class="side-item" data-nav="sources" onclick="sideNav('sources', this)"><span class="si-ico">📚</span> Kaynaklar</div>
-    <div class="side-item" data-nav="settings" onclick="sideNav('settings', this)"><span class="si-ico">🛠️</span> Ayarlar</div>
+    <div class="side-item active" data-nav="today" onclick="openWorkspace('today', this)"><span class="si-ico">⌂</span> Bugün</div>
+    <div class="side-item" data-nav="prep" onclick="openWorkspace('prep', this)"><span class="si-ico">＋</span> Hazırlık</div>
+    <div class="side-item" data-nav="ready" onclick="openWorkspace('ready', this)">
+      <span class="si-ico">✓</span> Yayına Hazır <span class="nav-count" id="navReadyCount">0</span>
+    </div>
+    <div class="side-item" data-nav="automation" onclick="openWorkspace('automation', this)"><span class="si-ico">↻</span> Otomasyon</div>
+    <div class="side-item" data-nav="reports" onclick="openWorkspace('reports', this)"><span class="si-ico">▥</span> İstatistikler</div>
   </nav>
-  <div class="acct-card">
-    <div class="acct-head">
-      <span class="acct-title">Hesap Durumu</span>
-      <span class="acct-badge" id="acctBadge">Aktif</span>
+  <div class="channel-card">
+    <div class="channel-label">Bağlı kanal</div>
+    <div class="channel-row">
+      <div class="channel-avatar">日</div>
+      <div>
+        <div class="channel-name">@japonyaruyasi</div>
+        <div class="channel-state" id="acctBadge">● Instagram bağlı</div>
+      </div>
     </div>
-    <div class="acct-body">
-      <div class="acct-row"><span class="k">Yayınlanan</span><span class="v" id="acctPublished">—</span></div>
-      <div class="acct-row"><span class="k">Plan</span><span class="v">Pro</span></div>
-      <button class="acct-btn" onclick="switchTab('growth')">📈 Planı Yükselt</button>
-    </div>
-    <div class="acct-art"></div>
+    <span id="acctPublished" style="display:none">—</span>
   </div>
 </aside>
 
 <main>
   <!-- Eski sekme çubuğu — topbar'a taşındı, gizli (JS uyumu için) -->
   <div class="tabs" style="display:none">
+    <button class="tab" data-tab="today" onclick="switchTab('today')">🏠 Bugün</button>
     <button class="tab active" data-tab="cards" onclick="switchTab('cards')">🎨 Kartlar</button>
     <button class="tab" data-tab="reels" onclick="switchTab('reels')">🎬 Reels</button>
     <button class="tab" data-tab="growth" onclick="switchTab('growth')">📈 Büyüme</button>
   </div>
 
+  <!-- ===== BUGÜN paneli — İçerik Operasyon Merkezi başlangıç ekranı ===== -->
+  <div id="panel-today">
+    <section class="today-hero">
+      <div class="today-hero-txt">
+        <h1 class="today-title">Bugün</h1>
+        <p class="today-sub" id="todaySub">Operasyon durumun yükleniyor…</p>
+      </div>
+      <button class="today-refresh sm ghost"
+        onclick="withLoading(this, loadTodayPanel)" title="Yeniden yükle">🔄 Yenile</button>
+    </section>
+
+    <!-- Üç karar noktası: hazırla → onayla → planla -->
+    <section class="today-quick">
+      <button class="today-quick-btn primary" onclick="openWorkspace('prep')">
+        <span class="tq-ico">＋</span>
+        <span class="tq-txt"><b>İçerik hazırla</b><small>Kart, haber, konu veya Reel</small></span>
+      </button>
+      <button class="today-quick-btn" onclick="openWorkspace('ready')">
+        <span class="tq-ico">✓</span>
+        <span class="tq-txt"><b>Onay bekleyenler</b><small><span id="tqApprovalCount">–</span> içerik kararını bekliyor</small></span>
+      </button>
+      <button class="today-quick-btn" onclick="openWorkspace('automation')">
+        <span class="tq-ico">↻</span>
+        <span class="tq-txt"><b>Yayın planı</b><small>Otomasyonu ve sıradaki postu gör</small></span>
+      </button>
+    </section>
+
+    <!-- 4 durum kartı: İş / Onay / Yayın / Entegrasyonlar -->
+    <section class="today-stats" id="todayStats">
+      <div class="today-stat skeleton" data-key="job">
+        <div class="ts-ico">⚡</div>
+        <div class="ts-body"><div class="ts-title">İş Durumu</div><div class="ts-val">…</div></div>
+      </div>
+      <div class="today-stat skeleton" data-key="approval">
+        <div class="ts-ico">🔔</div>
+        <div class="ts-body"><div class="ts-title">Onay Bekleyen</div><div class="ts-val">…</div></div>
+      </div>
+      <div class="today-stat skeleton" data-key="queue">
+        <div class="ts-ico">📅</div>
+        <div class="ts-body"><div class="ts-title">Sıradaki Yayın</div><div class="ts-val">…</div></div>
+      </div>
+      <div class="today-stat skeleton" data-key="integrations">
+        <div class="ts-ico">🔌</div>
+        <div class="ts-body"><div class="ts-title">Entegrasyonlar</div><div class="ts-val">…</div></div>
+      </div>
+    </section>
+
+    <!-- Son üretilenler — birleşik içerik önizlemesi (kart + reel karışık) -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title">🕒 Son Üretilenler</h2>
+        <span class="section-hint" id="todayRecentHint">— birleşik görünüm</span>
+      </div>
+      <div id="todayRecent" class="today-recent">
+        <div class="empty" data-icon="🕒">Yükleniyor…</div>
+      </div>
+    </section>
+  </div>
+
   <!-- ===== KARTLAR paneli ===== -->
-  <div id="panel-cards">
+  <div id="panel-cards" style="display:none">
+  <div class="view-head prep">
+    <div class="view-head-copy">
+      <h1>Hazırlık</h1>
+      <p>Nasıl içerik hazırlamak istediğini seç. Üretilen taslaklar hemen aşağıda görünür.</p>
+    </div>
+  </div>
+  <div class="view-head ready">
+    <div class="view-head-copy">
+      <h1>Yayına Hazır</h1>
+      <p>Metni ve görseli son kez kontrol et; yayınla, sonraya bırak veya reddet.</p>
+    </div>
+    <button class="sm ghost" onclick="withLoading(this, loadApprovalList)">Yenile</button>
+  </div>
+  <div class="view-head automation">
+    <div class="view-head-copy">
+      <h1>Yayın Otomasyonu</h1>
+      <p>Hangi akışın ne zaman çalışacağını ve sıradaki gönderiyi tek ekrandan izle.</p>
+    </div>
+    <button class="sm" onclick="openAutomationModal()">Planı düzenle</button>
+  </div>
   <!-- Hero: hızlı aksiyonlar -->
   <div class="hero">
     <div class="hero-actions">
       <button class="action-card action-image" onclick="openStoryCreator()">
         <span class="action-ico">🎨</span>
-        <span class="action-txt"><b>Görsel Üret</b><small>Konu ara · görsel seç · AI metin</small></span>
+        <span class="action-txt"><b>Görsel kart</b><small>Kendi fikrinle bir post hazırla</small></span>
       </button>
       <button class="action-card action-news" id="btn-news-now" onclick="runNewsNow()">
         <span class="action-ico">📰</span>
-        <span class="action-txt"><b>Haberden Üret</b><small>Güncel haberden otomatik kart</small></span>
+        <span class="action-txt"><b>Haberden kart</b><small>Mevcut haber akışını şimdi çalıştır</small></span>
         <span class="spin"></span>
       </button>
       <button class="action-card action-topic" id="btn-topic-now" onclick="openTopicModal()">
         <span class="action-ico">🎌</span>
-        <span class="action-txt"><b>Konudan Üret</b><small>Havuzdan rastgele ya da kendi konun</small></span>
+        <span class="action-txt"><b>Konudan kart</b><small>Havuzdan veya kendi konundan üret</small></span>
         <span class="spin"></span>
+      </button>
+      <button class="action-card action-reel" onclick="openWorkspace('reels')">
+        <span class="action-ico">🎬</span>
+        <span class="action-txt"><b>Reel metni</b><small>Hook, caption ve hashtag hazırla</small></span>
       </button>
     </div>
   </div>
@@ -1294,8 +1651,8 @@ body.studio{background:
   <section class="autoflow" id="autoflow">
     <div class="af-head">
       <div>
-        <h2 class="af-title">Otomasyon Merkezi</h2>
-        <span class="af-sub">İçerikleriniz otomatik olarak hazırlanır ve planınıza göre yayınlanır.</span>
+        <h2 class="af-title">Haftalık akışlar</h2>
+        <span class="af-sub">Üretim kuralları değişmedi; burada yalnız çalışma durumu ve sıradaki içerik gösterilir.</span>
       </div>
       <button class="af-settings" onclick="openAutomationModal()">⚙ Otomasyon Ayarları</button>
     </div>
@@ -1458,9 +1815,14 @@ body.studio{background:
   <div id="approvalSection" class="approval-section" style="display:none">
     <div class="approval-head">
       <h2 class="approval-title">⏳ Onay Bekleyen <span id="approvalCount" class="approval-count">0</span></h2>
-      <button class="ghost sm" onclick="loadApprovalList()">🔄 Yenile</button>
+      <button class="ghost sm" onclick="withLoading(this, loadApprovalList)">🔄 Yenile</button>
     </div>
     <div id="approvalGrid" class="approval-grid"></div>
+  </div>
+  <div id="readyEmpty" class="ready-empty">
+    <div class="empty-mark">✓</div>
+    <b>Onay bekleyen içerik yok</b>
+    Hazırlanan yeni içerikler burada görünecek.
   </div>
 
   <!-- Üretilen kartlar Otomasyon Merkezi'ndeki akordiyonlarda gösteriliyor
@@ -1483,7 +1845,7 @@ body.studio{background:
         💡 Reels Fikirleri
         <span class="count" id="ideasCount">0</span>
       </h2>
-      <button class="sm ghost" onclick="loadSuggestions()">🔄 Yenile</button>
+      <button class="sm ghost" onclick="withLoading(this, loadSuggestions)">🔄 Yenile</button>
     </div>
     <p class="section-hint">Elindeki videolara göre otomatik. Bir kart tıkla, alttaki form dolsun; edit et, üret.</p>
     <div id="ideasGrid" class="idea-grid">
@@ -1682,7 +2044,7 @@ body.studio{background:
     <section class="section">
       <div class="section-head">
         <h2 class="section-title">📊 Bu Ayki İstatistikler</h2>
-        <button class="sm ghost" onclick="loadAnalytics()">🔄 Yenile</button>
+        <button class="sm ghost" onclick="withLoading(this, loadAnalytics)">🔄 Yenile</button>
       </div>
       <div id="analyticsGrid" class="stats-grid">
         <div class="empty" data-icon="📊">Yükleniyor…</div>
@@ -1694,7 +2056,7 @@ body.studio{background:
     <section class="section">
       <div class="section-head">
         <h2 class="section-title">🔬 Hook A/B Test Sonuçları</h2>
-        <button class="sm ghost" onclick="loadHooks()">🔄 Yenile</button>
+        <button class="sm ghost" onclick="withLoading(this, loadHooks)">🔄 Yenile</button>
       </div>
       <div id="hookGrid">
         <div class="empty" data-icon="🔬">step3 çalıştıktan sonra veriler burada belirir.</div>
@@ -1705,8 +2067,8 @@ body.studio{background:
     <section class="section">
       <div class="section-head">
         <h2 class="section-title">🗓 Yayın Kuyruğu</h2>
-        <button class="sm ghost" onclick="loadSchedulerQueue()">🔄 Yenile</button>
-        <button class="sm" onclick="triggerSchedulerRun()" style="margin-left:auto">⚡ Şimdi Çalıştır</button>
+        <button class="sm ghost" onclick="withLoading(this, loadSchedulerQueue)">🔄 Yenile</button>
+        <button class="sm" onclick="withLoading(this, triggerSchedulerRun)" style="margin-left:auto">⚡ Şimdi Çalıştır</button>
       </div>
       <div id="schedulerQueueInfo" style="margin-bottom:10px;font-size:12.5px;color:var(--txt-dim)"></div>
       <div id="schedulerQueue">
@@ -1762,6 +2124,109 @@ body.studio{background:
 const $ = (id) => document.getElementById(id);
 let logSeq = 0;
 let igStatus = { enabled: false, uploads: {} };
+
+// ---------- loading helper: butonu spinner'a çevir, işlev bitince aç ----------
+async function withLoading(btn, fn){
+  if(!btn || btn.disabled) return;
+  const wasDisabled = btn.disabled;
+  btn.disabled = true;
+  btn.classList.add("is-loading");
+  try{
+    return await fn();
+  }catch(e){
+    console.error("withLoading:", e);
+    toast(e?.message || "Bir hata oluştu", "err");
+  }finally{
+    btn.disabled = wasDisabled;
+    btn.classList.remove("is-loading");
+  }
+}
+
+// ---------- apiFetch: ortak HTTP katmanı ----------
+// - AbortController + timeout (default 30s; upload/render için opts.timeout ver)
+// - Hata normalizasyonu: {detail}, {message}, HTTP metni → tek Error.message
+// - JSON body kısayolu (opts.json)
+// - Çift-tıklama koruması yok (bkz. withLoading) — sorumluluk ayrımı
+// - 4xx/5xx durumda throw eder; caller catch etsin veya withLoading sarsın
+// Kullanım:
+//   const data = await apiFetch("/api/status");
+//   await apiFetch("/api/scheduler/queue", { method:"POST", json:{mp4_name}});
+class ApiError extends Error {
+  constructor(status, detail, url){
+    super(detail || `HTTP ${status}`);
+    this.name = "ApiError";
+    this.status = status;
+    this.detail = detail;
+    this.url = url;
+  }
+}
+window.ApiError = ApiError;
+
+async function apiFetch(url, opts = {}){
+  const {
+    method = "GET",
+    json,                       // body objesi — otomatik JSON.stringify
+    body,                       // ham body (FormData vs)
+    headers = {},
+    timeout = 30000,            // ms; 0 = timeout yok
+    signal: externalSignal,     // caller kendi AbortController'ını verebilir
+    parse = "auto",             // "auto" | "json" | "text" | "blob"
+    ...rest
+  } = opts;
+
+  const ctrl = new AbortController();
+  const timers = [];
+  if(timeout > 0){
+    timers.push(setTimeout(() => ctrl.abort("timeout"), timeout));
+  }
+  if(externalSignal){
+    if(externalSignal.aborted) ctrl.abort(externalSignal.reason);
+    externalSignal.addEventListener("abort", () => ctrl.abort(externalSignal.reason));
+  }
+
+  const finalHeaders = { ...headers };
+  let finalBody = body;
+  if(json !== undefined){
+    finalHeaders["Content-Type"] = "application/json";
+    finalBody = JSON.stringify(json);
+  }
+
+  let r;
+  try{
+    r = await fetch(url, {
+      method, headers: finalHeaders, body: finalBody,
+      signal: ctrl.signal, ...rest
+    });
+  }catch(e){
+    timers.forEach(clearTimeout);
+    if(e?.name === "AbortError"){
+      throw new ApiError(0, "İstek zaman aşımına uğradı.", url);
+    }
+    throw new ApiError(0, "Ağ hatası: " + (e?.message || e), url);
+  }
+  timers.forEach(clearTimeout);
+
+  if(!r.ok){
+    // detail'i çıkarmayı dene
+    let detail = r.statusText || `HTTP ${r.status}`;
+    try{
+      const errJson = await r.clone().json();
+      detail = errJson.detail || errJson.message || detail;
+    }catch(_){
+      try{ const t = await r.text(); if(t) detail = t.slice(0, 240); }catch(_){}
+    }
+    throw new ApiError(r.status, detail, url);
+  }
+
+  if(parse === "text") return r.text();
+  if(parse === "blob") return r.blob();
+  if(parse === "json") return r.json();
+  // auto
+  const ct = r.headers.get("content-type") || "";
+  if(ct.includes("application/json")) return r.json();
+  return r.text();
+}
+window.apiFetch = apiFetch;
 
 // ---------- toast ----------
 function toast(text, kind = "info", ms = 3500){
@@ -3183,8 +3648,11 @@ function renderStories(cards){
     let primaryBtn, undoBtn = "";
     if(ready){
       // Yayına hazır → Instagram'a yayınla (Graph API — resmi, direkt yayın)
-      primaryBtn = `<button class="story-btn primary" onclick="storyPublishIG('${c.file}')"
-        title="Instagram Graph API ile @japonyaruyasi'a doğrudan yayınla">📤 Instagram'a Yayınla</button>`;
+      primaryBtn = igStatus.enabled
+        ? `<button class="story-btn primary" onclick="storyPublishIG('${c.file}')"
+            title="Instagram Graph API ile @japonyaruyasi'a doğrudan yayınla">📤 Instagram'a Yayınla</button>`
+        : `<button class="story-btn primary" disabled
+            title="Instagram Graph API kapalı — config.yaml → instagram bölümünü doldurun">📤 Instagram (kapalı)</button>`;
       undoBtn = `<button class="story-btn ghost" onclick="storyToDrive('${c.file}')"
         title="JPG + caption'ı Drive senkron klasörüne kopyala">☁️ Drive</button>`;
     } else {
@@ -3470,6 +3938,9 @@ async function showStoryContent(name){
   const imgUrl = payload.url
     ? `${payload.url}?v=${payload.mtime || 0}`
     : "";
+  const isReady = !!payload.ready;
+  const isPublished = !!(igStatus?.uploads?.[name]);   // instagram_uploads.jsonl'de kayıt
+  const jsName = name.replace(/'/g, "\\'");             // onclick içine güvenli göm
 
   const back = document.createElement("div");
   back.className = "modal-backdrop";
@@ -3501,6 +3972,70 @@ async function showStoryContent(name){
           Bu kartta gösterilecek metin yok — sadece görsel var.
         </div>
       </div>` : "";
+
+  // ═══ Durum notu — kullanıcı kararı olduğunu görünür kıl ═══
+  let statusNote = "";
+  if(isPublished){
+    statusNote = `<div class="modal-status-note ok">
+      ✓ <b>Bu kart yayınlandı.</b> Instagram'a başarıyla gönderildi.
+    </div>`;
+  } else if(isReady){
+    statusNote = `<div class="modal-status-note ready">
+      ✅ <b>Yayına hazır olarak işaretlendin.</b> İstediğin an yayınlayabilirsin.
+    </div>`;
+  } else {
+    statusNote = `<div class="modal-status-note pending">
+      ⏳ <b>Bu kart henüz onay almadı.</b> Yayınlanmadan önce senin
+      "Yayına Hazır" kararını bekliyor — her üretilen kart otomatik yayınlanmaz.
+    </div>`;
+  }
+
+  // ═══ Aksiyon butonları — durum bazlı ═══
+  const editBtn = `<button class="ghost sm"
+    onclick="this.closest('.modal-backdrop').remove(); openEditModal('${jsName}')"
+    title="Metinleri düzenle + yeniden render">✏️ Düzenle</button>`;
+
+  const deleteBtn = `<button class="danger sm"
+    onclick="this.closest('.modal-backdrop').remove(); deleteStoryCard('${jsName}')"
+    title="Kartı ve tüm ayak izlerini sil (geri döndürülemez)">🗑 Sil</button>`;
+
+  let actionRow = "";
+  if(isPublished){
+    // Yayınlanmış — bilgi + geri al
+    actionRow = `
+      <button class="ghost sm"
+        onclick="this.closest('.modal-backdrop').remove(); unpublish('${jsName}')"
+        title="Yayın kaydını geri al (Instagram'daki post silinmez)">↩ Yayınlanandan Çıkar</button>
+      ${editBtn}
+      <div style="flex:1"></div>
+      ${deleteBtn}`;
+  } else if(isReady){
+    // Yayına hazır → Instagram (config açıksa) + hazırdan geri al
+    const igBtn = igStatus?.enabled
+      ? `<button class="primary sm"
+          onclick="this.closest('.modal-backdrop').remove(); storyPublishIG('${jsName}')"
+          title="Instagram Graph API ile @japonyaruyasi'a doğrudan yayınla">📤 Instagram'a Yayınla</button>`
+      : `<button class="primary sm" disabled
+          title="Instagram Graph API kapalı — config.yaml → instagram bölümünü doldurun">📤 Instagram (kapalı)</button>`;
+    actionRow = `
+      ${igBtn}
+      <button class="ghost sm"
+        onclick="withLoading(this, async () => { await storyUnmarkReady('${jsName}'); this.closest('.modal-backdrop').remove(); })"
+        title="Yayına Hazır işaretini kaldır — tekrar bekleme kuyruğuna gir">↩ Hazırdan Kaldır</button>
+      ${editBtn}
+      <div style="flex:1"></div>
+      ${deleteBtn}`;
+  } else {
+    // Henüz hazır değil → Yayına Hazır Yap (kullanıcı kararı)
+    actionRow = `
+      <button class="primary sm"
+        onclick="withLoading(this, async () => { await storyMarkReadyFromModal('${jsName}'); this.closest('.modal-backdrop').remove(); })"
+        title="Bu kartı yayına hazır olarak işaretle">✅ Yayına Hazır Yap</button>
+      ${editBtn}
+      <div style="flex:1"></div>
+      ${deleteBtn}`;
+  }
+
   back.innerHTML = `
     <div class="modal-content" onclick="event.stopPropagation()">
       <div class="modal-head">
@@ -3509,13 +4044,54 @@ async function showStoryContent(name){
       </div>
       <div class="modal-body">
         ${imgBlok}
+        ${statusNote}
         ${kartBlok}
         ${capBlok}
         ${emptyBlok}
       </div>
+      <div class="modal-actions">
+        ${actionRow}
+      </div>
     </div>`;
   document.body.appendChild(back);
 }
+
+// Modal'dan "Yayına Hazır Yap" — storyMarkReady zaten global var ama
+// bir de refresh yapmamız lazım ki liste güncellensin.
+async function storyMarkReadyFromModal(name){
+  try{
+    const r = await fetch(`/api/story/mark_ready/${encodeURIComponent(name)}`, {method:"POST"});
+    if(!r.ok){
+      let m = r.statusText; try{ const j = await r.json(); m = j.detail || m; }catch(e){}
+      throw new Error(m);
+    }
+    toast("✅ Yayına Hazır olarak işaretlendi.", "ok");
+    if(typeof loadStories === "function") loadStories();
+    if(typeof loadApprovalList === "function") loadApprovalList();
+    if(typeof loadTodayPanel === "function") loadTodayPanel();
+  }catch(e){
+    toast("Hazır yapılamadı: " + (e.message||e), "err");
+    throw e;
+  }
+}
+window.storyMarkReadyFromModal = storyMarkReadyFromModal;
+
+async function storyUnmarkReady(name){
+  try{
+    const r = await fetch(`/api/story/unmark_ready/${encodeURIComponent(name)}`, {method:"POST"});
+    if(!r.ok){
+      let m = r.statusText; try{ const j = await r.json(); m = j.detail || m; }catch(e){}
+      throw new Error(m);
+    }
+    toast("↩ Yayına Hazır işareti kaldırıldı.", "info");
+    if(typeof loadStories === "function") loadStories();
+    if(typeof loadTodayPanel === "function") loadTodayPanel();
+  }catch(e){
+    toast("İşaret kaldırılamadı: " + (e.message||e), "err");
+    throw e;
+  }
+}
+window.storyUnmarkReady = storyUnmarkReady;
 
 function copyStoryCaption(btn){
   const el = btn.closest(".content-block").querySelector(".content-text.caption");
@@ -3636,9 +4212,11 @@ function switchTab(name){
     t.classList.toggle("active", t.dataset.tab === name));
   document.querySelectorAll(".tb-tab[data-tab]").forEach(t =>
     t.classList.toggle("active", t.dataset.tab === name));
+  const pt = document.getElementById("panel-today");
   const pc = document.getElementById("panel-cards");
   const pr = document.getElementById("panel-reels");
   const pg = document.getElementById("panel-growth");
+  if(pt) pt.style.display = name === "today" ? "" : "none";
   if(pc) pc.style.display = name === "cards" ? "" : "none";
   if(pr) pr.style.display = name === "reels" ? "" : "none";
   if(pg) pg.style.display = name === "growth" ? "" : "none";
@@ -3647,21 +4225,48 @@ function switchTab(name){
     loadGeneratedReels();
   }
   if(name === "growth") loadGrowthTab();
+  if(name === "today") loadTodayPanel();
 }
 
-/* ═══ Sol menü — görünüm seçimi ═══ */
-function sideNav(view, el){
-  document.querySelectorAll(".side-item").forEach(s => s.classList.remove("active"));
-  if(el) el.classList.add("active");
-  const map = { home:"cards", cards:"cards", queue:"cards", automation:"cards",
-                stats:"growth", sources:"reels", settings:"cards" };
-  switchTab(map[view] || "cards");
-  if(view === "automation"){
-    const af = document.getElementById("autoflow");
-    if(af) af.scrollIntoView({behavior:"smooth", block:"start"});
+/* ═══ Sade çalışma alanı — Bugün / Hazırlık / Hazır / Otomasyon ═══ */
+function openWorkspace(view, el){
+  const tabMap = {
+    today:"today", prep:"cards", ready:"cards", automation:"cards",
+    reports:"growth", reels:"reels"
+  };
+  if(["prep", "ready", "automation"].includes(view)){
+    document.body.dataset.workspaceView = view;
   }
-  if(view === "settings"){ try{ openAutomationModal(); }catch(_){} }
+  switchTab(tabMap[view] || "today");
+
+  const navView = view === "reels" ? "prep" : view;
+  document.querySelectorAll(".side-item[data-nav]").forEach(item =>
+    item.classList.toggle("active", item.dataset.nav === navView));
+  document.querySelectorAll("[data-mobile-nav]").forEach(item =>
+    item.classList.toggle("active", item.dataset.mobileNav === navView));
+
+  window.scrollTo({top:0, behavior:"smooth"});
+  if(view === "ready"){
+    try{ loadApprovalList(); }catch(_){}
+  } else if(view === "automation"){
+    try{ loadAutoflowFromConfig(); refreshNextPreviews(); }catch(_){}
+  }
 }
+
+/* Eski onclick çağrıları için geriye uyumluluk. */
+function sideNav(view, el){
+  const legacyMap = {
+    home:"today", cards:"prep", queue:"reports", automation:"automation",
+    stats:"reports", sources:"reels", settings:"automation"
+  };
+  openWorkspace(legacyMap[view] || "today", el);
+  if(view === "queue"){
+    setTimeout(() => document.getElementById("schedulerQueue")
+      ?.closest(".section")?.scrollIntoView({behavior:"smooth", block:"start"}), 0);
+  }
+  if(view === "settings") openAutomationModal();
+}
+window.openWorkspace = openWorkspace;
 
 /* ═══ Sağ panel kaldırıldı — inline akış ayarları ═══ */
 function _flowDays(kind){
@@ -3904,6 +4509,8 @@ async function loadGeneratedReels(){
             <button class="story-btn primary" onclick="reelToDrive('${x.name}')">☁️ Drive'a Gönder</button>
           </div>
           <div class="secondary-row">
+            <button class="story-btn ghost" onclick="reelEnqueue('${x.name}', this)"
+              title="Yayın kuyruğuna ekle — sonraki uygun slot'a otomatik atanır">🗓 Kuyruğa</button>
             <a class="story-btn icon-only" href="${x.url}" download="${x.name}" title="İndir">⬇</a>
           </div>
         </div></div>`;
@@ -3919,6 +4526,30 @@ async function reelToDrive(name){
   }
   const d = await r.json();
   toast(`Drive'a kopyalandı ✓ (${(d.copied || []).length} dosya)`, "ok", 3000);
+}
+
+async function reelEnqueue(name, btn){
+  if(btn){ btn.disabled = true; btn.classList.add("is-loading"); }
+  try{
+    const r = await fetch("/api/scheduler/queue", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({mp4_name: name})
+    });
+    const d = await r.json();
+    if(!r.ok){
+      // 409 = duplicate; 404 = mp4 yok; diğer hatalar
+      const detail = d.detail || r.statusText;
+      toast("Kuyruğa eklenemedi: " + detail, r.status === 409 ? "warn" : "err", 4500);
+      return;
+    }
+    const when = (d.entry?.scheduled_at || "").replace("T"," ");
+    toast(`Kuyruğa eklendi ✓  ${when}`, "ok", 3500);
+    try{ loadSchedulerQueue(); }catch(_){}
+  }catch(e){
+    toast("Bağlantı hatası: " + e.message, "err");
+  }finally{
+    if(btn){ btn.disabled = false; btn.classList.remove("is-loading"); }
+  }
 }
 
 // ---------- Alt açıklama blur → otomatik post caption ----------
@@ -4211,9 +4842,16 @@ function renderApprovalList(items){
   const section = document.getElementById("approvalSection");
   const grid = document.getElementById("approvalGrid");
   const cntEl = document.getElementById("approvalCount");
+  const navCnt = document.getElementById("navReadyCount");
+  const readyEmpty = document.getElementById("readyEmpty");
   const isWidget = document.body.classList.contains("widget-mode");
   if(!section || !grid) return;
   cntEl.textContent = items.length;
+  if(navCnt){
+    navCnt.textContent = items.length;
+    navCnt.classList.toggle("has-items", items.length > 0);
+  }
+  if(readyEmpty) readyEmpty.style.display = items.length ? "none" : "block";
   if(!items.length){
     if(isWidget){
       // Widget mod: sürekli açık kalır — boş bile olsa göster
@@ -4439,7 +5077,7 @@ async function loadAccountCard(){
     const badge = document.getElementById("acctBadge");
     if(badge){
       const ok = s.instagram_ok ?? s.ig_ok ?? true;
-      badge.textContent = ok ? "Aktif" : "Pasif";
+      badge.textContent = ok ? "● Instagram bağlı" : "● Bağlantıyı kontrol et";
       badge.style.color = ok ? "#34d399" : "#ff8098";
     }
   }catch(_){}
@@ -4524,6 +5162,188 @@ function loadGrowthTab(){
   loadPlatformCompare();
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// "Bugün" paneli — İçerik Operasyon Merkezi başlangıç ekranı
+// Mevcut endpoint'lerden Promise.all ile veri toplar; yeni endpoint eklemez.
+// Her fetch başarısız olabilir → tek durum kartı 'err' işaretlenir, sayfa yaşar.
+// ─────────────────────────────────────────────────────────────────────
+async function loadTodayPanel(){
+  const setStat = (key, {val, sub, kind}) => {
+    const el = document.querySelector(`.today-stat[data-key="${key}"]`);
+    if(!el) return;
+    el.classList.remove("skeleton", "ok", "warn", "err");
+    if(kind) el.classList.add(kind);
+    const valEl = el.querySelector(".ts-val");
+    const bodyEl = el.querySelector(".ts-body");
+    if(valEl) valEl.textContent = val ?? "—";
+    // sub satırını dinamik ekle/çıkar
+    let subEl = bodyEl.querySelector(".ts-sub");
+    if(sub){
+      if(!subEl){
+        subEl = document.createElement("div");
+        subEl.className = "ts-sub";
+        bodyEl.appendChild(subEl);
+      }
+      subEl.textContent = sub;
+    } else if(subEl) subEl.remove();
+  };
+
+  // Karşılama satırı — saat + tarih
+  const now = new Date();
+  const gunAdi = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"][now.getDay()];
+  const sub = document.getElementById("todaySub");
+  if(sub) sub.textContent = `${gunAdi}, ${now.toLocaleDateString("tr-TR",
+    {day:"numeric", month:"long", year:"numeric"})} — operasyon durumun bir bakışta.`;
+
+  // Paralel veri toplama — biri düşerse diğerleri yaşar (allSettled)
+  const [statusR, approvalR, queueR, storiesR, reelsR, igR, tikR] = await Promise.allSettled([
+    apiFetch("/api/status", {timeout: 5000}),
+    apiFetch("/api/approval/list", {timeout: 5000}),
+    apiFetch("/api/scheduler/queue", {timeout: 5000}),
+    apiFetch("/api/story/list", {timeout: 5000}),
+    apiFetch("/api/reels/generated", {timeout: 5000}),
+    apiFetch("/api/instagram/status", {timeout: 5000}),
+    apiFetch("/api/tiktok/status", {timeout: 5000}),
+  ]);
+
+  // ── İş Durumu ──
+  if(statusR.status === "fulfilled"){
+    const s = statusR.value;
+    const job = s.job || {};
+    if(job.running){
+      setStat("job", {val: "⏳ Çalışıyor", sub: (job.title || "").slice(0,42), kind: "warn"});
+    } else if(job.error){
+      setStat("job", {val: "✖ Hata", sub: String(job.error).slice(0,42), kind: "err"});
+    } else {
+      setStat("job", {val: "✓ Boşta", sub: `${s.counts?.reels ?? 0} reel · ${s.counts?.metadata ?? 0} metadata`, kind: "ok"});
+    }
+  } else {
+    setStat("job", {val: "—", sub: "durum okunamadı", kind: "err"});
+  }
+
+  // ── Onay Bekleyen ──
+  let approvalCount = 0;
+  if(approvalR.status === "fulfilled"){
+    const items = approvalR.value.items || approvalR.value.approvals || [];
+    approvalCount = Array.isArray(items) ? items.length : 0;
+    setStat("approval", {
+      val: approvalCount ? `${approvalCount} bekliyor` : "Yok",
+      sub: approvalCount ? "yayınlanmaya hazır" : "temiz",
+      kind: approvalCount > 3 ? "warn" : (approvalCount ? "ok" : undefined)
+    });
+  } else {
+    setStat("approval", {val: "—", kind: "err"});
+  }
+  const tqApproval = document.getElementById("tqApprovalCount");
+  if(tqApproval) tqApproval.textContent = approvalCount;
+  const navApproval = document.getElementById("navReadyCount");
+  if(navApproval){
+    navApproval.textContent = approvalCount;
+    navApproval.classList.toggle("has-items", approvalCount > 0);
+  }
+
+  // ── Sıradaki Yayın ──
+  if(queueR.status === "fulfilled"){
+    const q = queueR.value;
+    if(!q.config_enabled){
+      setStat("queue", {val: "Kapalı", sub: "config.yaml'a scheduler ekle", kind: "warn"});
+    } else if(q.next_scheduled){
+      const dt = q.next_scheduled.replace("T", " ");
+      setStat("queue", {val: dt, sub: q.next_mp4 || "—", kind: "ok"});
+    } else {
+      setStat("queue", {val: "Kuyruk boş", sub: `${q.pending ?? 0} bekleyen`, kind: undefined});
+    }
+  } else {
+    setStat("queue", {val: "—", kind: "err"});
+  }
+
+  // ── Entegrasyonlar ──
+  const igOk = igR.status === "fulfilled" && (igR.value.enabled ?? igR.value.ok);
+  const tikOk = tikR.status === "fulfilled" && tikR.value.enabled;
+  const parts = [];
+  parts.push(igOk ? "IG ✓" : "IG ✗");
+  parts.push(tikOk ? "TT ✓" : "TT ✗");
+  const okCount = (igOk?1:0) + (tikOk?1:0);
+  setStat("integrations", {
+    val: parts.join(" · "),
+    sub: okCount === 2 ? "hepsi aktif" : okCount === 1 ? "yarı aktif" : "yapılandırma eksik",
+    kind: okCount === 2 ? "ok" : okCount === 1 ? "warn" : "err"
+  });
+
+  // ── Son üretilenler — kart + reel karışık, mtime'e göre sırala ──
+  const recent = [];
+  if(storiesR.status === "fulfilled"){
+    const items = storiesR.value.cards || storiesR.value.stories || [];
+    for(const c of items){
+      recent.push({
+        type: "kart",
+        name: c.file || c.name,
+        title: c.baslik || c.title || (c.file || "").replace(/\.jpg$/,""),
+        url: c.url,
+        mtime: c.mtime || 0,
+        published: !!c.published,
+        ready: !!c.ready,
+      });
+    }
+  }
+  if(reelsR.status === "fulfilled"){
+    const items = reelsR.value.reels || [];
+    for(const r of items){
+      recent.push({
+        type: "reel",
+        name: r.name,
+        title: r.name?.replace(/\.mp4$/,"").slice(0,60) || "reel",
+        url: null,           // video preview thumb yok; badge kullan
+        thumb_url: r.thumb_url || null,
+        mtime: r.mtime || 0,
+        size_mb: r.size_mb,
+      });
+    }
+  }
+  recent.sort((a,b) => (b.mtime || 0) - (a.mtime || 0));
+  const top = recent.slice(0, 8);
+
+  const recentEl = document.getElementById("todayRecent");
+  const hintEl = document.getElementById("todayRecentHint");
+  if(hintEl) hintEl.textContent = `— ${recent.length} içerik, en yeni 8 tanesi gösteriliyor`;
+  if(!top.length){
+    recentEl.innerHTML = `<div class="empty" data-icon="🕒">Henüz içerik yok — yukarıdan yeni bir kart veya reel üret.</div>`;
+    return;
+  }
+  recentEl.innerHTML = top.map(item => {
+    const badge = item.type === "reel"
+      ? `<span class="video-badge">🎬 REEL</span>`
+      : (item.published ? `<span class="video-badge" style="background:rgba(52,211,153,.8)">✓ YAYINDA</span>`
+          : (item.ready ? `<span class="video-badge" style="background:rgba(255,209,102,.85);color:#111">HAZIR</span>` : ""));
+    const thumb = item.url
+      ? `<img src="${item.url}?v=${Math.floor(item.mtime)}" alt="" loading="lazy">`
+      : (item.thumb_url ? `<img src="${item.thumb_url}" alt="" loading="lazy">`
+          : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:28px">🎬</div>`);
+    const timeAgo = _timeAgo(item.mtime * 1000);
+    const onclick = item.type === "kart"
+      ? `showStoryContent('${(item.name||"").replace(/'/g,"\\'")}')`
+      : `switchTab('reels')`;
+    return `<button class="today-recent-item" onclick="${onclick}">
+      <div class="today-recent-thumb">${thumb}${badge}</div>
+      <div class="today-recent-title">${escapeHtml(item.title)}</div>
+      <div class="today-recent-meta"><span>${item.type}</span><span>${timeAgo}</span></div>
+    </button>`;
+  }).join("");
+}
+
+function _timeAgo(ms){
+  if(!ms) return "";
+  const s = Math.floor((Date.now() - ms) / 1000);
+  if(s < 60) return "az önce";
+  const m = Math.floor(s / 60);
+  if(m < 60) return `${m} dk önce`;
+  const h = Math.floor(m / 60);
+  if(h < 24) return `${h} sa önce`;
+  const d = Math.floor(h / 24);
+  return `${d} gün önce`;
+}
+window.loadTodayPanel = loadTodayPanel;
+
 // ── Analytics özet ──
 async function loadAnalytics(){
   const grid = document.getElementById("analyticsGrid");
@@ -4582,7 +5402,27 @@ async function loadSchedulerQueue(){
   const info = document.getElementById("schedulerQueueInfo");
   try{
     const d = await (await fetch("/api/scheduler/queue")).json();
-    info.textContent = `Bekleyen: ${d.pending} · Hazır: ${d.ready} · Tamamlanan: ${d.done} · Başarısız: ${d.failed}`;
+    const stats = `Bekleyen: ${d.pending} · Hazır: ${d.ready} · Tamamlanan: ${d.done} · Başarısız: ${d.failed}`;
+    if(!d.config_enabled){
+      info.innerHTML = `<div style="padding:10px 12px;background:rgba(230,180,50,.10);
+        border:1px solid rgba(230,180,50,.35);border-radius:8px;color:var(--warn);margin-bottom:8px">
+        ⚠ <b>Scheduler kapalı</b> — arka plan yayını çalışmaz. Aktif etmek için
+        <code>config.yaml</code>'a şunu ekleyin:
+        <pre style="margin:6px 0 0;padding:8px 10px;background:#0b0e17;border-radius:6px;
+        color:#dfe6f2;font-size:11.5px;overflow-x:auto">scheduler:
+  enabled: true
+  daily_limit: 2
+  default_times: ["08:00", "18:00"]
+  auto_upload: false
+  queue_file: "data/scheduler_queue.json"
+  check_interval_sn: 60</pre></div><div>${stats}</div>`;
+    } else {
+      const auto = d.auto_upload ? "otomatik yayın açık" : "manuel yayın modu";
+      const times = (d.default_times || []).join(", ");
+      info.innerHTML = `<div style="color:var(--ok);margin-bottom:4px">
+        ✓ Scheduler aktif — günde ${d.daily_limit} post · saatler: ${times} · ${auto}
+        </div><div>${stats}</div>`;
+    }
     const items = d.items || [];
     if(!items.length){
       el.innerHTML = `<div class="empty" data-icon="🗓">Kuyruk boş.</div>`;
@@ -4612,8 +5452,17 @@ async function cancelQueueEntry(id){
 
 async function triggerSchedulerRun(){
   try{
+    // önce scheduler durumunu kontrol et — kapalıysa boş yere çalıştırma
+    const q = await (await fetch("/api/scheduler/queue")).json();
+    if(!q.config_enabled){
+      toast("Scheduler kapalı. config.yaml'a scheduler bloğu ekleyin.", "warn", 5000);
+      return;
+    }
     const d = await (await fetch("/api/scheduler/run",{method:"POST"})).json();
-    toast(`${d.processed} girdi işlendi.`, d.processed ? "ok" : "warn");
+    const msg = d.processed
+      ? `${d.processed} girdi işlendi.`
+      : "Zamanı gelen girdi yok.";
+    toast(msg, d.processed ? "ok" : "info");
     loadSchedulerQueue();
     loadAnalytics();
   }catch(e){ toast(e.message,"err"); }
@@ -4669,6 +5518,15 @@ async function loadPlatformCompare(){
     el.innerHTML = `<div class="empty" data-icon="⚠️">${e.message}</div>`;
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────
+// Bootstrap: "Bugün" default görünür — İçerik Operasyon Merkezi'nin
+// başlangıç ekranı olarak. Sidebar "🏠 Ana Sayfa" zaten aktif; tab
+// state'i JS'in erişebildiği ilk andan itibaren senkronize edilir.
+// ─────────────────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", () => {
+  try{ switchTab("today"); }catch(_){}
+});
 </script>
 </body>
 </html>
