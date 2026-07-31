@@ -457,7 +457,9 @@ def render_card_style1(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
     # Haber başlıkları uzun olabilir; kartta kısa, net bir başlık göster.
     if len(title) > 34:
         title = " ".join(title.split()[:5]).rstrip(".,:;!?…")
-    tag = (kart.get("ust_tag") or "JAPONYA RÜYASI").strip().upper()
+    # Stil 1'in marka rozeti sabittir; kullanıcı metni veya haber kategorisi
+    # bunu değiştiremez. Stil 2'nin mevcut wordmark akışına dokunulmaz.
+    tag = "JAPONYA RÜYASI"
 
     overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     od = ImageDraw.Draw(overlay)
