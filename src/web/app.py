@@ -1898,6 +1898,37 @@ def story_mark_ready(name: str) -> dict[str, Any]:
     return {"ok": True, "path": str(dst.relative_to(cfg.project_root))}
 
 
+@app.post("/api/story/submit_approval/{name}")
+def story_submit_approval(name: str) -> dict[str, Any]:
+    """Taslak kartı Onay bekliyor akışına taşı.
+
+    Yayınlama burada yapılmaz; kart yalnızca pending_approval'a alınır ve
+    Instagram işlemi sonraki Onayla ve Instagram'da yayınla aksiyonuna kalır.
+    """
+    name = _safe_story_name(name)
+    if cfg.stories is None:
+        raise HTTPException(status_code=400, detail="stories config yok.")
+
+    src = cfg.stories.output_dir / name
+    dst = _story_pending_dir() / name
+    if not src.exists():
+        if dst.exists():
+            return {"ok": True, "already_pending": True}
+        raise HTTPException(status_code=404, detail="Taslak kart bulunamadı.")
+
+    try:
+        src.rename(dst)
+        for suf in (".txt", ".json"):
+            sidecar = src.with_suffix(suf)
+            if sidecar.exists():
+                sidecar.rename(dst.with_suffix(suf))
+    except OSError as exc:
+        raise HTTPException(status_code=500,
+                            detail=f"Onay bekliyor'a taşınamadı: {exc}") from exc
+
+    return {"ok": True, "path": str(dst.relative_to(cfg.project_root))}
+
+
 @app.post("/api/story/unmark_ready/{name}")
 def story_unmark_ready(name: str) -> dict[str, Any]:
     """Yayına Hazır'dan geri al — output/stories/ready/<name>.jpg'yi geri taşı."""
