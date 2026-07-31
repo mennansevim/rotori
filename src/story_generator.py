@@ -301,7 +301,8 @@ def _wrap_words(text: str, font: ImageFont.FreeTypeFont, max_width: int,
 def render_from_url(cfg: Config, bg_url: str, bg_id: str, bg_query: str,
                     baslik: str, aciklama: str, vurgu: list[str] | None = None,
                     photographer: str = "",
-                    ust_tag: str = "GEZİ DEFTERİ") -> Path:
+                    ust_tag: str = "GEZİ DEFTERİ",
+                    style: str = "style2") -> Path:
     """Unsplash'tan gelen bir görseli indir + kart render et. Foto kartın üst
     %55'ine yerleşir, altında siyah bant + başlık + sarı highlight açıklama.
     """
@@ -338,7 +339,12 @@ def render_from_url(cfg: Config, bg_url: str, bg_id: str, bg_query: str,
     # Not: _slugify("") "story" döndürür (falsy değil), o yüzden strip ile kontrol
     out_slug = _slugify(baslik if baslik.strip() else aciklama)
     out_path = cfg.stories.output_dir / f"{out_slug}_{ts}.jpg"
-    render_card(cfg, kart, bg_path, out_path)
+    # style2, kullanıcının eski JAPONYA / RÜYASI wordmark tasarımıdır ve
+    # özellikle korunur. Yeni üretimler varsayılan olarak style2 kullanır.
+    if style == "style2":
+        render_card(cfg, kart, bg_path, out_path)
+    else:
+        render_card_style1(cfg, kart, bg_path, out_path, bg_query=bg_query)
     log.info(f"  ✓ kart: {out_path.name}")
     return out_path
 
@@ -425,6 +431,76 @@ def _draw_wordmark(img: Image.Image, cx: int, y_top: int, wm: dict[str, Any]) ->
     # küçük RÜYASI (altın, geniş aralık)
     _draw_line_center(d, cx, y - wm["sub_bb"][1], wm["sub_text"], wm["sub_font"],
                       COLOR_ACCENT, spacing=wm["sub_sp"])
+
+
+def render_card_style1(cfg: Config, kart: dict[str, Any], bg_path: Path | None,
+                       out_path: Path, bg_query: str = "") -> Path:
+    """Stil 1 — fotoğraf üstü editöryel kart.
+
+    Üstte tam kadraj fotoğraf, altta yumuşak siyah geçiş; sarı kategori,
+    serif başlık ve okunaklı kısa açıklama. Bu, yeni içerik stüdyosunun
+    varsayılan stilidir.
+    """
+    if cfg.stories is None:
+        raise RuntimeError("stories config yok")
+    W, H = cfg.stories.width, cfg.stories.height
+    bg = Image.new("RGBA", (W, H), (10, 11, 10, 255))
+    if bg_path and bg_path.exists():
+        try:
+            photo = Image.open(bg_path).convert("RGB")
+            bg.paste(_cover_resize(photo, W, H), (0, 0))
+        except Exception as exc:
+            log.warning(f"  foto yüklenemedi ({bg_path.name}): {exc}")
+
+    aciklama = kart["aciklama"].strip()
+    title = (kart.get("baslik") or bg_query or "Japonya").strip()
+    # Haber başlıkları uzun olabilir; kartta kısa, net bir başlık göster.
+    if len(title) > 34:
+        title = " ".join(title.split()[:5]).rstrip(".,:;!?…")
+    tag = (kart.get("ust_tag") or "JAPONYA RÜYASI").strip().upper()
+
+    overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    od = ImageDraw.Draw(overlay)
+    start = int(H * 0.38)
+    for y in range(start, H):
+        t = (y - start) / max(1, H - start)
+        od.line([(0, y), (W, y)], fill=(0, 0, 0, int(245 * (t ** 1.25))))
+    bg = Image.alpha_composite(bg, overlay)
+    d = ImageDraw.Draw(bg)
+
+    pad = int(W * 0.10)
+    content_w = W - 2 * pad
+    tag_font = _load_oswald(28, "SemiBold")
+    title_font = _load_chunk(72)
+    body_size = 40
+    body_font = _load_oswald(body_size, "Medium")
+    body_lines = _wrap_words(aciklama, body_font, content_w, 0)
+    while len(body_lines) > 5 and body_size > 28:
+        body_size -= 2
+        body_font = _load_oswald(body_size, "Medium")
+        body_lines = _wrap_words(aciklama, body_font, content_w, 0)
+
+    body_h = len(body_lines) * int(body_size * 1.28)
+    title_bb = title_font.getbbox(title)
+    title_h = title_bb[3] - title_bb[1]
+    tag_h = tag_font.getbbox(tag)[3] - tag_font.getbbox(tag)[1]
+    gap = 22
+    block_h = tag_h + 22 + title_h + 22 + body_h
+    y = max(int(H * 0.53), H - int(H * 0.09) - block_h)
+    _draw_spaced(d, (pad, y - tag_font.getbbox(tag)[1]), tag, tag_font,
+                 COLOR_ACCENT, spacing=5)
+    y += tag_h + gap
+    d.text((pad, y - title_bb[1]), title, font=title_font,
+           fill=(250, 249, 245, 255), stroke_width=1, stroke_fill=(0, 0, 0, 130))
+    y += title_h + gap
+    for line in body_lines:
+        d.text((pad, y), line, font=body_font,
+               fill=(242, 242, 238, 255), stroke_width=1, stroke_fill=(0, 0, 0, 100))
+        y += int(body_size * 1.28)
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    bg.convert("RGB").save(out_path, "JPEG", quality=92, optimize=True)
+    return out_path
 
 
 def render_card(cfg: Config, kart: dict[str, Any], bg_path: Path | None,

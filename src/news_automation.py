@@ -17,6 +17,7 @@ Kullanım:
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import hashlib
 import html
 import json
@@ -76,22 +77,43 @@ def _strip_html(s: str) -> str:
 
 
 def fetch_news(cfg: Config) -> list[dict[str, Any]]:
-    """Tüm feed'lerden haberleri çek, son lookback_days içindekileri döndür
-    (en yeni önce). Tarihi olmayan haberler dahil edilir."""
+    """RSS kaynaklarını paralel çek, son lookback_days haberlerini döndür.
+
+    Her kaynak bağımsız timeout ile çalışır; tek bir yavaş yayın diğerlerini
+    bekletmez. Kaynak bazlı loglar JobManager üzerinden UI'a akar.
+    """
     import feedparser
+    import requests
 
     lookback = max(1, cfg.news.lookback_days) if cfg.news else 2
     now = time.time()
     cutoff = now - lookback * 86400
-    items: list[dict[str, Any]] = []
     feeds = cfg.news.feeds if cfg.news else []
-    for url in feeds:
+    def feed_label(url: str) -> str:
+        labels = {
+            "tokyocheapo.com": "Tokyo Cheapo",
+            "soranews24.com": "SoraNews24",
+            "nippon.com": "Nippon.com",
+            "japantoday.com": "Japan Today",
+            "japantimes.co.jp": "Japan Times",
+        }
+        return next((v for k, v in labels.items() if k in url), url.split("/")[2] if "/" in url else url)
+
+    def fetch_one(url: str) -> tuple[str, list[dict[str, Any]], float, str | None]:
+        label = feed_label(url)
+        started = time.monotonic()
+        log.info(f"  ↗ {label} bağlanıyor…")
         try:
-            d = feedparser.parse(url, agent=_UA)
-        except Exception as exc:
-            log.warning(f"  feed alınamadı ({url}): {exc}")
-            continue
+            # Paralel taramada tek bir kaynak en fazla 10 saniye bekletir.
+            response = requests.get(url, headers={"User-Agent": _UA}, timeout=(3, 10))
+            response.raise_for_status()
+            d = feedparser.parse(response.content)
+        except Exception as exc:  # noqa: BLE001 — tek kaynak tüm turu durdurmasın
+            elapsed = time.monotonic() - started
+            log.warning(f"  ✕ {label} yanıt vermedi ({elapsed:.1f}s) — diğer kaynaklarla devam ediliyor.")
+            return label, [], elapsed, str(exc)
         source = (d.feed.get("title") if getattr(d, "feed", None) else "") or url
+        local_items: list[dict[str, Any]] = []
         for e in d.entries:
             pub = None
             for key in ("published_parsed", "updated_parsed"):
@@ -108,13 +130,26 @@ def fetch_news(cfg: Config) -> list[dict[str, Any]]:
             if not title:
                 continue
             summary = _strip_html(e.get("summary") or e.get("description") or "")[:600]
-            items.append({
+            local_items.append({
                 "title": title,
                 "summary": summary,
                 "link": (e.get("link") or "").strip(),
                 "source": source,
                 "published_ts": pub or 0.0,
             })
+        elapsed = time.monotonic() - started
+        log.info(f"  ✓ {label} tamamlandı · {len(local_items)} haber · {elapsed:.1f}s")
+        return label, local_items, elapsed, None
+
+    items: list[dict[str, Any]] = []
+    if feeds:
+        workers = min(4, len(feeds))
+        log.info(f"  ⚡ {len(feeds)} RSS kaynağı paralel taranıyor (maks. {workers} eşzamanlı)…")
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="rss") as pool:
+            futures = [pool.submit(fetch_one, url) for url in feeds]
+            for future in as_completed(futures):
+                _label, feed_items, _elapsed, _error = future.result()
+                items.extend(feed_items)
     # en yeni önce (tarihsizler sona)
     items.sort(key=lambda x: x["published_ts"], reverse=True)
     log.info(f"  {len(items)} haber toplandı ({len(feeds)} feed, son {lookback} gün)")
@@ -606,9 +641,10 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
         out_path.with_suffix(".json").write_text(json.dumps({
             "background_url": bg["download_url"], "background_id": bg["id"],
             "query": news["unsplash_query"],
+            "baslik": news.get("title", ""),
             "bg_local": f"unsplash-{slug_q}-{bg['id']}.jpg",
             "photographer": bg.get("photographer", ""),
-            "aciklama": aciklama, "ust_tag": "GEZİ DEFTERİ",
+            "aciklama": aciklama, "ust_tag": "GEZİ DEFTERİ", "style": "style2",
             "post_caption": caption,
             "kategori": editorial_data.get("kategori", ""),
             "puan": editorial_data.get("puan", {}),
