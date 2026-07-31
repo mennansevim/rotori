@@ -1938,7 +1938,6 @@
           <a class="btn ghost sm" href="${escapeHtml(card.url)}" target="_blank" rel="noopener">Aç</a>
           <button class="btn ghost sm" onclick="deleteStory('${escapeHtml(card.file)}', this)">Sil</button>
           ${editable ? `<button class="btn dark sm" onclick="saveStoryEdit('${escapeHtml(card.file)}', this)">💾 Değişiklikleri kaydet</button>` : ""}
-          ${!card.ready && editable ? `<button class="btn primary sm" onclick="markReady('${escapeHtml(card.file)}', this)">Yayına hazır işaretle</button>`:""}
         </div>`;
     } else if(kind==="reel"){
       const reel = state.reels.find(r => (r.name||r.file)===name);
@@ -2056,10 +2055,6 @@
           <p class="row-meta">${c.has_caption?"Caption hazır":"Caption yok"} · Story kartı</p>
           <footer>
             <span>${escapeHtml(when)}</span>
-            <span style="display:flex;gap:6px">
-              <button class="link" onclick="event.stopPropagation(); openLibItem('${escapeHtml(c.file)}','story')">Düzenle</button>
-              <button class="link" onclick="event.stopPropagation(); markReady('${escapeHtml(c.file)}', this)">Hazırla →</button>
-            </span>
           </footer>
         </article>`;
       }).join("");
@@ -2153,17 +2148,12 @@
         const file = dragged.dataset.file;
         const kind = dragged.dataset.kind;
         // idx: 0=Taslak, 1=Onay bekliyor, 2=Planlandı
-        // Şu an desteklenen tek geçiş: taslak (story-draft) → planlandı (mark_ready).
-        if(kind === "story-draft" && idx === 2){
+        if(kind === "story-draft" && idx === 1){
           try {
-            await apiFetch(`/api/story/mark_ready/${encodeURIComponent(file)}`, {method:"POST"});
-            toast("Kart Planlandı'ya taşındı (yayına hazır).", "ok");
+            await apiFetch(`/api/story/submit_approval/${encodeURIComponent(file)}`, {method:"POST"});
+            toast("Kart Onay bekliyor'a taşındı.", "ok");
             pageLoaders.queue(true);
           } catch(e){ toast(e.detail || e.message, "err") }
-          return;
-        }
-        if(kind === "story-draft" && idx === 1){
-          toast("Taslak → Onay bekliyor doğrudan sürüklenemez. Onay bekleyen kartlar yalnız Haber Otomasyonu ile oluşur.", "err", 5000);
           return;
         }
         toast("Bu geçiş desteklenmiyor.", "err");
