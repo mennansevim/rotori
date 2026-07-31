@@ -540,7 +540,7 @@
 
                 <!-- Step 2: görsel seç -->
                 <div class="viz-step" data-viz-step="2" hidden>
-                  <div class="label"><span>Aramadan 10 sonuç — bir görsel seç</span><button class="btn ghost sm" id="imgMoreBtn" style="border:0;padding:0;color:var(--red);font-weight:800">Farklı 10 →</button></div>
+                  <div class="label"><span>Aramadan 10 sonuç — bir görsel seç</span><span style="display:flex;gap:14px;align-items:center"><button class="btn ghost sm" id="imgResetBtn" style="border:0;padding:0;color:var(--muted);font-weight:800">↺ Yeni görsel</button><button class="btn ghost sm" id="imgMoreBtn" style="border:0;padding:0;color:var(--red);font-weight:800">Farklı 10 →</button></span></div>
                   <div class="picker-grid" id="imgPickerGrid"></div>
                 </div>
 
@@ -1161,7 +1161,10 @@
       bar.style.display = m==="news" ? "" : "none";
     };
     modeNews.addEventListener("click", () => setMode("news"));
-    modeVisual.addEventListener("click", () => setMode("visual"));
+    modeVisual.addEventListener("click", () => {
+      if(state.studio.mode !== "visual") resetVisualWizard();
+      setMode("visual");
+    });
     setMode("news");
 
     document.querySelectorAll("#stylePicker .style-choice").forEach(btn => btn.addEventListener("click", () => {
@@ -1190,6 +1193,7 @@
     });
     document.getElementById("imgSearchBtn").addEventListener("click", e => withLoading(e.currentTarget, doPickerSearch));
     document.getElementById("imgTextOnlyBtn").addEventListener("click", e => withLoading(e.currentTarget, aiFromText));
+    document.getElementById("imgResetBtn").addEventListener("click", resetVisualWizard);
     document.getElementById("imgMoreBtn").addEventListener("click", e => withLoading(e.currentTarget, doPickerMore));
 
     // Step 3 alanları
@@ -1235,6 +1239,34 @@
     document.querySelectorAll("#visualForm [data-viz-step]").forEach(el => {
       el.hidden = Number(el.dataset.vizStep) !== n;
     });
+  }
+
+  function resetVisualWizard(){
+    state.studio.picker = { query: "", page: 1, results: [], selectedIdx: null };
+    const defaults = {
+      imgTopic: "",
+      imgAciklama: "",
+      imgCaption: "",
+      imgUstTag: "GEZİ DEFTERİ",
+    };
+    Object.entries(defaults).forEach(([id, value]) => {
+      const el = document.getElementById(id);
+      if(el) el.value = value;
+    });
+    document.getElementById("imgTopicCount").textContent = "0 / 60";
+    document.getElementById("imgAciklamaCount").textContent = "0 / 280";
+    document.getElementById("imgCaptionCount").textContent = "AI otomatik oluşturur · 0 karakter";
+    document.getElementById("imgStyle").value = "style2";
+    document.querySelectorAll("#stylePicker .style-choice").forEach(btn => {
+      const selected = btn.dataset.style === "style2";
+      btn.classList.toggle("active", selected);
+      btn.setAttribute("aria-checked", selected ? "true" : "false");
+    });
+    document.getElementById("imgPickerGrid").innerHTML = "";
+    document.getElementById("phonePost").style.backgroundImage = "";
+    setWizStep(1);
+    updatePhoneFromForm();
+    toast("Yeni görsel üretimi için alanlar sıfırlandı.", "ok", 1800);
   }
 
   function updatePhoneFromForm(){
