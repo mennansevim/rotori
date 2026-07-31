@@ -1489,6 +1489,8 @@
 
   // ---- Progress overlay helpers ----
   let _genStagesData = [];
+  let _genActiveKey = null;
+  const _genStageRank = {rss:0, gate:1, visual:2, render:3, queue:4, dl:0, save:2};
   let _genStartedAt = 0;
   let _genElapsedTimer = null;
   function openGenOverlay(title, sub){
@@ -1511,11 +1513,15 @@
     document.getElementById("genActions").hidden = false;
     document.getElementById("genCancelBtn").hidden = false;
     document.getElementById("genCloseBtn").hidden = true;
+    _genActiveKey = null;
     document.getElementById("genOverlay").classList.add("open");
   }
   function closeGenOverlay(){ document.getElementById("genOverlay").classList.remove("open") }
   function setGenStages(stages, activeKey, doneKeys){
     if(stages) _genStagesData = stages;
+    if(activeKey && _genActiveKey &&
+       (_genStageRank[activeKey] ?? 0) < (_genStageRank[_genActiveKey] ?? 0)) return;
+    if(activeKey) _genActiveKey = activeKey;
     const done = new Set(doneKeys||[]);
     const active = _genStagesData.find(s => s.key===activeKey);
     const completed = done.size + (active && !done.has(activeKey) ? .45 : 0);
@@ -1620,17 +1626,21 @@
     _lastLine = "";
     _logSeq = 0;
     _genCancelRequested = false;
+    let baselineReady = false;
     for(let i=0; i<120; i++){   // ~6 dk max; kalite kapısı ayarıyla uyumlu
       await new Promise(r => setTimeout(r, 3000));
       try{
-        const [s, logState] = await Promise.all([
-          apiFetch("/api/status", {timeout: 4000}),
-          apiFetch(`/api/logs?since=${_logSeq}`, {timeout: 4000}),
-        ]);
+        const s = await apiFetch("/api/status", {timeout: 4000});
         if(!s || !s.job){
           onLine && onLine("İş durumu henüz alınamadı; bağlantı yeniden deneniyor…", s);
           continue;
         }
+        // Yalnızca bu iş başladıktan sonra üretilen logları al.
+        if(!baselineReady){
+          _logSeq = Number(s.job.log_seq || 0);
+          baselineReady = true;
+        }
+        const logState = await apiFetch(`/api/logs?since=${_logSeq}`, {timeout: 4000});
         if(logState){
           for(const entry of (logState.entries || [])){
             if(entry.text) onLine && onLine(entry.text, s);

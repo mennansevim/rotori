@@ -77,6 +77,7 @@ class JobManager:
 
         self.state: dict[str, Any] = {
             "running": False,
+            "log_seq": 0,
             "steps": [],
             "current_step": None,
             "step_status": {},          # {"1": "pending|running|done|error|cancelled"}
@@ -130,6 +131,7 @@ class JobManager:
             self._cancel.clear()
             self.state = {
                 "running": True,
+                "log_seq": self._seq,
                 "steps": steps,
                 "current_step": None,
                 "step_status": {str(s): "pending" for s in steps},
@@ -168,6 +170,7 @@ class JobManager:
             self._cancel.clear()
             self.state = {
                 "running": True,
+                "log_seq": self._seq,
                 "steps": [],
                 "current_step": None,
                 "step_status": {},
