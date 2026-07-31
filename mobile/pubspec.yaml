@@ -81,3 +81,5 @@ flutter:
     # OpenAI TTS ile önceden üretilmiş Japonca fraz mp3 dosyaları — offline
     # oynatma için. manifest.json içinde jp text → dosya id eşlemesi var.
     - assets/tts/ja/
+    # Hamburger menüsünün Japonya hero görseli.
+    - assets/images/hamb-menu-top-bg.png
