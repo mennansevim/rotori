@@ -353,13 +353,6 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
               onToggleEdit: _toggleEditMode,
               onRebuild: _confirmRebuild,
             ),
-            // Edit modu üst bar'ı — planı bütün olarak dönüştüren toplu
-            // aksiyonlar burada durur. Şimdilik: "Tüm rotayı yeniden optimize et".
-            if (_editMode)
-              _EditToolbar(
-                palette: palette,
-                onOptimizeAll: () => _optimizeAllRoutes(days),
-              ),
             Expanded(
               child: ListView(
                 controller: _scrollController,
@@ -1281,48 +1274,6 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
   /// per-day bottom sheet'ini açar; kullanıcı Uygula ya da Kapat der. Sheet
   /// kapandıktan sonra bir sonraki güne geçer. İki'den az durağı olan günler
   /// sessizce atlanır.
-  Future<void> _optimizeAllRoutes(List<DayPlan> days) async {
-    final s = LanguageScope.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    final eligible = days.where((d) => d.items.length >= 2).toList();
-    if (eligible.isEmpty) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(s.s('routeOptimization.needTwoStops'))),
-      );
-      return;
-    }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Tüm rotayı optimize et'),
-        content: Text(
-          '${eligible.length} gün için rota optimizasyonu sırayla açılacak. '
-          'Her günde tercih ettiğin profili seçip uygulayabilirsin.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Vazgeç'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Başla'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-    for (final day in eligible) {
-      if (!mounted) return;
-      final destination = getDestinationForDate(_sortedDestinations, day.date);
-      await _openRouteOptimization(day, destination);
-    }
-    if (!mounted) return;
-    messenger.showSnackBar(
-      SnackBar(content: Text('${eligible.length} gün için tamamlandı.')),
-    );
-  }
-
   Future<void> _openRouteOptimization(
     DayPlan day,
     TripDestination? destination,
@@ -2793,94 +2744,6 @@ class _TimeChip extends StatelessWidget {
 /// Şu anda tek eylem: "Tüm rotayı yeniden optimize et". İleride toplu
 /// dönüşümler (bütçe yeniden dağıt, günleri sıralamayı sıfırla, vs.) buraya
 /// eklenebilir.
-class _EditToolbar extends StatelessWidget {
-  const _EditToolbar({required this.palette, required this.onOptimizeAll});
-
-  final ViewerPalette palette;
-  final VoidCallback onOptimizeAll;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: palette.card,
-        border: Border(
-          bottom: BorderSide(
-            color: palette.border.withValues(alpha: 0.6),
-            width: 1,
-          ),
-        ),
-      ),
-      child: SizedBox(
-        height: 40,
-        child: ListView(
-          scrollDirection: Axis.horizontal,
-          children: [
-            _EditToolbarChip(
-              palette: palette,
-              icon: Icons.route_outlined,
-              label: 'Tüm rotayı yeniden optimize et',
-              tint: palette.sakura,
-              onTap: onOptimizeAll,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EditToolbarChip extends StatelessWidget {
-  const _EditToolbarChip({
-    required this.palette,
-    required this.icon,
-    required this.label,
-    required this.tint,
-    required this.onTap,
-  });
-
-  final ViewerPalette palette;
-  final IconData icon;
-  final String label;
-  final Color tint;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: tint.withValues(alpha: 0.14),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: tint.withValues(alpha: 0.55)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 16, color: tint),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: tint,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// Gün başlığında görünen küçük amber banner. Bir günde en az 1 uyarı varsa
 /// çıkar; view modunda "Düzenleyerek çöz" ipucu verir, edit modunda "Zamanları
 /// gözden geçir" der. Sadece bilgi — tıklama yok (aksiyon satır seviyesinde
