@@ -23,6 +23,12 @@ hiyerarşisi, tema seçici ve uçuş özeti hedefli testleri başarılıdır.
 
 ## Tamamlananlar (bu ve önceki oturumlardan)
 
+- ✅ **2026-08-02** Rütbe kanjileri için Noto Sans JP alt-kümesi (subset) fontu
+  eklendi. Yalnızca kullanılan 11 glif (狸狐河童天狗鶴麒麟鳳凰龍旅) alınıp 700
+  ağırlığa sabitlenerek `assets/fonts/NotoSansJP-Rank.ttf` (~5.9 KB) üretildi;
+  `NotoSansJPRank` ailesi olarak `pubspec.yaml`'a kaydedildi ve madalyon /
+  kutlama / drawer marka (旅) metinlerine uygulandı. Web'deki "Could not find a
+  set of Noto fonts" uyarısı çözüldü; kanji tüm platformlarda net render edilir.
 - ✅ **2026-08-02** Keşif haritasına Ghibli esintili rütbe-atlama kutlaması
   eklendi: XP ile rütbe kademesi arttığında yumuşak sıcak ışık, yukarı süzülen
   toz zerreleri (susuwatari) + altın parıltı ve nazikçe beliren ışıklı madalyon

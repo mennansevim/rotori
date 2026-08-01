@@ -83,3 +83,12 @@ flutter:
     - assets/tts/ja/
     # Hamburger menüsünün Japonya hero görseli.
     - assets/images/hamb-menu-top-bg.png
+
+  fonts:
+    # Keşif rütbesi kanji glifleri için Noto Sans JP subset (yalnızca
+    # 狸狐河童天狗鶴麒麟鳳凰龍旅 — 700 ağırlık, ~6 KB). Her platformda net
+    # kanji render'ı; web'deki Noto fallback uyarısını giderir.
+    - family: NotoSansJPRank
+      fonts:
+        - asset: assets/fonts/NotoSansJP-Rank.ttf
+          weight: 700

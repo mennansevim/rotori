@@ -419,6 +419,7 @@ class _DrawerBrandMark extends StatelessWidget {
       child: Text(
         '旅',
         style: TextStyle(
+          fontFamily: 'NotoSansJPRank',
           color: Colors.white,
           fontWeight: FontWeight.w700,
           fontSize: size * 0.56,

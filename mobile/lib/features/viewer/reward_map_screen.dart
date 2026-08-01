@@ -453,6 +453,7 @@ class _RankHero extends StatelessWidget {
                 Text(
                   next!.kanji,
                   style: TextStyle(
+                    fontFamily: 'NotoSansJPRank',
                     color: _rankColor(p, tier + 1).withValues(alpha: 0.65),
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -498,6 +499,7 @@ class _RankMedallion extends StatelessWidget {
       child: Text(
         kanji,
         style: TextStyle(
+          fontFamily: 'NotoSansJPRank',
           color: Colors.white,
           fontSize: kanji.runes.length > 1 ? 24 : 34,
           fontWeight: FontWeight.w700,
@@ -1088,6 +1090,7 @@ class _GlowMedallion extends StatelessWidget {
       child: Text(
         kanji,
         style: TextStyle(
+          fontFamily: 'NotoSansJPRank',
           color: Colors.white,
           fontSize: kanji.runes.length > 1 ? 44 : 60,
           fontWeight: FontWeight.w700,
