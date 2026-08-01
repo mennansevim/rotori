@@ -2842,6 +2842,18 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Otel eklenmedi',
     AppLang.en: 'No hotels',
   },
+  'drawer.flights.add': {
+    AppLang.tr: 'Uçuş ekle',
+    AppLang.en: 'Add flight',
+  },
+  'drawer.hotels.add': {
+    AppLang.tr: 'Otel ekle',
+    AppLang.en: 'Add hotel',
+  },
+  'drawer.add.hint': {
+    AppLang.tr: 'Planlayıcıda düzenle',
+    AppLang.en: 'Edit in planner',
+  },
   'drawer.flights.stops': {
     AppLang.tr: '{n} aktarma',
     AppLang.en: '{n} stop',

@@ -6566,6 +6566,15 @@ class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
     final tripsCount = (outbound.isNotEmpty ? 1 : 0) + (ret.isNotEmpty ? 1 : 0);
     final p = widget.palette;
     final s = LanguageScope.of(context);
+    if (tripsCount == 0) {
+      return _DrawerAddCard(
+        palette: p,
+        icon: Icons.flight_takeoff,
+        iconColor: p.sakura,
+        title: s.s('drawer.flights.add'),
+        planId: widget.trip.id,
+      );
+    }
     return _DrawerCollapsible(
       palette: p,
       expanded: _expanded,
@@ -6661,6 +6670,15 @@ class _DrawerHotelsMiniState extends State<_DrawerHotelsMini> {
     final p = widget.palette;
     final s = LanguageScope.of(context);
     final hotels = widget.trip.hotels;
+    if (hotels.isEmpty) {
+      return _DrawerAddCard(
+        palette: p,
+        icon: Icons.hotel_outlined,
+        iconColor: p.gold,
+        title: s.s('drawer.hotels.add'),
+        planId: widget.trip.id,
+      );
+    }
     return _DrawerCollapsible(
       palette: p,
       expanded: _expanded,
@@ -6942,6 +6960,90 @@ class _DrawerActionSpec {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+}
+
+/// Uçuş/otel gibi henüz doldurulmamış bölümler için "ekle" kartı. Tıklanınca
+/// planlayıcının düzenleme adımına gider. Boş bir collapsible yerine net bir
+/// yönlendirici davranış sunar.
+class _DrawerAddCard extends StatelessWidget {
+  const _DrawerAddCard({
+    required this.palette,
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.planId,
+  });
+
+  final ViewerPalette palette;
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String planId;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    final s = LanguageScope.of(context);
+    return Material(
+      color: p.elevated,
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).pop();
+          context.push('/plans/$planId/edit');
+        },
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: p.border),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: iconColor.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(icon, size: 16, color: iconColor),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: p.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        s.s('drawer.add.hint'),
+                        style: TextStyle(
+                          color: p.textMuted,
+                          fontSize: 11.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.add_circle_outline, size: 20, color: iconColor),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// Drawer içi keşif grid'i — iki sütunda, rahat dokunulan hızlı aksiyonlar.
