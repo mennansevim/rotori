@@ -131,33 +131,24 @@ class _PhrasesViewState extends ConsumerState<_PhrasesView> {
           ),
           const SizedBox(height: 16),
           _PhraseCard(
-            emoji: '🗣️',
-            title: const LText(
-              'Pratik Japonca',
-              'Practical Japanese',
-            ).of(lang),
-            subtitle: const LText(
-              'Kategori seç, satıra dokunup dinle',
-              'Pick a category, tap a row to listen',
-            ).of(lang),
-            accent: palette.gold,
             palette: palette,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (var i = 0; i < kJapanesePhraseCategories.length; i++)
-                      _CategoryTab(
-                        category: kJapanesePhraseCategories[i],
-                        selected: i == _activeCat,
-                        palette: palette,
-                        lang: lang,
-                        onTap: () => setState(() => _activeCat = i),
-                      ),
-                  ],
+                SizedBox(
+                  height: 42,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: kJapanesePhraseCategories.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (_, i) => _CategoryTab(
+                      category: kJapanesePhraseCategories[i],
+                      selected: i == _activeCat,
+                      palette: palette,
+                      lang: lang,
+                      onTap: () => setState(() => _activeCat = i),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 for (final p in category.phrases)
@@ -183,18 +174,10 @@ class _PhrasesViewState extends ConsumerState<_PhrasesView> {
 
 class _PhraseCard extends StatelessWidget {
   const _PhraseCard({
-    required this.emoji,
-    required this.title,
-    required this.subtitle,
-    required this.accent,
     required this.palette,
     required this.child,
   });
 
-  final String emoji;
-  final String title;
-  final String subtitle;
-  final Color accent;
   final ViewerPalette palette;
   final Widget child;
 
@@ -211,45 +194,6 @@ class _PhraseCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(emoji, style: const TextStyle(fontSize: 20)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: palette.textPrimary,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
-                      ),
-                    ),
-                    if (subtitle.isNotEmpty)
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          color: palette.textMuted,
-                          fontSize: 12,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
           child,
         ],
       ),

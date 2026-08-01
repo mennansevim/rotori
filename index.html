@@ -1949,6 +1949,245 @@
         grid-template-columns: 1fr;
       }
     }
+
+    /* Keşif modu tanıtım animasyonu — 400 × 500 vitrin */
+    .explore-story-wrap {
+      position: relative;
+      z-index: 10;
+      width: min(100%, 400px);
+      height: 500px;
+      margin: 0 auto 72px;
+    }
+
+    .explore-story {
+      --story-ink: #161622;
+      --story-muted: #76758a;
+      --story-purple: #7164e8;
+      --story-pink: #ff8fb2;
+      --story-green: #47b979;
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      isolation: isolate;
+      border: 1px solid rgba(255, 255, 255, 0.82);
+      border-radius: 34px;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(255, 181, 202, 0.75), transparent 28%),
+        radial-gradient(circle at 88% 72%, rgba(182, 178, 255, 0.68), transparent 34%),
+        #f8f7fb;
+      box-shadow: 0 28px 80px rgba(56, 46, 110, 0.23), 0 4px 14px rgba(16, 16, 32, 0.1);
+      color: var(--story-ink);
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .explore-story::before,
+    .explore-story::after {
+      content: '';
+      position: absolute;
+      z-index: -1;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      filter: blur(18px);
+      opacity: 0.35;
+      animation: exploreOrb 12s ease-in-out infinite alternate;
+    }
+
+    .explore-story::before { background: #ffd0df; left: -82px; top: 190px; }
+    .explore-story::after { background: #b8b1ff; right: -86px; top: 36px; animation-delay: -4s; }
+
+    @keyframes exploreOrb {
+      to { transform: translate(28px, 20px) scale(1.18); }
+    }
+
+    .explore-story-top {
+      position: absolute;
+      inset: 21px 22px auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 2;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--story-muted);
+    }
+
+    .explore-story-brand { display: inline-flex; align-items: center; gap: 7px; }
+    .explore-story-brand-mark {
+      display: inline-grid;
+      place-items: center;
+      width: 23px;
+      height: 23px;
+      border-radius: 8px;
+      color: white;
+      background: linear-gradient(135deg, var(--story-purple), var(--story-pink));
+      font-size: 13px;
+      box-shadow: 0 5px 12px rgba(113, 100, 232, 0.28);
+    }
+
+    .explore-story-step { opacity: 0.7; }
+
+    .explore-story-scene {
+      position: absolute;
+      inset: 0;
+      padding: 66px 25px 22px;
+      opacity: 0;
+      transform: translateY(10px) scale(0.98);
+      animation: exploreScene 18s ease-in-out infinite;
+    }
+
+    .explore-story-scene:nth-of-type(1) { animation-delay: 0s; }
+    .explore-story-scene:nth-of-type(2) { animation-delay: 6s; }
+    .explore-story-scene:nth-of-type(3) { animation-delay: 12s; }
+
+    @keyframes exploreScene {
+      0%, 3% { opacity: 0; transform: translateY(10px) scale(0.98); }
+      7%, 27% { opacity: 1; transform: translateY(0) scale(1); }
+      32%, 100% { opacity: 0; transform: translateY(-8px) scale(1.01); }
+    }
+
+    .explore-story-kicker {
+      margin-bottom: 6px;
+      color: var(--story-purple);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .explore-story h3 {
+      max-width: 285px;
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.04;
+      letter-spacing: -0.055em;
+    }
+
+    .explore-story-copy {
+      max-width: 300px;
+      margin-top: 9px;
+      color: var(--story-muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .explore-story-art {
+      position: absolute;
+      left: 25px;
+      right: 25px;
+      bottom: 30px;
+      height: 260px;
+    }
+
+    .explore-story-phone {
+      position: absolute;
+      right: 11px;
+      bottom: 3px;
+      width: 145px;
+      height: 236px;
+      padding: 8px;
+      border: 3px solid #292936;
+      border-radius: 26px;
+      background: #292936;
+      box-shadow: -13px 18px 26px rgba(34, 29, 67, 0.2);
+      transform: rotate(5deg);
+      animation: phoneFloat 4s ease-in-out infinite;
+    }
+
+    @keyframes phoneFloat {
+      50% { transform: rotate(3deg) translateY(-6px); }
+    }
+
+    .explore-story-phone-screen {
+      position: relative;
+      height: 100%;
+      overflow: hidden;
+      border-radius: 18px;
+      background: linear-gradient(180deg, #fff 0%, #f8f4ff 100%);
+    }
+
+    .explore-story-island {
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      width: 48px;
+      height: 13px;
+      border-radius: 20px;
+      background: #292936;
+      transform: translateX(-50%);
+    }
+
+    .explore-story-appbar { display: flex; justify-content: space-between; padding: 28px 10px 8px; font-size: 8px; font-weight: 700; }
+    .explore-story-level { color: var(--story-purple); }
+    .explore-story-map { position: relative; height: 103px; margin: 0 9px; border-radius: 12px; overflow: hidden; background: #e9e5fb; }
+    .explore-story-map::before { content: ''; position: absolute; inset: 0; background: linear-gradient(32deg, transparent 45%, rgba(255,255,255,.8) 46% 48%, transparent 49%), linear-gradient(150deg, transparent 35%, rgba(255,255,255,.72) 36% 38%, transparent 39%); opacity: .8; }
+    .explore-story-route { position: absolute; width: 96px; height: 58px; left: 24px; top: 27px; border-left: 2px dashed var(--story-purple); border-bottom: 2px dashed var(--story-purple); border-radius: 0 0 0 45px; transform: rotate(-19deg); }
+    .explore-story-pin { position: absolute; display: grid; place-items: center; width: 23px; height: 23px; border-radius: 50% 50% 50% 3px; color: white; background: var(--story-pink); box-shadow: 0 4px 10px rgba(255, 91, 143, .35); transform: rotate(-45deg); font-size: 10px; animation: pinPulse 2s ease-in-out infinite; }
+    .explore-story-pin span { transform: rotate(45deg); }
+    .explore-story-pin.one { left: 18px; top: 20px; }
+    .explore-story-pin.two { left: 69px; top: 68px; animation-delay: .4s; }
+    .explore-story-pin.three { right: 14px; top: 24px; animation-delay: .8s; }
+    @keyframes pinPulse { 50% { box-shadow: 0 0 0 6px rgba(255, 143, 178, .14); } }
+    .explore-story-xp {
+      position: absolute;
+      right: 8px;
+      top: 57px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      color: #187443;
+      background: #e5f7ed;
+      font-size: 9px;
+      font-weight: 800;
+      animation: xpPop 18s ease-in-out infinite;
+    }
+    @keyframes xpPop { 0%, 13% { opacity: 0; transform: scale(.7); } 18%, 27% { opacity: 1; transform: scale(1); } 32%, 100% { opacity: 0; } }
+    .explore-story-phone-stat { display: flex; justify-content: space-between; margin: 10px 9px 0; padding: 9px; border-radius: 10px; background: white; box-shadow: 0 4px 12px rgba(87, 72, 137, .08); font-size: 8px; }
+    .explore-story-phone-stat strong { display: block; margin-top: 2px; font-size: 14px; }
+    .explore-story-phone-stat strong.green { color: var(--story-green); }
+    .explore-story-avatar { position: absolute; left: 35px; bottom: 16px; width: 116px; height: 170px; }
+    .explore-story-avatar .head { position: absolute; left: 37px; top: 13px; width: 46px; height: 49px; border-radius: 49% 49% 43% 43%; background: #ffc9a9; box-shadow: inset -5px -2px rgba(221, 126, 116, .2); z-index: 2; }
+    .explore-story-avatar .hair { position: absolute; left: 31px; top: 5px; width: 57px; height: 48px; border-radius: 55% 55% 35% 35%; background: #303044; z-index: 3; }
+    .explore-story-avatar .hair::after { content: ''; position: absolute; left: 2px; bottom: -12px; width: 15px; height: 29px; border-radius: 0 0 13px 13px; background: #303044; }
+    .explore-story-avatar .body { position: absolute; left: 22px; bottom: 0; width: 78px; height: 112px; border-radius: 34px 34px 18px 18px; background: linear-gradient(145deg, #6b63dc, #4d4baf); }
+    .explore-story-avatar .shirt { position: absolute; left: 49px; bottom: 35px; width: 24px; height: 45px; border-radius: 13px; background: #f7f5ff; z-index: 1; }
+    .explore-story-avatar .leg { position: absolute; bottom: -1px; width: 26px; height: 60px; border-radius: 14px 14px 8px 8px; background: #272738; z-index: -1; }
+    .explore-story-avatar .leg.left { left: 34px; transform: rotate(5deg); }
+    .explore-story-avatar .leg.right { left: 68px; transform: rotate(-7deg); }
+    .explore-story-avatar .arm { position: absolute; left: 9px; top: 77px; width: 22px; height: 68px; border-radius: 16px; background: #ffc9a9; transform: rotate(22deg); z-index: 1; }
+    .explore-story-avatar .bag { position: absolute; left: 8px; top: 91px; width: 25px; height: 42px; border-radius: 9px; background: #ff8fb2; transform: rotate(13deg); z-index: 2; }
+    .explore-story-avatar .flag { position: absolute; left: 3px; top: 8px; font-size: 26px; transform: rotate(-9deg); animation: flagWave 2.5s ease-in-out infinite; }
+    @keyframes flagWave { 50% { transform: rotate(7deg) translateY(-3px); } }
+    .explore-story-badge-card { position: absolute; left: 4px; bottom: 11px; width: 176px; padding: 12px; border: 1px solid rgba(113, 100, 232, .14); border-radius: 17px; background: rgba(255,255,255,.86); box-shadow: 0 12px 25px rgba(81, 67, 140, .12); animation: badgeReveal 18s ease-in-out infinite; }
+    @keyframes badgeReveal { 0%, 42% { opacity: 0; transform: translateY(12px) rotate(-4deg); } 48%, 60% { opacity: 1; transform: translateY(0) rotate(-4deg); } 67%, 100% { opacity: 0; transform: translateY(-7px) rotate(-4deg); } }
+    .explore-story-badge-card .badge-line { display: flex; align-items: center; gap: 9px; }
+    .explore-story-badge-icon { display: grid; place-items: center; width: 35px; height: 35px; border-radius: 11px; background: #f0edff; font-size: 20px; }
+    .explore-story-badge-card strong { display: block; font-size: 12px; }
+    .explore-story-badge-card small { display: block; margin-top: 3px; color: var(--story-muted); font-size: 10px; }
+    .explore-story-badge-xp { margin-top: 10px; color: var(--story-green); font-size: 12px; font-weight: 800; }
+
+    .explore-story-caption {
+      position: absolute;
+      left: 25px;
+      right: 25px;
+      bottom: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: rgba(22, 22, 34, .58);
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    .explore-story-dots { display: inline-flex; gap: 4px; }
+    .explore-story-dots i { width: 5px; height: 5px; border-radius: 50%; background: rgba(113, 100, 232, .25); }
+    .explore-story-dots i:first-child { background: var(--story-purple); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .explore-story *, .explore-story::before, .explore-story::after { animation: none !important; }
+      .explore-story-scene:first-of-type { opacity: 1; transform: none; }
+    }
   </style>
 </head>
 <body>
@@ -2039,6 +2278,55 @@
       <div class="stat-label">Saat Shinkansen</div>
     </div>
   </div>
+
+  <!-- Mobil uygulama / Keşif modu tanıtımı -->
+  <section class="explore-story-wrap" aria-label="Keşif modu tanıtımı">
+    <div class="explore-story">
+      <div class="explore-story-top">
+        <span class="explore-story-brand"><span class="explore-story-brand-mark">✦</span> Japonya Rehberi</span>
+        <span class="explore-story-step">Keşif modu</span>
+      </div>
+
+      <article class="explore-story-scene">
+        <div class="explore-story-kicker">YOLCULUK BAŞLIYOR</div>
+        <h3>Japonya'yı<br>oynayarak keşfet.</h3>
+        <p class="explore-story-copy">Telefonun rotanı takip eder. Her durak, seyahat hikâyene yeni bir bölüm ekler.</p>
+        <div class="explore-story-art">
+          <div class="explore-story-avatar" aria-hidden="true">
+            <span class="flag">🇯🇵</span><span class="hair"></span><span class="head"></span><span class="body"></span><span class="shirt"></span><span class="arm"></span><span class="bag"></span><span class="leg left"></span><span class="leg right"></span>
+          </div>
+          <div class="explore-story-phone" aria-hidden="true"><div class="explore-story-phone-screen"><span class="explore-story-island"></span><div class="explore-story-appbar"><span>Bugün</span><span class="explore-story-level">LEVEL 03</span></div><div class="explore-story-map"><span class="explore-story-route"></span><span class="explore-story-pin one"><span>⛩</span></span><span class="explore-story-pin two"><span>✓</span></span><span class="explore-story-pin three"><span>🗼</span></span></div><div class="explore-story-phone-stat"><span>Keşfedilen<strong class="green">2 durak</strong></span><span>Toplam XP<strong>+50</strong></span></div></div></div>
+        </div>
+      </article>
+
+      <article class="explore-story-scene">
+        <div class="explore-story-kicker">DURAK TAMAMLANDI</div>
+        <h3>Gezdiğin her yer<br>iz bırakır.</h3>
+        <p class="explore-story-copy">GPS konumunla keşfettiğin noktalar otomatik olarak yeşillenir.</p>
+        <div class="explore-story-art">
+          <div class="explore-story-avatar" aria-hidden="true">
+            <span class="flag">🗼</span><span class="hair"></span><span class="head"></span><span class="body"></span><span class="shirt"></span><span class="arm"></span><span class="bag"></span><span class="leg left"></span><span class="leg right"></span>
+          </div>
+          <div class="explore-story-phone" aria-hidden="true"><div class="explore-story-phone-screen"><span class="explore-story-island"></span><div class="explore-story-appbar"><span>Keşif haritası</span><span class="explore-story-level">TOKYO</span></div><div class="explore-story-map"><span class="explore-story-route"></span><span class="explore-story-pin one"><span>✓</span></span><span class="explore-story-pin two"><span>✓</span></span><span class="explore-story-pin three"><span>⛩</span></span><span class="explore-story-xp">+25 XP</span></div><div class="explore-story-phone-stat"><span>Tokyo<strong class="green">2 / 3</strong></span><span>Level<strong>03</strong></span></div></div></div>
+        </div>
+      </article>
+
+      <article class="explore-story-scene">
+        <div class="explore-story-kicker">YENİ ROZET</div>
+        <h3>Bir turist değil,<br>bir kâşifsin.</h3>
+        <p class="explore-story-copy">Tokyo'dan Kyoto'ya uzanan maceranda her keşif seni bir sonraki seviyeye taşır.</p>
+        <div class="explore-story-art">
+          <div class="explore-story-avatar" aria-hidden="true">
+            <span class="flag">🎌</span><span class="hair"></span><span class="head"></span><span class="body"></span><span class="shirt"></span><span class="arm"></span><span class="bag"></span><span class="leg left"></span><span class="leg right"></span>
+          </div>
+          <div class="explore-story-badge-card"><div class="badge-line"><span class="explore-story-badge-icon">🗺️</span><span><strong>Kâşif</strong><small>GPS ile 5 yer keşfettin.</small></span></div><div class="explore-story-badge-xp">+25 XP kazandın</div></div>
+          <div class="explore-story-phone" aria-hidden="true"><div class="explore-story-phone-screen"><span class="explore-story-island"></span><div class="explore-story-appbar"><span>Rozetler & XP</span><span class="explore-story-level">LEVEL 04</span></div><div class="explore-story-map"><span class="explore-story-pin one"><span>🗼</span></span><span class="explore-story-pin two"><span>⛩</span></span><span class="explore-story-pin three"><span>🍜</span></span></div><div class="explore-story-phone-stat"><span>Toplam<strong class="green">125 XP</strong></span><span>Rozet<strong>3 / 18</strong></span></div></div></div>
+        </div>
+      </article>
+
+      <div class="explore-story-caption"><span>Yolculuğun senin hikâyen.</span><span class="explore-story-dots" aria-hidden="true"><i></i><i></i><i></i></span></div>
+    </div>
+  </section>
 
   <!-- Main Container -->
   <main class="container">

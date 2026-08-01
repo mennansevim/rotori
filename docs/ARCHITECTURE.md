@@ -4,8 +4,8 @@
 > Kalıcı kurallar için `CLAUDE.md`, günlük iş için `CURRENT_TASK.md`.
 > Rota motorunun ayrıntılı akış ve maliyet notu: `ROUTE_OPTIMIZATION.md`.
 
-Son güncelleme: **2026-07-30** (deterministik yönlü rota optimizasyonu,
-backend/cache sınırı ve maliyet kontrollü AI review politikası).
+Son güncelleme: **2026-08-01** (aydınlık varsayılan tema ve viewer hamburger
+menüsünün yeni bilgi mimarisi).
 
 ---
 
@@ -91,6 +91,9 @@ mobile/lib/features/
 - **Kaynak:** `Riverpod` provider'ları. State genellikle `AsyncNotifier`
   (Supabase-backed) veya `Notifier` (yerel).
 - **Kalıcılık:** `shared_preferences` — dil, tema, oturum ipuçları, plan cache.
+- **Tema başlangıcı:** Uygulama kabuğu ve viewer yeni kurulumda aydınlık açılır.
+  Viewer `viewer:theme` tercihi varsa onu yükler; böylece mevcut kullanıcının
+  koyu veya Sakura tercihi varsayılan değişikliğinden etkilenmez.
 - **Servis→UI:** UI `ref.watch()` ile Provider'ı dinler. Servis Supabase'e
   yazar, ardından provider `invalidate()` edilir.
 - **Optimistic UI** planner adımlarında bilinçli kullanılır (kullanıcı
@@ -120,6 +123,10 @@ mobile/lib/features/
   tüketir. Dört tercih profili yeniden hesaplama tetikler; eski/yeni
   ulaşım-yürüyüş-aktarma-maliyet özeti gösterilir. Yalnız açık kullanıcı
   onayı repository, edit session ve home widget snapshot'ını yeniler.
+- Viewer hamburger menüsü `FittedBox` ile küçültülmez. Sabit marka/gezi başlığı
+  altında kaydırılabilir **Yolculuk → Keşfet → Araçlar → Hesap** hiyerarşisi
+  kullanır; uçuş ve otel detayları açılabilir, sık aksiyonlar iki sütunlu,
+  ayarlar ise gruplanmış en az 48 px dokunma alanlı satırlardır.
 
 ## 6. Domain Katmanı (özet)
 

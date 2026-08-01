@@ -337,3 +337,27 @@ Bu sınırlar bilinçli olarak kabul edildi: önce sağlayıcıdan bağımsız d
 sözleşmesi, testler ve Flutter ön izleme/onay akışı tamamlandı. Kalıcı cache,
 Edge Function ve görünür son kullanıcı optimizasyon yüzeyi sonraki entegrasyon
 adımıdır.
+
+---
+
+## 2026-08-01 — Yeni kurulum aydınlık tema ve görev odaklı viewer menüsüyle açılır
+
+**Karar:** Uygulama kabuğunun varsayılanı `AppTheme.light`, viewer tema
+tercihinin kayıtsız varsayılanı `appleLight` olarak değiştirildi. Mevcut
+`viewer:theme` değeri aynen yüklenir; bu nedenle daha önce koyu veya Sakura
+tema seçmiş kullanıcıların tercihi değiştirilmez.
+
+Viewer hamburger menüsü sabit yüksekliğe sığdırılan `FittedBox` düzeninden
+çıkarıldı. İçerik gerçek kaydırma içinde **Yolculuk → Keşfet → Araçlar →
+Hesap** sırasını izler. Uçuş ve otel ayrıntıları açılabilir kalır; sık kullanılan
+dört keşif aksiyonu iki sütunlu kartlar, ikincil işlemler gruplanmış satırlar
+olarak sunulur.
+
+**Neden:** Koyu ilk açılış ve yoğun, küçültülmüş menü özellikle küçük ekranda
+okunabilirliği ve görev bulmayı zayıflatıyordu. Aydınlık başlangıç daha nötr
+bir ilk izlenim verir; kaydırmalı bölüm yapısı ise dokunma alanlarını küçültmeden
+bilgi yoğunluğunu yönetir.
+
+**Trade-off:** Menü ilk ekranda bütün işlemleri aynı anda göstermez; alt
+bölümler için kaydırma gerekir. Buna karşılık temel yolculuk özeti ve dört sık
+aksiyon ilk görünümde kalır, diğer işlemler anlamlı gruplarla bulunabilir olur.

@@ -287,6 +287,24 @@ void main() {
     expect(find.text('Sakura Yumuşak'), findsOneWidget);
   });
 
+  testWidgets('hamburger menüsü dört net bölüm ve kaydırma sunar',
+      (tester) async {
+    await tester.pumpWidget(harness(_sampleTrip()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+
+    expect(find.text('YOLCULUK'), findsOneWidget);
+    expect(find.text('KEŞFET'), findsOneWidget);
+    expect(find.text('ARAÇLAR'), findsOneWidget);
+    expect(find.text('HESAP'), findsOneWidget);
+    expect(find.byType(SingleChildScrollView), findsWidgets);
+    expect(find.byIcon(Icons.map_outlined), findsWidgets);
+    expect(find.byIcon(Icons.palette_outlined), findsOneWidget);
+  });
+
   testWidgets('uçuş satırı boş şehir+havaalanı ile "—" gösterir',
       (tester) async {
     final now = DateTime.now();

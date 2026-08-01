@@ -2814,8 +2814,14 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Something went wrong while signing in. Please try again.',
   },
   'drawer.brand': {AppLang.tr: 'Rotori', AppLang.en: 'Rotori'},
+  'drawer.tagline': {
+    AppLang.tr: 'Sürpriz yok, plan var.',
+    AppLang.en: 'No surprises, just a plan.',
+  },
+  'drawer.section.trip': {AppLang.tr: 'YOLCULUK', AppLang.en: 'TRIP'},
   'drawer.section.discover': {AppLang.tr: 'KEŞFET', AppLang.en: 'DISCOVER'},
   'drawer.section.tools': {AppLang.tr: 'ARAÇLAR', AppLang.en: 'TOOLS'},
+  'drawer.section.account': {AppLang.tr: 'HESAP', AppLang.en: 'ACCOUNT'},
   'drawer.flights.count': {
     AppLang.tr: '{n} uçuş',
     AppLang.en: '{n} flights',

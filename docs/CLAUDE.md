@@ -91,7 +91,7 @@ mobile/lib/
 ├─ main.dart               # gerçek app entry (Supabase init, DevicePreview)
 ├─ preview_main.dart       # QA/tasarım preview entry (auth-less)
 ├─ env.dart                # --dart-define-from-file=env.json köprüsü
-├─ theme.dart              # AppTheme.dark, japanDark #0A0A0F + pembe→mor
+├─ theme.dart              # AppTheme.light varsayılan; dark alternatifi
 ├─ core/                   # l10n, router, supabase_client
 ├─ data/                   # store'lar, ticket_ocr, language_store, ...
 ├─ domain/                 # pure Dart iş kuralları — Flutter yok; route matrix
@@ -119,6 +119,8 @@ mobile/lib/
    (OCR, bildirim, tile cache, home widget). Ana geliştirme mobil.
 5. **Marka dili tek yerden.** Metinler `l10n.dart` / `LText`, renk `theme.dart`,
    ikon set `lucide_icons_flutter` — emoji sadece bilinçli semantik yerlerde.
+6. **Yeni kurulum aydınlık başlar.** Uygulama kabuğu `AppTheme.light`, viewer
+   ise `appleLight` ile açılır; daha önce kaydedilmiş tema tercihi korunur.
 
 ## 7. Hata Yönetimi Felsefesi
 

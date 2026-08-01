@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../domain/route_matrix.dart';
 import 'route_matrix_cache.dart';
 import 'route_matrix_remote.dart';
@@ -208,6 +210,69 @@ class ResilientRouteMatrixRepository implements RouteMatrixRepository {
     );
   }
 }
+
+/// Backend ulaşılamadığında optimizasyonun tamamen kilitlenmesini önleyen,
+/// koordinat tabanlı ve deterministik son çare matrisi.
+///
+/// Bu bir harita sağlayıcısı sonucu değildir. Süreler özellikle
+/// `isEstimated=true` ile işaretlenir; gerçek veri geldiğinde controller bunu
+/// otomatik olarak tercih eder. Yine de optimizasyon motorunun sıralama,
+/// zaman çakışması ve sabit aktivite kurallarını çalıştırabilmesi için her
+/// yönü kapsayan güvenli bir maliyet sağlar.
+RouteMatrix buildCoordinateFallbackMatrix(List<TripLocation> locations) {
+  final entries = <RouteMatrixEntry>[];
+  for (final from in locations) {
+    for (final to in locations) {
+      if (from.id == to.id) continue;
+      final kilometres = _distanceKm(from, to);
+      final isShortWalk = kilometres <= 0.8;
+      final travelMinutes = isShortWalk
+          ? math.max(3, (kilometres * 14).ceil())
+          : math.max(8, (kilometres * 4.2).ceil() + 8);
+      final walkingMinutes = isShortWalk
+          ? travelMinutes
+          : math.min(25, math.max(5, (kilometres * 1.4).ceil()));
+      entries.add(
+        RouteMatrixEntry(
+          fromLocationId: from.id,
+          toLocationId: to.id,
+          options: [
+            TransportOption(
+              mode: isShortWalk ? TransportMode.walking : TransportMode.train,
+              doorToDoorMinutes: travelMinutes,
+              walkingMinutes: walkingMinutes,
+              waitingMinutes: isShortWalk ? 0 : 5,
+              transferCount: isShortWalk ? 0 : 1,
+              estimatedCostYen: isShortWalk ? 0 : 180,
+              reliabilityScore: 0.35,
+              isEstimated: true,
+            ),
+          ],
+        ),
+      );
+    }
+  }
+  return RouteMatrix(
+    entries: entries,
+    version: 'coordinate-estimate-v1',
+  );
+}
+
+double _distanceKm(TripLocation from, TripLocation to) {
+  const earthRadiusKm = 6371.0;
+  final latitudeDelta = _radians(to.latitude - from.latitude);
+  final longitudeDelta = _radians(to.longitude - from.longitude);
+  final fromLatitude = _radians(from.latitude);
+  final toLatitude = _radians(to.latitude);
+  final haversine = math.pow(math.sin(latitudeDelta / 2), 2) +
+      math.cos(fromLatitude) *
+          math.cos(toLatitude) *
+          math.pow(math.sin(longitudeDelta / 2), 2);
+  final arc = 2 * math.atan2(math.sqrt(haversine), math.sqrt(1 - haversine));
+  return earthRadiusKm * arc;
+}
+
+double _radians(double degrees) => degrees * math.pi / 180;
 
 Future<RouteMatrix?> _tryRepository(
   RouteMatrixRepository repository,

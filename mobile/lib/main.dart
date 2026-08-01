@@ -50,7 +50,7 @@ class JapanTripApp extends ConsumerWidget {
       lang: lang,
       child: MaterialApp.router(
         title: 'Rotori',
-        theme: AppTheme.dark,
+        theme: AppTheme.light,
         routerConfig: router,
         debugShowCheckedModeBanner: false,
         locale: DevicePreview.locale(context) ?? Locale(lang.code),
@@ -73,7 +73,7 @@ class _MissingEnvApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: AppTheme.dark,
+      theme: AppTheme.light,
       home: Scaffold(
         body: Center(
           child: Padding(

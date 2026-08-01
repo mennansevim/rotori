@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:japan_trip/data/route_matrix_remote.dart';
 import 'package:japan_trip/domain/itinerary_optimizer.dart';
 import 'package:japan_trip/domain/route_matrix.dart';
 import 'package:japan_trip/domain/types.dart';
@@ -113,6 +114,76 @@ void main() {
     );
     expect(repository.callCount, 0);
   });
+
+  test('rota backend yokken koordinat tahminiyle önizleme üretir', () async {
+    final container = ProviderContainer(
+      overrides: [
+        routeMatrixRepositoryProvider
+            .overrideWithValue(_UnavailableRepository()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(planOptimizationControllerProvider.notifier)
+        .optimizeDay(_input(hotel));
+
+    final preview =
+        container.read(planOptimizationControllerProvider).valueOrNull;
+    expect(preview, isNotNull);
+    expect(preview!.after.isComplete, isTrue);
+    expect(preview.result.activities.map((activity) => activity.activityId),
+        containsAll(<String>['a', 'b']));
+    expect(preview.result.legs.every((leg) => leg.isEstimated), isTrue);
+  });
+
+  test('tahmini optimizasyon sabit aktivitenin saatini değiştirmez', () async {
+    final container = ProviderContainer(
+      overrides: [
+        routeMatrixRepositoryProvider
+            .overrideWithValue(_UnavailableRepository()),
+      ],
+    );
+    addTearDown(container.dispose);
+    final input = _input(hotel);
+    final fixed = input.trip.days.single.items.first;
+    fixed
+      ..time = '14:00'
+      ..scheduledTime = '14:00'
+      ..fixedStartTime = '14:00'
+      ..fixedEndTime = '15:00'
+      ..canChangeTime = false
+      ..canReorder = false;
+
+    await container
+        .read(planOptimizationControllerProvider.notifier)
+        .optimizeDay(input);
+
+    final preview =
+        container.read(planOptimizationControllerProvider).valueOrNull;
+    expect(preview, isNotNull);
+    final optimizedFixed = preview!.optimizedTrip.days.single.items
+        .firstWhere((item) => item.id == fixed.id);
+    expect(optimizedFixed.time, '14:00');
+    expect(optimizedFixed.scheduledTime, '14:00');
+    expect(optimizedFixed.fixedStartTime, '14:00');
+    expect(optimizedFixed.fixedEndTime, '15:00');
+  });
+}
+
+class _UnavailableRepository implements RouteMatrixRepository {
+  @override
+  Future<RouteMatrix> getRouteMatrix({
+    required List<TripLocation> locations,
+    required DateTime day,
+    required RoutePreferences preferences,
+  }) {
+    throw const RouteMatrixFailure(
+      kind: RouteMatrixFailureKind.unavailable,
+      message: 'test backend unavailable',
+      retryable: false,
+    );
+  }
 }
 
 DayOptimizationInput _input(TripLocation hotel) {

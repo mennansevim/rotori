@@ -233,11 +233,19 @@ class PlanOptimizationController
       for (final activity in activities)
         activity.location.id: activity.location,
     }.values.toList(growable: false);
-    final matrix = await ref.read(routeMatrixRepositoryProvider).getRouteMatrix(
-          locations: locations,
-          day: dayDate,
-          preferences: input.preferences,
-        );
+    RouteMatrix matrix;
+    try {
+      matrix = await ref.read(routeMatrixRepositoryProvider).getRouteMatrix(
+            locations: locations,
+            day: dayDate,
+            preferences: input.preferences,
+          );
+    } on Object {
+      // Rota servisi kapalıyken kullanıcıya boş bir önizleme göstermek yerine
+      // mevcut koordinatlardan güvenli bir tahmin üret. Gerçek backend tekrar
+      // çalıştığında bir sonraki optimizasyonda otomatik olarak kullanılır.
+      matrix = buildCoordinateFallbackMatrix(locations);
+    }
     final cacheKey = _cacheKey(input, day, matrix.version);
     final previewCache = ref.read(planOptimizationPreviewCacheProvider);
     final cached = previewCache.get(cacheKey);

@@ -3,28 +3,34 @@
 > Bu dosya *bugünkü* çalışmanın canlı görünümüdür. Her tamamlanan görevden
 > hemen sonra güncellenir.
 
-**Bugünün tarihi:** 2026-07-30
+**Bugünün tarihi:** 2026-08-01
 **Aktif branch:** `main`
-**Sprint hedefi:** Mobil planlama motorunu gerçek rota verisini tüketebilen,
-düşük maliyetli ve deterministik bir Japonya güzergâh optimizasyon katmanıyla
-genişletmek.
+**Sprint hedefi:** Mobil uygulamanın ilk açılış temasını aydınlık moda taşıyıp
+viewer hamburger menüsünü daha sade, dengeli ve erişilebilir bir navigasyon
+yüzeyi olarak yeniden tasarlamak.
 
 ---
 
 ## Aktif Hedef
 
-Mevcut `PlanScheduleEngine` sözleşmesini bozmadan günlük aktiviteleri gerçek
-kapıdan kapıya ulaşım seçenekleriyle değerlendiren deterministik rota
-optimizasyonunun ilk sürümünü kurmak. Kapsam: yönlü rota matrisi abstraction'ı,
-fake repository, beam search + local improvement, sabit aktivite/zaman
-penceresi kuralları, geri dönüş ve aktarma maliyetleri, Balanced/Fastest/
-Least Walking/Cheapest profilleri, cache ve Riverpod üzerinden ön izleme/onay.
-AI rota hesaplamaz; yalnızca açık politika izin verirse isteğe bağlı açıklama
-katmanı olarak modellenir. Gün kartındaki görünür ön izleme/onay akışı da
-tamamlandı; tam paket **418/418** başarılı, `flutter analyze` temiz.
+Tamamlandı. Tema tercihi olmayan yeni kurulumlar uygulama kabuğunda ve
+viewer'da aydınlık başlıyor; daha önce kaydedilmiş tema tercihi korunuyor.
+Viewer hamburger menüsü Yolculuk, Keşfet, Araçlar ve Hesap bölümleriyle gerçek
+kaydırmalı bir yapıya taşındı. Uçuş/otel ayrıntıları açılabilir, hızlı
+aksiyonlar iki sütunlu ve ayar satırları en az 48 px dokunma alanlıdır.
+`flutter analyze` temiz; tema varsayılanı, kayıtlı koyu tercih, yeni menü
+hiyerarşisi, tema seçici ve uçuş özeti hedefli testleri başarılıdır.
 
 ## Tamamlananlar (bu ve önceki oturumlardan)
 
+- ✅ **2026-08-01** Uygulama kabuğu `AppTheme.light`, viewer yeni kurulum
+  varsayılanı `appleLight` oldu; kaydedilmiş `viewer:theme` tercihi korunuyor.
+- ✅ **2026-08-01** Hamburger menüsü küçülten `FittedBox` yapısından çıkarılıp
+  Yolculuk/Keşfet/Araçlar/Hesap hiyerarşisi, iki sütunlu hızlı aksiyonlar,
+  gruplanmış ayar satırları ve gerçek küçük-ekran kaydırmasıyla yenilendi.
+- ✅ **2026-08-01** TR/EN menü anahtarları ve tema/menu regresyonları eklendi;
+  `flutter analyze` temiz, hedefli tema ve drawer testleri başarılı. Çalışan
+  Chrome Flutter oturumu hot restart ile güncellendi.
 - ✅ **2026-07-22** Marka ismi Rotori olarak rebrand + sitede/uygulamada
   tutarlı hale getirildi (`360e5ae`).
 - ✅ **2026-07-29** Mobil planner/viewer refaktörü ve site cilası commit edilip

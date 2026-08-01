@@ -1,6 +1,6 @@
 // Viewer tema sistemi — React viewer'ın `data-theme` üç temasının 1:1 portu.
 //
-// - `ViewerThemeId`: japanDark (varsayılan), appleLight, sakuraSoft.
+// - `ViewerThemeId`: japanDark, appleLight (varsayılan), sakuraSoft.
 // - `ViewerPalette`: her temanın renk token'ları (React styles.css ile birebir).
 //   Ayrıca `toThemeData()` ile Material3 ThemeData üretir; böylece alt widget'lar
 //   (place_detail_sheet, RewardMapScreen) `Theme.of(context)` üzerinden uyumlanır.
@@ -33,9 +33,10 @@ extension ViewerThemeIdX on ViewerThemeId {
       };
 
   static ViewerThemeId fromStorage(String? raw) => switch (raw) {
+        'japan-dark' => ViewerThemeId.japanDark,
         'apple-light' => ViewerThemeId.appleLight,
         'sakura-soft' => ViewerThemeId.sakuraSoft,
-        _ => ViewerThemeId.japanDark,
+        _ => ViewerThemeId.appleLight,
       };
 }
 
@@ -188,7 +189,7 @@ class ViewerPalette {
   static ViewerPalette of(BuildContext context) {
     final scope =
         context.dependOnInheritedWidgetOfExactType<ViewerPaletteScope>();
-    return scope?.palette ?? japanDark;
+    return scope?.palette ?? appleLight;
   }
 
   /// Alt widget'ların (place_detail_sheet, RewardMapScreen) uyumlanması için
@@ -254,7 +255,7 @@ class ViewerPaletteScope extends InheritedWidget {
 // ---------------------------------------------------------------------------
 
 class ViewerThemeNotifier extends StateNotifier<ViewerThemeId> {
-  ViewerThemeNotifier(this._ref) : super(ViewerThemeId.japanDark) {
+  ViewerThemeNotifier(this._ref) : super(ViewerThemeId.appleLight) {
     _load();
   }
 

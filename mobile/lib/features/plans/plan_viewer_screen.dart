@@ -5693,121 +5693,134 @@ class _ViewerDrawer extends ConsumerWidget {
       backgroundColor: p.bg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
-          topRight: Radius.circular(20),
-          bottomRight: Radius.circular(20),
+          topRight: Radius.circular(28),
+          bottomRight: Radius.circular(28),
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _DrawerHero(palette: p),
+          _DrawerHero(palette: p, tripTitle: trip.title),
           Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.topCenter,
-                  child: SizedBox(
-                    width: constraints.maxWidth,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _DrawerStaySummary(
-                            trip: trip,
-                            palette: p,
-                            dayCount: dayCount,
-                          ),
-                          const SizedBox(height: 10),
-                          _DrawerSectionLabel(
-                            label: s.s('drawer.section.discover'),
-                            palette: p,
-                          ),
-                          const SizedBox(height: 4),
-                          _DrawerActionGrid(
-                            actions: discoverActions,
-                            palette: p,
-                          ),
-                          const SizedBox(height: 8),
-                          _DrawerProfileCard(
-                            palette: p,
-                            avatarInitial: avatarInitial,
-                            title: isGuest ? role : (email ?? role),
-                            subtitle: isGuest ? null : role,
-                          ),
-                          const SizedBox(height: 2),
-                          _DrawerNavTile(
-                            palette: p,
-                            icon: Icons.list_alt_rounded,
-                            label: s.s('drawer.nav.plans'),
-                            onTap: () {
-                              Navigator.of(context).pop();
-                              context.go('/plans');
-                            },
-                          ),
-                          _DrawerNavTile(
-                            palette: p,
-                            icon: Icons.notifications_none_rounded,
-                            label: s.s('drawer.nav.reminders'),
-                            onTap: () {
-                              Navigator.of(context).pop();
-                              context.push('/reminders');
-                            },
-                          ),
-                          _DrawerNavTile(
-                            palette: p,
-                            icon: Icons.palette_outlined,
-                            label: s.s('viewer.tt.theme'),
-                            onTap: () {
-                              Navigator.of(context).pop();
-                              onOpenThemePicker();
-                            },
-                          ),
-                          _DrawerNavTile(
-                            palette: p,
-                            icon: Icons.travel_explore,
-                            label: s.s('map.openInGoogleMaps'),
-                            onTap: () {
-                              Navigator.of(context).pop();
-                              onOpenTripInGoogleMaps();
-                            },
-                          ),
-                          _DrawerNavTile(
-                            palette: p,
-                            icon: Icons.bug_report_outlined,
-                            label: s.s('bugReport.menu'),
-                            onTap: () {
-                              Navigator.of(context).pop();
-                              onReportBug();
-                            },
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 2),
-                            child: Divider(color: p.border, height: 1),
-                          ),
-                          _DrawerNavTile(
-                            palette: p,
-                            icon: Icons.logout_rounded,
-                            label: s.s('drawer.signout'),
-                            destructive: true,
-                            onTap: () async {
-                              Navigator.of(context).pop();
-                              try {
-                                await ref
-                                    .read(authRepositoryProvider)
-                                    .signOut();
-                              } catch (_) {
-                                // Preview / Supabase yok — sessizce yut.
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _DrawerSectionLabel(
+                    label: s.s('drawer.section.trip'),
+                    palette: p,
                   ),
-                );
-              },
+                  const SizedBox(height: 8),
+                  _DrawerStaySummary(
+                    trip: trip,
+                    palette: p,
+                    dayCount: dayCount,
+                  ),
+                  const SizedBox(height: 10),
+                  _DrawerFlightsMini(trip: trip, palette: p),
+                  const SizedBox(height: 8),
+                  _DrawerHotelsMini(trip: trip, palette: p),
+                  const SizedBox(height: 22),
+                  _DrawerSectionLabel(
+                    label: s.s('drawer.section.discover'),
+                    palette: p,
+                  ),
+                  const SizedBox(height: 8),
+                  _DrawerActionGrid(
+                    actions: discoverActions,
+                    palette: p,
+                  ),
+                  const SizedBox(height: 22),
+                  _DrawerSectionLabel(
+                    label: s.s('drawer.section.tools'),
+                    palette: p,
+                  ),
+                  const SizedBox(height: 8),
+                  _DrawerNavGroup(
+                    palette: p,
+                    children: [
+                      _DrawerNavTile(
+                        palette: p,
+                        icon: Icons.notifications_none_rounded,
+                        label: s.s('drawer.nav.reminders'),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          context.push('/reminders');
+                        },
+                      ),
+                      _DrawerNavTile(
+                        palette: p,
+                        icon: Icons.palette_outlined,
+                        label: s.s('viewer.tt.theme'),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          onOpenThemePicker();
+                        },
+                      ),
+                      _DrawerNavTile(
+                        palette: p,
+                        icon: Icons.travel_explore,
+                        label: s.s('map.openInGoogleMaps'),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          onOpenTripInGoogleMaps();
+                        },
+                      ),
+                      _DrawerNavTile(
+                        palette: p,
+                        icon: Icons.bug_report_outlined,
+                        label: s.s('bugReport.menu'),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          onReportBug();
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 22),
+                  _DrawerSectionLabel(
+                    label: s.s('drawer.section.account'),
+                    palette: p,
+                  ),
+                  const SizedBox(height: 8),
+                  _DrawerProfileCard(
+                    palette: p,
+                    avatarInitial: avatarInitial,
+                    title: isGuest ? role : email,
+                    subtitle: isGuest ? null : role,
+                  ),
+                  const SizedBox(height: 8),
+                  _DrawerNavGroup(
+                    palette: p,
+                    children: [
+                      _DrawerNavTile(
+                        palette: p,
+                        icon: Icons.list_alt_rounded,
+                        label: s.s('drawer.nav.plans'),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          context.go('/plans');
+                        },
+                      ),
+                      _DrawerNavTile(
+                        palette: p,
+                        icon: Icons.logout_rounded,
+                        label: s.s('drawer.signout'),
+                        destructive: true,
+                        onTap: () async {
+                          Navigator.of(context).pop();
+                          try {
+                            await ref.read(authRepositoryProvider).signOut();
+                          } catch (_) {
+                            // Preview / Supabase yok — sessizce yut.
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -5816,9 +5829,8 @@ class _ViewerDrawer extends ConsumerWidget {
   }
 }
 
-/// Referanstaki drawer özeti: konaklama başlığı, otel sayısı ve üç hızlı
-/// metrik. Detaylar dokununca açılır; ilk bakışta menüyü kalabalıklaştırmaz.
-class _DrawerStaySummary extends StatefulWidget {
+/// Yolculuk adı ve en önemli üç metriği tek bakışta gösterir.
+class _DrawerStaySummary extends StatelessWidget {
   const _DrawerStaySummary({
     required this.trip,
     required this.palette,
@@ -5829,16 +5841,9 @@ class _DrawerStaySummary extends StatefulWidget {
   final ViewerPalette palette;
   final int dayCount;
 
-  @override
-  State<_DrawerStaySummary> createState() => _DrawerStaySummaryState();
-}
-
-class _DrawerStaySummaryState extends State<_DrawerStaySummary> {
-  bool _expanded = false;
-
   int get _hotelNights {
     var nights = 0;
-    for (final hotel in widget.trip.hotels) {
+    for (final hotel in trip.hotels) {
       final checkIn = DateTime.tryParse(hotel.checkIn);
       final checkOut = DateTime.tryParse(hotel.checkOut);
       if (checkIn != null && checkOut != null) {
@@ -5850,9 +5855,8 @@ class _DrawerStaySummaryState extends State<_DrawerStaySummary> {
 
   @override
   Widget build(BuildContext context) {
-    final p = widget.palette;
+    final p = palette;
     final s = LanguageScope.of(context);
-    final hotels = widget.trip.hotels;
     final metrics = [
       (
         Icons.nights_stay_outlined,
@@ -5862,88 +5866,69 @@ class _DrawerStaySummaryState extends State<_DrawerStaySummary> {
       ),
       (
         Icons.location_on_outlined,
-        '${widget.trip.preferences.destinations.length}',
+        '${trip.preferences.destinations.length}',
         s.s('viewer.metric.cities'),
         p.accent
       ),
       (
         Icons.calendar_month_outlined,
-        '${widget.dayCount}',
+        '$dayCount',
         s.s('viewer.metric.days'),
         p.sakura
       ),
     ];
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
+    return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
         color: p.card,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: p.border),
-        boxShadow: [
-          BoxShadow(
-            color: p.fuji.withValues(
-                alpha: p.brightness == Brightness.light ? .08 : .16),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
       ),
       child: Column(
         children: [
-          InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: () => setState(() => _expanded = !_expanded),
-            child: Row(
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: p.fuji.withValues(alpha: .10),
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(Icons.bed_outlined, color: p.fuji, size: 21),
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: p.fuji.withValues(alpha: .10),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    s.s('viewer.hotels').replaceAll('🏨 ', ''),
-                    style: TextStyle(
-                      color: p.textPrimary,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                    ),
+                alignment: Alignment.center,
+                child: Icon(Icons.route_rounded, color: p.fuji, size: 21),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  trip.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: p.textPrimary,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: p.sakura.withValues(alpha: .12),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    hotels.isEmpty
-                        ? s.s('drawer.hotels.empty')
-                        : s.p('drawer.hotels.count', {'n': '${hotels.length}'}),
-                    style: TextStyle(
-                      color: p.sakura,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: p.sakura.withValues(alpha: .12),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '$dayCount ${s.s('viewer.metric.days')}',
+                  style: TextStyle(
+                    color: p.sakura,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(width: 6),
-                AnimatedRotation(
-                  turns: _expanded ? .5 : 0,
-                  duration: const Duration(milliseconds: 200),
-                  child: Icon(Icons.expand_more, color: p.textMuted),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           Row(
@@ -5952,13 +5937,13 @@ class _DrawerStaySummaryState extends State<_DrawerStaySummary> {
                 Expanded(
                   child: Column(
                     children: [
-                      Icon(metrics[i].$1, color: metrics[i].$4, size: 22),
+                      Icon(metrics[i].$1, color: metrics[i].$4, size: 19),
                       const SizedBox(height: 6),
                       Text(
                         metrics[i].$2,
                         style: TextStyle(
                           color: p.textPrimary,
-                          fontSize: 22,
+                          fontSize: 20,
                           fontWeight: FontWeight.w800,
                           height: 1,
                         ),
@@ -5975,34 +5960,6 @@ class _DrawerStaySummaryState extends State<_DrawerStaySummary> {
                   Container(width: 1, height: 54, color: p.border),
               ],
             ],
-          ),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 220),
-            child: _expanded && hotels.isNotEmpty
-                ? Padding(
-                    padding: const EdgeInsets.only(top: 14),
-                    child: Column(
-                      children: [
-                        for (final hotel in hotels)
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Padding(
-                              padding: const EdgeInsets.only(bottom: 6),
-                              child: Text(
-                                '${hotel.name} · ${hotel.city}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: p.textSecondary,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  )
-                : const SizedBox.shrink(),
           ),
         ],
       ),
@@ -6085,7 +6042,6 @@ class _DrawerProfileCard extends StatelessWidget {
               ],
             ),
           ),
-          Icon(Icons.chevron_right_rounded, color: p.textMuted),
         ],
       ),
     );
@@ -6125,105 +6081,71 @@ class _DrawerBrandMark extends StatelessWidget {
   }
 }
 
-/// Drawer'ın üst kısmı — Japon ezgili gradient, küçük marka rozeti ve ferah
-/// Apple düzeni. İçeriği sıkıştırmadan drawer'ın ilk bakışını sade tutar.
+/// Drawer'ın üst kısmı — marka, aktif gezi ve kapatma aksiyonu.
 class _DrawerHero extends StatelessWidget {
-  const _DrawerHero({required this.palette});
+  const _DrawerHero({required this.palette, required this.tripTitle});
   final ViewerPalette palette;
+  final String tripTitle;
 
   @override
   Widget build(BuildContext context) {
     final p = palette;
-    return SafeArea(
-      top: false,
-      bottom: false,
-      child: SizedBox(
-        height: 166,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.asset(
-              'assets/images/hamb-menu-top-bg.png',
-              fit: BoxFit.cover,
-              alignment: Alignment.center,
-            ),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.white.withValues(alpha: .08),
-                    p.card.withValues(alpha: .72),
-                  ],
-                  stops: const [.30, 1],
-                ),
-              ),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: -1,
-              height: 52,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      p.card.withValues(alpha: 0.0),
-                      p.card,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              left: 20,
-              right: 16,
-              top: 14,
-              child: Row(
-                children: [
-                  _DrawerBrandMark(palette: p, size: 50),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          LanguageScope.of(context).s('drawer.brand'),
-                          style: TextStyle(
-                            color: p.textPrimary,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -1,
-                          ),
-                        ),
-                        Text(
-                          '旅 · sade bir Japonya yolculuğu',
-                          style: TextStyle(
-                            color: p.textSecondary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Material(
-                    color: p.card.withValues(alpha: .82),
-                    shape: const CircleBorder(),
-                    child: IconButton(
-                      icon: Icon(Icons.close, color: p.textPrimary),
-                      onPressed: () => Navigator.of(context).pop(),
-                      tooltip:
-                          MaterialLocalizations.of(context).closeButtonTooltip,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+    final s = LanguageScope.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            p.fuji.withValues(alpha: .16),
+            p.sakura.withValues(alpha: .10),
+            p.bg,
           ],
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 14, 12, 16),
+          child: Row(
+            children: [
+              _DrawerBrandMark(palette: p, size: 46),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      s.s('drawer.brand'),
+                      style: TextStyle(
+                        color: p.textPrimary,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -.6,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      tripTitle.isEmpty ? s.s('drawer.tagline') : tripTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: p.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.close_rounded, color: p.textPrimary),
+                onPressed: () => Navigator.of(context).pop(),
+                tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -6253,7 +6175,42 @@ class _DrawerSectionLabel extends StatelessWidget {
   }
 }
 
-/// Drawer nav satırı — hafif hover, destructive için kırmızımsı ton.
+/// İlgili drawer satırlarını tek bir kartta gruplar.
+class _DrawerNavGroup extends StatelessWidget {
+  const _DrawerNavGroup({
+    required this.palette,
+    required this.children,
+  });
+
+  final ViewerPalette palette;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: palette.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: palette.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (var i = 0; i < children.length; i++) ...[
+            children[i],
+            if (i < children.length - 1)
+              Padding(
+                padding: const EdgeInsets.only(left: 52),
+                child: Divider(color: palette.border, height: 1),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Drawer nav satırı — en az 48 px dokunma alanı ve belirgin yön işareti.
 class _DrawerNavTile extends StatelessWidget {
   const _DrawerNavTile({
     required this.palette,
@@ -6272,20 +6229,27 @@ class _DrawerNavTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = palette;
     final Color color = destructive ? p.sunset : p.textPrimary;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 50),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
             child: Row(
               children: [
-                Icon(icon, size: 19, color: color),
-                const SizedBox(width: 14),
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: .09),
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(icon, size: 17, color: color),
+                ),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     label,
@@ -6297,6 +6261,12 @@ class _DrawerNavTile extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (!destructive)
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 19,
+                    color: p.textMuted,
+                  ),
               ],
             ),
           ),
@@ -6934,8 +6904,7 @@ class _DrawerActionSpec {
   final VoidCallback onTap;
 }
 
-/// Drawer içi keşif grid'i — referanstaki gibi yuvarlak ikon rozeti ve altında
-/// tek satırlık etiket.
+/// Drawer içi keşif grid'i — iki sütunda, rahat dokunulan hızlı aksiyonlar.
 class _DrawerActionGrid extends StatelessWidget {
   const _DrawerActionGrid({required this.actions, required this.palette});
   final List<_DrawerActionSpec> actions;
@@ -6946,8 +6915,8 @@ class _DrawerActionGrid extends StatelessWidget {
     final p = palette;
     return LayoutBuilder(
       builder: (_, c) {
-        const cols = 4;
-        const spacing = 8.0;
+        const cols = 2;
+        const spacing = 10.0;
         final w = (c.maxWidth - spacing * (cols - 1)) / cols;
         return Wrap(
           spacing: spacing,
@@ -6956,42 +6925,53 @@ class _DrawerActionGrid extends StatelessWidget {
             for (final a in actions)
               SizedBox(
                 width: w,
-                height: 64,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(14),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    a.onTap();
-                  },
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: p.accent.withValues(alpha: 0.12),
-                          border: Border.all(
-                            color: p.accent.withValues(alpha: 0.18),
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: Icon(a.icon, size: 20, color: p.accent),
+                height: 68,
+                child: Material(
+                  color: p.card,
+                  borderRadius: BorderRadius.circular(15),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      a.onTap();
+                    },
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: p.border),
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        a.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: p.textPrimary,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w600,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 11),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: p.accent.withValues(alpha: .10),
+                                borderRadius: BorderRadius.circular(11),
+                              ),
+                              alignment: Alignment.center,
+                              child: Icon(a.icon, size: 19, color: p.accent),
+                            ),
+                            const SizedBox(width: 9),
+                            Expanded(
+                              child: Text(
+                                a.label,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: p.textPrimary,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.12,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
