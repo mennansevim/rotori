@@ -339,7 +339,6 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
         onOpenBudget: _openBudget,
         onOpenPrep: _openPrep,
         onOpenWeather: _openWeather,
-        onOpenTripInGoogleMaps: _openTripInGoogleMaps,
         onReportBug: () => _openBugReport(trip),
       ),
       body: SafeArea(
@@ -1196,67 +1195,6 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
         ),
       ),
     );
-  }
-
-  /// Tüm planı Google Maps'te aç — her günün ilk konumlu durağı sırayla
-  /// bir waypoint olur. Sonuç: gezinin gün-gün kabaca rotası Google Maps
-  /// üzerinde açılır (ilk gün origin, son gün destination, aradakiler
-  /// waypoints). Detay pinler için day map ekranı kullanılır.
-  ///
-  /// Sınır: Google Maps `dir` URL'i en fazla 9 waypoint destekler. 11+
-  /// günlük gezilerde ilk 9 ara nokta kalır, kullanıcıya SnackBar ile
-  /// bildirim verilir.
-  Future<void> _openTripInGoogleMaps() async {
-    final tripStops = resolveTripStops(_trip);
-    final sortedDays = [..._trip.days]
-      ..sort((a, b) => a.date.compareTo(b.date));
-    final waypoints = <({double lat, double lng, String? label})>[];
-    for (final day in sortedDays) {
-      final stops = tripStops[day.dayNumber];
-      if (stops == null || stops.isEmpty) continue;
-      final first = stops.first;
-      waypoints.add(
-        (lat: first.lat, lng: first.lng, label: first.item.title),
-      );
-    }
-    final messenger = ScaffoldMessenger.of(context);
-    final s = LanguageScope.of(context);
-    if (waypoints.isEmpty) {
-      // Hiç konumlu durak yok — Japonya merkezini aç, kullanıcı Google
-      // Maps'te en azından ülke haritasını görsün.
-      final ok = await openGoogleMapsPoint(
-        lat: 36.2048,
-        lng: 138.2529,
-        label: 'Japan',
-      );
-      if (!mounted) return;
-      if (!ok) {
-        messenger.showSnackBar(SnackBar(content: Text(s.s('map.openFailed'))));
-      }
-      return;
-    }
-    if (waypoints.length == 1) {
-      final p = waypoints.first;
-      final ok = await openGoogleMapsPoint(
-        lat: p.lat,
-        lng: p.lng,
-        label: p.label,
-      );
-      if (!mounted) return;
-      if (!ok) {
-        messenger.showSnackBar(SnackBar(content: Text(s.s('map.openFailed'))));
-      }
-      return;
-    }
-    final res = await openGoogleMapsRoute(points: waypoints);
-    if (!mounted) return;
-    if (!res.launched) {
-      messenger.showSnackBar(SnackBar(content: Text(s.s('map.openFailed'))));
-    } else if (res.truncated) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(s.s('map.truncatedWaypoints'))),
-      );
-    }
   }
 
   /// "Mutlaka bilmeniz gerekenler" — seyahat tavsiyeleri sayfası.

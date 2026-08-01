@@ -199,6 +199,11 @@ class PlanOptimizationController
       final fixedStart = item.isFixed
           ? _onDay(dayDate, item.fixedStartTime ?? item.time)
           : null;
+      // Öğün kalemleri sabit değilse makul bir zaman penceresine bağlanır;
+      // böylece optimizasyon öğle yemeğini sabahın köründe (ör. 06:13)
+      // planlayamaz. Sabit öğünler kendi saatlerini korur.
+      final mealWindow =
+          item.isFixed ? null : _mealWindow(dayDate, item);
       return OptimizationActivity(
         id: item.id,
         name: item.title,
@@ -213,6 +218,9 @@ class PlanOptimizationController
         ),
         durationMinutes: duration,
         minimumDurationMinutes: duration,
+        openingTime: mealWindow?.open,
+        closingTime: mealWindow?.close,
+        preferredTime: mealWindow?.preferred,
         fixedStartTime: fixedStart,
         fixedEndTime: _onDay(dayDate, item.fixedEndTime),
         isFixed: item.isFixed,
@@ -368,6 +376,53 @@ int _durationFor(TimelineItem item) {
     TimelineItemKind.transport || TimelineItemKind.hotel => 30,
     _ => 90,
   };
+}
+
+/// Öğün kalemleri için makul bir zaman penceresi + tercih fazı döndürür.
+/// Optimizer bu pencereyi sert kısıt gibi kullanır: başlangıç açılışa çekilir,
+/// kapanışı aşan öğün elenir. Faz, kalemin optimizasyon-öncesi saatinden
+/// çıkarılır (şablon: 08:00 kahvaltı, 13:00 öğle, 19:00 akşam); saat yoksa
+/// öğle varsayılır. Öğün olmayan kalemler için null döner.
+({DateTime open, DateTime close, TimeOfDayPreference preferred})? _mealWindow(
+  DateTime dayDate,
+  TimelineItem item,
+) {
+  if (item.kind != TimelineItemKind.meal) return null;
+  final minutes = _minutesOf(item.time ?? item.scheduledTime);
+  DateTime at(int h, int m) =>
+      DateTime(dayDate.year, dayDate.month, dayDate.day, h, m);
+  // Kahvaltı — 10:30'dan önce planlanmış öğün.
+  if (minutes >= 0 && minutes < 10 * 60 + 30) {
+    return (
+      open: at(7, 0),
+      close: at(10, 30),
+      preferred: TimeOfDayPreference.morning,
+    );
+  }
+  // Akşam yemeği — 16:00 ve sonrası.
+  if (minutes >= 16 * 60) {
+    return (
+      open: at(17, 30),
+      close: at(21, 30),
+      preferred: TimeOfDayPreference.evening,
+    );
+  }
+  // Öğle yemeği — varsayılan.
+  return (
+    open: at(11, 30),
+    close: at(14, 30),
+    preferred: TimeOfDayPreference.afternoon,
+  );
+}
+
+int _minutesOf(String? value) {
+  if (value == null || value.isEmpty) return -1;
+  final parts = value.split(':');
+  if (parts.length != 2) return -1;
+  final hour = int.tryParse(parts[0]);
+  final minute = int.tryParse(parts[1]);
+  if (hour == null || minute == null) return -1;
+  return hour * 60 + minute;
 }
 
 DateTime? _onDay(DateTime day, String? value) {

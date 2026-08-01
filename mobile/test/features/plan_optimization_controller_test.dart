@@ -169,6 +169,39 @@ void main() {
     expect(optimizedFixed.fixedStartTime, '14:00');
     expect(optimizedFixed.fixedEndTime, '15:00');
   });
+
+  test('öğle yemeği erken başlayan günde bile öğlen penceresine planlanır',
+      () async {
+    final repository = FakeRouteMatrixRepository(_mealMatrix);
+    final container = ProviderContainer(
+      overrides: [
+        routeMatrixRepositoryProvider.overrideWithValue(repository),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(planOptimizationControllerProvider.notifier)
+        .optimizeDay(_mealInput(hotel));
+
+    final preview =
+        container.read(planOptimizationControllerProvider).valueOrNull;
+    expect(preview, isNotNull);
+    final lunch = preview!.optimizedTrip.days.single.items
+        .firstWhere((item) => item.id == 'lunch');
+    final minutes = _minutes(lunch.time);
+    // Öğle yemeği 11:30 açılış penceresine çekilmeli; sabahın köründe
+    // (06:xx) planlanmamalı.
+    expect(minutes, greaterThanOrEqualTo(11 * 60 + 30),
+        reason: 'öğle yemeği ${lunch.time} — çok erken planlandı');
+    expect(minutes, lessThanOrEqualTo(14 * 60 + 30));
+  });
+}
+
+int _minutes(String? hhmm) {
+  if (hhmm == null) return -1;
+  final parts = hhmm.split(':');
+  return int.parse(parts[0]) * 60 + int.parse(parts[1]);
 }
 
 class _UnavailableRepository implements RouteMatrixRepository {
@@ -238,6 +271,92 @@ DayOptimizationInput _input(TripLocation hotel) {
     ),
   );
 }
+
+DayOptimizationInput _mealInput(TripLocation hotel) {
+  final day = DateTime(2026, 9, 1);
+  return DayOptimizationInput(
+    trip: Trip(
+      id: 'trip-meal',
+      slug: 'trip-meal',
+      title: 'Nara',
+      timezone: 'Asia/Tokyo',
+      tripStart: '2026-09-01',
+      tripEnd: '2026-09-01',
+      flights: TripFlights(),
+      preferences: TripPreferences(
+        travelDates: TravelDates(start: '2026-09-01', end: '2026-09-01'),
+        pace: Pace.moderate,
+      ),
+      days: [
+        DayPlan(
+          dayNumber: 1,
+          date: '2026-09-01',
+          theme: 'Nara',
+          items: [
+            // Öğle yemeği coğrafi olarak en kuzeyde — düzeltme olmadan
+            // nearest-neighbor onu ilk sıraya alıp 06:xx'e planlardı.
+            TimelineItem(
+              id: 'lunch',
+              title: 'Öğle yemeği',
+              lat: 35.9,
+              lng: 139.5,
+              durationMin: 60,
+              kind: TimelineItemKind.meal,
+              time: '13:00',
+              scheduledTime: '13:00',
+            ),
+            TimelineItem(
+              id: 'spot1',
+              title: 'Isuien Bahçesi',
+              lat: 35.5,
+              lng: 139.5,
+              durationMin: 90,
+              kind: TimelineItemKind.activity,
+            ),
+            TimelineItem(
+              id: 'spot2',
+              title: 'Todai-ji',
+              lat: 35.2,
+              lng: 139.5,
+              durationMin: 90,
+              kind: TimelineItemKind.activity,
+            ),
+          ],
+        ),
+      ],
+    ),
+    dayNumber: 1,
+    planVersion: 1,
+    constraints: DayRouteConstraints(
+      startLocation: hotel,
+      endLocation: hotel,
+      // Gün 06:00'da başlar — gerçek uygulamadaki gibi.
+      availableStartTime: DateTime(day.year, day.month, day.day, 6),
+      availableEndTime: DateTime(day.year, day.month, day.day, 23),
+    ),
+  );
+}
+
+final _mealMatrix = RouteMatrix(
+  version: 'meal-matrix-v1',
+  entries: [
+    for (final pair in <List<String>>[
+      ['hotel', 'lunch'],
+      ['hotel', 'spot1'],
+      ['hotel', 'spot2'],
+      ['lunch', 'spot1'],
+      ['lunch', 'spot2'],
+      ['spot1', 'spot2'],
+      ['spot1', 'lunch'],
+      ['spot2', 'lunch'],
+      ['spot2', 'spot1'],
+      ['lunch', 'hotel'],
+      ['spot1', 'hotel'],
+      ['spot2', 'hotel'],
+    ])
+      _entry(pair[0], pair[1], 15),
+  ],
+);
 
 RouteMatrixEntry _entry(String from, String to, int minutes) {
   return RouteMatrixEntry(

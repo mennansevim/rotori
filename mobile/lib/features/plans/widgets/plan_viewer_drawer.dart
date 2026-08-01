@@ -19,7 +19,6 @@ class _ViewerDrawer extends ConsumerWidget {
     required this.onOpenBudget,
     required this.onOpenPrep,
     required this.onOpenWeather,
-    required this.onOpenTripInGoogleMaps,
     required this.onReportBug,
   });
   final ViewerPalette palette;
@@ -29,7 +28,6 @@ class _ViewerDrawer extends ConsumerWidget {
   final VoidCallback onOpenBudget;
   final VoidCallback onOpenPrep;
   final VoidCallback onOpenWeather;
-  final VoidCallback onOpenTripInGoogleMaps;
   final VoidCallback onReportBug;
 
   @override
@@ -120,29 +118,11 @@ class _ViewerDrawer extends ConsumerWidget {
                     children: [
                       _DrawerNavTile(
                         palette: p,
-                        icon: Icons.notifications_none_rounded,
-                        label: s.s('drawer.nav.reminders'),
-                        onTap: () {
-                          Navigator.of(context).pop();
-                          context.push('/reminders');
-                        },
-                      ),
-                      _DrawerNavTile(
-                        palette: p,
                         icon: Icons.palette_outlined,
                         label: s.s('viewer.tt.theme'),
                         onTap: () {
                           Navigator.of(context).pop();
                           onOpenThemePicker();
-                        },
-                      ),
-                      _DrawerNavTile(
-                        palette: p,
-                        icon: Icons.map_outlined,
-                        label: s.s('map.openInGoogleMaps'),
-                        onTap: () {
-                          Navigator.of(context).pop();
-                          onOpenTripInGoogleMaps();
                         },
                       ),
                     ],
