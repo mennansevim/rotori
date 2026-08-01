@@ -277,16 +277,6 @@ class _RewardMapBody extends StatelessWidget {
 
             const SizedBox(height: 8),
             _TrackingCard(controller: controller, palette: p),
-            const SizedBox(height: 24),
-
-            _SectionLabel(label: s.s('reward.badgesTitle'), palette: p),
-            const SizedBox(height: 4),
-            Text(
-              s.s('reward.badgesSubtitle'),
-              style: TextStyle(color: p.textMuted, fontSize: 12, height: 1.35),
-            ),
-            const SizedBox(height: 12),
-            _BadgeShelf(earned: stats.badgesEarned.toSet(), palette: p),
           ],
         );
       },
@@ -781,116 +771,6 @@ class _TrackingButton extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Aktivite rozetleri — pasif, sakin görünüm. Kazanılan renkli, kilitli soluk.
-// ---------------------------------------------------------------------------
-
-class _BadgeShelf extends StatelessWidget {
-  const _BadgeShelf({required this.earned, required this.palette});
-  final Set<String> earned;
-  final ViewerPalette palette;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = palette;
-    final s = LanguageScope.of(context);
-    return Column(
-      children: [
-        for (final b in kBadgeDefinitions)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: _BadgeRow(
-              badge: b,
-              unlocked: earned.contains(b.id),
-              palette: p,
-              s: s,
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _BadgeRow extends StatelessWidget {
-  const _BadgeRow({
-    required this.badge,
-    required this.unlocked,
-    required this.palette,
-    required this.s,
-  });
-  final BadgeDefinition badge;
-  final bool unlocked;
-  final ViewerPalette palette;
-  final LanguageScope s;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = palette;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-      decoration: BoxDecoration(
-        color: unlocked ? p.card : p.card.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: unlocked ? p.gold.withValues(alpha: 0.28) : p.border,
-        ),
-      ),
-      child: Row(
-        children: [
-          Opacity(
-            opacity: unlocked ? 1 : 0.4,
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: (unlocked ? p.gold : p.textMuted).withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Text(badge.emoji, style: const TextStyle(fontSize: 18)),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  s.s(badge.title),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: unlocked ? p.textPrimary : p.textSecondary,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  unlocked ? s.s(badge.description) : s.s(badge.hint),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: p.textMuted,
-                    fontSize: 11.5,
-                    height: 1.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Icon(
-            unlocked ? Icons.check_circle : Icons.lock_outline_rounded,
-            size: 18,
-            color: unlocked ? p.matcha : p.textMuted.withValues(alpha: 0.6),
-          ),
-        ],
       ),
     );
   }
