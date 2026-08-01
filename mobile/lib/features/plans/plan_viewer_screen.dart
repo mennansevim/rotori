@@ -5767,15 +5767,6 @@ class _ViewerDrawer extends ConsumerWidget {
                           onOpenTripInGoogleMaps();
                         },
                       ),
-                      _DrawerNavTile(
-                        palette: p,
-                        icon: Icons.bug_report_outlined,
-                        label: s.s('bugReport.menu'),
-                        onTap: () {
-                          Navigator.of(context).pop();
-                          onReportBug();
-                        },
-                      ),
                     ],
                   ),
                   const SizedBox(height: 22),
@@ -5801,6 +5792,15 @@ class _ViewerDrawer extends ConsumerWidget {
                         onTap: () {
                           Navigator.of(context).pop();
                           context.go('/plans');
+                        },
+                      ),
+                      _DrawerNavTile(
+                        palette: p,
+                        icon: Icons.bug_report_outlined,
+                        label: s.s('bugReport.menu'),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          onReportBug();
                         },
                       ),
                       _DrawerNavTile(
