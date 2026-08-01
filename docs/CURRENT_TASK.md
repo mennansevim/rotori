@@ -23,6 +23,18 @@ hiyerarşisi, tema seçici ve uçuş özeti hedefli testleri başarılıdır.
 
 ## Tamamlananlar (bu ve önceki oturumlardan)
 
+- ✅ **2026-08-01** Boş uçuş/otel bölümleri pasif collapsible yerine
+  planlayıcının düzenleme adımına götüren dokunulabilir `_DrawerAddCard`
+  ile değiştirildi (`drawer.flights.add` / `drawer.hotels.add` / `drawer.add.hint`).
+- ✅ **2026-08-01** Panel bilgi hiyerarşisi sadeleştirildi: "Bug bildir"
+  ARAÇLAR'dan HESAP grubuna alındı; ARAÇLAR yalnızca sık kullanılan
+  Hatırlatmalar/Tema/Google Maps'i tutuyor.
+- ✅ **2026-08-01** `plan_viewer_screen.dart` 7125 → 5626 satıra indi: sandvich
+  drawer widget ailesi (~1500 satır) davranış birebir korunarak
+  `widgets/plan_viewer_drawer.dart` part dosyasına taşındı. `part of` ile
+  private erişim ve paylaşılan importlar aynen sürüyor; `flutter analyze`
+  temiz, test farkı yok (mevcut edit-mode/checklist hataları değişiklikten
+  önce de vardı).
 - ✅ **2026-08-01** Viewer hamburger (sandvich) paneli görsel olarak yenilendi:
   `assets/images/hamb-menu-top-bg.png` hero görseli `cover` + okunabilirlik
   scrim'i + palete akan alt gradyanla üst başlığa yerleştirildi; marka rozeti
@@ -205,6 +217,13 @@ hiyerarşisi, tema seçici ve uçuş özeti hedefli testleri başarılıdır.
   yapılandırması ($99/yıl Developer + Services ID) — `[[supabase-backend]]`.
 
 ## Bilinen Blocker'lar
+
+- **Önceden var olan widget testi hataları** (bu oturumdan bağımsız, baseline
+  `39ad0cb`'de de kırık): `test/features/viewer/plan_viewer_test.dart` edit-mode
+  senaryoları (⋮ menü, geri al, hedef gün boşluğu, kilitli aktivite) ve
+  `test/features/viewer/checklist_screen_test.dart` kategori render'ı. Drawer
+  görsel/refactor çalışması bunları ne bozdu ne düzeltti; ayrı bir görev olarak
+  ele alınmalı.
 
 - Native `integration_test` koşusu için bağlı iOS/Android cihaz veya emulator
   yok. Web integration runner desteklenmiyor; macOS desktop hedefi projede
