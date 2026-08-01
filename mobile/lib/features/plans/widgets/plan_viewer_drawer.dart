@@ -461,61 +461,65 @@ class _DrawerHero extends StatelessWidget {
               ),
             ),
           ),
-          // 3) İçerik — marka rozeti, başlık, kapatma.
+          // 3a) Üst şerit — marka rozeti solda, kapatma sağda.
           Positioned(
+            top: topInset + 10,
             left: 18,
             right: 10,
-            bottom: 14,
             child: Row(
               children: [
                 _DrawerBrandMark(palette: p, size: 46),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        s.s('drawer.brand'),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -.6,
-                          shadows: [
-                            Shadow(
-                              color: Color(0x66000000),
-                              blurRadius: 8,
-                              offset: Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        tripTitle.isEmpty ? s.s('drawer.tagline') : tripTitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: .92),
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600,
-                          shadows: const [
-                            Shadow(
-                              color: Color(0x59000000),
-                              blurRadius: 6,
-                              offset: Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                const Spacer(),
                 _DrawerHeroCloseButton(
                   onTap: () => Navigator.of(context).pop(),
                   tooltip:
                       MaterialLocalizations.of(context).closeButtonTooltip,
+                ),
+              ],
+            ),
+          ),
+          // 3b) Alt şerit — marka adı ve gezi başlığı.
+          Positioned(
+            left: 18,
+            right: 18,
+            bottom: 14,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  s.s('drawer.brand'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -.6,
+                    shadows: [
+                      Shadow(
+                        color: Color(0x66000000),
+                        blurRadius: 8,
+                        offset: Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  tripTitle.isEmpty ? s.s('drawer.tagline') : tripTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .92),
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    shadows: const [
+                      Shadow(
+                        color: Color(0x59000000),
+                        blurRadius: 6,
+                        offset: Offset(0, 1),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
