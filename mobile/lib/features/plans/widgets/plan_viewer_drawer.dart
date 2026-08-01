@@ -51,7 +51,7 @@ class _ViewerDrawer extends ConsumerWidget {
     // KEŞFET — en sık kullanılan araçlar, yan yana dikey karolar.
     final discoverActions = <_DrawerActionSpec>[
       _DrawerActionSpec(
-          icon: Icons.wb_sunny_outlined,
+          icon: Icons.light_mode_outlined,
           label: s.s('viewer.tt.weather'),
           onTap: onOpenWeather),
       _DrawerActionSpec(
@@ -138,7 +138,7 @@ class _ViewerDrawer extends ConsumerWidget {
                       ),
                       _DrawerNavTile(
                         palette: p,
-                        icon: Icons.travel_explore,
+                        icon: Icons.map_outlined,
                         label: s.s('map.openInGoogleMaps'),
                         onTap: () {
                           Navigator.of(context).pop();
@@ -240,7 +240,7 @@ class _DrawerStaySummary extends StatelessWidget {
         Icons.nights_stay_outlined,
         '$_hotelNights',
         s.s('viewer.metric.nights'),
-        p.fuji
+        p.accent
       ),
       (
         Icons.location_on_outlined,
@@ -252,7 +252,7 @@ class _DrawerStaySummary extends StatelessWidget {
         Icons.calendar_month_outlined,
         '$dayCount',
         s.s('viewer.metric.days'),
-        p.sakura
+        p.accent
       ),
     ];
 
@@ -661,16 +661,16 @@ class _DrawerNavTile extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 30,
-                  height: 30,
+                  width: 32,
+                  height: 32,
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: .09),
-                    borderRadius: BorderRadius.circular(9),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   alignment: Alignment.center,
-                  child: Icon(icon, size: 17, color: color),
+                  child: Icon(icon, size: 18, color: color),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     label,
@@ -863,7 +863,7 @@ class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: Icon(Icons.flight, size: 18, color: p.sakura),
+                  child: Icon(Icons.flight, size: 18, color: p.accent),
                 ),
                 Expanded(
                   child: Column(
@@ -894,7 +894,7 @@ class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
                                 child: Text(
                                   '+$offset',
                                   style: TextStyle(
-                                    color: p.sakura,
+                                    color: p.accent,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -954,7 +954,7 @@ class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
       return _DrawerAddCard(
         palette: p,
         icon: Icons.flight_takeoff,
-        iconColor: p.sakura,
+        iconColor: p.accent,
         title: s.s('drawer.flights.add'),
         planId: widget.trip.id,
       );
@@ -964,7 +964,7 @@ class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
       expanded: _expanded,
       onToggle: () => setState(() => _expanded = !_expanded),
       icon: Icons.flight_takeoff,
-      iconColor: p.sakura,
+      iconColor: p.accent,
       title: s.s('viewer.flights').replaceAll('✈️ ', ''),
       badge: tripsCount == 0
           ? s.s('drawer.flights.empty')
@@ -1058,7 +1058,7 @@ class _DrawerHotelsMiniState extends State<_DrawerHotelsMini> {
       return _DrawerAddCard(
         palette: p,
         icon: Icons.hotel_outlined,
-        iconColor: p.gold,
+        iconColor: p.accent,
         title: s.s('drawer.hotels.add'),
         planId: widget.trip.id,
       );
@@ -1068,7 +1068,7 @@ class _DrawerHotelsMiniState extends State<_DrawerHotelsMini> {
       expanded: _expanded,
       onToggle: () => setState(() => _expanded = !_expanded),
       icon: Icons.hotel_outlined,
-      iconColor: p.gold,
+      iconColor: p.accent,
       title: s.s('viewer.hotels').replaceAll('🏨 ', ''),
       badge: hotels.isEmpty
           ? s.s('drawer.hotels.empty')
@@ -1480,21 +1480,21 @@ class _DrawerActionTile extends StatelessWidget {
             border: Border.all(color: p.border),
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 13),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 42,
-                  height: 42,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
-                    color: p.accent.withValues(alpha: .10),
-                    borderRadius: BorderRadius.circular(13),
+                    color: p.accent.withValues(alpha: .12),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   alignment: Alignment.center,
-                  child: Icon(spec.icon, size: 21, color: p.accent),
+                  child: Icon(spec.icon, size: 20, color: p.accent),
                 ),
-                const SizedBox(height: 9),
+                const SizedBox(height: 8),
                 Text(
                   spec.label,
                   maxLines: 1,
