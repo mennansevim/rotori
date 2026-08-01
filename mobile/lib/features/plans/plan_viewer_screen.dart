@@ -5879,88 +5879,44 @@ class _DrawerStaySummary extends StatelessWidget {
     ];
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
       decoration: BoxDecoration(
         color: p.card,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: p.border),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: p.fuji.withValues(alpha: .10),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Icon(Icons.route_rounded, color: p.fuji, size: 21),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  trip.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: p.textPrimary,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
+          for (var i = 0; i < metrics.length; i++) ...[
+            Expanded(
+              child: Column(
+                children: [
+                  Icon(metrics[i].$1, color: metrics[i].$4, size: 20),
+                  const SizedBox(height: 7),
+                  Text(
+                    metrics[i].$2,
+                    style: TextStyle(
+                      color: p.textPrimary,
+                      fontSize: 21,
+                      fontWeight: FontWeight.w800,
+                      height: 1,
+                    ),
                   ),
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: p.sakura.withValues(alpha: .12),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '$dayCount ${s.s('viewer.metric.days')}',
-                  style: TextStyle(
-                    color: p.sakura,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                  const SizedBox(height: 4),
+                  Text(
+                    metrics[i].$3,
+                    style: TextStyle(
+                      color: p.textSecondary,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              for (var i = 0; i < metrics.length; i++) ...[
-                Expanded(
-                  child: Column(
-                    children: [
-                      Icon(metrics[i].$1, color: metrics[i].$4, size: 19),
-                      const SizedBox(height: 6),
-                      Text(
-                        metrics[i].$2,
-                        style: TextStyle(
-                          color: p.textPrimary,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          height: 1,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        metrics[i].$3,
-                        style: TextStyle(color: p.textSecondary, fontSize: 11),
-                      ),
-                    ],
-                  ),
-                ),
-                if (i < metrics.length - 1)
-                  Container(width: 1, height: 54, color: p.border),
-              ],
-            ],
-          ),
+            ),
+            if (i < metrics.length - 1)
+              Container(width: 1, height: 44, color: p.border),
+          ],
         ],
       ),
     );
@@ -6066,6 +6022,14 @@ class _DrawerBrandMark extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(size * 0.28),
+        border: Border.all(color: Colors.white.withValues(alpha: .28)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .22),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       alignment: Alignment.center,
       child: Text(
@@ -6081,7 +6045,9 @@ class _DrawerBrandMark extends StatelessWidget {
   }
 }
 
-/// Drawer'ın üst kısmı — marka, aktif gezi ve kapatma aksiyonu.
+/// Drawer'ın üst kısmı — Japonya hero görseli üzerinde marka, aktif gezi ve
+/// kapatma aksiyonu. Görsel `cover` ile üst şeridi doldurur; alt kenarda
+/// palete uygun bir gradient scrim ile drawer gövdesine kusursuz karışır.
 class _DrawerHero extends StatelessWidget {
   const _DrawerHero({required this.palette, required this.tripTitle});
   final ViewerPalette palette;
@@ -6091,60 +6057,131 @@ class _DrawerHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = palette;
     final s = LanguageScope.of(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            p.fuji.withValues(alpha: .16),
-            p.sakura.withValues(alpha: .10),
-            p.bg,
-          ],
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 14, 12, 16),
-          child: Row(
-            children: [
-              _DrawerBrandMark(palette: p, size: 46),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      s.s('drawer.brand'),
-                      style: TextStyle(
-                        color: p.textPrimary,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -.6,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      tripTitle.isEmpty ? s.s('drawer.tagline') : tripTitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: p.textSecondary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+    final topInset = MediaQuery.paddingOf(context).top;
+    // Görsel alanı: status bar + sabit hero yüksekliği. Referans oran korunur.
+    const heroBody = 132.0;
+    return SizedBox(
+      height: topInset + heroBody,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 1) Arka plan görseli — tüm hero'yu kaplar.
+          Image.asset(
+            'assets/images/hamb-menu-top-bg.png',
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+            // Görsel yüklenemezse palet gradyanına düş.
+            errorBuilder: (_, __, ___) => DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [p.fuji, p.sakura],
                 ),
               ),
-              IconButton(
-                icon: Icon(Icons.close_rounded, color: p.textPrimary),
-                onPressed: () => Navigator.of(context).pop(),
-                tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+            ),
+          ),
+          // 2) Okunabilirlik scrim'i — üstte hafif koyu, altta palet bg'sine
+          //    geçiş. Beyaz metin her temada net durur, gövdeye kusursuz akar.
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: const [0, .45, 1],
+                colors: [
+                  Colors.black.withValues(alpha: .22),
+                  Colors.black.withValues(alpha: .06),
+                  p.bg,
+                ],
               ),
-            ],
+            ),
+          ),
+          // 3) İçerik — marka rozeti, başlık, kapatma.
+          Positioned(
+            left: 18,
+            right: 10,
+            bottom: 14,
+            child: Row(
+              children: [
+                _DrawerBrandMark(palette: p, size: 46),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        s.s('drawer.brand'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -.6,
+                          shadows: [
+                            Shadow(
+                              color: Color(0x66000000),
+                              blurRadius: 8,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        tripTitle.isEmpty ? s.s('drawer.tagline') : tripTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: .92),
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          shadows: const [
+                            Shadow(
+                              color: Color(0x59000000),
+                              blurRadius: 6,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _DrawerHeroCloseButton(
+                  onTap: () => Navigator.of(context).pop(),
+                  tooltip:
+                      MaterialLocalizations.of(context).closeButtonTooltip,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Hero görseli üzerinde okunabilir, cam efektli kapatma düğmesi.
+class _DrawerHeroCloseButton extends StatelessWidget {
+  const _DrawerHeroCloseButton({required this.onTap, required this.tooltip});
+  final VoidCallback onTap;
+  final String tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.black.withValues(alpha: .28),
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: const SizedBox(
+            width: 36,
+            height: 36,
+            child: Icon(Icons.close_rounded, color: Colors.white, size: 20),
           ),
         ),
       ),
@@ -6549,13 +6586,16 @@ class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
                   if (outbound.isNotEmpty)
                     _legCard(
                       context: context,
-                      tripLabel: 'Gezi 1',
+                      tripLabel: s.p('drawer.flights.leg', {'n': '1'}),
                       legs: outbound,
                     ),
                   if (ret.isNotEmpty)
                     _legCard(
                       context: context,
-                      tripLabel: outbound.isNotEmpty ? 'Gezi 2' : 'Gezi 1',
+                      tripLabel: s.p(
+                        'drawer.flights.leg',
+                        {'n': outbound.isNotEmpty ? '2' : '1'},
+                      ),
                       legs: ret,
                     ),
                 ],

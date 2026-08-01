@@ -23,6 +23,13 @@ hiyerarşisi, tema seçici ve uçuş özeti hedefli testleri başarılıdır.
 
 ## Tamamlananlar (bu ve önceki oturumlardan)
 
+- ✅ **2026-08-01** Viewer hamburger (sandvich) paneli görsel olarak yenilendi:
+  `assets/images/hamb-menu-top-bg.png` hero görseli `cover` + okunabilirlik
+  scrim'i + palete akan alt gradyanla üst başlığa yerleştirildi; marka rozeti
+  gölge/halka ile fotoğrafın üstünde okunur oldu, cam efektli kapatma düğmesi
+  eklendi. Yolculuk özet kartı başlık/badge tekrarından arındırılıp sade üç
+  metrik şeridine indirildi. `flutter analyze` temiz; qa_scenarios geçti.
+
 - ✅ **2026-08-01** Uygulama kabuğu `AppTheme.light`, viewer yeni kurulum
   varsayılanı `appleLight` oldu; kaydedilmiş `viewer:theme` tercihi korunuyor.
 - ✅ **2026-08-01** Hamburger menüsü küçülten `FittedBox` yapısından çıkarılıp

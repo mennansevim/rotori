@@ -2826,6 +2826,10 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: '{n} uçuş',
     AppLang.en: '{n} flights',
   },
+  'drawer.flights.leg': {
+    AppLang.tr: 'Gezi {n}',
+    AppLang.en: 'Trip {n}',
+  },
   'drawer.hotels.count': {
     AppLang.tr: '{n} otel',
     AppLang.en: '{n} hotels',
