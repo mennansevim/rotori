@@ -1,6 +1,6 @@
-// apps/viewer/src/components/RewardMap.tsx içindeki CityCard + plotPlaces portu.
-// Şehir keşif kartı: başlık + ilerleme çubuğu, mini-kroki (CustomPaint) ve
-// nokta listesi.
+// Şehir keşif kartı — başlık + ilerleme, sade mini-kroki (CustomPaint) ve
+// okunaklı nokta listesi. Gezilmemiş noktalar pasif (soluk) görünür; gezilen
+// yeşil onay, tespit sürüyor ise amber olur. Renkler ViewerPalette'ten gelir.
 
 import 'dart:math' as math;
 
@@ -8,9 +8,9 @@ import 'package:flutter/material.dart';
 
 import '../../../core/l10n.dart';
 import '../../../domain/city_places.dart';
+import '../viewer_theme.dart';
 
-/// React'taki SVG viewBox boyutları — projeksiyon bu mantıksal kutuda yapılır,
-/// çizimde gerçek boyuta ölçeklenir.
+/// Mini-kroki mantıksal viewBox boyutları; çizimde gerçek boyuta ölçeklenir.
 const double _vbW = 320;
 const double _vbH = 200;
 const double _pad = 30;
@@ -23,13 +23,13 @@ class PlottedPlace {
 }
 
 /// Şehrin noktalarını lat/lng oranlarını koruyarak mini-kroki kutusuna
-/// yerleştirir. (React: plotPlaces — k = cos(meanLat) boylam sıkışması,
-/// bounding box ölçekleme, Y ekseni ters.)
+/// yerleştirir (k = cos(meanLat) boylam sıkışması, bounding box ölçekleme,
+/// Y ekseni ters).
 List<PlottedPlace> plotPlaces(List<CityPlace> places) {
   if (places.isEmpty) return const [];
   final meanLat =
       places.map((p) => p.lat).reduce((a, b) => a + b) / places.length;
-  final k = math.cos((meanLat * math.pi) / 180); // boylam sıkışması düzeltmesi
+  final k = math.cos((meanLat * math.pi) / 180);
   final pts = places.map((p) => (px: p.lng * k, py: p.lat)).toList();
   final xs = pts.map((p) => p.px);
   final ys = pts.map((p) => p.py);
@@ -51,7 +51,6 @@ List<PlottedPlace> plotPlaces(List<CityPlace> places) {
       PlottedPlace(
         place: places[i],
         x: offX + (pts[i].px - minX) * scale,
-        // Büyük enlem → yukarı (küçük y).
         y: offY + (maxY - pts[i].py) * scale,
       ),
   ];
@@ -71,80 +70,126 @@ class CityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final visitedCount = city.places.where((p) => visited.contains(p.id)).length;
-    final pct = visitedCount / math.max(1, city.places.length);
+    final p = ViewerPalette.of(context);
+    final s = LanguageScope.of(context);
+    final visitedCount =
+        city.places.where((pl) => visited.contains(pl.id)).length;
+    final total = city.places.length;
+    final pct = visitedCount / math.max(1, total);
+    final complete = visitedCount == total && total > 0;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Başlık + sayaç + ilerleme çubuğu
-            Row(
-              children: [
-                Text(city.emoji, style: const TextStyle(fontSize: 24)),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        city.label,
-                        style: theme.textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      Text(
-                        LanguageScope.of(context).p('cityCard.visitedCount',
-                            {'done': '$visitedCount', 'total': '${city.places.length}'}),
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: p.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: p.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Başlık + sayaç + yüzde rozeti
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: p.accent.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                SizedBox(
-                  width: 72,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: pct,
-                      minHeight: 8,
-                      backgroundColor:
-                          theme.colorScheme.onSurface.withValues(alpha: 0.08),
-                      valueColor: const AlwaysStoppedAnimation(
-                        Color(0xFF4ADE80),
+                alignment: Alignment.center,
+                child: Text(city.emoji, style: const TextStyle(fontSize: 20)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      city.label,
+                      style: TextStyle(
+                        color: p.textPrimary,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 1),
+                    Text(
+                      s.p('cityCard.visitedCount',
+                          {'done': '$visitedCount', 'total': '$total'}),
+                      style: TextStyle(color: p.textSecondary, fontSize: 12),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            // Mini-kroki
-            AspectRatio(
-              aspectRatio: _vbW / _vbH,
-              child: Semantics(
-                label: '${city.label} keşif krokisi',
-                child: CustomPaint(
-                  painter: _CityMapPainter(
-                    plotted: plotPlaces(city.places),
-                    visited: visited,
-                    inProgress: inProgress,
-                    surface: theme.colorScheme.surface,
-                    outline:
-                        theme.colorScheme.onSurface.withValues(alpha: 0.10),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: (complete ? p.matcha : p.textMuted)
+                      .withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '${(pct * 100).round()}%',
+                  style: TextStyle(
+                    color: complete ? p.matcha : p.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
+            ],
+          ),
+          const SizedBox(height: 12),
 
-            // Nokta listesi
-            for (final p in city.places) _PlaceRow(place: p, visited: visited, inProgress: inProgress),
+          // İlerleme çubuğu — ince, sakin.
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: pct,
+              minHeight: 6,
+              backgroundColor: p.textMuted.withValues(alpha: 0.12),
+              valueColor: AlwaysStoppedAnimation(p.matcha),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Mini-kroki
+          AspectRatio(
+            aspectRatio: _vbW / _vbH,
+            child: Semantics(
+              label: '${city.label} keşif krokisi',
+              child: CustomPaint(
+                painter: _CityMapPainter(
+                  plotted: plotPlaces(city.places),
+                  visited: visited,
+                  inProgress: inProgress,
+                  bg: p.bg,
+                  outline: p.border,
+                  visitedColor: p.matcha,
+                  progressColor: p.gold,
+                  mutedColor: p.textMuted,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Nokta listesi
+          for (var i = 0; i < city.places.length; i++) ...[
+            if (i > 0)
+              Divider(color: p.border, height: 1),
+            _PlaceRow(
+              place: city.places[i],
+              visited: visited,
+              inProgress: inProgress,
+              palette: p,
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -155,48 +200,77 @@ class _PlaceRow extends StatelessWidget {
     required this.place,
     required this.visited,
     required this.inProgress,
+    required this.palette,
   });
 
   final CityPlace place;
   final Set<String> visited;
   final Set<String> inProgress;
+  final ViewerPalette palette;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final p = palette;
     final loc = LanguageScope.of(context);
     final lang = loc.lang;
     final isVisited = visited.contains(place.id);
     final isProgress = !isVisited && inProgress.contains(place.id);
     final statusColor = isVisited
-        ? const Color(0xFF4ADE80)
+        ? p.matcha
         : isProgress
-            ? const Color(0xFFFBBF24)
-            : theme.colorScheme.onSurface.withValues(alpha: 0.55);
+            ? p.gold
+            : p.textMuted;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: 9),
       child: Row(
         children: [
-          Text(isVisited ? '✅' : place.emoji,
-              style: const TextStyle(fontSize: 16)),
-          const SizedBox(width: 8),
+          // Durum noktası — gezilmemiş pasif (içi boş), gezilen dolu onay.
+          Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              color: isVisited
+                  ? p.matcha.withValues(alpha: 0.14)
+                  : Colors.transparent,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isVisited
+                    ? p.matcha
+                    : statusColor.withValues(alpha: 0.35),
+                width: 1.4,
+              ),
+            ),
+            alignment: Alignment.center,
+            child: isVisited
+                ? Icon(Icons.check, size: 14, color: p.matcha)
+                : Text(place.emoji, style: const TextStyle(fontSize: 12)),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               place.name,
               overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodyMedium?.copyWith(
+              style: TextStyle(
+                color: isVisited ? p.textPrimary : p.textSecondary,
+                fontSize: 14,
                 fontWeight: isVisited ? FontWeight.w600 : FontWeight.w400,
               ),
             ),
           ),
+          const SizedBox(width: 8),
           Text(
             isVisited
                 ? loc.s('cityCard.visited')
                 : isProgress
                     ? loc.s('cityCard.detecting')
                     : place.category.of(lang),
-            style: theme.textTheme.bodySmall?.copyWith(color: statusColor),
+            style: TextStyle(
+              color: isVisited || isProgress ? statusColor : p.textMuted,
+              fontSize: 11.5,
+              fontWeight:
+                  isVisited || isProgress ? FontWeight.w600 : FontWeight.w400,
+            ),
           ),
         ],
       ),
@@ -209,15 +283,21 @@ class _CityMapPainter extends CustomPainter {
     required this.plotted,
     required this.visited,
     required this.inProgress,
-    required this.surface,
+    required this.bg,
     required this.outline,
+    required this.visitedColor,
+    required this.progressColor,
+    required this.mutedColor,
   });
 
   final List<PlottedPlace> plotted;
   final Set<String> visited;
   final Set<String> inProgress;
-  final Color surface;
+  final Color bg;
   final Color outline;
+  final Color visitedColor;
+  final Color progressColor;
+  final Color mutedColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -225,15 +305,11 @@ class _CityMapPainter extends CustomPainter {
     final sy = size.height / _vbH;
     canvas.scale(sx, sy);
 
-    // Arka plan (React: .city-map-bg — yuvarlatılmış dikdörtgen)
     final bgRect = RRect.fromRectAndRadius(
       const Rect.fromLTWH(4, 4, _vbW - 8, _vbH - 8),
-      const Radius.circular(14),
+      const Radius.circular(16),
     );
-    canvas.drawRRect(
-      bgRect,
-      Paint()..color = Color.alphaBlend(outline, surface),
-    );
+    canvas.drawRRect(bgRect, Paint()..color = bg);
     canvas.drawRRect(
       bgRect,
       Paint()
@@ -246,28 +322,35 @@ class _CityMapPainter extends CustomPainter {
       final isVisited = visited.contains(pp.place.id);
       final isProgress = !isVisited && inProgress.contains(pp.place.id);
       final dotColor = isVisited
-          ? const Color(0xFF16A34A)
+          ? visitedColor
           : isProgress
-              ? const Color(0xFFB45309)
-              : const Color(0xFF3F3F52);
+              ? progressColor
+              : mutedColor.withValues(alpha: 0.45);
       final haloColor = isVisited
-          ? const Color(0x334ADE80)
+          ? visitedColor.withValues(alpha: 0.22)
           : isProgress
-              ? const Color(0x33FBBF24)
-              : const Color(0x22FFFFFF);
+              ? progressColor.withValues(alpha: 0.22)
+              : mutedColor.withValues(alpha: 0.10);
 
       final c = Offset(pp.x, pp.y);
       canvas.drawCircle(c, 13, Paint()..color = haloColor);
       canvas.drawCircle(c, 9, Paint()..color = dotColor);
 
-      final tp = TextPainter(
-        text: TextSpan(
-          text: isVisited ? '✓' : pp.place.emoji,
-          style: const TextStyle(fontSize: 10, color: Color(0xFFFFFFFF)),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      tp.paint(canvas, c - Offset(tp.width / 2, tp.height / 2));
+      // Gezilmiş noktalar onay işaretiyle vurgulanır; diğerleri sade kalır.
+      if (isVisited) {
+        final tp = TextPainter(
+          text: const TextSpan(
+            text: '✓',
+            style: TextStyle(
+              fontSize: 11,
+              color: Color(0xFFFFFFFF),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        tp.paint(canvas, c - Offset(tp.width / 2, tp.height / 2));
+      }
     }
   }
 
@@ -275,5 +358,6 @@ class _CityMapPainter extends CustomPainter {
   bool shouldRepaint(covariant _CityMapPainter old) =>
       old.plotted != plotted ||
       old.visited != visited ||
-      old.inProgress != inProgress;
+      old.inProgress != inProgress ||
+      old.bg != bg;
 }

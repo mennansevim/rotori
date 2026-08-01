@@ -3029,6 +3029,30 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Start tracking location'
   },
   'reward.locked': {AppLang.tr: '🔒 Kilitli', AppLang.en: '🔒 Locked'},
+  // ----- Gezgin rütbesi (Japon efsane yaratıkları merdiveni) -----
+  'reward.rankTier': {AppLang.tr: 'Gezgin rütbesi', AppLang.en: 'Traveler rank'},
+  'reward.xpTotal': {AppLang.tr: 'Toplam XP', AppLang.en: 'Total XP'},
+  'reward.nextRank': {AppLang.tr: 'Sonraki rütbe', AppLang.en: 'Next rank'},
+  'reward.toNextRank': {
+    AppLang.tr: '{rank} rütbesine {xp} XP',
+    AppLang.en: '{xp} XP to {rank}',
+  },
+  'reward.maxRank': {
+    AppLang.tr: 'En yüksek rütbeye ulaştın',
+    AppLang.en: 'You reached the highest rank',
+  },
+  'reward.exploreProgress': {
+    AppLang.tr: 'Keşif ilerlemesi',
+    AppLang.en: 'Exploration progress',
+  },
+  'reward.rank.tanuki': {AppLang.tr: 'Meraklı yolcu', AppLang.en: 'Curious wanderer'},
+  'reward.rank.kitsune': {AppLang.tr: 'Kurnaz kaşif', AppLang.en: 'Clever explorer'},
+  'reward.rank.kappa': {AppLang.tr: 'Nehir yoldaşı', AppLang.en: 'River companion'},
+  'reward.rank.tengu': {AppLang.tr: 'Dağ bekçisi', AppLang.en: 'Mountain guardian'},
+  'reward.rank.tsuru': {AppLang.tr: 'Zarif gezgin', AppLang.en: 'Graceful traveler'},
+  'reward.rank.kirin': {AppLang.tr: 'Kutlu kaşif', AppLang.en: 'Blessed explorer'},
+  'reward.rank.hoo': {AppLang.tr: 'Küllerinden doğan', AppLang.en: 'Risen from ashes'},
+  'reward.rank.ryu': {AppLang.tr: 'Efsane ejderha', AppLang.en: 'Legendary dragon'},
   'badge.firstJapanPlan.title': {
     AppLang.tr: 'İlk Japonya Planı',
     AppLang.en: 'First Japan Plan'
