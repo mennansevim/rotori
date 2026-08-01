@@ -1440,14 +1440,18 @@ class _DrawerActionGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = palette;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var i = 0; i < actions.length; i++) ...[
-          if (i > 0) const SizedBox(width: 10),
-          Expanded(child: _DrawerActionTile(spec: actions[i], palette: p)),
+    // IntrinsicHeight: karolar farklı satır sayılarında bile eşit yükseklikte
+    // kalır; SingleChildScrollView içinde unbounded-height patlamasını da önler.
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < actions.length; i++) ...[
+            if (i > 0) const SizedBox(width: 10),
+            Expanded(child: _DrawerActionTile(spec: actions[i], palette: p)),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
