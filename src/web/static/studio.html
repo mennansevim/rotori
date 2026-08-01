@@ -676,15 +676,15 @@
           </div>
           <div class="queue-board">
             <section class="queue-col" aria-labelledby="qh-draft">
-              <div class="queue-head"><h3 id="qh-draft">Taslaklar</h3><span id="queueCountDraft">0</span></div>
+              <div class="queue-head"><h3 id="qh-draft">Onay bekliyor</h3><span id="queueCountDraft">0</span></div>
               <div id="queueDraftList"><div class="empty">Yükleniyor…</div></div>
             </section>
             <section class="queue-col" aria-labelledby="qh-approval">
-              <div class="queue-head"><h3 id="qh-approval">Onay bekliyor</h3><span id="queueCountApproval">0</span></div>
+              <div class="queue-head"><h3 id="qh-approval">Yayına Hazır</h3><span id="queueCountApproval">0</span></div>
               <div id="queueApprovalList"><div class="empty">Yükleniyor…</div></div>
             </section>
             <section class="queue-col" aria-labelledby="qh-scheduled">
-              <div class="queue-head"><h3 id="qh-scheduled">Planlandı</h3><span id="queueCountScheduled">0</span></div>
+              <div class="queue-head"><h3 id="qh-scheduled">Yayınlandı</h3><span id="queueCountScheduled">0</span></div>
               <div id="queueScheduledList"><div class="empty">Yükleniyor…</div></div>
             </section>
           </div>
@@ -1927,7 +1927,7 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
           <img src="${escapeHtml(card.url)}" style="width:100%;max-height:60vh;object-fit:contain;border-radius:12px;background:#111"/>
           <div>
-            <div class="meta">Durum: <b>${card.published?"Yayınlandı":card.ready?"Yayına hazır":"Taslak"}</b> · Kaynak: ${escapeHtml(card.source||"manuel")}</div>
+            <div class="meta">Durum: <b>${card.published?"Yayınlandı":card.ready?"Yayına Hazır":"Onay bekliyor"}</b> · Kaynak: ${escapeHtml(card.source||"manuel")}</div>
             <div class="edit-field">
               <label for="editAciklama">Kart üstü metin</label>
               <textarea id="editAciklama" ${editable?"":"disabled"} maxlength="280" style="min-height:100px">${escapeHtml(meta.aciklama)}</textarea>
@@ -2043,71 +2043,93 @@
       apiFetch("/api/approval/list"),
       apiFetch("/api/scheduler/queue"),
     ]);
-    // Drafts = story cards with !ready && !published
-    const draftCards = (stories.status==="fulfilled" ? (stories.value.cards||[]) : [])
-      .filter(c => !c.ready && !c.published);
+    const allCards = stories.status==="fulfilled" ? (stories.value.cards||[]) : [];
     const approvals = approval.status==="fulfilled" ? (approval.value.items||[]) : [];
-    const scheduled = queue.status==="fulfilled" ? ((queue.value.items||[]).filter(i => i.status==="pending" || i.status==="ready")) : [];
+    const legacyWaiting = allCards.filter(c => !c.ready && !c.published);
+    const readyCards = allCards.filter(c => c.ready && !c.published);
+    const publishedCards = allCards.filter(c => c.published);
+    const waitingCards = [
+      ...approvals.map(a => ({
+        file:a.name, url:a.url, title:a.aciklama||a.name, source:a.source||"otomasyon",
+        has_caption:Boolean(a.post_caption), pending:true, ready:false, published:false,
+        when:a.generated_at||""
+      })),
+      ...legacyWaiting.map(c => ({...c, title:c.file, pending:false, when:c.mtime||""}))
+    ];
 
-    // draft column — draggable
+    // Pending kartlar story listesinde yer almaz; modal tıklamasında bulunabilsin.
+    state.stories = [
+      ...allCards,
+      ...waitingCards.filter(c => c.pending).map(c => ({
+        file:c.file, url:c.url, source:c.source, ready:false, published:false, pending:true
+      }))
+    ];
+
+    // 1) Onay bekliyor — yeni üretilen kartların başlangıç aşaması
     const draftEl = document.getElementById("queueDraftList");
-    if(!draftCards.length){
-      draftEl.innerHTML = `<div class="empty" style="padding:20px 8px"><p>Taslak yok. AI Stüdyo'dan içerik üretin.</p></div>`;
+    if(!waitingCards.length){
+      draftEl.innerHTML = `<div class="empty" style="padding:20px 8px"><p>Onay bekleyen içerik yok.</p></div>`;
     } else {
-      draftEl.innerHTML = draftCards.slice(0,12).map(c => {
-        const title = c.file.replace(/_\d+\.jpg$/,"").replace(/[_-]/g," ");
-        const when = c.mtime ? new Date(c.mtime*1000).toLocaleDateString("tr-TR",{day:"numeric",month:"short"}) : "";
-        return `<article class="queue-item" draggable="true" data-file="${escapeHtml(c.file)}" data-kind="story-draft" onclick="openLibItem('${escapeHtml(c.file)}','story')" style="cursor:pointer">
+      draftEl.innerHTML = waitingCards.slice(0,24).map(c => {
+        const title = (c.title||c.file).replace(/_\d+\.jpg$/,"").replace(/[_-]/g," ");
+        const when = typeof c.when === "number"
+          ? new Date(c.when*1000).toLocaleDateString("tr-TR",{day:"numeric",month:"short"})
+          : c.when;
+        return `<article class="queue-item" draggable="true" data-file="${escapeHtml(c.file)}" data-kind="approval-waiting" onclick="openLibItem('${escapeHtml(c.file)}','story')" style="cursor:pointer">
           ${c.url ? `<div class="thumb img"><img src="${escapeHtml(c.url)}" loading="lazy" alt=""></div>` : `<div class="thumb ${_sceneFor(title)}"></div>`}
           <b>${escapeHtml(title)}</b>
-          <p class="row-meta">${c.has_caption?"Caption hazır":"Caption yok"} · Story kartı</p>
+          <p class="row-meta">${c.has_caption?"Caption hazır":"Caption yok"} · Onay bekliyor</p>
           <footer>
             <span>${escapeHtml(when)}</span>
+            <span>
+              <button class="link" onclick="event.stopPropagation(); rejectWaiting('${escapeHtml(c.file)}', ${c.pending}, this)">Reddet</button>
+              <button class="link" onclick="event.stopPropagation(); approvalMarkReady('${escapeHtml(c.file)}', this)">Yayına hazır →</button>
+            </span>
           </footer>
         </article>`;
       }).join("");
     }
-    document.getElementById("queueCountDraft").textContent = draftCards.length;
+    document.getElementById("queueCountDraft").textContent = waitingCards.length;
 
-    // approval column
+    // 2) Yayına Hazır — kullanıcı yayınlamadan önceki son aşama
     const apprEl = document.getElementById("queueApprovalList");
-    if(!approvals.length){
-      apprEl.innerHTML = `<div class="empty" style="padding:20px 8px"><p>Onay bekleyen içerik yok.</p></div>`;
+    if(!readyCards.length){
+      apprEl.innerHTML = `<div class="empty" style="padding:20px 8px"><p>Yayına hazır içerik yok.</p></div>`;
     } else {
-      apprEl.innerHTML = approvals.map(a => `
-        <article class="queue-item">
-          <div class="thumb img"><img src="${escapeHtml(a.url)}" loading="lazy" alt=""></div>
-          <b>${escapeHtml(a.aciklama || a.name)}</b>
-          <p class="row-meta">Kaynak: ${escapeHtml(a.source||"otomasyon")}</p>
+      apprEl.innerHTML = readyCards.map(c => `
+        <article class="queue-item" onclick="openLibItem('${escapeHtml(c.file)}','story')" style="cursor:pointer">
+          <div class="thumb img"><img src="${escapeHtml(c.url)}" loading="lazy" alt=""></div>
+          <b>${escapeHtml(c.file.replace(/_\d+\.jpg$/,"").replace(/[_-]/g," "))}</b>
+          <p class="row-meta">${c.has_caption?"Caption hazır":"Caption yok"} · Yayına Hazır</p>
           <footer>
-            <button class="link" onclick="approvalReject('${escapeHtml(a.name)}', this)">Reddet</button>
-            <button class="link" onclick="approvalApprove('${escapeHtml(a.name)}', this)">Onayla ve Instagram'da yayınla →</button>
+            <span>Kaynak: ${escapeHtml(c.source||"manuel")}</span>
+            <button class="link" onclick="event.stopPropagation(); publishReady('${escapeHtml(c.file)}', this)">Instagram'da yayınla →</button>
           </footer>
         </article>`).join("");
     }
-    document.getElementById("queueCountApproval").textContent = approvals.length;
+    document.getElementById("queueCountApproval").textContent = readyCards.length;
 
-    // scheduled column
+    // 3) Yayınlandı — Instagram yayın kaydına sahip kartlar
     const schEl = document.getElementById("queueScheduledList");
-    if(!scheduled.length){
-      schEl.innerHTML = `<div class="empty" style="padding:20px 8px"><p>Planlı yayın yok.</p></div>`;
+    if(!publishedCards.length){
+      schEl.innerHTML = `<div class="empty" style="padding:20px 8px"><p>Henüz yayınlanan içerik yok.</p></div>`;
     } else {
-      schEl.innerHTML = scheduled.map(it => {
-        const title = (it.mp4_name || it.name || "İçerik").replace(/\.[^.]+$/,"").replace(/[_-]/g," ");
-        return `<article class="queue-item">
-          <div class="thumb ${_sceneFor(title)}"></div>
+      schEl.innerHTML = publishedCards.map(c => {
+        const title = c.file.replace(/_\d+\.jpg$/,"").replace(/[_-]/g," ");
+        return `<article class="queue-item" onclick="openLibItem('${escapeHtml(c.file)}','story')" style="cursor:pointer">
+          <div class="thumb img"><img src="${escapeHtml(c.url)}" loading="lazy" alt=""></div>
           <b>${escapeHtml(title)}</b>
-          <p class="row-meta">${escapeHtml(_fmtDate(it.scheduled_at))}</p>
+          <p class="row-meta">Instagram · Yayınlandı</p>
           <footer>
-            <span class="status">● ${escapeHtml(it.status)}</span>
-            <button class="link" onclick="cancelEntry('${escapeHtml(it.id||"")}', this)">İptal</button>
+            <span class="status">● Yayında</span>
+            <span>${escapeHtml(c.uploaded_at ? _fmtDate(c.uploaded_at) : "")}</span>
           </footer>
         </article>`;
       }).join("");
     }
-    document.getElementById("queueCountScheduled").textContent = scheduled.length;
-    document.getElementById("navCountQueue").textContent = scheduled.length + approvals.length;
-    document.getElementById("navCountQueue").hidden = (scheduled.length + approvals.length)===0;
+    document.getElementById("queueCountScheduled").textContent = publishedCards.length;
+    document.getElementById("navCountQueue").textContent = waitingCards.length + readyCards.length;
+    document.getElementById("navCountQueue").hidden = (waitingCards.length + readyCards.length)===0;
 
     // automation label
     const autoBtn = document.getElementById("queueAutomation");
@@ -2155,11 +2177,11 @@
         if(!dragged) return;
         const file = dragged.dataset.file;
         const kind = dragged.dataset.kind;
-        // idx: 0=Taslak, 1=Onay bekliyor, 2=Planlandı
-        if(kind === "story-draft" && idx === 1){
+        // idx: 0=Onay bekliyor, 1=Yayına Hazır, 2=Yayınlandı
+        if(kind === "approval-waiting" && idx === 1){
           try {
-            await apiFetch(`/api/story/submit_approval/${encodeURIComponent(file)}`, {method:"POST"});
-            toast("Kart Onay bekliyor'a taşındı.", "ok");
+            await apiFetch(`/api/approval/mark_ready/${encodeURIComponent(file)}`, {method:"POST"});
+            toast("Kart Yayına Hazır'a taşındı.", "ok");
             pageLoaders.queue(true);
           } catch(e){ toast(e.detail || e.message, "err") }
           return;
@@ -2168,6 +2190,40 @@
       });
     });
   }
+  window.approvalMarkReady = async function(name, btn){
+    await withLoading(btn, async () => {
+      try {
+        await apiFetch(`/api/approval/mark_ready/${encodeURIComponent(name)}`, {method:"POST"});
+        toast("Kart Yayına Hazır'a taşındı.", "ok");
+        pageLoaders.queue(true);
+      } catch(e){ toast(e.detail || e.message, "err", 5000) }
+    });
+  };
+  window.rejectWaiting = async function(name, pending, btn){
+    if(!confirm(`"${name}" reddedilsin mi? (dosya silinir)`)) return;
+    await withLoading(btn, async () => {
+      try {
+        const endpoint = pending
+          ? `/api/approval/reject/${encodeURIComponent(name)}`
+          : `/api/story/${encodeURIComponent(name)}`;
+        await apiFetch(endpoint, {method: pending ? "POST" : "DELETE"});
+        toast("Reddedildi.", "ok");
+        pageLoaders.queue(true);
+      } catch(e){ toast(e.detail || e.message, "err") }
+    });
+  };
+  window.publishReady = async function(name, btn){
+    await withLoading(btn, async () => {
+      try {
+        await apiFetch(`/api/instagram/publish/${encodeURIComponent(name)}`, {method:"POST", timeout:60000});
+        toast("Instagram yayını başlatıldı.", "ok");
+        const ok = await pollJobUntilDone();
+        if(!ok) throw new Error("Instagram yayını tamamlanamadı.");
+        toast("Instagram'da yayınlandı ✓", "ok");
+        pageLoaders.queue(true);
+      } catch(e){ toast(e.detail || e.message, "err", 5000) }
+    });
+  };
   window.approvalApprove = async function(name, btn){
     await withLoading(btn, async () => {
       try {

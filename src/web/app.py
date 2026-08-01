@@ -874,6 +874,7 @@ def story_render_direct(req: RenderFromSelectionRequest) -> dict[str, Any]:
         "query": req.query,
         "baslik": req.baslik,
         "photographer": req.photographer,
+        "source": "manuel",
         "bg_local": bg_local,
         "aciklama": req.aciklama,
         "ust_tag": req.ust_tag or "GEZİ DEFTERİ",
@@ -881,10 +882,24 @@ def story_render_direct(req: RenderFromSelectionRequest) -> dict[str, Any]:
         "post_caption": (req.post_caption or "").strip(),
     })
 
+    # Yeni üretilen her kart doğrudan ilk yayın aşamasına düşer:
+    # Onay bekliyor. Eski top-level taslaklar UI'da geriye dönük desteklenir.
+    pending_out = _story_pending_dir() / out.name
+    try:
+        out.rename(pending_out)
+        for suf in (".txt", ".json"):
+            sidecar = out.with_suffix(suf)
+            if sidecar.exists():
+                sidecar.rename(pending_out.with_suffix(suf))
+        out = pending_out
+    except OSError as exc:
+        raise HTTPException(status_code=500,
+                            detail=f"Onay kuyruğuna taşınamadı: {exc}") from exc
+
     return {
         "ok": True,
         "file": out.name,
-        "url": f"/media/stories/{quote(out.name)}",
+        "url": f"/media/stories/pending_approval/{quote(out.name)}",
         "baslik": req.baslik,
         "aciklama": req.aciklama,
         "caption_file": caption_file,
@@ -1230,6 +1245,38 @@ def approval_update(name: str, req: ApprovalUpdateRequest) -> dict[str, Any]:
             log.warning(f"onay-güncelleme render başarısız: {exc}")
 
     return {"ok": True, "name": name}
+
+
+@app.post("/api/approval/mark_ready/{name}")
+def approval_mark_ready(name: str) -> dict[str, Any]:
+    """Onay bekleyen kartı Yayına Hazır aşamasına taşı; yayınlama yapma.
+
+    Eski top-level taslaklar da geriye dönük olarak aynı endpoint ile ready/
+    klasörüne alınabilir.
+    """
+    name = _safe_story_name(name)
+    if cfg.stories is None:
+        raise HTTPException(status_code=400, detail="stories config yok.")
+
+    pending = _story_pending_dir() / name
+    legacy = cfg.stories.output_dir / name
+    src = pending if pending.exists() else legacy
+    dst = _story_ready_dir() / name
+    if not src.exists():
+        if dst.exists():
+            return {"ok": True, "already_ready": True}
+        raise HTTPException(status_code=404, detail="Onay bekleyen kart bulunamadı.")
+
+    try:
+        src.rename(dst)
+        for suf in (".txt", ".json"):
+            sidecar = src.with_suffix(suf)
+            if sidecar.exists():
+                sidecar.rename(dst.with_suffix(suf))
+    except OSError as exc:
+        raise HTTPException(status_code=500,
+                            detail=f"Yayına Hazır'a taşınamadı: {exc}") from exc
+    return {"ok": True, "path": str(dst.relative_to(cfg.project_root))}
 
 
 @app.post("/api/approval/approve/{name}")
