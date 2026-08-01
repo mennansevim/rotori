@@ -23,6 +23,13 @@ hiyerarşisi, tema seçici ve uçuş özeti hedefli testleri başarılıdır.
 
 ## Tamamlananlar (bu ve önceki oturumlardan)
 
+- ✅ **2026-08-02** Keşif haritasına Ghibli esintili rütbe-atlama kutlaması
+  eklendi: XP ile rütbe kademesi arttığında yumuşak sıcak ışık, yukarı süzülen
+  toz zerreleri (susuwatari) + altın parıltı ve nazikçe beliren ışıklı madalyon
+  gösterilir; `HapticFeedback.mediumImpact` ile eşlenir, ~2.8 sn sonra
+  kendiliğinden kapanır (dokunarak da kapanır). Açılışta tetiklenmez —
+  yalnızca gerçek rütbe artışında. `flutter analyze` temiz, qa geçti.
+
 - ✅ **2026-08-02** Keşif haritası (`reward_map_screen.dart`) baştan tasarlandı:
   XP odaklı "Gezgin rütbesi" — 狸 Tanuki → 龍 Ryū 8 kademeli Japon efsane
   yaratıkları merdiveni (her 100 XP bir rütbe, `xpToLevel` ile birebir).

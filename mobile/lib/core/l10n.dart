@@ -3045,6 +3045,11 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Keşif ilerlemesi',
     AppLang.en: 'Exploration progress',
   },
+  'reward.rankUp.label': {AppLang.tr: 'YENİ RÜTBE', AppLang.en: 'NEW RANK'},
+  'reward.rankUp.body': {
+    AppLang.tr: 'Yeni bir rütbeye yükseldin — yolculuk sürüyor.',
+    AppLang.en: 'You rose to a new rank — the journey continues.',
+  },
   'reward.rank.tanuki': {AppLang.tr: 'Meraklı yolcu', AppLang.en: 'Curious wanderer'},
   'reward.rank.kitsune': {AppLang.tr: 'Kurnaz kaşif', AppLang.en: 'Clever explorer'},
   'reward.rank.kappa': {AppLang.tr: 'Nehir yoldaşı', AppLang.en: 'River companion'},

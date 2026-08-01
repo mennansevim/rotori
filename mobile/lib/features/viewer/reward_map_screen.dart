@@ -3,7 +3,10 @@
 // ilerleme, ardından keşif metrikleri, şehir kartları, konum takibi ve
 // pasif görünümlü aktivite rozetleri.
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/l10n.dart';
@@ -65,6 +68,56 @@ class RewardMapScreen extends ConsumerStatefulWidget {
 }
 
 class _RewardMapScreenState extends ConsumerState<RewardMapScreen> {
+  GeofenceController? _wired;
+  int? _lastTier;
+
+  /// Controller değiştiğinde rütbe-atlama dinleyicisini bağlar. İlk bağlamada
+  /// mevcut rütbe referans alınır (açılışta kutlama tetiklenmez).
+  void _wire(GeofenceController c) {
+    if (identical(_wired, c)) return;
+    _wired?.removeListener(_onTick);
+    _wired = c;
+    _lastTier = _tierForLevel(xpToLevel(c.stats.xp).level);
+    c.addListener(_onTick);
+  }
+
+  void _onTick() {
+    final c = _wired;
+    if (c == null || !mounted) return;
+    final tier = _tierForLevel(xpToLevel(c.stats.xp).level);
+    if (_lastTier != null && tier > _lastTier!) {
+      _celebrateRankUp(tier);
+    }
+    _lastTier = tier;
+  }
+
+  /// Ghibli esintili rütbe-atlama kutlaması: yumuşak ışık, süzülen toz
+  /// zerreleri + parıltı ve nazikçe beliren madalyon. Haptik ile eşlenir.
+  void _celebrateRankUp(int tier) {
+    if (!mounted) return;
+    HapticFeedback.mediumImpact();
+    final palette = ViewerPalette.of(context);
+    final rank = _kRanks[tier.clamp(0, _kRanks.length - 1)];
+    showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'rank-up',
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      transitionDuration: const Duration(milliseconds: 320),
+      pageBuilder: (_, __, ___) => _RankUpCelebration(
+        palette: palette,
+        rank: rank,
+        color: _rankColor(palette, tier),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _wired?.removeListener(_onTick);
+    super.dispose();
+  }
+
   void _showDiscovery(Geofence fence) {
     if (!mounted) return;
     final s = LanguageScope.of(context);
@@ -119,6 +172,7 @@ class _RewardMapScreenState extends ConsumerState<RewardMapScreen> {
     final controller = ref.watch(geofenceControllerProvider(widget.trip));
     final s = LanguageScope.of(context);
     final p = ViewerPalette.of(context);
+    if (controller != null) _wire(controller);
 
     return Scaffold(
       backgroundColor: p.bg,
@@ -839,3 +893,291 @@ class _BadgeRow extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Ghibli esintili rütbe-atlama kutlaması — yumuşak sıcak ışık, yukarı süzülen
+// toz zerreleri (susuwatari) + altın parıltılar ve nazikçe beliren madalyon.
+// ~2.8 sn sonra kendiliğinden yumuşakça kapanır.
+// ---------------------------------------------------------------------------
+
+class _RankUpCelebration extends StatefulWidget {
+  const _RankUpCelebration({
+    required this.palette,
+    required this.rank,
+    required this.color,
+  });
+  final ViewerPalette palette;
+  final _RankInfo rank;
+  final Color color;
+
+  @override
+  State<_RankUpCelebration> createState() => _RankUpCelebrationState();
+}
+
+class _RankUpCelebrationState extends State<_RankUpCelebration>
+    with TickerProviderStateMixin {
+  late final AnimationController _drift; // sürekli süzülen zerreler
+  late final AnimationController _enter; // madalyon/metin girişi
+  bool _closing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _drift = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 6),
+    )..repeat();
+    _enter = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..forward();
+    // Kendiliğinden yumuşak kapanış.
+    Future.delayed(const Duration(milliseconds: 2800), _dismiss);
+  }
+
+  void _dismiss() {
+    if (_closing || !mounted) return;
+    _closing = true;
+    Navigator.of(context).maybePop();
+  }
+
+  @override
+  void dispose() {
+    _drift.dispose();
+    _enter.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
+    final color = widget.color;
+
+    return GestureDetector(
+      onTap: _dismiss,
+      behavior: HitTestBehavior.opaque,
+      child: Stack(
+        children: [
+          // Yumuşak sıcak ışık — merkezden yayılan Ghibli parıltısı.
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: const Alignment(0, -0.15),
+                  radius: 0.9,
+                  colors: [
+                    color.withValues(alpha: 0.32),
+                    color.withValues(alpha: 0.10),
+                    Colors.transparent,
+                  ],
+                  stops: const [0, 0.45, 1],
+                ),
+              ),
+            ),
+          ),
+          // Süzülen toz zerreleri + parıltılar.
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _drift,
+              builder: (_, __) => CustomPaint(
+                painter: _DustPainter(t: _drift.value, color: color),
+              ),
+            ),
+          ),
+          // Merkez içerik.
+          Center(
+            child: AnimatedBuilder(
+              animation: _enter,
+              builder: (_, child) {
+                final e = Curves.easeOutBack.transform(
+                  _enter.value.clamp(0.0, 1.0),
+                );
+                final fade = Curves.easeOut.transform(
+                  _enter.value.clamp(0.0, 1.0),
+                );
+                return Opacity(
+                  opacity: fade,
+                  child: Transform.scale(scale: 0.7 + 0.3 * e, child: child),
+                );
+              },
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _GlowMedallion(kanji: widget.rank.kanji, color: color),
+                  const SizedBox(height: 20),
+                  Text(
+                    s.s('reward.rankUp.label'),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.85),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 3,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.rank.romaji,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 34,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                      height: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    s.s('reward.rank.${widget.rank.id}'),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.82),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 48),
+                    child: Text(
+                      s.s('reward.rankUp.body'),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.62),
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Kutlama madalyonu — dış ışık halesiyle beliren, kanji taşıyan yuvarlak.
+class _GlowMedallion extends StatelessWidget {
+  const _GlowMedallion({required this.kanji, required this.color});
+  final String kanji;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 116,
+      height: 116,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [color, Color.lerp(color, Colors.black, 0.24)!],
+        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.30), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.55),
+            blurRadius: 40,
+            spreadRadius: 4,
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        kanji,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: kanji.runes.length > 1 ? 44 : 60,
+          fontWeight: FontWeight.w700,
+          height: 1,
+        ),
+      ),
+    );
+  }
+}
+
+/// Yukarı süzülen toz zerreleri (susuwatari) + altın parıltılar. Deterministik
+/// tohumla üretilir; [t] 0..1 döngüsel zamandır.
+class _DustPainter extends CustomPainter {
+  _DustPainter({required this.t, required this.color});
+  final double t;
+  final Color color;
+
+  static final _rng = math.Random(7);
+  static final List<_Mote> _motes = List.generate(26, (i) {
+    return _Mote(
+      x: _rng.nextDouble(),
+      phase: _rng.nextDouble(),
+      speed: 0.4 + _rng.nextDouble() * 0.8,
+      size: 1.5 + _rng.nextDouble() * 3.5,
+      wobble: 6 + _rng.nextDouble() * 22,
+      sparkle: _rng.nextDouble() > 0.62,
+    );
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final m in _motes) {
+      final prog = (t * m.speed + m.phase) % 1.0;
+      // Aşağıdan yukarı süzülüş.
+      final y = size.height * (1.05 - prog * 1.15);
+      final wob = math.sin((prog * 2 * math.pi) + m.phase * 6) * m.wobble;
+      final x = size.width * m.x + wob;
+      // Girişte belirip çıkışta sönen yumuşak opaklık.
+      final fade = math.sin(prog * math.pi).clamp(0.0, 1.0);
+
+      if (m.sparkle) {
+        final paint = Paint()
+          ..color = color.withValues(alpha: 0.9 * fade)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.2);
+        _drawSparkle(canvas, Offset(x, y), m.size * 1.6, paint);
+      } else {
+        // Susuwatari — yumuşak koyu toz zerresi.
+        final paint = Paint()
+          ..color = Colors.black.withValues(alpha: 0.28 * fade)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5);
+        canvas.drawCircle(Offset(x, y), m.size, paint);
+      }
+    }
+  }
+
+  void _drawSparkle(Canvas canvas, Offset c, double r, Paint paint) {
+    final path = Path();
+    for (var i = 0; i < 4; i++) {
+      final a = i * math.pi / 2;
+      path.moveTo(c.dx, c.dy);
+      path.lineTo(c.dx + math.cos(a) * r, c.dy + math.sin(a) * r);
+    }
+    canvas.drawPath(
+      path,
+      paint
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.4
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _DustPainter old) =>
+      old.t != t || old.color != color;
+}
+
+class _Mote {
+  const _Mote({
+    required this.x,
+    required this.phase,
+    required this.speed,
+    required this.size,
+    required this.wobble,
+    required this.sparkle,
+  });
+  final double x;
+  final double phase;
+  final double speed;
+  final double size;
+  final double wobble;
+  final bool sparkle;
+}
+
