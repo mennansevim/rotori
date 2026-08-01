@@ -23,6 +23,16 @@ hiyerarşisi, tema seçici ve uçuş özeti hedefli testleri başarılıdır.
 
 ## Tamamlananlar (bu ve önceki oturumlardan)
 
+- ✅ **2026-08-02** Keşif haritası (`reward_map_screen.dart`) baştan tasarlandı:
+  XP odaklı "Gezgin rütbesi" — 狸 Tanuki → 龍 Ryū 8 kademeli Japon efsane
+  yaratıkları merdiveni (her 100 XP bir rütbe, `xpToLevel` ile birebir).
+  Degrade kanji madalyonu + romaji/anlam + toplam XP + sonraki rütbeye kalan
+  XP çubuğu; keşif metrik şeridi; sakin konum-takibi ipucu ve kartı;
+  aktivite rozetleri pasif liste görünümü. `CityCard` yeniden yazıldı —
+  ViewerPalette uyumlu, gezilmemiş noktalar pasif halka, gezilen yeşil onay,
+  tespit amber; tabular figürlerle hizalı sayılar. `flutter analyze` temiz,
+  qa_scenarios (TR/EN rütbe anahtarları dahil) geçti.
+
 - ✅ **2026-08-01** Boş uçuş/otel bölümleri pasif collapsible yerine
   planlayıcının düzenleme adımına götüren dokunulabilir `_DrawerAddCard`
   ile değiştirildi (`drawer.flights.add` / `drawer.hotels.add` / `drawer.add.hint`).

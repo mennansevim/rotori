@@ -348,6 +348,8 @@ class _RankHero extends StatelessWidget {
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
                       height: 1,
+                      letterSpacing: -0.5,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                   Text(
@@ -429,6 +431,7 @@ class _RankMedallion extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [color, Color.lerp(color, Colors.black, 0.22)!],
         ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
         boxShadow: [
           BoxShadow(
             color: color.withValues(alpha: 0.35),
@@ -498,6 +501,7 @@ class _DiscoveryStats extends StatelessWidget {
                       fontSize: 21,
                       fontWeight: FontWeight.w800,
                       height: 1,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                   const SizedBox(height: 4),

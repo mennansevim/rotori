@@ -138,6 +138,7 @@ class CityCard extends StatelessWidget {
                     color: complete ? p.matcha : p.textSecondary,
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
               ),
