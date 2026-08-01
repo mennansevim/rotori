@@ -16,7 +16,6 @@ class _ViewerDrawer extends ConsumerWidget {
     required this.trip,
     required this.dayCount,
     required this.onOpenThemePicker,
-    required this.onOpenMap,
     required this.onOpenBudget,
     required this.onOpenPrep,
     required this.onOpenWeather,
@@ -27,7 +26,6 @@ class _ViewerDrawer extends ConsumerWidget {
   final Trip trip;
   final int dayCount;
   final VoidCallback onOpenThemePicker;
-  final VoidCallback onOpenMap;
   final VoidCallback onOpenBudget;
   final VoidCallback onOpenPrep;
   final VoidCallback onOpenWeather;
@@ -50,12 +48,8 @@ class _ViewerDrawer extends ConsumerWidget {
     final avatarInitial =
         isGuest ? '?' : email.trim().substring(0, 1).toUpperCase();
 
-    // KEŞFET — en sık kullanılan araçlar, yuvarlak ikonlarla yukarıda.
+    // KEŞFET — en sık kullanılan araçlar, yan yana dikey karolar.
     final discoverActions = <_DrawerActionSpec>[
-      _DrawerActionSpec(
-          icon: Icons.map_outlined,
-          label: s.s('viewer.tt.map'),
-          onTap: onOpenMap),
       _DrawerActionSpec(
           icon: Icons.wb_sunny_outlined,
           label: s.s('viewer.tt.weather'),
@@ -443,18 +437,21 @@ class _DrawerHero extends StatelessWidget {
     final p = palette;
     final s = LanguageScope.of(context);
     final topInset = MediaQuery.paddingOf(context).top;
-    // Görsel alanı: status bar + sabit hero yüksekliği. Referans oran korunur.
-    const heroBody = 132.0;
+    // Görsel 3:2 (900×600). Kutu daha geniş orana kaçmasın diye hero gövdesini
+    // görselin doğal oranına yakın tutuyoruz; böylece cover kırpması minimum
+    // kalır ve sahne (Fuji + gökyüzü) bozulmadan durur.
+    const heroBody = 150.0;
     return SizedBox(
       height: topInset + heroBody,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // 1) Arka plan görseli — tüm hero'yu kaplar.
+          // 1) Arka plan görseli — sahnenin üst kısmını koru (topCenter),
+          //    alt kenar zaten scrim ile gövdeye eriyor.
           Image.asset(
             'assets/images/hamb-menu-top-bg.png',
             fit: BoxFit.cover,
-            alignment: Alignment.center,
+            alignment: const Alignment(0, -0.35),
             // Görsel yüklenemezse palet gradyanına düş.
             errorBuilder: (_, __, ___) => DecoratedBox(
               decoration: BoxDecoration(
@@ -466,17 +463,19 @@ class _DrawerHero extends StatelessWidget {
               ),
             ),
           ),
-          // 2) Okunabilirlik scrim'i — üstte hafif koyu, altta palet bg'sine
-          //    geçiş. Beyaz metin her temada net durur, gövdeye kusursuz akar.
+          // 2) Okunabilirlik scrim'i — alt-ağırlıklı: üst neredeyse şeffaf,
+          //    alta doğru koyulaşıp palet bg'sine erir. Beyaz başlık her
+          //    temada net durur, hero gövdeye kusursuz akar.
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                stops: const [0, .45, 1],
+                stops: const [0, .40, .78, 1],
                 colors: [
-                  Colors.black.withValues(alpha: .22),
-                  Colors.black.withValues(alpha: .06),
+                  Colors.black.withValues(alpha: .10),
+                  Colors.black.withValues(alpha: .02),
+                  Colors.black.withValues(alpha: .42),
                   p.bg,
                 ],
               ),
@@ -1431,7 +1430,8 @@ class _DrawerAddCard extends StatelessWidget {
   }
 }
 
-/// Drawer içi keşif grid'i — iki sütunda, rahat dokunulan hızlı aksiyonlar.
+/// Drawer içi keşif şeridi — araçlar yan yana, iOS "hızlı aksiyon" tarzı
+/// dikey karolar (ikon üstte, etiket altta). Eşit genişlikte dağılır.
 class _DrawerActionGrid extends StatelessWidget {
   const _DrawerActionGrid({required this.actions, required this.palette});
   final List<_DrawerActionSpec> actions;
@@ -1440,71 +1440,74 @@ class _DrawerActionGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = palette;
-    return LayoutBuilder(
-      builder: (_, c) {
-        const cols = 2;
-        const spacing = 10.0;
-        final w = (c.maxWidth - spacing * (cols - 1)) / cols;
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: [
-            for (final a in actions)
-              SizedBox(
-                width: w,
-                height: 68,
-                child: Material(
-                  color: p.card,
-                  borderRadius: BorderRadius.circular(15),
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      a.onTap();
-                    },
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: p.border),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 11),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: p.accent.withValues(alpha: .10),
-                                borderRadius: BorderRadius.circular(11),
-                              ),
-                              alignment: Alignment.center,
-                              child: Icon(a.icon, size: 19, color: p.accent),
-                            ),
-                            const SizedBox(width: 9),
-                            Expanded(
-                              child: Text(
-                                a.label,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: p.textPrimary,
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w600,
-                                  height: 1.12,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < actions.length; i++) ...[
+          if (i > 0) const SizedBox(width: 10),
+          Expanded(child: _DrawerActionTile(spec: actions[i], palette: p)),
+        ],
+      ],
+    );
+  }
+}
+
+/// Tek bir dikey aksiyon karosu.
+class _DrawerActionTile extends StatelessWidget {
+  const _DrawerActionTile({required this.spec, required this.palette});
+  final _DrawerActionSpec spec;
+  final ViewerPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    return Material(
+      color: p.card,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).pop();
+          spec.onTap();
+        },
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: p.border),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: p.accent.withValues(alpha: .10),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(spec.icon, size: 21, color: p.accent),
+                ),
+                const SizedBox(height: 9),
+                Text(
+                  spec.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: p.textPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    height: 1.1,
                   ),
                 ),
-              ),
-          ],
-        );
-      },
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

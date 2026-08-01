@@ -336,7 +336,6 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
         trip: trip,
         dayCount: days.length,
         onOpenThemePicker: _openThemePicker,
-        onOpenMap: _openMap,
         onOpenBudget: _openBudget,
         onOpenPrep: _openPrep,
         onOpenWeather: _openWeather,
