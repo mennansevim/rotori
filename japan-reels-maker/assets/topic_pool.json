@@ -1,0 +1,29 @@
+{
+  "topics": [
+    { "title": "Fushimi Inari Tapınağı", "query": "fushimi inari torii" },
+    { "title": "Shibuya Kavşağı", "query": "shibuya crossing" },
+    { "title": "Konbini Kültürü", "query": "japan konbini convenience store" },
+    { "title": "Onsen Deneyimi", "query": "japan onsen ryokan" },
+    { "title": "Sakura Zamanı", "query": "cherry blossom kyoto" },
+    { "title": "Shinkansen Yolculuğu", "query": "shinkansen bullet train" },
+    { "title": "Osaka Dotonbori", "query": "osaka dotonbori night neon" },
+    { "title": "Nara Geyikleri", "query": "nara deer park" },
+    { "title": "Tokyo Kulesi", "query": "tokyo tower night" },
+    { "title": "Ryokan Konaklama", "query": "traditional ryokan tatami" },
+    { "title": "Kabuki Sanatı", "query": "kabuki theater japan" },
+    { "title": "Sushi Deneyimi", "query": "sushi bar tokyo" },
+    { "title": "Zen Bahçeleri", "query": "japanese zen garden" },
+    { "title": "Sonbahar Yaprakları", "query": "japan autumn maple leaves" },
+    { "title": "Kyoto Mabetleri", "query": "kyoto temple" },
+    { "title": "Karaoke Kültürü", "query": "japan karaoke night" },
+    { "title": "Ramen Kültürü", "query": "japan ramen bowl" },
+    { "title": "Kimono Geleneği", "query": "kimono street kyoto" },
+    { "title": "Akihabara Anime", "query": "akihabara tokyo neon" },
+    { "title": "Matcha Seremonisi", "query": "japan matcha tea ceremony" },
+    { "title": "Fuji Manzarası", "query": "mount fuji view" },
+    { "title": "Balık Pazarı", "query": "tsukiji fish market" },
+    { "title": "Hiroshima Anıtı", "query": "hiroshima peace memorial" },
+    { "title": "Kyoto Bambu Ormanı", "query": "arashiyama bamboo forest" },
+    { "title": "Kar Mevsimi", "query": "hokkaido winter snow" }
+  ]
+}

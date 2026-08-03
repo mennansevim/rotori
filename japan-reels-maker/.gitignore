@@ -1,0 +1,40 @@
+.venv/
+.claude/
+.pytest_cache/
+__pycache__/
+*.pyc
+.DS_Store
+~$*.xlsx
+data/frames/
+data/metadata.csv
+data/kurgu_planlari/
+data/raw_videos/
+output/reels/
+config.local.yaml
+# Secret'lı ana config — repo'ya girmesin (secret'lar plaintext).
+# Yeni kurulumda config.yaml.example → kopyala config.yaml → değerleri doldur.
+config.yaml
+data/cleaned/
+data/metadata.csv.*.bak
+output/ready_to_publish/
+# hangi klasörde olursa olsun video/text çıktıları asla commit'e girmesin
+*.mp4
+*.mov
+*.MOV
+*.MP4
+*.part.mp4
+output/**/*.txt
+# Instagram publisher artifacts
+data/instagram_session.json
+data/instagram_device.json
+data/instagram_uploads.jsonl
+# Story kartları (üretilen jpg'ler — hızla birikir)
+output/stories/
+*.jpg
+# Haber otomasyonu state + log
+data/news_automation/
+# Konu otomasyonu state + log
+data/topic_automation/
+
+# Instagram Graph API long-lived token — asla commit edilmez
+data/graph_token.txt
