@@ -4,6 +4,36 @@ import 'route_matrix.dart';
 
 enum TimeOfDayPreference { morning, afternoon, evening }
 
+enum ActivityPriority { optional, normal, preferred, mustDo }
+
+enum DropReason {
+  noRoute,
+  openingWindowConflict,
+  dayCapacity,
+  walkingLimit,
+  fixedActivityConflict,
+  duplicate,
+  userOptional,
+}
+
+class DroppedActivity {
+  DroppedActivity({
+    required this.activityId,
+    required this.name,
+    required this.priority,
+    required this.reason,
+    List<int> attemptedDayIndexes = const [],
+    this.conflictingActivityId,
+  }) : attemptedDayIndexes = List.unmodifiable(attemptedDayIndexes);
+
+  final String activityId;
+  final String name;
+  final ActivityPriority priority;
+  final DropReason reason;
+  final List<int> attemptedDayIndexes;
+  final String? conflictingActivityId;
+}
+
 class OptimizationActivity {
   const OptimizationActivity({
     required this.id,
@@ -19,7 +49,7 @@ class OptimizationActivity {
     this.isFixed = false,
     this.isLocked = false,
     this.hasReservation = false,
-    this.priority = 0,
+    this.priority = ActivityPriority.normal,
     this.estimatedQueueMinutes = 0,
     this.preferredTime,
     this.category,
@@ -38,7 +68,7 @@ class OptimizationActivity {
   final bool isFixed;
   final bool isLocked;
   final bool hasReservation;
-  final int priority;
+  final ActivityPriority priority;
   final int estimatedQueueMinutes;
   final TimeOfDayPreference? preferredTime;
   final String? category;
@@ -90,7 +120,7 @@ class OptimizationWeights {
       switch (profile) {
         RouteOptimizationProfile.balanced => const OptimizationWeights(
             travel: 1,
-            waiting: .7,
+            waiting: 3,
             transfer: 8,
             backtracking: 1.5,
             scheduleRisk: 2,
@@ -100,19 +130,19 @@ class OptimizationWeights {
             transportCost: .3,
           ),
         RouteOptimizationProfile.fastest => const OptimizationWeights(
-            travel: 1.8,
-            waiting: .8,
-            transfer: 3,
-            backtracking: 1,
-            scheduleRisk: 2.5,
-            walking: .35,
-            clusterBreak: .5,
-            complexity: .5,
-            transportCost: .04,
+            travel: 10,
+            waiting: .1,
+            transfer: .1,
+            backtracking: .1,
+            scheduleRisk: .5,
+            walking: 0,
+            clusterBreak: .1,
+            complexity: .1,
+            transportCost: 0,
           ),
         RouteOptimizationProfile.leastWalking => const OptimizationWeights(
             travel: .8,
-            waiting: .7,
+            waiting: 3,
             transfer: 7,
             backtracking: 1.3,
             scheduleRisk: 2,
@@ -123,7 +153,7 @@ class OptimizationWeights {
           ),
         RouteOptimizationProfile.cheapest => const OptimizationWeights(
             travel: .65,
-            waiting: .5,
+            waiting: 3,
             transfer: 6,
             backtracking: 1.2,
             scheduleRisk: 2,
@@ -137,14 +167,14 @@ class OptimizationWeights {
 
 class OptimizerConfig {
   const OptimizerConfig({
-    this.beamWidth = 7,
+    this.beamWidth = 6,
     this.simpleTransitionBufferMinutes = 10,
     this.complexTransitionBufferMinutes = 15,
     this.fixedActivityBufferMinutes = 20,
     this.preferredFixedActivityBufferMinutes = 30,
     this.walkingTimeToleranceMinutes = 5,
     this.walkingFatigueThresholdMinutes = 90,
-    this.clusterReentryPenalty = 20,
+    this.clusterReentryPenalty = 120,
     this.localImprovementPasses = 3,
     this.allowActivityDropping = false,
   });
@@ -205,6 +235,15 @@ class RouteLeg {
     required this.bufferMinutes,
     required this.reliabilityScore,
     required this.isEstimated,
+    this.rideMinutes = 0,
+    this.accessMinutes = 0,
+    this.transitWaitMinutes = 0,
+    this.scheduleIdleMinutes = 0,
+    this.costPerPersonYen = 0,
+    this.partyTotalCostYen = 0,
+    this.vehicleCount = 0,
+    this.fareBasis = FareBasis.perPerson,
+    this.providerId,
   });
 
   final String fromLocationId;
@@ -220,6 +259,15 @@ class RouteLeg {
   final int bufferMinutes;
   final double reliabilityScore;
   final bool isEstimated;
+  final int rideMinutes;
+  final int accessMinutes;
+  final int transitWaitMinutes;
+  final int scheduleIdleMinutes;
+  final int costPerPersonYen;
+  final int partyTotalCostYen;
+  final int vehicleCount;
+  final FareBasis fareBasis;
+  final String? providerId;
 }
 
 class ScheduledActivity {
@@ -272,6 +320,9 @@ class OptimizationMetrics {
     required this.evaluatedStateCount,
     required this.prunedStateCount,
     required this.beamWidth,
+    this.totalTransitWaitMinutes = 0,
+    this.scheduleIdleMinutes = 0,
+    this.partyTotalTransportCostYen = 0,
   });
 
   final int totalTravelMinutes;
@@ -285,6 +336,33 @@ class OptimizationMetrics {
   final int evaluatedStateCount;
   final int prunedStateCount;
   final int beamWidth;
+  final int totalTransitWaitMinutes;
+  final int scheduleIdleMinutes;
+  final int partyTotalTransportCostYen;
+
+  double get objectiveScore => score;
+}
+
+class OptimizationDelta {
+  const OptimizationDelta({
+    required this.travelDeltaMinutes,
+    required this.walkingDeltaMinutes,
+    required this.idleDeltaMinutes,
+    required this.transferDelta,
+    required this.partyCostDeltaYen,
+    required this.backtrackingDelta,
+    required this.objectiveScoreDelta,
+    required this.objectiveImprovementPct,
+  });
+
+  final int travelDeltaMinutes;
+  final int walkingDeltaMinutes;
+  final int idleDeltaMinutes;
+  final int transferDelta;
+  final int partyCostDeltaYen;
+  final double backtrackingDelta;
+  final double objectiveScoreDelta;
+  final double objectiveImprovementPct;
 }
 
 enum OptimizationFailureCode {
@@ -294,6 +372,7 @@ enum OptimizationFailureCode {
   fixedTimeConflict,
   routeDataMissing,
   noFeasibleRoute,
+  protectedActivityInfeasible,
 }
 
 class OptimizationFailure {
@@ -320,13 +399,20 @@ class OptimizationResult {
     required List<String> warnings,
     required List<String> optimizationChanges,
     List<String> droppedActivityIds = const [],
+    List<DroppedActivity> droppedActivities = const [],
+    this.delta,
     this.metrics,
     this.failure,
   })  : activities = List.unmodifiable(activities),
         legs = List.unmodifiable(legs),
         warnings = List.unmodifiable(warnings),
         optimizationChanges = List.unmodifiable(optimizationChanges),
-        droppedActivityIds = List.unmodifiable(droppedActivityIds);
+        droppedActivities = List.unmodifiable(droppedActivities),
+        droppedActivityIds = List.unmodifiable(
+          droppedActivities.isEmpty
+              ? droppedActivityIds
+              : droppedActivities.map((activity) => activity.activityId),
+        );
 
   factory OptimizationResult.success({
     required List<ScheduledActivity> activities,
@@ -335,6 +421,8 @@ class OptimizationResult {
     required List<String> warnings,
     required List<String> optimizationChanges,
     List<String> droppedActivityIds = const [],
+    List<DroppedActivity> droppedActivities = const [],
+    OptimizationDelta? delta,
   }) =>
       OptimizationResult._(
         feasibilityStatus: FeasibilityStatus.feasible,
@@ -344,6 +432,8 @@ class OptimizationResult {
         warnings: warnings,
         optimizationChanges: optimizationChanges,
         droppedActivityIds: droppedActivityIds,
+        droppedActivities: droppedActivities,
+        delta: delta,
       );
 
   factory OptimizationResult.failure(OptimizationFailure failure) =>
@@ -363,11 +453,13 @@ class OptimizationResult {
   final List<String> warnings;
   final List<String> optimizationChanges;
   final OptimizationFailure? failure;
+  final OptimizationDelta? delta;
 
   /// `OptimizerConfig.allowActivityDropping` açıkken, tam aktivite kümesi
   /// sığmadığı için çıkarılan sabit-olmayan aktivite id'leri. Varsayılan
   /// (kapalı) modda her zaman boştur.
   final List<String> droppedActivityIds;
+  final List<DroppedActivity> droppedActivities;
 
   bool get isSuccess => feasibilityStatus == FeasibilityStatus.feasible;
 }
@@ -395,41 +487,46 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
   }
 
   /// [config.allowActivityDropping] açıkken tam aktivite kümesi sığmazsa
-  /// çağrılır. Sabit-olmayan aktiviteleri teker teker dener; tek çıkarma
-  /// yeterli olmazsa en fazla süreye sahip (gün üzerinde en baskılı) olanı
-  /// atıp tekrar dener. Sabit aktiviteler asla çıkarılmaz.
-  ///
-  /// `category == 'meal'` olan aktiviteler korunur: meal-olmayan bir
-  /// aktivitenin çıkarılması yeterliyse veya günün geri kalanı yine de
-  /// baskılıysa asıl atılacak aday olarak seçilir; yalnızca ortada başka
-  /// düşürülebilir (sabit olmayan, meal olmayan) aktivite kalmadığında bir
-  /// öğün düşürülür. Bu, gerçek bir gezginin önce gezi durağından fedakârlık
-  /// edip öğününden vazgeçmemesi sezgisiyle uyumludur.
+  /// çağrılır. `mustDo` ve sabit aktiviteler asla çıkarılmaz. Diğer adaylar
+  /// lexicographic olarak optional → normal → preferred sırasıyla denenir;
+  /// aynı öncelikte uzun süreli aday önce kapasite açar, ID deterministik
+  /// tie-break sağlar.
   Future<OptimizationResult> _solveWithDropping(
     OptimizationRequest original,
   ) async {
     var current = original.activities;
-    final dropped = <String>[];
+    final dropped = <DroppedActivity>[];
 
     while (true) {
-      final droppable =
-          current.where((activity) => !activity.hasFixedSchedule).toList();
+      final droppable = current
+          .where((activity) =>
+              !activity.hasFixedSchedule &&
+              activity.priority != ActivityPriority.mustDo)
+          .toList()
+        ..sort(_compareDropCandidates);
       if (droppable.isEmpty) {
         return OptimizationResult.failure(
           const OptimizationFailure(
-            code: OptimizationFailureCode.noFeasibleRoute,
-            message: 'Sabit aktiviteler bile gün sınırı içinde planlanamadı.',
+            code: OptimizationFailureCode.protectedActivityInfeasible,
+            message:
+                'Must-do veya sabit aktiviteler gün sınırı içinde planlanamadı.',
           ),
         );
       }
-      final nonMealDroppable =
-          droppable.where((activity) => activity.category != 'meal').toList();
-      final mealDroppable =
-          droppable.where((activity) => activity.category == 'meal').toList();
+      final lowestPriority = droppable.first.priority;
+      final candidatePool = droppable
+          .where((activity) => activity.priority == lowestPriority)
+          .toList();
+      final nonMealCandidates = candidatePool
+          .where((activity) => activity.category != 'meal')
+          .toList();
+      final mealCandidates = candidatePool
+          .where((activity) => activity.category == 'meal')
+          .toList();
 
       OptimizationResult? bestSuccess;
       OptimizationActivity? bestDrop;
-      for (final pool in [nonMealDroppable, mealDroppable]) {
+      for (final pool in [nonMealCandidates, mealCandidates]) {
         for (final candidate in pool) {
           final trialActivities =
               current.where((activity) => activity.id != candidate.id).toList();
@@ -444,35 +541,49 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
             bestDrop = candidate;
           }
         }
-        // Meal-olmayan havuzda en az bir çözüm bulunduysa öğünlere hiç
-        // bakılmadan durulur.
         if (bestSuccess != null) break;
       }
 
       if (bestSuccess != null && bestDrop != null) {
-        dropped.add(bestDrop.id);
+        dropped.add(_dropped(bestDrop));
         return OptimizationResult.success(
           activities: bestSuccess.activities,
           legs: bestSuccess.legs,
           metrics: bestSuccess.metrics!,
           warnings: bestSuccess.warnings,
           optimizationChanges: bestSuccess.optimizationChanges,
-          droppedActivityIds: dropped,
+          droppedActivities: dropped,
+          delta: bestSuccess.delta,
         );
       }
 
-      // Tek çıkarma yeterli olmadı — meal-olmayanlar arasından en uzun
-      // süreliyi (günü en çok baskılayanı) at; hiç meal-olmayan kalmadıysa
-      // ancak o zaman bir öğüne dokun.
-      final fallbackPool =
-          nonMealDroppable.isNotEmpty ? nonMealDroppable : mealDroppable;
-      final worst = [...fallbackPool]
-        ..sort((a, b) => b.durationMinutes.compareTo(a.durationMinutes));
-      dropped.add(worst.first.id);
-      current =
-          current.where((activity) => activity.id != worst.first.id).toList();
+      final worst = nonMealCandidates.isNotEmpty
+          ? nonMealCandidates.first
+          : mealCandidates.first;
+      dropped.add(_dropped(worst));
+      current = current.where((activity) => activity.id != worst.id).toList();
     }
   }
+
+  int _compareDropCandidates(
+    OptimizationActivity a,
+    OptimizationActivity b,
+  ) {
+    final priority = a.priority.index.compareTo(b.priority.index);
+    if (priority != 0) return priority;
+    final duration = b.durationMinutes.compareTo(a.durationMinutes);
+    if (duration != 0) return duration;
+    return a.id.compareTo(b.id);
+  }
+
+  DroppedActivity _dropped(OptimizationActivity activity) => DroppedActivity(
+        activityId: activity.id,
+        name: activity.name,
+        priority: activity.priority,
+        reason: activity.priority == ActivityPriority.optional
+            ? DropReason.userOptional
+            : DropReason.dayCapacity,
+      );
 
   OptimizationRequest _withActivities(
     OptimizationRequest original,
@@ -698,6 +809,7 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
       );
     }
     final leg = _leg(
+      request,
       request.constraints.startLocation.id,
       request.constraints.endLocation.id,
       request.constraints.availableStartTime,
@@ -721,6 +833,11 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
         evaluatedStateCount: 1,
         prunedStateCount: 0,
         beamWidth: config.beamWidth,
+        totalTransitWaitMinutes: option.resolvedTransitWaitMinutes,
+        scheduleIdleMinutes: 0,
+        partyTotalTransportCostYen: option
+            .costForParty(request.preferences.partySize)
+            .partyTotalCostYen,
       ),
       warnings: option.isEstimated
           ? const ['Gün sonu rota verisi yaklaşık değerdir.']
@@ -821,12 +938,14 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
         _preferredTimePenalty(activity, start);
 
     final leg = _leg(
+      request,
       state.currentLocation.id,
       activity.location.id,
       departure,
       option,
       waitingMinutes: idleWaiting + option.waitingMinutes,
       bufferMinutes: buffer,
+      scheduleIdleMinutes: idleWaiting,
     );
     final warningList = <String>[
       if (option.isEstimated)
@@ -913,15 +1032,21 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
     TransportOption option,
   ) {
     final weights = request.weights;
-    final perPersonCost =
-        option.mode == TransportMode.taxi && request.preferences.partySize > 1
-            ? option.estimatedCostYen / request.preferences.partySize
-            : option.estimatedCostYen.toDouble();
+    final partyCost = option.costForParty(request.preferences.partySize);
     var score = option.doorToDoorMinutes * weights.travel +
         option.waitingMinutes * weights.waiting +
         option.transferCount * weights.transfer +
         option.walkingMinutes * weights.walking +
-        (perPersonCost / 100) * weights.transportCost;
+        (partyCost.partyTotalCostYen / 100) * weights.transportCost;
+    if (request.preferences.effectiveLuggageState == LuggageState.carried) {
+      score += option.walkingMinutes * 1.5 +
+          option.transferCount * 12 +
+          option.complexityPenalty * 2;
+      if (option.mode == TransportMode.taxi) score -= 10;
+    } else if (request.preferences.effectiveLuggageState ==
+        LuggageState.forwarded) {
+      score += option.transferCount * 2;
+    }
     if (option.mode == TransportMode.taxi) {
       score += switch (request.preferences.profile) {
         RouteOptimizationProfile.fastest => 0,
@@ -1114,7 +1239,8 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
             a.doorToDoorMinutes - fastestTransit <=
                 config.walkingTimeToleranceMinutes &&
             request.preferences.profile !=
-                RouteOptimizationProfile.leastWalking) {
+                RouteOptimizationProfile.leastWalking &&
+            request.preferences.profile != RouteOptimizationProfile.fastest) {
           aScore -= 8;
         }
         if (fastestTransit != null &&
@@ -1122,7 +1248,8 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
             b.doorToDoorMinutes - fastestTransit <=
                 config.walkingTimeToleranceMinutes &&
             request.preferences.profile !=
-                RouteOptimizationProfile.leastWalking) {
+                RouteOptimizationProfile.leastWalking &&
+            request.preferences.profile != RouteOptimizationProfile.fastest) {
           bScore -= 8;
         }
         final comparison = aScore.compareTo(bScore);
@@ -1153,6 +1280,7 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
         continue;
       }
       final leg = _leg(
+        request,
         state.currentLocation.id,
         request.constraints.endLocation.id,
         state.currentTime,
@@ -1292,6 +1420,13 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
       if (state.returnLeg != null) state.returnLeg!,
     ];
     final routeChanges = <String>[];
+    final baseline = _simulateOrder(request, request.activities);
+    final baselineLegs = baseline == null
+        ? const <RouteLeg>[]
+        : [
+            ...baseline.scheduled.map((item) => item.inboundLeg),
+            if (baseline.returnLeg != null) baseline.returnLeg!,
+          ];
     for (var i = 0; i < state.scheduled.length; i++) {
       final originalIndex = request.activities
           .indexWhere((a) => a.id == state.scheduled[i].activityId);
@@ -1316,35 +1451,88 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
         evaluatedStateCount: evaluatedStates,
         prunedStateCount: prunedStates,
         beamWidth: config.beamWidth,
+        totalTransitWaitMinutes: legs.fold<int>(
+          0,
+          (sum, leg) => sum + leg.transitWaitMinutes,
+        ),
+        scheduleIdleMinutes: legs.fold<int>(
+          0,
+          (sum, leg) => sum + leg.scheduleIdleMinutes,
+        ),
+        partyTotalTransportCostYen: legs.fold<int>(
+          0,
+          (sum, leg) => sum + leg.partyTotalCostYen,
+        ),
       ),
       warnings: state.warnings.toSet().toList(),
       optimizationChanges: routeChanges,
+      delta: baseline == null
+          ? null
+          : OptimizationDelta(
+              travelDeltaMinutes: state.totalTravel - baseline.totalTravel,
+              walkingDeltaMinutes: state.totalWalking - baseline.totalWalking,
+              idleDeltaMinutes: legs.fold<int>(
+                    0,
+                    (sum, leg) => sum + leg.scheduleIdleMinutes,
+                  ) -
+                  baselineLegs.fold<int>(
+                    0,
+                    (sum, leg) => sum + leg.scheduleIdleMinutes,
+                  ),
+              transferDelta: state.totalTransfers - baseline.totalTransfers,
+              partyCostDeltaYen: legs.fold<int>(
+                    0,
+                    (sum, leg) => sum + leg.partyTotalCostYen,
+                  ) -
+                  baselineLegs.fold<int>(
+                    0,
+                    (sum, leg) => sum + leg.partyTotalCostYen,
+                  ),
+              backtrackingDelta: state.backtracking - baseline.backtracking,
+              objectiveScoreDelta: state.score - baseline.score,
+              objectiveImprovementPct: baseline.score == 0
+                  ? 0
+                  : (baseline.score - state.score) / baseline.score * 100,
+            ),
     );
   }
 
   RouteLeg _leg(
+    OptimizationRequest request,
     String from,
     String to,
     DateTime departure,
     TransportOption option, {
     required int waitingMinutes,
     required int bufferMinutes,
-  }) =>
-      RouteLeg(
-        fromLocationId: from,
-        toLocationId: to,
-        mode: option.mode,
-        departureTime: departure,
-        arrivalTime: departure.add(Duration(minutes: option.doorToDoorMinutes)),
-        travelDurationMinutes: option.doorToDoorMinutes,
-        walkingDurationMinutes: option.walkingMinutes,
-        waitingDurationMinutes: waitingMinutes,
-        transferCount: option.transferCount,
-        estimatedCostYen: option.estimatedCostYen,
-        bufferMinutes: bufferMinutes,
-        reliabilityScore: option.reliabilityScore,
-        isEstimated: option.isEstimated,
-      );
+    int scheduleIdleMinutes = 0,
+  }) {
+    final cost = option.costForParty(request.preferences.partySize);
+    return RouteLeg(
+      fromLocationId: from,
+      toLocationId: to,
+      mode: option.mode,
+      departureTime: departure,
+      arrivalTime: departure.add(Duration(minutes: option.doorToDoorMinutes)),
+      travelDurationMinutes: option.doorToDoorMinutes,
+      walkingDurationMinutes: option.walkingMinutes,
+      waitingDurationMinutes: waitingMinutes,
+      transferCount: option.transferCount,
+      estimatedCostYen: option.estimatedCostYen,
+      bufferMinutes: bufferMinutes,
+      reliabilityScore: option.reliabilityScore,
+      isEstimated: option.isEstimated,
+      rideMinutes: option.resolvedRideMinutes,
+      accessMinutes: option.resolvedAccessMinutes,
+      transitWaitMinutes: option.resolvedTransitWaitMinutes,
+      scheduleIdleMinutes: scheduleIdleMinutes,
+      costPerPersonYen: cost.costPerPersonYen,
+      partyTotalCostYen: cost.partyTotalCostYen,
+      vehicleCount: cost.vehicleCount,
+      fareBasis: cost.fareBasis,
+      providerId: option.providerId,
+    );
+  }
 
   double _efficiency(double score, int travelMinutes) {
     if (!score.isFinite) return 0;

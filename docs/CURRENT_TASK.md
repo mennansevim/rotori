@@ -3,29 +3,41 @@
 > Bu dosya *bugünkü* çalışmanın canlı görünümüdür. Her tamamlanan görevden
 > hemen sonra güncellenir.
 
-**Bugünün tarihi:** 2026-08-02
+**Bugünün tarihi:** 2026-08-03
 **Aktif branch:** `main`
-**Sprint hedefi:** Mobil uygulamaya kamera üzerinde gerçek zamanlı, cihaz-üstü
-çalışan Japon-yeni fiyat algılama + para birimi çevirici (canlı) özelliğini
-Rotori tasarım diline ve mevcut mimariye sadık biçimde eklemek.
+**Sprint hedefi:** Rota optimizasyonu iyileştirme planının Faz 0–5 çekirdek
+domain, harness schema v2, kalite kapısı ve AI-maliyet sınırlarını tamamlamak.
 
 ---
 
 ## Aktif Hedef
 
-Tamamlandı. `live_currency_scanner` özelliği domain/application/infrastructure/
-presentation katmanlarıyla eklendi; kamera akışı `camera`, OCR cihaz-üstü ML Kit
-(Japonca script) ile çalışır, para hesapları `decimal` ile yapılır. Fiyat
-normalizasyonu (tam genişlik/boşluk/OCR nokta hatası), parser (para işareti +
-vergi bağlamı, yüzde/tarih/telefon/kod eleme), 税込 önceliği, IoU+smoothing
-detection tracker, rotation/mirror/cover koordinat dönüşümü, IoU eşleşme ve
-Supabase `exchange_rates` + yerel cache + manuel kur akışı uygulandı. Route
-`/live-currency-scanner`; viewer drawer KEŞFET ızgarasına 4. ikon eklendi.
-`flutter analyze` **0 hata**; 60 yeni birim/widget testi yeşil. Tam pakette
-kalan 15 hata (plan_viewer edit-mode + checklist + welcome_flow) bu görevden
-**önce de kırıktı** (baseline'da stash ile doğrulandı).
+Rota schema v2, cross-day assignment, priority-aware dropping, bağımsız hard
+validator, timeline/wait/free-time ayrımı, kişi/grup maliyeti, luggage state,
+transfer timeline, yön/time-slice estimated matris ve paired profil suite
+uygulandı. POI keşfi gerektiğinde kullanıcı onaylı tek AI batch + cache;
+optimum rota hesabı yerel deterministik motor olarak ayrıldı. Statik analiz
+temiz; 100 base × 4 profil ürün kalite kapısının bütün maddeleri geçti.
 
 ## Tamamlananlar (bu ve önceki oturumlardan)
+
+- ✅ **2026-08-03** Rota optimizasyon v2 Faz 0–5 çekirdek değişiklikleri:
+  schema v2 + semantic determinism, `TripActivityAssignmentEngine`,
+  `RouteOptimizationValidator`, enum priority/structured drop, transit
+  wait–idle–freeTime ayrımı, return timeline, kişi/grup/araç maliyeti,
+  `LuggageState`, transfer penceresi ve directional/time-slice estimated
+  harness matrisi. 100 base × 4 paired profile benchmark hard/duplicate/
+  must-do/return/estimated-warning kontrollerinde sıfır ihlal üretti; beam 6
+  varsayılan kaldı. AI yalnız gerektiğinde onaylı/cache'li POI keşfi için tek
+  batch; rota hesabı saf Dart.
+
+- ✅ **2026-08-03** Final ürün benchmark'ı (seed `20260803`, beam 6): 100 gezi
+  ve dört eş profilde 4.672 gün kaydı; 0 hard ihlal, 0 tekrar, 0 must-do
+  düşürme, 0 eksik dönüş, 0 açıklanmamış uzun boşluk ve 0 infeasible gün.
+  Düşürme oranı %1,77; cluster re-entry %0,94, Kyoto %0. En hızlı profil en
+  kısa süreyi, az yürüyüş profili en az yürüyüşü, en ucuz profil en düşük grup
+  maliyetini verdi. Aynı öncelikte öğün koruması için regresyon testi eklendi;
+  rota prompt kalite eşiği yeniden geçti. `flutter analyze --no-pub` temiz.
 
 - ✅ **2026-08-03** `japan-reels-maker` proje dizini
   `rotori-social/japan-reels-maker` altına taşındı ve nested `.git`
@@ -274,9 +286,9 @@ kalan 15 hata (plan_viewer edit-mode + checklist + welcome_flow) bu görevden
 - **Önceden var olan widget testi hataları** (bu oturumdan bağımsız, baseline
   `39ad0cb`'de de kırık): `test/features/viewer/plan_viewer_test.dart` edit-mode
   senaryoları (⋮ menü, geri al, hedef gün boşluğu, kilitli aktivite) ve
-  `test/features/viewer/checklist_screen_test.dart` kategori render'ı. Drawer
-  görsel/refactor çalışması bunları ne bozdu ne düzeltti; ayrı bir görev olarak
-  ele alınmalı.
+  `test/features/viewer/checklist_screen_test.dart` kategori render'ı ile
+  welcome-flow görsel testleri. Drawer görsel/refactor çalışması bunları ne
+  bozdu ne düzeltti; ayrı bir görev olarak ele alınmalı.
 
 - Native `integration_test` koşusu için bağlı iOS/Android cihaz veya emulator
   yok. Web integration runner desteklenmiyor; macOS desktop hedefi projede

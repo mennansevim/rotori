@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'harness_output.dart';
+import 'matrix_builder.dart';
 import 'planner.dart';
 import 'scenario.dart';
 
@@ -12,62 +14,70 @@ import 'scenario.dart';
 ///   dart run tool/route_opt_harness/main.dart --count=100 --out=/tmp/rota.json
 Future<void> main(List<String> args) async {
   final count = _intArg(args, '--count', 100);
-  final out = _strArg(args, '--out',
-      '${Directory.current.path}/route_opt_scenarios.json');
+  final seed = _intArg(args, '--seed', 20260803);
+  final beamWidth = _intArg(args, '--beam-width', 6);
+  final suiteMode = parseSuiteMode(_strArg(args, '--suite', 'product'));
+  final out = _strArg(
+      args, '--out', '${Directory.current.path}/route_opt_scenarios.json');
+  final gitSha = _strArg(
+    args,
+    '--git-sha',
+    Platform.environment['GIT_COMMIT_SHA'] ?? 'unknown',
+  );
 
-  stdout.writeln('▶ $count senaryo üretiliyor (seed sabit, deterministik)…');
-  final specs = ScenarioGenerator(count: count).generate();
+  stdout.writeln(
+      '▶ $count senaryo üretiliyor (seed=$seed, suite=${suiteMode.name})…');
+  final specs = ScenarioGenerator(
+    count: count,
+    seed: seed,
+    suiteMode: suiteMode,
+  ).generatePairedProfiles();
 
-  final planner = TripPlanner();
+  final planner = TripPlanner(beamWidth: beamWidth);
   final results = <Map<String, dynamic>>[];
 
-  var feasible = 0, infeasible = 0, dropped = 0;
   final sw = Stopwatch()..start();
-  for (final spec in specs) {
-    final json = await planner.plan(spec);
+  for (var i = 0; i < specs.length; i++) {
+    final spec = specs[i];
+    final json = await planner.plan(spec, suiteMode: suiteMode);
     results.add(json);
-    final totals = json['tripTotals'] as Map<String, dynamic>;
-    feasible += totals['feasibleDays'] as int;
-    infeasible += totals['infeasibleDays'] as int;
-    dropped += totals['droppedActivities'] as int;
-    if (spec.id % 10 == 0) {
-      stdout.writeln('  … ${spec.id}/${specs.length} planlandı');
+    if ((i + 1) % 20 == 0) {
+      stdout.writeln('  … ${i + 1}/${specs.length} planlandı');
     }
   }
   sw.stop();
 
-  final envelope = {
-    'generatedAt': DateTime.now().toIso8601String(),
-    'optimizer': 'BeamSearchItineraryOptimizer',
-    'note':
-        'Şehir-içi günler beam-search ile saatlendi; şehirler-arası shinkansen '
-            've havaalanı transferleri belgelenmiş bloklardır. Öğünler sabit '
-            'zamanlı (kahvaltı/öğle/akşam). Ulaşım süreleri test için '
-            'koordinattan türetilmiş sentetik değerlerdir.',
-    'scenarioCount': results.length,
-    'summary': {
-      'feasibleDays': feasible,
-      'infeasibleDays': infeasible,
-      'droppedActivities': dropped,
-      'elapsedMs': sw.elapsedMilliseconds,
-    },
-    'scenarios': results,
-  };
+  final envelope = buildHarnessEnvelope(
+    generatedAt: DateTime.now(),
+    seed: seed,
+    suiteMode: suiteMode,
+    matrixVersion: MatrixBuilder.version,
+    gitSha: gitSha,
+    beamWidth: beamWidth,
+    localImprovementPasses: 3,
+    allowActivityDropping: true,
+    elapsedMs: sw.elapsedMilliseconds,
+    scenarios: results,
+  );
 
-  final encoder = const JsonEncoder.withIndent('  ');
+  const encoder = JsonEncoder.withIndent('  ');
   final file = File(out);
   await file.writeAsString(encoder.convert(envelope));
 
   stdout.writeln('');
   stdout.writeln('✅ Tamamlandı — ${sw.elapsedMilliseconds} ms');
-  stdout.writeln('   feasible gün: $feasible · infeasible gün: $infeasible · '
-      'düşürülen aktivite: $dropped');
+  final summary = envelope['summary'] as Map<String, dynamic>;
+  stdout.writeln('   strict: ${summary['strictFeasibleDays']} · '
+      'dropping ile kurtarılan: ${summary['recoveredByDroppingDays']} · '
+      'infeasible: ${summary['infeasibleDays']}');
   stdout.writeln('   JSON: $out');
 }
 
 int _intArg(List<String> args, String name, int fallback) {
   for (final a in args) {
-    if (a.startsWith('$name=')) return int.tryParse(a.split('=')[1]) ?? fallback;
+    if (a.startsWith('$name=')) {
+      return int.tryParse(a.split('=')[1]) ?? fallback;
+    }
   }
   return fallback;
 }

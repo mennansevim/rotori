@@ -498,3 +498,31 @@ bilgi yoğunluğunu yönetir.
 **Trade-off:** Menü ilk ekranda bütün işlemleri aynı anda göstermez; alt
 bölümler için kaydırma gerekir. Buna karşılık temel yolculuk özeti ve dört sık
 aksiyon ilk görünümde kalır, diğer işlemler anlamlı gruplarla bulunabilir olur.
+
+---
+
+## 2026-08-03 — POI keşfinde gerektiğinde AI, rota hesabında yerel motor
+
+**Karar:** Kullanıcı izin verdiyse ve katalog yetersiz/eski ya da özel ilgi
+boşluğu varsa AI gezi başına en çok bir batch ile Japonya POI adaylarını
+zenginleştirebilir. Sonuç şehir+tercih+katalog sürümü+dil anahtarıyla cache'lenir.
+AI gün ataması, ulaşım modu veya sıra kararı vermez; bunlar saf Dart assignment,
+optimizer ve validator hattında kalır.
+
+**Neden:** Hiç AI kullanmamak kişiselleştirilmiş/güncel nokta keşfini zayıflatır;
+her rota denemesinde AI kullanmak ise maliyeti, gecikmeyi ve determinizm riskini
+artırır. Tek keşif batch'i ile yerel optimizasyon bu iki hedefi ayırır.
+
+---
+
+## 2026-08-03 — Cross-day assignment, priority-aware dropping ve açık maliyet birimleri
+
+**Karar:** Günlük optimizer'dan önce `TripActivityAssignmentEngine` bütün şehir
+günlerini birlikte çözer. Must-do/fixed düşürülemez; diğer dropping sonuçları
+priority ve gerekçeyle yapılandırılır. Legler transit wait/schedule idle/free
+time ayrımını ve `costPerPersonYen`, `partyTotalCostYen`, `vehicleCount`,
+`fareBasis` alanlarını taşır. Varsayılan beam width 6'dır.
+
+**Ölçüm:** Seed 20260803 product suite, 100 base × 4 profile: hard ihlal 0,
+duplicate 0, must-do drop 0, return eksik 0, dropping %3 altı. Beam 10 kaliteyi
+bir miktar artırsa da yaklaşık %17 yavaş olduğundan 6 korunmuştur.

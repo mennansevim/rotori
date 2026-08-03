@@ -295,3 +295,22 @@ packages/
   taşımada mevcut `PlanScheduleEngine` iki günü zamansal olarak yeniden kurar;
   coğrafi rota ön izlemesinin iki günü tek atomik karşılaştırmada göstermesi
   gerçek route gateway/UI işiyle birlikte tamamlanacaktır.
+
+## 16. Rota Optimizasyon v2 Veri Akışı
+
+- `ai_poi_discovery.dart`: kullanıcı onaylı ve cache-miss durumunda, katalog
+  yetersiz/eski veya özel ilgi karşılanmıyorsa gezi başına tek AI keşif çağrısı
+  politikasını tanımlar. Rota hesabına katılmaz.
+- `trip_activity_assignment.dart`: aynı şehirdeki bütün günleri birlikte görür;
+  fixed/special-day/erken kapanış/cluster/kapasite alt sınırıyla deterministik
+  bucket üretir.
+- `itinerary_optimizer.dart`: her bucket içinde yönlü matris üzerinde beam 6
+  ve üç local-improvement turu çalıştırır; priority-aware dropping, luggage ve
+  kişi/grup maliyetini uygular.
+- `route_optimization_validator.dart`: optimizer'dan bağımsız olarak zaman,
+  çalışma saati, fixed saat, yönlü leg, dönüş, duplicate/drop muhasebesi ve
+  aggregate metrikleri doğrular.
+- `plan_optimization_controller.dart`: validator geçmeden preview/persistence
+  üretmez.
+- Harness schema v2 aynı base senaryoyu dört profile genişletir; generatedAt ve
+  elapsed dışındaki semantik çıktı aynı seed'de birebirdir.

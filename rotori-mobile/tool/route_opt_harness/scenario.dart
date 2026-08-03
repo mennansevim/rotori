@@ -1,6 +1,9 @@
 import 'dart:math';
 
-import 'poi_data.dart';
+enum SuiteMode { product, stress }
+
+SuiteMode parseSuiteMode(String value) =>
+    value == SuiteMode.stress.name ? SuiteMode.stress : SuiteMode.product;
 
 /// Bir şehir konaklaması: kaç gece kalınacak.
 class CityStay {
@@ -13,6 +16,7 @@ class CityStay {
 class ScenarioSpec {
   const ScenarioSpec({
     required this.id,
+    this.baseScenarioId,
     required this.adults,
     required this.children,
     required this.stays,
@@ -25,6 +29,7 @@ class ScenarioSpec {
   });
 
   final int id;
+  final int? baseScenarioId;
   final int adults;
   final int children;
   final List<CityStay> stays;
@@ -44,14 +49,33 @@ class ScenarioSpec {
   String get routeLabel => stays.map((s) => s.city).join('→');
   String get title =>
       '$party kişi${hasChild ? " ($children çocuk)" : ""} · $totalDays gün · $routeLabel';
+
+  ScenarioSpec withProfile(String value, int profileIndex) => ScenarioSpec(
+        id: id * 10 + profileIndex,
+        baseScenarioId: id,
+        adults: adults,
+        children: children,
+        stays: stays,
+        profile: value,
+        entryAirport: entryAirport,
+        exitAirport: exitAirport,
+        startDate: startDate,
+        dailyStartHour: dailyStartHour,
+        dailyEndHour: dailyEndHour,
+      );
 }
 
 /// ~100 deterministik ama çeşitlendirilmiş senaryo üretir.
 class ScenarioGenerator {
-  ScenarioGenerator({this.seed = 20260803, this.count = 100});
+  ScenarioGenerator({
+    this.seed = 20260803,
+    this.count = 100,
+    this.suiteMode = SuiteMode.product,
+  });
 
   final int seed;
   final int count;
+  final SuiteMode suiteMode;
 
   static const _profiles = ['balanced', 'fastest', 'leastWalking', 'cheapest'];
 
@@ -74,6 +98,14 @@ class ScenarioGenerator {
     return specs.take(count).toList();
   }
 
+  /// Aynı base girdiyi dört profile genişletir. POI seçimi baseScenarioId ile
+  /// seed'lendiği için profile kıyasları gerçekten paired kalır.
+  List<ScenarioSpec> generatePairedProfiles() => [
+        for (final base in generate())
+          for (var i = 0; i < _profiles.length; i++)
+            base.withProfile(_profiles[i], i),
+      ];
+
   List<ScenarioSpec> _signatureScenarios() {
     final base = DateTime(2026, 4, 6, 0, 0);
     return [
@@ -83,7 +115,11 @@ class ScenarioGenerator {
         id: 1,
         adults: 2,
         children: 1,
-        stays: const [CityStay('Tokyo', 6), CityStay('Osaka', 6), CityStay('Kyoto', 2)],
+        stays: const [
+          CityStay('Tokyo', 6),
+          CityStay('Osaka', 6),
+          CityStay('Kyoto', 2)
+        ],
         profile: 'balanced',
         entryAirport: 'NRT',
         exitAirport: 'KIX',
@@ -96,7 +132,11 @@ class ScenarioGenerator {
         id: 2,
         adults: 2,
         children: 0,
-        stays: const [CityStay('Tokyo', 4), CityStay('Kyoto', 3), CityStay('Osaka', 3)],
+        stays: const [
+          CityStay('Tokyo', 4),
+          CityStay('Kyoto', 3),
+          CityStay('Osaka', 3)
+        ],
         profile: 'fastest',
         entryAirport: 'HND',
         exitAirport: 'KIX',
@@ -109,7 +149,11 @@ class ScenarioGenerator {
         id: 3,
         adults: 2,
         children: 2,
-        stays: const [CityStay('Tokyo', 4), CityStay('Hakone', 1), CityStay('Kyoto', 2)],
+        stays: const [
+          CityStay('Tokyo', 4),
+          CityStay('Hakone', 1),
+          CityStay('Kyoto', 2)
+        ],
         profile: 'leastWalking',
         entryAirport: 'NRT',
         exitAirport: 'NRT',
@@ -122,7 +166,11 @@ class ScenarioGenerator {
         id: 4,
         adults: 1,
         children: 0,
-        stays: const [CityStay('Osaka', 2), CityStay('Kyoto', 2), CityStay('Nara', 1)],
+        stays: const [
+          CityStay('Osaka', 2),
+          CityStay('Kyoto', 2),
+          CityStay('Nara', 1)
+        ],
         profile: 'cheapest',
         entryAirport: 'KIX',
         exitAirport: 'KIX',
@@ -188,8 +236,22 @@ class ScenarioGenerator {
 
   List<CityStay> _buildStays(Random rng, {required bool startInTokyo}) {
     // Şehir sırası: giriş bölgesine göre coğrafi olarak mantıklı zincir.
-    final tokyoChain = ['Tokyo', 'Hakone', 'Kyoto', 'Nara', 'Osaka', 'Hiroshima'];
-    final kansaiChain = ['Osaka', 'Kyoto', 'Nara', 'Hiroshima', 'Hakone', 'Tokyo'];
+    final tokyoChain = [
+      'Tokyo',
+      'Hakone',
+      'Kyoto',
+      'Nara',
+      'Osaka',
+      'Hiroshima'
+    ];
+    final kansaiChain = [
+      'Osaka',
+      'Kyoto',
+      'Nara',
+      'Hiroshima',
+      'Hakone',
+      'Tokyo'
+    ];
     final chain = startInTokyo ? tokyoChain : kansaiChain;
 
     final cityCount = 2 + rng.nextInt(4); // 2..5 şehir

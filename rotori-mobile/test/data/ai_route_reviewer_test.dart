@@ -43,6 +43,19 @@ void main() {
     );
   }
 
+  RouteReviewCoordinator automaticCoordinator(
+    FakeAiRouteReviewRepository repository,
+  ) {
+    return RouteReviewCoordinator(
+      usagePolicy: const CostOptimizedAiUsagePolicy(
+        automaticReviewEnabled: true,
+      ),
+      budgetPolicy: const AiBudgetPolicy(),
+      modelConfig: modelConfig,
+      repository: repository,
+    );
+  }
+
   test('normal güvenilir rotada gereksiz AI çağrısını engeller', () async {
     final repository = FakeAiRouteReviewRepository(response: review());
     final route = Object();
@@ -64,7 +77,7 @@ void main() {
   test('düşük güvenilirlik tek bir AI incelemesine izin verir', () async {
     final repository = FakeAiRouteReviewRepository(response: review());
 
-    final outcome = await coordinator(repository).reviewIfAllowed(
+    final outcome = await automaticCoordinator(repository).reviewIfAllowed(
       route: 'deterministic-route',
       context: const AiReviewContext(
         planId: 'plan-1',
@@ -80,7 +93,7 @@ void main() {
 
   test('aynı rota ve tercih için AI cache kullanılır', () async {
     final repository = FakeAiRouteReviewRepository(response: review());
-    final service = coordinator(repository);
+    final service = automaticCoordinator(repository);
     const context = AiReviewContext(
       planId: 'plan-1',
       routeConfidence: 0.6,
@@ -109,7 +122,7 @@ void main() {
     );
     final route = Object();
 
-    final outcome = await coordinator(repository).reviewIfAllowed(
+    final outcome = await automaticCoordinator(repository).reviewIfAllowed(
       route: route,
       context: const AiReviewContext(
         planId: 'plan-1',
@@ -127,12 +140,12 @@ void main() {
   test('AI bütçesi doluysa repository çağrılmaz', () async {
     final repository = FakeAiRouteReviewRepository(response: review());
 
-    final outcome = await coordinator(repository).reviewIfAllowed(
+    final outcome = await automaticCoordinator(repository).reviewIfAllowed(
       route: 'route',
       context: const AiReviewContext(
         planId: 'plan-1',
         routeConfidence: 0.4,
-        callsForPlan: 2,
+        callsForPlan: 1,
       ),
       request: request(),
     );
@@ -157,7 +170,7 @@ void main() {
       ),
     );
 
-    final outcome = await coordinator(repository).reviewIfAllowed(
+    final outcome = await automaticCoordinator(repository).reviewIfAllowed(
       route: 'route',
       context: const AiReviewContext(
         planId: 'plan-1',
@@ -168,5 +181,21 @@ void main() {
 
     expect(outcome.status, AiReviewOutcomeStatus.invalidResponse);
     expect(outcome.review, isNull);
+  });
+
+  test('varsayılan politika düşük güvende bile otomatik AI çağırmaz', () async {
+    final repository = FakeAiRouteReviewRepository(response: review());
+
+    final outcome = await coordinator(repository).reviewIfAllowed(
+      route: 'deterministic-route',
+      context: const AiReviewContext(
+        planId: 'plan-1',
+        routeConfidence: 0.2,
+      ),
+      request: request(),
+    );
+
+    expect(outcome.status, AiReviewOutcomeStatus.skippedByPolicy);
+    expect(repository.callCount, 0);
   });
 }

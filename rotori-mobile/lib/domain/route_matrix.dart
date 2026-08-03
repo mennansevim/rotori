@@ -19,6 +19,24 @@ enum RouteOptimizationProfile {
   cheapest,
 }
 
+enum LuggageState { none, carried, checkedAtHotel, forwarded }
+
+enum FareBasis { perPerson, perVehicle, flat }
+
+class TransportCost {
+  const TransportCost({
+    required this.costPerPersonYen,
+    required this.partyTotalCostYen,
+    required this.vehicleCount,
+    required this.fareBasis,
+  });
+
+  final int costPerPersonYen;
+  final int partyTotalCostYen;
+  final int vehicleCount;
+  final FareBasis fareBasis;
+}
+
 class TripLocation {
   const TripLocation({
     required this.id,
@@ -44,13 +62,20 @@ class RoutePreferences {
     this.profile = RouteOptimizationProfile.balanced,
     this.maximumWalkingMinutes = 180,
     this.partySize = 1,
-    this.hasLuggage = false,
-  });
+    this.luggageState = LuggageState.none,
+    bool hasLuggage = false,
+  }) : hasLuggage = hasLuggage || luggageState == LuggageState.carried;
 
   final RouteOptimizationProfile profile;
   final int maximumWalkingMinutes;
   final int partySize;
   final bool hasLuggage;
+  final LuggageState luggageState;
+
+  LuggageState get effectiveLuggageState =>
+      luggageState == LuggageState.none && hasLuggage
+          ? LuggageState.carried
+          : luggageState;
 }
 
 class TransportOption {
@@ -66,6 +91,13 @@ class TransportOption {
     this.directionId,
     this.complexityPenalty = 0,
     this.isEstimated = false,
+    this.rideMinutes,
+    this.accessMinutes,
+    this.transitWaitMinutes,
+    this.bufferMinutes = 0,
+    this.fareBasis = FareBasis.perPerson,
+    this.vehicleCapacity = 4,
+    this.providerId,
   });
 
   final TransportMode mode;
@@ -84,6 +116,54 @@ class TransportOption {
   /// Büyük istasyon, zor aktarma veya sağlayıcıya özgü karmaşıklık puanı.
   final double complexityPenalty;
   final bool isEstimated;
+  final int? rideMinutes;
+  final int? accessMinutes;
+  final int? transitWaitMinutes;
+  final int bufferMinutes;
+  final FareBasis fareBasis;
+  final int vehicleCapacity;
+  final String? providerId;
+
+  int get resolvedAccessMinutes => accessMinutes ?? walkingMinutes;
+  int get resolvedTransitWaitMinutes => transitWaitMinutes ?? waitingMinutes;
+  int get resolvedRideMinutes =>
+      rideMinutes ??
+      (doorToDoorMinutes -
+              resolvedAccessMinutes -
+              resolvedTransitWaitMinutes -
+              bufferMinutes)
+          .clamp(0, doorToDoorMinutes);
+
+  TransportCost costForParty(int partySize) {
+    final size = partySize < 1 ? 1 : partySize;
+    return switch (fareBasis) {
+      FareBasis.perPerson => TransportCost(
+          costPerPersonYen: estimatedCostYen,
+          partyTotalCostYen: estimatedCostYen * size,
+          vehicleCount: 0,
+          fareBasis: fareBasis,
+        ),
+      FareBasis.perVehicle => _vehicleCost(size),
+      FareBasis.flat => TransportCost(
+          costPerPersonYen: (estimatedCostYen / size).ceil(),
+          partyTotalCostYen: estimatedCostYen,
+          vehicleCount: 0,
+          fareBasis: fareBasis,
+        ),
+    };
+  }
+
+  TransportCost _vehicleCost(int partySize) {
+    final capacity = vehicleCapacity < 1 ? 1 : vehicleCapacity;
+    final count = (partySize / capacity).ceil();
+    final total = estimatedCostYen * count;
+    return TransportCost(
+      costPerPersonYen: (total / partySize).ceil(),
+      partyTotalCostYen: total,
+      vehicleCount: count,
+      fareBasis: fareBasis,
+    );
+  }
 
   bool get isValid =>
       doorToDoorMinutes >= 0 &&

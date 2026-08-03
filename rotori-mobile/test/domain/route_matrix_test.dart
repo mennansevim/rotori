@@ -81,6 +81,61 @@ void main() {
     expect(matrix.options('a', 'b').single.isValid, isTrue);
     expect(matrix.options('a', 'b').single.doorToDoorMinutes, greaterThan(0));
   });
+
+  test('6 kişilik taksi iki araç, toplu taşıma kişi başı ücretlenir', () {
+    const taxi = TransportOption(
+      mode: TransportMode.taxi,
+      doorToDoorMinutes: 20,
+      walkingMinutes: 1,
+      waitingMinutes: 3,
+      transferCount: 0,
+      estimatedCostYen: 2400,
+      reliabilityScore: .9,
+      fareBasis: FareBasis.perVehicle,
+      vehicleCapacity: 4,
+    );
+    const train = TransportOption(
+      mode: TransportMode.train,
+      doorToDoorMinutes: 30,
+      walkingMinutes: 5,
+      waitingMinutes: 4,
+      transferCount: 0,
+      estimatedCostYen: 300,
+      reliabilityScore: .95,
+      fareBasis: FareBasis.perPerson,
+    );
+
+    final taxiCost = taxi.costForParty(6);
+    final trainCost = train.costForParty(6);
+    expect(taxiCost.vehicleCount, 2);
+    expect(taxiCost.partyTotalCostYen, 4800);
+    expect(taxiCost.costPerPersonYen, 800);
+    expect(trainCost.vehicleCount, 0);
+    expect(trainCost.partyTotalCostYen, 1800);
+  });
+
+  test('door-to-door süre bileşenleri açıkça çözümlenir', () {
+    const option = TransportOption(
+      mode: TransportMode.metro,
+      doorToDoorMinutes: 24,
+      walkingMinutes: 7,
+      waitingMinutes: 4,
+      transferCount: 0,
+      estimatedCostYen: 220,
+      reliabilityScore: .95,
+      rideMinutes: 13,
+      accessMinutes: 7,
+      transitWaitMinutes: 4,
+    );
+
+    expect(
+      option.resolvedRideMinutes +
+          option.resolvedAccessMinutes +
+          option.resolvedTransitWaitMinutes +
+          option.bufferMinutes,
+      option.doorToDoorMinutes,
+    );
+  });
 }
 
 TransportOption _walking(int minutes) => TransportOption(

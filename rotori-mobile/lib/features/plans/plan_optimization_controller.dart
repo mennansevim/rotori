@@ -7,6 +7,7 @@ import '../../data/route_matrix_remote.dart';
 import '../../data/route_matrix_resolution.dart';
 import '../../domain/itinerary_optimizer.dart';
 import '../../domain/route_matrix.dart';
+import '../../domain/route_optimization_validator.dart';
 import '../../domain/types.dart';
 
 typedef OptimizedPlanPersist = Future<void> Function(Trip trip);
@@ -202,8 +203,7 @@ class PlanOptimizationController
       // Öğün kalemleri sabit değilse makul bir zaman penceresine bağlanır;
       // böylece optimizasyon öğle yemeğini sabahın köründe (ör. 06:13)
       // planlayamaz. Sabit öğünler kendi saatlerini korur.
-      final mealWindow =
-          item.isFixed ? null : _mealWindow(dayDate, item);
+      final mealWindow = item.isFixed ? null : _mealWindow(dayDate, item);
       return OptimizationActivity(
         id: item.id,
         name: item.title,
@@ -232,6 +232,9 @@ class PlanOptimizationController
             item.lockType == ActivityLockType.ticketedEvent ||
             item.lockType == ActivityLockType.external,
         category: item.kind?.name,
+        priority: item.kind == TimelineItemKind.meal || item.isFixed
+            ? ActivityPriority.mustDo
+            : ActivityPriority.normal,
       );
     }).toList(growable: false);
 
@@ -268,6 +271,22 @@ class PlanOptimizationController
     final result = await ref.read(itineraryOptimizerProvider).optimize(request);
     if (!result.isSuccess || result.metrics == null) {
       throw PlanOptimizationException(result.failure);
+    }
+    final validationIssues = const RouteOptimizationValidator().validate(
+      request,
+      result,
+    );
+    if (validationIssues.isNotEmpty) {
+      throw PlanOptimizationException(
+        OptimizationFailure(
+          code: OptimizationFailureCode.invalidRequest,
+          message:
+              'Rota doğrulama başarısız: ${validationIssues.first.message}',
+          activityId: validationIssues.first.activityId,
+          fromLocationId: validationIssues.first.fromLocationId,
+          toLocationId: validationIssues.first.toLocationId,
+        ),
+      );
     }
 
     final optimizedTrip = _applyResult(input.trip, dayIndex, result);
