@@ -5,6 +5,143 @@
 
 ---
 
+---
+
+## 2026-08-03 — rotori-social içine `japan-reels-maker` taşıması tamamlandı
+
+**Supersedes:** 2026-08-03 monorepo düzenleme kaydındaki
+"`rotori-social/` şimdilik iskelet; kod ikinci iş olarak taşınacak" notu.
+
+**Karar:** Kaynak proje dizini
+`/Users/sevimm/Documents/Projects/japan-reels-maker`, monorepo içinde
+`rotori-social/japan-reels-maker` altına taşındı.
+
+**Git sınırı:** Taşıma sonrası nested repository etkisini kaldırmak için
+`rotori-social/japan-reels-maker/.git` silindi. Böylece tek geçerli Git kökü
+`rotori-app/.git` oldu.
+
+**Neden:** Sosyal ayak kodunu monorepo içinde görünür kılıp ortak dokümantasyon,
+issue takibi ve sürümleme akışını tek depoda toplamak.
+
+**Etki:** `rotori-social/` artık yalnız README iskeleti değil; Python tabanlı
+reels üretim projesinin kaynak kodunu içeriyor. Yerel geçici dosyalar proje
+seviyesi `.gitignore` kurallarıyla dışarıda kalmaya devam eder.
+
+---
+
+## 2026-08-03 — Rota harness P0 doğruluk fixleri (yemek saatleri · gün rolü · zero-leg)
+
+**Karar:** `ROUTE_OPTIMIZATION_FIX_PLAN.md` Faz 1 (P0) düzeltmeleri, saf Dart
+optimizer çekirdeğine dokunmadan **yalnız harness veri/planlama katmanında**
+uygulandı (`tool/route_opt_harness/`):
+
+1. **Yemek yeri çalışma saatleri korunuyor.** `PoiSpec`'e `MealPeriod` (breakfast/
+   lunch/dinner) ve `servesMeal(period, window, needed)` eklendi. Market türü
+   yerler (Tsukiji 14:00, Nishiki/Kuromon 18:00) yalnız öğle işaretli; her şehre
+   17:00–23:00 açık, akşam servisi veren gerçek lokantalar eklendi. Uygun yer
+   yoksa gerçekçi saatli sentetik lokanta üretilir ve güne `warning` düşülür.
+2. **Tam gün / uzak gezi POI izolasyonu magic number'dan kurtarıldı.** `PoiDayRole`
+   (normal/halfDayAnchor/fullDayExclusive/excursion) eklendi. USJ/DisneySea
+   `fullDayExclusive`, Miyajima `excursion`, Horyu-ji `halfDayAnchor`. İzolasyon
+   kararı artık havuz refill'inden **sonra** çalışıyor; böylece refill ile gelen
+   park başka noktalarla aynı güne karışmıyor. Full-day park yalnız gerçek tam
+   güne izole edilir (kısa varış/transfer gününe konup düşürülmez); excursion her
+   gün tipinde tek başına atanabilir.
+3. **Co-located zero-leg.** Matrix builder <50 m mesafede 0 dakikalık leg üretir;
+   otel kahvaltısı için baseline'daki yapay 3 dk'lık yürüyüş (toplam ~1.746 dk)
+   sıfırlandı.
+
+**Ölçülen etki** (aynı seed 20260803, 100 senaryo): kapalı-market akşam yemeği
+`0`, walk>0 kahvaltı `0`, tema parkı günü karışması `0`, Miyajima karışması `0`.
+Düşürülen aktivite `365 → 218` (−%40).
+
+**Neden harness'te:** Bu bulgular test verisi kaynaklıydı; proje kararı gereği
+çekirdek deterministik saf Dart kalır, harness sorunları çekirdeğe taşınmaz.
+
+**Kalan (bu görevde yapılmadı):** Faz 0 schema-v2 envelope, Faz 2 günler-arası
+`TripActivityAssignmentEngine` + priority-aware dropping, Faz 3 waiting/idle
+ayrımı ve cluster re-entry sertleştirme, Faz 4 maliyet birimi/paired profiller,
+Faz 5 transfer/bagaj/yönlü matris. Regresyon: `test/tool/route_opt_harness_test.dart`.
+
+
+
+**Karar:** Repo kökü `japan-trip` → **`rotori-app`** olarak yeniden adlandırıldı
+ve içerik üç ürün ayağına gruplandı:
+
+- `rotori-mobile/` ← eski `mobile/` (Flutter kökü; `route_opt_scenarios.json` da
+  buraya alındı).
+- `rotori-website/` ← eski `website/` (Rotori tanıtım sitesi = birincil web
+  yüzeyi, self-contained). Eski nesil React PWA + build zinciri
+  (`index.html`, `apps/`, `packages/`, `api/`, `tools/`, `scripts/`, `data/`,
+  `assets/`, `img/`, `package.json`) **`rotori-website/legacy/`** altına toplandı.
+  `videos/` → `rotori-website/videos/`.
+- `rotori-social/` ← şimdilik yalnızca iskelet + README. Kaynak proje
+  (`japan-reels-maker`) hâlâ ayrı git reposunda ve arka planda çalıştığından
+  **kod ikinci iş olarak** taşınacak.
+- Paylaşılan `docs/` ve `supabase/` kök seviyede tutuldu.
+
+**Vercel kaldırıldı:** `vercel.json` silindi. Site artık Vercel build/deploy
+zincirine bağlı değil; `rotori-website/index.html` tek dosya self-contained.
+
+**Neden:** Tek ürün "Rotori" — mobil, web ve sosyal ayakları tek monorepo'da,
+net sınırlarla. İki `index.html` çakışması (tanıtım vs eski PWA rehber) `legacy/`
+alt-klasörüyle çözüldü. Yol bağımlılığı düşük: `mobile/` yalnızca kendi içine,
+`api/` → `tools/`'a (birlikte taşındı) bağlıydı; site self-contained.
+
+**Etki / yapılacaklar:** `.gitignore` yolları, `legacy/package.json` adı
+(`rotori-website-legacy`) ve `legacy/assets/appstore/build.mjs` önizleme yolu
+güncellendi. Flutter tarafında ilk açılışta `flutter clean && flutter pub get`
+(+ iOS `pod install`) önerilir.
+
+---
+
+## 2026-08-02 — Canlı kamera para birimi çevirici: cihaz-üstü OCR + saf-Dart pipeline
+
+**Karar:** Yeni `live_currency_scanner` özelliği `mobile/lib/features/` altında
+domain / application / infrastructure / presentation katmanlarıyla eklendi.
+Kamera akışı `camera` paketiyle, OCR ise mevcut `google_mlkit_text_recognition`
+ile **tamamen cihaz üstünde** çalışır. Para hesapları `decimal` paketiyle
+(double kayması yok) yapılır. Route: `/live-currency-scanner`; viewer drawer'ın
+KEŞFET ızgarasına 4. ikon olarak (`Icons.currency_yen_rounded`) eklendi.
+
+**Neden:**
+- Gizlilik: kamera görüntüsü sunucuya/Supabase'e **gönderilmez**, diske
+  yazılmaz; OCR on-device. LLM/bulut görüntü analizi kullanılmaz.
+- Mevcut mimariye uyum: OCR zaten `ticket_ocr` ile ML Kit kullanıyordu; aynı
+  paket yeniden kullanıldı (Japonca script). Web'e sızmaması için
+  `text_recognizer_factory.dart` koşullu export (mobil = ML Kit, web = no-op).
+- Test edilebilirlik: normalizer, parser, tracker, coordinate transformer,
+  converter ve exchange-rate repository saf Dart/enjekte edilebilir saat ile
+  yazıldı — 60 birim/widget testi.
+
+**OCR abstraction:** `OnDeviceTextRecognizer` arayüzü, ML Kit'i domain'den
+izole eder; ileride paket değiştirilebilir. `CameraFramePreprocessor` benzeri
+bir ön-işleme katmanı (OpenCV) **ilk sürümde eklenmedi** — gerçek doğruluk
+sorunu ölçülene kadar gereksiz native bağımlılık ve boyut eklenmez.
+
+**Kur akışı:** `exchange_rates` tablosu (Supabase) → repository → yerel cache
+(SharedPreferences) → manuel kur. Öncelik: manuel > taze cache > remote;
+offline'da son cache. Yazma yetkisi istemcide değil (RLS: herkese okuma,
+yalnız service-role yazma). Fallback her zaman var; kamera ağ hatasında
+tamamen hata durumuna düşmez.
+
+**Performans:** OCR single-flight + `ScannerPerformanceProfile`
+(batterySaver 500ms / balanced 300ms / highAccuracy 200ms); kareler kuyruğa
+alınmaz, en güncel kare işlenir; overlay `PriceDetectionTracker` ile IoU +
+merkez + exponential smoothing kullanarak titremez. Tüm eşikler
+`ScannerTuning` içinde (magic number yok).
+
+**Vergi:** 税込 (vergi dahil) ana gösterimde önceliklidir; yakın 税抜 çifti
+oran + kutu yakınlığıyla eşleşince hariç fiyat ana gösterimden düşürülür.
+
+**Trade-off / bilinen sınırlar:** ML Kit web'de yok (no-op recognizer); kamera
+rotasyonu ilk sürümde sensör oryantasyonundan alınır (cihaz oryantasyonu tam
+matris hesaplanmaz); native `integration_test` için bağlı cihaz yok. "Sistem
+ayarlarını aç" için ekstra `permission_handler`/`app_settings` paketi
+eklenmedi — kalıcı redde retry + yönlendirme metni gösterilir.
+
+---
+
 ## 2026-07-22 — Marka: **Rotori** (Tabi'den rebrand)
 
 **Karar:** Marka adı **Rotori** olarak sabitlendi. Uygulama title'ı
