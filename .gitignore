@@ -1,9 +1,12 @@
 node_modules/
 dist/
-apps/*/dist/
-packages/shared/dist/
+rotori-website/legacy/apps/*/dist/
+rotori-website/legacy/packages/shared/dist/
 *.log
 .DS_Store
-tools/review-commit/.env
+rotori-website/legacy/tools/review-commit/.env
 .env
 .env.local
+
+# Flutter
+rotori-mobile/env.json

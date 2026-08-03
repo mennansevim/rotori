@@ -1,5 +1,5 @@
 {
-  "name": "japan-trip",
+  "name": "rotori-website-legacy",
   "private": true,
   "workspaces": [
     "packages/*",
