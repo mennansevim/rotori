@@ -1,0 +1,19 @@
+{
+  "name": "Japan Widget — Onay Bekleyen",
+  "short_name": "Japan Widget",
+  "description": "japonyaruyasi otomasyon postları için onay + yönetim widget'ı",
+  "start_url": "/?view=widget",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0a0a",
+  "theme_color": "#bc002d",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/static/widget-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

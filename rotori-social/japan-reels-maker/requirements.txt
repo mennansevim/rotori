@@ -1,0 +1,18 @@
+requests>=2.32.0
+pyyaml>=6.0.2
+tqdm>=4.66.0
+pandas>=2.2.0
+moviepy>=2.2.1
+# moviepy 2.2.1 Pillow<12 pinliyor; base kurulum bununla uyumlu.
+# instagrapi (Pillow>=12.2 ister) ayrı kurulur — pip'in katı çözücüsü iki
+# çelişen Pillow pin'ini birlikte çözemediği için:
+#   pip install --no-deps instagrapi>=2.18.9 pydantic PySocks pycryptodomex
+#   pip install --no-deps --upgrade "Pillow>=12.2.0"
+# (moviepy Pillow 12 ile fiilen çalışır; <12 pin'i aşırı temkinli.)
+Pillow>=11.0,<12.0
+imageio-ffmpeg>=0.5.1
+numpy>=1.26.0
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+feedparser>=6.0.0
+python-multipart>=0.0.20

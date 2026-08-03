@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Japonya Rüyası · Stüdyo</title>
+<style>
+  :root{
+    --paper:#f4f1e8;--paper-2:#ebe7db;--white:#faf8f1;
+    --ink:#1a1a1a;--ink-2:#3a3a37;--muted:#8a8a82;
+    --line:#d8d3c4;--hair:#e5e0d0;
+    --shu:#b0281c;--shu-2:#8a1e15;--gold:#a68a3a;--leaf:#3a5a3a;
+    --serif:"Times New Roman",Georgia,serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Inter,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--paper);color:var(--ink);font:13px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  button{font:inherit;color:inherit;cursor:pointer}
+  ::selection{background:var(--ink);color:var(--paper)}
+
+  .picker-back{position:fixed;top:16px;right:16px;z-index:60;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);background:var(--white);padding:6px 12px}
+  .picker-back:hover{color:var(--ink);border-color:var(--ink)}
+
+  .app{max-width:1320px;margin:0 auto;padding:32px 40px 60px}
+
+  /* MASTHEAD */
+  .mast{display:grid;grid-template-columns:auto 1fr auto;gap:32px;align-items:end;padding-bottom:18px;border-bottom:1px solid var(--ink)}
+  .mast .id{display:flex;align-items:center;gap:14px}
+  .mast .id .kanji{font:400 34px/1 var(--serif);color:var(--shu)}
+  .mast .id .name{font:400 20px/1 var(--serif);letter-spacing:.02em}
+  .mast .id .name small{display:block;font-family:var(--sans);font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+  .mast .date{text-align:center;font-family:var(--serif);font-size:12.5px;color:var(--ink-2);letter-spacing:.05em}
+  .mast .date b{display:block;font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);margin-bottom:2px;font-family:var(--sans);font-weight:600}
+  .mast .r{display:flex;gap:8px;align-items:center;justify-self:end}
+
+  .tabs{display:flex;gap:0;margin:0 0 26px;border-bottom:1px solid var(--line)}
+  .tabs button{background:transparent;border:0;padding:12px 18px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);position:relative}
+  .tabs button:hover{color:var(--ink)}
+  .tabs button.on{color:var(--ink)}
+  .tabs button.on::after{content:"";position:absolute;left:16px;right:16px;bottom:-1px;height:2px;background:var(--ink)}
+  .tabs .space{flex:1}
+  .tabs .st{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);padding:12px 0;display:inline-flex;align-items:center;gap:8px}
+  .tabs .st .dot{width:6px;height:6px;background:var(--leaf);border-radius:50%}
+
+  /* BUTTONS */
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border:1px solid var(--ink);background:transparent;color:var(--ink);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;transition:.15s}
+  .btn:hover{background:var(--ink);color:var(--paper)}
+  .btn.filled{background:var(--ink);color:var(--paper)}
+  .btn.filled:hover{background:var(--shu);border-color:var(--shu)}
+  .btn.shu{background:var(--shu);border-color:var(--shu);color:#fff}
+  .btn.shu:hover{background:var(--shu-2);border-color:var(--shu-2)}
+  .btn.ghost{border-color:var(--line);color:var(--ink-2)}
+  .btn.ghost:hover{border-color:var(--ink);color:var(--ink);background:transparent}
+  .icon-btn{width:32px;height:32px;border:1px solid var(--line);background:var(--white);display:grid;place-items:center;font-size:14px;padding:0}
+  .icon-btn:hover{border-color:var(--ink)}
+
+  /* HERO */
+  .hero{display:grid;grid-template-columns:1.15fr 1fr;gap:0;margin-bottom:40px;border:1px solid var(--ink);background:var(--white)}
+  .hero .left{padding:32px 34px;border-right:1px solid var(--line)}
+  .hero .k{font-size:10px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--shu);margin-bottom:14px;display:flex;align-items:center;gap:10px}
+  .hero .k::before{content:"";width:20px;height:1px;background:var(--shu)}
+  .hero h1{margin:0 0 10px;font:400 30px/1.15 var(--serif);letter-spacing:-.005em;max-width:520px}
+  .hero .lead{color:var(--ink-2);font-size:12.5px;max-width:480px;margin:0 0 24px;line-height:1.6}
+  .hero .meta-row{display:flex;gap:24px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding-top:18px;border-top:1px solid var(--hair)}
+  .hero .meta-row div b{display:block;font-family:var(--serif);font-size:14px;letter-spacing:0;text-transform:none;color:var(--ink);margin-top:3px}
+
+  .hero .right{padding:32px 34px;display:flex;flex-direction:column;justify-content:space-between;background:var(--ink);color:var(--paper)}
+  .hero .right .k{color:#c9a89e}
+  .hero .right .k::before{background:#c9a89e}
+  .hero .cd{margin:14px 0 24px;display:flex;align-items:baseline;gap:14px}
+  .hero .cd b{font:400 62px/1 var(--serif);letter-spacing:-.02em}
+  .hero .cd .parts{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#c9c5b6}
+  .hero .cd .parts div{margin-bottom:2px}
+  .hero .cd .parts b{font-family:var(--serif);font-size:13px;letter-spacing:0;text-transform:none;color:var(--paper)}
+  .hero .acts{display:flex;gap:8px;flex-wrap:wrap}
+  .hero .acts .btn{border-color:#4a4a47;color:var(--paper)}
+  .hero .acts .btn:hover{background:var(--paper);color:var(--ink);border-color:var(--paper)}
+  .hero .acts .btn.filled{background:var(--paper);color:var(--ink);border-color:var(--paper)}
+  .hero .acts .btn.filled:hover{background:var(--shu);color:#fff;border-color:var(--shu)}
+
+  /* STATS */
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-bottom:40px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .stat{padding:18px 20px;border-right:1px solid var(--hair)}
+  .stat:last-child{border-right:0}
+  .stat small{display:block;font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  .stat b{font:400 26px/1 var(--serif);letter-spacing:-.01em;display:block}
+  .stat .d{font-size:10px;letter-spacing:.08em;color:var(--leaf);margin-top:6px;font-weight:600}
+  .stat .d.dn{color:var(--shu)}
+
+  /* GRID */
+  .grid{display:grid;grid-template-columns:1.55fr 1fr;gap:40px}
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--ink)}
+  .sec-head h2{margin:0;font:400 16px/1 var(--serif);letter-spacing:.02em}
+  .sec-head .count{font-family:var(--serif);color:var(--shu);font-size:14px}
+  .sec-head .r{margin-left:auto;display:flex;gap:8px}
+  .sec-head .link{font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);background:none;border:0;padding:0}
+  .sec-head .link:hover{color:var(--shu)}
+
+  /* APPROVAL CARDS */
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .card{background:var(--white);border:1px solid var(--line);transition:.2s}
+  .card:hover{border-color:var(--ink)}
+  .card .thumb{aspect-ratio:4/5;background:var(--ink) center/cover;position:relative;overflow:hidden}
+  .card .thumb::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,.7))}
+  .card .thumb .title{position:absolute;left:12px;right:12px;bottom:10px;color:#fff;font:400 13px/1.2 var(--serif);z-index:1}
+  .card .thumb .kind{position:absolute;top:10px;left:10px;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:#fff;padding:3px 8px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.4);z-index:1;font-weight:600}
+  .card .thumb .kind.reel{background:var(--shu);border-color:var(--shu)}
+  .card .body{padding:12px 14px 14px}
+  .card .body h4{margin:0 0 4px;font-size:12px;font-weight:600;line-height:1.3}
+  .card .body .m{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .card .row{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:10px;border-top:1px solid var(--hair)}
+  .card .row button{background:transparent;border:0;padding:9px 6px;font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2);border-right:1px solid var(--hair)}
+  .card .row button:last-child{border-right:0;color:var(--shu)}
+  .card .row button:hover{background:var(--paper);color:var(--ink)}
+  .card .row button:last-child:hover{background:var(--shu);color:#fff}
+
+  /* SIDE (calendar + feed) */
+  .side{display:flex;flex-direction:column;gap:36px}
+
+  .week{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin-bottom:18px}
+  .week .d{background:var(--white);padding:10px 6px;text-align:center}
+  .week .d small{display:block;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .week .d b{display:block;font:400 17px/1.2 var(--serif);margin-top:3px}
+  .week .d .m{display:flex;justify-content:center;gap:2px;margin-top:6px;height:5px}
+  .week .d .m i{width:5px;height:5px;background:var(--shu);border-radius:50%}
+  .week .d .m i.empty{background:transparent;border:1px solid var(--line)}
+  .week .d.today{background:var(--ink);color:var(--paper)}
+  .week .d.today small{color:#c9c5b6}
+  .week .d.today .m i{background:var(--paper)}
+
+  .slots{border-top:1px solid var(--line)}
+  .slot{display:grid;grid-template-columns:70px 1fr auto;gap:14px;align-items:center;padding:12px 4px;border-bottom:1px solid var(--hair)}
+  .slot .t{font-family:var(--serif)}
+  .slot .t b{display:block;font-size:16px;line-height:1}
+  .slot .t small{display:block;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+  .slot .body b{display:block;font-size:12px;font-weight:600;line-height:1.3}
+  .slot .body small{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .slot .go{display:flex;gap:4px}
+  .slot .go button{width:26px;height:26px;background:transparent;border:1px solid var(--line);font-size:11px;color:var(--muted);padding:0}
+  .slot .go button:hover{border-color:var(--ink);color:var(--ink)}
+  .slot.empty .body b{color:var(--muted);font-weight:400;font-style:italic}
+  .slot.empty .t{opacity:.55}
+  .slot.next{background:linear-gradient(90deg,rgba(176,40,28,.06),transparent)}
+  .slot.next .t{color:var(--shu)}
+
+  .cal-cta{display:flex;gap:8px;margin-top:16px}
+  .cal-cta .btn{flex:1;justify-content:center}
+
+  /* FEED */
+  .feed .row{display:grid;grid-template-columns:60px 1fr;gap:14px;padding:12px 0;border-bottom:1px solid var(--hair);font-size:12px}
+  .feed .row:last-child{border-bottom:0}
+  .feed .row .t{font-family:var(--serif);font-size:11px;color:var(--muted);padding-top:1px;letter-spacing:.02em}
+  .feed .row .t b{display:block;font-size:14px;color:var(--ink);margin-bottom:1px}
+  .feed .row p{margin:0;line-height:1.45;color:var(--ink-2)}
+  .feed .row p b{color:var(--ink);font-weight:600}
+
+  /* MODAL */
+  .modal-back{position:fixed;inset:0;background:rgba(20,20,20,.55);z-index:80;display:none;place-items:center;padding:24px;backdrop-filter:blur(3px)}
+  .modal-back.open{display:grid}
+  .modal{background:var(--paper);border:1px solid var(--ink);max-width:820px;width:100%;max-height:92vh;overflow:auto;position:relative}
+  .modal-x{position:absolute;top:14px;right:14px;background:transparent;border:1px solid var(--line);width:30px;height:30px;font-size:13px;padding:0}
+  .modal-x:hover{border-color:var(--ink)}
+  .modal .m-head{padding:28px 32px 22px;border-bottom:1px solid var(--ink)}
+  .modal .m-head .k{font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--shu);margin-bottom:8px;display:flex;align-items:center;gap:10px}
+  .modal .m-head .k::before{content:"";width:20px;height:1px;background:var(--shu)}
+  .modal .m-head h2{margin:0;font:400 24px/1.2 var(--serif);letter-spacing:-.005em}
+  .modal .m-head p{margin:6px 0 0;color:var(--ink-2);font-size:12.5px;max-width:520px}
+
+  .m-body{padding:22px 32px}
+  .m-label{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:14px 0 10px}
+  .m-label:first-child{margin-top:0}
+
+  .types{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--line)}
+  .type{padding:16px 16px 18px;border-right:1px solid var(--line);text-align:left;background:var(--white);cursor:pointer;transition:.15s;border-top:0;border-bottom:0;border-left:0;font-family:inherit;color:var(--ink)}
+  .type:last-child{border-right:0}
+  .type:hover{background:var(--paper-2)}
+  .type.on{background:var(--ink);color:var(--paper)}
+  .type .n{font:400 22px/1 var(--serif);color:var(--shu);display:block;margin-bottom:8px}
+  .type.on .n{color:#e6b7ae}
+  .type b{display:block;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+  .type small{font-size:10.5px;color:var(--muted);line-height:1.4;display:block}
+  .type.on small{color:#c9c5b6}
+
+  textarea,input.f{width:100%;border:1px solid var(--line);background:var(--white);padding:12px 14px;font:inherit;color:var(--ink);outline:none;border-radius:0}
+  textarea{min-height:80px;resize:vertical;font-family:inherit}
+  textarea:focus,input.f:focus{border-color:var(--ink)}
+
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{padding:6px 12px;border:1px solid var(--line);background:var(--white);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
+  .chip:hover{border-color:var(--ink)}
+  .chip.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+  .style-picker{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .style-opt{border:1px solid var(--line);background:var(--white);cursor:pointer;text-align:left;padding:0;font-family:inherit;color:var(--ink)}
+  .style-opt:hover{border-color:var(--ink)}
+  .style-opt.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+  .style-opt .pv{aspect-ratio:4/3;background:linear-gradient(135deg,#3a2a20,#0a0705);position:relative;overflow:hidden}
+  .style-opt .pv::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.7))}
+  .style-opt .pv span{position:absolute;left:10px;right:10px;bottom:12px;color:#fff;font:400 14px/1.1 var(--serif);z-index:1}
+  .style-opt.s2 .pv{background:linear-gradient(135deg,#204030,#0a1508)}
+  .style-opt.s2 .pv span{text-align:center;left:0;right:0;bottom:16px;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase}
+  .style-opt .info{padding:10px 12px;border-top:1px solid var(--line)}
+  .style-opt .info b{display:block;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase}
+  .style-opt .info small{font-size:10.5px;color:var(--muted)}
+
+  .m-foot{padding:18px 32px;border-top:1px solid var(--ink);display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--white);flex-wrap:wrap}
+  .m-foot .note{font-size:10.5px;color:var(--muted);letter-spacing:.02em}
+  .m-foot .acts{display:flex;gap:8px;flex-wrap:wrap}
+
+  /* review */
+  .review{display:grid;grid-template-columns:280px 1fr;gap:0;padding:0}
+  .review .rv-preview{background:var(--ink);padding:32px;display:grid;place-items:center;border-right:1px solid var(--line)}
+  .review .rv-preview .frame{width:100%;aspect-ratio:4/5;background:linear-gradient(180deg,#3a2a20 0%,#0a0705 100%);position:relative;overflow:hidden}
+  .review .rv-preview .frame::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.75))}
+  .review .rv-preview .frame .txt{position:absolute;left:14px;right:14px;bottom:20px;color:#fff;z-index:1}
+  .review .rv-preview .frame .txt i{font-style:normal;display:block;font:400 8.5px var(--serif);letter-spacing:.24em;text-transform:uppercase;color:#e6b7ae;margin-bottom:6px}
+  .review .rv-preview .frame .txt b{display:block;font:400 15px/1.2 var(--serif);letter-spacing:.01em}
+  .review .rv-body{padding:26px 30px}
+  .review .rv-body .k{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--shu);font-weight:600;margin-bottom:6px}
+  .review .rv-body h3{margin:0 0 14px;font:400 20px/1.2 var(--serif)}
+  .review .rv-body dl{margin:0;display:grid;grid-template-columns:110px 1fr;gap:6px 20px;font-size:12px;padding:14px 0;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)}
+  .review .rv-body dt{color:var(--muted);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600}
+  .review .rv-body dd{margin:0;color:var(--ink)}
+  .review .rv-body .cap{margin:14px 0 0;padding:14px 16px;background:var(--paper);border:1px solid var(--line);font-size:12.5px;line-height:1.6;color:var(--ink-2);font-style:italic}
+  .review .rv-body .cap::before{content:"「";display:block;font-family:var(--serif);font-size:20px;color:var(--shu);line-height:1;margin-bottom:4px;font-style:normal}
+
+  @media(max-width:1100px){
+    .app{padding:20px 22px}
+    .hero,.grid{grid-template-columns:1fr}
+    .hero .left{border-right:0;border-bottom:1px solid var(--line)}
+    .stats{grid-template-columns:repeat(3,1fr)}
+    .stat:nth-child(3){border-right:0}
+    .cards{grid-template-columns:repeat(2,1fr)}
+    .review{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<a class="picker-back" href="/static/mock/">← Tasarım Seç</a>
+
+<div class="app">
+
+  <div class="mast">
+    <div class="id">
+      <span class="kanji">日</span>
+      <div class="name">Japonya Rüyası<small>@japonyaruyasi · Stüdyo</small></div>
+    </div>
+    <div class="date"><b>KOMUTA</b>2 Ağustos 2026 · Cumartesi</div>
+    <div class="r">
+      <button class="icon-btn" title="Yenile">↻</button>
+      <button class="btn shu" onclick="openModal('genModal')">＋ Yeni İçerik Üret</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="on">Bugün</button>
+    <button>Takvim</button>
+    <button>Kütüphane</button>
+    <button>Analiz</button>
+    <button>Ayarlar</button>
+    <div class="space"></div>
+    <span class="st"><span class="dot"></span>Otomasyon açık · 08:00 & 20:00</span>
+  </div>
+
+  <div class="hero">
+    <div class="left">
+      <div class="k">Sıradaki yayın · Story</div>
+      <h1>Kyoto sabah tapınakları — sessizliğin şehri</h1>
+      <p class="lead">Kiyomizu-dera'nın kalabalık öncesi mavimsi sessizliğini yakalayan üç kareli seri. Otomasyon planlanan saatte Instagram'a bırakacak.</p>
+      <div class="meta-row">
+        <div>Tür<b>Story · 3 kare</b></div>
+        <div>Boyut<b>1080 × 1350</b></div>
+        <div>Kaynak<b>Konu otomasyonu</b></div>
+        <div>Stil<b>Editorial · Stil 1</b></div>
+      </div>
+    </div>
+    <div class="right">
+      <div class="k">Kalan süre</div>
+      <div class="cd">
+        <b>06:14:22</b>
+        <div class="parts">
+          <div>Bugün <b>20:00</b></div>
+          <div>Cmt akşamı</div>
+        </div>
+      </div>
+      <div class="acts">
+        <button class="btn filled">▶ Şimdi Yayınla</button>
+        <button class="btn">Düzenle</button>
+        <button class="btn">Ertele</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><small>Onay bekliyor</small><b>07</b><div class="d">+2 bugün</div></div>
+    <div class="stat"><small>Planlandı</small><b>05</b><div class="d">3 gün önden</div></div>
+    <div class="stat"><small>Bu hafta yayında</small><b>09</b><div class="d">%75 hedef</div></div>
+    <div class="stat"><small>Toplam erişim (7g)</small><b>18.4K</b><div class="d">+12%</div></div>
+    <div class="stat"><small>Boş slot</small><b>09</b><div class="d dn">Doldurulabilir</div></div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="sec-head">
+        <h2>Onay Bekleyenler</h2>
+        <span class="count">七</span>
+        <div class="r">
+          <button class="link">Filtrele</button>
+          <button class="link">Hepsini gör</button>
+        </div>
+      </div>
+
+      <div class="cards">
+        <article class="card">
+          <div class="thumb" style="background-image:linear-gradient(135deg,#8a4820,#3a1a08)"><span class="kind">Görsel</span><span class="title">Karaoke gecesi</span></div>
+          <div class="body"><h4>karaoke, japonya'nın vazgeçilmez eğlencesi</h4><div class="m">2 Ağu · Stil 1</div></div>
+          <div class="row"><button>Düzenle</button><button onclick="openModal('reviewModal')">Önizle · Onayla</button></div>
+        </article>
+        <article class="card">
+          <div class="thumb" style="background-image:linear-gradient(135deg,#3a5a8a,#1a2f4a)"><span class="kind">Görsel</span><span class="title">Hızlı tren kültürü</span></div>
+          <div class="body"><h4>japonya'da hızlı tren kültürü</h4><div class="m">1 Ağu · Stil 2</div></div>
+          <div class="row"><button>Düzenle</button><button onclick="openModal('reviewModal')">Önizle · Onayla</button></div>
+        </article>
+        <article class="card">
+          <div class="thumb" style="background-image:linear-gradient(135deg,#204030,#0a2015)"><span class="kind">Görsel</span><span class="title">Onsen etiketi</span></div>
+          <div class="body"><h4>onsen'e girmeden bilinmesi gerekenler</h4><div class="m">1 Ağu · Konu otomasyonu</div></div>
+          <div class="row"><button>Düzenle</button><button onclick="openModal('reviewModal')">Önizle · Onayla</button></div>
+        </article>
+        <article class="card">
+          <div class="thumb" style="background-image:linear-gradient(135deg,#5a3a1a,#2a1a08)"><span class="kind reel">Reels</span><span class="title">Famous landmark</span></div>
+          <div class="body"><h4>famous landmark</h4><div class="m">1 Ağu · 27 sn</div></div>
+          <div class="row"><button>Düzenle</button><button onclick="openModal('reviewModal')">Önizle · Onayla</button></div>
+        </article>
+        <article class="card">
+          <div class="thumb" style="background-image:linear-gradient(135deg,#3a2a5a,#1a0f2f)"><span class="kind">Görsel</span><span class="title">Tokyo metrosu</span></div>
+          <div class="body"><h4>tokyo metrosunda kaybolmamak için</h4><div class="m">1 Ağu · Haber otomasyonu</div></div>
+          <div class="row"><button>Düzenle</button><button onclick="openModal('reviewModal')">Önizle · Onayla</button></div>
+        </article>
+        <article class="card">
+          <div class="thumb" style="background-image:linear-gradient(135deg,#2a4a3a,#0a1a15)"><span class="kind reel">Reels</span><span class="title">Hotel koridor</span></div>
+          <div class="body"><h4>hotel hallway</h4><div class="m">31 Tem · Reel</div></div>
+          <div class="row"><button>Düzenle</button><button onclick="openModal('reviewModal')">Önizle · Onayla</button></div>
+        </article>
+      </div>
+    </div>
+
+    <div class="side">
+      <div>
+        <div class="sec-head">
+          <h2>Bu Hafta</h2>
+          <span class="count">五</span>
+          <div class="r"><button class="link">Tam takvim</button></div>
+        </div>
+
+        <div class="week">
+          <div class="d today"><small>Cmt</small><b>2</b><div class="m"><i></i></div></div>
+          <div class="d"><small>Paz</small><b>3</b><div class="m"><i></i><i></i></div></div>
+          <div class="d"><small>Pzt</small><b>4</b><div class="m"><i></i><i class="empty"></i></div></div>
+          <div class="d"><small>Sal</small><b>5</b><div class="m"><i class="empty"></i><i class="empty"></i></div></div>
+          <div class="d"><small>Çar</small><b>6</b><div class="m"><i class="empty"></i><i class="empty"></i></div></div>
+          <div class="d"><small>Per</small><b>7</b><div class="m"><i class="empty"></i><i class="empty"></i></div></div>
+          <div class="d"><small>Cum</small><b>8</b><div class="m"><i class="empty"></i><i class="empty"></i></div></div>
+        </div>
+
+        <div class="slots">
+          <div class="slot next">
+            <div class="t"><b>20:00</b><small>Bugün Cmt</small></div>
+            <div class="body"><b>kyoto sabah tapınakları</b><small>Story · 6 sa 14 dk</small></div>
+            <div class="go"><button title="Düzenle">✎</button></div>
+          </div>
+          <div class="slot">
+            <div class="t"><b>08:00</b><small>Yarın Paz</small></div>
+            <div class="body"><b>onsen etiketi</b><small>Story</small></div>
+            <div class="go"><button>✎</button></div>
+          </div>
+          <div class="slot">
+            <div class="t"><b>20:00</b><small>Yarın Paz</small></div>
+            <div class="body"><b>hotel hallway</b><small>Reel · 27 sn</small></div>
+            <div class="go"><button>✎</button></div>
+          </div>
+          <div class="slot">
+            <div class="t"><b>08:00</b><small>Pzt 4 Ağu</small></div>
+            <div class="body"><b>tokyo metrosu</b><small>Story</small></div>
+            <div class="go"><button>✎</button></div>
+          </div>
+          <div class="slot empty">
+            <div class="t"><b>20:00</b><small>Pzt 4 Ağu</small></div>
+            <div class="body"><b>Boş slot</b><small>Doldurulabilir</small></div>
+            <div class="go"><button>＋</button></div>
+          </div>
+          <div class="slot empty">
+            <div class="t"><b>08:00</b><small>Sal 5 Ağu</small></div>
+            <div class="body"><b>Boş slot</b><small>Doldurulabilir</small></div>
+            <div class="go"><button>＋</button></div>
+          </div>
+        </div>
+
+        <div class="cal-cta">
+          <button class="btn ghost">Takvimi Aç</button>
+          <button class="btn filled">Boş Slotları Doldur</button>
+        </div>
+      </div>
+
+      <div class="feed">
+        <div class="sec-head">
+          <h2>Son Akış</h2>
+          <div class="r"><button class="link">Tümü</button></div>
+        </div>
+        <div class="row">
+          <div class="t"><b>08:12</b>bugün</div>
+          <p><b>doğa manzarası</b> yayınlandı. Story olarak Instagram'a gönderildi. İlk saatte <b>890 erişim</b>.</p>
+        </div>
+        <div class="row">
+          <div class="t"><b>06:00</b>bugün</div>
+          <p>Haber otomasyonu tamamlandı — <b>3 yeni içerik</b> onay bekliyor.</p>
+        </div>
+        <div class="row">
+          <div class="t"><b>—</b>dün</div>
+          <p>onsen etiketi <b>planlandı</b>. Yarın 08:00'de yayında.</p>
+        </div>
+        <div class="row">
+          <div class="t"><b>Cum</b>08 Ağu</div>
+          <p>Konu otomasyonu sıradaki tur. Otomatik olarak yeni konu havuzundan seçim yapılacak.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL 1: GENERATE -->
+<div class="modal-back" id="genModal">
+  <div class="modal">
+    <button class="modal-x" onclick="closeModal('genModal')">✕</button>
+    <div class="m-head">
+      <div class="k">Yeni İçerik</div>
+      <h2>Ne tür bir içerik üretelim?</h2>
+      <p>Seçtiğin türe göre şablon ile hazırlanır. Sonraki adımda önizleyip onayına sunarım.</p>
+    </div>
+
+    <div class="m-body">
+      <div class="m-label">01 · Tür</div>
+      <div class="types">
+        <button class="type on">
+          <span class="n">壱</span>
+          <b>Haber</b>
+          <small>Japonya'dan güncel haber. Otomatik başlık + görsel + Türkçe metin.</small>
+        </button>
+        <button class="type">
+          <span class="n">弐</span>
+          <b>Konu</b>
+          <small>Evergreen tema (onsen, ryokan, tapınak). Konu havuzundan seçim.</small>
+        </button>
+        <button class="type">
+          <span class="n">参</span>
+          <b>Reels</b>
+          <small>Arşivden video + AI script. 27 saniye, iPhone uyumlu.</small>
+        </button>
+      </div>
+
+      <div class="m-label">02 · Başlık / Konu (isteğe bağlı)</div>
+      <input class="f" placeholder="Boş bırakırsan otomasyon rastgele seçer">
+
+      <div class="m-label">03 · Stil</div>
+      <div class="style-picker">
+        <button class="style-opt on">
+          <div class="pv"><span>KYOTO'NUN GİZLİ TAPINAĞI</span></div>
+          <div class="info"><b>Stil 1 · Editorial</b><small>Beyaz serif başlık, sol hizalı</small></div>
+        </button>
+        <button class="style-opt s2">
+          <div class="pv"><span>KYOTO · GİZLİ TAPINAK</span></div>
+          <div class="info"><b>Stil 2 · Minimal</b><small>Ortalanmış, ince altın çizgi</small></div>
+        </button>
+      </div>
+
+      <div class="m-label">04 · Etiket (opsiyonel)</div>
+      <div class="chips">
+        <button class="chip on">Kyoto</button>
+        <button class="chip">Tokyo</button>
+        <button class="chip">Yemek</button>
+        <button class="chip">Doğa</button>
+        <button class="chip">Kültür</button>
+        <button class="chip">Tapınak</button>
+      </div>
+    </div>
+
+    <div class="m-foot">
+      <div class="note">Tahmini süre · <b>~35 sn</b> · Ollama + Dify</div>
+      <div class="acts">
+        <button class="btn ghost" onclick="closeModal('genModal')">Vazgeç</button>
+        <button class="btn shu" onclick="closeModal('genModal');setTimeout(()=>openModal('reviewModal'),200)">Üret →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL 2: REVIEW / APPROVE -->
+<div class="modal-back" id="reviewModal">
+  <div class="modal" style="max-width:920px">
+    <button class="modal-x" onclick="closeModal('reviewModal')">✕</button>
+    <div class="m-head">
+      <div class="k">Önizleme · Onay bekliyor</div>
+      <h2>Kyoto sabah tapınakları — sessizliğin şehri</h2>
+      <p>Şablon hazır. Onaylarsan takvimdeki ilk boş slota planlanır (yarın 08:00). Beğenmediysen "Yeniden üret" tuşuyla stil / metin değiştirebilirsin.</p>
+    </div>
+
+    <div class="review">
+      <div class="rv-preview">
+        <div class="frame">
+          <div class="txt">
+            <i>Japonya Rüyası</i>
+            <b>KYOTO SABAH<br>TAPINAKLARI —<br>SESSİZLİĞİN ŞEHRİ</b>
+          </div>
+        </div>
+      </div>
+      <div class="rv-body">
+        <div class="k">Meta bilgiler</div>
+        <h3>Detaylar</h3>
+        <dl>
+          <dt>Tür</dt><dd>Story · 3 kare</dd>
+          <dt>Boyut</dt><dd>1080 × 1350</dd>
+          <dt>Stil</dt><dd>Editorial · Stil 1</dd>
+          <dt>Kaynak</dt><dd>Konu otomasyonu</dd>
+          <dt>Model</dt><dd>llava:7b + qwen2.5:3b</dd>
+          <dt>Süre</dt><dd>34 sn</dd>
+          <dt>Planlanacak</dt><dd style="color:var(--shu);font-weight:600">Yarın Paz · 08:00</dd>
+        </dl>
+        <div class="cap">
+          Sabah 6'da Kiyomizu-dera bambaşka bir şehir. Kalabalıklar başlamadan önce turuncu çatıların üstündeki mavimsi sisi gören sayılı. Bir sonraki gelişinde saatini erken kur.
+          <span style="display:block;margin-top:8px;color:var(--muted);font-style:normal;font-size:11px">#kyoto #japonya #sabahsessizliği · 2200 karakter uygun</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="m-foot">
+      <div class="note">Onaylanırsa <b>otomatik olarak</b> ilk boş slota planlanır</div>
+      <div class="acts">
+        <button class="btn ghost">Reddet</button>
+        <button class="btn ghost">Yeniden Üret</button>
+        <button class="btn">Sadece Kaydet</button>
+        <button class="btn shu" onclick="closeModal('reviewModal')">✓ Onayla &amp; Planla</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openModal(id){document.getElementById(id).classList.add('open')}
+  function closeModal(id){document.getElementById(id).classList.remove('open')}
+  document.querySelectorAll('.modal-back').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open')}));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-back.open').forEach(m=>m.classList.remove('open'))});
+  document.querySelectorAll('.types').forEach(g=>g.addEventListener('click',e=>{const b=e.target.closest('.type');if(!b)return;g.querySelectorAll('.type').forEach(x=>x.classList.remove('on'));b.classList.add('on')}));
+  document.querySelectorAll('.style-picker').forEach(g=>g.addEventListener('click',e=>{const b=e.target.closest('.style-opt');if(!b)return;g.querySelectorAll('.style-opt').forEach(x=>x.classList.remove('on'));b.classList.add('on')}));
+  document.querySelectorAll('.chips').forEach(g=>g.addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;b.classList.toggle('on')}));
+</script>
+</body>
+</html>
