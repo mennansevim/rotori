@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>01 · Pipeline — Japonya Rüyası</title>
+<style>
+  :root{--paper:#f2efe7;--white:#fcfbf7;--ink:#1e211d;--muted:#70736b;--line:#dad7ce;--red:#e34332;--green:#1f6b50;--yellow:#f2c35b;--navy:#1f3448}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font:13.5px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  a{color:inherit}
+  .picker{position:fixed;top:14px;right:14px;z-index:20;background:var(--ink);color:#fff;padding:6px 12px;border-radius:99px;font-size:11px;font-weight:700;text-decoration:none;letter-spacing:.08em;text-transform:uppercase}
+
+  /* HEADER STRIP */
+  .strip{background:var(--ink);color:#fff;padding:14px 28px;display:flex;align-items:center;gap:22px}
+  .brand{display:flex;align-items:center;gap:10px;font-family:Georgia,serif;font-weight:700}
+  .brand i{width:30px;height:30px;border-radius:50%;background:var(--red);display:grid;place-items:center;font-size:12px;font-style:normal}
+  .brand small{display:block;color:#aeb5a9;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;font-family:inherit}
+  .strip .next{margin-left:auto;display:flex;align-items:center;gap:14px;background:#2a2f28;padding:8px 16px;border-radius:14px}
+  .strip .next .dot{width:8px;height:8px;background:#43c98a;border-radius:50%;box-shadow:0 0 0 4px rgba(67,201,138,.2)}
+  .strip .next b{font-family:Georgia,serif;font-size:15px}
+  .strip .next small{display:block;color:#aeb5a9;font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+  .strip .cta{background:var(--red);color:#fff;border:0;padding:9px 16px;border-radius:11px;font-weight:800;font-size:12.5px;cursor:pointer}
+  .strip .cta:hover{background:#a72a22}
+  .strip .ico{background:transparent;border:1px solid #3a3f38;color:#cfd4cb;width:34px;height:34px;border-radius:10px;font-size:15px;display:grid;place-items:center;cursor:pointer}
+
+  /* PIPELINE */
+  .pipe{padding:20px 28px 40px;overflow-x:auto}
+  .pipe-title{display:flex;align-items:baseline;gap:14px;margin-bottom:14px}
+  .pipe-title h1{margin:0;font:600 22px/1.1 Georgia,serif}
+  .pipe-title small{color:var(--muted)}
+  .board{display:grid;grid-template-columns:repeat(5,minmax(260px,1fr));gap:14px}
+  .col{background:#e9e6dc;border-radius:16px;padding:12px 12px 16px;min-height:calc(100vh - 200px)}
+  .col-head{display:flex;align-items:center;gap:8px;padding:4px 6px 12px}
+  .col-head b{font-family:Georgia,serif;font-size:14px}
+  .col-head .count{background:var(--white);border:1px solid var(--line);border-radius:99px;padding:1px 8px;font-size:11px;font-weight:800}
+  .col-head .flag{width:8px;height:8px;border-radius:50%}
+  .flag.idea{background:#9aa39a}.flag.gen{background:var(--yellow)}.flag.approve{background:var(--red)}.flag.plan{background:var(--navy)}.flag.done{background:var(--green)}
+
+  .card{background:var(--white);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px;box-shadow:0 1px 0 rgba(0,0,0,.03);cursor:grab}
+  .card:hover{border-color:#b0aca0}
+  .card .thumb{aspect-ratio:4/5;border-radius:8px;background:#20241f center/cover;position:relative;overflow:hidden;margin-bottom:8px}
+  .card .thumb::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 45%,rgba(0,0,0,.65))}
+  .card .thumb b{position:absolute;left:8px;right:8px;bottom:6px;color:#fff;font:600 12px/1.15 Georgia,serif;z-index:1}
+  .card .thumb .badge{position:absolute;top:6px;left:6px;background:#fff;color:var(--ink);font-size:9px;font-weight:800;padding:2px 6px;border-radius:99px;letter-spacing:.08em;text-transform:uppercase}
+  .card .thumb .badge.reel{background:var(--red);color:#fff}
+  .card h4{margin:0 0 4px;font-size:12.5px;line-height:1.25;font-weight:700}
+  .card .meta{color:var(--muted);font-size:11px;display:flex;align-items:center;gap:6px;justify-content:space-between}
+  .card .actions{display:flex;gap:4px;margin-top:8px}
+  .card .btn{flex:1;background:var(--paper);border:1px solid var(--line);border-radius:7px;padding:5px 6px;font-size:11px;font-weight:700;cursor:pointer;color:var(--ink)}
+  .card .btn.p{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .card .btn.r{background:var(--red);color:#fff;border-color:var(--red)}
+
+  .card.plan{position:relative}
+  .card.plan .when{background:var(--navy);color:#fff;font-size:10.5px;font-weight:800;padding:4px 8px;border-radius:6px;display:flex;align-items:center;gap:6px;margin-bottom:6px}
+  .card.plan .when b{font-family:Georgia,serif}
+  .card.done{opacity:.82}
+  .card.done .thumb{filter:saturate(.5)}
+
+  /* Quick add */
+  .quick{background:transparent;border:1.5px dashed #c3bfb2;border-radius:12px;padding:12px;text-align:center;color:var(--muted);font-weight:700;font-size:12px;cursor:pointer;width:100%;transition:.15s}
+  .quick:hover{background:#f0ede3;color:var(--ink);border-color:var(--muted)}
+
+  /* Simple minimal footer nav */
+  .foot{padding:0 28px 28px;display:flex;gap:10px;color:var(--muted);font-size:12px;align-items:center}
+  .foot a{padding:6px 12px;border:1px solid var(--line);border-radius:99px;background:var(--white);text-decoration:none;font-weight:700;color:var(--ink)}
+  .foot a:hover{background:var(--paper)}
+
+  @media(max-width:1200px){.board{grid-template-columns:repeat(5,280px)}}
+</style>
+</head>
+<body>
+<a class="picker" href="/static/mock/">← Tasarım seç</a>
+
+<div class="strip">
+  <div class="brand"><i>日</i><span>Japonya Rüyası<small>Stüdyo · 01</small></span></div>
+
+  <div class="next">
+    <span class="dot"></span>
+    <div><small>Sıradaki yayın</small><b>Bugün 20:00 · “Kyoto sabah tapınakları”</b></div>
+    <button class="cta">Şimdi yayınla</button>
+  </div>
+
+  <button class="ico" title="Yenile">↻</button>
+  <button class="ico" title="Ayarlar">⚙</button>
+</div>
+
+<div class="pipe">
+  <div class="pipe-title">
+    <h1>İçerik boru hattı</h1>
+    <small>Kartları sürükle veya butonlarla ilerlet · Otomasyon <b style="color:var(--green)">açık</b></small>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button class="ico" style="background:var(--white);border:1px solid var(--line);color:var(--ink);width:auto;padding:0 12px;height:32px;border-radius:10px;font-weight:700">＋ Haber üret</button>
+      <button class="ico" style="background:var(--white);border:1px solid var(--line);color:var(--ink);width:auto;padding:0 12px;height:32px;border-radius:10px;font-weight:700">＋ Konu üret</button>
+      <button class="ico" style="background:var(--red);border-color:var(--red);color:#fff;width:auto;padding:0 12px;height:32px;border-radius:10px;font-weight:700">🚀 Hepsini planla</button>
+    </div>
+  </div>
+
+  <div class="board">
+
+    <div class="col">
+      <div class="col-head"><span class="flag idea"></span><b>Fikir</b><span class="count">3</span></div>
+      <div class="card"><h4>Nara geyikleri gün doğumu</h4><div class="meta"><span>Konu havuzu</span><span>◈</span></div><div class="actions"><button class="btn p">Üret →</button></div></div>
+      <div class="card"><h4>Shinkansen'de 3 sınıf farkı</h4><div class="meta"><span>Konu havuzu</span><span>◈</span></div><div class="actions"><button class="btn p">Üret →</button></div></div>
+      <div class="card"><h4>Osaka gece yemek turu</h4><div class="meta"><span>Konu havuzu</span><span>◈</span></div><div class="actions"><button class="btn p">Üret →</button></div></div>
+      <button class="quick">＋ Yeni fikir</button>
+    </div>
+
+    <div class="col">
+      <div class="col-head"><span class="flag gen"></span><b>Üretiliyor</b><span class="count">2</span></div>
+      <div class="card">
+        <div class="thumb" style="background-image:linear-gradient(135deg,#3a5a8a,#1a2f4a)"><span class="badge">Görsel</span><b>Japonya'da hızlı tren kültürü</b></div>
+        <h4>japonya da hızlı tren</h4>
+        <div class="meta"><span>Görsel üretildi · yazı bekleniyor</span></div>
+      </div>
+      <div class="card">
+        <div class="thumb" style="background-image:linear-gradient(135deg,#7a2020,#3a0808)"><span class="badge reel">Reels</span><b>Karaoke gecesi</b></div>
+        <h4>karaoke, japonya nın vazgeçilmez…</h4>
+        <div class="meta"><span>Video render %62</span></div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="col-head"><span class="flag approve"></span><b>Onay bekliyor</b><span class="count">7</span></div>
+      <div class="card">
+        <div class="thumb" style="background-image:linear-gradient(135deg,#8a4820,#3a1a08)"><span class="badge">Görsel</span><b>Kyoto sabah tapınakları</b></div>
+        <h4>kyoto sabah tapınakları</h4>
+        <div class="meta"><span>2 Ağu · 1080×1350</span></div>
+        <div class="actions"><button class="btn">Düzenle</button><button class="btn r">Onayla</button></div>
+      </div>
+      <div class="card">
+        <div class="thumb" style="background-image:linear-gradient(135deg,#204030,#0a2015)"><span class="badge">Görsel</span><b>Onsen etiketi</b></div>
+        <h4>onsen'e girmeden bilinmesi…</h4>
+        <div class="meta"><span>2 Ağu · 1080×1350</span></div>
+        <div class="actions"><button class="btn">Düzenle</button><button class="btn r">Onayla</button></div>
+      </div>
+      <div class="card">
+        <div class="thumb" style="background-image:linear-gradient(135deg,#3a2a5a,#1a0f2f)"><span class="badge">Görsel</span><b>Tokyo metro ipuçları</b></div>
+        <h4>tokyo metrosunda kaybolmamak için</h4>
+        <div class="meta"><span>1 Ağu · 1080×1350</span></div>
+        <div class="actions"><button class="btn">Düzenle</button><button class="btn r">Onayla</button></div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="col-head"><span class="flag plan"></span><b>Planlandı</b><span class="count">5</span></div>
+      <div class="card plan">
+        <div class="when">🗓 <b>Bugün 20:00</b> · 6 sa 14 dk</div>
+        <div class="thumb" style="background-image:linear-gradient(135deg,#8a4820,#3a1a08)"><span class="badge">Görsel</span><b>Kyoto Fushimi Inari</b></div>
+        <h4>kyoto fushimi inari</h4>
+        <div class="meta"><span>Story</span><span>#4</span></div>
+      </div>
+      <div class="card plan">
+        <div class="when">🗓 <b>Yarın 08:00</b></div>
+        <div class="thumb" style="background-image:linear-gradient(135deg,#204030,#0a2015)"><span class="badge">Görsel</span><b>Doğa manzarası</b></div>
+        <h4>doğa manzarası</h4>
+        <div class="meta"><span>Story</span></div>
+      </div>
+      <div class="card plan">
+        <div class="when">🗓 <b>Yarın 20:00</b></div>
+        <div class="thumb" style="background-image:linear-gradient(135deg,#3a2a5a,#1a0f2f)"><span class="badge reel">Reels</span><b>Hotel koridoru</b></div>
+        <h4>hotel hallway</h4>
+        <div class="meta"><span>Reel</span></div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="col-head"><span class="flag done"></span><b>Yayında</b><span class="count">42</span></div>
+      <div class="card done">
+        <div class="thumb" style="background-image:linear-gradient(135deg,#4a4a4a,#1a1a1a)"><span class="badge">Görsel</span><b>Ünlü tapınak</b></div>
+        <h4>famous landmark</h4>
+        <div class="meta"><span>Dün 20:00</span><span style="color:var(--green);font-weight:800">✓ 1.2K</span></div>
+      </div>
+      <div class="card done">
+        <div class="thumb" style="background-image:linear-gradient(135deg,#4a4a4a,#1a1a1a)"><span class="badge reel">Reels</span><b>Kyoto tapınakları</b></div>
+        <h4>kyoto tapinaklari</h4>
+        <div class="meta"><span>Dün 08:00</span><span style="color:var(--green);font-weight:800">✓ 3.4K</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="foot">
+  <span>Diğer görünümler:</span>
+  <a href="#">Takvim</a>
+  <a href="#">Kütüphane</a>
+  <a href="#">Analiz</a>
+  <a href="#">Ayarlar</a>
+  <span style="margin-left:auto">Otomasyon: <b style="color:var(--green)">açık</b> · Günlük limit 2 · 08:00 & 20:00</span>
+</div>
+
+</body>
+</html>

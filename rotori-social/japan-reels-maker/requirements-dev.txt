@@ -1,0 +1,6 @@
+# Dev/test bağımlılıkları — prod imajına GİRMEZ.
+# Kurulum: pip install -r requirements-dev.txt
+# Çalıştırma: pytest -q
+
+pytest>=8.0.0
+httpx>=0.27.0        # FastAPI TestClient için gerekli (starlette httpx bekler)

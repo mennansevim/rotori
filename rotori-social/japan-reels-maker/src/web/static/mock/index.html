@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tasarım Seçici — Japonya Rüyası</title>
+<style>
+  :root{--paper:#f2efe7;--ink:#1e211d;--muted:#70736b;--red:#e34332;--line:#dad7ce;--white:#fcfbf7}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  .wrap{max-width:1200px;margin:0 auto;padding:60px 24px}
+  .kicker{color:var(--red);font-weight:850;letter-spacing:.14em;font-size:11px;text-transform:uppercase}
+  h1{font:600 42px/1.1 Georgia,serif;letter-spacing:-.02em;margin:8px 0 12px}
+  .lead{color:var(--muted);max-width:640px;margin:0 0 40px}
+  .lead b{color:var(--ink)}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  .opt{background:var(--white);border:1px solid var(--line);border-radius:20px;padding:26px;text-decoration:none;color:var(--ink);transition:.2s;display:block;position:relative;overflow:hidden}
+  .opt:hover{transform:translateY(-3px);box-shadow:0 20px 40px rgba(30,33,29,.10);border-color:#b0aca0}
+  .opt .num{position:absolute;top:16px;right:20px;font:700 42px Georgia,serif;color:#e8e5dc;line-height:1}
+  .opt h2{font:600 22px/1.2 Georgia,serif;margin:0 0 6px}
+  .opt .tag{display:inline-block;background:var(--paper);border:1px solid var(--line);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:700;margin-bottom:14px;color:var(--muted)}
+  .opt p{color:var(--muted);font-size:13px;margin:0 0 16px;min-height:66px}
+  .opt ul{margin:0 0 18px;padding-left:18px;color:#3a3d37;font-size:12.5px}
+  .opt ul li{margin:3px 0}
+  .opt .preview{aspect-ratio:16/10;border-radius:12px;overflow:hidden;background:#f7f5ed;border:1px solid var(--line);margin-bottom:14px;position:relative}
+  .opt .cta{display:inline-flex;align-items:center;gap:6px;color:var(--red);font-weight:800;font-size:13px}
+  /* Mini preview illustrations */
+  .prev-a{background:linear-gradient(180deg,#20241f 0 22%,#f7f5ed 22%);position:relative}
+  .prev-a::before{content:"";position:absolute;top:8%;left:8%;right:8%;height:8%;background:#e34332;border-radius:4px}
+  .prev-a::after{content:"";position:absolute;top:32%;left:6%;right:6%;bottom:8%;background:repeating-linear-gradient(90deg,#fff 0 24%,transparent 24% 25%);border-radius:6px;box-shadow:inset 0 0 0 1px var(--line)}
+  .prev-b{background:#20241f;position:relative}
+  .prev-b::before{content:"";position:absolute;top:10%;bottom:10%;left:6%;width:34%;background:linear-gradient(180deg,#e34332 0 12%,#3a3d37 12%);border-radius:6px}
+  .prev-b::after{content:"";position:absolute;top:10%;bottom:10%;right:6%;width:50%;background:repeating-linear-gradient(180deg,#f7f5ed 0 22%,#3a3d37 22% 25%);border-radius:6px}
+  .prev-c{background:#f7f5ed;position:relative}
+  .prev-c::before{content:"";position:absolute;top:8%;left:6%;right:6%;height:30%;background:linear-gradient(90deg,#e34332,#a72a22);border-radius:8px}
+  .prev-c::after{content:"";position:absolute;top:44%;left:6%;right:6%;bottom:8%;background:repeating-linear-gradient(90deg,#fff 0 13%,transparent 13% 14.28%);border-radius:6px;box-shadow:inset 0 0 0 1px var(--line)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">Yeni tasarım · 3 yön</div>
+  <h1>Hangi yönde ilerleyelim?</h1>
+  <p class="lead">Aynı iş akışı için 3 farklı görsel yaklaşım hazırladım. Amacın <b>otomatik üret → onayla → zamanla yayınla</b>. Her tasarım bu akışı farklı vurguluyor. Kartın altındaki bağlantıya tıklayıp gerçek boyutlu önizlemeyi gör.</p>
+
+  <div class="grid">
+    <a class="opt" href="/static/mock/a.html">
+      <div class="num">01</div>
+      <div class="preview prev-a"></div>
+      <span class="tag">Boru hattı</span>
+      <h2>Pipeline / Kanban</h2>
+      <p>Tek ekranda soldan sağa akan iş bandı: <b>Fikir → Üretildi → Onay → Planlandı → Yayınlandı</b>. Sürükle-bırak ile durum değiştir. Sekme yok, tek görünüm.</p>
+      <ul>
+        <li>En az tıklama, en fazla şeffaflık</li>
+        <li>Hangi kartın nerede olduğu belli</li>
+        <li>Onay & planlama yan yana</li>
+      </ul>
+      <span class="cta">Önizle →</span>
+    </a>
+
+    <a class="opt" href="/static/mock/b.html">
+      <div class="num">02</div>
+      <div class="preview prev-b"></div>
+      <span class="tag">Zaman şeridi</span>
+      <h2>Timeline / Feed</h2>
+      <p>Solda <b>gerçek zaman şeridi</b> (bugün 20:00, yarın 08:00…), sağda onay bekleyen kartlar. Kartı sürükleyip zamana bırak. Takvim + kuyruk tek yerde birleşiyor.</p>
+      <ul>
+        <li>“Ne zaman yayınlanacak” bir bakışta</li>
+        <li>Boş slotlar görsel olarak belli</li>
+        <li>Takvim ve kuyruk birleşik</li>
+      </ul>
+      <span class="cta">Önizle →</span>
+    </a>
+
+    <a class="opt" href="/static/mock/c.html">
+      <div class="num">03</div>
+      <div class="preview prev-c"></div>
+      <span class="tag">Komuta merkezi</span>
+      <h2>Command Center</h2>
+      <p>Üstte kocaman <b>“Sıradaki yayın 14 saat 22 dk sonra”</b> geri sayım kartı. Altta 2 sütun: sol onay bekleyenler grid'i, sağ mini haftalık takvim. Tek ekran, kaydırma yok.</p>
+      <ul>
+        <li>Ne yapman gerektiği anında belli</li>
+        <li>Tek ekran özet + kontrol</li>
+        <li>Minimal navigasyon</li>
+      </ul>
+      <span class="cta">Önizle →</span>
+    </a>
+  </div>
+
+  <p style="margin-top:40px;color:var(--muted);font-size:13px">
+    Not: Mockup'larda veriler örnek. Beğendiğin yönü söyle, gerçek API ile bağlayıp mevcut “yeni içerik / haber otomasyonu / planlama” işlevlerini üstüne kuracağım.
+  </p>
+</div>
+</body>
+</html>
