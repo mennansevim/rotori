@@ -20,14 +20,19 @@ menüsünün yeni bilgi mimarisi).
                                      ▼
 ┌───────────────────────┐    ┌───────────────────────┐    ┌───────────────────┐
 │   Flutter mobil app   │    │  React apps (legacy)  │    │  Marketing site   │
-│   mobile/ (primary)   │    │  apps/planner+viewer  │    │  website/         │
+│ rotori-mobile/(primary)│    │ website/legacy/apps/  │    │ rotori-website/   │
 │   iOS · web-preview   │    │  Vite + workspaces    │    │  self-contained   │
 └───────────┬───────────┘    └───────────┬───────────┘    └───────────────────┘
             │                            │
             ▼                            ▼
-   shared_preferences /            data/trips/*.json
+   shared_preferences /            legacy/data/trips/*.json
    flutter_cache_manager           (statik seyahat verisi)
 ```
+
+> **Monorepo (2026-08-03):** Kök `rotori-app/`. Üç ayak: `rotori-mobile/`,
+> `rotori-website/` (+ `legacy/` eski React PWA & build), `rotori-social/`
+> (`japan-reels-maker` taşındı, nested `.git` kaldırıldı). Paylaşılan `docs/`
+> ve `supabase/` kökte. Vercel kaldırıldı.
 
 ## 2. Modül Sınırları (mobil)
 

@@ -3,25 +3,55 @@
 > Bu dosya *bugünkü* çalışmanın canlı görünümüdür. Her tamamlanan görevden
 > hemen sonra güncellenir.
 
-**Bugünün tarihi:** 2026-08-01
+**Bugünün tarihi:** 2026-08-02
 **Aktif branch:** `main`
-**Sprint hedefi:** Mobil uygulamanın ilk açılış temasını aydınlık moda taşıyıp
-viewer hamburger menüsünü daha sade, dengeli ve erişilebilir bir navigasyon
-yüzeyi olarak yeniden tasarlamak.
+**Sprint hedefi:** Mobil uygulamaya kamera üzerinde gerçek zamanlı, cihaz-üstü
+çalışan Japon-yeni fiyat algılama + para birimi çevirici (canlı) özelliğini
+Rotori tasarım diline ve mevcut mimariye sadık biçimde eklemek.
 
 ---
 
 ## Aktif Hedef
 
-Tamamlandı. Tema tercihi olmayan yeni kurulumlar uygulama kabuğunda ve
-viewer'da aydınlık başlıyor; daha önce kaydedilmiş tema tercihi korunuyor.
-Viewer hamburger menüsü Yolculuk, Keşfet, Araçlar ve Hesap bölümleriyle gerçek
-kaydırmalı bir yapıya taşındı. Uçuş/otel ayrıntıları açılabilir, hızlı
-aksiyonlar iki sütunlu ve ayar satırları en az 48 px dokunma alanlıdır.
-`flutter analyze` temiz; tema varsayılanı, kayıtlı koyu tercih, yeni menü
-hiyerarşisi, tema seçici ve uçuş özeti hedefli testleri başarılıdır.
+Tamamlandı. `live_currency_scanner` özelliği domain/application/infrastructure/
+presentation katmanlarıyla eklendi; kamera akışı `camera`, OCR cihaz-üstü ML Kit
+(Japonca script) ile çalışır, para hesapları `decimal` ile yapılır. Fiyat
+normalizasyonu (tam genişlik/boşluk/OCR nokta hatası), parser (para işareti +
+vergi bağlamı, yüzde/tarih/telefon/kod eleme), 税込 önceliği, IoU+smoothing
+detection tracker, rotation/mirror/cover koordinat dönüşümü, IoU eşleşme ve
+Supabase `exchange_rates` + yerel cache + manuel kur akışı uygulandı. Route
+`/live-currency-scanner`; viewer drawer KEŞFET ızgarasına 4. ikon eklendi.
+`flutter analyze` **0 hata**; 60 yeni birim/widget testi yeşil. Tam pakette
+kalan 15 hata (plan_viewer edit-mode + checklist + welcome_flow) bu görevden
+**önce de kırıktı** (baseline'da stash ile doğrulandı).
 
 ## Tamamlananlar (bu ve önceki oturumlardan)
+
+- ✅ **2026-08-03** `japan-reels-maker` proje dizini
+  `rotori-social/japan-reels-maker` altına taşındı ve nested `.git`
+  kaldırıldı. Böylece geçerli tek repository kökü `rotori-app/.git` oldu.
+
+- ✅ **2026-08-03** Rota harness P0 doğruluk fixleri (`ROUTE_OPTIMIZATION_FIX_PLAN.md`
+  Faz 1) çekirdeğe dokunmadan uygulandı: (1) yemek yeri çalışma saatleri
+  korunuyor — `MealPeriod` + `servesMeal`, market'ler yalnız öğle, her şehre
+  akşam servisi veren gerçek lokantalar + sentetik fallback+warning; (2) tam
+  gün/uzak gezi izolasyonu `PoiDayRole` ile magic number'dan kurtarıldı ve
+  refill sonrası çalışıyor (USJ/DisneySea/Miyajima artık başka POI ile
+  karışmıyor); (3) <50 m co-located leg sıfırlandı (yapay kahvaltı yürüyüşü
+  gitti). Ölçülen: kapalı-market akşam yemeği 0, walk>0 kahvaltı 0, park/Miyajima
+  karışması 0, düşürülen aktivite 365→218. `test/tool/route_opt_harness_test.dart`
+  9 test yeşil; `flutter analyze` (harness) 0 error.
+
+
+- ✅ **2026-08-02** Canlı kamera para birimi çevirici (`live_currency_scanner`)
+  uçtan uca eklendi: cihaz-üstü OCR (ML Kit, web'de no-op koşullu export),
+  saf-Dart normalizer/parser/tracker/coordinate-transformer/converter,
+  Supabase `exchange_rates` migration'ı (0006, herkese-okuma RLS, istemci
+  yazamaz), SharedPreferences kur cache + manuel kur, ayarlar ekranı
+  (hedef para birimi, otomatik güncelleme, kart farkı, yuvarlama, performans
+  profili), Apple-kalite kamera overlay + izin/hata ekranları, TR/EN i18n,
+  iOS `NSCameraUsageDescription` güncellemesi + Android `CAMERA` izni.
+  `flutter analyze` temiz; 60 yeni test yeşil.
 
 - ✅ **2026-08-02** Rütbe kanjileri için Noto Sans JP alt-kümesi (subset) fontu
   eklendi. Yalnızca kullanılan 11 glif (狸狐河童天狗鶴麒麟鳳凰龍旅) alınıp 700
