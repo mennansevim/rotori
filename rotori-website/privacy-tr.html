@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F5F2FB">
+<title>Gizlilik Politikası — Rotori</title>
+<meta name="description" content="Rotori'nin gizlilik politikası — hangi verileri topladığımız, nasıl kullandığımız, sizin haklarınız. Sade ve dürüst.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%236B5AE3'/><stop offset='1' stop-color='%23C74A72'/></linearGradient></defs><rect width='64' height='64' rx='14' fill='url(%23g)'/><text x='50%25' y='55%25' text-anchor='middle' dominant-baseline='middle' font-family='-apple-system,BlinkMacSystemFont,sans-serif' font-size='42' font-weight='700' fill='%23FFFFFF'>旅</text></svg>">
+<style>
+  :root{
+    --bg:#F5F2FB; --card:#FFFFFF; --card-2:#EFE9F9;
+    --accent:#6B5AE3; --ink:#1B1030; --ink-2:#4A4468; --ink-3:#7A7395;
+    --line:rgba(27,16,48,.09);
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:var(--font);background:var(--bg);color:var(--ink);line-height:1.6;letter-spacing:-.005em;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:720px;margin:0 auto;padding:48px clamp(20px,4vw,32px)}
+  header{margin-bottom:32px}
+  .brand{display:inline-flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;font-weight:600;font-size:17px;letter-spacing:-.02em}
+  .brand .mark{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(135deg,#6B5AE3,#9E58E8);color:#fff;font-weight:700;font-size:16px;box-shadow:0 6px 18px rgba(107,90,227,.28)}
+  h1{font-size:clamp(28px,4.5vw,40px);font-weight:700;letter-spacing:-.035em;line-height:1.1;margin:16px 0 8px}
+  .lede{color:var(--ink-2);font-size:16px;margin-bottom:24px}
+  .updated{color:var(--ink-3);font-size:13px;font-weight:500}
+  h2{font-size:20px;font-weight:700;margin:28px 0 10px;letter-spacing:-.02em}
+  h3{font-size:16px;font-weight:600;margin:16px 0 6px}
+  p{color:var(--ink-2);margin-bottom:12px;font-size:15.5px}
+  ul{margin:6px 0 12px 22px;color:var(--ink-2)}
+  li{margin-bottom:6px;font-size:15.5px}
+  a{color:var(--accent);text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:3px}
+  a:hover{opacity:.75}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:14px 0}
+  .card h3{margin-top:0}
+  strong{color:var(--ink);font-weight:600}
+  code{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:13.5px;background:var(--card-2);padding:2px 6px;border-radius:5px;color:var(--ink)}
+  hr{border:0;border-top:1px solid var(--line);margin:32px 0}
+  footer{margin-top:48px;padding-top:24px;border-top:1px solid var(--line);color:var(--ink-3);font-size:13.5px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+  footer a{color:var(--ink-2);text-decoration:none;font-weight:500}
+  footer a:hover{color:var(--accent)}
+  .lang-switch{position:absolute;top:20px;right:20px;font-size:13px;font-weight:600;color:var(--ink-2);background:var(--card);border:1px solid var(--line);padding:6px 12px;border-radius:980px;text-decoration:none}
+  .lang-switch:hover{color:var(--accent)}
+</style>
+</head>
+<body>
+<a class="lang-switch" href="/privacy-en.html">EN</a>
+<div class="wrap">
+  <header>
+    <a class="brand" href="/"><span class="mark">旅</span> Rotori</a>
+    <h1>Gizlilik Politikası</h1>
+    <p class="lede">Rotori'nin senden hangi bilgileri istediğini, ne için istediğini ve ne kadar süre tuttuğunu sade bir şekilde açıklıyoruz.</p>
+    <p class="updated">Son güncelleme: 26 Temmuz 2026</p>
+  </header>
+
+  <h2>1. Kim biz?</h2>
+  <p>Rotori, Japonya seyahatlerini planlamana yardımcı olan bir mobil uygulamadır. Bu politika Rotori uygulamasını ve <a href="https://rotori.app">rotori.app</a> tanıtım sitesini kapsar. Sorularınız için <a href="mailto:destek@rotori.app">destek@rotori.app</a>.</p>
+
+  <h2>2. Toplanan bilgiler</h2>
+
+  <div class="card">
+    <h3>Hesap bilgileri</h3>
+    <p>Rotori'yi kullanmak için bir hesap açman gerekir. Hesap açarken şunları alırız:</p>
+    <ul>
+      <li><strong>E-posta ile kayıt</strong>: e-posta adresin ve parolan. Parola sunucumuzda düz metin olarak tutulmaz — güvenli bir yönde şifrelenir (bcrypt hash).</li>
+      <li><strong>Sign in with Apple</strong>: Apple senin adına bize bir kimlik jetonu (identity token) verir. E-postanı "Bırak Apple gizlesin" seçeneğiyle ilettiysen, sana bir Apple relay adresi (<code>...@privaterelay.appleid.com</code>) veririz — gerçek e-postanı asla görmeyiz.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Uygulama içi veri</h3>
+    <p>Plan yaparken oluşturduğun içerikler bize gelir çünkü onları başka cihazlarında da görebilmen için buluta yedekliyoruz:</p>
+    <ul>
+      <li>Şehir seçimleri, tarihler, uçuş bilgileri (kalkış-varış saati, hava yolu adı)</li>
+      <li>Otel adları, adresler, giriş-çıkış tarihleri</li>
+      <li>Aktivite listen, hatırlatmalar, yolculuk öncesi hazırlık checklist'in</li>
+      <li>Bilet ekleyip fotoğrafını yüklediysen — bu fotoğraf uygulamanın kendi verisi içinde tutulur</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Konum verisi</h3>
+    <p><strong>Konumun bize gelmez.</strong> Rotori "keşif rozetleri" için (örneğin Senso-ji Tapınağı'na varınca kazandığın rozet) GPS konumunu kullanır — ancak bu tamamen cihazının içinde işlenir. Konumun sunucumuza, log'lara veya üçüncü tarafa gönderilmez.</p>
+  </div>
+
+  <div class="card">
+    <h3>Fotoğraf ve kamera</h3>
+    <p>Uçak bileti çekmek istersen kamera veya fotoğraf galerisine erişim isteriz. Seçtiğin fotoğraf yalnızca senin planında saklanır; başka bir yere gönderilmez.</p>
+  </div>
+
+  <h2>3. Bilgileri nasıl kullanıyoruz?</h2>
+  <ul>
+    <li>Sana seyahat planını sunmak</li>
+    <li>Rezervasyon zamanı geldiğinde yerel hatırlatma göndermek (bildirim izni isteyeceğiz — sen ver ya da verme)</li>
+    <li>Rotayı Google Maps'te açmak — bu tıklandığında Google Maps'e sadece koordinatlar gider, ne kim olduğun ne de hesap bilgin</li>
+    <li>Gezinin ne zamanına yakın olduğuna göre hazırlık checklist'in tetiklemek</li>
+  </ul>
+  <p>Bilgilerini <strong>reklam için asla kullanmayız</strong>. Rotori bir reklam ağı çalıştırmıyor.</p>
+
+  <h2>4. Üçüncü taraflar</h2>
+  <ul>
+    <li><strong>Supabase Inc.</strong> — hesap ve veri barındırma (AB / ABD bölgeleri). Supabase kendi <a href="https://supabase.com/privacy">gizlilik politikası</a>na tabidir.</li>
+    <li><strong>Apple Inc.</strong> — Sign in with Apple'ı kullanırsan Apple'ın gizlilik politikası da geçerli olur.</li>
+    <li><strong>Open-Meteo</strong> — hava tahmini için sadece şehir koordinatlarını gönderir (kim olduğun gitmez). Ücretsiz açık kaynak servis, hesap gerekmez.</li>
+    <li><strong>Google Maps</strong> — sen "haritada aç" dediğinde koordinatın Google'a gider. Uygulama arka planda Google'a hiç istek atmaz.</li>
+  </ul>
+  <p>Sana özel reklam profili çıkaran veya davranış izleyen bir hizmet <strong>kullanmıyoruz</strong>: Google Analytics yok, Facebook Pixel yok, Firebase Analytics yok, crash reporting bile yok. Rotori sessiz bir uygulama.</p>
+
+  <h2>5. Ne kadar süre tutuyoruz?</h2>
+  <p>Sen hesabını silene kadar verilerin saklanır. Uygulamanın içinden <strong>"Hesabı Sil"</strong> düğmesine dokunduğun an her şey silinir — planların, otel kayıtların, biletler, hatırlatmalar, hazırlık listen ve hesap kaydın. Bu işlem geri alınamaz.</p>
+  <p>Hesap silme akışı Apple App Store Guideline 5.1.1(v)'e uygundur: kayıt açabildiğin yerden silme de yapabilirsin, e-posta göndermene gerek yok.</p>
+
+  <h2>6. Sizin haklarınız (KVKK / GDPR)</h2>
+  <p>Türkiye'de veya AB'deysen aşağıdaki haklara sahipsin:</p>
+  <ul>
+    <li>Hangi bilgilerin tutulduğunu öğrenmek</li>
+    <li>Yanlış bilgiyi düzelttirmek</li>
+    <li>Silme istemek (uygulama içinden anında yapabilirsin)</li>
+    <li>Verilerinin dışa aktarımını istemek — <a href="mailto:destek@rotori.app">destek@rotori.app</a>'e yaz, 30 gün içinde JSON olarak göndeririz</li>
+    <li>İşlemeye itiraz etmek</li>
+  </ul>
+
+  <h2>7. Çocuklar</h2>
+  <p>Rotori 4 yaş ve üzeri olarak derecelendirilmiştir; ancak 13 yaş altındaki kullanıcılardan bilinçli olarak veri toplamayız. Ebeveyn onayı olmadan 13 yaş altı bir hesabı fark edersek anında sileriz.</p>
+
+  <h2>8. Değişiklikler</h2>
+  <p>Bu politikayı zaman zaman güncelleyebiliriz. Önemli bir değişiklik olursa uygulamada senden yeniden onay isteriz. En üstteki "Son güncelleme" tarihi her zaman geçerli sürümü işaret eder.</p>
+
+  <h2>9. İletişim</h2>
+  <p>Herhangi bir soru için: <a href="mailto:destek@rotori.app">destek@rotori.app</a></p>
+
+  <footer>
+    <a href="/">← Ana sayfa</a>
+    <a href="/destek-tr.html">Destek</a>
+    <span>© Rotori 2026</span>
+  </footer>
+</div>
+</body>
+</html>
