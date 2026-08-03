@@ -9,7 +9,8 @@ import { dirname, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, '..', '..');
-const PREVIEW = join(REPO_ROOT, 'website', 'appstore-preview.html');
+// Tanıtım sitesi rotori-website/ köküne taşındı; bu dosya legacy/assets/appstore altında.
+const PREVIEW = join(__dirname, '..', '..', '..', 'appstore-preview.html');
 const BUILD_DIR = join(__dirname, 'build');
 const OUT_DIR = __dirname;
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';

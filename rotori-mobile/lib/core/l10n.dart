@@ -256,6 +256,129 @@ const Map<String, Map<AppLang, String>> _strings = {
   'viewer.tt.map': {AppLang.tr: 'Keşif haritası', AppLang.en: 'Explore map'},
   'viewer.tt.compass': {AppLang.tr: 'Pusula', AppLang.en: 'Compass'},
   'viewer.tt.weather': {AppLang.tr: 'Hava', AppLang.en: 'Weather'},
+  // --- Canlı Fiyat Çevirici (live currency scanner) ---
+  'scanner.title': {
+    AppLang.tr: 'Canlı Fiyat Çevirici',
+    AppLang.en: 'Live Price Converter',
+  },
+  'scanner.tt': {AppLang.tr: 'Fiyat çevir', AppLang.en: 'Convert price'},
+  'scanner.hint': {
+    AppLang.tr: 'Kamerayı fiyat etiketine tutun',
+    AppLang.en: 'Point the camera at a price tag',
+  },
+  'scanner.onDevice': {
+    AppLang.tr: 'Fiyatlar cihazınızda algılanır',
+    AppLang.en: 'Prices are detected on your device',
+  },
+  'scanner.noUpload': {
+    AppLang.tr: 'Kamera görüntüsü yüklenmez',
+    AppLang.en: 'Camera image is never uploaded',
+  },
+  'scanner.rateFresh': {
+    AppLang.tr: 'Kur güncel',
+    AppLang.en: 'Rate is current'
+  },
+  'scanner.rateStale': {
+    AppLang.tr: 'Kur eski olabilir',
+    AppLang.en: 'Rate may be outdated',
+  },
+  'scanner.rateMissing': {
+    AppLang.tr: 'Kur bulunamadı',
+    AppLang.en: 'No rate available',
+  },
+  'scanner.lastUpdated': {
+    AppLang.tr: 'Son güncelleme',
+    AppLang.en: 'Last updated'
+  },
+  'scanner.manualRate': {AppLang.tr: 'Manuel kur', AppLang.en: 'Manual rate'},
+  'scanner.manualRateOn': {
+    AppLang.tr: 'Manuel kur kullanılıyor',
+    AppLang.en: 'Using manual rate',
+  },
+  'scanner.targetCurrency': {
+    AppLang.tr: 'Hedef para birimi',
+    AppLang.en: 'Target currency',
+  },
+  'scanner.autoUpdate': {
+    AppLang.tr: 'Otomatik kur güncelleme',
+    AppLang.en: 'Automatic rate update',
+  },
+  'scanner.cardMarkup': {
+    AppLang.tr: 'Kart/banka farkı',
+    AppLang.en: 'Card/bank markup',
+  },
+  'scanner.rounding': {AppLang.tr: 'Yuvarlama', AppLang.en: 'Rounding'},
+  'scanner.rounding.none': {AppLang.tr: 'Yok', AppLang.en: 'None'},
+  'scanner.rounding.whole': {
+    AppLang.tr: 'En yakın tam birim',
+    AppLang.en: 'Nearest whole',
+  },
+  'scanner.rounding.ten': {
+    AppLang.tr: 'En yakın 10 birim',
+    AppLang.en: 'Nearest 10',
+  },
+  'scanner.performance': {AppLang.tr: 'Performans', AppLang.en: 'Performance'},
+  'scanner.perf.battery': {
+    AppLang.tr: 'Pil dostu',
+    AppLang.en: 'Battery saver'
+  },
+  'scanner.perf.balanced': {AppLang.tr: 'Dengeli', AppLang.en: 'Balanced'},
+  'scanner.perf.accuracy': {
+    AppLang.tr: 'Yüksek doğruluk',
+    AppLang.en: 'High accuracy',
+  },
+  'scanner.permTitle': {
+    AppLang.tr: 'Kamera izni gerekli',
+    AppLang.en: 'Camera permission required',
+  },
+  'scanner.permBody': {
+    AppLang.tr:
+        'Mağaza fiyatlarını algılayıp seçtiğiniz para birimine çevirmek için kameraya erişim gerekir.',
+    AppLang.en:
+        'Camera access is needed to detect store prices and convert them to your currency.',
+  },
+  'scanner.permDeniedBody': {
+    AppLang.tr: 'Kamera iznini ayarlardan etkinleştirin',
+    AppLang.en: 'Enable the camera permission from settings',
+  },
+  'scanner.cameraFailed': {
+    AppLang.tr: 'Kamera başlatılamadı',
+    AppLang.en: 'Camera could not be started',
+  },
+  'scanner.cameraUnavailable': {
+    AppLang.tr: 'Cihazda kamera bulunamadı',
+    AppLang.en: 'No camera found on this device',
+  },
+  'scanner.retry': {AppLang.tr: 'Tekrar dene', AppLang.en: 'Try again'},
+  'scanner.openSettings': {
+    AppLang.tr: 'Sistem ayarlarını aç',
+    AppLang.en: 'Open system settings',
+  },
+  'scanner.detecting': {
+    AppLang.tr: 'Fiyat algılanıyor',
+    AppLang.en: 'Detecting price'
+  },
+  'scanner.notFound': {
+    AppLang.tr: 'Fiyat bulunamadı',
+    AppLang.en: 'No price found'
+  },
+  'scanner.settings': {
+    AppLang.tr: 'Çevirici ayarları',
+    AppLang.en: 'Converter settings'
+  },
+  'scanner.taxIncluded': {
+    AppLang.tr: 'Vergi dahil',
+    AppLang.en: 'Tax included'
+  },
+  'scanner.taxExcluded': {
+    AppLang.tr: 'Vergi hariç',
+    AppLang.en: 'Tax excluded'
+  },
+  'scanner.rateUsed': {AppLang.tr: 'Kullanılan kur', AppLang.en: 'Rate used'},
+  'scanner.addToBudget': {
+    AppLang.tr: 'Bütçeye ekle',
+    AppLang.en: 'Add to budget'
+  },
   'viewer.quick.explore': {AppLang.tr: 'Keşfet', AppLang.en: 'Explore'},
   'viewer.quick.tickets': {AppLang.tr: 'Biletler', AppLang.en: 'Tickets'},
   'viewer.quick.weather': {AppLang.tr: 'Hava', AppLang.en: 'Weather'},
@@ -3030,7 +3153,10 @@ const Map<String, Map<AppLang, String>> _strings = {
   },
   'reward.locked': {AppLang.tr: '🔒 Kilitli', AppLang.en: '🔒 Locked'},
   // ----- Gezgin rütbesi (Japon efsane yaratıkları merdiveni) -----
-  'reward.rankTier': {AppLang.tr: 'Gezgin rütbesi', AppLang.en: 'Traveler rank'},
+  'reward.rankTier': {
+    AppLang.tr: 'Gezgin rütbesi',
+    AppLang.en: 'Traveler rank'
+  },
   'reward.xpTotal': {AppLang.tr: 'Toplam XP', AppLang.en: 'Total XP'},
   'reward.nextRank': {AppLang.tr: 'Sonraki rütbe', AppLang.en: 'Next rank'},
   'reward.toNextRank': {
@@ -3050,14 +3176,38 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Yeni bir rütbeye yükseldin — yolculuk sürüyor.',
     AppLang.en: 'You rose to a new rank — the journey continues.',
   },
-  'reward.rank.tanuki': {AppLang.tr: 'Meraklı yolcu', AppLang.en: 'Curious wanderer'},
-  'reward.rank.kitsune': {AppLang.tr: 'Kurnaz kaşif', AppLang.en: 'Clever explorer'},
-  'reward.rank.kappa': {AppLang.tr: 'Nehir yoldaşı', AppLang.en: 'River companion'},
-  'reward.rank.tengu': {AppLang.tr: 'Dağ bekçisi', AppLang.en: 'Mountain guardian'},
-  'reward.rank.tsuru': {AppLang.tr: 'Zarif gezgin', AppLang.en: 'Graceful traveler'},
-  'reward.rank.kirin': {AppLang.tr: 'Kutlu kaşif', AppLang.en: 'Blessed explorer'},
-  'reward.rank.hoo': {AppLang.tr: 'Küllerinden doğan', AppLang.en: 'Risen from ashes'},
-  'reward.rank.ryu': {AppLang.tr: 'Efsane ejderha', AppLang.en: 'Legendary dragon'},
+  'reward.rank.tanuki': {
+    AppLang.tr: 'Meraklı yolcu',
+    AppLang.en: 'Curious wanderer'
+  },
+  'reward.rank.kitsune': {
+    AppLang.tr: 'Kurnaz kaşif',
+    AppLang.en: 'Clever explorer'
+  },
+  'reward.rank.kappa': {
+    AppLang.tr: 'Nehir yoldaşı',
+    AppLang.en: 'River companion'
+  },
+  'reward.rank.tengu': {
+    AppLang.tr: 'Dağ bekçisi',
+    AppLang.en: 'Mountain guardian'
+  },
+  'reward.rank.tsuru': {
+    AppLang.tr: 'Zarif gezgin',
+    AppLang.en: 'Graceful traveler'
+  },
+  'reward.rank.kirin': {
+    AppLang.tr: 'Kutlu kaşif',
+    AppLang.en: 'Blessed explorer'
+  },
+  'reward.rank.hoo': {
+    AppLang.tr: 'Küllerinden doğan',
+    AppLang.en: 'Risen from ashes'
+  },
+  'reward.rank.ryu': {
+    AppLang.tr: 'Efsane ejderha',
+    AppLang.en: 'Legendary dragon'
+  },
   'badge.firstJapanPlan.title': {
     AppLang.tr: 'İlk Japonya Planı',
     AppLang.en: 'First Japan Plan'

@@ -29,7 +29,7 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Gezdiğiniz yerleri otomatik keşfetmek ve rozet kazanmanız için konumunuz kullanılır.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Bilet fotoğrafını çekmek için kamera erişimi gerekir.</string>
+	<string>Rotori, bilet fotoğrafını çekmek ve mağaza fiyatlarını algılayıp seçtiğiniz para birimine çevirmek için kameraya erişir. Görüntüler cihazınızda işlenir, yüklenmez.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Bilet görselini galeriden seçmek için erişim gerekir.</string>
 	<key>UIApplicationSceneManifest</key>

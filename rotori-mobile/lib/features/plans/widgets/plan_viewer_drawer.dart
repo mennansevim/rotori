@@ -60,6 +60,10 @@ class _ViewerDrawer extends ConsumerWidget {
           icon: Icons.checklist_rounded,
           label: s.s('viewer.tt.checklist'),
           onTap: onOpenPrep),
+      _DrawerActionSpec(
+          icon: Icons.currency_yen_rounded,
+          label: s.s('scanner.tt'),
+          onTap: () => context.go('/live-currency-scanner')),
     ];
 
     return Drawer(

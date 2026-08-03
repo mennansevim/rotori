@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Canlı fiyat çevirici (kamera üzeri OCR) — cihaz üstü, görüntü yüklenmez. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application
         android:label="japan_trip"
         android:name="${applicationName}"

@@ -664,9 +664,13 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
 
       <div class="hero-stage-phone">
         <div class="hand-mobile-wrap float">
-          <img class="hand-mobile" src="img/rotori-hand-mobile.svg"
-               alt="Rotori uygulaması — Japonya günlük plan"
-               loading="eager" decoding="async" />
+          <picture>
+            <source srcset="img/main-hand-phone.avif" type="image/avif" />
+            <img class="hand-mobile" src="img/main-hand-phone.png"
+                 width="930" height="1260"
+                 alt="Rotori uygulaması — Japonya günlük plan"
+                 loading="eager" decoding="async" fetchpriority="high" />
+          </picture>
         </div>
       </div>
 

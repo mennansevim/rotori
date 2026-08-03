@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/auth_screen.dart';
+import '../features/live_currency_scanner/presentation/pages/live_currency_scanner_page.dart';
 import '../features/planner/planner_screen.dart';
 import '../features/plans/plan_providers.dart';
 import '../features/plans/plan_viewer_screen.dart';
@@ -72,6 +73,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/reminders',
         builder: (context, state) => const RemindersScreen(),
+      ),
+      GoRoute(
+        path: '/live-currency-scanner',
+        builder: (context, state) => const LiveCurrencyScannerPage(),
       ),
       GoRoute(
         path: '/auth',

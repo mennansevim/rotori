@@ -32,6 +32,13 @@ dependencies:
   # Cihaz üstü (on-device) OCR — bilet metnini çıkarır (yalnızca mobil).
   # Web derlemesine sızmaması için ticket_ocr.dart koşullu import ile izole edilir.
   google_mlkit_text_recognition: ^0.15.0
+  # Canlı kamera akışı — gerçek zamanlı para birimi tarayıcı (yalnızca mobil).
+  # Live currency scanner image stream'i buradan gelir; web'de conditional
+  # import ile no-op recognizer'a düşer, camera plugin web grafiğine girmez.
+  camera: ^0.11.0+2
+  # Para hesaplarında double hassasiyet kaybını önlemek için ondalık aritmetik.
+  # Kur dönüşümü (1 JPY = X TARGET) ve kart farkı Decimal ile yapılır.
+  decimal: ^3.0.2
   # Yerel bildirim (bilet açılış hatırlatmaları) — mobilde çalışır, web'de no-op.
   flutter_local_notifications: ^17.2.3
   # Zaman dilimi verisi (schedule için gerekli)
