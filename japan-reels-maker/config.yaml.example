@@ -1,0 +1,165 @@
+## japan-reels-maker konfigürasyon — ÖRNEK/TEMPLATE
+## Kurulum:
+##   1) cp config.yaml.example config.yaml
+##   2) Aşağıdaki YOUR_* placeholder'ları gerçek değerlerinle değiştir
+##   3) config.yaml .gitignore'lu — secret'lar repo'ya girmez
+##
+## Rotate/revoke uyarıları:
+##   - OpenAI API key: platform.openai.com/api-keys — para yakma riski, kritik
+##   - Instagram şifresi: Instagram uygulaması → Settings → Password
+##   - Unsplash access key: unsplash.com/oauth/applications
+##   - Dify API key: kendi Dify sunucun
+
+paths:
+  video_source_dir: "/path/to/your/video/source"
+  frames_dir: "data/frames"
+  metadata_csv: "data/metadata.csv"
+  plans_dir: "data/kurgu_planlari"
+  output_dir: "output/reels"
+  ready_dir: "output/ready_to_publish"
+
+ollama:
+  base_url: "http://localhost:11434"
+  vision_model: "llava:7b"
+  text_model: "qwen2.5:3b"
+  request_timeout_sn: 240
+  vision_concurrency: 1
+
+dify:
+  base_url: "http://your-dify-host:5001"
+  api_key: "YOUR_DIFY_API_KEY"    # app-xxx ile başlar (Dify workflow app key)
+  workflow_endpoint: "/v1/workflows/run"
+  concurrency: 2
+  timeout_sn: 180
+  aciklama_tipi: "aciklayici"    # aciklayici | bolgeyi_tanit | merak_uyandir
+
+openai:
+  # platform.openai.com/api-keys → Create new secret key
+  # gpt-4o-mini kullanıyoruz — story kartı başına ~$0.001, ucuz
+  api_key: "***REMOVED-OPENAI-KEY***"
+  model: "gpt-4o-mini"                # gpt-4o-mini | gpt-4o | gpt-4.1-mini
+  base_url: "https://api.openai.com/v1"
+  timeout_sn: 60
+
+unsplash:
+  # Story kartları için Japan temalı arka plan otomatik indirici.
+  # 1) unsplash.com/developers → "Your apps" → "New Application" → 5 dk
+  # 2) "Access Key" alanını kopyala, aşağıya yapıştır
+  # Free tier: 50 istek/saat — bu ayar altında bol.
+  access_key: "YOUR_UNSPLASH_ACCESS_KEY"
+  queries:
+    - "japan blur"
+    - "tokyo neon night"
+    - "sakura park pink"
+    - "temple torii red"
+    - "shibuya crossing"
+    - "konbini convenience store"
+    - "japanese ryokan tatami"
+    - "osaka dotonbori"
+    - "shinkansen train"
+    - "kyoto street bamboo"
+  per_query: 3          # her sorguda kaç görsel
+  orientation: "portrait"
+
+instagram:
+  # Yayına Hazır reel'lerini Instagram uygulaması Drafts sekmesine gönderir.
+  # instagrapi kullanır (unofficial Python client) — hesabı riske sokabilir
+  # (Instagram TOS "3rd-party client" yasaklıyor). Şahsi kanal + haftada
+  # birkaç upload için tolere edilebilir.
+  username: "your_instagram_handle"     # @'sız
+  password: "YOUR_INSTAGRAM_PASSWORD"
+  # 2FA authenticator app aktifse: Instagram → Settings → Security →
+  # Two-factor auth → Authenticator app → "Set up manually" ekranındaki
+  # 32-karakter secret'i (boşluksuz) buraya yaz.
+  # SMS 2FA veya 2FA yoksa boş bırak.
+  totp_secret: ""
+  # EN GÜVENİLİR GİRİŞ — sessionid cookie (login akışını tamamen atlar).
+  # Instagram login'i sürekli checkpoint/CAA/2FA ile reddediyorsa bunu kullan:
+  #   1) instagram.com'a tarayıcıdan giriş yap
+  #   2) F12 → Application → Cookies → instagram.com → 'sessionid' değerini kopyala
+  #   3) buraya yapıştır → rm data/instagram_session.json → tekrar dene
+  # (~90 gün geçerli; düşünce yenile)
+  sessionid: ""
+  session_file: "data/instagram_session.json"    # login sonrası otomatik oluşur
+  uploads_log: "data/instagram_uploads.jsonl"    # upload log'u
+  # === Instagram Graph API (resmi Business akışı — önerilen) ===
+  # 1) developers.facebook.com'da app oluştur (Business type)
+  # 2) Use case: "Manage messaging & content on Instagram"
+  # 3) IG hesabını Business'a çevir (Creator DEĞİL) + tester rolü ver
+  # 4) Instagram → API setup with Instagram business login → token oluştur
+  # 5) refresh_access_token ile 60 günlük long-lived'a çevir
+  graph_token: ""        # IGAA... ile başlar
+  ig_user_id: ""         # 17 haneli IG Business account ID
+  app_secret: ""         # App settings → Basic → App Secret
+  # Kart JPG'sine Instagram'ın public HTTPS ile erişebilmesi için taban URL.
+  # Cloudflare tunnel önerilir: cloudflared tunnel --url http://localhost:8000
+  # → verdiği .trycloudflare.com URL'sini buraya yaz.
+  public_base_url: ""
+
+drive:
+  # "☁️ Drive'a Gönder" hedefi — bulut senkronlu YEREL klasör yolu.
+  # Google Drive Desktop (veya OneDrive/Dropbox) klasörü; dosyalar buraya
+  # kopyalanır, uygulama otomatik buluta yükler. Boşsa buton hata verir.
+  # Örn: "/Users/<sen>/Library/CloudStorage/GoogleDrive-<mail>/My Drive/JaponyaReels"
+  folder: ""
+
+# Haber otomasyonu — 2 günde bir Japonya haberlerini tara, uygun bir haber
+# seç, kart üret, Drive'a at. Zamanlama launchd ile (scripts/install_news_automation.sh).
+# Elle çalıştır: python -m src.news_automation  (--dry-run: dosya yazmadan test)
+news_automation:
+  enabled: true
+  lookback_days: 2          # son N günün haberleri
+  max_candidates: 25        # GPT'ye sunulacak aday haber sayısı
+  # ── Karma kalite profili (haftada 1-2 / manuel çalışma için) ──
+  # RSS haberleri + evergreen konular (assets/topic_pool.json) AYNI kalite
+  # kapısından geçer, EN YÜKSEK PUANLI kazanır. Böylece RSS zayıf olsa bile
+  # slot boş dönmez. Env ile override: NEWS_RSS_TRIES, NEWS_EVERGREEN_TRIES,
+  # NEWS_EVERGREEN_FALLBACK=0, NEWS_GATE_TIMEOUT_SEC.
+  rss_tries: 6              # kaç RSS haberi puanlanıp yarışa girsin
+  evergreen_enabled: true   # evergreen konu havuzu da yarışsın mı
+  evergreen_tries: 6        # kaç evergreen konu puanlanıp yarışa girsin
+  gate_timeout_sec: 180     # karma yarışma için toplam süre limiti (sn)
+  feeds:                    # boş bırakılırsa varsayılan 4 feed kullanılır
+    - "https://soranews24.com/feed/"       # kültür/yaşam/seyahat (on-brand)
+    - "https://www.nippon.com/en/feed/"    # kültür/toplum
+    - "https://japantoday.com/feed"        # genel güncel
+    - "https://www.japantimes.co.jp/feed/" # genel güncel
+
+stories:
+  # Hikaye/Post Görsel Üreticisi. Instagram Post 4:5 formatı (1080×1350) —
+  # feed'de tam görünür, kesilmez. Aynı görsel Story'e "share to story"
+  # ile de atılabilir.
+  output_dir: "output/stories"
+  # Arka plan görselleri klasörü. Unsplash search+seç akışında görseller
+  # otomatik buraya cache'lenir (unsplash-<query-slug>-<id>.jpg).
+  backgrounds_dir: "assets/story_backgrounds"
+  width: 1080
+  height: 1350                    # Instagram Post 4:5 formatı
+  handle: "@your_instagram_handle"
+
+reels:
+  target_width: 1080
+  target_height: 1920
+  fps: 30
+  min_duration_sn: 30
+  max_duration_sn: 60
+  clip_per_reel: 4
+  crossfade_sn: 0.3
+  hook_duration_sn: 3.0
+  cta_duration_sn: 3.0
+  cta_text: "Takip et 👉 @your_instagram_handle"
+  font: "/System/Library/Fonts/Supplemental/Impact.ttf"
+  font_alt: "/System/Library/Fonts/Supplemental/Arial Black.ttf"
+  shadow_offset: 6
+  stroke_width: 8
+  footer_text: "@your_instagram_handle"
+  add_overlays: false
+
+pilot:
+  pilot_mode: false
+  pilot_count: 10
+  random_seed: 42
+
+run:
+  # Tek çalıştırmada işlenecek MAKSİMUM video sayısı (güvenlik sınırı).
+  max_videos_per_run: 10

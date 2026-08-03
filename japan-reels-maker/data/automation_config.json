@@ -1,0 +1,20 @@
+{
+  "news": {
+    "enabled": true,
+    "days": [
+      6
+    ],
+    "hour": 17,
+    "minute": 5,
+    "auto_publish": true
+  },
+  "topic": {
+    "enabled": true,
+    "days": [
+      5
+    ],
+    "hour": 20,
+    "minute": 0,
+    "auto_publish": true
+  }
+}
