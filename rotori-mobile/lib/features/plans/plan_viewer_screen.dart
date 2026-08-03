@@ -2233,6 +2233,7 @@ class _RouteOptimizationSheetState
                   widget.input.preferences.maximumWalkingMinutes,
               partySize: widget.input.preferences.partySize,
               hasLuggage: widget.input.preferences.hasLuggage,
+              luggageState: widget.input.preferences.effectiveLuggageState,
             ),
           ),
         );
@@ -5421,4 +5422,3 @@ class _Swatch extends StatelessWidget {
     );
   }
 }
-

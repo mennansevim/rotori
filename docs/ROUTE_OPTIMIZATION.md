@@ -126,9 +126,10 @@ Normal akış:
 Route API → deterministic optimizer → validation → preview
 ```
 
-AI varsayılan olarak çağrılmaz. Yalnızca kullanıcı açıklama istediğinde,
-rota güveni eşik altındaysa, kritik uyarı/anomali varsa veya en iyi iki sonuç
-çok yakınsa `CostOptimizedAiUsagePolicy` izin verebilir.
+AI varsayılan olarak çağrılmaz. Kullanıcı AI incelemesini açıkça açarsa;
+açıklama talebi, düşük rota güveni, kritik uyarı/anomali veya birbirine çok
+yakın iki sonuç gibi nedenlerde `CostOptimizedAiUsagePolicy` bütçe içinde izin
+verebilir. Otomatik inceleme ayrıca opt-in'dir.
 
 Koruyucular:
 
@@ -143,6 +144,53 @@ Koruyucular:
 
 Gerçek AI repository'si bağlı olmadığı için mevcut sürümün planlama başına AI
 maliyeti **sıfırdır**.
+
+### POI keşfi ile rota hesabının ayrımı (2026-08-03)
+
+AI tamamen yasak değildir. Japonya'daki güncel veya kullanıcının özel ilgisine
+uyan aday noktaları bulmak için, kullanıcı AI keşfine izin verdiyse ve yerel
+katalog yetersiz/eskiyse `CostOptimizedPoiDiscoveryPolicy` gezi başına en çok
+bir batch çağrıya izin verir. Aynı şehirler + tercihler + katalog sürümü + dil
+cache anahtarıdır; cache hit'te yeniden token harcanmaz.
+
+AI yalnız aday havuzunu zenginleştirir. Gün ataması, exclusive/excursion
+koruması, saatler, ulaşım modu, otel dönüşü ve sıra; yönlü rota matrisi üzerinde
+yerel `TripActivityAssignmentEngine` + `BeamSearchItineraryOptimizer` +
+`RouteOptimizationValidator` hattıyla hesaplanır. AI çıktısı rota sonucunu
+doğrudan yazamaz.
+
+## Schema v2 ve iki seviyeli optimizasyon (2026-08-03)
+
+Ürün hattı:
+
+```text
+onaylı/cache-miss POI keşfi (opsiyonel AI, tek batch)
+→ cross-day assignment (saf Dart)
+→ günlük beam + local improvement (saf Dart)
+→ bağımsız hard validator
+→ preview → açık kullanıcı onayı → persistence
+```
+
+- `ActivityPriority`: optional, normal, preferred, mustDo. Must-do/fixed
+  otomatik düşürülemez.
+- Dropping yapılandırılmış `DroppedActivity` + `DropReason` üretir.
+- Product suite duplicate POI seçmez; stress suite tekrarları
+  `repeatFixture:true` ile açıklar.
+- Timeline transit, activity, return, idle ve 30 dakikayı aşan açıklanmış
+  `freeTime` bloklarını ayırır.
+- Leg maliyeti `fareBasis`, kişi başı, grup toplamı ve araç sayısını taşır;
+  5–8 kişilik taksi iki araçtır.
+- Transfer timeline'ı gezi penceresinden önce biter; taşınan bagaj yürüyüş,
+  aktarma ve istasyon karmaşıklığı cezasını artırır.
+- Sentetik harness matrisi yön/time-slice asimetrisi taşır ve her zaman
+  `isEstimated:true` olarak raporlanır.
+- Varsayılan beam width 6'dır. 100 base × 4 paired profil benchmark'ında beam
+  6 bütün kalite eşiklerini geçti; beam 10 daha az dropping sağladı ancak
+  yaklaşık %17 daha yavaş olduğu için varsayılan büyütülmedi.
+- Final ürün koşusu (seed `20260803`): 4.672 gün kaydı, 0 hard ihlal,
+  0 duplicate, 0 must-do drop, 0 eksik dönüş ve 0 infeasible; dropping %1,77,
+  cluster re-entry %0,94, Kyoto re-entry %0. Profil hedeflerinin üçü de
+  ölçülebilir biçimde ayrıştı.
 
 ## Harita API maliyet analizi
 
@@ -172,6 +220,10 @@ anahtarı veya hassas kullanıcı verisi yazılamaz.
 - cache anahtarı, TTL, hit ratio
 - primary/alternate/stale/unavailable fallback
 - AI policy, bütçe, cache, scope ve hata izolasyonu
+- kullanıcı onaylı/cache'li AI POI discovery politikası ve gezi başına tek
+  batch bütçesi
+- cross-day assignment, priority/must-do/meal dropping, bağımsız hard
+  validator, directional/time-slice matris ve 100×4 kalite kapısı
 - Riverpod ön izleme, açık onay ve sonuç cache'i
 
 2026-07-30 doğrulaması: `flutter analyze` temiz, `flutter test` **418/418**

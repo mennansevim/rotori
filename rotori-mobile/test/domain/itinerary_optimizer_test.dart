@@ -613,6 +613,266 @@ void main() {
       expect(
           closedResult.failure?.code, OptimizationFailureCode.noFeasibleRoute);
     });
+
+    test('optional aktiviteyi preferred ve must-do öncesinde düşürür',
+        () async {
+      const hotel = TripLocation(
+        id: 'hotel-drop',
+        name: 'Hotel',
+        latitude: 35,
+        longitude: 139,
+      );
+      const optional = TripLocation(
+        id: 'optional',
+        name: 'Optional',
+        latitude: 35.01,
+        longitude: 139.01,
+      );
+      const preferred = TripLocation(
+        id: 'preferred',
+        name: 'Preferred',
+        latitude: 35.02,
+        longitude: 139.02,
+      );
+      const mustDo = TripLocation(
+        id: 'must-do',
+        name: 'Must Do',
+        latitude: 35.03,
+        longitude: 139.03,
+      );
+      final matrix = _completeMatrix(
+        const [hotel, optional, preferred, mustDo],
+        (_, __) => _walking(5),
+      );
+      final request = OptimizationRequest(
+        activities: [
+          _activity(optional,
+              duration: 60, priority: ActivityPriority.optional),
+          _activity(
+            preferred,
+            duration: 60,
+            priority: ActivityPriority.preferred,
+          ),
+          _activity(mustDo, duration: 60, priority: ActivityPriority.mustDo),
+        ],
+        routeMatrix: matrix,
+        constraints: DayRouteConstraints(
+          startLocation: hotel,
+          endLocation: hotel,
+          availableStartTime: DateTime(2026, 10, 12, 9),
+          availableEndTime: DateTime(2026, 10, 12, 11, 45),
+        ),
+      );
+
+      final result = await const BeamSearchItineraryOptimizer(
+        config: OptimizerConfig(allowActivityDropping: true),
+      ).optimize(request);
+
+      expect(result.isSuccess, isTrue, reason: result.failure?.message);
+      expect(result.droppedActivityIds, ['optional']);
+      expect(
+          result.droppedActivities.single.priority, ActivityPriority.optional);
+      expect(result.droppedActivities.single.reason, DropReason.userOptional);
+      expect(
+        result.activities.map((activity) => activity.activityId),
+        containsAll(['preferred', 'must-do']),
+      );
+    });
+
+    test('aynı öncelikte gezi durağını öğünden önce düşürür', () async {
+      const hotel = TripLocation(
+        id: 'hotel-meal-drop',
+        name: 'Hotel',
+        latitude: 35,
+        longitude: 139,
+      );
+      const meal = TripLocation(
+        id: 'meal',
+        name: 'Lunch',
+        latitude: 35.01,
+        longitude: 139.01,
+      );
+      const sight = TripLocation(
+        id: 'sight',
+        name: 'Sight',
+        latitude: 35.02,
+        longitude: 139.02,
+      );
+      final request = OptimizationRequest(
+        activities: [
+          _activity(meal, duration: 60, category: 'meal'),
+          _activity(sight, duration: 60),
+        ],
+        routeMatrix: _completeMatrix(
+          const [hotel, meal, sight],
+          (_, __) => _walking(5),
+        ),
+        constraints: DayRouteConstraints(
+          startLocation: hotel,
+          endLocation: hotel,
+          availableStartTime: DateTime(2026, 10, 12, 9),
+          availableEndTime: DateTime(2026, 10, 12, 10, 30),
+        ),
+      );
+
+      final result = await const BeamSearchItineraryOptimizer(
+        config: OptimizerConfig(allowActivityDropping: true),
+      ).optimize(request);
+
+      expect(result.isSuccess, isTrue, reason: result.failure?.message);
+      expect(result.droppedActivityIds, ['sight']);
+      expect(result.activities.single.activityId, 'meal');
+    });
+
+    test('imkansız must-do sessizce düşürülmez', () async {
+      const hotel = TripLocation(
+        id: 'hotel-protected',
+        name: 'Hotel',
+        latitude: 35,
+        longitude: 139,
+      );
+      const place = TripLocation(
+        id: 'protected',
+        name: 'Protected',
+        latitude: 35.1,
+        longitude: 139.1,
+      );
+      final request = OptimizationRequest(
+        activities: [
+          _activity(place, duration: 180, priority: ActivityPriority.mustDo),
+        ],
+        routeMatrix: _completeMatrix(
+          const [hotel, place],
+          (_, __) => _walking(5),
+        ),
+        constraints: DayRouteConstraints(
+          startLocation: hotel,
+          endLocation: hotel,
+          availableStartTime: DateTime(2026, 10, 12, 9),
+          availableEndTime: DateTime(2026, 10, 12, 10),
+        ),
+      );
+
+      final result = await const BeamSearchItineraryOptimizer(
+        config: OptimizerConfig(allowActivityDropping: true),
+      ).optimize(request);
+
+      expect(result.isSuccess, isFalse);
+      expect(
+        result.failure?.code,
+        OptimizationFailureCode.protectedActivityInfeasible,
+      );
+      expect(result.droppedActivityIds, isEmpty);
+    });
+
+    test('taşınan bagaj daha az yürüme ve aktarmalı seçeneğe yöneltir',
+        () async {
+      const hotel = TripLocation(
+        id: 'hotel-luggage',
+        name: 'Hotel',
+        latitude: 35,
+        longitude: 139,
+      );
+      const place = TripLocation(
+        id: 'place-luggage',
+        name: 'Place',
+        latitude: 35.1,
+        longitude: 139.1,
+      );
+      const train = TransportOption(
+        mode: TransportMode.train,
+        doorToDoorMinutes: 15,
+        walkingMinutes: 5,
+        waitingMinutes: 4,
+        transferCount: 1,
+        estimatedCostYen: 200,
+        reliabilityScore: .95,
+      );
+      const taxi = TransportOption(
+        mode: TransportMode.taxi,
+        doorToDoorMinutes: 20,
+        walkingMinutes: 1,
+        waitingMinutes: 3,
+        transferCount: 0,
+        estimatedCostYen: 1800,
+        reliabilityScore: .95,
+        fareBasis: FareBasis.perVehicle,
+      );
+      final matrix = RouteMatrix(entries: [
+        RouteMatrixEntry(
+          fromLocationId: hotel.id,
+          toLocationId: place.id,
+          options: const [train, taxi],
+        ),
+        RouteMatrixEntry(
+          fromLocationId: place.id,
+          toLocationId: hotel.id,
+          options: const [train, taxi],
+        ),
+      ]);
+      OptimizationRequest request(LuggageState luggageState) =>
+          OptimizationRequest(
+            activities: [_activity(place)],
+            routeMatrix: matrix,
+            constraints: DayRouteConstraints(
+              startLocation: hotel,
+              endLocation: hotel,
+              availableStartTime: DateTime(2026, 10, 12, 9),
+              availableEndTime: DateTime(2026, 10, 12, 18),
+            ),
+            preferences: RoutePreferences(luggageState: luggageState),
+          );
+
+      final without = await const BeamSearchItineraryOptimizer()
+          .optimize(request(LuggageState.none));
+      final carried = await const BeamSearchItineraryOptimizer()
+          .optimize(request(LuggageState.carried));
+
+      expect(without.activities.single.transportMode, TransportMode.train);
+      expect(carried.activities.single.transportMode, TransportMode.taxi);
+    });
+
+    test('schedule idle transit wait içine gizlenmeden ayrı ölçülür', () async {
+      const hotel = TripLocation(
+        id: 'hotel-idle',
+        name: 'Hotel',
+        latitude: 35,
+        longitude: 139,
+      );
+      const place = TripLocation(
+        id: 'place-idle',
+        name: 'Place',
+        latitude: 35.1,
+        longitude: 139.1,
+      );
+      final request = OptimizationRequest(
+        activities: [
+          _activity(
+            place,
+            opening: DateTime(2026, 10, 12, 12),
+          ),
+        ],
+        routeMatrix: _completeMatrix(
+          const [hotel, place],
+          (_, __) => _train(20, waiting: 4),
+        ),
+        constraints: DayRouteConstraints(
+          startLocation: hotel,
+          endLocation: hotel,
+          availableStartTime: DateTime(2026, 10, 12, 9),
+          availableEndTime: DateTime(2026, 10, 12, 18),
+        ),
+      );
+
+      final result =
+          await const BeamSearchItineraryOptimizer().optimize(request);
+      expect(result.isSuccess, isTrue);
+      expect(result.activities.single.inboundLeg.transitWaitMinutes, 4);
+      expect(result.activities.single.inboundLeg.scheduleIdleMinutes,
+          greaterThan(100));
+      expect(result.metrics!.scheduleIdleMinutes, greaterThan(100));
+      expect(result.metrics!.totalTransitWaitMinutes, 8);
+    });
   });
 }
 
@@ -648,6 +908,8 @@ OptimizationActivity _activity(
   DateTime? fixedStart,
   DateTime? fixedEnd,
   bool reservation = false,
+  ActivityPriority priority = ActivityPriority.normal,
+  String? category,
 }) =>
     OptimizationActivity(
       id: location.id,
@@ -662,6 +924,8 @@ OptimizationActivity _activity(
       fixedEndTime: fixedEnd,
       isFixed: fixedStart != null,
       hasReservation: reservation,
+      priority: priority,
+      category: category,
     );
 
 RouteMatrix _completeMatrix(

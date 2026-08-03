@@ -232,6 +232,7 @@ class RouteMatrixRequestCacheKey {
         maximumWalkingMinutes = preferences.maximumWalkingMinutes,
         partySize = preferences.partySize,
         hasLuggage = preferences.hasLuggage,
+        luggageState = preferences.effectiveLuggageState.name,
         locationFingerprint = _locationFingerprint(
           locations,
           coordinateDecimalPlaces,
@@ -245,6 +246,7 @@ class RouteMatrixRequestCacheKey {
   final int maximumWalkingMinutes;
   final int partySize;
   final bool hasLuggage;
+  final String luggageState;
   final String locationFingerprint;
 
   @override
@@ -258,6 +260,7 @@ class RouteMatrixRequestCacheKey {
         maximumWalkingMinutes == other.maximumWalkingMinutes &&
         partySize == other.partySize &&
         hasLuggage == other.hasLuggage &&
+        luggageState == other.luggageState &&
         locationFingerprint == other.locationFingerprint;
   }
 
@@ -271,6 +274,7 @@ class RouteMatrixRequestCacheKey {
         maximumWalkingMinutes,
         partySize,
         hasLuggage,
+        luggageState,
         locationFingerprint,
       );
 }

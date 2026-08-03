@@ -8,16 +8,19 @@ class CostOptimizedAiUsagePolicy implements AiUsagePolicy {
   const CostOptimizedAiUsagePolicy({
     this.minimumConfidence = 0.75,
     this.closeScoreThreshold = 0.03,
+    this.automaticReviewEnabled = false,
   })  : assert(minimumConfidence >= 0 && minimumConfidence <= 1),
         assert(closeScoreThreshold >= 0);
 
   final double minimumConfidence;
   final double closeScoreThreshold;
+  final bool automaticReviewEnabled;
 
   @override
   bool shouldReview(AiReviewContext context) {
-    return context.userRequestedExplanation ||
-        context.hasAmbiguousPreference ||
+    if (context.userRequestedExplanation) return true;
+    if (!automaticReviewEnabled) return false;
+    return context.hasAmbiguousPreference ||
         context.hasCriticalWarning ||
         context.hasRouteAnomaly ||
         context.requiresExplanation ||
@@ -61,10 +64,10 @@ class AiReviewContext {
 
 class AiBudgetPolicy {
   const AiBudgetPolicy({
-    this.maximumCallsPerPlan = 2,
-    this.maximumCallsPerDay = 8,
-    this.maximumInputTokens = 2000,
-    this.maximumOutputTokens = 500,
+    this.maximumCallsPerPlan = 1,
+    this.maximumCallsPerDay = 4,
+    this.maximumInputTokens = 1000,
+    this.maximumOutputTokens = 300,
   })  : assert(maximumCallsPerPlan >= 0),
         assert(maximumCallsPerDay >= 0),
         assert(maximumInputTokens >= 0),
@@ -87,7 +90,7 @@ class AiModelConfig {
   const AiModelConfig({
     required this.reviewModel,
     required this.fallbackModel,
-    this.maxOutputTokens = 400,
+    this.maxOutputTokens = 250,
   })  : assert(reviewModel != ''),
         assert(fallbackModel != ''),
         assert(maxOutputTokens > 0);

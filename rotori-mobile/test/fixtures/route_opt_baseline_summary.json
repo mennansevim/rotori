@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "seed": 20260803,
+  "scenarioCount": 100,
+  "totalDayRecords": 1168,
+  "optimizerEvaluatedDays": 1068,
+  "strictFeasibleDays": 703,
+  "recoveredByDroppingDays": 365,
+  "infeasibleDays": 0,
+  "departureOnlyDays": 100,
+  "droppedActivityCount": 365,
+  "notes": "Pre-v2 measured baseline from ROUTE_OPTIMIZATION_FIX_PLAN.md"
+}
