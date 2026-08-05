@@ -394,20 +394,40 @@ function buildHaber(ctx, onDone) {
       el('div', { class: 'card__head' }, el('h3', {}, 'Nasıl Çalışır?')),
       el('div', { class: 'card__body' }, logBox)));
 
+  function askBulkCount() {
+    const raw = window.prompt('Kaç haber üretelim? (1-20)', '1');
+    if (raw == null) return null;
+    const n = Number(String(raw).trim());
+    if (!Number.isInteger(n) || n < 1 || n > 20) {
+      toast('Lütfen 1 ile 20 arasında tam sayı gir.', 'err');
+      return null;
+    }
+    return n;
+  }
+
   async function run() {
+    const count = askBulkCount();
+    if (!count) return;
+
     // Üretim penceresini kapatıp asenkron akış overlay'ini aç
     onDone && onDone();
-    openGenOverlay('Japon haber üretiliyor', 'RSS → editöryel gate → görsel → render → sıraya alma.');
+    openGenOverlay(`Japon haberleri üretiliyor (x${count})`, 'RSS → editöryel gate → görsel → render → sıraya alma.');
     setGenStages([
       { key: 'rss', label: 'RSS akışları taranıyor' },
       { key: 'gate', label: 'Editöryel gate (GPT 30/50)' },
       { key: 'visual', label: 'Unsplash görseli seçiliyor' },
       { key: 'render', label: '1080×1350 kart render' },
-      { key: 'queue', label: 'Yayın sırasına ekleniyor' },
+      { key: 'queue', label: `Yayın sırasına ekleniyor (x${count})` },
     ], 'rss');
     let resultFile = null;
     try {
-      await api.automationRunNow({ kind: 'news', auto_publish: false, topic: '', query: '' });
+      await api.automationRunNow({
+        kind: 'news',
+        auto_publish: false,
+        topic: '',
+        query: '',
+        count,
+      });
       const ok = await pollJobUntilDone((line) => {
         if (!line) return;
         genAppendLog(line);
@@ -417,9 +437,10 @@ function buildHaber(ctx, onDone) {
       if (ok) {
         setGenStages(null, null, ['rss', 'gate', 'visual', 'render', 'queue']);
         finishGenOverlay(true, {
-          file: resultFile || 'haber',
+          file: resultFile || `haber x${count}`,
           onResult: () => ctx.navigate('overview'),
         });
+        toast(`✓ ${count} adet haber üretimi tamamlandı.`, 'ok');
       } else {
         finishGenOverlay(false, { outcome: 'error' });
       }
