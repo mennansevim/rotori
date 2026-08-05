@@ -1,26 +1,26 @@
 // =========================================================================
 // app.js — Router + sidebar + account · Japonya Rüyası İçerik Stüdyosu
 // =========================================================================
-import { api, el, icons } from './lib.js?v=20260804-7';
-import { renderOverview } from './pages/overview.js?v=20260805-1';
+import { api, el, icons } from './lib.js?v=20260805-8';
 import { renderCreate, openCreateModal } from './pages/create.js?v=20260805-1';
-import { renderAutomation } from './pages/automation.js?v=20260805-5';
+import { renderAutomation } from './pages/automation.js?v=20260805-10';
+import { renderLogs } from './pages/logs.js?v=20260805-2';
 import { renderSettings } from './pages/settings.js';
 
 const ROUTES = [
-  { key: 'overview', label: 'Board (Backlog)', icon: icons.overview, render: renderOverview },
   { key: 'automation', label: 'Automation', icon: icons.automation, render: renderAutomation },
   { key: 'settings', label: 'Settings', icon: icons.settings, render: renderSettings },
+  { key: 'logs', label: 'Logs', icon: icons.file, render: renderLogs },
   { key: 'create', label: 'Create New Post', icon: icons.create, render: renderCreate, nav: false },
 ];
 
 const pageRoot = document.getElementById('page-root');
 const nav = document.getElementById('nav');
-let current = { key: 'overview', params: null };
+let current = { key: 'automation', params: null };
 
 // Route parse: "create:gorsel" → { key:'create', params:{tab:'gorsel'} }
 function parseHash() {
-  const raw = (location.hash || '#overview').slice(1);
+  const raw = (location.hash || '#automation').slice(1);
   const [key, arg] = raw.split(':');
   const route = ROUTES.find((r) => r.key === key) || ROUTES[0];
   let params = null;
@@ -91,5 +91,5 @@ window.addEventListener('hashchange', renderCurrent);
 
 buildNav();
 loadAccount();
-if (!location.hash) location.hash = '#overview';
+if (!location.hash) location.hash = '#automation';
 renderCurrent();
