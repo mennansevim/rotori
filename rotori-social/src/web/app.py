@@ -1642,69 +1642,149 @@ class RunNowRequest(BaseModel):
     auto_publish: bool = False  # compatibility: run_now bunu yok sayar
     topic: str = ""          # (sadece kind=topic) özel konu başlığı — boşsa havuzdan rastgele
     query: str = ""          # (opsiyonel) özel Unsplash görsel arama sorgusu
+    count: int = 1            # tek seferde kaç içerik üretilecek (bulk)
+
+
+class NewsRunNowRequest(BaseModel):
+    count: int = 1
+
+
+def _normalized_bulk_count(raw: int | None) -> int:
+    """Run-now bulk adedini güvenli aralıkta normalize et."""
+    try:
+        n = int(raw or 1)
+    except (TypeError, ValueError):
+        n = 1
+    return max(1, min(20, n))
+
+
+def _run_now_bulk(
+    kind: str,
+    count: int,
+    forced_auto_publish: bool,
+    topic: str,
+    query: str,
+    emit: Callable[..., None],
+    cancel_ev: Event,
+) -> None:
+    """News/Topic run_now için tek iş içinde ardışık bulk üretim akışı."""
+    label = "Haber" if kind == "news" else "Konu"
+    ok_count = 0
+    attempted = 0
+
+    emit(f"{label} otomasyonu başladı (adet={count}, auto_publish={forced_auto_publish})", "info")
+
+    for idx in range(1, count + 1):
+        if cancel_ev.is_set():
+            emit(f"⏹ [{idx}/{count}] Kullanıcı iptal etti, bulk durduruldu.", "warn")
+            break
+
+        emit(f"▶ [{idx}/{count}] {label} üretimi başlıyor", "info")
+        attempted += 1
+
+        if kind == "news":
+            from src import news_automation
+
+            emit("① RSS kaynaklarına bağlanılıyor — son 48 saat taranacak.", "info")
+            emit("② Haber adayları toplanıyor; erişilemeyen akışlar atlanabilir.", "log")
+            res = news_automation.run_once_with_publish(
+                cfg, auto_publish=forced_auto_publish
+            )
+        else:
+            from src import topic_automation
+
+            override = None
+            if topic.strip():
+                override = {"title": topic.strip(), "query": query.strip() or topic.strip()}
+                emit(f"  Özel konu: {topic.strip()}", "log")
+            res = topic_automation.run_once(
+                cfg,
+                auto_publish=forced_auto_publish,
+                topic_override=override,
+            )
+
+        if res.get("ok"):
+            ok_count += 1
+            mid = res.get("published_media_id")
+            emit(
+                f"✅ [{idx}/{count}] {label}: {res.get('file', '?')}"
+                + (f" · yayınlandı (media_id={mid})" if mid else ""),
+                "info",
+            )
+            continue
+
+        emit(
+            f"⚠ [{idx}/{count}] {label} atlandı: {res.get('reason', 'bilinmiyor')}"
+            + (f" — {res.get('detail')}" if res.get('detail') else ""),
+            "warn",
+        )
+        for satir in res.get("fails", []):
+            emit(f"   {satir}", "warn")
+
+        # Aday kalmadıysa gereksiz tekrar deneme yapma.
+        if res.get("reason") in {"no_news", "no_text"}:
+            emit("⏭ Uygun aday kalmadı; bulk erken sonlandırıldı.", "warn")
+            break
+
+    emit(
+        f"📦 Bulk tamamlandı: {ok_count}/{attempted} başarılı"
+        + (f" (hedef {count})" if attempted != count else ""),
+        "info",
+    )
 
 
 @app.post("/api/automation/run_now")
 def automation_run_now(req: RunNowRequest) -> dict[str, Any]:
     """Bir otomasyon işini elle bir kez tetikle (footer'da canlı log)."""
     kind = req.kind if req.kind in ("news", "topic") else "news"
+    count = _normalized_bulk_count(req.count)
     label = "📰 Haber" if kind == "news" else "🎨 Konu"
     forced_auto_publish = False
 
     def target(emit: Callable[..., None], cancel_ev: Event) -> None:
-        emit(f"{label} otomasyonu başladı (auto_publish={forced_auto_publish})", "info")
-        if kind == "news":
-            from src import news_automation
-            emit("① RSS kaynaklarına bağlanılıyor — son 48 saat taranacak.", "info")
-            emit("② Haber adayları toplanıyor; erişilemeyen akışlar atlanabilir.", "log")
-            res = news_automation.run_once_with_publish(cfg, auto_publish=forced_auto_publish)
-        else:
-            from src import topic_automation
-            override = None
-            if req.topic.strip():
-                override = {"title": req.topic.strip(),
-                            "query": req.query.strip() or req.topic.strip()}
-                emit(f"  Özel konu: {req.topic.strip()}", "log")
-            res = topic_automation.run_once(cfg, auto_publish=forced_auto_publish,
-                                            topic_override=override)
-        if res.get("ok"):
-            mid = res.get("published_media_id")
-            emit(f"✅ {label}: {res.get('file', '?')}"
-                 + (f" · yayınlandı (media_id={mid})" if mid else ""), "info")
-        else:
-            emit(f"⚠ {label} atlandı: {res.get('reason', 'bilinmiyor')}"
-                 + (f" — {res.get('detail')}" if res.get('detail') else ""), "warn")
-            for satir in res.get("fails", []):
-                emit(f"   {satir}", "warn")
+        _run_now_bulk(
+            kind=kind,
+            count=count,
+            forced_auto_publish=forced_auto_publish,
+            topic=req.topic,
+            query=req.query,
+            emit=emit,
+            cancel_ev=cancel_ev,
+        )
 
     try:
-        manager.start_callable(f"{label} — elle tetik", target)
+        manager.start_callable(f"{label} — elle tetik ×{count}", target)
     except RuntimeError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    return {"ok": True, "kind": kind, "auto_publish": forced_auto_publish}
+    return {
+        "ok": True,
+        "kind": kind,
+        "auto_publish": forced_auto_publish,
+        "count": count,
+    }
 
 
 @app.post("/api/news/run_now")
-def news_run_now() -> dict[str, Any]:
+def news_run_now(req: NewsRunNowRequest = NewsRunNowRequest()) -> dict[str, Any]:
     """Backward-compat: eski buton hâlâ çalışsın (auto_publish=False)."""
+    count = _normalized_bulk_count(req.count)
+
     def target(emit: Callable[..., None], cancel_ev: Event) -> None:
-        from src import news_automation
-        emit("📰 Japonya haberleri taranıyor…", "info")
-        res = news_automation.run_once(cfg)
-        if res.get("ok"):
-            emit(f"✅ Kart üretildi: {res.get('file', '?')}", "info")
-        else:
-            reason = res.get("reason", "bilinmiyor")
-            detail = res.get("detail", "")
-            emit(f"⚠ Kart üretilmedi ({reason})"
-                 + (f" — {detail}" if detail else ""), "warn")
-            for satir in res.get("fails", []):
-                emit(f"   {satir}", "warn")
+        _run_now_bulk(
+            kind="news",
+            count=count,
+            forced_auto_publish=False,
+            topic="",
+            query="",
+            emit=emit,
+            cancel_ev=cancel_ev,
+        )
+
     try:
-        manager.start_callable("Haberden kart üret", target)
+        manager.start_callable(f"Haberden kart üret ×{count}", target)
     except RuntimeError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    return {"ok": True}
+    return {"ok": True, "count": count}
 
 
 @app.get("/api/story/meta/{name}")

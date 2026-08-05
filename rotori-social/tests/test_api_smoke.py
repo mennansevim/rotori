@@ -101,6 +101,17 @@ def test_news_run_now_legacy_ok(client, monkeypatch):
     assert r.status_code == 200, f"news run_now → {r.status_code}"
 
 
+def test_news_run_now_accepts_count(client, monkeypatch):
+    """Legacy endpoint body kabul etmeli: {count: N} ile bulk tetiklenebilir."""
+    import src.web.app as appmod
+
+    monkeypatch.setattr(appmod.manager, "start_callable",
+                        lambda *a, **k: None, raising=False)
+    r = client.post("/api/news/run_now", json={"count": 5})
+    assert r.status_code == 200
+    assert r.json().get("count") == 5
+
+
 def test_automation_run_now_default_kind(client, monkeypatch):
     """Body'siz POST → default kind=news (RunNowRequest default'ları)."""
     import src.web.app as appmod
@@ -110,3 +121,16 @@ def test_automation_run_now_default_kind(client, monkeypatch):
     r = client.post("/api/automation/run_now", json={})
     assert r.status_code == 200
     assert r.json().get("kind") == "news"
+
+
+def test_automation_run_now_accepts_count(client, monkeypatch):
+    """Dashboard 'Haber Üret' bulk çağrısı count alanını endpoint'e gönderebilir."""
+    import src.web.app as appmod
+
+    monkeypatch.setattr(appmod.manager, "start_callable",
+                        lambda *a, **k: None, raising=False)
+    r = client.post("/api/automation/run_now", json={"kind": "news", "count": 2})
+    assert r.status_code == 200
+    body = r.json()
+    assert body.get("kind") == "news"
+    assert body.get("count") == 2
