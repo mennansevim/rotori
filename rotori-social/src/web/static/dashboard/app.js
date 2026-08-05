@@ -3,8 +3,8 @@
 // =========================================================================
 import { api, el, icons } from './lib.js?v=20260804-7';
 import { renderOverview } from './pages/overview.js?v=20260805-1';
-import { renderCreate, openCreateModal } from './pages/create.js?v=20260804-3';
-import { renderAutomation } from './pages/automation.js?v=20260805-1';
+import { renderCreate, openCreateModal } from './pages/create.js?v=20260805-1';
+import { renderAutomation } from './pages/automation.js?v=20260805-5';
 import { renderSettings } from './pages/settings.js';
 
 const ROUTES = [
