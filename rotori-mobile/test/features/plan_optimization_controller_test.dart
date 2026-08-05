@@ -196,6 +196,59 @@ void main() {
         reason: 'öğle yemeği ${lunch.time} — çok erken planlandı');
     expect(minutes, lessThanOrEqualTo(14 * 60 + 30));
   });
+
+  test('optimizasyon sonucu sabit olmayan saatler 5 dakika katına snap edilir',
+      () async {
+    final repository = FakeRouteMatrixRepository(_nonGridMatrix);
+    final container = ProviderContainer(
+      overrides: [
+        routeMatrixRepositoryProvider.overrideWithValue(repository),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(planOptimizationControllerProvider.notifier)
+        .optimizeDay(_nonGridInput(hotel));
+
+    final preview =
+        container.read(planOptimizationControllerProvider).valueOrNull;
+    expect(preview, isNotNull);
+    final nonFixed = preview!.optimizedTrip.days.single.items
+        .where((item) => !item.isFixed)
+        .toList(growable: false);
+    expect(nonFixed, isNotEmpty);
+    for (final item in nonFixed) {
+      expect(_minutes(item.time) % 5, 0,
+          reason: '${item.title} saati ${item.time} — 5 dk katı değil');
+    }
+  });
+
+  test(
+      'başlığında öğle geçen aktivite akşam saatinde olsa da öğle penceresine çekilir',
+      () async {
+    final repository = FakeRouteMatrixRepository(_mealMatrix);
+    final container = ProviderContainer(
+      overrides: [
+        routeMatrixRepositoryProvider.overrideWithValue(repository),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(planOptimizationControllerProvider.notifier)
+        .optimizeDay(_mealTitleInput(hotel));
+
+    final preview =
+        container.read(planOptimizationControllerProvider).valueOrNull;
+    expect(preview, isNotNull);
+    final lunch = preview!.optimizedTrip.days.single.items
+        .firstWhere((item) => item.id == 'lunch');
+    final minutes = _minutes(lunch.time);
+    expect(minutes, greaterThanOrEqualTo(11 * 60 + 30),
+        reason: 'öğle aktivitesi ${lunch.time} — öğlen aralığına çekilmedi');
+    expect(minutes, lessThanOrEqualTo(14 * 60 + 30));
+  });
 }
 
 int _minutes(String? hhmm) {
@@ -337,6 +390,131 @@ DayOptimizationInput _mealInput(TripLocation hotel) {
   );
 }
 
+DayOptimizationInput _mealTitleInput(TripLocation hotel) {
+  final day = DateTime(2026, 9, 1);
+  return DayOptimizationInput(
+    trip: Trip(
+      id: 'trip-meal-title',
+      slug: 'trip-meal-title',
+      title: 'Nara',
+      timezone: 'Asia/Tokyo',
+      tripStart: '2026-09-01',
+      tripEnd: '2026-09-01',
+      flights: TripFlights(),
+      preferences: TripPreferences(
+        travelDates: TravelDates(start: '2026-09-01', end: '2026-09-01'),
+        pace: Pace.moderate,
+      ),
+      days: [
+        DayPlan(
+          dayNumber: 1,
+          date: '2026-09-01',
+          theme: 'Nara',
+          items: [
+            // Başlık öğle yemeği dediği için 18:43'te kalsa da optimizer
+            // bunu öğlen penceresine taşımalıdır.
+            TimelineItem(
+              id: 'lunch',
+              title: 'Öğle yemeği molası',
+              lat: 35.9,
+              lng: 139.5,
+              durationMin: 60,
+              kind: TimelineItemKind.activity,
+              time: '18:43',
+              scheduledTime: '18:43',
+            ),
+            TimelineItem(
+              id: 'spot1',
+              title: 'Isuien Bahçesi',
+              lat: 35.5,
+              lng: 139.5,
+              durationMin: 90,
+              kind: TimelineItemKind.activity,
+            ),
+            TimelineItem(
+              id: 'spot2',
+              title: 'Todai-ji',
+              lat: 35.2,
+              lng: 139.5,
+              durationMin: 90,
+              kind: TimelineItemKind.activity,
+            ),
+          ],
+        ),
+      ],
+    ),
+    dayNumber: 1,
+    planVersion: 1,
+    constraints: DayRouteConstraints(
+      startLocation: hotel,
+      endLocation: hotel,
+      availableStartTime: DateTime(day.year, day.month, day.day, 6),
+      availableEndTime: DateTime(day.year, day.month, day.day, 23),
+    ),
+  );
+}
+
+DayOptimizationInput _nonGridInput(TripLocation hotel) {
+  final day = DateTime(2026, 9, 1);
+  final fixedTrain = TimelineItem(
+    id: 'train',
+    title: 'Osaka → Tokyo Shinkansen',
+    lat: 35.1,
+    lng: 139.1,
+    durationMin: 30,
+    kind: TimelineItemKind.transport,
+    time: '07:56',
+    scheduledTime: '07:56',
+  )
+    ..lockType = ActivityLockType.trainReservation
+    ..fixedStartTime = '07:56'
+    ..fixedEndTime = '08:26'
+    ..canChangeTime = false
+    ..canReorder = false;
+
+  return DayOptimizationInput(
+    trip: Trip(
+      id: 'trip-non-grid',
+      slug: 'trip-non-grid',
+      title: 'Tokyo',
+      timezone: 'Asia/Tokyo',
+      tripStart: '2026-09-01',
+      tripEnd: '2026-09-01',
+      flights: TripFlights(),
+      preferences: TripPreferences(
+        travelDates: TravelDates(start: '2026-09-01', end: '2026-09-01'),
+        pace: Pace.moderate,
+      ),
+      days: [
+        DayPlan(
+          dayNumber: 1,
+          date: '2026-09-01',
+          theme: 'Tokyo',
+          items: [
+            TimelineItem(
+              id: 'spot',
+              title: 'Shibuya Sky & Crossing',
+              lat: 35.2,
+              lng: 139.2,
+              durationMin: 90,
+              kind: TimelineItemKind.activity,
+            ),
+            fixedTrain,
+          ],
+        ),
+      ],
+    ),
+    dayNumber: 1,
+    planVersion: 1,
+    constraints: DayRouteConstraints(
+      startLocation: hotel,
+      endLocation: hotel,
+      availableStartTime: DateTime(day.year, day.month, day.day, 6),
+      availableEndTime: DateTime(day.year, day.month, day.day, 23),
+    ),
+  );
+}
+
 final _mealMatrix = RouteMatrix(
   version: 'meal-matrix-v1',
   entries: [
@@ -355,6 +533,18 @@ final _mealMatrix = RouteMatrix(
       ['spot2', 'hotel'],
     ])
       _entry(pair[0], pair[1], 15),
+  ],
+);
+
+final _nonGridMatrix = RouteMatrix(
+  version: 'non-grid-matrix-v1',
+  entries: [
+    _entry('hotel', 'spot', 0),
+    _entry('spot', 'train', 13),
+    _entry('train', 'hotel', 0),
+    _entry('hotel', 'train', 0),
+    _entry('train', 'spot', 50),
+    _entry('spot', 'hotel', 0),
   ],
 );
 

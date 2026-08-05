@@ -21,6 +21,31 @@ temiz; 100 base × 4 profil ürün kalite kapısının bütün maddeleri geçti.
 
 ## Tamamlananlar (bu ve önceki oturumlardan)
 
+- ✅ **2026-08-05** rotori-social otomasyon görünürlüğü iyileştirildi: yayın
+  kuyruğu girdilerine son deneme zamanı/sonuç zamanı/deneme sayısı ve
+  başarısızlık nedeni metadata alanları eklendi; dashboard aggregation
+  (`/api/dashboard/publishes`, `overview`, `timeline`) artık
+  `publish_outcome`, `publish_outcome_tr`, `failure_reason`, `is_overdue`
+  alanlarını döndürüyor. Automation ekranına altta "Yayın Logu (Son
+  Durumlar)" kartı eklendi; burada **başarılı/başarısız durum**, **yayın
+  tarihi** ve **neden yayınlanmadı** bilgisi satır bazında görünüyor. Aşırı
+  cache nedeniyle eski JS'in kalmaması için dashboard script cache-bust sürümü
+  güncellendi.
+
+- ✅ **2026-08-05** Viewer/yardımcı özelliklerde hızlı kalite turu:
+  (1) Planlar ekranında çıkış için onay diyaloğu eklendi (yanlışlıkla logout
+  riski azaltıldı), (2) Japonca TTS asset oynatma hızı cümle uzunluğuna göre
+  normalize edildi (çok hızlı örnekler yavaşlatıldı), (3) Bütçe ekranına
+  aile odaklı "güvenli üst limit" tahmini (JPY + TRY, aktarma/tek-yön
+  varsayımlı) eklendi, (4) Must-know içine ATM/debit vs kredi kartı nakit
+  avans limiti uyarısı güçlendirildi, (5) yer detay sheet'ine yakındaki
+  restoranları haritada açan hızlı liste eklendi ve bilet-kaynağı modalinde
+  daha güvenli Material/Ink etkileşimi kullanıldı, (6) canlı para tarayıcıda
+  kamera/stream/OCR hata yolları için durum anahtarlı hata mesajları ve
+  detaylı debug logları eklendi. `flutter analyze` temiz; scanner widget
+  testleri yeşil. (Mevcut welcome-flow test kırıkları bu işten bağımsız olarak
+  sürüyor.)
+
 - ✅ **2026-08-03** Rota optimizasyon v2 Faz 0–5 çekirdek değişiklikleri:
   schema v2 + semantic determinism, `TripActivityAssignmentEngine`,
   `RouteOptimizationValidator`, enum priority/structured drop, transit
@@ -266,6 +291,43 @@ temiz; 100 base × 4 profil ürün kalite kapısının bütün maddeleri geçti.
   başarılı.
 
 ## Kalanlar (kısa vadeli)
+
+- [ ] **Viewer sheet kapanma ergonomisi (Apple uyumlu)**
+  - Alt açılır detay sayfasında kapanma etkileşimi zor hissediliyor.
+  - İyileştirme: drag-to-dismiss hassasiyet ayarı, üstte görünür `Kapat (X)` aksiyonu,
+    dış alana dokunarak kapatma (modal kısıtları uygunsa) ve scroll/drag çakışmasını azaltma.
+  - Kabul kriteri: tek elle kullanımda ilk denemede kapanma oranı artmalı,
+    uzun içerikte sheet "takılıyor" hissi belirgin şekilde azalmalı.
+
+- [ ] **Timeline saat kolonu boşluk optimizasyonu**
+  - Soldaki saat ve timeline ray etrafındaki yatay boşluk fazla; içerik alanı daralıyor.
+  - İyileştirme: saat kolonu genişliğini ve saat-sol/sağ padding'i küçült,
+    kart içeriğine daha fazla alan aç.
+  - Kabul kriteri: küçük ekranlarda (özellikle iPhone dar genişlik) satır taşması azalmalı,
+    görsel denge korunmalı.
+
+- [ ] **Şehir geçişleri için transport picker popup (Shinkansen/Taksi/Tren/Otobüs)**
+  - Gün/şehir geçiş satırına basıldığında popup açılsın.
+  - Popup içinde ulaşım modu seçimi sunulsun: `Shinkansen`, `Taksi`, `Tren`, `Otobüs`.
+  - Seçime göre satır ikonu/etiketi güncellensin; seçim plan kaydına işlensin.
+  - Kabul kriteri: kullanıcı geçiş modunu değiştirdiğinde UI anında güncellenmeli,
+    plan tekrar açıldığında seçim kalıcı olmalı.
+
+- [ ] **Geçiş satırından bilet ekleme akışı**
+  - Transport picker veya geçiş detayından "Bilet ekle" eylemi sun.
+  - Var olan bilet varsa görüntüle/düzenle; yoksa hızlı ekleme başlat.
+  - Kabul kriteri: ilgili geçişe bağlı bilet tek akışta eklenebilmeli ve
+    tekrar açıldığında görülebilmeli.
+
+- [ ] **GPS akıllı takip (pil dostu, kullanıcıyı yormayan model)**
+  - Hedef: Kullanıcının bazı bölgelerde ~10 dakika kaldığını tespit etmek,
+    sürekli açık GPS zorlamadan ve her seferinde manuel açtırmadan.
+  - Önerilen yaklaşım (Apple doğasına uygun): Visit + Significant Location +
+    dinamik geofence + kısa süreli yüksek doğruluk burst doğrulaması.
+  - Ürün yüzeyi: tek ana anahtar (`Akıllı Konum Takibi`), gezi tarih aralığında
+    otomatik aktif/pasif, pil modu seçenekleri (Tasarruf/Dengeli/Hassas).
+  - Kabul kriteri: 10 dk kalış tespiti false positive üretmeden çalışmalı,
+    pil tüketimi "always-on GPS" seviyesine çıkmamalı.
 
 - [ ] Supabase Edge Function veya mevcut backend üzerinde gerçek route matrix
   gateway'ini uygula; sağlayıcı seçimi ve gizli anahtarlar sunucuda kalsın.

@@ -143,13 +143,30 @@ class _LiveCurrencyScannerPageState
             status: state.status,
             palette: palette,
             onRetry: controller.retry,
+            detailText: state.errorMessageKey == null
+                ? null
+                : LanguageScope.of(context).s(state.errorMessageKey!),
           ),
         );
       case ScannerStatus.ready:
       case ScannerStatus.scanning:
         final cam = controller.cameraController;
         if (cam != null && cam.value.isInitialized) {
-          return _CoveredPreview(controller: cam);
+          try {
+            return _CoveredPreview(controller: cam);
+          } catch (e, st) {
+            controller.reportUiException('preview_build', e, st);
+            return ColoredBox(
+              color: palette.bg,
+              child: CameraPermissionView(
+                status: ScannerStatus.failure,
+                palette: palette,
+                onRetry: controller.retry,
+                detailText: LanguageScope.of(context)
+                    .s('scanner.error.previewStability'),
+              ),
+            );
+          }
         }
         return const ColoredBox(color: Colors.black);
       default:

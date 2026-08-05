@@ -379,6 +379,28 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Bütçeye ekle',
     AppLang.en: 'Add to budget'
   },
+  'scanner.error.cameraInit': {
+    AppLang.tr:
+        'Kamera başlatılamadı. İzinleri ve kamera erişimini kontrol edip tekrar deneyin.',
+    AppLang.en:
+        'Could not initialize camera. Check permissions and camera access, then try again.',
+  },
+  'scanner.error.streamStart': {
+    AppLang.tr:
+        'Canlı önizleme akışı başlatılamadı. Uygulamayı yeniden açıp tekrar deneyin.',
+    AppLang.en:
+        'Could not start live preview stream. Reopen the app and try again.',
+  },
+  'scanner.error.previewStability': {
+    AppLang.tr:
+        'Kamera akışı kararsızlaştı. Tarayıcı güvenli şekilde durduruldu; "Tekrar dene" ile yeniden başlatabilirsiniz.',
+    AppLang.en:
+        'Camera stream became unstable. Scanner was stopped safely; tap "Try again" to restart.',
+  },
+  'scanner.error.unknown': {
+    AppLang.tr: 'Beklenmeyen bir kamera hatası oluştu.',
+    AppLang.en: 'An unexpected camera error occurred.',
+  },
   'viewer.quick.explore': {AppLang.tr: 'Keşfet', AppLang.en: 'Explore'},
   'viewer.quick.tickets': {AppLang.tr: 'Biletler', AppLang.en: 'Tickets'},
   'viewer.quick.weather': {AppLang.tr: 'Hava', AppLang.en: 'Weather'},
@@ -735,6 +757,34 @@ const Map<String, Map<AppLang, String>> _strings = {
         'Planda henüz maliyet girilmemiş — Plan adımında aktivitelere ücret ekleyin.',
     AppLang.en:
         'No costs entered in the plan yet — add prices to activities in the Plan step.',
+  },
+  'budget.familyMaxTitle': {
+    AppLang.tr: 'Aile için güvenli üst limit',
+    AppLang.en: 'Safe upper limit for family',
+  },
+  'budget.familyMaxJpy': {
+    AppLang.tr: '≈ {jpy}',
+    AppLang.en: '≈ {jpy}',
+  },
+  'budget.familyMaxAssumption': {
+    AppLang.tr:
+        '{transfer} aktarma · {tripType} · {multiplier}x güven payı varsayımı',
+    AppLang.en:
+        '{transfer} transfers · {tripType} · {multiplier}x safety margin assumption',
+  },
+  'budget.familyMaxHint': {
+    AppLang.tr:
+        'Bu değer tahmindir; beklenmedik transfer, çocuk ihtiyaçları ve kur oynaklığı için pay içerir.',
+    AppLang.en:
+        'This is an estimate; it includes a buffer for unexpected transfers, child needs, and FX volatility.',
+  },
+  'budget.tripType.oneway': {
+    AppLang.tr: 'tek yön',
+    AppLang.en: 'one-way',
+  },
+  'budget.tripType.roundtrip': {
+    AppLang.tr: 'gidiş-dönüş',
+    AppLang.en: 'round-trip',
   },
   // Kategori adları (budget kind).
   'kind.activity': {AppLang.tr: 'Aktivite', AppLang.en: 'Activity'},
@@ -1859,6 +1909,10 @@ const Map<String, Map<AppLang, String>> _strings = {
   'welcome.range.weeks': {AppLang.tr: '~{n} hafta', AppLang.en: '~{n} weeks'},
   'welcome.range.days': {AppLang.tr: '~{n} gün', AppLang.en: '~{n} days'},
   'placeDetail.nearby': {AppLang.tr: 'Yakınlarda', AppLang.en: 'Nearby'},
+  'placeDetail.nearbyRestaurants': {
+    AppLang.tr: 'Yakındaki restoranlar (haritada aç)',
+    AppLang.en: 'Nearby restaurants (open in Maps)',
+  },
   'placeDetail.whatToEat': {AppLang.tr: 'Ne yenir', AppLang.en: 'What to eat'},
   'placeDetail.tips': {AppLang.tr: 'İpuçları', AppLang.en: 'Tips'},
   'placeDetail.duration': {AppLang.tr: 'Süre', AppLang.en: 'Duration'},
@@ -2895,8 +2949,8 @@ const Map<String, Map<AppLang, String>> _strings = {
   },
   'auth.or': {AppLang.tr: 'veya', AppLang.en: 'or'},
   'auth.signInWithApple': {
-    AppLang.tr: '🍎 Apple ile Giriş Yap',
-    AppLang.en: '🍎 Sign in with Apple'
+    AppLang.tr: 'Apple ile Giriş Yap',
+    AppLang.en: 'Sign in with Apple'
   },
   'auth.signInWithGoogle': {
     AppLang.tr: 'G Google ile Giriş Yap',
@@ -3062,6 +3116,20 @@ const Map<String, Map<AppLang, String>> _strings = {
   },
   'plans.deleteConfirmAction': {AppLang.tr: 'Sil', AppLang.en: 'Delete'},
   'plans.cancel': {AppLang.tr: 'Vazgeç', AppLang.en: 'Cancel'},
+  'plans.signOutConfirmTitle': {
+    AppLang.tr: 'Çıkış yapılsın mı?',
+    AppLang.en: 'Sign out now?',
+  },
+  'plans.signOutConfirmBody': {
+    AppLang.tr:
+        'Bu cihazda oturum kapanacak. Planların bulutta kalır, tekrar giriş yapabilirsin.',
+    AppLang.en:
+        'This will sign you out on this device. Your plans stay in the cloud and you can sign in again anytime.',
+  },
+  'plans.signOutConfirmAction': {
+    AppLang.tr: 'Çıkış yap',
+    AppLang.en: 'Sign out',
+  },
   'reward.title': {AppLang.tr: 'Keşif haritası', AppLang.en: 'Explore Map'},
   'reward.gpsSimTooltip': {
     AppLang.tr: 'GPS Simülatörü (test)',

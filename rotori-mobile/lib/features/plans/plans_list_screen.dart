@@ -13,6 +13,37 @@ import 'plan_providers.dart';
 class PlansListScreen extends ConsumerWidget {
   const PlansListScreen({super.key});
 
+  Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
+    final s = LanguageScope.of(context);
+    final palette = ref.read(viewerPaletteProvider);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: palette.card,
+        title: Text(
+          s.s('plans.signOutConfirmTitle'),
+          style: TextStyle(color: palette.textPrimary),
+        ),
+        content: Text(
+          s.s('plans.signOutConfirmBody'),
+          style: TextStyle(color: palette.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(s.s('plans.cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(s.s('plans.signOutConfirmAction')),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await ref.read(authRepositoryProvider).signOut();
+  }
+
   Future<void> _createNew(BuildContext context, WidgetRef ref) async {
     final repo = ref.read(plansRepositoryProvider);
     if (repo == null) return;
@@ -39,7 +70,7 @@ class PlansListScreen extends ConsumerWidget {
               palette: palette,
               title: s.s('plans.title'),
               onRefresh: () => ref.invalidate(plansPullProvider),
-              onSignOut: () => ref.read(authRepositoryProvider).signOut(),
+              onSignOut: () => _confirmSignOut(context, ref),
             ),
             Expanded(
               child: pull.when(
@@ -284,6 +315,7 @@ class _PlansList extends ConsumerWidget {
           child: ListTile(
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            onTap: () => context.go('/plans/${trip.id}/view'),
             leading: CircleAvatar(
               backgroundColor: palette.accent.withValues(alpha: 0.16),
               child: Text('旅', style: TextStyle(color: palette.accent)),
@@ -304,11 +336,6 @@ class _PlansList extends ConsumerWidget {
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  icon: Icon(Icons.visibility_outlined, color: palette.accent),
-                  tooltip: s.s('plans.view'),
-                  onPressed: () => context.go('/plans/${trip.id}/view'),
-                ),
                 IconButton(
                   icon: Icon(Icons.edit_outlined, color: palette.textSecondary),
                   tooltip: s.s('plans.edit'),

@@ -39,6 +39,7 @@ class LiveCurrencyScannerController
   bool _processing = false;
   final Stopwatch _sinceLastProcess = Stopwatch();
   bool _disposed = false;
+  int _consecutiveFrameFailures = 0;
 
   OcrPriceExtractor get _extractor => _ref.read(ocrPriceExtractorProvider);
   ExchangeRateRepository? get _rateRepo =>
@@ -75,22 +76,48 @@ class LiveCurrencyScannerController
             : ImageFormatGroup.nv21,
       );
       _camera = controller;
-      await controller.initialize();
+      try {
+        await controller.initialize();
+      } on CameraException catch (e, st) {
+        _logException('camera.initialize', e, st);
+        state = state.copyWith(
+          status: _mapCameraError(e),
+          errorMessageKey: 'scanner.error.cameraInit',
+        );
+        return;
+      }
       if (_disposed) {
         await controller.dispose();
         return;
       }
       _sinceLastProcess.start();
-      await controller.startImageStream(_onFrame);
+      try {
+        await controller.startImageStream(_onFrame);
+      } on CameraException catch (e, st) {
+        _logException('camera.startImageStream', e, st);
+        state = state.copyWith(
+          status: _mapCameraError(e),
+          errorMessageKey: 'scanner.error.streamStart',
+        );
+        return;
+      }
       state = state.copyWith(
         status: ScannerStatus.scanning,
         rotationDegrees: back.sensorOrientation,
         mirrored: back.lensDirection == CameraLensDirection.front,
       );
-    } on CameraException catch (e) {
-      state = state.copyWith(status: _mapCameraError(e));
-    } catch (_) {
-      state = state.copyWith(status: ScannerStatus.failure);
+    } on CameraException catch (e, st) {
+      _logException('camera.start', e, st);
+      state = state.copyWith(
+        status: _mapCameraError(e),
+        errorMessageKey: 'scanner.error.cameraInit',
+      );
+    } catch (e, st) {
+      _logException('camera.start.unknown', e, st);
+      state = state.copyWith(
+        status: ScannerStatus.failure,
+        errorMessageKey: 'scanner.error.unknown',
+      );
     }
   }
 
@@ -132,6 +159,7 @@ class LiveCurrencyScannerController
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       final visible = _tracker.update(prices, nowMs);
       if (_disposed) return;
+      _consecutiveFrameFailures = 0;
       state = state.copyWith(
         status: ScannerStatus.scanning,
         trackedPrices: visible,
@@ -141,8 +169,17 @@ class LiveCurrencyScannerController
         lastFrameProcessedAt: DateTime.now(),
         isProcessingFrame: false,
       );
-    } catch (_) {
-      // Tek kare hatası akışı bozmaz.
+    } catch (e, st) {
+      _consecutiveFrameFailures++;
+      _logException('ocr.frame', e, st);
+      // Tek kare hatası akışı bozmaz; ancak seri hata varsa güvenli fail'e düş.
+      if (_consecutiveFrameFailures >= 8 && !_disposed) {
+        state = state.copyWith(
+          status: ScannerStatus.failure,
+          errorMessageKey: 'scanner.error.previewStability',
+        );
+        unawaited(_disposeCamera());
+      }
     }
   }
 
@@ -220,7 +257,8 @@ class LiveCurrencyScannerController
     try {
       await cam.setFlashMode(next ? FlashMode.torch : FlashMode.off);
       state = state.copyWith(flashEnabled: next);
-    } catch (_) {
+    } catch (e, st) {
+      _logException('camera.flash', e, st);
       // Flash olmayan cihaz — sessizce yoksay.
     }
   }
@@ -231,7 +269,11 @@ class LiveCurrencyScannerController
     if (lifecycle == AppLifecycleState.inactive ||
         lifecycle == AppLifecycleState.paused) {
       if (cam != null && cam.value.isStreamingImages) {
-        await cam.stopImageStream();
+        try {
+          await cam.stopImageStream();
+        } catch (e, st) {
+          _logException('camera.stopImageStream.pause', e, st);
+        }
       }
       _tracker.reset();
       state = state.copyWith(status: ScannerStatus.paused, trackedPrices: []);
@@ -242,7 +284,8 @@ class LiveCurrencyScannerController
         try {
           await cam.startImageStream(_onFrame);
           state = state.copyWith(status: ScannerStatus.scanning);
-        } catch (_) {
+        } catch (e, st) {
+          _logException('camera.startImageStream.resume', e, st);
           await _startCamera();
         }
       }
@@ -252,6 +295,7 @@ class LiveCurrencyScannerController
   /// İzin reddi sonrası yeniden dene.
   Future<void> retry() async {
     await _disposeCamera();
+    _consecutiveFrameFailures = 0;
     await _startCamera();
   }
 
@@ -269,6 +313,19 @@ class LiveCurrencyScannerController
   }
 
   CameraController? get cameraController => _camera;
+
+  void reportUiException(String tag, Object error, StackTrace stackTrace) {
+    _logException('ui.$tag', error, stackTrace);
+    state = state.copyWith(
+      status: ScannerStatus.failure,
+      errorMessageKey: 'scanner.error.previewStability',
+    );
+  }
+
+  void _logException(String scope, Object error, StackTrace stackTrace) {
+    debugPrint('[LiveCurrencyScanner][$scope] $error');
+    debugPrintStack(stackTrace: stackTrace);
+  }
 
   @override
   void dispose() {

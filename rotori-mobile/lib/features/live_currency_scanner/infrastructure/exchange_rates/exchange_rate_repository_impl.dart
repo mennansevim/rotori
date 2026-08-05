@@ -1,4 +1,5 @@
 import '../../domain/exchange_rate.dart';
+import '../../domain/fallback_exchange_rates.dart';
 import '../../domain/repositories/exchange_rate_repository.dart';
 import '../../domain/scanner_tuning.dart';
 import 'exchange_rate_local_data_source.dart';
@@ -55,6 +56,12 @@ class ExchangeRateRepositoryImpl implements ExchangeRateRepository {
     }
 
     if (cached != null) return cached;
+
+    // Son çare: uygulamayla gelen yaklaşık yedek kur. Böylece çevirici
+    // çevrimdışıyken veya remote boşken "Kur bulunamadı" ile ölmez.
+    final fallback = FallbackExchangeRates.lookup(baseCurrency, targetCurrency);
+    if (fallback != null) return fallback;
+
     throw ExchangeRateUnavailable(baseCurrency, targetCurrency);
   }
 

@@ -59,4 +59,23 @@ void main() {
     expect(find.text('İpuçları'), findsNothing);
     expect(find.text('Haritada aç'), findsOneWidget);
   });
+
+  testWidgets('sheet sağ üst çarpı ile kapanır', (tester) async {
+    await tester.pumpWidget(_harness(TimelineItem(
+      id: 't3',
+      title: 'Shibuya Sky',
+      kind: TimelineItemKind.activity,
+      time: '14:30',
+    )));
+    await tester.tap(find.text('aç'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Shibuya Sky'), findsOneWidget);
+    expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.close_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Shibuya Sky'), findsNothing);
+  });
 }

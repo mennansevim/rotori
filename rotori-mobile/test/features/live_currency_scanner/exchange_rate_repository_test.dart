@@ -98,7 +98,21 @@ void main() {
     expect(remote.calls, 0);
   });
 
-  test('hiç kur yoksa ExchangeRateUnavailable fırlatır', () async {
+  test('hiç kaynak yoksa gömülü yedek kur döner (TRY)', () async {
+    final now = DateTime.utc(2026, 8, 1, 12);
+    final remote = _FakeRemote(null);
+    final repo = ExchangeRateRepositoryImpl(
+      local: local,
+      remote: remote,
+      clock: () => now,
+    );
+    final r = await repo.getRate(baseCurrency: 'JPY', targetCurrency: 'TRY');
+    expect(r.source, 'fallback');
+    expect(r.rate, greaterThan(Decimal.parse('0')));
+  });
+
+  test('yedek kuru bulunmayan çift için ExchangeRateUnavailable fırlatır',
+      () async {
     final now = DateTime.utc(2026, 8, 1, 12);
     final remote = _FakeRemote(null);
     final repo = ExchangeRateRepositoryImpl(
@@ -107,7 +121,7 @@ void main() {
       clock: () => now,
     );
     expect(
-      () => repo.getRate(baseCurrency: 'JPY', targetCurrency: 'TRY'),
+      () => repo.getRate(baseCurrency: 'JPY', targetCurrency: 'XAU'),
       throwsA(isA<ExchangeRateUnavailable>()),
     );
   });

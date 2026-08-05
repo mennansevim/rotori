@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -247,7 +248,15 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           foregroundColor: Colors.white,
                           minimumSize: const Size.fromHeight(48),
                         ),
-                        child: Text(s.s('auth.signInWithApple')),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(CupertinoIcons.apple_logo, size: 18),
+                            const SizedBox(width: 8),
+                            Text(s.s('auth.signInWithApple')),
+                          ],
+                        ),
                       ),
                     ],
                     // Google ile Giriş — tüm platformlarda (iOS/Android/web)

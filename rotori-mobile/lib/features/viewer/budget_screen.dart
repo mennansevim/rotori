@@ -139,6 +139,13 @@ class _BudgetView extends ConsumerWidget {
           ],
           _TotalCard(summary: summary, party: party, palette: palette),
           const SizedBox(height: 16),
+          _FamilyMaxEstimateCard(
+            trip: trip,
+            summary: summary,
+            jpyToTry: rate,
+            palette: palette,
+          ),
+          const SizedBox(height: 16),
           _RateCard(
             rate: rate,
             palette: palette,
@@ -450,6 +457,103 @@ class _RateCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             s.s('budget.rateManual'),
+            style: TextStyle(color: palette.textMuted, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 2b) Aile için üst-limit tahmin kartı.
+// ---------------------------------------------------------------------------
+
+class _FamilyMaxEstimateCard extends StatelessWidget {
+  const _FamilyMaxEstimateCard({
+    required this.trip,
+    required this.summary,
+    required this.jpyToTry,
+    required this.palette,
+  });
+
+  final Trip trip;
+  final BudgetSummary summary;
+  final double jpyToTry;
+  final ViewerPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
+    final party = (trip.preferences.partySize ?? 1).clamp(1, 12);
+    final children = (trip.preferences.childrenCount ?? 0).clamp(0, 8);
+    final outboundTransfers =
+        (trip.flights.outbound.length > 1) ? trip.flights.outbound.length - 1 : 0;
+    final returnTransfers =
+        (trip.flights.returnLegs.length > 1) ? trip.flights.returnLegs.length - 1 : 0;
+    final transferCount = outboundTransfers + returnTransfers;
+    final isOneWay = trip.flights.returnLegs.isEmpty ||
+        (trip.preferences.tripType?.toLowerCase().trim() == 'oneway');
+
+    // Eğer plan maliyeti henüz girilmediyse kişi başı taban kabulüyle kaba tahmin.
+    final baseJpyFromPlan = summary.grandTotalJpy > 0
+        ? summary.grandTotalJpy.toDouble()
+        : (summary.grandTotalTry > 0
+            ? (summary.grandTotalTry / jpyToTry)
+            : (party * 85000 + children * 30000).toDouble());
+
+    final transferBuffer = (0.03 * transferCount).clamp(0.0, 0.12);
+    final oneWayBuffer = isOneWay ? 0.04 : 0.0;
+    final childBuffer = children * 6000;
+    final multiplier = 1.18 + transferBuffer + oneWayBuffer;
+
+    final maxJpy = ((baseJpyFromPlan * multiplier) + childBuffer).round();
+    final maxTry = maxJpy * jpyToTry;
+
+    return _Card(
+      palette: palette,
+      borderColor: palette.fuji.withValues(alpha: 0.35),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            s.s('budget.familyMaxTitle'),
+            style: TextStyle(color: palette.textSecondary, fontSize: 13),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            formatTry(maxTry),
+            style: TextStyle(
+              color: palette.textPrimary,
+              fontSize: 30,
+              fontWeight: FontWeight.w800,
+              height: 1.1,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            s.p('budget.familyMaxJpy', {'jpy': formatJpy(maxJpy)}),
+            style: TextStyle(
+              color: palette.textMuted,
+              fontSize: 13,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            s.p('budget.familyMaxAssumption', {
+              'transfer': '$transferCount',
+              'tripType': isOneWay
+                  ? s.s('budget.tripType.oneway')
+                  : s.s('budget.tripType.roundtrip'),
+              'multiplier': multiplier.toStringAsFixed(2),
+            }),
+            style: TextStyle(color: palette.textSecondary, fontSize: 12),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            s.s('budget.familyMaxHint'),
             style: TextStyle(color: palette.textMuted, fontSize: 12),
           ),
         ],
