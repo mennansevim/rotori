@@ -2,10 +2,11 @@
   "news": {
     "enabled": true,
     "days": [
-      4
+      6,
+      3
     ],
-    "hour": 17,
-    "minute": 5,
+    "hour": 13,
+    "minute": 41,
     "auto_publish": true
   },
   "topic": {

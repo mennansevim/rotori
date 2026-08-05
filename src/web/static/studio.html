@@ -3,17 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#f2efe7">
+  <meta name="theme-color" content="#f4f1e8">
   <title>Japonya Rüyası — İçerik Stüdyosu</title>
   <link rel="manifest" href="/static/manifest.json">
   <link rel="apple-touch-icon" href="/static/widget-icon.svg">
   <style>
+    /* ── Command Center · Japon editoryal (washi · sumi · shu) ── */
     :root{
-      --paper:#f2efe7;--white:#fcfbf7;--ink:#1e211d;--muted:#70736b;
-      --line:#dad7ce;--red:#e34332;--red-dark:#a72a22;--green:#1f6b50;
-      --yellow:#f2c35b;--navy:#1f3448;--shadow:0 16px 44px rgba(37,38,30,.09);
-      --radius:20px;--sans:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-      --display:Georgia,"Times New Roman",serif;
+      --paper:#f4f1e8;--paper-2:#ebe7db;--white:#faf8f1;
+      --ink:#1a1a1a;--ink-2:#3a3a37;--muted:#8a8a82;
+      --line:#d8d3c4;--hair:#e5e0d0;
+      --red:#b0281c;--red-dark:#8a1e15;--shu:#b0281c;--gold:#a68a3a;--green:#3a5a3a;--navy:#1f3448;--yellow:#a68a3a;
+      --shadow:none;--radius:0;
+      --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Inter,sans-serif;
+      --display:"Times New Roman",Georgia,serif;
+      --serif:"Times New Roman",Georgia,serif;
     }
     *{box-sizing:border-box}
     html{scroll-behavior:smooth}
@@ -22,18 +26,23 @@
     button{cursor:pointer}
     button:disabled{cursor:not-allowed;opacity:.55}
     :focus-visible{outline:2px solid var(--red);outline-offset:2px;border-radius:6px}
-    .shell{min-height:100vh;display:grid;grid-template-columns:238px 1fr}
-    .sidebar{position:fixed;inset:0 auto 0 0;width:238px;padding:24px 18px 18px;background:#20241f;color:#fff;display:flex;flex-direction:column;z-index:20}
-    .brand{display:flex;align-items:center;gap:11px;padding:0 8px 28px}
-    .brand-mark{width:38px;height:38px;border-radius:50%;background:var(--red);display:grid;place-items:center;font:700 12px var(--display);box-shadow:inset 0 0 0 8px rgba(255,255,255,.12)}
-    .brand b{display:block;font:700 16px/1.1 var(--display)}
-    .brand small{color:#adb3a8;font-size:10px;letter-spacing:.16em;text-transform:uppercase}
+    .shell{min-height:100vh;display:grid;grid-template-columns:220px 1fr}
+    .sidebar{position:fixed;inset:0 auto 0 0;width:220px;padding:20px 14px 14px;background:#20241f;color:#fff;display:flex;flex-direction:column;z-index:20}
+    .brand{display:flex;align-items:center;gap:10px;padding:0 6px 22px}
+    .brand-mark{width:32px;height:32px;border-radius:50%;background:var(--red);display:grid;place-items:center;font:700 11px var(--display);box-shadow:inset 0 0 0 6px rgba(255,255,255,.12)}
+    .brand b{display:block;font:700 14px/1.1 var(--display)}
+    .brand small{color:#adb3a8;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase}
+    .nav-label{color:#7d8078;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;padding:14px 8px 6px}
+    .nav{display:flex;flex-direction:column;gap:2px}
+    .nav button{width:100%;border:0;background:transparent;color:#aeb6ab;padding:9px 11px;border-radius:9px;display:flex;align-items:center;gap:10px;text-align:left;font-weight:650;font-size:13px;transition:.2s}
+    .nav button:hover{background:#2b302a;color:#fff}
+    .nav button.active{background:#f9f7ef;color:#20241f}
     .nav-label{padding:0 12px 8px;color:#747d72;text-transform:uppercase;letter-spacing:.13em;font-size:9px;font-weight:800}
     .nav{display:grid;gap:4px}
     .nav button{width:100%;border:0;background:transparent;color:#aeb6ab;padding:11px 12px;border-radius:11px;display:flex;align-items:center;gap:11px;text-align:left;font-weight:650;transition:.2s}
     .nav button:hover{background:#2b302a;color:#fff}
     .nav button.active{background:#f9f7ef;color:#20241f}
-    .nav-ico{width:21px;text-align:center;font-size:15px}
+    .nav-ico{width:19px;text-align:center;font-size:13px}
     .nav-count{margin-left:auto;min-width:22px;padding:2px 6px;border-radius:20px;background:var(--red);color:white;font-size:10px;text-align:center;font-weight:800}
     .nav-count[hidden]{display:none}
     .side-bottom{margin-top:auto}
@@ -43,16 +52,13 @@
     .account small{font-size:10px;color:#86c7a7}
     .account small.off{color:#d3775e}
     .main{grid-column:2;min-width:0}
-    .topbar{height:74px;padding:0 34px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;position:sticky;top:0;background:rgba(242,239,231,.9);backdrop-filter:blur(18px);z-index:15}
-    .search{max-width:330px;flex:1;position:relative}
-    .search input{width:100%;border:1px solid transparent;background:#e8e5dc;border-radius:12px;padding:10px 14px 10px 36px;outline:none}
-    .search input:focus{background:white;border-color:#b9b6ac}
-    .search span{position:absolute;left:13px;top:9px;color:#7d8078}
-    .top-actions{margin-left:auto;display:flex;gap:9px;align-items:center}
-    .icon-btn,.btn{border:1px solid var(--line);background:var(--white);color:var(--ink);border-radius:11px;padding:10px 14px;font-weight:750;box-shadow:0 1px 0 rgba(0,0,0,.03);transition:.15s;display:inline-flex;align-items:center;gap:6px;justify-content:center}
+    .side-cta{width:100%;margin:2px 0 4px;justify-content:center}
+    .side-refresh{width:30px;height:30px;flex:none;border-color:#363d35;background:#2b302a;color:#cfd4cb}
+    .side-refresh:hover{background:#353b33;color:#fff}
+    .icon-btn,.btn{border:1px solid var(--line);background:var(--white);color:var(--ink);border-radius:9px;padding:8px 12px;font-weight:700;font-size:13px;box-shadow:0 1px 0 rgba(0,0,0,.03);transition:.15s;display:inline-flex;align-items:center;gap:6px;justify-content:center}
     .btn:hover:not(:disabled){transform:translateY(-1px)}
-    .btn.sm{padding:6px 10px;font-size:12px}
-    .icon-btn{width:40px;height:40px;padding:0;display:grid;place-items:center}
+    .btn.sm{padding:5px 9px;font-size:11.5px}
+    .icon-btn{width:34px;height:34px;padding:0;display:grid;place-items:center}
     .btn.primary{background:var(--red);border-color:var(--red);color:white}
     .btn.primary:hover:not(:disabled){background:var(--red-dark);border-color:var(--red-dark)}
     .btn.dark{background:var(--ink);border-color:var(--ink);color:white}
@@ -61,15 +67,15 @@
     .btn.is-loading::after{content:"";position:absolute;inset:0;margin:auto;width:16px;height:16px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;color:var(--ink);animation:spin .8s linear infinite}
     .btn.primary.is-loading::after,.btn.dark.is-loading::after{color:#fff}
     @keyframes spin{to{transform:rotate(360deg)}}
-    .content{padding:32px 34px 56px;max-width:1440px;margin:auto}
+    .content{padding:20px 24px 42px;max-width:1320px;margin:auto}
     .page{display:none;animation:rise .28s ease}.page.active{display:block}
     @keyframes rise{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
-    .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:25px;flex-wrap:wrap}
-    .eyebrow{text-transform:uppercase;letter-spacing:.16em;font-size:10px;font-weight:850;color:var(--red);margin-bottom:6px}
-    h1{font:600 clamp(31px,4vw,48px)/1 var(--display);letter-spacing:-.04em;margin:0}
-    h2{font:600 24px/1.1 var(--display);letter-spacing:-.02em;margin:0}
-    h3{font-size:14px;margin:0}
-    .page-head p{color:var(--muted);margin:8px 0 0;max-width:600px}
+    .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+    .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:10px;font-weight:850;color:var(--red);margin-bottom:5px}
+    h1{font:600 clamp(22px,2.4vw,30px)/1.1 var(--display);letter-spacing:-.02em;margin:0}
+    h2{font:600 18px/1.2 var(--display);letter-spacing:-.01em;margin:0}
+    h3{font-size:13px;margin:0}
+    .page-head p{color:var(--muted);margin:6px 0 0;max-width:640px;font-size:13px;line-height:1.5}
     .head-actions{display:flex;gap:9px;white-space:nowrap;flex-wrap:wrap}
     .grid{display:grid;gap:16px}
     .cols-3{grid-template-columns:repeat(3,1fr)}
@@ -79,17 +85,17 @@
     .section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;gap:12px}
     .section-head a,.section-head .link{font-size:12px;color:var(--red);font-weight:800;cursor:pointer;background:none;border:0;padding:0}
     .hero-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(300px,.85fr);gap:16px;margin-bottom:16px}
-    .hero{min-height:340px;padding:34px;position:relative;overflow:hidden;color:white;background:#25382f;border:0}
+    .hero{min-height:280px;padding:28px;position:relative;overflow:hidden;color:white;background:#25382f;border:0}
     .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(17,26,21,.95) 0%,rgba(17,26,21,.75) 45%,rgba(17,26,21,.1) 78%),url("/static/japan-editorial-grid.png") 50% 100%/300% 200%;z-index:0}
     .hero>*{position:relative;z-index:1}
     .hero .kicker{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid rgba(255,255,255,.3);border-radius:30px;font-size:10px;text-transform:uppercase;letter-spacing:.12em}
-    .hero h2{font-size:42px;max-width:520px;margin:54px 0 12px;color:#fff}
+    .hero h2{font-size:30px;max-width:520px;margin:32px 0 12px;color:#fff}
     .hero p{max-width:440px;color:#d6dbd5;margin:0 0 24px}
     .hero .btn{border-color:white;color:#fff;background:transparent}
     .today-side{display:grid;grid-template-rows:auto 1fr;gap:16px}
     .score{padding:22px;background:var(--red);color:white;border:0}
     .score-top{display:flex;justify-content:space-between;align-items:center}
-    .score strong{font:600 54px/1 var(--display)}
+    .score strong{font:600 40px/1 var(--display)}
     .score small{opacity:.75}
     .score p{font-size:12px;margin:14px 0 0}
     .progress{height:5px;background:rgba(255,255,255,.25);border-radius:9px;margin-top:14px;overflow:hidden}
@@ -108,7 +114,7 @@
     .status.err{color:var(--red)}
     .stat{padding:18px}
     .stat-top{display:flex;justify-content:space-between;color:var(--muted);font-size:11px}
-    .stat b{font:600 32px var(--display);display:block;margin:8px 0 2px}
+    .stat b{font:600 26px var(--display);display:block;margin:8px 0 2px}
     .delta{color:var(--green);font-weight:800;font-size:11px}
     .delta.dn{color:var(--red)}
     .mini-chart{height:42px;display:flex;align-items:flex-end;gap:4px;margin-top:12px}
@@ -155,7 +161,7 @@
     .mode-card:hover{border-color:#9e9a8e;transform:translateY(-2px);box-shadow:0 12px 28px rgba(30,33,29,.08)}
     .mode-card.active{border-color:var(--ink);background:var(--ink);color:#fff}
     .mode-card.active .meta{color:#c8ccc4}
-    .mode-card .ico{width:38px;height:38px;border-radius:11px;background:#f3ecdc;display:grid;place-items:center;font-size:19px;margin-bottom:12px}
+    .mode-card .ico{width:30px;height:30px;border-radius:9px;background:#f3ecdc;display:grid;place-items:center;font-size:15px;margin-bottom:10px}
     .mode-card.active .ico{background:rgba(255,255,255,.12);color:#fff}
     .mode-card h3{font:600 18px/1.15 var(--display);margin:0 0 4px}
     .mode-card .meta{font-size:11.5px;line-height:1.4}
@@ -212,7 +218,7 @@
     .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
     .filters .chip{background:var(--white)}
     .filters .chip.active{background:var(--ink);color:white;border-color:var(--ink)}
-    .library{grid-template-columns:repeat(4,1fr)}
+    .library{grid-template-columns:repeat(3,minmax(0,1fr))}
     .asset{overflow:hidden;position:relative}
     .asset .thumb{aspect-ratio:4/5}
     .asset-info{padding:13px}
@@ -223,12 +229,64 @@
     .tag.green{background:#dfece5;color:var(--green)}
     .tag.yellow{background:#f7ecd2;color:#a17518}
     .select-dot{position:absolute;right:10px;top:10px;width:21px;height:21px;border:2px solid white;border-radius:50%;background:rgba(0,0,0,.2);z-index:2}
-    .queue-board{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-    .queue-col{padding:15px;background:#e7e3d9;border-radius:18px;min-height:510px}
+    .queue-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+
+    /* ── Datetime Picker Modal ── */
+    .sched-back{
+      position:fixed; inset:0; background:rgba(30,33,29,0.48);
+      z-index:9999; display:flex; align-items:center; justify-content:center;
+      backdrop-filter: blur(6px);
+      animation: schedFadeIn 0.15s ease-out;
+    }
+    @keyframes schedFadeIn { from{opacity:0} to{opacity:1} }
+    .sched-modal{
+      background: var(--white); border:1px solid var(--line);
+      border-radius: var(--radius); padding: 26px 28px; min-width: 400px; max-width: 92vw;
+      box-shadow: var(--shadow);
+    }
+    .sched-modal h3{
+      margin:0 0 6px; font-family: var(--display); font-size: 22px; color: var(--ink);
+    }
+    .sched-sub{
+      margin:0 0 18px; font-size: 13px; color: var(--muted); line-height: 1.5;
+    }
+    .sched-presets{
+      display:flex; flex-wrap:wrap; gap:6px; margin-bottom: 18px;
+    }
+    .sched-preset{
+      padding: 8px 13px; font-size: 13px; font-weight: 600;
+      background: var(--paper); color: var(--ink);
+      border: 1px solid var(--line); border-radius: 10px;
+      cursor: pointer; font-family: inherit; transition: all 0.15s;
+    }
+    .sched-preset:hover{
+      background: var(--white); border-color: var(--navy); transform: translateY(-1px);
+    }
+    .sched-preset.sched-auto{
+      background: rgba(31,107,80,0.08); color: var(--green);
+      border-color: rgba(31,107,80,0.25);
+    }
+    .sched-preset.sched-auto:hover{
+      background: rgba(31,107,80,0.14); border-color: var(--green);
+    }
+    .sched-label{
+      display:block; font-size: 11px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; font-weight: 700;
+    }
+    .sched-input{
+      width: 100%; padding: 11px 14px; font-size: 14px; font-family: inherit;
+      background: var(--paper); color: var(--ink);
+      border: 1px solid var(--line); border-radius: 10px; outline: none;
+    }
+    .sched-input:focus{ border-color: var(--navy); }
+    .sched-actions{
+      display: flex; gap: 8px; justify-content: flex-end; margin-top: 22px;
+    }
+    .queue-col{padding:12px;background:#e7e3d9;border-radius:16px;min-height:320px}
     .queue-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding:0 4px}
     .queue-head span{font-size:10px;background:#d3cec1;padding:3px 8px;border-radius:20px;font-weight:800}
-    .queue-item{background:var(--white);border:1px solid #d3cfc4;border-radius:14px;padding:10px;margin-bottom:10px;position:relative}
-    .queue-item .thumb{height:135px;border-radius:10px;margin-bottom:10px}
+    .queue-item{background:var(--white);border:1px solid #d3cfc4;border-radius:12px;padding:9px;margin-bottom:9px;position:relative}
+    .queue-item .thumb{height:90px;border-radius:8px;margin-bottom:8px}
     .queue-item b{font-size:12px;display:block}
     .queue-item .row-meta{color:var(--muted);font-size:11px;margin:5px 0 8px}
     .queue-item footer{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:10px;margin-top:8px;gap:6px}
@@ -280,7 +338,7 @@
     .modal-back.open{display:grid}
     .modal{background:var(--white);border-radius:20px;max-width:640px;width:100%;max-height:90vh;overflow:auto;padding:28px}
     .modal h2{margin-bottom:6px}
-    .modal-close{float:right;background:none;border:0;font-size:22px;color:var(--muted)}
+    .modal-close{float:right;background:none;border:0;font-size:18px;color:var(--muted)}
     @media(max-width:1100px){
       .cols-4,.library{grid-template-columns:repeat(2,1fr)}
       .studio-grid{grid-template-columns:1fr 340px}
@@ -290,28 +348,26 @@
     @media(max-width:850px){
       .shell{display:block}
       .sidebar{position:fixed;top:auto;bottom:0;left:0;right:0;width:100%;height:68px;padding:7px 10px;flex-direction:row;border-top:1px solid #363d35}
-      .brand,.nav-label,.side-bottom{display:none}
-      .nav{width:100%;grid-template-columns:repeat(7,1fr);gap:2px}
+      .brand,.nav-label,.side-bottom,.side-cta{display:none}
+      .nav{width:100%;grid-template-columns:repeat(5,1fr);gap:2px}
       .nav button{justify-content:center;padding:7px 3px;font-size:0;display:grid;gap:0;text-align:center}
-      .nav-ico{font-size:18px}
+      .nav-ico{font-size:15px}
       .nav-count{display:none}
       .main{padding-bottom:68px}
-      .topbar{padding:0 18px}
       .content{padding:24px 18px}
       .hero-grid,.studio-grid,.settings-grid{grid-template-columns:1fr}
       .phone-wrap{display:none}
       .queue-board{grid-template-columns:1fr}
       .calendar{overflow-x:auto}
-      .week,.calendar-days{min-width:800px}
+      .week,.calendar-days{min-width:0}
       .studio-fields-3{grid-template-columns:1fr}
     }
     @media(max-width:560px){
-      .search{display:none}
       .page-head{align-items:flex-start;flex-direction:column}
       .head-actions{width:100%}
       .head-actions .btn{flex:1;min-width:0}
-      .hero{padding:24px;min-height:360px}
-      .hero h2{font-size:34px}
+      .hero{padding:22px;min-height:300px}
+      .hero h2{font-size:26px}
       .cols-3,.cols-4,.library,.analytics-top{grid-template-columns:1fr}
       .calendar-toolbar h2{font-size:19px}
     }
@@ -323,7 +379,7 @@
     .mode-card{border:1px solid var(--line);background:var(--white);border-radius:16px;padding:16px 18px;text-align:left;display:grid;grid-template-columns:36px 1fr;gap:12px;align-items:flex-start;cursor:pointer;transition:.15s;color:inherit}
     .mode-card:hover{border-color:#b4b0a4;transform:translateY(-1px)}
     .mode-card.active{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
-    .mode-card .ico{width:36px;height:36px;border-radius:10px;background:#f6ded9;display:grid;place-items:center;font-size:18px}
+    .mode-card .ico{width:30px;height:30px;border-radius:9px;background:#f6ded9;display:grid;place-items:center;font-size:15px}
     .mode-card.active .ico{background:var(--red);color:white}
     .mode-card h3{font:600 15px/1.2 var(--display);margin:0 0 4px}
     .mode-card .meta{font-size:11px;line-height:1.4;grid-column:2}
@@ -347,7 +403,7 @@
     .gen-overlay.open{display:grid}
     @keyframes fade{from{opacity:0}to{opacity:1}}
     .gen-card{background:rgba(255,255,253,.98);border:1px solid rgba(255,255,255,.75);border-radius:28px;max-width:640px;width:100%;padding:34px;box-shadow:0 28px 80px rgba(0,0,0,.22)}
-    .gen-top{display:flex;align-items:flex-start;gap:14px}.gen-mark{width:46px;height:46px;border-radius:15px;background:#f1eee7;display:grid;place-items:center;font-size:21px;flex:none}.gen-head{min-width:0;flex:1}.gen-card h2{margin:0 0 5px;font:600 30px/1.08 var(--display);letter-spacing:-.035em}.gen-card p.meta{margin:0;color:#777970;font-size:13px;line-height:1.45}
+    .gen-top{display:flex;align-items:flex-start;gap:12px}.gen-mark{width:36px;height:36px;border-radius:11px;background:#f1eee7;display:grid;place-items:center;font-size:16px;flex:none}.gen-head{min-width:0;flex:1}.gen-card h2{margin:0 0 4px;font:600 21px/1.12 var(--display);letter-spacing:-.02em}.gen-card p.meta{margin:0;color:#777970;font-size:12.5px;line-height:1.45}
     .gen-status-pill{font-size:11px;font-weight:800;color:var(--green);background:#e9f4ed;border-radius:999px;padding:7px 10px;white-space:nowrap}
     .gen-progress{height:5px;background:#e8e5de;border-radius:99px;margin:25px 0 22px;overflow:hidden}.gen-progress i{display:block;height:100%;width:0;background:var(--green);border-radius:inherit;transition:width .35s ease}
     .gen-stages{display:grid;gap:4px;margin:0 0 18px}
@@ -360,7 +416,7 @@
     .gen-log{height:36px;position:relative;overflow:hidden;border-top:1px solid #eceae4;border-bottom:1px solid #eceae4}.gen-log:empty:before{content:"İşlem kaydı bekleniyor…";position:absolute;inset:0;display:flex;align-items:center;color:#aaa9a2;font-size:11px}.gen-log-row{position:absolute;inset:0;display:grid;grid-template-columns:58px 18px minmax(0,1fr);gap:8px;align-items:center;padding:0;color:#6f726b;font-size:11px;line-height:1.2;white-space:nowrap;animation:logIn .28s ease-out}.gen-log-row.log-old{animation:logOut .28s ease-in forwards}.gen-log-row>span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis}.gen-log-row .time{color:#aaa9a2;font-variant-numeric:tabular-nums}.gen-log-row .bullet{color:#b4b5ad;font-size:15px;line-height:12px}.gen-log-row.ok .bullet{color:var(--green)}.gen-log-row.warn .bullet{color:#c98a23}.gen-log-row.error .bullet{color:var(--red)}
     @keyframes logIn{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes logOut{from{transform:translateY(0);opacity:1}to{transform:translateY(100%);opacity:0}}
     .gen-card .form-actions{margin-top:22px}
-    @media(max-width:640px){.gen-card{padding:24px;border-radius:22px}.gen-card h2{font-size:25px}.gen-status-pill{font-size:10px;padding:6px 8px}.gen-stage{font-size:12px}}
+    @media(max-width:640px){.gen-card{padding:20px;border-radius:18px}.gen-card h2{font-size:19px}.gen-status-pill{font-size:10px;padding:6px 8px}.gen-stage{font-size:12px}}
     /* Success flash: yeni kart animasyonu */
     @keyframes bloom{0%{transform:scale(.85);opacity:0;box-shadow:0 0 0 8px rgba(31,107,80,.25)}60%{transform:scale(1.02);opacity:1;box-shadow:0 0 0 4px rgba(31,107,80,.35)}100%{transform:scale(1);opacity:1;box-shadow:none}}
     .bloom{animation:bloom .8s cubic-bezier(.2,.7,.2,1)}
@@ -373,6 +429,363 @@
     .edit-field label{display:block;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:6px}
     /* ---- Skeleton picker thumb ---- */
     .picker-thumb.skeleton{background:linear-gradient(90deg,#e8e5dc 25%,#f2eee3 50%,#e8e5dc 75%);background-size:200% 100%;animation:sk 1.4s infinite}
+
+    /* ══════════════════════════════════════════════════════════════
+       COMMAND CENTER OVERRIDE · c.html aesthetic
+       (washi paper · sumi ink · shu seal red · hairline borders)
+       ══════════════════════════════════════════════════════════════ */
+    body{font:13px/1.55 var(--sans);-webkit-font-smoothing:antialiased;color:var(--ink)}
+    ::selection{background:var(--ink);color:var(--paper)}
+    :focus-visible{outline:1px solid var(--ink);outline-offset:2px;border-radius:0}
+
+    /* Kill radii and shadows globally */
+    .card,.mode-card,.stat,.hero,.score,.next-post,.style-choice,.chip,.tag,.field,textarea,select,
+    .queue-col,.queue-item,.queue-item .thumb,.thumb,.next-post .thumb,.post-row .thumb,.style-thumb,
+    .picker-thumb,.asset,.connection,.toast,.err-state,.skeleton,.modal,.sched-modal,.sched-preset,
+    .sched-input,.toggle,.gen-card,.gen-mark,.gen-current,.gen-progress,.gen-log-row,
+    .insight i,.mode-card .ico,.cal-post,.cal-post .thumb,.select-dot,.phone,.avatar,.brand-mark,
+    .icon-btn,.btn,.side-refresh{border-radius:0!important;box-shadow:none!important}
+
+    /* ── Sidebar → sumi kolonu, hairline ── */
+    .sidebar{background:var(--ink);color:var(--paper);padding:26px 18px 18px;border-right:1px solid var(--ink)}
+    .brand{padding:0 4px 26px;border-bottom:1px solid #2a2a27;margin-bottom:18px}
+    .brand-mark{background:transparent;color:var(--shu);font:400 26px/1 var(--serif);width:auto;height:auto;box-shadow:none!important}
+    .brand-mark::before{content:"日"}
+    .brand-mark>*{display:none}
+    .brand b{font:400 15px/1.1 var(--serif);letter-spacing:.02em}
+    .brand small{color:#8a8a82;font-size:9px;letter-spacing:.22em}
+    .nav-label{color:#5f625b;font-size:9px;letter-spacing:.24em;font-weight:600;padding:12px 4px 8px}
+    .nav button{color:#a8a8a0;padding:10px 12px;font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;border-radius:0;border-left:2px solid transparent;transition:.15s}
+    .nav button:hover{background:transparent;color:var(--paper);border-left-color:#4a4a47}
+    .nav button.active{background:transparent;color:var(--paper);border-left-color:var(--shu)}
+    .nav-ico{color:var(--shu);font-family:var(--serif);font-size:14px}
+    .nav-count{background:var(--shu);border-radius:0;font-weight:700;letter-spacing:.06em;font-size:9px;padding:2px 6px}
+    .account{border:1px solid #2a2a27;border-radius:0;background:transparent;padding:12px 10px}
+    .avatar{background:var(--shu);color:var(--paper);font:400 15px var(--serif)}
+    .account b{font-size:11.5px;letter-spacing:.02em}
+    .account small{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#7a9b83}
+    .account small.off{color:#c47c6a}
+    .side-refresh{background:transparent;border:1px solid #363330;color:#a8a8a0}
+    .side-refresh:hover{background:transparent;color:var(--paper);border-color:var(--paper)}
+
+    /* ── Content shell ── */
+    .content{padding:28px 36px 60px;max-width:1360px}
+    .page-head{align-items:flex-end;gap:18px;padding-bottom:14px;border-bottom:1px solid var(--ink);margin-bottom:26px}
+    .eyebrow{color:var(--shu);font-size:10px;letter-spacing:.24em;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+    .eyebrow::before{content:"";width:20px;height:1px;background:var(--shu)}
+    h1{font:400 clamp(22px,2.4vw,30px)/1.15 var(--serif);letter-spacing:-.005em}
+    h2{font:400 16px/1.2 var(--serif);letter-spacing:.02em}
+    h3{font:600 12px/1.3 var(--sans);letter-spacing:.02em}
+    .page-head p{color:var(--ink-2);font-size:12.5px;line-height:1.6}
+
+    /* ── Buttons (hairline · CAPS · letter-spaced) ── */
+    .btn,.icon-btn{border:1px solid var(--ink);background:transparent;color:var(--ink);border-radius:0;font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;padding:9px 16px;transition:.15s;box-shadow:none}
+    .btn:hover:not(:disabled){background:var(--ink);color:var(--paper);transform:none}
+    .btn.primary,.btn.dark{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+    .btn.primary:hover:not(:disabled),.btn.dark:hover:not(:disabled){background:var(--shu);border-color:var(--shu);color:#fff}
+    .btn.ghost{border-color:var(--line);color:var(--ink-2)}
+    .btn.ghost:hover:not(:disabled){border-color:var(--ink);color:var(--ink);background:transparent}
+    .btn.sm{padding:6px 10px;font-size:10px}
+    .icon-btn{width:32px;height:32px;padding:0;background:var(--white);border-color:var(--line);letter-spacing:0}
+    .icon-btn:hover{border-color:var(--ink);background:var(--white);color:var(--ink)}
+    .btn.is-loading::after{border-radius:50%}
+
+    /* ── Cards ── */
+    .card{background:var(--white);border:1px solid var(--line);border-radius:0}
+    .card:hover{border-color:var(--ink)}
+    .pad{padding:22px 24px}
+    .section-head{padding-bottom:10px;border-bottom:1px solid var(--ink);margin-bottom:16px}
+    .section-head h2{font:400 15px/1 var(--serif)}
+    .section-head a,.section-head .link{color:var(--ink-2);font-size:10px;letter-spacing:.16em;text-transform:uppercase;font-weight:600}
+    .section-head a:hover,.section-head .link:hover{color:var(--shu)}
+
+    /* ── Hero → sumi/paper split ── */
+    .hero-grid{grid-template-columns:minmax(0,1.4fr) minmax(300px,1fr);gap:0;border:1px solid var(--ink);background:var(--white)}
+    .hero{background:var(--white);color:var(--ink);border:0;border-right:1px solid var(--line);padding:32px 34px;min-height:auto}
+    .hero::after{display:none}
+    .hero .kicker{border:0;padding:0;background:transparent;color:var(--shu);font-size:10px;letter-spacing:.24em;text-transform:uppercase;font-weight:600;border-radius:0}
+    .hero .kicker::before{content:"";width:20px;height:1px;background:var(--shu);display:inline-block;margin-right:8px}
+    .hero h2{font:400 28px/1.15 var(--serif);color:var(--ink);margin:14px 0 10px;max-width:520px;letter-spacing:-.005em}
+    .hero p{color:var(--ink-2);font-size:12.5px;max-width:480px;line-height:1.6;margin:0 0 22px}
+    .hero .btn{border-color:var(--ink);color:var(--ink);background:transparent}
+    .hero .btn:hover:not(:disabled){background:var(--ink);color:var(--paper)}
+    .hero .btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+    /* Score panel → sumi block */
+    .score{background:var(--ink);color:var(--paper);padding:28px 30px;border:0;border-radius:0}
+    .score-top{color:#c9c5b6;font-size:10px;letter-spacing:.22em;text-transform:uppercase}
+    .score strong{font:400 52px/1 var(--serif);color:var(--paper);letter-spacing:-.02em}
+    .score small{color:#c9a89e;font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+    .score p{color:#c9c5b6;font-size:11.5px;line-height:1.5;margin-top:14px}
+    .progress{background:rgba(255,255,255,.14);border-radius:0;height:2px;margin-top:16px}
+    .progress i{background:var(--paper)}
+
+    .next-post{padding:16px 18px;border:1px solid var(--line);background:var(--white)}
+    .next-post .thumb{width:64px;aspect-ratio:4/5;border-radius:0}
+    .thumb{border-radius:0}
+    .thumb::after{box-shadow:inset 0 0 0 1px rgba(0,0,0,.05)}
+    .meta{color:var(--muted);font-size:10.5px;letter-spacing:.08em}
+    .status{color:var(--green);font-size:10px;letter-spacing:.16em;font-weight:600}
+    .status.warn{color:var(--gold)}
+    .status.err{color:var(--shu)}
+
+    /* ── Stats strip (5-col hairline) ── */
+    .grid.cols-4,.grid.cols-3{gap:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+    .grid.cols-4 .stat,.grid.cols-3 .stat,.stat{background:var(--white);border:0;border-right:1px solid var(--hair);border-radius:0;padding:20px 22px}
+    .grid.cols-4>.stat:last-child,.grid.cols-3>.stat:last-child{border-right:0}
+    .stat-top{color:var(--muted);font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;font-weight:600}
+    .stat b{font:400 28px/1 var(--serif);letter-spacing:-.01em;margin:10px 0 4px}
+    .delta{color:var(--green);font-size:10px;letter-spacing:.08em;font-weight:600}
+    .delta.dn{color:var(--shu)}
+    .mini-chart{margin-top:12px}
+    .mini-chart i{background:var(--hair);border-radius:0}
+    .mini-chart i.hot{background:var(--shu)}
+
+    /* ── Post list & activity ── */
+    .post-row{border-bottom:1px solid var(--hair);padding:12px 0}
+    .post-row .thumb{border-radius:0}
+    .post-row b{font-size:12px;letter-spacing:.01em}
+    .activity-row{grid-template-columns:60px 1fr;gap:14px}
+    .activity-dot{background:var(--shu);box-shadow:none!important;width:6px;height:6px;margin:6px auto 0}
+    .activity-row p{font-size:12px;color:var(--ink-2);line-height:1.5}
+    .activity-row small{color:var(--muted);font-size:10px;letter-spacing:.08em}
+
+    /* ── Forms · chips · fields ── */
+    .label{font-size:10px;letter-spacing:.22em;color:var(--muted);font-weight:600;text-transform:uppercase;margin:16px 0 8px}
+    .field,textarea,select{background:var(--white);border:1px solid var(--line);border-radius:0;color:var(--ink);padding:11px 14px}
+    .field:focus,textarea:focus,select:focus{border-color:var(--ink);background:var(--white)}
+    .chip{background:var(--white);border:1px solid var(--line);border-radius:0;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);font-weight:600;padding:6px 12px}
+    .chip:hover{background:var(--white);border-color:var(--ink);color:var(--ink)}
+    .chip.active{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+    .filters .chip{background:var(--white)}
+    .filters .chip.active{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+    .tag{background:transparent;border:1px solid var(--line);color:var(--ink-2);font-size:9px;letter-spacing:.16em;padding:3px 7px;border-radius:0}
+    .tag.red{color:var(--shu);border-color:var(--shu)}
+    .tag.green{color:var(--green);border-color:var(--green)}
+    .tag.yellow{color:var(--gold);border-color:var(--gold)}
+
+    /* ── Mode cards (news/visual) ── */
+    .mode-card{background:var(--white);border:1px solid var(--line);border-radius:0;padding:18px 20px}
+    .mode-card:hover{border-color:var(--ink);transform:none;box-shadow:none}
+    .mode-card.active{background:var(--ink);color:var(--paper);border-color:var(--ink);box-shadow:none}
+    .mode-card.active .meta{color:#c9c5b6}
+    .mode-card .ico{background:transparent;color:var(--shu);font:400 22px/1 var(--serif);width:auto;height:auto;border-radius:0}
+    .mode-card.active .ico{background:transparent;color:#e6b7ae}
+    .mode-card h3{font:400 16px/1.2 var(--serif);letter-spacing:.02em;margin:0 0 4px}
+    .mode-card .meta{font-size:11.5px;line-height:1.5;color:var(--ink-2)}
+    .mode-card.active .meta{color:#c9c5b6}
+
+    /* Wizard steps */
+    .wiz{border-bottom:1px solid var(--line);padding:0 0 14px;margin-bottom:18px;gap:0}
+    .wiz .st{background:transparent;color:var(--muted);border-radius:0;font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:600;padding:8px 6px;border-bottom:2px solid transparent}
+    .wiz .st.done{color:var(--ink-2);background:transparent;border-bottom-color:var(--line)}
+    .wiz .st.current{background:transparent;color:var(--ink);border-bottom-color:var(--ink)}
+
+    /* Style picker */
+    .style-choice{background:var(--white);border:1px solid var(--line);border-radius:0;padding:8px}
+    .style-choice:hover{border-color:var(--ink);transform:none}
+    .style-choice.active{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);background:var(--white)}
+    .style-thumb{border-radius:0}
+    .style-choice strong{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase}
+    .style-choice small{font-size:10.5px;color:var(--muted)}
+
+    /* Unsplash picker */
+    .picker-grid{gap:6px}
+    .picker-thumb{border-radius:0;background:var(--hair);border:1px solid transparent}
+    .picker-thumb:hover{transform:none;border-color:var(--ink)}
+    .picker-thumb.selected{border-color:var(--shu);box-shadow:none}
+    .picker-thumb .sel-mark{background:var(--shu);border-radius:0;width:20px;height:20px;font-size:11px}
+
+    /* Phone preview → keep dark, remove shadow */
+    .phone-wrap{background:var(--paper-2);padding:24px}
+    .phone{border-radius:0;box-shadow:none!important;border:1px solid var(--ink)}
+    .phone-top i{border-radius:0}
+    .phone-copy h3{font:400 22px/1.1 var(--serif)}
+    .phone-copy small{color:#e6b7ae}
+
+    /* ── Calendar ── */
+    .calendar{border:1px solid var(--line)}
+    .week{border-bottom:1px solid var(--line)}
+    .weekday{font-size:9.5px;letter-spacing:.22em;color:var(--muted);font-weight:600;padding:12px 8px}
+    .day{border-right:1px solid var(--hair);border-bottom:1px solid var(--hair);min-height:130px;padding:10px}
+    .day-num{font:400 15px/1 var(--serif);color:var(--ink-2)}
+    .day.today{background:var(--ink);color:var(--paper)}
+    .day.today .day-num{color:var(--paper)}
+    .day.muted{background:var(--paper-2);color:var(--muted)}
+    .cal-post{background:var(--white);border:1px solid var(--hair);border-radius:0;padding:6px}
+    .cal-post .thumb{border-radius:0}
+    .cal-post.red{background:var(--white);border-color:var(--shu)}
+    .cal-post.green{background:var(--white);border-color:var(--green)}
+    .cal-post.yellow{background:var(--white);border-color:var(--gold)}
+
+    /* ── Library / assets ── */
+    .library{gap:18px}
+    .asset{background:var(--white);border:1px solid var(--line);border-radius:0}
+    .asset:hover{border-color:var(--ink)}
+    .asset .thumb{aspect-ratio:4/5;border-radius:0}
+    .asset-info{padding:12px 14px 14px}
+    .asset-info b{font-size:12px;line-height:1.3}
+    .select-dot{background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.6);border-radius:0}
+
+    /* Onay bekliyor listesi: iki post yan yana, Instagram 4:5 aspect */
+    #queueDraftList{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-content:start}
+    #queueDraftList .queue-item{margin:0;display:flex;flex-direction:column}
+    #queueDraftList .queue-item .thumb{height:auto;aspect-ratio:4/5;width:100%}
+    #queueDraftList .queue-item .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+    @media(max-width:560px){#queueDraftList{grid-template-columns:1fr}}
+    .asset-foot .link{padding:2px 0}
+    .asset-foot .link:hover{opacity:.7}
+
+    /* ── Queue kanban ── */
+    .queue-board{gap:14px}
+    .queue-col{background:transparent;border:1px solid var(--line);border-radius:0;padding:14px;min-height:340px}
+    .queue-head{padding:0 2px 10px;border-bottom:1px solid var(--ink);margin-bottom:12px}
+    .queue-head h3{font:400 14px/1 var(--serif);letter-spacing:.02em}
+    .queue-head span{background:transparent;border:1px solid var(--line);border-radius:0;font-size:10px;letter-spacing:.16em;padding:2px 8px;font-weight:600;color:var(--ink-2)}
+    .queue-item{background:var(--white);border:1px solid var(--line);border-radius:0;padding:10px}
+    .queue-item .thumb{border-radius:0;height:88px}
+    .queue-item b{font-size:12px;letter-spacing:.01em}
+    .queue-item .row-meta{font-size:10.5px;letter-spacing:.02em;color:var(--muted)}
+    .queue-item footer{font-size:10px;letter-spacing:.08em;color:var(--muted);padding-top:8px;border-top:1px solid var(--hair);margin-top:8px}
+    .queue-item footer .link{color:var(--shu);font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+    .queue-col.dragover,.queue-col.drop-hint{outline:1px dashed var(--shu);outline-offset:-4px;background:transparent}
+
+    /* ── Analytics ── */
+    .chart{background:transparent;border-left:1px solid var(--hair);border-bottom:1px solid var(--hair)}
+    .bar{background:var(--hair);border-radius:0}
+    .bar.hot{background:var(--shu)}
+    .bar span{font-size:9px;letter-spacing:.08em;color:var(--ink-2);font-weight:600}
+    .chart-labels{font-size:9px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+    .insight{border-bottom:1px solid var(--hair);padding:14px 0}
+    .insight i{background:transparent;border:1px solid var(--line);border-radius:0;color:var(--shu);font:400 15px var(--serif)}
+    .insight p{font-size:12px;color:var(--ink-2);line-height:1.55}
+    .insight small{color:var(--muted);font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+
+    /* ── Settings ── */
+    .settings-menu{padding:8px}
+    .settings-menu button{border-radius:0;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--muted);padding:11px 14px;border-left:2px solid transparent}
+    .settings-menu button:hover{background:transparent;color:var(--ink);border-left-color:var(--line)}
+    .settings-menu button.active{background:transparent;color:var(--ink);border-left-color:var(--shu)}
+    .setting{border-bottom:1px solid var(--hair);padding:18px 0}
+    .setting h3{font:400 14px/1.2 var(--serif);letter-spacing:.02em}
+    .setting p{font-size:11.5px;color:var(--ink-2);line-height:1.5;margin-top:4px}
+    .toggle{border-radius:0;background:var(--line);width:40px;height:22px}
+    .toggle::after{border-radius:0;background:var(--white);width:16px;height:16px;box-shadow:none!important}
+    .toggle.on{background:var(--ink)}
+    .toggle.on::after{transform:translateX(18px);background:var(--paper)}
+    .connection{background:transparent;border:1px solid var(--line);border-radius:0;padding:14px}
+    .connection h3{font:400 14px/1.2 var(--serif);letter-spacing:.02em}
+    .connection .avatar{background:var(--shu);color:#fff;border-radius:0}
+
+    /* ── Modals ── */
+    .modal-back{background:rgba(20,20,20,.55);backdrop-filter:blur(3px)}
+    .modal{background:var(--paper);border:1px solid var(--ink);border-radius:0;padding:0}
+    .modal>*{padding:0 28px}
+    .modal h2{font:400 22px/1.2 var(--serif);letter-spacing:-.005em;padding:26px 28px 6px}
+    .modal-close{padding:6px 10px;font-size:16px;color:var(--muted);border:1px solid var(--line);border-radius:0;background:transparent;margin:14px 14px 0 0}
+    .modal-close:hover{border-color:var(--ink);color:var(--ink)}
+    .edit-field label{font-size:10px;letter-spacing:.22em;color:var(--muted);font-weight:600}
+
+    /* Scheduler picker */
+    .sched-modal{background:var(--paper);border:1px solid var(--ink);border-radius:0;box-shadow:none!important;padding:28px 30px}
+    .sched-modal h3{font:400 22px/1.2 var(--serif)}
+    .sched-sub{font-size:12px;color:var(--ink-2)}
+    .sched-preset{background:var(--white);border:1px solid var(--line);border-radius:0;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--ink-2);padding:7px 12px}
+    .sched-preset:hover{background:var(--ink);color:var(--paper);border-color:var(--ink);transform:none}
+    .sched-preset.sched-auto{background:transparent;color:var(--shu);border-color:var(--shu)}
+    .sched-preset.sched-auto:hover{background:var(--shu);color:#fff}
+    .sched-label{font-size:10px;letter-spacing:.22em;color:var(--muted);font-weight:600}
+    .sched-input{background:var(--white);border:1px solid var(--line);border-radius:0;padding:11px 14px;font-size:13px}
+    .sched-input:focus{border-color:var(--ink)}
+
+    /* ── Gen overlay (redesigned to same language) ── */
+    .gen-overlay{background:rgba(20,20,20,.60);backdrop-filter:blur(6px)}
+    .gen-card{background:var(--paper);border:1px solid var(--ink);border-radius:0!important;padding:32px 34px}
+    .gen-mark{background:transparent;color:var(--shu);font:400 22px/1 var(--serif);width:auto;height:auto}
+    .gen-card h2{font:400 22px/1.15 var(--serif);letter-spacing:-.005em}
+    .gen-card p.meta{color:var(--ink-2);font-size:12px}
+    .gen-status-pill{background:transparent;border:1px solid var(--green);color:var(--green);border-radius:0;font-size:10px;letter-spacing:.16em;font-weight:600;padding:5px 10px}
+    .gen-progress{background:var(--hair);border-radius:0;height:2px;margin:22px 0 20px}
+    .gen-progress i{background:var(--ink);border-radius:0}
+    .gen-stage{font-size:12px;color:var(--muted)}
+    .gen-stage.active{color:var(--ink)}
+    .gen-stage.done{color:var(--green)}
+    .gen-stage .dot{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:0;font:400 11px var(--serif)}
+    .gen-stage.active .dot{border-color:var(--shu);color:var(--shu);background:transparent}
+    .gen-stage.done .dot{background:var(--green);color:#fff;border-color:var(--green)}
+    .gen-current{background:var(--white);border:1px solid var(--line);border-radius:0;padding:14px 16px}
+    .gen-spinner{border-color:var(--hair);border-top-color:var(--shu);border-radius:50%!important}
+    .gen-current-label{color:var(--muted);font-size:9.5px;letter-spacing:.22em;font-weight:600}
+    .gen-current strong{font-size:13px;letter-spacing:.02em}
+    .gen-log{border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+    .gen-log-row{font-size:11px;color:var(--ink-2)}
+    .gen-log-row .time{color:var(--muted);font-family:var(--serif)}
+    .gen-log-row.ok .bullet{color:var(--green)}
+    .gen-log-row.error .bullet{color:var(--shu)}
+
+    /* Toast */
+    .toast{background:var(--ink);color:var(--paper);border-radius:0;box-shadow:none!important;font-size:12px;padding:12px 16px;letter-spacing:.01em}
+    .toast.err{background:var(--shu)}
+    .toast.ok{background:var(--green)}
+
+    /* Empty / error / skeleton */
+    .empty{color:var(--muted);padding:44px 20px}
+    .empty h3{font:400 18px/1.2 var(--serif);color:var(--ink)}
+    .err-state{background:transparent;border:1px dashed var(--shu);color:var(--shu);border-radius:0;font-size:11.5px}
+    .skeleton{border-radius:0}
+
+    /* Mobile bottom-nav in Command Center language */
+    @media(max-width:850px){
+      .sidebar{background:var(--ink);border-top:1px solid #2a2a27}
+      .nav button{border-left:0;border-top:2px solid transparent}
+      .nav button.active{border-left:0;border-top-color:var(--shu)}
+    }
+
+    /* ── Otomasyon editörü (ayarlar) ── */
+    .auto-editor{border:1px solid var(--line);background:var(--white);margin:14px 0;padding:0}
+    .auto-editor.on{border-color:var(--ink)}
+    .auto-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--hair)}
+    .auto-head h3{font:400 15px/1.2 var(--serif);letter-spacing:.01em;margin:0}
+    .auto-head .meta{font-size:11px;color:var(--muted);margin:3px 0 0}
+    .auto-switch{display:inline-flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap}
+    .auto-switch input{position:absolute;opacity:0;pointer-events:none}
+    .auto-switch .sw{width:36px;height:20px;border:1px solid var(--line);background:var(--paper);position:relative;transition:.15s;flex:none}
+    .auto-switch .sw::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;background:var(--muted);transition:.15s}
+    .auto-switch input:checked + .sw{background:var(--ink);border-color:var(--ink)}
+    .auto-switch input:checked + .sw::after{transform:translateX(16px);background:var(--paper)}
+    .auto-switch input:checked ~ .sw-label{color:var(--ink)}
+    .auto-body{padding:16px 18px;display:grid;gap:14px}
+    .auto-editor:not(.on) .auto-body{opacity:.45;pointer-events:none}
+    .auto-row{display:grid;grid-template-columns:70px 1fr;gap:14px;align-items:center}
+    .auto-label{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:600}
+    .day-picker{display:flex;gap:0;border:1px solid var(--line);width:max-content;max-width:100%}
+    .day-picker button{width:40px;height:34px;border:0;border-right:1px solid var(--line);background:var(--white);color:var(--ink-2);font-size:11px;font-weight:600;letter-spacing:.04em;cursor:pointer;transition:.12s}
+    .day-picker button:last-child{border-right:0}
+    .day-picker button:hover{background:var(--paper)}
+    .day-picker button.on{background:var(--ink);color:var(--paper)}
+    .auto-time{width:110px;border:1px solid var(--line);background:var(--white);padding:8px 10px;font:inherit;color:var(--ink);border-radius:0}
+    .auto-time:focus{border-color:var(--ink);outline:none}
+    .auto-check{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-2);cursor:pointer}
+    .auto-check input{width:16px;height:16px;accent-color:var(--ink)}
+    .auto-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:4px;border-top:1px solid var(--hair);margin-top:2px}
+    .auto-next{font-size:11px;color:var(--muted);margin-right:auto}
+    .auto-next b{color:var(--ink);font-weight:600}
+    .auto-editor[data-auto="news"] .auto-head h3{color:var(--shu)}
+    .auto-editor[data-auto="topic"] .auto-head h3{color:var(--navy)}
+
+    /* Takvim: otomasyon projeksiyon slotları + mavi tip */
+    .cal-post.blue{background:var(--white);border-color:var(--navy)}
+    .cal-post.projected{border-style:dashed;opacity:.9;background:transparent}
+    .cal-post.projected .thumb{display:none}
+    .cal-post.projected.news{border-color:var(--shu)}
+    .cal-post.projected.topic{border-color:var(--navy)}
+    .cal-post.projected b{font-weight:600}
+    .cal-legend{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0 0;font-size:11px;color:var(--muted);align-items:center}
+    .cal-legend span{display:inline-flex;align-items:center;gap:6px;letter-spacing:.04em}
+    .cal-legend i{width:10px;height:10px;border:1px solid;display:inline-block}
+    .cal-legend i.news{border-color:var(--shu);background:rgba(176,40,28,.12)}
+    .cal-legend i.topic{border-color:var(--navy);background:rgba(31,52,72,.12)}
+    .cal-legend i.done{border-color:var(--green);background:rgba(58,90,58,.14)}
   </style>
 </head>
 <body>
@@ -382,34 +795,25 @@
         <div class="brand-mark" aria-hidden="true">日</div>
         <div><b>Japonya Rüyası</b><small>İçerik Stüdyosu</small></div>
       </div>
-      <div class="nav-label">Çalışma alanı</div>
+      <button class="btn primary side-cta" data-go="studio">＋ Yeni içerik</button>
+      <div class="nav-label">Komuta</div>
       <nav class="nav" role="tablist">
-        <button role="tab" data-page="overview" class="active" aria-selected="true"><span class="nav-ico" aria-hidden="true">⌂</span>Genel Bakış</button>
-        <button role="tab" data-page="studio" aria-selected="false"><span class="nav-ico" aria-hidden="true">✦</span>AI Stüdyo</button>
+        <button role="tab" data-page="queue" class="active" aria-selected="true"><span class="nav-ico" aria-hidden="true">⌂</span>Komuta<span class="nav-count" id="navCountQueue" hidden>0</span></button>
         <button role="tab" data-page="calendar" aria-selected="false"><span class="nav-ico" aria-hidden="true">□</span>Takvim</button>
         <button role="tab" data-page="library" aria-selected="false"><span class="nav-ico" aria-hidden="true">▦</span>Kütüphane</button>
-        <button role="tab" data-page="queue" aria-selected="false"><span class="nav-ico" aria-hidden="true">≋</span>Yayın Kuyruğu<span class="nav-count" id="navCountQueue" hidden>0</span></button>
-        <button role="tab" data-page="analytics" aria-selected="false"><span class="nav-ico" aria-hidden="true">↗</span>Analiz</button>
-        <button role="tab" data-page="settings" aria-selected="false"><span class="nav-ico" aria-hidden="true">⚙</span>Ayarlar</button>
+        <button role="tab" data-page="overview" aria-selected="false"><span class="nav-ico" aria-hidden="true">◈</span>Özet</button>
+        <button role="tab" data-page="studio" aria-selected="false"><span class="nav-ico" aria-hidden="true">✦</span>Üretim</button>
       </nav>
       <div class="side-bottom">
         <div class="account">
           <div class="avatar" aria-hidden="true">JR</div>
-          <div><b id="accountName">@japonyaruyasi</b><small id="accountStatus" class="off">Bağlantı kontrol ediliyor…</small></div>
+          <div style="flex:1;min-width:0"><b id="accountName">@japonyaruyasi</b><small id="accountStatus" class="off">Bağlantı kontrol ediliyor…</small></div>
+          <button class="icon-btn side-refresh" id="btnRefresh" aria-label="Yenile" title="Yenile">↻</button>
         </div>
       </div>
     </aside>
 
     <div class="main">
-      <header class="topbar">
-        <div class="search"><span aria-hidden="true">⌕</span><input aria-label="İçerik ara" placeholder="İçerik, fikir veya etiket ara…" id="searchInput"></div>
-        <div class="top-actions">
-          <a href="/" class="btn ghost sm" title="Eski dashboard'a dön">Eski arayüz</a>
-          <button class="icon-btn" aria-label="Bildirimler" id="btnRefresh" title="Yenile">↻</button>
-          <button class="btn primary" data-go="studio">＋ Yeni içerik</button>
-        </div>
-      </header>
-
       <main class="content" id="pages">
         <!-- ================= OVERVIEW ================= -->
         <section class="page active" id="overview" role="tabpanel">
@@ -420,7 +824,6 @@
               <p id="overviewLead">Bugünün yayın planı yükleniyor…</p>
             </div>
             <div class="head-actions">
-              <button class="btn ghost" data-go="analytics">Analiz aç</button>
               <button class="btn primary" data-go="studio">✦ İçerik üret</button>
             </div>
           </div>
@@ -460,6 +863,28 @@
             <article class="card stat"><div class="stat-top"><span>Kuyrukta</span><span>♢</span></div><b class="skeleton" style="width:70%">···</b><span class="delta skeleton" style="width:40%">···</span><div class="mini-chart" id="miniChart4"></div></article>
           </div>
 
+          <!-- Bulk plan CTA — Yayına Hazır'da planlanmamış çok kart varsa -->
+          <article class="card" id="overviewBulkPlan" style="display:none;padding:18px;margin-top:16px;background:linear-gradient(135deg,#f2c35b22,#f2c35b0a);border:1px solid #f2c35b66">
+            <div style="display:flex;align-items:center;gap:16px">
+              <div style="font-size:22px">🚀</div>
+              <div style="flex:1">
+                <h3 style="margin:0 0 4px;font-family:var(--display);font-size:19px"><b data-count>0</b> kart planlanmayı bekliyor</h3>
+                <p style="margin:0;color:var(--muted);font-size:13px">Otomasyonun günlük limit + saat ayarlarına göre otomatik takvime dizelim.</p>
+              </div>
+              <button class="btn primary" onclick="autoFillReady(this)">🚀 Hepsini Planla</button>
+            </div>
+          </article>
+
+          <!-- Bugün Planlananlar mini widget -->
+          <article class="card" id="todayCard" style="display:none;padding:18px;margin-top:16px">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+              <h3 style="margin:0;font-family:var(--display);font-size:16px">🗓 Bugün Planlananlar</h3>
+              <span id="todayCount" style="background:var(--paper);padding:2px 10px;border-radius:99px;font-size:12px;font-weight:700;color:var(--ink)">0</span>
+              <button class="btn ghost sm" style="margin-left:auto" data-go="queue">Tümünü göster →</button>
+            </div>
+            <div id="todayList" style="display:flex;flex-direction:column;gap:8px"></div>
+          </article>
+
           <div class="grid lower-grid">
             <article class="card pad">
               <div class="section-head"><h2>Yaklaşan içerikler</h2><button class="link" data-go="calendar">Takvimi gör →</button></div>
@@ -481,7 +906,6 @@
               <p>İki üretim modu var: güncel Japonya haberlerinden kart ya da yazdığın konudan editöryel görsel.</p>
             </div>
             <div class="head-actions">
-              <button class="btn ghost" data-go="library">Taslaklarım</button>
               <button class="btn ghost" data-go="queue">Onay bekliyor</button>
             </div>
           </div>
@@ -572,11 +996,10 @@
                       </div>
                     </div>
                     <div style="grid-column:1/-1">
-                      <label class="label"><span>AI ile üret</span></label>
+                      <label class="label"><span>Hızlı düzelt</span></label>
                       <div style="display:flex;gap:8px;flex-wrap:wrap">
-                        <button class="btn ghost sm" id="imgAiVisionBtn" title="Seçili görselden vision ile metin üret">✦ Görselden üret</button>
-                        <button class="btn ghost sm" id="imgAiTextBtn" title="Sadece konudan metin üret">✦ Konudan üret</button>
-                        <button class="btn ghost sm" id="imgAiCaptionBtn" title="Instagram caption üret (aciklama'ya göre)">✦ Caption üret</button>
+                        <button class="btn ghost sm" id="imgAiRegenerateBtn" title="Seçili görsel varsa görselden, yoksa konudan metni yeniden üret">↻ Açıklamayı yeniden üret</button>
+                        <button class="btn ghost sm" id="imgAiCaptionBtn" title="Instagram caption üret (açıklamaya göre)">↻ Caption üret</button>
                       </div>
                     </div>
                   </div>
@@ -616,11 +1039,11 @@
             <div>
               <div class="eyebrow">İçerik Planı</div>
               <h1>Yayın takvimi</h1>
-              <p>Instagram akışınızı dengeli tutun, boş günleri görün ve içerikleri planlayın.</p>
+              <p>Planlanmış tüm yayınlarını aylık görünümde gör. Bir yayına tıkla → zamanı değiştir. Yeni içerik eklemek için Yayın Kuyruğu'ndan "🚀 Hepsini Planla" butonunu kullan.</p>
             </div>
             <div class="head-actions">
               <button class="btn ghost" id="calToday">Bugün</button>
-              <button class="btn primary" data-go="studio">＋ İçerik ekle</button>
+              <button class="btn primary" data-go="queue">Kuyruğa git →</button>
             </div>
           </div>
           <div class="calendar-toolbar">
@@ -636,6 +1059,12 @@
             </div>
             <div class="calendar-days" id="calendarDays"></div>
           </article>
+          <div class="cal-legend">
+            <span><i class="news"></i> Haber otomasyonu</span>
+            <span><i class="topic"></i> Konu otomasyonu</span>
+            <span><i class="done"></i> Yayınlandı</span>
+            <span style="color:var(--ink-2)">Kesikli çerçeve = otomasyon projeksiyonu · dolu = planlı yayın</span>
+          </div>
         </section>
 
         <!-- ================= LIBRARY ================= -->
@@ -647,7 +1076,6 @@
               <p>Tüm görselleriniz, Reels'leriniz ve taslaklarınız tek yerde.</p>
             </div>
             <div class="head-actions">
-              <button class="btn ghost" id="libRefresh">↻ Yenile</button>
               <button class="btn primary" data-go="studio">＋ Yeni üret</button>
             </div>
           </div>
@@ -667,17 +1095,22 @@
             <div>
               <div class="eyebrow">Yayın Akışı</div>
               <h1>Yayın kuyruğu</h1>
-              <p>Üretimden yayına kadar tüm içeriklerin durumunu tek bakışta izleyin.</p>
+              <p>Üretimden yayına: kart üret → onayla → planla → otomatik yayınla. Her sütun bir aşama.</p>
             </div>
             <div class="head-actions">
               <button class="btn ghost" id="queueAutomation">Otomasyon: —</button>
-              <button class="btn primary" data-go="studio">＋ İçerik ekle</button>
+              <button class="btn primary" onclick="autoFillReady(this)" title="Yayına Hazır'daki TÜM kartları otomasyon slot'larına diz">🚀 Hepsini Planla</button>
             </div>
           </div>
+          <div id="queueBanner" style="display:none;padding:10px 14px;background:linear-gradient(135deg, rgba(99,102,241,0.06), rgba(99,102,241,0.02));border:1px solid rgba(99,102,241,0.18);border-radius:10px;margin-bottom:14px;font-size:12.5px;line-height:1.5"></div>
           <div class="queue-board">
             <section class="queue-col" aria-labelledby="qh-draft">
               <div class="queue-head"><h3 id="qh-draft">Onay bekliyor</h3><span id="queueCountDraft">0</span></div>
               <div id="queueDraftList"><div class="empty">Yükleniyor…</div></div>
+            </section>
+            <section class="queue-col" aria-labelledby="qh-planned">
+              <div class="queue-head"><h3 id="qh-planned">Planlandı</h3><span id="queueCountPlanned">0</span></div>
+              <div id="queuePlannedList"><div class="empty">Yükleniyor…</div></div>
             </section>
             <section class="queue-col" aria-labelledby="qh-approval">
               <div class="queue-head"><h3 id="qh-approval">Yayına Hazır</h3><span id="queueCountApproval">0</span></div>
@@ -802,14 +1235,58 @@
 
               <div class="settings-section" data-section="automation">
                 <h2>Otomasyon</h2>
-                <p class="meta">Haftalık haber ve konu üretimi zamanlaması.</p>
-                <div class="setting">
-                  <div><h3>Haber otomasyonu</h3><p id="autoNewsDetail">Yükleniyor…</p></div>
-                  <button class="btn ghost sm" id="runNewsBtn">▶ Şimdi çalıştır</button>
+                <p class="meta">Haftalık üretim zamanlaması. Seçtiğin gün ve saatlerde otomatik kart üretilir; takvimde renkli görünür (🔴 haber · 🔵 konu). Değişiklikler macOS launchd'e yazılır.</p>
+
+                <div class="auto-editor" data-auto="news">
+                  <div class="auto-head">
+                    <div><h3>🔴 Haber otomasyonu</h3><p class="meta">Güncel Japonya haberlerinden kart üretir.</p></div>
+                    <label class="auto-switch"><input type="checkbox" data-auto-enabled><span class="sw" aria-hidden="true"></span><span class="sw-label">Aktif</span></label>
+                  </div>
+                  <div class="auto-body">
+                    <div class="auto-row">
+                      <span class="auto-label">Günler</span>
+                      <div class="day-picker" data-auto-days></div>
+                    </div>
+                    <div class="auto-row">
+                      <span class="auto-label">Saat</span>
+                      <input type="time" class="auto-time" data-auto-time value="09:00" step="300">
+                    </div>
+                    <div class="auto-row">
+                      <span class="auto-label">Yayın</span>
+                      <label class="auto-check"><input type="checkbox" data-auto-publish> Onaya düşürmek yerine otomatik yayınla</label>
+                    </div>
+                    <div class="auto-actions">
+                      <span class="auto-next" data-auto-next>—</span>
+                      <button class="btn ghost sm" id="runNewsBtn">▶ Şimdi çalıştır</button>
+                      <button class="btn primary sm" data-auto-save>Kaydet</button>
+                    </div>
+                  </div>
                 </div>
-                <div class="setting">
-                  <div><h3>Konu otomasyonu (evergreen)</h3><p id="autoTopicDetail">Yükleniyor…</p></div>
-                  <button class="btn ghost sm" id="runTopicBtn">▶ Şimdi çalıştır</button>
+
+                <div class="auto-editor" data-auto="topic">
+                  <div class="auto-head">
+                    <div><h3>🔵 Konu otomasyonu</h3><p class="meta">Evergreen konu havuzundan kart üretir.</p></div>
+                    <label class="auto-switch"><input type="checkbox" data-auto-enabled><span class="sw" aria-hidden="true"></span><span class="sw-label">Aktif</span></label>
+                  </div>
+                  <div class="auto-body">
+                    <div class="auto-row">
+                      <span class="auto-label">Günler</span>
+                      <div class="day-picker" data-auto-days></div>
+                    </div>
+                    <div class="auto-row">
+                      <span class="auto-label">Saat</span>
+                      <input type="time" class="auto-time" data-auto-time value="12:00" step="300">
+                    </div>
+                    <div class="auto-row">
+                      <span class="auto-label">Yayın</span>
+                      <label class="auto-check"><input type="checkbox" data-auto-publish> Onaya düşürmek yerine otomatik yayınla</label>
+                    </div>
+                    <div class="auto-actions">
+                      <span class="auto-next" data-auto-next>—</span>
+                      <button class="btn ghost sm" id="runTopicBtn">▶ Şimdi çalıştır</button>
+                      <button class="btn primary sm" data-auto-save>Kaydet</button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -871,7 +1348,7 @@
     const t = setTimeout(()=>ctl.abort(), timeout);
     const init = {method: opts.method || (opts.json ? "POST" : "GET"), signal: ctl.signal, headers: {}};
     if(opts.json){ init.headers["Content-Type"]="application/json"; init.body=JSON.stringify(opts.json) }
-    if(opts.body){ init.body=opts.body }
+    if(opts.body){ init.body=opts.body; if(typeof opts.body==="string" && !init.headers["Content-Type"]) init.headers["Content-Type"]="application/json" }
     if(opts.headers) Object.assign(init.headers, opts.headers);
     let res;
     try { res = await fetch(url, init) }
@@ -882,7 +1359,13 @@
     try { body = ct.includes("application/json") ? await res.json() : await res.text() }
     catch(e){ body = null }
     if(!res.ok){
-      const detail = (body && body.detail) || (typeof body==="string" ? body : res.statusText) || "İstek başarısız";
+      let detail = (body && body.detail) || (typeof body==="string" ? body : res.statusText) || "İstek başarısız";
+      // FastAPI 422 → detail bir nesne dizisi; okunur metne çevir ([object Object] önle)
+      if(Array.isArray(detail)){
+        detail = detail.map(d => (d && (d.msg || d.message)) || JSON.stringify(d)).join("; ");
+      } else if(detail && typeof detail==="object"){
+        detail = detail.msg || detail.message || JSON.stringify(detail);
+      }
       throw new ApiError(detail, res.status, body);
     }
     return body;
@@ -967,7 +1450,7 @@
   document.getElementById("btnRefresh").addEventListener("click", ()=>pageLoaders[state.page] && pageLoaders[state.page](true));
 
   // ==========================================================================
-  // ACCOUNT STATUS (topbar/sidebar)
+  // ACCOUNT STATUS (sidebar)
   // ==========================================================================
   async function refreshAccount(){
     try {
@@ -1001,12 +1484,14 @@
     document.getElementById("overviewGreeting").textContent = greet + ".";
 
     // fetch in parallel — Promise.allSettled so a single failure doesn't collapse the page
-    const [analytics, queue, approval, hooks] = await Promise.allSettled([
+    const [analytics, queue, approval, hooks, autoCfg] = await Promise.allSettled([
       apiFetch("/api/analytics/overview?days=30"),
       apiFetch("/api/scheduler/queue"),
       apiFetch("/api/approval/list"),
       apiFetch("/api/analytics/hooks"),
+      apiFetch("/api/automation/config"),
     ]);
+    if(autoCfg.status==="fulfilled") state.automation = autoCfg.value;
 
     // lead line
     let leadParts = [];
@@ -1056,10 +1541,21 @@
       document.getElementById("nextPostMeta").textContent = _fmtDate(q.next_scheduled) + (it && it.type ? " · " + it.type : "");
       document.getElementById("nextPostThumb").className = "thumb " + _sceneFor(title);
     } else {
-      document.getElementById("nextPostTitle").textContent = "Planlı yayın yok";
-      document.getElementById("nextPostMeta").textContent = queue.status==="fulfilled" && !queue.value.config_enabled
-        ? "Scheduler config kapalı."
-        : "Kuyrukta bekleyen içerik yok.";
+      // Planlı kuyruk yok → sıradaki otomasyon çalışmasını göster
+      const nextAuto = _nextAutomationRun();
+      if(nextAuto){
+        document.getElementById("nextPostTitle").textContent =
+          (nextAuto.kind==="news" ? "🔴 Haber otomasyonu" : "🔵 Konu otomasyonu");
+        document.getElementById("nextPostMeta").textContent =
+          _fmtDate(nextAuto.at) + (nextAuto.auto_publish ? " · otomatik yayın" : " · onaya düşer");
+        const thumb = document.getElementById("nextPostThumb");
+        if(thumb) thumb.className = "thumb " + _sceneFor(nextAuto.kind);
+      } else {
+        document.getElementById("nextPostTitle").textContent = "Planlı yayın yok";
+        document.getElementById("nextPostMeta").textContent = queue.status==="fulfilled" && !queue.value.config_enabled
+          ? "Scheduler config kapalı."
+          : "Otomasyonu Ayarlar'dan planlayın.";
+      }
     }
 
     // stats
@@ -1069,8 +1565,50 @@
     setStat(1, "TikTok yayınları", a.total_tiktok ?? 0, `+${a.last_30d_tiktok??0} bu ay`, a.daily_tiktok);
     setStat(2, "Hafta ort.", a.avg_per_week_ig ?? 0, (a.recommended_weekly? "hedef "+a.recommended_weekly : ""), null);
     setStat(3, "Kuyruk", (q.pending??0) + (q.ready??0), `${q.done??0} tamamlandı`, null);
-    document.getElementById("navCountQueue").textContent = (q.pending??0) + (q.ready??0);
-    document.getElementById("navCountQueue").hidden = ((q.pending??0)+(q.ready??0))===0;
+    const _nq = document.getElementById("navCountQueue");
+    if(_nq){ _nq.textContent = (q.pending??0) + (q.ready??0); _nq.hidden = ((q.pending??0)+(q.ready??0))===0; }
+
+    // Bugün Planlananlar mini widget
+    const todayCard = document.getElementById("todayCard");
+    const todayList = document.getElementById("todayList");
+    const todayItems = (q.items||[]).filter(i => i._bucket==="today" || i._bucket==="overdue");
+    if(todayItems.length){
+      todayCard.style.display = "";
+      document.getElementById("todayCount").textContent = todayItems.length;
+      todayList.innerHTML = todayItems.map(i => {
+        const name = i.asset_name || i.mp4_name || "?";
+        const title = name.replace(/_\d+\.(jpg|mp4)$/,"").replace(/[_-]/g," ");
+        const kind = i.kind === "reel" ? "🎬" : "🖼";
+        const time = (i.scheduled_at||"").slice(11,16);
+        const cd = _cd(i._seconds_until);
+        const isOverdue = i._bucket === "overdue";
+        return `<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--paper);border-radius:12px">
+          <span style="font-size:16px">${kind}</span>
+          <span style="font-family:ui-monospace,SF Mono,monospace;font-weight:700;color:${isOverdue?'var(--red)':'var(--navy)'};min-width:48px">${time}</span>
+          <span style="flex:1;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(title)}</span>
+          <span style="font-size:12px;color:${isOverdue?'var(--red)':'var(--muted)'};font-weight:600">${cd}</span>
+        </div>`;
+      }).join("");
+    } else {
+      todayCard.style.display = "none";
+    }
+
+    // Bulk plan çağrısı — Yayına Hazır'da planlanmamış kart varsa göster
+    try{
+      const st = await apiFetch("/api/story/list");
+      const cards = st.cards || [];
+      const readyNotQueued = cards.filter(c => c.ready && !c.published).length
+        - (q.items||[]).filter(i => (i.status==="pending"||i.status==="ready") && i.kind==="story").length;
+      const bulkEl = document.getElementById("overviewBulkPlan");
+      if(bulkEl){
+        if(readyNotQueued >= 3){
+          bulkEl.style.display = "";
+          bulkEl.querySelector("[data-count]").textContent = readyNotQueued;
+        } else {
+          bulkEl.style.display = "none";
+        }
+      }
+    }catch(e){}
 
     // upcoming list
     const upcoming = document.getElementById("upcomingList");
@@ -1208,8 +1746,7 @@
     });
     document.getElementById("imgUstTag").addEventListener("input", updatePhoneFromForm);
 
-    document.getElementById("imgAiVisionBtn").addEventListener("click", e => withLoading(e.currentTarget, aiFromImage));
-    document.getElementById("imgAiTextBtn").addEventListener("click", e => withLoading(e.currentTarget, aiFromText));
+    document.getElementById("imgAiRegenerateBtn").addEventListener("click", e => withLoading(e.currentTarget, regenerateStudioAciklama));
     document.getElementById("imgAiCaptionBtn").addEventListener("click", e => withLoading(e.currentTarget, aiCaption));
     document.getElementById("imgBackBtn").addEventListener("click", () => setWizStep(2));
     document.getElementById("imgRenderBtn").addEventListener("click", e => withLoading(e.currentTarget, renderPickerCard));
@@ -1334,9 +1871,9 @@
     setWizStep(3);
     // Aciklama boşsa AI ile hemen üret (vision)
     const aci = document.getElementById("imgAciklama");
-    if(!aci.value.trim()){
-      const b = document.getElementById("imgAiVisionBtn");
-      withLoading(b, aiFromImage);
+    if(aci && !aci.value.trim()){
+      const b = document.getElementById("imgAiVisionBtn") || document.getElementById("regenTextBtn");
+      if(b) withLoading(b, aiFromImage); else aiFromImage();
     }
   }
 
@@ -1364,6 +1901,11 @@
     }catch(e){
       toast(`AI vision hatası: ${e.detail||e.message}`, "err", 5000);
     }
+  }
+  async function regenerateStudioAciklama(){
+    const idx = state.studio.picker.selectedIdx;
+    if(idx===null) return aiFromText();
+    return aiFromImage();
   }
   async function aiFromText(){
     // Görsel seçilmemiş olsa da çalışır — sadece konudan üret
@@ -1717,10 +2259,15 @@
       const t = new Date(); state.calMonth = new Date(t.getFullYear(), t.getMonth(), 1);
     }
     renderCalendar();
-    // ensure queue data is loaded
+    // scheduler kuyruğu + otomasyon config'ini paralel yükle
     try {
-      const q = await apiFetch("/api/scheduler/queue");
-      state.scheduler = q;
+      const [q, auto] = await Promise.allSettled([
+        apiFetch("/api/scheduler/queue"),
+        apiFetch("/api/automation/config"),
+      ]);
+      if(q.status==="fulfilled") state.scheduler = q.value;
+      if(auto.status==="fulfilled") state.automation = auto.value;
+      if(q.status!=="fulfilled") throw (q.reason || new Error("Kuyruk yüklenemedi"));
       renderCalendar();
     } catch(e){
       document.getElementById("calSummary").innerHTML = `<span style="color:var(--red)">Kuyruk yüklenemedi: ${escapeHtml(e.detail||e.message)}</span>`;
@@ -1751,6 +2298,25 @@
       }
     }
 
+    // otomasyon projeksiyonları: bu ayın eşleşen günlerine 🔴/🔵 slot
+    const projByDay = {};
+    if(state.automation){
+      for(const kind of ["news","topic"]){
+        const conf = state.automation[kind];
+        if(!conf || conf.enabled===false) continue;
+        const pdays = (conf.days||[]).map(Number);
+        if(!pdays.length) continue;
+        const hh = _pad2(conf.hour ?? (kind==="news"?9:12)), mm = _pad2(conf.minute ?? 0);
+        for(let dd=1; dd<=last.getDate(); dd++){
+          const dt = new Date(month.getFullYear(), month.getMonth(), dd);
+          if(pdays.includes(dt.getDay())){
+            const key = `${month.getFullYear()}-${_pad2(month.getMonth()+1)}-${_pad2(dd)}`;
+            (projByDay[key] = projByDay[key] || []).push({kind, time:`${hh}:${mm}`, auto_publish:!!conf.auto_publish});
+          }
+        }
+      }
+    }
+
     const today = new Date(); today.setHours(0,0,0,0);
     const html = days.map(cell => {
       if(cell.muted) return `<div class="day muted"><span class="day-num">${cell.d}</span></div>`;
@@ -1759,15 +2325,26 @@
       const k = `${cell.year}-${String(cell.month+1).padStart(2,"0")}-${String(cell.d).padStart(2,"0")}`;
       const items = byDay[k] || [];
       const posts = items.slice(0,2).map(it => {
-        const title = (it.mp4_name || it.name || "İçerik").replace(/\.[^.]+$/,"").replace(/_/g," ");
+        const title = (it.asset_name || it.mp4_name || it.name || "İçerik").replace(/\.[^.]+$/,"").replace(/_/g," ");
         const status = it.status || "pending";
         const colorClass = status==="done" ? "green" : status==="ready" ? "red" : status==="failed" ? "yellow" : "";
         const t = (it.scheduled_at||"").slice(11,16) || "—";
-        return `<div class="cal-post ${colorClass}" title="${escapeHtml(title)}"><div class="thumb ${_sceneFor(title)}"></div>
-          <div><b>${escapeHtml(title.slice(0,22))}</b><small>${t} · ${escapeHtml(status)}</small></div></div>`;
+        const kindIco = (it.kind||"story")==="reel" ? "🎬" : "🖼";
+        const clickAttr = ["pending","ready","failed"].includes(status)
+          ? `onclick="event.stopPropagation(); rescheduleQueueEntry('${escapeHtml(it.id)}','${escapeHtml(it.scheduled_at||"")}')" style="cursor:pointer"`
+          : "";
+        return `<div class="cal-post ${colorClass}" ${clickAttr} title="${escapeHtml(title)} — tıkla: yeniden planla"><div class="thumb ${_sceneFor(title)}"></div>
+          <div><b>${kindIco} ${escapeHtml(title.slice(0,20))}</b><small>${t} · ${escapeHtml(status)}</small></div></div>`;
       }).join("");
       const extra = items.length>2 ? `<div class="cal-post" style="background:#efece3;justify-content:center"><b style="grid-column:1/-1;text-align:center">+${items.length-2} daha</b></div>` : "";
-      return `<div class="day${isToday?" today":""}"><span class="day-num">${cell.d}</span>${posts}${extra}</div>`;
+      // otomasyon projeksiyon slotları (gerçek yayın yoksa/az ise göster)
+      const projItems = (projByDay[k] || []).slice(0, Math.max(0, 2 - items.length));
+      const projHtml = projItems.map(p => {
+        const label = p.kind==="news" ? "🔴 Haber" : "🔵 Konu";
+        return `<div class="cal-post projected ${p.kind}" title="Otomasyon: ${label} @ ${p.time}${p.auto_publish?' · otomatik yayın':' · onaya düşer'}">
+          <div><b>${label}</b><small>${p.time} · otomasyon</small></div></div>`;
+      }).join("");
+      return `<div class="day${isToday?" today":""}"><span class="day-num">${cell.d}</span>${posts}${projHtml}${extra}</div>`;
     }).join("");
     document.getElementById("calendarDays").innerHTML = html;
     document.getElementById("calSummary").textContent = state.scheduler
@@ -1885,7 +2462,15 @@
         <div class="asset-info">
           <b>${escapeHtml(it.title || it.name)}</b>
           <span class="meta">${escapeHtml(dateStr)} · ${it.kind==="reel"?"Reel":"1080×1350"}</span>
-          <div class="asset-foot">${statusTag}<span aria-hidden="true">•••</span></div>
+          <div class="asset-foot">
+            ${statusTag}
+            <span style="display:flex;gap:10px">
+              ${it.kind==="story" && it.status!=="published"
+                ? `<button class="link" onclick="event.stopPropagation(); publishStory('${escapeHtml(it.name)}', this)" style="color:var(--green);font-weight:700;font-size:10px;letter-spacing:.14em;text-transform:uppercase">Yayınla</button>`
+                : ``}
+              <button class="link" onclick="event.stopPropagation(); deleteStory('${escapeHtml(it.name)}', this)" style="color:var(--shu);font-weight:700;font-size:10px;letter-spacing:.14em;text-transform:uppercase">Sil</button>
+            </span>
+          </div>
         </div>
       </article>`;
     }).join("");
@@ -1900,7 +2485,12 @@
     state.libFilter = chip.dataset.lib;
     renderLibrary();
   });
-  document.getElementById("libRefresh").addEventListener("click", e => withLoading(e.currentTarget, () => pageLoaders.library(true)));
+  {
+    const libRefreshBtn = document.getElementById("libRefresh");
+    if(libRefreshBtn){
+      libRefreshBtn.addEventListener("click", e => withLoading(e.currentTarget, () => pageLoaders.library(true)));
+    }
+  }
 
   window.openLibItem = async function(name, kind){
     if(kind==="story"){
@@ -1931,6 +2521,7 @@
             <div class="edit-field">
               <label for="editAciklama">Kart üstü metin</label>
               <textarea id="editAciklama" ${editable?"":"disabled"} maxlength="280" style="min-height:100px">${escapeHtml(meta.aciklama)}</textarea>
+              ${editable ? `<div style="display:flex;justify-content:flex-end;margin-top:6px"><button class="btn ghost sm" onclick="regenerateStoryAciklama('${escapeHtml(card.file)}', this)">↻ Açıklamayı yeniden üret</button></div>` : ""}
             </div>
             <div class="edit-field">
               <label for="editUstTag">Üst tag (küçük sarı rozet)</label>
@@ -1939,6 +2530,7 @@
             <div class="edit-field">
               <label for="editCaption">Instagram caption</label>
             <textarea id="editCaption" ${editable?"":"disabled"} style="min-height:140px" placeholder="Post açıklaması + hashtag'ler">${escapeHtml(meta.post_caption || fallbackInstagramCaption(meta.aciklama, meta.baslik || card.file))}</textarea>
+              ${editable ? `<div style="display:flex;justify-content:flex-end;margin-top:6px"><button class="btn ghost sm" onclick="regenerateStoryCaption('${escapeHtml(card.file)}', this)">↻ Caption yeniden üret</button></div>` : ""}
             </div>
           </div>
         </div>
@@ -1980,6 +2572,62 @@
         closeModal();
         pageLoaders.library(true);
       } catch(e){ toast(e.detail || e.message, "err", 5000) }
+    });
+  };
+
+  function topicFromAssetName(name){
+    return String(name||"")
+      .replace(/_\d+\.(jpg|mp4)$/i,"")
+      .replace(/\.[^.]+$/,"")
+      .replace(/[_-]+/g," ")
+      .trim();
+  }
+
+  window.regenerateStoryAciklama = async function(file, btn){
+    const aciklamaEl = document.getElementById("editAciklama");
+    const topicSeed = (aciklamaEl?.value || "").trim().split(/[.!?]/)[0] || topicFromAssetName(file);
+    if(!topicSeed || topicSeed.length < 2){
+      toast("Yeniden üretim için konu bulunamadı.", "err");
+      return;
+    }
+    await withLoading(btn, async () => {
+      try{
+        const res = await apiFetch("/api/story/ai_from_text", {
+          json: { konu: topicSeed },
+          timeout: 60000,
+        });
+        const nextText = (res.subtitle || res.aciklama || res.text || "").trim();
+        if(!nextText){
+          toast("Açıklama üretilemedi.", "err");
+          return;
+        }
+        aciklamaEl.value = nextText;
+        toast("Açıklama yeniden üretildi. Kaydetmeyi unutma.", "ok", 2600);
+      }catch(e){
+        toast(`Açıklama üretimi başarısız: ${e.detail||e.message}`, "err", 5000);
+      }
+    });
+  };
+
+  window.regenerateStoryCaption = async function(file, btn){
+    const aciklama = (document.getElementById("editAciklama")?.value || "").trim();
+    if(aciklama.length < 5){
+      toast("Önce kart metnini yaz veya üret.", "err");
+      return;
+    }
+    const captionEl = document.getElementById("editCaption");
+    await withLoading(btn, async () => {
+      try{
+        const res = await apiFetch("/api/story/expand_caption", {
+          json: { baslik: topicFromAssetName(file), aciklama },
+          timeout: 45000,
+        });
+        captionEl.value = (res.caption || res.text || "").trim() || fallbackInstagramCaption(aciklama, topicFromAssetName(file));
+        toast("Caption yeniden üretildi. Kaydetmeyi unutma.", "ok", 2600);
+      }catch(e){
+        captionEl.value = fallbackInstagramCaption(aciklama, topicFromAssetName(file));
+        toast(`Caption üretimi başarısız: ${e.detail||e.message}`, "err", 5000);
+      }
     });
   };
 
@@ -2036,8 +2684,8 @@
   // QUEUE (kanban)
   // ==========================================================================
   pageLoaders.queue = async function(force=false){
-    for(const id of ["queueDraftList","queueApprovalList","queueScheduledList"])
-      document.getElementById(id).innerHTML = `<article class="queue-item"><div class="thumb skeleton" style="height:135px"></div><b class="skeleton">···</b></article>`;
+    for(const id of ["queueDraftList","queuePlannedList","queueApprovalList","queueScheduledList"])
+      document.getElementById(id).innerHTML = `<article class="queue-item"><div class="thumb skeleton" style="height:110px"></div><b class="skeleton">···</b></article>`;
     const [stories, approval, queue] = await Promise.allSettled([
       apiFetch("/api/story/list"),
       apiFetch("/api/approval/list"),
@@ -2045,8 +2693,12 @@
     ]);
     const allCards = stories.status==="fulfilled" ? (stories.value.cards||[]) : [];
     const approvals = approval.status==="fulfilled" ? (approval.value.items||[]) : [];
+    const queueData = queue.status==="fulfilled" ? queue.value : {items:[]};
+    const plannedItems = (queueData.items||[]).filter(i => ["pending","ready"].includes(i.status));
+    // Planlanmış asset'lerin dosya adları (double-render'ı önlemek için)
+    const plannedNames = new Set(plannedItems.map(i => i.asset_name || i.mp4_name || ""));
     const legacyWaiting = allCards.filter(c => !c.ready && !c.published);
-    const readyCards = allCards.filter(c => c.ready && !c.published);
+    const readyCards = allCards.filter(c => c.ready && !c.published && !plannedNames.has(c.file));
     const publishedCards = allCards.filter(c => c.published);
     const waitingCards = [
       ...approvals.map(a => ({
@@ -2083,7 +2735,7 @@
             <span>${escapeHtml(when)}</span>
             <span>
               <button class="link" onclick="event.stopPropagation(); rejectWaiting('${escapeHtml(c.file)}', ${c.pending}, this)">Reddet</button>
-              <button class="link" onclick="event.stopPropagation(); approvalMarkReady('${escapeHtml(c.file)}', this)">Yayına hazır →</button>
+              <button class="link" onclick="event.stopPropagation(); scheduleApprovalCard('${escapeHtml(c.file)}', this)" style="color:#6366f1;font-weight:700">🗓 Onayla + Planla</button>
             </span>
           </footer>
         </article>`;
@@ -2091,7 +2743,45 @@
     }
     document.getElementById("queueCountDraft").textContent = waitingCards.length;
 
-    // 2) Yayına Hazır — kullanıcı yayınlamadan önceki son aşama
+    // 2) Planlandı — scheduler kuyruğundaki pending/ready öğeler (kart + reel)
+    const plannedEl = document.getElementById("queuePlannedList");
+    if(!plannedItems.length){
+      plannedEl.innerHTML = `<div class="empty" style="padding:20px 8px"><p>Planlanmış içerik yok.<br><span style="font-size:11.5px;color:var(--muted)">Onay kartından "🗓 Planla" ile ekle.</span></p></div>`;
+    } else {
+      // Bucket'a göre grup (overdue → today → tomorrow → this_week → later)
+      const bucketOrder = ["overdue","today","tomorrow","this_week","later","unknown"];
+      const bucketLabels = {overdue:"⚠ Gecikmiş", today:"Bugün", tomorrow:"Yarın",
+                            this_week:"Bu hafta", later:"Sonra", unknown:"?"};
+      plannedItems.sort((a,b)=>(a.scheduled_at||"").localeCompare(b.scheduled_at||""));
+      plannedEl.innerHTML = plannedItems.map(i => {
+        const name = i.asset_name || i.mp4_name || "?";
+        const title = name.replace(/_\d+\.(jpg|mp4)$/,"").replace(/[_-]/g," ");
+        const kind = i.kind === "reel" ? "🎬 Reel" : "🖼 Kart";
+        const stColor = {pending:"var(--amber)",ready:"var(--green)",uploading:"var(--blue)",failed:"var(--red)"}[i.status]||"var(--muted)";
+        const bucket = bucketLabels[i._bucket] || "";
+        const time = (i.scheduled_at||"").slice(11,16);
+        const day = _fmtDateTR(i.scheduled_at||"");
+        const cd = _cd(i._seconds_until);
+        // Story mi reel mi — thumbnail URL
+        const isStory = (i.kind||"story") === "story";
+        const thumbUrl = isStory ? `/media/stories/ready/${encodeURIComponent(name)}` : "";
+        return `<article class="queue-item" data-id="${escapeHtml(i.id)}">
+          ${thumbUrl ? `<div class="thumb img"><img src="${thumbUrl}" loading="lazy" alt=""></div>` : `<div class="thumb">${kind}</div>`}
+          <b>${escapeHtml(title)}</b>
+          <p class="row-meta"><b style="color:#6366f1">${bucket}</b> · ${day} <em style="color:var(--muted)">(${cd})</em></p>
+          <footer>
+            <span style="color:${stColor};font-weight:700">● ${i.status}</span>
+            <span>
+              <button class="link" onclick="rescheduleQueueEntry('${escapeHtml(i.id)}','${escapeHtml(i.scheduled_at||"")}')">✏️ Değiştir</button>
+              <button class="link" onclick="cancelEntry('${escapeHtml(i.id)}', this)">İptal</button>
+            </span>
+          </footer>
+        </article>`;
+      }).join("");
+    }
+    document.getElementById("queueCountPlanned").textContent = plannedItems.length;
+
+    // 3) Yayına Hazır — planlanmamış ama hazır (kullanıcı hemen yayınlayabilir)
     const apprEl = document.getElementById("queueApprovalList");
     if(!readyCards.length){
       apprEl.innerHTML = `<div class="empty" style="padding:20px 8px"><p>Yayına hazır içerik yok.</p></div>`;
@@ -2103,7 +2793,10 @@
           <p class="row-meta">${c.has_caption?"Caption hazır":"Caption yok"} · Yayına Hazır</p>
           <footer>
             <span>Kaynak: ${escapeHtml(c.source||"manuel")}</span>
-            <button class="link" onclick="event.stopPropagation(); publishReady('${escapeHtml(c.file)}', this)">Instagram'da yayınla →</button>
+            <span>
+              <button class="link" onclick="event.stopPropagation(); scheduleReadyCard('${escapeHtml(c.file)}', this)" style="color:#6366f1;font-weight:700">🗓 Planla</button>
+              <button class="link" onclick="event.stopPropagation(); publishReady('${escapeHtml(c.file)}', this)">Hemen yayınla</button>
+            </span>
           </footer>
         </article>`).join("");
     }
@@ -2128,8 +2821,12 @@
       }).join("");
     }
     document.getElementById("queueCountScheduled").textContent = publishedCards.length;
-    document.getElementById("navCountQueue").textContent = waitingCards.length + readyCards.length;
-    document.getElementById("navCountQueue").hidden = (waitingCards.length + readyCards.length)===0;
+    const _navQ = document.getElementById("navCountQueue");
+    if(_navQ){
+      const _t = waitingCards.length + plannedItems.length + readyCards.length;
+      _navQ.textContent = _t;
+      _navQ.hidden = _t===0;
+    }
 
     // automation label
     const autoBtn = document.getElementById("queueAutomation");
@@ -2137,6 +2834,22 @@
       const on = queue.value.config_enabled;
       autoBtn.textContent = on ? "Otomasyon: Açık ●" : "Otomasyon: Kapalı ○";
       autoBtn.style.color = on ? "var(--green)" : "var(--muted)";
+    }
+
+    // Banner — durum + aksiyon önerisi (kısa)
+    const banner = document.getElementById("queueBanner");
+    if(banner){
+      const dl = queueData.daily_limit || "?";
+      const dt = (queueData.default_times||[]).join(" & ") || "—";
+      const autoUp = queueData.auto_upload;
+      const parts = [];
+      if(readyCards.length >= 3){
+        parts.push(`<b>💡 ${readyCards.length} kart planlanmayı bekliyor</b> — sağdaki <b>"🚀 Hepsini Planla"</b> ile günde ${dl} adet, ${dt} saatlerinde otomatik dizilir.`);
+      } else {
+        parts.push(`<b>Akış:</b> Onay Bekliyor → 🗓 Planla → Planlandı → ${autoUp?"otomatik yayın ✓":"'Yayına Hazır'a düşer, elle yayın"}. <span style="color:var(--muted)">Limit ${dl}/gün · ${dt}</span>`);
+      }
+      banner.innerHTML = parts.join("");
+      banner.style.display = "";
     }
 
     // (Re)bind drag-and-drop
@@ -2256,6 +2969,168 @@
   };
 
   // ==========================================================================
+  // DATETIME PICKER MODAL — Buffer-tarzı planla arayüzü
+  // ==========================================================================
+  function pickScheduleTime(opts={}){
+    const title = opts.title || "🗓 Yayın Zamanı Seç";
+    const subtitle = opts.subtitle || "Europe/Istanbul saatiyle. Boş bırakırsan sıradaki uygun slot otomatik atanır.";
+    return new Promise(resolve => {
+      const pad = n => String(n).padStart(2,"0");
+      const now = new Date();
+      const t2000 = new Date(now); t2000.setHours(20,0,0,0);
+      const tomorrow9 = new Date(now); tomorrow9.setDate(tomorrow9.getDate()+1); tomorrow9.setHours(9,0,0,0);
+      const tomorrow20 = new Date(now); tomorrow20.setDate(tomorrow20.getDate()+1); tomorrow20.setHours(20,0,0,0);
+      const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      const presets = [];
+      if(t2000 > now) presets.push({label:"Bugün 20:00", val: fmt(t2000)});
+      presets.push({label:"Yarın 09:00", val: fmt(tomorrow9)});
+      presets.push({label:"Yarın 20:00", val: fmt(tomorrow20)});
+
+      const back = document.createElement("div");
+      back.className = "sched-back";
+      back.innerHTML = `
+        <div class="sched-modal">
+          <h3>${title}</h3>
+          <p class="sched-sub">${subtitle}</p>
+          <div class="sched-presets">
+            ${presets.map(p=>`<button class="sched-preset" data-val="${p.val}">${p.label}</button>`).join("")}
+            <button class="sched-preset sched-auto" data-val="">⚡ Sıradaki slot</button>
+          </div>
+          <label class="sched-label">Özel tarih/saat:</label>
+          <input type="datetime-local" class="sched-input" value="${fmt(tomorrow9)}" step="60" />
+          <div class="sched-actions">
+            <button class="btn ghost sc-cancel">İptal</button>
+            <button class="btn primary sc-confirm">🗓 Planla</button>
+          </div>
+        </div>`;
+      document.body.appendChild(back);
+      const inp = back.querySelector(".sched-input");
+      const close = v => { back.remove(); document.removeEventListener("keydown", esc); resolve(v); };
+      const esc = e => { if(e.key==="Escape") close(null); };
+      document.addEventListener("keydown", esc);
+      back.addEventListener("click", e => { if(e.target===back) close(null); });
+      back.querySelector(".sc-cancel").onclick = () => close(null);
+      back.querySelector(".sc-confirm").onclick = () => {
+        const v = (inp.value||"").trim();
+        close(v ? v + (v.length===16 ? ":00" : "") : "");
+      };
+      back.querySelectorAll(".sched-preset").forEach(b => {
+        b.onclick = () => {
+          const v = b.dataset.val;
+          close(v ? (v + (v.length===16 ? ":00" : "")) : "");
+        };
+      });
+      setTimeout(()=>inp.focus(), 60);
+    });
+  }
+
+  // Onay bekleyen kartı Planla (ready'e taşı + scheduler queue'ya at)
+  window.scheduleApprovalCard = async function(name, btn){
+    const at = await pickScheduleTime({
+      title:"🗓 Onayla + Planla",
+      subtitle:"Bu kart onaylanır ve seçtiğin zamanda otomatik yayınlanır."
+    });
+    if(at === null) return;
+    await withLoading(btn, async () => {
+      try {
+        const payload = {name};
+        if(at) payload.scheduled_at = at;
+        const r = await apiFetch("/api/scheduler/schedule_story", {
+          method:"POST", json: payload
+        });
+        const when = (r && r.entry && r.entry.scheduled_at || "").replace("T"," ");
+        toast(when ? `🗓 Planlandı: ${when}` : "🗓 Planlandı", "ok", 4000);
+        pageLoaders.queue(true);
+      } catch(e){ toast(e.detail || e.message, "err", 6000) }
+    });
+  };
+
+  // Ready'deki kartı Planla
+  window.scheduleReadyCard = async function(name, btn){
+    const at = await pickScheduleTime({title:"🗓 Kartı Planla"});
+    if(at === null) return;
+    await withLoading(btn, async () => {
+      try {
+        const payload = {name};
+        if(at) payload.scheduled_at = at;
+        const r = await apiFetch("/api/scheduler/schedule_story", {
+          method:"POST", json: payload
+        });
+        const when = (r && r.entry && r.entry.scheduled_at || "").replace("T"," ");
+        toast(when ? `🗓 Planlandı: ${when}` : "🗓 Planlandı", "ok", 4000);
+        pageLoaders.queue(true);
+      } catch(e){ toast(e.detail || e.message, "err", 6000) }
+    });
+  };
+
+  window.rescheduleQueueEntry = async function(entryId, currentAt){
+    const at = await pickScheduleTime({
+      title:"✏️ Yeniden Planla",
+      subtitle:`Mevcut zaman: ${(currentAt||"").replace("T"," ") || "—"}`
+    });
+    if(at === null || !at) return;
+    try {
+      await apiFetch(`/api/scheduler/reschedule/${encodeURIComponent(entryId)}`, {
+        method:"POST", json: {scheduled_at: at}
+      });
+      toast("✓ Yeniden planlandı", "ok");
+      pageLoaders.queue(true);
+    } catch(e){ toast(e.detail || e.message, "err") }
+  };
+
+  function _fmtDateTR(iso){
+    if(!iso) return "";
+    const [d, t] = iso.split("T");
+    const [Y,M,D] = d.split("-");
+    const [hh,mm] = (t||"").split(":");
+    const ay = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
+    return `${parseInt(D)} ${ay[parseInt(M)-1]} ${hh}:${mm}`;
+  }
+  function _cd(secs){
+    if(secs == null) return "";
+    if(secs < 0){
+      const m = Math.floor(-secs/60);
+      if(m < 60) return `${m} dk gecikmeli`;
+      if(m < 1440) return `${Math.floor(m/60)} sa gecikmeli`;
+      return `${Math.floor(m/1440)} gün gecikmeli`;
+    }
+    if(secs < 3600) return `${Math.max(1, Math.floor(secs/60))} dk sonra`;
+    if(secs < 86400) return `${Math.floor(secs/3600)} sa sonra`;
+    return `${Math.floor(secs/86400)} gün sonra`;
+  }
+
+  // 🚀 Yayına Hazır'daki tüm kartları scheduler slot'larına diz
+  window.autoFillReady = async function(btn){
+    if(!confirm("Yayına Hazır klasöründeki TÜM planlanmamış kartları, otomasyonun günlük limit + saat ayarlarına göre sıradan slot'lara dizmek ister misin?\n\nMevcut kuyruğu bozmaz — sadece planlanmamış olanları ekler.")) return;
+    await withLoading(btn, async () => {
+      try {
+        const r = await apiFetch("/api/scheduler/auto_fill_ready", {method:"POST", timeout:60000});
+        if(r.scheduled === 0){
+          toast(r.message || "Zaten hepsi planlı.", "info", 4000);
+        } else {
+          const times = (r.default_times||[]).join(", ");
+          toast(`🚀 ${r.scheduled} kart planlandı! Günlük ${r.daily_limit} yayın · ${times}`, "ok", 5000);
+        }
+        if(r.failed) toast(`${r.failed} kart eklenemedi.`, "warn", 4000);
+        pageLoaders.queue(true);
+        if(state.page === "calendar") pageLoaders.calendar();
+      } catch(e){ toast(e.detail || e.message, "err", 6000) }
+    });
+  };
+
+  // ⚡ Zamanı gelmiş girdileri şimdi işle (background thread'i beklemeden)
+  window.runSchedulerNow = async function(btn){
+    await withLoading(btn, async () => {
+      try {
+        const r = await apiFetch("/api/scheduler/run", {method:"POST", timeout:60000});
+        toast(r.processed > 0 ? `⚡ ${r.processed} girdi işlendi.` : "Zamanı gelen yok.",
+              r.processed > 0 ? "ok" : "info", 3500);
+        pageLoaders.queue(true);
+      } catch(e){ toast(e.detail || e.message, "err") }
+    });
+  };
+
+  // ==========================================================================
   // ANALYTICS
   // ==========================================================================
   pageLoaders.analytics = async function(force=false){
@@ -2354,6 +3229,107 @@
     document.querySelectorAll(".settings-section").forEach(s => s.classList.toggle("active", s.dataset.section===target));
   }));
 
+  // ==========================================================================
+  // OTOMASYON EDİTÖRÜ (ayarlar) + takvim/sıradaki için projeksiyon
+  // ==========================================================================
+  function _pad2(n){ return String(n).padStart(2,"0"); }
+  // launchd Weekday: 0=Pazar … 6=Cumartesi. Pazartesi-öncelikli gösterim:
+  const AUTO_DAY_ORDER = [
+    {lbl:"Pzt",v:1},{lbl:"Sal",v:2},{lbl:"Çar",v:3},{lbl:"Per",v:4},
+    {lbl:"Cum",v:5},{lbl:"Cmt",v:6},{lbl:"Paz",v:0},
+  ];
+  // Bir otomasyon config'i için sıradaki N çalışma zamanı (Date[])
+  function _autoNextRuns(conf, count=1){
+    if(!conf || conf.enabled===false) return [];
+    const days = (conf.days||[]).map(Number);
+    if(!days.length) return [];
+    const hour = conf.hour ?? 9, minute = conf.minute ?? 0;
+    const now = new Date();
+    const out = [];
+    for(let i=0; i<70 && out.length<count; i++){
+      const c = new Date(now.getFullYear(), now.getMonth(), now.getDate()+i, hour, minute, 0, 0);
+      if(days.includes(c.getDay()) && c > now) out.push(c);
+    }
+    return out;
+  }
+  // Tüm otomasyonlar içinde en yakın çalışma (overview "sıradaki post")
+  function _nextAutomationRun(){
+    const a = state.automation; if(!a) return null;
+    let best = null;
+    for(const kind of ["news","topic"]){
+      const conf = a[kind]; const runs = _autoNextRuns(conf, 1);
+      if(runs.length){
+        const cand = {kind, at: runs[0], auto_publish: !!conf.auto_publish};
+        if(!best || cand.at < best.at) best = cand;
+      }
+    }
+    return best;
+  }
+  function _readAutoEditor(ed){
+    const days = [...ed.querySelectorAll("[data-auto-days] button.on")].map(b=>Number(b.dataset.day));
+    const [hh,mm] = (ed.querySelector("[data-auto-time]").value||"09:00").split(":").map(Number);
+    return {
+      enabled: ed.querySelector("[data-auto-enabled]").checked,
+      days, hour: hh||0, minute: mm||0,
+      auto_publish: ed.querySelector("[data-auto-publish]").checked,
+    };
+  }
+  function _updateAutoNext(ed){
+    const conf = _readAutoEditor(ed);
+    const el = ed.querySelector("[data-auto-next]");
+    if(!el) return;
+    if(!conf.enabled){ el.innerHTML = "○ Kapalı"; return; }
+    if(!conf.days.length){ el.innerHTML = "Gün seçilmedi"; return; }
+    const runs = _autoNextRuns(conf, 1);
+    el.innerHTML = runs.length
+      ? `Sıradaki: <b>${_fmtDate(runs[0])}</b>${conf.auto_publish?" · otomatik yayın":" · onaya düşer"}`
+      : "—";
+  }
+  function renderAutomationEditors(cfg){
+    for(const kind of ["news","topic"]){
+      const conf = (cfg && cfg[kind]) || {};
+      const ed = document.querySelector(`.auto-editor[data-auto="${kind}"]`);
+      if(!ed) continue;
+      const en = ed.querySelector("[data-auto-enabled]");
+      en.checked = !!conf.enabled;
+      ed.classList.toggle("on", en.checked);
+      const dp = ed.querySelector("[data-auto-days]");
+      const sel = new Set((conf.days||[]).map(Number));
+      dp.innerHTML = AUTO_DAY_ORDER.map(o =>
+        `<button type="button" data-day="${o.v}" class="${sel.has(o.v)?"on":""}">${o.lbl}</button>`).join("");
+      const h = conf.hour ?? (kind==="news"?9:12), m = conf.minute ?? 0;
+      ed.querySelector("[data-auto-time]").value = `${_pad2(h)}:${_pad2(m)}`;
+      ed.querySelector("[data-auto-publish]").checked = !!conf.auto_publish;
+      _updateAutoNext(ed);
+    }
+  }
+  async function saveAutomation(kind, btn){
+    const ed = document.querySelector(`.auto-editor[data-auto="${kind}"]`);
+    if(!ed) return;
+    const conf = _readAutoEditor(ed);
+    if(conf.enabled && !conf.days.length){ toast("En az bir gün seç.", "err"); return; }
+    await withLoading(btn, async () => {
+      try {
+        const r = await apiFetch("/api/automation/config", {json:{[kind]: conf}});
+        state.automation = r.config || state.automation;
+        toast(`✓ ${kind==="news"?"Haber":"Konu"} otomasyonu kaydedildi`, "ok");
+        renderAutomationEditors(state.automation);
+      } catch(err){ toast(err.detail || err.message, "err", 6000); }
+    });
+  }
+  // Editör etkileşimleri — DOM baştan mevcut olduğu için bir kez bağlanır
+  document.querySelectorAll(".auto-editor").forEach(ed => {
+    ed.addEventListener("click", e => {
+      const dayBtn = e.target.closest("[data-auto-days] button");
+      if(dayBtn){ dayBtn.classList.toggle("on"); _updateAutoNext(ed); }
+    });
+    const en = ed.querySelector("[data-auto-enabled]");
+    en.addEventListener("change", () => { ed.classList.toggle("on", en.checked); _updateAutoNext(ed); });
+    ed.querySelector("[data-auto-time]").addEventListener("change", () => _updateAutoNext(ed));
+    ed.querySelector("[data-auto-publish]").addEventListener("change", () => _updateAutoNext(ed));
+    ed.querySelector("[data-auto-save]").addEventListener("click", e => saveAutomation(ed.dataset.auto, e.currentTarget));
+  });
+
   pageLoaders.settings = async function(force=false){
     const [ig, tt, sched, auto] = await Promise.allSettled([
       apiFetch("/api/instagram/graph_status"),
@@ -2398,14 +3374,8 @@
       document.getElementById("schedThreadTag").className = "tag " + (s.config_enabled ? "green" : "red");
     }
     if(auto.status==="fulfilled"){
-      const a = auto.value;
-      state.automation = a;
-      const news = a.news || {};
-      const topic = a.topic || {};
-      document.getElementById("autoNewsDetail").textContent =
-        `Günler: ${(news.days||[]).map(d => ["Pzt","Sal","Çar","Per","Cum","Cmt","Paz"][d-1]||d).join(",")||"—"} · Saat: ${news.time || "—"}`;
-      document.getElementById("autoTopicDetail").textContent =
-        `Günler: ${(topic.days||[]).map(d => ["Pzt","Sal","Çar","Per","Cum","Cmt","Paz"][d-1]||d).join(",")||"—"} · Saat: ${topic.time || "—"}`;
+      state.automation = auto.value;
+      renderAutomationEditors(auto.value);
     }
 
     // public base
@@ -2438,7 +3408,7 @@
   }));
   document.getElementById("runTopicBtn").addEventListener("click", e => withLoading(e.currentTarget, async () => {
     try {
-      await apiFetch("/api/automation/run_now?kind=topic", {method:"POST", timeout:120000});
+      await apiFetch("/api/automation/run_now", {method:"POST", json:{kind:"topic"}, timeout:120000});
       toast("Konu otomasyonu başlatıldı.", "ok");
     } catch(err){ toast(err.detail || err.message, "err") }
   }));
@@ -2450,7 +3420,7 @@
   refreshAccount();
   const initial = location.hash.slice(1);
   const validPages = ["overview","studio","calendar","library","queue","analytics","settings"];
-  openPage(validPages.includes(initial) ? initial : "overview", false);
+  openPage(validPages.includes(initial) ? initial : "queue", false);
 
   // background refresh of overview every 60s while user is idle on it
   setInterval(() => {

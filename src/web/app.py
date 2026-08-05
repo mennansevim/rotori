@@ -18,6 +18,7 @@ from src.config import Config, load_config
 from src.utils.logging import get_logger
 from src.web import dependencies as deps
 from src.web.jobs import JobManager
+from src.web.routers import dashboard as dashboard_router
 from src.web.routers import system as system_router
 
 log = get_logger("web")
@@ -38,6 +39,10 @@ app = FastAPI(title="Japan Reels Maker", docs_url=None, redoc_url=None)
 # system.py: /api/version, /api/status, /api/logs — sözleşmesi contract test
 # ile kilitlidir (tests/test_contracts_system.py).
 app.include_router(system_router.router)
+
+# dashboard.py: /api/dashboard/* — yeni tasarım UI'ının okuduğu toplu durum.
+# Salt-okunur aggregation; yazma işlemleri mevcut endpoint'lerden yürür.
+app.include_router(dashboard_router.router)
 
 
 # Üretilen medya + kareler (StaticFiles HTTP Range destekler → video seek çalışır)
@@ -176,16 +181,19 @@ class AIFromTextRequest(BaseModel):
 # ---------------- endpoint'ler ----------------
 @app.get("/")
 def index(request: Request) -> FileResponse:
-    # Feature flag: ?ui=new veya ?ui=studio yeni tasarımı sunar (docs/DECISIONS.md — Karar 10).
-    # Yerleşim kalıcı hale gelince /'ye default olur; şimdilik opt-in.
-    ui = request.query_params.get("ui", "").lower()
-    if ui in {"new", "studio"}:
+    """Ana sayfa: yeni İçerik Stüdyosu dashboard'u.
+
+    `?view=widget` ile açılırsa eski Stüdyo arayüzü (studio.html) döner —
+    masaüstü widget'ı bu moda bağlıdır, bozulmaması için korunur.
+    """
+    if request.query_params.get("view") == "widget":
         return FileResponse(
             str(STATIC_DIR / "studio.html"),
-            headers={"Cache-Control": "no-cache"},
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate",
+                     "Pragma": "no-cache", "Expires": "0"},
         )
     return FileResponse(
-        str(STATIC_DIR / "index.html"),
+        str(STATIC_DIR / "dashboard" / "index.html"),
         headers={"Cache-Control": "no-cache, no-store, must-revalidate",
                  "Pragma": "no-cache", "Expires": "0"},
     )
@@ -193,7 +201,7 @@ def index(request: Request) -> FileResponse:
 
 @app.get("/studio")
 def studio_index() -> FileResponse:
-    """Yeni içerik stüdyosu arayüzü (design spec — 2026-07-30)."""
+    """Eski Stüdyo arayüzü — widget + geriye dönük uyumluluk için tutuluyor."""
     return FileResponse(
         str(STATIC_DIR / "studio.html"),
         headers={"Cache-Control": "no-cache"},
@@ -1264,7 +1272,8 @@ def approval_mark_ready(name: str) -> dict[str, Any]:
     dst = _story_ready_dir() / name
     if not src.exists():
         if dst.exists():
-            return {"ok": True, "already_ready": True}
+            return {"ok": True, "already_ready": True,
+                    "queue_sync": _auto_fill_ready_impl()}
         raise HTTPException(status_code=404, detail="Onay bekleyen kart bulunamadı.")
 
     try:
@@ -1276,7 +1285,8 @@ def approval_mark_ready(name: str) -> dict[str, Any]:
     except OSError as exc:
         raise HTTPException(status_code=500,
                             detail=f"Yayına Hazır'a taşınamadı: {exc}") from exc
-    return {"ok": True, "path": str(dst.relative_to(cfg.project_root))}
+    return {"ok": True, "path": str(dst.relative_to(cfg.project_root)),
+            "queue_sync": _auto_fill_ready_impl()}
 
 
 @app.post("/api/approval/approve/{name}")
@@ -1619,7 +1629,12 @@ def automation_config_post(req: AutomationConfigRequest) -> dict[str, Any]:
                 data[k][key] = incoming[key]
     _save_auto_cfg(data)
     notes = _sync_launchd(data)
-    return {"ok": True, "config": data, "launchd": notes}
+    from src import scheduler as sched_mod
+    queue_file = cfg.scheduler.queue_file if cfg.scheduler else "data/scheduler_queue.json"
+    slot_sync = sched_mod.sync_automation_slots(cfg.project_root, data, queue_file)
+    queue_sync = _auto_fill_ready_impl()
+    queue_sync.update(slot_sync)
+    return {"ok": True, "config": data, "launchd": notes, "queue_sync": queue_sync}
 
 
 class RunNowRequest(BaseModel):
@@ -1930,7 +1945,8 @@ def story_mark_ready(name: str) -> dict[str, Any]:
     if not src.exists():
         # zaten ready'de mi?
         if (cfg.stories.output_dir / "ready" / name).exists():
-            return {"ok": True, "already_ready": True}
+            return {"ok": True, "already_ready": True,
+                    "queue_sync": _auto_fill_ready_impl()}
         raise HTTPException(status_code=404, detail="Kart bulunamadı.")
 
     dst = _story_ready_dir() / name
@@ -1942,7 +1958,8 @@ def story_mark_ready(name: str) -> dict[str, Any]:
         if s.exists():
             s.rename(dst.with_suffix(suf))
 
-    return {"ok": True, "path": str(dst.relative_to(cfg.project_root))}
+    return {"ok": True, "path": str(dst.relative_to(cfg.project_root)),
+            "queue_sync": _auto_fill_ready_impl()}
 
 
 @app.post("/api/story/submit_approval/{name}")
@@ -2353,6 +2370,23 @@ class SchedulerEnqueueRequest(BaseModel):
     scheduled_at: str = ""                           # ISO: "2026-07-28T18:00:00"; boşsa otomatik
 
 
+class SchedulerStoryScheduleRequest(BaseModel):
+    """Onay bekleyen / ready'de olan bir story kartını kuyruğa ekler.
+
+    UI akışı: kart onay panelinde 'Onayla + Planla' → burası çağrılır.
+    - name pending_approval'da ise ready/'ye taşınır.
+    - Ready'de ise olduğu yerde bırakılır, sadece kuyruğa eklenir.
+    - scheduled_at boşsa scheduler'daki sıradaki uygun slot bulunur.
+    """
+    name: str = Field(..., min_length=1)
+    caption: str = ""
+    scheduled_at: str = ""
+
+
+class SchedulerRescheduleRequest(BaseModel):
+    scheduled_at: str = Field(..., min_length=8)
+
+
 @app.get("/api/scheduler/queue")
 def scheduler_queue_list() -> dict[str, Any]:
     """Tüm kuyruk içeriğini + özet istatistiklerini döndür."""
@@ -2407,6 +2441,7 @@ def scheduler_enqueue(req: SchedulerEnqueueRequest) -> dict[str, Any]:
             daily_limit=sched_cfg.daily_limit if sched_cfg else 2,
             default_times=sched_cfg.default_times if sched_cfg else ["08:00", "18:00"],
             queue_file=sched_cfg.queue_file if sched_cfg else "data/scheduler_queue.json",
+            kind="reel",
         )
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -2414,6 +2449,202 @@ def scheduler_enqueue(req: SchedulerEnqueueRequest) -> dict[str, Any]:
     return {"ok": True, "entry": entry}
 
 
+@app.post("/api/scheduler/schedule_story")
+def scheduler_schedule_story(req: SchedulerStoryScheduleRequest) -> dict[str, Any]:
+    """Onay bekleyen bir story kartını 'ready/'ye taşı + posting kuyruğuna ekle.
+
+    Kullanıcının 'üretip seçtiğim postlar zamanı gelince gönderilsin' istediği akış:
+        pending_approval/<name>.jpg  → ready/<name>.jpg + queue entry (kind=story)
+    """
+    if cfg.stories is None:
+        raise HTTPException(status_code=400, detail="stories config yok.")
+    if not (cfg.instagram and cfg.instagram.graph_token and cfg.instagram.ig_user_id):
+        raise HTTPException(status_code=400,
+                            detail="Instagram Graph API ayarlı değil — story yayınlanamaz.")
+    if not (cfg.instagram.public_base_url or "").strip():
+        raise HTTPException(status_code=400,
+                            detail="public_base_url boş — story görseli Instagram'a servis edilemez.")
+
+    name = _safe_story_name(req.name)
+    pending = cfg.stories.output_dir / "pending_approval" / name
+    ready_dir = cfg.stories.output_dir / "ready"
+    ready_dir.mkdir(parents=True, exist_ok=True)
+    ready = ready_dir / name
+    root = cfg.stories.output_dir / name   # kartlar kökte de olabilir (legacy/onay bekleyen)
+
+    # Kaynağı sırayla ara: pending_approval → ready → kök
+    if pending.exists():
+        src_jpg = pending
+    elif ready.exists():
+        src_jpg = ready
+    elif root.exists():
+        src_jpg = root
+    else:
+        src_jpg = None
+    if src_jpg is None:
+        raise HTTPException(status_code=404, detail=f"Kart bulunamadı: {name}")
+
+    # pending/ veya kök → ready/ taşı (sidecar .txt/.json dahil)
+    if src_jpg != ready:
+        try:
+            src_jpg.rename(ready)
+            for suf in (".txt", ".json"):
+                s = src_jpg.with_suffix(suf)
+                if s.exists():
+                    s.rename(ready.with_suffix(suf))
+        except OSError as exc:
+            raise HTTPException(status_code=500,
+                                detail=f"ready/'ye taşınamadı: {exc}") from exc
+
+    # caption: request'te yoksa .txt'ten oku
+    caption = req.caption
+    if not caption:
+        cap_txt = ready.with_suffix(".txt")
+        if cap_txt.exists():
+            try:
+                caption = cap_txt.read_text(encoding="utf-8")
+            except OSError:
+                caption = ""
+
+    from src import scheduler as sched_mod
+    sched_cfg = cfg.scheduler
+    try:
+        entry = sched_mod.enqueue(
+            project_root=cfg.project_root,
+            mp4_path=ready,           # story JPG
+            caption=caption,
+            scheduled_at=req.scheduled_at or None,
+            daily_limit=sched_cfg.daily_limit if sched_cfg else 2,
+            default_times=sched_cfg.default_times if sched_cfg else ["08:00", "18:00"],
+            queue_file=sched_cfg.queue_file if sched_cfg else "data/scheduler_queue.json",
+            kind="story",
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    return {"ok": True, "entry": entry}
+
+
+@app.post("/api/scheduler/reschedule/{entry_id}")
+def scheduler_reschedule(entry_id: str, req: SchedulerRescheduleRequest) -> dict[str, Any]:
+    """Bekleyen bir kuyruk girdisinin yayın zamanını değiştir."""
+    from src import scheduler as sched_mod
+    try:
+        updated = sched_mod.reschedule(
+            cfg.project_root, entry_id, req.scheduled_at,
+            cfg.scheduler.queue_file if cfg.scheduler else "data/scheduler_queue.json",
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if updated is None:
+        raise HTTPException(status_code=404, detail=f"Girdi bulunamadı: {entry_id}")
+    return {"ok": True, "entry": updated}
+
+
+@app.post("/api/scheduler/auto_fill_ready")
+def scheduler_auto_fill_ready() -> dict[str, Any]:
+    """Ready kartları içerik tipinin açık otomasyon slotlarına sırayla diz."""
+    return _auto_fill_ready_impl()
+
+
+def _auto_fill_ready_impl() -> dict[str, Any]:
+    """Planlanmamış Ready kartlarını Haber/Görsel otomasyonuna bağla."""
+    if cfg.stories is None:
+        raise HTTPException(status_code=400, detail="stories config yok.")
+
+    from src import scheduler as sched_mod
+    from src.web import dashboard_state as dashboard_state_mod
+
+    ready_dir = cfg.stories.output_dir / "ready"
+    if not ready_dir.exists():
+        return {"ok": True, "scheduled": 0, "entries": [], "message": "Ready klasörü boş."}
+
+    sched_cfg = cfg.scheduler
+    queue_file = sched_cfg.queue_file if sched_cfg else "data/scheduler_queue.json"
+    auto_cfg = _load_auto_cfg()
+    existing_queue = sched_mod.load_queue(cfg.project_root, queue_file)
+    queued_names = {
+        (item.get("asset_name") or item.get("mp4_name") or "")
+        for item in existing_queue
+        if item.get("status") not in ("done", "cancelled", "failed")
+    }
+
+    from src import instagram_publisher as ig_pub
+    try:
+        uploaded_log = ig_pub.read_upload_log(cfg)
+    except Exception:
+        uploaded_log = {}
+
+    candidates = sorted(
+        (path for path in ready_dir.glob("*.jpg")
+         if path.name not in queued_names and path.stem not in uploaded_log),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    if not candidates:
+        return {"ok": True, "scheduled": 0, "entries": [],
+                "message": "Zaten hepsi planlı veya yayında."}
+
+    scheduled_entries: list[dict[str, Any]] = []
+    fails: list[dict[str, str]] = []
+    skipped: list[dict[str, str]] = []
+    for jpg in candidates:
+        meta: dict[str, Any] = {}
+        meta_path = jpg.with_suffix(".json")
+        if meta_path.exists():
+            try:
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                meta = {}
+
+        content_type = dashboard_state_mod._derive_type(jpg.name, meta)
+        automation_kind = "news" if content_type == "haber" else "topic"
+        slot_cfg = auto_cfg.get(automation_kind) or {}
+        if not slot_cfg.get("enabled"):
+            skipped.append({"name": jpg.name, "reason": f"{automation_kind} otomasyonu kapalı"})
+            continue
+        days = [int(day) for day in (slot_cfg.get("days") or []) if 0 <= int(day) <= 6]
+        if not days:
+            skipped.append({"name": jpg.name, "reason": f"{automation_kind} için gün seçilmedi"})
+            continue
+
+        caption = ""
+        caption_path = jpg.with_suffix(".txt")
+        if caption_path.exists():
+            try:
+                caption = caption_path.read_text(encoding="utf-8")
+            except OSError:
+                caption = ""
+        try:
+            scheduled_at = sched_mod.next_automation_slot(
+                existing_queue, days, int(slot_cfg.get("hour", 9)),
+                int(slot_cfg.get("minute", 0)),
+            )
+            entry = sched_mod.enqueue(
+                project_root=cfg.project_root,
+                mp4_path=jpg,
+                caption=caption,
+                scheduled_at=scheduled_at,
+                queue_file=queue_file,
+                kind="story",
+                auto_publish=bool(slot_cfg.get("auto_publish", False)),
+                automation_kind=automation_kind,
+            )
+            scheduled_entries.append(entry)
+            existing_queue.append(entry)
+        except ValueError as exc:
+            fails.append({"name": jpg.name, "reason": str(exc)})
+
+    return {
+        "ok": True,
+        "scheduled": len(scheduled_entries),
+        "failed": len(fails),
+        "skipped": len(skipped),
+        "entries": scheduled_entries,
+        "fails": fails,
+        "skips": skipped,
+        "slot_config": auto_cfg,
+    }
 @app.delete("/api/scheduler/queue/{entry_id}")
 def scheduler_dequeue(entry_id: str) -> dict[str, Any]:
     """Kuyruktan iptal et (status → 'cancelled')."""
