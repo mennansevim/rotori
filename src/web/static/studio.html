@@ -2019,21 +2019,34 @@
   }
 
   // ---- HABER pipeline ----
+  function askNewsCount(){
+    const raw = window.prompt("Kaç haber üretelim? (1-20)", "1");
+    if(raw === null) return null;
+    const n = Number(String(raw).trim());
+    if(!Number.isInteger(n) || n < 1 || n > 20){
+      toast("Lütfen 1 ile 20 arasında tam sayı gir.", "err", 4000);
+      return null;
+    }
+    return n;
+  }
+
   async function generateNews(){
+    const count = askNewsCount();
+    if(!count) return;
     const autoPub = document.getElementById("newsAutoPublish").classList.contains("on");
     let resultFile = null;
-    openGenOverlay("Japon haber üretiliyor", "RSS → editorial gate → render → onay bekliyor.");
+    openGenOverlay(`Japon haberleri üretiliyor (x${count})`, "RSS → editorial gate → render → onay bekliyor.");
     setGenStages([
       {key:"rss", label:"RSS akışları taranıyor"},
       {key:"gate", label:"Editöryel gate (GPT 30/50)"},
       {key:"visual", label:"Unsplash görseli seçiliyor"},
       {key:"render", label:"1080×1350 kart render"},
-      {key:"queue", label:"Onay bekliyor'a düşürülüyor"},
+      {key:"queue", label:`Onay bekliyor'a düşürülüyor (x${count})`},
     ], "rss");
     try{
       // Aynı algoritma — /api/automation/run_now?kind=news (news_automation.run_once)
       await apiFetch("/api/automation/run_now", {
-        json: { kind:"news", auto_publish: autoPub, topic:"", query:"" },
+        json: { kind:"news", auto_publish: autoPub, topic:"", query:"", count },
         timeout: 15000,
       });
       // Job manager üzerinden progres poll
@@ -2050,8 +2063,8 @@
       });
       if(ok){
         setGenStages(null, null, ["rss","gate","visual","render","queue"]);
-        finishGenOverlay(true, resultFile || "haber", null);
-        toast("Haberden kart hazır — Yayın Kuyruğu / Onay bekliyor.", "ok");
+        finishGenOverlay(true, resultFile || `haber x${count}`, null);
+        toast(`Haber üretimi tamamlandı (${count} adet) — Yayın Kuyruğu / Onay bekliyor.`, "ok");
         pageLoaders.queue && pageLoaders.queue(true);
       } else {
         finishGenOverlay(false, null, null, null, _genCancelRequested ? "cancelled" : "error");
@@ -3401,9 +3414,11 @@
     } catch(err){ toast(err.detail || err.message, "err") }
   }));
   document.getElementById("runNewsBtn").addEventListener("click", e => withLoading(e.currentTarget, async () => {
+    const count = askNewsCount();
+    if(!count) return;
     try {
-      await apiFetch("/api/news/run_now", {method:"POST", timeout:120000});
-      toast("Haber otomasyonu başlatıldı.", "ok");
+      await apiFetch("/api/news/run_now", {method:"POST", json:{count}, timeout:120000});
+      toast(`Haber otomasyonu başlatıldı (${count} adet).`, "ok");
     } catch(err){ toast(err.detail || err.message, "err") }
   }));
   document.getElementById("runTopicBtn").addEventListener("click", e => withLoading(e.currentTarget, async () => {
