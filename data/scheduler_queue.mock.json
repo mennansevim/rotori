@@ -1,0 +1,38 @@
+[
+  {
+    "id": "story_kar-mevsiminde-japonya-ya-gidenler-icin-_1785942190_1785942280",
+    "kind": "story",
+    "asset_name": "kar-mevsiminde-japonya-ya-gidenler-icin-_1785942190.jpg",
+    "asset_path": "/Users/sevimm/Documents/Projects/rotori-app/rotori-social/output/stories/kar-mevsiminde-japonya-ya-gidenler-icin-_1785942190.jpg",
+    "mp4_name": "kar-mevsiminde-japonya-ya-gidenler-icin-_1785942190.jpg",
+    "mp4_path": "/Users/sevimm/Documents/Projects/rotori-app/rotori-social/output/stories/kar-mevsiminde-japonya-ya-gidenler-icin-_1785942190.jpg",
+    "caption": "[DEMO] Visual post mock",
+    "scheduled_at": "2026-08-05T18:02:40",
+    "status": "done",
+    "added_at": "2026-08-05T18:04:40",
+    "result": {
+      "media_id": "mock_media_1",
+      "container_id": "mock_container_1"
+    },
+    "auto_publish": true,
+    "automation_kind": "topic"
+  },
+  {
+    "id": "story_japon-konbini-kulturu-seyahatinizde-size_1785942259_1785942280",
+    "kind": "story",
+    "asset_name": "japon-konbini-kulturu-seyahatinizde-size_1785942259.jpg",
+    "asset_path": "/Users/sevimm/Documents/Projects/rotori-app/rotori-social/output/stories/japon-konbini-kulturu-seyahatinizde-size_1785942259.jpg",
+    "mp4_name": "japon-konbini-kulturu-seyahatinizde-size_1785942259.jpg",
+    "mp4_path": "/Users/sevimm/Documents/Projects/rotori-app/rotori-social/output/stories/japon-konbini-kulturu-seyahatinizde-size_1785942259.jpg",
+    "caption": "[DEMO] News post mock",
+    "scheduled_at": "2026-08-05T18:03:40",
+    "status": "done",
+    "added_at": "2026-08-05T18:04:40",
+    "result": {
+      "media_id": "mock_media_2",
+      "container_id": "mock_container_2"
+    },
+    "auto_publish": true,
+    "automation_kind": "news"
+  }
+]

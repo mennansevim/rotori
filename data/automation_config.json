@@ -5,17 +5,18 @@
       6,
       3
     ],
-    "hour": 13,
-    "minute": 41,
+    "hour": 23,
+    "minute": 21,
     "auto_publish": true
   },
   "topic": {
     "enabled": true,
     "days": [
-      5
+      5,
+      3
     ],
-    "hour": 20,
-    "minute": 0,
+    "hour": 22,
+    "minute": 22,
     "auto_publish": true
   }
 }
