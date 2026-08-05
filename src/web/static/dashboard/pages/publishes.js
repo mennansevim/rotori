@@ -5,6 +5,9 @@ import { api, el, icons, typeBadge, statusBadge, countdownText, fmtDate, fmtTime
          emptyState, errorState, loadingState, toast, confirmModal, openModal } from '../lib.js';
 import { openCreateModal } from './create.js';
 
+const RETRY_COOLDOWN_MS = 3000;
+const retryLocks = new Set();
+
 export async function renderPublishes(root, ctx) {
   root.innerHTML = '';
   const head = el('div', { class: 'page__head' },
@@ -77,7 +80,7 @@ function upcomingRow(it, ctx, now) {
   const actions = el('div', { class: 'rowitem__actions' });
   if (it.status === 'failed') {
     actions.append(el('button', { class: 'btn btn--sm btn--accent', title: 'Tekrar dene',
-      onclick: () => retry(it, ctx), html: icons.refresh }));
+      onclick: (event) => retry(it, ctx, event.currentTarget), html: icons.refresh }));
   }
   actions.append(
     el('button', { class: 'btn btn--sm', title: 'Tarihi düzenle', onclick: () => editSchedule(it, ctx), html: icons.calendar }),
@@ -125,9 +128,47 @@ function metric(icon, val, label) {
 }
 function shortErr(e) { const s = typeof e === 'string' ? e : JSON.stringify(e); return s.length > 40 ? s.slice(0, 40) + '…' : s; }
 
-async function retry(it, ctx) {
-  try { await api.reschedule(it.entry_id, it.scheduled_at); toast('Tekrar kuyruğa alındı.', 'ok'); ctx.refresh(); }
-  catch (e) { toast(e.message, 'err'); }
+function setRetryButtonState(btn, state) {
+  if (!btn) return;
+  if (state === 'idle') {
+    btn.disabled = false;
+    btn.classList.remove('is-loading', 'is-cooldown');
+    btn.setAttribute('title', 'Tekrar dene');
+    return;
+  }
+  btn.disabled = true;
+  btn.classList.add(state === 'loading' ? 'is-loading' : 'is-cooldown');
+  if (state === 'loading') {
+    btn.classList.remove('is-cooldown');
+    btn.setAttribute('title', 'Yeniden deneniyor...');
+  } else {
+    btn.classList.remove('is-loading');
+    btn.setAttribute('title', 'Kısa bekleme...');
+  }
+}
+
+async function retry(it, ctx, btn) {
+  const lockKey = String(it?.entry_id || it?.name || it?.title || 'unknown');
+  if (retryLocks.has(lockKey)) {
+    toast('Bu içerik için deneme zaten başlatıldı. Lütfen birkaç saniye bekleyin.');
+    return;
+  }
+
+  retryLocks.add(lockKey);
+  setRetryButtonState(btn, 'loading');
+  try {
+    await api.reschedule(it.entry_id, it.scheduled_at);
+    toast('Tekrar kuyruğa alındı.', 'ok');
+    ctx.refresh();
+  } catch (e) {
+    toast(e.message, 'err');
+  } finally {
+    setRetryButtonState(btn, 'cooldown');
+    setTimeout(() => {
+      retryLocks.delete(lockKey);
+      setRetryButtonState(btn, 'idle');
+    }, RETRY_COOLDOWN_MS);
+  }
 }
 async function remove(it, ctx) {
   if (!(await confirmModal({ title: 'Kuyruktan çıkar', message: `"${it.title}" yayın kuyruğundan çıkarılacak.`, confirmLabel: 'Çıkar', danger: true }))) return;

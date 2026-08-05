@@ -349,7 +349,7 @@ function buildGorsel(ctx, onDone) {
       genAppendLog(`✓ Kart oluşturuldu: ${file || '?'}`);
       finishGenOverlay(true, {
         file,
-        onResult: () => { onDone && onDone(); ctx.navigate('library:pending_approval'); },
+        onResult: () => { onDone && onDone(); ctx.navigate('overview'); },
       });
     } catch (e) {
       genAppendLog('Hata: ' + e.message);
@@ -374,13 +374,13 @@ function buildHaber(ctx, onDone) {
     el('span', { class: 'muted' },
       'Tokyo Cheapo, SoraNews24, Nippon.com, Japan Today RSS akışlarından son 48 saatin haberleri taranır; ' +
       'her aday GPT editorial gate\'ten (30/50 puan) geçirilir; kazanan haberden Japonya Rüyası tonunda ' +
-      '1080×1350 kart + Instagram caption üretilir. Kart Onay Bekliyor sütununa düşer.'));
+      '1080×1350 kart + Instagram caption üretilir. Kart yayın sırasına hazırlanır.'));
 
   const wiz = el('div', { class: 'wiz' },
     el('div', { class: 'wiz__st is-current' }, '1. RSS tara'),
     el('div', { class: 'wiz__st' }, '2. Editöryel gate'),
     el('div', { class: 'wiz__st' }, '3. Görsel + render'),
-    el('div', { class: 'wiz__st' }, '4. Onay bekliyor'));
+    el('div', { class: 'wiz__st' }, '4. Sıraya al'));
 
   const wrap = el('div', { class: 'grid-2' },
     el('div', { class: 'card' }, el('div', { class: 'card__body' },
@@ -388,7 +388,7 @@ function buildHaber(ctx, onDone) {
       el('p', { class: 'muted', style: 'font-size:12.5px;margin:4px 0 14px' },
         'Haber otomasyonu pipeline\'ı — mevcut algoritma değişmedi.'),
       el('label', { class: 'option', style: 'margin-bottom:16px' }, autoPublish,
-        'Otomatik yayınla (kapalı: kart onay bekler · açık: gate geçince direkt Instagram — önerilmez)'),
+        'Otomatik yayınla (yalnız planlanan saatte paylaşılır)'),
       el('div', { class: 'hstack' }, runBtn))),
     el('div', { class: 'card' },
       el('div', { class: 'card__head' }, el('h3', {}, 'Nasıl Çalışır?')),
@@ -397,17 +397,17 @@ function buildHaber(ctx, onDone) {
   async function run() {
     // Üretim penceresini kapatıp asenkron akış overlay'ini aç
     onDone && onDone();
-    openGenOverlay('Japon haber üretiliyor', 'RSS → editöryel gate → görsel → render → onay bekliyor.');
+    openGenOverlay('Japon haber üretiliyor', 'RSS → editöryel gate → görsel → render → sıraya alma.');
     setGenStages([
       { key: 'rss', label: 'RSS akışları taranıyor' },
       { key: 'gate', label: 'Editöryel gate (GPT 30/50)' },
       { key: 'visual', label: 'Unsplash görseli seçiliyor' },
       { key: 'render', label: '1080×1350 kart render' },
-      { key: 'queue', label: 'Onay bekliyor\'a düşürülüyor' },
+      { key: 'queue', label: 'Yayın sırasına ekleniyor' },
     ], 'rss');
     let resultFile = null;
     try {
-      await api.automationRunNow({ kind: 'news', auto_publish: autoPublish.checked, topic: '', query: '' });
+      await api.automationRunNow({ kind: 'news', auto_publish: false, topic: '', query: '' });
       const ok = await pollJobUntilDone((line) => {
         if (!line) return;
         genAppendLog(line);
@@ -418,7 +418,7 @@ function buildHaber(ctx, onDone) {
         setGenStages(null, null, ['rss', 'gate', 'visual', 'render', 'queue']);
         finishGenOverlay(true, {
           file: resultFile || 'haber',
-          onResult: () => ctx.navigate('library:pending_approval'),
+          onResult: () => ctx.navigate('overview'),
         });
       } else {
         finishGenOverlay(false, { outcome: 'error' });
