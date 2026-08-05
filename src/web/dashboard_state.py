@@ -80,9 +80,22 @@ def _read_caption(jpg: Path) -> str:
 
 def _derive_type(name: str, meta: dict[str, Any]) -> str:
     """İçerik tipi: 'haber' | 'gorsel'."""
-    source = str(meta.get("source", meta.get("source_topic", ""))).lower()
+    # Haber otomasyonu gerçek RSS haberlerinde de evergreen yedeklerinde de
+    # kaynağı `source_news` altında saklar. Dashboard sınıflandırması üretim
+    # algoritmasından bağımsız olarak bu provenance alanını esas alır.
+    source_news = meta.get("source_news")
+    if isinstance(source_news, dict) and source_news:
+        return "haber"
+    if isinstance(source_news, str) and source_news.strip():
+        return "haber"
+
+    source = " ".join(str(meta.get(key) or "") for key in ("source", "source_type", "content_type", "generation_type", "kaynak")).lower()
     if "news" in source or "haber" in source or name.lower().startswith("news"):
         return "haber"
+
+    # Konu otomasyonu ve manuel/eski kartlar görsel üretim yoludur.
+    if meta.get("source_topic") or "topic" in source or name.lower().startswith("topic"):
+        return "gorsel"
     return "gorsel"
 
 
@@ -309,6 +322,7 @@ def weekly_timeline(cfg: Any, content: list[dict[str, Any]] | None = None) -> di
         entry = {
             "name": name,
             "title": content_ref.get("title") or _derive_title(name, {}),
+            "url": content_ref.get("url"),
             "type": ctype,
             "time": dt.strftime("%H:%M"),
             "scheduled_at": sch,
