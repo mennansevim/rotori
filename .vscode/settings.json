@@ -1,3 +1,4 @@
 {
-    "chat.agent.maxRequests": 50
+    "chat.agent.maxRequests": 50,
+    "java.compile.nullAnalysis.mode": "disabled"
 }

@@ -10,6 +10,12 @@ import 'data/language_store.dart';
 import 'env.dart';
 import 'theme.dart';
 
+// Normal uygulama girişinde DevicePreview varsayılan kapalıdır.
+// Gerekirse debug'ta geçici açmak için:
+// flutter run --dart-define=ENABLE_DEVICE_PREVIEW=true
+const bool _enableDevicePreviewInMain =
+  bool.fromEnvironment('ENABLE_DEVICE_PREVIEW', defaultValue: false);
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Env.load();
@@ -17,7 +23,7 @@ Future<void> main() async {
   if (!Env.isConfigured) {
     runApp(
       DevicePreview(
-        enabled: true,
+        enabled: _enableDevicePreviewInMain,
         builder: (context) => const _MissingEnvApp(),
       ),
     );
@@ -31,7 +37,7 @@ Future<void> main() async {
 
   runApp(
     DevicePreview(
-      enabled: true,
+      enabled: _enableDevicePreviewInMain,
       builder: (context) => const ProviderScope(child: JapanTripApp()),
     ),
   );

@@ -12,12 +12,14 @@ class CameraPermissionView extends StatelessWidget {
     required this.palette,
     required this.onRetry,
     this.onOpenSettings,
+    this.detailText,
   });
 
   final ScannerStatus status;
   final ViewerPalette palette;
   final VoidCallback onRetry;
   final VoidCallback? onOpenSettings;
+  final String? detailText;
 
   @override
   Widget build(BuildContext context) {
@@ -73,6 +75,18 @@ class CameraPermissionView extends StatelessWidget {
               style:
                   TextStyle(color: p.textSecondary, fontSize: 15, height: 1.4),
             ),
+            if (detailText != null && detailText!.trim().isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(
+                detailText!,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: p.textMuted,
+                  fontSize: 12,
+                  height: 1.35,
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             if (permanent && onOpenSettings != null)
               FilledButton.icon(

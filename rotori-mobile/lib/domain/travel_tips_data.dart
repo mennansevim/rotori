@@ -106,6 +106,19 @@ const List<MustKnowSection> kMustKnowSections = [
         ),
       ),
       MustKnowTip(
+        emoji: '⚠️',
+        text: LText(
+          'Önemli: Kredi kartında nakit avans limiti ayrı olabilir ve çoğu '
+          'kartta günlük/işlem limiti düşüktür. Asıl nakit planını debit '
+          '(banka) kartıyla yap; yolculuk öncesi bankandan yurtdışı ATM '
+          'çekim limiti ve güvenlik bloklarını mutlaka kontrol et.',
+          'Important: cash-advance limits on credit cards are often separate '
+          'and usually lower per day/transaction. Plan your main cash access '
+          'with a debit card; before travel, confirm your overseas ATM '
+          'withdrawal limits and security blocks with your bank.',
+        ),
+      ),
+      MustKnowTip(
         emoji: '💴',
         text: LText(
           'Japonya büyük ölçüde nakit kültürü: yanında ~10.000–20.000¥ nakit '

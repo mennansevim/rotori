@@ -53,11 +53,26 @@ class TtsService {
     }
     try {
       await _player.stop();
+      await _player.setPlaybackRate(_playbackRateFor(text));
       // AssetSource — pubspec'te tanımlı `assets/tts/ja/...` dosyasını çalar.
       await _player.play(AssetSource('tts/ja/$id.$_format'));
     } catch (e) {
       debugPrint('TTS play failed for "$text" ($id.$_format): $e');
     }
+  }
+
+  /// Japonca örneklerde daha anlaşılır tempo için küçük normalizasyon.
+  ///
+  /// - Kısa/selamlaşma cümleleri: hafif yavaş (0.92)
+  /// - Orta uzunluk: 0.90
+  /// - Uzun/karmaşık ifade: 0.86
+  double _playbackRateFor(String text) {
+    final cleaned = text.trim();
+    if (cleaned.length >= 18 || cleaned.contains('、') || cleaned.contains('。')) {
+      return 0.86;
+    }
+    if (cleaned.length >= 10) return 0.90;
+    return 0.92;
   }
 
   Future<void> stop() async {

@@ -22,17 +22,22 @@ void main() {
     );
   }
 
-  testWidgets('esnek gezi görünümü doğrudan hedef kartlarını gösterir',
+  testWidgets('esnek gezi görünümü tarih özeti ve devam aksiyonunu gösterir',
       (tester) async {
-    await tester.pumpWidget(harness(createEmptyTrip()));
+    final trip = createEmptyTrip();
+    trip.preferences.travelDates
+      ..start = '2027-03-26'
+      ..end = '2027-04-04';
+    trip.tripStart = '2027-03-26T08:00:00';
+    trip.tripEnd = '2027-04-04T20:00:00';
+
+    await tester.pumpWidget(harness(trip));
+    await tester.pump();
+
     expect(find.text("Japonya'da esnek gezi"), findsOneWidget);
-    expect(find.text('Tokyo'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('Osaka'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.text('Osaka'), findsOneWidget);
+    expect(find.textContaining('Kalkış: İstanbul'), findsOneWidget);
+    expect(find.text('Değiştir'), findsOneWidget);
+    expect(find.text('Devam'), findsOneWidget);
   });
 
   testWidgets('eski bilet tercihini false değerine normalize eder',
@@ -44,22 +49,25 @@ void main() {
     expect(trip.preferences.hasTicket, isFalse);
   });
 
-  testWidgets('esnek gezi → tarih aralığına tıklayınca travelDates dolar',
+  testWidgets('esnek gezi → tarih aralığı düzenleyicisi açılır',
       (tester) async {
     final trip = createEmptyTrip();
+    trip.preferences.travelDates
+      ..start = '2027-03-26'
+      ..end = '2027-04-04';
+    trip.tripStart = '2027-03-26T08:00:00';
+    trip.tripEnd = '2027-04-04T20:00:00';
+
     await tester.pumpWidget(harness(trip));
-
-    // Tokyo'nun ilk aralık satırı: 26 Mart · 10 gün · Sakura zirvesi.
-    // Yıl: trip.tripStart boşsa now.year+1 → tarih yılı buna göre değişir.
-    // Sadece travelDates.start'ın "-03-26" ile bittiğini doğrulamak yeterli.
-    final row = find.textContaining('Sakura zirvesi').first;
-    await tester.tap(row, warnIfMissed: false);
     await tester.pump();
-    await tester.pump(const Duration(seconds: 1));
 
-    final start = trip.preferences.travelDates.start;
-    expect(start.endsWith('-03-26'), isTrue,
-        reason: 'travelDates.start beklenen "-03-26" ile bitmiyor: $start');
+    await tester.tap(find.text('Değiştir'));
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    // Date range picker açıldı mı?
+    expect(find.text('Gidiş — Dönüş tarihlerini seç'), findsOneWidget);
+
   });
 
   testWidgets('kalkış şehri düzenlenebilir', (tester) async {

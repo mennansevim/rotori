@@ -317,11 +317,22 @@ class PlanOptimizationController
     final trip = _cloneTrip(original);
     final day = trip.days[dayIndex];
     final byId = {for (final item in day.items) item.id: item};
-    final optimizedItems = result.activities.map((scheduled) {
-      final item = byId[scheduled.activityId]!;
-      final time = _formatTime(scheduled.startTime);
-      return item.copyWith(time: time, scheduledTime: time);
-    }).toList(growable: false);
+    final scheduled = result.activities
+        .map(
+          (activity) => (
+            item: byId[activity.activityId]!,
+            startMinutes: _toMinutes(activity.startTime),
+          ),
+        )
+        .toList(growable: false);
+    final normalizedStarts = _normalizeStartMinutes(scheduled);
+    final optimizedItems = [
+      for (var i = 0; i < scheduled.length; i++)
+        scheduled[i].item.copyWith(
+              time: _formatMinuteOfDay(normalizedStarts[i]),
+              scheduledTime: _formatMinuteOfDay(normalizedStarts[i]),
+            ),
+    ];
     trip.days[dayIndex] = day.copyWith(items: optimizedItems);
     return trip;
   }
@@ -406,10 +417,32 @@ int _durationFor(TimelineItem item) {
   DateTime dayDate,
   TimelineItem item,
 ) {
-  if (item.kind != TimelineItemKind.meal) return null;
+  if (!_isMealActivity(item)) return null;
+  final hint = _mealHint(item.title);
   final minutes = _minutesOf(item.time ?? item.scheduledTime);
   DateTime at(int h, int m) =>
       DateTime(dayDate.year, dayDate.month, dayDate.day, h, m);
+  if (hint == _MealHint.breakfast) {
+    return (
+      open: at(7, 0),
+      close: at(10, 30),
+      preferred: TimeOfDayPreference.morning,
+    );
+  }
+  if (hint == _MealHint.lunch) {
+    return (
+      open: at(11, 30),
+      close: at(14, 30),
+      preferred: TimeOfDayPreference.afternoon,
+    );
+  }
+  if (hint == _MealHint.dinner) {
+    return (
+      open: at(17, 30),
+      close: at(21, 30),
+      preferred: TimeOfDayPreference.evening,
+    );
+  }
   // Kahvaltı — 10:30'dan önce planlanmış öğün.
   if (minutes >= 0 && minutes < 10 * 60 + 30) {
     return (
@@ -461,9 +494,84 @@ DateTime? _onDay(DateTime day, String? value) {
   return DateTime(day.year, day.month, day.day, hour, minute);
 }
 
-String _formatTime(DateTime value) =>
-    '${value.hour.toString().padLeft(2, '0')}:'
-    '${value.minute.toString().padLeft(2, '0')}';
+int _toMinutes(DateTime value) => value.hour * 60 + value.minute;
+
+String _formatMinuteOfDay(int value) {
+  final clamped = value.clamp(0, 24 * 60 - 1);
+  final hour = (clamped ~/ 60).toString().padLeft(2, '0');
+  final minute = (clamped % 60).toString().padLeft(2, '0');
+  return '$hour:$minute';
+}
+
+List<int> _normalizeStartMinutes(
+  List<({TimelineItem item, int startMinutes})> scheduled,
+) {
+  if (scheduled.isEmpty) return const [];
+  final starts = [
+    for (final entry in scheduled)
+      entry.item.isFixed
+          ? entry.startMinutes
+          : _floorToStep(entry.startMinutes, 5),
+  ];
+
+  // Geçişlerin ani saat sapmalarından doğabilecek 1-4 dakikalık çakışmaları
+  // düzeltmek için kısa bir normalize turu uygula.
+  for (var pass = 0; pass < scheduled.length; pass++) {
+    for (var i = 1; i < scheduled.length; i++) {
+      final previous = scheduled[i - 1].item;
+      final current = scheduled[i].item;
+      final required = starts[i - 1] +
+          _durationFor(previous) +
+          _minimumGapMinutes(previous, current);
+      if (starts[i] >= required) continue;
+
+      if (!current.isFixed) {
+        starts[i] = _ceilToStep(required, 5);
+        continue;
+      }
+
+      if (!previous.isFixed) {
+        final latest = _floorToStep(
+          starts[i] -
+              _durationFor(previous) -
+              _minimumGapMinutes(previous, current),
+          5,
+        );
+        if (latest < starts[i - 1]) {
+          starts[i - 1] = latest.clamp(0, 24 * 60 - 1);
+        }
+      }
+    }
+  }
+
+  return starts;
+}
+
+int _floorToStep(int value, int step) => (value ~/ step) * step;
+
+int _ceilToStep(int value, int step) => ((value + step - 1) ~/ step) * step;
+
+int _minimumGapMinutes(TimelineItem previous, TimelineItem current) {
+  return _isMealActivity(previous) || _isMealActivity(current) ? 15 : 15;
+}
+
+bool _isMealActivity(TimelineItem item) {
+  if (item.kind == TimelineItemKind.meal) return true;
+  return _mealHint(item.title) != _MealHint.none;
+}
+
+enum _MealHint { breakfast, lunch, dinner, none }
+
+_MealHint _mealHint(String title) {
+  final value = title.toLowerCase();
+  bool has(String token) => value.contains(token);
+  if (has('kahvaltı') || has('breakfast') || has('brunch')) {
+    return _MealHint.breakfast;
+  }
+  if (has('öğle') || has('lunch')) return _MealHint.lunch;
+  if (has('akşam') || has('dinner')) return _MealHint.dinner;
+  return _MealHint.none;
+}
 
 String _cacheKey(
   DayOptimizationInput input,

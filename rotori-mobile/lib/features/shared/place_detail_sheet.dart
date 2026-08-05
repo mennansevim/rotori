@@ -257,6 +257,37 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
     return out;
   }
 
+  List<NearbyPlace> _nearbyRestaurants() {
+    final near = nearbyCityPlaces(
+      title: _normalize(item.title),
+      lat: item.lat,
+      lng: item.lng,
+      limit: 8,
+    );
+    return near
+        .where((n) {
+          final cat = n.place.category.en.toLowerCase();
+          return cat.contains('food') || cat.contains('restaurant');
+        })
+        .take(4)
+        .toList();
+  }
+
+  Future<void> _openRestaurantMap(NearbyPlace nearby) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final s = LanguageScope.of(context);
+    final ok = await openGoogleMapsPoint(
+      lat: nearby.place.lat,
+      lng: nearby.place.lng,
+      label: nearby.place.name,
+    );
+    if (!ok && mounted) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(s.s('placeDetail.mapOpenFailed'))),
+      );
+    }
+  }
+
   // --- Bilet ekleme akışı ---------------------------------------------------
 
   /// "Bilet ekle" → Kamera / Galeri / Vazgeç seçenekli küçük bir sheet açar.
@@ -269,34 +300,72 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) => SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+      builder: (ctx) {
+        final cs = Theme.of(ctx).colorScheme;
+        return Material(
+          color: cs.surface,
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 8),
+                _pickerRow(
+                  ctx,
+                  icon: '📷',
+                  label: s.s('placeDetail.camera'),
+                  onTap: () => Navigator.pop(ctx, ImageSource.camera),
+                ),
+                _pickerRow(
+                  ctx,
+                  icon: '🖼️',
+                  label: s.s('placeDetail.gallery'),
+                  onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+                ),
+                _pickerRow(
+                  ctx,
+                  icon: '✖️',
+                  label: s.s('placeDetail.cancel'),
+                  onTap: () => Navigator.pop(ctx, null),
+                ),
+                const SizedBox(height: 4),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (source == null) return;
+    await _pickAndAddTicket(source);
+  }
+
+  Widget _pickerRow(
+    BuildContext context, {
+    required String icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        child: Row(
           children: [
-            const SizedBox(height: 8),
-            ListTile(
-              leading: const Text('📷', style: TextStyle(fontSize: 22)),
-              title: Text(s.s('placeDetail.camera')),
-              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            Text(icon, style: const TextStyle(fontSize: 20)),
+            const SizedBox(width: 10),
+            Text(
+              label,
+              style: TextStyle(
+                color: cs.onSurface,
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+              ),
             ),
-            ListTile(
-              leading: const Text('🖼️', style: TextStyle(fontSize: 22)),
-              title: Text(s.s('placeDetail.gallery')),
-              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
-            ),
-            ListTile(
-              leading: const Icon(Icons.close),
-              title: Text(s.s('placeDetail.cancel')),
-              onTap: () => Navigator.pop(ctx, null),
-            ),
-            const SizedBox(height: 4),
           ],
         ),
       ),
     );
-    if (source == null) return;
-    await _pickAndAddTicket(source);
   }
 
   Future<void> _pickAndAddTicket(ImageSource source) async {
@@ -488,6 +557,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
     }
 
     final recs = _recommendations();
+    final nearbyRestaurants = _nearbyRestaurants();
     final userTip = item.tips?.trim();
     final rating = guide?.averageRating ??
         (match != null ? placeRating(match) : null);
@@ -517,6 +587,16 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
             ),
           ),
         ),
+
+        Align(
+          alignment: Alignment.centerRight,
+          child: IconButton(
+            tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+            onPressed: () => Navigator.of(context).maybePop(),
+            icon: Icon(Icons.close_rounded, color: tertiary),
+          ),
+        ),
+        const SizedBox(height: 2),
 
         // Başlık
         Row(
@@ -689,6 +769,55 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
                               TextStyle(fontSize: 13, color: onSurface)),
                     ),
                   ],
+                ),
+              )),
+        ],
+
+        if (nearbyRestaurants.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          Text(
+            s.s('placeDetail.nearbyRestaurants'),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: onSurface,
+            ),
+          ),
+          const SizedBox(height: 6),
+          ...nearbyRestaurants.map((r) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Material(
+                  color: subtleBg,
+                  borderRadius: BorderRadius.circular(10),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () => _openRestaurantMap(r),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 9,
+                      ),
+                      child: Row(
+                        children: [
+                          Text(r.place.emoji,
+                              style: const TextStyle(fontSize: 16)),
+                          const SizedBox(width: 7),
+                          Expanded(
+                            child: Text(
+                              '${r.place.name} · ${_formatDistance(r.distanceM, s.lang)}',
+                              style: TextStyle(
+                                color: onSurface,
+                                fontSize: 12.8,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Icon(Icons.map_outlined,
+                              size: 16, color: cs.primary),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               )),
         ],
