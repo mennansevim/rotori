@@ -39,9 +39,12 @@ export const api = {
   approvalReject: (name) => req('POST', `/api/approval/reject/${encodeURIComponent(name)}`),
   // Kuyruk
   autoFillReady: () => req('POST', '/api/scheduler/auto_fill_ready'),
+  schedulerQueue: () => req('GET', '/api/scheduler/queue'),
   scheduleStory: (b) => req('POST', '/api/scheduler/schedule_story', b),
   dequeue: (id) => req('DELETE', `/api/scheduler/queue/${encodeURIComponent(id)}`),
   reschedule: (id, at) => req('POST', `/api/scheduler/reschedule/${encodeURIComponent(id)}`, { scheduled_at: at }),
+  schedulerRunNow: () => req('POST', '/api/scheduler/run'),
+  schedulerReplaceAsset: (id, b) => req('POST', `/api/scheduler/replace_asset/${encodeURIComponent(id)}`, b),
   // Yayın
   publish: (name) => req('POST', `/api/instagram/publish/${encodeURIComponent(name)}`),
   // Story CRUD

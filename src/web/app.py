@@ -1639,7 +1639,7 @@ def automation_config_post(req: AutomationConfigRequest) -> dict[str, Any]:
 
 class RunNowRequest(BaseModel):
     kind: str = "news"       # 'news' | 'topic'
-    auto_publish: bool = False
+    auto_publish: bool = False  # compatibility: run_now bunu yok sayar
     topic: str = ""          # (sadece kind=topic) özel konu başlığı — boşsa havuzdan rastgele
     query: str = ""          # (opsiyonel) özel Unsplash görsel arama sorgusu
 
@@ -1649,14 +1649,15 @@ def automation_run_now(req: RunNowRequest) -> dict[str, Any]:
     """Bir otomasyon işini elle bir kez tetikle (footer'da canlı log)."""
     kind = req.kind if req.kind in ("news", "topic") else "news"
     label = "📰 Haber" if kind == "news" else "🎨 Konu"
+    forced_auto_publish = False
 
     def target(emit: Callable[..., None], cancel_ev: Event) -> None:
-        emit(f"{label} otomasyonu başladı (auto_publish={req.auto_publish})", "info")
+        emit(f"{label} otomasyonu başladı (auto_publish={forced_auto_publish})", "info")
         if kind == "news":
             from src import news_automation
             emit("① RSS kaynaklarına bağlanılıyor — son 48 saat taranacak.", "info")
             emit("② Haber adayları toplanıyor; erişilemeyen akışlar atlanabilir.", "log")
-            res = news_automation.run_once_with_publish(cfg, auto_publish=req.auto_publish)
+            res = news_automation.run_once_with_publish(cfg, auto_publish=forced_auto_publish)
         else:
             from src import topic_automation
             override = None
@@ -1664,7 +1665,7 @@ def automation_run_now(req: RunNowRequest) -> dict[str, Any]:
                 override = {"title": req.topic.strip(),
                             "query": req.query.strip() or req.topic.strip()}
                 emit(f"  Özel konu: {req.topic.strip()}", "log")
-            res = topic_automation.run_once(cfg, auto_publish=req.auto_publish,
+            res = topic_automation.run_once(cfg, auto_publish=forced_auto_publish,
                                             topic_override=override)
         if res.get("ok"):
             mid = res.get("published_media_id")
@@ -1680,7 +1681,7 @@ def automation_run_now(req: RunNowRequest) -> dict[str, Any]:
         manager.start_callable(f"{label} — elle tetik", target)
     except RuntimeError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    return {"ok": True, "kind": kind}
+    return {"ok": True, "kind": kind, "auto_publish": forced_auto_publish}
 
 
 @app.post("/api/news/run_now")
@@ -2387,6 +2388,10 @@ class SchedulerRescheduleRequest(BaseModel):
     scheduled_at: str = Field(..., min_length=8)
 
 
+class SchedulerReplaceAssetRequest(BaseModel):
+    asset_name: str = Field(..., min_length=1)
+
+
 @app.get("/api/scheduler/queue")
 def scheduler_queue_list() -> dict[str, Any]:
     """Tüm kuyruk içeriğini + özet istatistiklerini döndür."""
@@ -2539,6 +2544,38 @@ def scheduler_reschedule(entry_id: str, req: SchedulerRescheduleRequest) -> dict
     if updated is None:
         raise HTTPException(status_code=404, detail=f"Girdi bulunamadı: {entry_id}")
     return {"ok": True, "entry": updated}
+
+
+@app.post("/api/scheduler/replace_asset/{entry_id}")
+def scheduler_replace_asset(entry_id: str, req: SchedulerReplaceAssetRequest) -> dict[str, Any]:
+    """Bir kuyruk slotundaki görseli onaylı bir kartla değiştir.
+
+    Seçilen kart başka bir aktif slotta varsa iki slotun görselleri swap edilir.
+    """
+    if cfg.stories is None:
+        raise HTTPException(status_code=400, detail="stories config yok.")
+
+    name = _safe_story_name(req.asset_name)
+    ready_asset = cfg.stories.output_dir / "ready" / name
+    if not ready_asset.exists():
+        raise HTTPException(status_code=404,
+                            detail=f"Onaylı görsel bulunamadı (ready): {name}")
+
+    from src import scheduler as sched_mod
+    try:
+        replaced = sched_mod.replace_entry_asset(
+            project_root=cfg.project_root,
+            entry_id=entry_id,
+            asset_path=ready_asset,
+            queue_file=cfg.scheduler.queue_file if cfg.scheduler else "data/scheduler_queue.json",
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if replaced is None:
+        raise HTTPException(status_code=404, detail=f"Girdi bulunamadı: {entry_id}")
+
+    return {"ok": True, **replaced}
 
 
 @app.post("/api/scheduler/auto_fill_ready")

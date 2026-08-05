@@ -188,6 +188,25 @@ def publish_image(cfg: Config, image_url: str, caption: str) -> dict[str, Any]:
     if not image_url.startswith(("http://", "https://")):
         raise GraphError(f"image_url public HTTPS olmalı: {image_url}")
 
+    # Preflight: Instagram'a göndermeden önce URL gerçekten dışarıdan açılıyor
+    # mu kontrol et. 404/HTML dönen linkler Graph tarafında "media type" gibi
+    # yanıltıcı hata üretir; burada daha net teşhis veririz.
+    try:
+        with requests.get(
+            image_url,
+            timeout=15,
+            stream=True,
+            allow_redirects=True,
+            headers={"User-Agent": "rotori-social-igraph/1.0"},
+        ) as resp:
+            content_type = (resp.headers.get("content-type") or "").split(";")[0].strip().lower()
+            if resp.status_code != 200:
+                raise GraphError(f"image_url preflight başarısız: HTTP {resp.status_code}")
+            if not content_type.startswith("image/"):
+                raise GraphError(f"image_url content-type image/* değil: {content_type or '-'}")
+    except requests.RequestException as exc:
+        raise GraphError(f"image_url preflight başarısız: {exc}") from exc
+
     log.info(f"  Instagram Graph: container oluşturuluyor…")
     container = _req("POST", f"{ig.ig_user_id}/media", {
         "image_url": image_url,
