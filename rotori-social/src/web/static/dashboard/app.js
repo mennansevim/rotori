@@ -3,12 +3,14 @@
 // =========================================================================
 import { api, el, icons } from './lib.js?v=20260805-8';
 import { renderCreate, openCreateModal } from './pages/create.js?v=20260805-1';
-import { renderAutomation } from './pages/automation.js?v=20260805-10';
-import { renderLogs } from './pages/logs.js?v=20260805-2';
+import { renderAutomation } from './pages/automation.js?v=20260806-2';
+import { renderLogs } from './pages/logs.js?v=20260806-2';
+import { renderLibrary } from './pages/library.js?v=20260806-1';
 import { renderSettings } from './pages/settings.js';
 
 const ROUTES = [
   { key: 'automation', label: 'Automation', icon: icons.automation, render: renderAutomation },
+  { key: 'library', label: 'Kütüphane', icon: icons.library, render: renderLibrary },
   { key: 'settings', label: 'Settings', icon: icons.settings, render: renderSettings },
   { key: 'logs', label: 'Logs', icon: icons.file, render: renderLogs },
   { key: 'create', label: 'Create New Post', icon: icons.create, render: renderCreate, nav: false },

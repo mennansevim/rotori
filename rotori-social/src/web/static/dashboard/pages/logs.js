@@ -1,7 +1,7 @@
 // =========================================================================
 // pages/logs.js — Yayın Logları
 // =========================================================================
-import { api, el, typeBadge, fmtDate, fmtTime, errorState, loadingState } from '../lib.js?v=20260805-8';
+import { api, el, typeBadge, fmtDate, fmtTime, errorState, loadingState, emptyState, icons, toast } from '../lib.js?v=20260805-8';
 
 export async function renderLogs(root, ctx) {
   root.innerHTML = '';
@@ -43,6 +43,11 @@ function publishLogCard(publishes, ctx) {
 
   const events = [];
   for (const it of upcoming) {
+    const status = normalizeLogStatus(it.publish_outcome || it.status);
+    const hasMeaningfulLog = ['failed', 'manual', 'overdue', 'publishing'].includes(status)
+      || Boolean(it.last_attempt_at || it.last_result_at || it.failure_reason);
+    if (!hasMeaningfulLog) continue;
+
     const ts = Date.parse(it.last_result_at || it.last_attempt_at || it.scheduled_at || '') || 0;
     const details = [`Plan: ${fmtDate(it.scheduled_at)} · ${fmtTime(it.scheduled_at)}`];
     if (it.last_attempt_at) details.push(`Son deneme: ${fmtDate(it.last_attempt_at)} · ${fmtTime(it.last_attempt_at)}`);
@@ -54,9 +59,10 @@ function publishLogCard(publishes, ctx) {
       title: it.title || 'Planlı yayın',
       type: it.type || 'gorsel',
       url: it.url,
-      status: it.publish_outcome || it.status,
+      status,
       statusLabel: it.publish_outcome_tr || it.status_tr || 'Planlandı',
       details: details.join(' · '),
+      canRetry: status === 'failed' || status === 'overdue' || status === 'manual',
     });
   }
   for (const it of published) {
@@ -74,15 +80,16 @@ function publishLogCard(publishes, ctx) {
 
   events.sort((a, b) => b.ts - a.ts);
   if (!events.length) {
-    body.append(el('p', { class: 'muted', style: 'margin:0' },
-      'Henüz log kaydı bulunmuyor. İlk yayın denemesiyle burada durum satırları görünecek.'));
+    body.append(emptyState(icons.file,
+      'Henüz yayın deneme logu yok.',
+      'Planlanan kartlar log ekranına düşmez. Yayın denemesi yapıldığında burada listelenir.'));
     card.append(body);
     return card;
   }
 
   const list = el('div', { class: 'rowlist' });
   for (const ev of events.slice(0, 24)) {
-    const retryBtn = (ev.status === 'failed' && ev.entryId)
+    const retryBtn = (ev.canRetry && ev.entryId)
       ? el('button', {
         class: 'btn btn--sm btn--ghost',
         type: 'button',
@@ -97,14 +104,18 @@ function publishLogCard(publishes, ctx) {
             const items = Array.isArray(result?.items) ? result.items : [];
             const hit = items.find((it) => it.id === ev.entryId);
             if (hit?.status === 'done') {
+              toast('Yayın denemesi başarılı.', 'ok');
               btn.textContent = 'Gönderildi';
             } else if (hit?.status === 'failed') {
+              toast('Yayın denemesi tekrar başarısız oldu.', 'err');
               btn.textContent = 'Tekrar Dene';
             } else {
+              toast('Yayın denemesi işlendi.', 'ok');
               btn.textContent = 'İşlendi';
             }
             ctx.refresh();
-          } catch {
+          } catch (err) {
+            toast(err?.message || 'Yeniden deneme başlatılamadı.', 'err');
             btn.textContent = old || 'Tekrar Dene';
             btn.disabled = false;
           }
@@ -141,4 +152,14 @@ function statusToneFromOutcome(outcome) {
   if (outcome === 'failed') return 'danger';
   if (outcome === 'overdue' || outcome === 'manual' || outcome === 'publishing') return 'warn';
   return 'muted';
+}
+
+function normalizeLogStatus(status) {
+  if (status === 'success') return 'success';
+  if (status === 'failed') return 'failed';
+  if (status === 'overdue') return 'overdue';
+  if (status === 'manual') return 'manual';
+  if (status === 'publishing' || status === 'uploading') return 'publishing';
+  if (status === 'pending' || status === 'scheduled' || status === 'queued' || status === 'approved' || status === 'ready') return 'scheduled';
+  return 'scheduled';
 }
