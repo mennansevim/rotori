@@ -206,14 +206,28 @@ function buildFlowData(upcoming, type) {
 
   const nearest = typed.slice(0, FLOW_LIMIT);
   const ordered = [...nearest].reverse(); // solda uzak tarih, sağda en yakın
-  const slots = new Array(FLOW_LIMIT).fill(null);
-  const start = FLOW_LIMIT - ordered.length;
-  ordered.forEach((it, idx) => { slots[start + idx] = it; });
+
+  if (!ordered.length) {
+    return {
+      total: typed.length,
+      slots: [{ _placeholder: 'empty', _type: type }],
+      anchor: null,
+      compact: true,
+      empty: true,
+    };
+  }
+
+  const slots = [...ordered];
+  if (ordered.length < FLOW_LIMIT) {
+    slots.push({ _placeholder: 'add', _type: type });
+  }
 
   return {
     total: typed.length,
     slots,
     anchor: ordered.length ? ordered[ordered.length - 1] : null,
+    compact: ordered.length < FLOW_LIMIT,
+    empty: false,
   };
 }
 
@@ -228,7 +242,11 @@ function flowRow(type, flowData, approvedPool, nowIso, root, ctx, options) {
       el('span', { html: typeBadge(type) }),
       el('span', { class: 'badge badge--muted' }, `Toplam ${flowData.total} slot`)));
 
-  const track = el('div', { class: `flow-track ${options.animateShift ? 'is-shift' : ''}` });
+  const trackClasses = ['flow-track'];
+  if (options.animateShift) trackClasses.push('is-shift');
+  if (flowData.compact) trackClasses.push('is-compact');
+  if (flowData.empty) trackClasses.push('is-empty');
+  const track = el('div', { class: trackClasses.join(' ') });
   const anchor = flowData.anchor;
   flowData.slots.forEach((slot) => {
     track.append(flowSlot(type, slot, slot && anchor && slot.entry_id === anchor.entry_id,
@@ -267,9 +285,8 @@ function flowRow(type, flowData, approvedPool, nowIso, root, ctx, options) {
 }
 
 function flowSlot(type, slot, isAnchor, approvedPool, nowIso, root, ctx) {
-  if (!slot) {
-    return el('div', { class: 'flow-slot flow-slot--empty' },
-      el('div', { class: 'flow-slot__empty' }, 'Boş slot'));
+  if (slot && slot._placeholder) {
+    return flowPlaceholderSlot(type, slot._placeholder, ctx);
   }
 
   const title = slot.title || 'Planlı gönderi';
@@ -309,6 +326,27 @@ function flowSlot(type, slot, isAnchor, approvedPool, nowIso, root, ctx) {
     btn.classList.add('is-sending');
   }
   return btn;
+}
+
+function flowPlaceholderSlot(type, mode, ctx) {
+  const kind = type === 'haber' ? 'haber' : 'görsel';
+  const isEmpty = mode === 'empty';
+  const title = isEmpty
+    ? `Henüz planlı ${kind} slotu yok`
+    : `${kind[0].toUpperCase()}${kind.slice(1)} akışında boş yer var`;
+  const subtitle = isEmpty
+    ? 'Kütüphanede onaylayıp otomasyona ekleyin.'
+    : 'Onaylı içeriklerle sırayı hızlıca doldurabilirsiniz.';
+
+  return el('button', {
+    class: `flow-slot flow-slot--cta ${isEmpty ? 'is-empty' : 'is-add'}`,
+    type: 'button',
+    onclick: () => ctx.navigate('library'),
+  },
+  el('span', { class: 'flow-slot__cta-icon', html: icons.plus }),
+  el('strong', { class: 'flow-slot__cta-title' }, title),
+  el('span', { class: 'flow-slot__cta-sub' }, subtitle),
+  el('span', { class: 'flow-slot__cta-link' }, 'Kütüphaneye git'));
 }
 
 async function refreshFlowData(flowPanel, root, ctx, options = {}) {
@@ -484,7 +522,8 @@ async function openReplacePicker({ slot, type, approvedPool, root, ctx }) {
 
   const pool = approvedPool
     .filter((it) => (it.type || 'gorsel') === type)
-    .filter((it) => it.name && REPLACE_ELIGIBLE_STATUSES.has(it.status))
+    .map((it) => ({ ...it, _assetName: resolveAssetName(it) }))
+    .filter((it) => it._assetName && REPLACE_ELIGIBLE_STATUSES.has(it.status))
     .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 
   if (!pool.length) {
@@ -524,7 +563,7 @@ async function openReplacePicker({ slot, type, approvedPool, root, ctx }) {
       replaceBtn.disabled = true;
       replaceBtn.classList.add('is-loading');
       try {
-        const res = await api.schedulerReplaceAsset(slot.entry_id, { asset_name: selected.name });
+        const res = await api.schedulerReplaceAsset(slot.entry_id, { asset_name: selected._assetName });
         toast(res?.swapped_with
           ? 'Slot değiştirildi ve aktif kuyruk girdisiyle swap yapıldı.'
           : 'Slot görseli başarıyla değiştirildi.', 'ok');
@@ -562,6 +601,10 @@ function computeServerOffset(nowIso) {
   const serverMs = new Date(nowIso).getTime();
   if (!Number.isFinite(serverMs)) return 0;
   return serverMs - Date.now();
+}
+
+function resolveAssetName(item) {
+  return String(item?.name || item?.asset_name || item?.story_name || '').trim();
 }
 
 function compactRemaining(scheduledAt, nowRef) {
