@@ -1,24 +1,35 @@
-"""Reels Posting Scheduler — haftalık yayın kuyruğu ve otomatik Instagram draft upload.
+"""Posting Scheduler — TEK yayın kuyruğu (Reels MP4 + Story JPG kartlar).
 
-Kullanım (web API üzerinden):
-    POST /api/scheduler/queue      → Reels MP4'ünü kuyruğa ekle + hedef tarih/saat
-    GET  /api/scheduler/queue      → Kuyruktaki tüm girdileri listele
-    DELETE /api/scheduler/queue/{id} → Kuyruktan çıkar
-    POST /api/scheduler/run        → Şu an zamanı gelen girdileri işle (manuel tetik)
+Bu modül Buffer/Later benzeri bir "unified queue" implement eder:
+    - Kuyruğa hem MP4 (kind="reel") hem JPG (kind="story") girebilir.
+    - Zamanı gelen öğe, tipine göre doğru publisher'a gider:
+        reel  → instagram_publisher.upload_draft() (private API — draft yükleme)
+        story → instagram_graph.publish_image()   (resmi Graph API — direkt yayın)
+    - Aynı slot iki kez dolmaz; daily_limit aşılırsa sonraki güne öteleme.
+    - Timezone: Europe/Istanbul (UTC+3) sabittir — kullanıcı hesabının bulunduğu TZ.
 
-Scheduler config (config.yaml → scheduler):
-    enabled: true
-    daily_limit: 2          # günde max kaç Reels yayınlanır
-    default_times: ["08:00", "18:00"]   # varsayılan yayın saatleri (UTC+3)
-    auto_upload: false      # true → Instagram upload otomatik; false → sadece kuyruk
-    queue_file: data/scheduler_queue.json
+Web API (bkz. src/web/app.py):
+    GET    /api/scheduler/queue              → tüm kuyruk + istatistik
+    POST   /api/scheduler/queue              → Reels MP4 ekle
+    POST   /api/scheduler/schedule_story     → Onay bekleyen kartı ready'e taşı + kuyruğa ekle
+    POST   /api/scheduler/reschedule/{id}    → slotu değiştir
+    DELETE /api/scheduler/queue/{id}         → iptal (status=cancelled)
+    POST   /api/scheduler/run                → zamanı geleni HEMEN işle
 
-Tasarım notları:
-- Kuyruk: data/scheduler_queue.json (JSON Lines değil, tam JSON array — düzenleme kolaylığı)
-- Idempotent: aynı MP4 iki kez kuyruğa eklenemez
-- Her MP4 için opsiyonel caption; yoksa final.json'daki aciklama + hashtagler birleştirilir
-- auto_upload=True ise web scheduler background thread'inden upload_draft() çağrılır
-- daily_limit aşılırsa sonraki uygun güne öteleme (round-robin saat havuzu)
+Kuyruk şeması (data/scheduler_queue.json — JSON array):
+    {
+      "id": "reel_kyoto_00_1735000000",
+      "kind": "reel" | "story",           # yeni: hangi publisher çağrılır
+      "asset_name": "kyoto_00.mp4",       # dosya adı (mp4 veya jpg)
+      "asset_path": "…/output/reels/…",
+      "caption": "…",
+      "scheduled_at": "2026-08-01T18:00:00",   # naive Europe/Istanbul
+      "status": "pending"|"uploading"|"done"|"failed"|"cancelled",
+      "added_at": "…",
+      "result": {...} | "…"
+    }
+
+Geriye dönük uyumluluk: eski girdilerde 'mp4_name'/'mp4_path' varsa okurken normalize edilir.
 """
 from __future__ import annotations
 
@@ -30,6 +41,21 @@ from pathlib import Path
 from typing import Any
 
 from src.utils.logging import get_logger
+
+# Europe/Istanbul sabit. Sunucu UTC/başka TZ'de olsa bile kullanıcı için
+# TR saati konuşuruz. now()'u DIŞ dünyaya bu TZ'de aktarıyoruz.
+try:
+    from zoneinfo import ZoneInfo
+    _TZ = ZoneInfo("Europe/Istanbul")
+except Exception:  # noqa: BLE001 — Python 3.9+ hep var, defensive
+    _TZ = None
+
+
+def _now() -> datetime:
+    """Europe/Istanbul yerel saatinde naive datetime döndürür (kuyruk formatıyla uyumlu)."""
+    if _TZ is not None:
+        return datetime.now(_TZ).replace(tzinfo=None)
+    return datetime.now()
 
 log = get_logger("scheduler")
 
@@ -79,7 +105,7 @@ def _next_available_slot(
     if not default_times:
         default_times = ["08:00", "18:00"]
 
-    now = from_dt or datetime.now()
+    now = from_dt or _now()
     # Kuyruktaki planlanmış saatleri gün → count haritasına dön
     day_counts: dict[str, int] = {}
     for item in queue:
@@ -116,6 +142,44 @@ def _next_available_slot(
     return fallback.strftime("%Y-%m-%dT08:00:00")
 
 
+def next_automation_slot(
+    queue: list[dict[str, Any]],
+    launchd_days: list[int],
+    hour: int,
+    minute: int,
+    from_dt: datetime | None = None,
+) -> str:
+    """İçerik tipinin otomasyon günlerindeki ilk boş yayın slotunu bul."""
+    days = {int(day) for day in launchd_days if 0 <= int(day) <= 6}
+    if not days:
+        raise ValueError("Otomasyon için en az bir yayın günü seçilmeli.")
+
+    hour = max(0, min(23, int(hour)))
+    minute = max(0, min(59, int(minute)))
+    now = from_dt or _now()
+    occupied = {
+        item.get("scheduled_at")
+        for item in queue
+        if item.get("scheduled_at")
+        and item.get("status") not in ("done", "cancelled", "failed")
+    }
+
+    for delta_day in range(366):
+        candidate_day = now.date() + timedelta(days=delta_day)
+        launchd_weekday = (candidate_day.weekday() + 1) % 7
+        if launchd_weekday not in days:
+            continue
+        slot_dt = datetime(candidate_day.year, candidate_day.month, candidate_day.day,
+                           hour, minute)
+        if slot_dt <= now:
+            continue
+        slot = slot_dt.strftime("%Y-%m-%dT%H:%M:%S")
+        if slot not in occupied:
+            return slot
+
+    raise ValueError("Seçili otomasyon günlerinde 1 yıl içinde boş slot bulunamadı.")
+
+
 # ---------------------------------------------------------------------------
 # Kuyruğa ekleme / çıkarma
 # ---------------------------------------------------------------------------
@@ -128,42 +192,108 @@ def enqueue(
     daily_limit: int = 2,
     default_times: list[str] | None = None,
     queue_file: str = "data/scheduler_queue.json",
+    kind: str = "reel",                # "reel" (mp4) | "story" (jpg)
+    auto_publish: bool | None = None,
+    automation_kind: str = "",
 ) -> dict[str, Any]:
-    """MP4'ü posting kuyruğuna ekle.
+    """Asset'i (MP4 reel veya JPG story) posting kuyruğuna ekle.
 
     Returns: eklenen kuyruk girdisi
-    Raises: ValueError — aynı MP4 zaten kuyruğa eklenmişse
+    Raises: ValueError — aynı dosya zaten kuyruğa eklenmişse
     """
     times = default_times or ["08:00", "18:00"]
+    kind = kind if kind in ("reel", "story") else "reel"
 
     with _LOCK:
         queue = load_queue(project_root, queue_file)
 
-        # Idempotency: aynı dosya zaten kuyruğa eklenmiş mi?
+        # Idempotency: aynı dosya zaten kuyrukta aktif mi?
         for item in queue:
-            if (item.get("mp4_name") == mp4_path.name
-                    and item.get("status") not in ("done", "cancelled")):
-                raise ValueError(f"Bu Reels zaten kuyruğa eklenmiş: {mp4_path.name}")
+            existing_name = item.get("asset_name") or item.get("mp4_name")
+            if existing_name == mp4_path.name and item.get("status") == "failed":
+                item["status"] = "cancelled"
+                item["cancelled_reason"] = "automation_rescheduled"
+            active = item.get("status") not in ("done", "cancelled", "failed")
+            if not active:
+                continue
+            if existing_name == mp4_path.name:
+                raise ValueError(f"Bu içerik zaten kuyrukta: {mp4_path.name}")
 
         if not scheduled_at:
             scheduled_at = _next_available_slot(queue, daily_limit, times)
 
+        prefix = "story" if kind == "story" else "reel"
         entry: dict[str, Any] = {
-            "id": f"reel_{mp4_path.stem}_{int(time.time())}",
+            "id": f"{prefix}_{mp4_path.stem}_{int(time.time())}",
+            "kind": kind,
+            "asset_name": mp4_path.name,
+            "asset_path": str(mp4_path),
+            # Geriye dönük uyum — eski UI/kod hâlâ mp4_name okuyor olabilir
             "mp4_name": mp4_path.name,
             "mp4_path": str(mp4_path),
             "caption": caption,
             "scheduled_at": scheduled_at,
             "status": "pending",       # pending | uploading | done | failed | cancelled
-            "added_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+            "added_at": _now().strftime("%Y-%m-%dT%H:%M:%S"),
             "result": None,
         }
+        if auto_publish is not None:
+            entry["auto_publish"] = bool(auto_publish)
+        if automation_kind:
+            entry["automation_kind"] = automation_kind
         queue.append(entry)
         # scheduled_at'e göre sırala
         queue.sort(key=lambda x: x.get("scheduled_at", ""))
         _save_queue(project_root, queue, queue_file)
-        log.info(f"Kuyruğa eklendi: {mp4_path.name} → {scheduled_at}")
+        log.info(f"Kuyruğa eklendi [{kind}]: {mp4_path.name} → {scheduled_at}")
         return entry
+
+
+def sync_automation_slots(
+    project_root: Path,
+    automation_config: dict[str, Any],
+    queue_file: str = "data/scheduler_queue.json",
+) -> dict[str, int]:
+    """Aktif otomasyon girdilerini güncel tip slotlarına yeniden yerleştir."""
+    with _LOCK:
+        queue = load_queue(project_root, queue_file)
+        movable = [
+            item for item in queue
+            if item.get("automation_kind") in ("news", "topic")
+            and item.get("status") in ("pending", "ready")
+        ]
+        movable.sort(key=lambda item: (
+            item.get("scheduled_at", ""), item.get("added_at", ""),
+            item.get("asset_name") or item.get("mp4_name") or "",
+        ))
+        movable_ids = {id(item) for item in movable}
+        occupancy = [item for item in queue if id(item) not in movable_ids]
+        rescheduled = 0
+        unscheduled = 0
+
+        for item in movable:
+            automation_kind = item.get("automation_kind", "")
+            slot_cfg = automation_config.get(automation_kind) or {}
+            days = [int(day) for day in (slot_cfg.get("days") or [])
+                    if 0 <= int(day) <= 6]
+            if not slot_cfg.get("enabled") or not days:
+                item["status"] = "cancelled"
+                item["cancelled_reason"] = "automation_disabled"
+                unscheduled += 1
+                occupancy.append(item)
+                continue
+            item["scheduled_at"] = next_automation_slot(
+                occupancy, days, int(slot_cfg.get("hour", 9)),
+                int(slot_cfg.get("minute", 0)),
+            )
+            item["auto_publish"] = bool(slot_cfg.get("auto_publish", False))
+            item.pop("cancelled_reason", None)
+            occupancy.append(item)
+            rescheduled += 1
+
+        queue.sort(key=lambda item: item.get("scheduled_at", ""))
+        _save_queue(project_root, queue, queue_file)
+        return {"rescheduled": rescheduled, "unscheduled": unscheduled}
 
 
 def remove_from_queue(
@@ -213,10 +343,9 @@ def process_due(
 ) -> list[dict[str, Any]]:
     """Scheduled_at zamanı gelmiş 'pending' girdileri işle.
 
-    auto_upload=True: instagram_publisher.upload_draft() çağrılır.
-    auto_upload=False: sadece status='ready' yapılır, kullanıcı web UI'dan yayınlar.
-
-    Returns: işlenen girdilerin listesi
+    - kind='reel'  → instagram_publisher.upload_draft(mp4)     (private, draft)
+    - kind='story' → instagram_graph.publish_image(image_url)  (resmi Graph)
+    auto_upload=False: sadece 'ready' işaretlenir; kullanıcı UI'dan yayınlar.
     """
     def _emit(msg: str, lvl: str = "log") -> None:
         if emit:
@@ -224,7 +353,7 @@ def process_due(
         else:
             log.info(msg)
 
-    now = datetime.now()
+    now = _now()
     processed = []
 
     with _LOCK:
@@ -244,44 +373,109 @@ def process_due(
             if sched_dt > now:
                 continue  # henüz zamanı gelmedi
 
-            mp4 = Path(item["mp4_path"])
-            if not mp4.exists():
-                # output_dir içinde ara
-                mp4_candidate = output_dir / item["mp4_name"]
-                if mp4_candidate.exists():
-                    mp4 = mp4_candidate
+            attempted_at = _now().strftime("%Y-%m-%dT%H:%M:%S")
+            item["last_attempt_at"] = attempted_at
+            item["attempt_count"] = int(item.get("attempt_count", 0)) + 1
+            item.pop("failure_reason", None)
+
+            # Asset yolu — yeni şema (asset_path) veya eski (mp4_path)
+            asset_name = item.get("asset_name") or item.get("mp4_name", "")
+            asset_path_str = item.get("asset_path") or item.get("mp4_path", "")
+            kind = item.get("kind") or ("story" if asset_name.lower().endswith((".jpg", ".jpeg", ".png")) else "reel")
+
+            asset = Path(asset_path_str) if asset_path_str else Path()
+            if not asset.exists():
+                candidate = output_dir / asset_name
+                if candidate.exists():
+                    asset = candidate
                 else:
-                    _emit(f"⚠ MP4 bulunamadı, atlanıyor: {item['mp4_name']}", "warn")
+                    _emit(f"⚠ Dosya bulunamadı, atlanıyor: {asset_name}", "warn")
                     item["status"] = "failed"
-                    item["result"] = "mp4_not_found"
+                    item["result"] = "asset_not_found"
+                    item["failure_reason"] = "asset_not_found"
+                    item["last_result_at"] = attempted_at
+                    item["last_result_status"] = "failed"
                     changed = True
                     continue
 
-            _emit(f"⏰ Zamanı geldi: {item['mp4_name']} ({sched_str})", "info")
+            _emit(f"⏰ Zamanı geldi [{kind}]: {asset_name} ({sched_str})", "info")
             item["status"] = "uploading"
             changed = True
 
-            if auto_upload:
-                try:
+            entry_auto_upload = item.get("auto_publish")
+            should_upload = auto_upload if entry_auto_upload is None else bool(entry_auto_upload)
+            if not should_upload:
+                # auto_upload kapalı → kullanıcı UI'dan yayınlar
+                item["status"] = "ready"
+                item["result"] = "manual_upload_required"
+                item["last_result_at"] = attempted_at
+                item["last_result_status"] = "ready"
+                _emit(f"📋 Hazır (manuel yayın bekleniyor): {asset_name}", "info")
+                processed.append(dict(item))
+                continue
+
+            try:
+                if kind == "story":
+                    # Graph API — public HTTPS URL üzerinden yayın
+                    from src import instagram_graph
+                    ig = getattr(cfg_any, "instagram", None)
+                    base = ((ig.public_base_url if ig else "") or "").strip().rstrip("/")
+                    if not base:
+                        raise RuntimeError("public_base_url boş — story yayınlanamaz")
+                    # Kart 'ready/' altındaysa oradan servis edelim; değilse output_dir'e göre relative
+                    from urllib.parse import quote
+                    stories_root = None
+                    stories_cfg = getattr(cfg_any, "stories", None)
+                    if stories_cfg is not None:
+                        stories_root = stories_cfg.output_dir
+                    if stories_root and asset.is_relative_to(stories_root):
+                        rel = asset.relative_to(stories_root)
+                        image_url = f"{base}/media/stories/" + "/".join(quote(p) for p in rel.parts)
+                    else:
+                        image_url = f"{base}/media/stories/{quote(asset.name)}"
+                    caption = item.get("caption") or ""
+                    if not caption:
+                        cap_txt = asset.with_suffix(".txt")
+                        if cap_txt.exists():
+                            try:
+                                caption = cap_txt.read_text(encoding="utf-8")
+                            except OSError:
+                                caption = ""
+                    res = instagram_graph.publish_image(cfg_any, image_url, caption)
+                    done_at = _now().strftime("%Y-%m-%dT%H:%M:%S")
+                    item["status"] = "done"
+                    item["result"] = {"media_id": res.get("id"),
+                                      "container_id": res.get("container_id"),
+                                      "published_at": done_at}
+                    item["last_result_at"] = done_at
+                    item["last_result_status"] = "done"
+                    _emit(f"✅ Yayınlandı [story]: {asset_name} · media_id={res.get('id')}", "info")
+                else:
+                    # Reel — private API draft
                     from src import instagram_publisher
                     from threading import Event
                     cancel_ev = Event()
                     caption = item.get("caption", "")
                     result = instagram_publisher.upload_draft(
-                        cfg_any, mp4, caption, _emit, cancel_ev
+                        cfg_any, asset, caption, _emit, cancel_ev
                     )
+                    done_at = _now().strftime("%Y-%m-%dT%H:%M:%S")
+                    result_payload = dict(result) if isinstance(result, dict) else {"result": result}
+                    result_payload.setdefault("uploaded_at", done_at)
                     item["status"] = "done"
-                    item["result"] = result
-                    _emit(f"✓ Draft yüklendi: {item['mp4_name']} (media_id={result.get('media_id')})", "info")
-                except Exception as exc:
-                    item["status"] = "failed"
-                    item["result"] = str(exc)
-                    _emit(f"✖ Upload başarısız ({item['mp4_name']}): {exc}", "error")
-            else:
-                # auto_upload kapalı → kullanıcı web UI'dan yayınlar
-                item["status"] = "ready"
-                item["result"] = "manual_upload_required"
-                _emit(f"📋 Hazır (manuel yayın bekleniyor): {item['mp4_name']}", "info")
+                    item["result"] = result_payload
+                    item["last_result_at"] = done_at
+                    item["last_result_status"] = "done"
+                    _emit(f"✓ Draft yüklendi [reel]: {asset_name} "
+                          f"(media_id={result.get('media_id')})", "info")
+            except Exception as exc:
+                failed_at = _now().strftime("%Y-%m-%dT%H:%M:%S")
+                item["status"] = "failed"
+                item["result"] = str(exc)
+                item["failure_reason"] = str(exc)
+                item["last_result_at"] = failed_at
+                item["last_result_status"] = "failed"
+                _emit(f"✖ Yayın başarısız ({asset_name}): {exc}", "error")
 
             processed.append(dict(item))
 
@@ -291,18 +485,184 @@ def process_due(
     return processed
 
 
+def reschedule(
+    project_root: Path,
+    entry_id: str,
+    new_scheduled_at: str,
+    queue_file: str = "data/scheduler_queue.json",
+) -> dict[str, Any] | None:
+    """Bekleyen bir girdinin slotunu değiştir. Sadece pending/ready üzerinde geçerli."""
+    with _LOCK:
+        queue = load_queue(project_root, queue_file)
+        target = None
+        for item in queue:
+            if item.get("id") == entry_id:
+                target = item
+                break
+        if target is None:
+            return None
+        if target.get("status") in ("done", "cancelled", "uploading"):
+            raise ValueError(f"Bu durumda reschedule yapılamaz: {target.get('status')}")
+        # yeni zamanı doğrula
+        try:
+            datetime.fromisoformat(new_scheduled_at)
+        except ValueError as exc:
+            raise ValueError(f"Geçersiz tarih: {new_scheduled_at}") from exc
+        target["scheduled_at"] = new_scheduled_at
+        # başarısızlıktan dönebilsin
+        if target.get("status") in ("failed", "ready"):
+            target["status"] = "pending"
+            target["result"] = None
+        queue.sort(key=lambda x: x.get("scheduled_at", ""))
+        _save_queue(project_root, queue, queue_file)
+        log.info(f"Reschedule: {entry_id} → {new_scheduled_at}")
+        return dict(target)
+
+
+def _read_asset_caption(asset_path: Path) -> str:
+    cap = asset_path.with_suffix(".txt")
+    if not cap.exists():
+        return ""
+    try:
+        return cap.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+
+
+def _normalize_entry_asset(item: dict[str, Any], asset_path: Path, caption: str | None = None) -> None:
+    name = asset_path.name
+    item["kind"] = "story" if name.lower().endswith((".jpg", ".jpeg", ".png")) else "reel"
+    item["asset_name"] = name
+    item["asset_path"] = str(asset_path)
+    # Geriye dönük uyum
+    item["mp4_name"] = name
+    item["mp4_path"] = str(asset_path)
+    item["caption"] = _read_asset_caption(asset_path) if caption is None else caption
+
+    if item.get("status") in ("failed", "ready"):
+        item["status"] = "pending"
+    item["result"] = None
+    item.pop("failure_reason", None)
+    item.pop("last_result_status", None)
+
+
+def replace_entry_asset(
+    project_root: Path,
+    entry_id: str,
+    asset_path: Path,
+    queue_file: str = "data/scheduler_queue.json",
+    caption: str | None = None,
+) -> dict[str, Any] | None:
+    """Aktif kuyruk girdisinin medya dosyasını değiştir.
+
+    Eğer yeni dosya başka bir aktif girdide kullanılıyorsa iki girdinin medyası
+    swap edilir (slotlar korunur).
+    """
+    with _LOCK:
+        queue = load_queue(project_root, queue_file)
+        target: dict[str, Any] | None = None
+        for item in queue:
+            if item.get("id") == entry_id:
+                target = item
+                break
+        if target is None:
+            return None
+
+        status = target.get("status")
+        if status in ("done", "cancelled", "uploading"):
+            raise ValueError(f"Bu durumda replace yapılamaz: {status}")
+
+        current_name = target.get("asset_name") or target.get("mp4_name") or ""
+        if current_name == asset_path.name:
+            return {"entry": dict(target), "swapped_with": None}
+
+        current_caption = target.get("caption", "")
+        current_path = Path(target.get("asset_path") or target.get("mp4_path") or current_name)
+        if not current_path.is_absolute():
+            current_path = project_root / current_path
+
+        swap_entry: dict[str, Any] | None = None
+        for item in queue:
+            if item is target:
+                continue
+            if item.get("status") in ("done", "cancelled"):
+                continue
+            other_name = item.get("asset_name") or item.get("mp4_name") or ""
+            if other_name == asset_path.name:
+                if item.get("status") == "uploading":
+                    raise ValueError("Seçilen görsel şu anda yayınlanıyor, değiştirilemez.")
+                swap_entry = item
+                break
+
+        _normalize_entry_asset(target, asset_path, caption)
+
+        swapped_with = None
+        if swap_entry is not None and current_name:
+            swap_asset_path = current_path
+            if not swap_asset_path.exists():
+                candidate = asset_path.parent / current_name
+                if candidate.exists():
+                    swap_asset_path = candidate
+            _normalize_entry_asset(swap_entry, swap_asset_path, current_caption)
+            swapped_with = swap_entry.get("id")
+
+        queue.sort(key=lambda item: item.get("scheduled_at", ""))
+        _save_queue(project_root, queue, queue_file)
+        log.info(f"Queue replace: {entry_id} -> {asset_path.name}" +
+                 (f" (swap {swapped_with})" if swapped_with else ""))
+        return {"entry": dict(target), "swapped_with": swapped_with}
+
+
 # ---------------------------------------------------------------------------
 # Kuyruk özeti (dashboard için)
 # ---------------------------------------------------------------------------
 
 def queue_summary(project_root: Path, queue_file: str = "data/scheduler_queue.json") -> dict[str, Any]:
-    """Dashboard gösterimi için kuyruk istatistikleri."""
+    """Dashboard gösterimi için kuyruk istatistikleri + takvim grupları."""
     queue = load_queue(project_root, queue_file)
     active = [i for i in queue if i.get("status") not in ("done", "cancelled")]
     pending = [i for i in active if i.get("status") == "pending"]
     ready = [i for i in active if i.get("status") == "ready"]
     failed = [i for i in queue if i.get("status") == "failed"]
     done = [i for i in queue if i.get("status") == "done"]
+
+    # normalize: eski girdilerde asset_name/kind boş olabilir → doldur
+    for it in active:
+        if not it.get("asset_name"):
+            it["asset_name"] = it.get("mp4_name", "")
+        if not it.get("asset_path"):
+            it["asset_path"] = it.get("mp4_path", "")
+        if not it.get("kind"):
+            it["kind"] = "story" if it["asset_name"].lower().endswith((".jpg", ".jpeg", ".png")) else "reel"
+
+    # Countdown + takvim bucket'ları (Europe/Istanbul)
+    now = _now()
+    today = now.date()
+    tomorrow = today + timedelta(days=1)
+    week_end = today + timedelta(days=7)
+
+    def _bucket(sched_str: str) -> tuple[str, int]:
+        """(bucket_label, seconds_until) döner."""
+        try:
+            dt = datetime.fromisoformat(sched_str)
+        except (ValueError, TypeError):
+            return ("unknown", 0)
+        secs = int((dt - now).total_seconds())
+        d = dt.date()
+        if secs < 0:
+            return ("overdue", secs)
+        if d == today:
+            return ("today", secs)
+        if d == tomorrow:
+            return ("tomorrow", secs)
+        if d <= week_end:
+            return ("this_week", secs)
+        return ("later", secs)
+
+    for it in active:
+        bucket, secs = _bucket(it.get("scheduled_at", ""))
+        it["_bucket"] = bucket
+        it["_seconds_until"] = secs
 
     next_item = pending[0] if pending else None
 
@@ -313,7 +673,10 @@ def queue_summary(project_root: Path, queue_file: str = "data/scheduler_queue.js
         "failed": len(failed),
         "done": len(done),
         "next_scheduled": next_item.get("scheduled_at") if next_item else None,
-        "next_mp4": next_item.get("mp4_name") if next_item else None,
+        "next_mp4": next_item.get("asset_name") or next_item.get("mp4_name") if next_item else None,
+        "next_asset": next_item.get("asset_name") if next_item else None,
+        "now": now.strftime("%Y-%m-%dT%H:%M:%S"),
+        "timezone": "Europe/Istanbul",
         "items": sorted(active, key=lambda x: x.get("scheduled_at", "")),
     }
 
