@@ -18,6 +18,7 @@ export function openCreateModal(ctx, tab = 'gorsel') {
   const tabbar = el('div', { class: 'tabbar' });
   const swap = (t) => {
     tabbar.querySelectorAll('.tab').forEach((b) => b.classList.toggle('is-active', b.dataset.t === t));
+    content.dataset.mode = t;
     content.innerHTML = '';
     content.append(t === 'haber' ? buildHaber(ctx, done) : buildGorsel(ctx, done));
   };
@@ -25,7 +26,7 @@ export function openCreateModal(ctx, tab = 'gorsel') {
     tabbar.append(el('button', { class: 'tab', dataset: { t }, onclick: () => swap(t) }, label));
   }
 
-  ctl = openModal({ title: 'İçerik Üret', wide: true, body: el('div', {}, tabbar, content) });
+  ctl = openModal({ title: 'Yeni İçerik', wide: true, body: el('div', { class: 'create-modal__shell' }, tabbar, content) });
   swap(tab === 'haber' ? 'haber' : 'gorsel');
   return ctl;
 }
@@ -146,13 +147,21 @@ function buildGorsel(ctx, onDone) {
     el('div', { class: 'hstack', style: 'justify-content:space-between;margin-top:6px' }, backBtn, renderBtn));
 
   const left = el('div', { class: 'stack' },
-    el('div', { class: 'card' }, el('div', { class: 'card__body' }, wiz, step1, step2, step3)));
+    el('div', { class: 'card create-form-card' }, el('div', { class: 'card__body' }, wiz, step1, step2, step3)));
 
   // ---- Sağ: canlı telefon önizleme ----
   const prevKicker = el('div', { class: 'ig-preview__handle' }, 'JAPONYA RÜYASI');
   const prevTitle = el('div', { class: 'ig-preview__title' }, 'Bir fikirle başla.');
-  const prevImg = el('img', { alt: 'önizleme' });
-  const prevImgWrap = el('div', { class: 'ig-preview__img' }, prevImg);
+  const prevEmpty = el('div', { class: 'ig-preview__empty' },
+    el('span', { class: 'ig-preview__empty-icon', html: icons.image }),
+    el('strong', {}, 'Görsel önizlemesi'),
+    el('small', {}, 'Soldan bir konu ara ve görsel seç.'));
+  const prevImg = el('img', {
+    alt: 'Seçilen görsel önizlemesi', hidden: '',
+    onload: () => { prevImg.hidden = false; prevEmpty.hidden = true; },
+    onerror: () => { prevImg.hidden = true; prevEmpty.hidden = false; },
+  });
+  const prevImgWrap = el('div', { class: 'ig-preview__img' }, prevEmpty, prevImg);
   const prevBody = el('div', { class: 'ig-preview__caption' }, 'Sol taraftaki iki üretim yolundan birini seçerek başla.');
   const preview = el('div', { class: 'ig-preview' },
     el('div', { class: 'ig-preview__head' },
@@ -162,10 +171,10 @@ function buildGorsel(ctx, onDone) {
     prevKicker, prevTitle, prevImgWrap, prevBody,
     el('div', { class: 'ig-preview__tags' }, '#Japonya #JaponyaRüyası'));
   const right = el('div', { class: 'stack' },
-    el('div', { class: 'card' }, el('div', { class: 'card__head' }, el('h3', {}, 'Canlı Önizleme')),
+    el('div', { class: 'card create-preview-card' }, el('div', { class: 'card__head' }, el('h3', {}, 'Canlı Önizleme'), el('span', { class: 'create-preview-card__status' }, '4:5 Post')),
       el('div', { class: 'card__body' }, preview)));
 
-  const wrap = el('div', { class: 'grid-2' }, left, right);
+  const wrap = el('div', { class: 'grid-2 create-modal__grid' }, left, right);
 
   // ---- Yardımcılar ----
   function setStep(n) {
@@ -193,6 +202,8 @@ function buildGorsel(ctx, onDone) {
     stylePicker.querySelectorAll('.style-choice').forEach((x) => x.classList.toggle('is-active', x.dataset.style === 'style2'));
     pickerGrid.innerHTML = '';
     prevImg.removeAttribute('src');
+    prevImg.hidden = true;
+    prevEmpty.hidden = false;
     setStep(1); updatePreview();
     toast('Alanlar sıfırlandı.', 'ok');
   }
@@ -236,7 +247,11 @@ function buildGorsel(ctx, onDone) {
     state.selectedIdx = idx;
     renderPicker();
     const item = state.results[idx];
-    if (item) prevImg.src = item.download_url || item.thumb;
+    if (item) {
+      prevImg.hidden = true;
+      prevEmpty.hidden = false;
+      prevImg.src = item.download_url || item.thumb;
+    }
     setStep(3);
     if (!aciInput.value.trim()) aiFromImage();
   }

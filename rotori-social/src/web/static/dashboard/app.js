@@ -1,37 +1,30 @@
 // =========================================================================
 // app.js — Router + sidebar + account · Japonya Rüyası İçerik Stüdyosu
 // =========================================================================
-import { api, el, icons } from './lib.js';
-import { renderOverview } from './pages/overview.js';
-import { renderCreate, openCreateModal } from './pages/create.js';
-import { renderLibrary } from './pages/library.js';
-import { renderAutomation } from './pages/automation.js';
-import { renderPublishes } from './pages/publishes.js';
+import { api, el, icons } from './lib.js?v=20260804-7';
+import { renderOverview } from './pages/overview.js?v=20260805-1';
+import { renderCreate, openCreateModal } from './pages/create.js?v=20260804-3';
+import { renderAutomation } from './pages/automation.js?v=20260805-1';
 import { renderSettings } from './pages/settings.js';
 
 const ROUTES = [
-  { key: 'overview', label: 'Genel Bakış', icon: icons.overview, render: renderOverview },
-  { key: 'create', label: 'İçerik Üret', icon: icons.create, render: renderCreate },
-  { key: 'library', label: 'Kütüphane', icon: icons.library, render: renderLibrary },
-  { key: 'automation', label: 'Otomasyon', icon: icons.automation, render: renderAutomation },
-  { key: 'publishes', label: 'Yayınlar', icon: icons.publishes, render: renderPublishes },
-  { key: 'settings', label: 'Ayarlar', icon: icons.settings, render: renderSettings },
+  { key: 'overview', label: 'Board (Backlog)', icon: icons.overview, render: renderOverview },
+  { key: 'automation', label: 'Automation', icon: icons.automation, render: renderAutomation },
+  { key: 'settings', label: 'Settings', icon: icons.settings, render: renderSettings },
+  { key: 'create', label: 'Create New Post', icon: icons.create, render: renderCreate, nav: false },
 ];
 
 const pageRoot = document.getElementById('page-root');
 const nav = document.getElementById('nav');
 let current = { key: 'overview', params: null };
 
-// Route parse: "library:pending_approval" → { key:'library', params:{status/tab:'...'} }
+// Route parse: "create:gorsel" → { key:'create', params:{tab:'gorsel'} }
 function parseHash() {
   const raw = (location.hash || '#overview').slice(1);
   const [key, arg] = raw.split(':');
   const route = ROUTES.find((r) => r.key === key) || ROUTES[0];
   let params = null;
-  if (arg) {
-    if (route.key === 'library') params = { status: arg };
-    else if (route.key === 'create') params = { tab: arg };
-  }
+  if (arg && route.key === 'create') params = { tab: arg };
   return { route, params };
 }
 
@@ -40,6 +33,8 @@ const ctx = {
   refresh() { renderCurrent(); },
   get serverNow() { return null; },
 };
+
+document.getElementById('top-create')?.addEventListener('click', () => openCreateModal(ctx, 'gorsel'));
 
 async function renderCurrent() {
   const { route, params } = parseHash();
@@ -64,6 +59,7 @@ async function renderCurrent() {
 function buildNav() {
   nav.innerHTML = '';
   for (const r of ROUTES) {
+    if (r.nav === false) continue;
     nav.append(el('button', {
       class: 'nav__item', dataset: { key: r.key },
       onclick: () => { if (r.key === 'create') openCreateModal(ctx, 'gorsel'); else ctx.navigate(r.key); },

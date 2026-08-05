@@ -1272,7 +1272,8 @@ def approval_mark_ready(name: str) -> dict[str, Any]:
     dst = _story_ready_dir() / name
     if not src.exists():
         if dst.exists():
-            return {"ok": True, "already_ready": True}
+            return {"ok": True, "already_ready": True,
+                    "queue_sync": _auto_fill_ready_impl()}
         raise HTTPException(status_code=404, detail="Onay bekleyen kart bulunamadı.")
 
     try:
@@ -1284,7 +1285,8 @@ def approval_mark_ready(name: str) -> dict[str, Any]:
     except OSError as exc:
         raise HTTPException(status_code=500,
                             detail=f"Yayına Hazır'a taşınamadı: {exc}") from exc
-    return {"ok": True, "path": str(dst.relative_to(cfg.project_root))}
+    return {"ok": True, "path": str(dst.relative_to(cfg.project_root)),
+            "queue_sync": _auto_fill_ready_impl()}
 
 
 @app.post("/api/approval/approve/{name}")
@@ -1627,7 +1629,12 @@ def automation_config_post(req: AutomationConfigRequest) -> dict[str, Any]:
                 data[k][key] = incoming[key]
     _save_auto_cfg(data)
     notes = _sync_launchd(data)
-    return {"ok": True, "config": data, "launchd": notes}
+    from src import scheduler as sched_mod
+    queue_file = cfg.scheduler.queue_file if cfg.scheduler else "data/scheduler_queue.json"
+    slot_sync = sched_mod.sync_automation_slots(cfg.project_root, data, queue_file)
+    queue_sync = _auto_fill_ready_impl()
+    queue_sync.update(slot_sync)
+    return {"ok": True, "config": data, "launchd": notes, "queue_sync": queue_sync}
 
 
 class RunNowRequest(BaseModel):
@@ -1938,7 +1945,8 @@ def story_mark_ready(name: str) -> dict[str, Any]:
     if not src.exists():
         # zaten ready'de mi?
         if (cfg.stories.output_dir / "ready" / name).exists():
-            return {"ok": True, "already_ready": True}
+            return {"ok": True, "already_ready": True,
+                    "queue_sync": _auto_fill_ready_impl()}
         raise HTTPException(status_code=404, detail="Kart bulunamadı.")
 
     dst = _story_ready_dir() / name
@@ -1950,7 +1958,8 @@ def story_mark_ready(name: str) -> dict[str, Any]:
         if s.exists():
             s.rename(dst.with_suffix(suf))
 
-    return {"ok": True, "path": str(dst.relative_to(cfg.project_root))}
+    return {"ok": True, "path": str(dst.relative_to(cfg.project_root)),
+            "queue_sync": _auto_fill_ready_impl()}
 
 
 @app.post("/api/story/submit_approval/{name}")
@@ -2534,26 +2543,17 @@ def scheduler_reschedule(entry_id: str, req: SchedulerRescheduleRequest) -> dict
 
 @app.post("/api/scheduler/auto_fill_ready")
 def scheduler_auto_fill_ready() -> dict[str, Any]:
-    """Yayına Hazır klasöründeki TÜM planlanmamış kartları scheduler'ın
-    default_times + daily_limit ayarlarına göre otomatik slotlara diz.
+    """Ready kartları içerik tipinin açık otomasyon slotlarına sırayla diz."""
+    return _auto_fill_ready_impl()
 
-    Buffer / Later'daki "Add All to Queue" davranışı: kullanıcı 9 kart onaylamış,
-    her birine ayrı ayrı tarih seçmesin — biz haftaya yayarız.
 
-    Sadece:
-      - output/stories/ready/*.jpg (planlanmamış olanlar)
-      - Kuyrukta zaten VAROLMAYAN olanlar (idempotent)
-    """
+def _auto_fill_ready_impl() -> dict[str, Any]:
+    """Planlanmamış Ready kartlarını Haber/Görsel otomasyonuna bağla."""
     if cfg.stories is None:
         raise HTTPException(status_code=400, detail="stories config yok.")
-    if not (cfg.instagram and cfg.instagram.graph_token and cfg.instagram.ig_user_id):
-        raise HTTPException(status_code=400,
-                            detail="Instagram Graph API ayarlı değil.")
-    if not (cfg.instagram.public_base_url or "").strip():
-        raise HTTPException(status_code=400,
-                            detail="public_base_url boş — story yayınlanamaz.")
 
     from src import scheduler as sched_mod
+    from src.web import dashboard_state as dashboard_state_mod
 
     ready_dir = cfg.stories.output_dir / "ready"
     if not ready_dir.exists():
@@ -2561,57 +2561,77 @@ def scheduler_auto_fill_ready() -> dict[str, Any]:
 
     sched_cfg = cfg.scheduler
     queue_file = sched_cfg.queue_file if sched_cfg else "data/scheduler_queue.json"
-    daily_limit = sched_cfg.daily_limit if sched_cfg else 2
-    default_times = sched_cfg.default_times if sched_cfg else ["08:00", "20:00"]
-
-    # Halihazırda kuyrukta olanları hariç tut
+    auto_cfg = _load_auto_cfg()
     existing_queue = sched_mod.load_queue(cfg.project_root, queue_file)
     queued_names = {
-        (i.get("asset_name") or i.get("mp4_name") or "")
-        for i in existing_queue
-        if i.get("status") not in ("done", "cancelled", "failed")
+        (item.get("asset_name") or item.get("mp4_name") or "")
+        for item in existing_queue
+        if item.get("status") not in ("done", "cancelled", "failed")
     }
 
-    # Ready JPG'lerini uploaded_log ile de karşılaştır — yayınlanmış olanları at
     from src import instagram_publisher as ig_pub
     try:
-        uploaded_log = ig_pub.read_upload_log(cfg)  # {stem: {...}}
+        uploaded_log = ig_pub.read_upload_log(cfg)
     except Exception:
         uploaded_log = {}
 
     candidates = sorted(
-        p for p in ready_dir.glob("*.jpg")
-        if p.name not in queued_names and p.stem not in uploaded_log
+        (path for path in ready_dir.glob("*.jpg")
+         if path.name not in queued_names and path.stem not in uploaded_log),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
     )
     if not candidates:
         return {"ok": True, "scheduled": 0, "entries": [],
                 "message": "Zaten hepsi planlı veya yayında."}
 
-    scheduled_entries = []
-    fails = []
-    # enqueue içindeki _next_available_slot her seferinde güncel kuyruğa bakar
-    # → art arda ekleyince slotlar akıcı ilerler.
+    scheduled_entries: list[dict[str, Any]] = []
+    fails: list[dict[str, str]] = []
+    skipped: list[dict[str, str]] = []
     for jpg in candidates:
-        # caption: .txt sidecar
-        caption = ""
-        cap_txt = jpg.with_suffix(".txt")
-        if cap_txt.exists():
+        meta: dict[str, Any] = {}
+        meta_path = jpg.with_suffix(".json")
+        if meta_path.exists():
             try:
-                caption = cap_txt.read_text(encoding="utf-8")
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                meta = {}
+
+        content_type = dashboard_state_mod._derive_type(jpg.name, meta)
+        automation_kind = "news" if content_type == "haber" else "topic"
+        slot_cfg = auto_cfg.get(automation_kind) or {}
+        if not slot_cfg.get("enabled"):
+            skipped.append({"name": jpg.name, "reason": f"{automation_kind} otomasyonu kapalı"})
+            continue
+        days = [int(day) for day in (slot_cfg.get("days") or []) if 0 <= int(day) <= 6]
+        if not days:
+            skipped.append({"name": jpg.name, "reason": f"{automation_kind} için gün seçilmedi"})
+            continue
+
+        caption = ""
+        caption_path = jpg.with_suffix(".txt")
+        if caption_path.exists():
+            try:
+                caption = caption_path.read_text(encoding="utf-8")
             except OSError:
                 caption = ""
         try:
+            scheduled_at = sched_mod.next_automation_slot(
+                existing_queue, days, int(slot_cfg.get("hour", 9)),
+                int(slot_cfg.get("minute", 0)),
+            )
             entry = sched_mod.enqueue(
                 project_root=cfg.project_root,
                 mp4_path=jpg,
                 caption=caption,
-                scheduled_at=None,   # auto slot
-                daily_limit=daily_limit,
-                default_times=default_times,
+                scheduled_at=scheduled_at,
                 queue_file=queue_file,
                 kind="story",
+                auto_publish=bool(slot_cfg.get("auto_publish", False)),
+                automation_kind=automation_kind,
             )
             scheduled_entries.append(entry)
+            existing_queue.append(entry)
         except ValueError as exc:
             fails.append({"name": jpg.name, "reason": str(exc)})
 
@@ -2619,13 +2639,12 @@ def scheduler_auto_fill_ready() -> dict[str, Any]:
         "ok": True,
         "scheduled": len(scheduled_entries),
         "failed": len(fails),
+        "skipped": len(skipped),
         "entries": scheduled_entries,
         "fails": fails,
-        "daily_limit": daily_limit,
-        "default_times": default_times,
+        "skips": skipped,
+        "slot_config": auto_cfg,
     }
-
-
 @app.delete("/api/scheduler/queue/{entry_id}")
 def scheduler_dequeue(entry_id: str) -> dict[str, Any]:
     """Kuyruktan iptal et (status → 'cancelled')."""
