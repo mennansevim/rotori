@@ -373,6 +373,11 @@ def process_due(
             if sched_dt > now:
                 continue  # henüz zamanı gelmedi
 
+            attempted_at = _now().strftime("%Y-%m-%dT%H:%M:%S")
+            item["last_attempt_at"] = attempted_at
+            item["attempt_count"] = int(item.get("attempt_count", 0)) + 1
+            item.pop("failure_reason", None)
+
             # Asset yolu — yeni şema (asset_path) veya eski (mp4_path)
             asset_name = item.get("asset_name") or item.get("mp4_name", "")
             asset_path_str = item.get("asset_path") or item.get("mp4_path", "")
@@ -387,6 +392,9 @@ def process_due(
                     _emit(f"⚠ Dosya bulunamadı, atlanıyor: {asset_name}", "warn")
                     item["status"] = "failed"
                     item["result"] = "asset_not_found"
+                    item["failure_reason"] = "asset_not_found"
+                    item["last_result_at"] = attempted_at
+                    item["last_result_status"] = "failed"
                     changed = True
                     continue
 
@@ -400,6 +408,8 @@ def process_due(
                 # auto_upload kapalı → kullanıcı UI'dan yayınlar
                 item["status"] = "ready"
                 item["result"] = "manual_upload_required"
+                item["last_result_at"] = attempted_at
+                item["last_result_status"] = "ready"
                 _emit(f"📋 Hazır (manuel yayın bekleniyor): {asset_name}", "info")
                 processed.append(dict(item))
                 continue
@@ -432,9 +442,13 @@ def process_due(
                             except OSError:
                                 caption = ""
                     res = instagram_graph.publish_image(cfg_any, image_url, caption)
+                    done_at = _now().strftime("%Y-%m-%dT%H:%M:%S")
                     item["status"] = "done"
                     item["result"] = {"media_id": res.get("id"),
-                                      "container_id": res.get("container_id")}
+                                      "container_id": res.get("container_id"),
+                                      "published_at": done_at}
+                    item["last_result_at"] = done_at
+                    item["last_result_status"] = "done"
                     _emit(f"✅ Yayınlandı [story]: {asset_name} · media_id={res.get('id')}", "info")
                 else:
                     # Reel — private API draft
@@ -445,13 +459,22 @@ def process_due(
                     result = instagram_publisher.upload_draft(
                         cfg_any, asset, caption, _emit, cancel_ev
                     )
+                    done_at = _now().strftime("%Y-%m-%dT%H:%M:%S")
+                    result_payload = dict(result) if isinstance(result, dict) else {"result": result}
+                    result_payload.setdefault("uploaded_at", done_at)
                     item["status"] = "done"
-                    item["result"] = result
+                    item["result"] = result_payload
+                    item["last_result_at"] = done_at
+                    item["last_result_status"] = "done"
                     _emit(f"✓ Draft yüklendi [reel]: {asset_name} "
                           f"(media_id={result.get('media_id')})", "info")
             except Exception as exc:
+                failed_at = _now().strftime("%Y-%m-%dT%H:%M:%S")
                 item["status"] = "failed"
                 item["result"] = str(exc)
+                item["failure_reason"] = str(exc)
+                item["last_result_at"] = failed_at
+                item["last_result_status"] = "failed"
                 _emit(f"✖ Yayın başarısız ({asset_name}): {exc}", "error")
 
             processed.append(dict(item))
@@ -494,6 +517,100 @@ def reschedule(
         _save_queue(project_root, queue, queue_file)
         log.info(f"Reschedule: {entry_id} → {new_scheduled_at}")
         return dict(target)
+
+
+def _read_asset_caption(asset_path: Path) -> str:
+    cap = asset_path.with_suffix(".txt")
+    if not cap.exists():
+        return ""
+    try:
+        return cap.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+
+
+def _normalize_entry_asset(item: dict[str, Any], asset_path: Path, caption: str | None = None) -> None:
+    name = asset_path.name
+    item["kind"] = "story" if name.lower().endswith((".jpg", ".jpeg", ".png")) else "reel"
+    item["asset_name"] = name
+    item["asset_path"] = str(asset_path)
+    # Geriye dönük uyum
+    item["mp4_name"] = name
+    item["mp4_path"] = str(asset_path)
+    item["caption"] = _read_asset_caption(asset_path) if caption is None else caption
+
+    if item.get("status") in ("failed", "ready"):
+        item["status"] = "pending"
+    item["result"] = None
+    item.pop("failure_reason", None)
+    item.pop("last_result_status", None)
+
+
+def replace_entry_asset(
+    project_root: Path,
+    entry_id: str,
+    asset_path: Path,
+    queue_file: str = "data/scheduler_queue.json",
+    caption: str | None = None,
+) -> dict[str, Any] | None:
+    """Aktif kuyruk girdisinin medya dosyasını değiştir.
+
+    Eğer yeni dosya başka bir aktif girdide kullanılıyorsa iki girdinin medyası
+    swap edilir (slotlar korunur).
+    """
+    with _LOCK:
+        queue = load_queue(project_root, queue_file)
+        target: dict[str, Any] | None = None
+        for item in queue:
+            if item.get("id") == entry_id:
+                target = item
+                break
+        if target is None:
+            return None
+
+        status = target.get("status")
+        if status in ("done", "cancelled", "uploading"):
+            raise ValueError(f"Bu durumda replace yapılamaz: {status}")
+
+        current_name = target.get("asset_name") or target.get("mp4_name") or ""
+        if current_name == asset_path.name:
+            return {"entry": dict(target), "swapped_with": None}
+
+        current_caption = target.get("caption", "")
+        current_path = Path(target.get("asset_path") or target.get("mp4_path") or current_name)
+        if not current_path.is_absolute():
+            current_path = project_root / current_path
+
+        swap_entry: dict[str, Any] | None = None
+        for item in queue:
+            if item is target:
+                continue
+            if item.get("status") in ("done", "cancelled"):
+                continue
+            other_name = item.get("asset_name") or item.get("mp4_name") or ""
+            if other_name == asset_path.name:
+                if item.get("status") == "uploading":
+                    raise ValueError("Seçilen görsel şu anda yayınlanıyor, değiştirilemez.")
+                swap_entry = item
+                break
+
+        _normalize_entry_asset(target, asset_path, caption)
+
+        swapped_with = None
+        if swap_entry is not None and current_name:
+            swap_asset_path = current_path
+            if not swap_asset_path.exists():
+                candidate = asset_path.parent / current_name
+                if candidate.exists():
+                    swap_asset_path = candidate
+            _normalize_entry_asset(swap_entry, swap_asset_path, current_caption)
+            swapped_with = swap_entry.get("id")
+
+        queue.sort(key=lambda item: item.get("scheduled_at", ""))
+        _save_queue(project_root, queue, queue_file)
+        log.info(f"Queue replace: {entry_id} -> {asset_path.name}" +
+                 (f" (swap {swapped_with})" if swapped_with else ""))
+        return {"entry": dict(target), "swapped_with": swapped_with}
 
 
 # ---------------------------------------------------------------------------

@@ -45,6 +45,17 @@ STATUS_TR = {
 _IMG_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
 _TR_DAYS_SHORT = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"]  # Monday=0
 
+PUBLISH_OUTCOME_TR = {
+    "failed": "Başarısız",
+    "publishing": "Yayınlanıyor",
+    "manual": "Manuel yayın gerekli",
+    "overdue": "Yayın zamanı geçti",
+    "scheduled": "Planlandı",
+    "approved": "Hazır",
+    "queued": "Kuyrukta",
+    "success": "Başarılı",
+}
+
 
 # ---------------------------------------------------------------------------
 # Yardımcılar
@@ -123,6 +134,39 @@ def _fmt_dt(dt: datetime) -> str:
 
 def _mtime_iso(p: Path) -> str:
     return datetime.fromtimestamp(p.stat().st_mtime).strftime("%Y-%m-%dT%H:%M:%S")
+
+
+def _resolve_story_url(cfg: Any, name: str, existing_url: str | None = None) -> str | None:
+    """Kart adı için en güvenli media URL'i döndür.
+
+    Öncelik:
+      1) normalize içerikten gelen mevcut URL
+      2) dosya sisteminde pending_approval/ready/root kontrolü
+      3) kuyruktaki öğeler için ready varsayımı
+    """
+    if existing_url:
+        return existing_url
+    if not name:
+        return None
+
+    stories = getattr(cfg, "stories", None)
+    output_dir = getattr(stories, "output_dir", None)
+    if output_dir is None:
+        return None
+
+    pending_file = output_dir / "pending_approval" / name
+    ready_file = output_dir / "ready" / name
+    root_file = output_dir / name
+
+    safe = quote(name)
+    if pending_file.exists():
+        return f"/media/stories/pending_approval/{safe}"
+    if ready_file.exists():
+        return f"/media/stories/ready/{safe}"
+    if root_file.exists():
+        return f"/media/stories/{safe}"
+
+    return f"/media/stories/ready/{safe}"
 
 
 # ---------------------------------------------------------------------------
@@ -276,6 +320,53 @@ def humanize_delta(seconds: int | None) -> str:
     return "birazdan"
 
 
+def _result_error_text(result: Any) -> str | None:
+    if isinstance(result, str):
+        text = result.strip()
+        return text or None
+    if isinstance(result, dict):
+        for key in ("error", "reason", "detail", "message"):
+            val = result.get(key)
+            if isinstance(val, str) and val.strip():
+                return val.strip()
+    return None
+
+
+def _publish_outcome(item: dict[str, Any], seconds: int | None) -> tuple[str, str]:
+    q_status = item.get("status")
+    if q_status == "failed":
+        return "failed", PUBLISH_OUTCOME_TR["failed"]
+    if q_status == "uploading":
+        return "publishing", PUBLISH_OUTCOME_TR["publishing"]
+    if q_status == "ready" and item.get("result") == "manual_upload_required":
+        return "manual", PUBLISH_OUTCOME_TR["manual"]
+    if seconds is not None and seconds < 0 and q_status in ("pending", "ready"):
+        return "overdue", PUBLISH_OUTCOME_TR["overdue"]
+    if q_status == "pending":
+        return "scheduled", PUBLISH_OUTCOME_TR["scheduled"]
+    if q_status == "ready":
+        return "approved", PUBLISH_OUTCOME_TR["approved"]
+    return "queued", PUBLISH_OUTCOME_TR["queued"]
+
+
+def _publish_reason(item: dict[str, Any], seconds: int | None) -> str | None:
+    q_status = item.get("status")
+    reason = str(item.get("failure_reason") or "").strip() or _result_error_text(item.get("result"))
+
+    if q_status == "failed":
+        return reason or "Yayın denemesi başarısız oldu."
+
+    if seconds is not None and seconds < 0:
+        if q_status == "ready" and item.get("result") == "manual_upload_required":
+            return "Otomatik yayın kapalı; içerik manuel yayın bekliyor."
+        if q_status == "ready":
+            return "Yayın zamanı geçti; içerik hazır durumda bekliyor."
+        if q_status == "pending":
+            return "Yayın zamanı geçti; kuyruk girdisi henüz işlenmedi."
+
+    return reason or None
+
+
 # ---------------------------------------------------------------------------
 # Haftalık timeline — gerçek kuyruk + içerik eşleşmesi
 # ---------------------------------------------------------------------------
@@ -319,16 +410,22 @@ def weekly_timeline(cfg: Any, content: list[dict[str, Any]] | None = None) -> di
             "gorsel" if name.lower().endswith((".jpg", ".jpeg", ".png")) else "haber"
         )
         secs = int((dt - now).total_seconds())
+        outcome, outcome_tr = _publish_outcome(it, secs)
+        reason = _publish_reason(it, secs)
         entry = {
             "name": name,
             "title": content_ref.get("title") or _derive_title(name, {}),
-            "url": content_ref.get("url"),
+            "url": _resolve_story_url(cfg, name, content_ref.get("url")),
             "type": ctype,
             "time": dt.strftime("%H:%M"),
             "scheduled_at": sch,
             "status": it.get("status"),
             "seconds_until": secs,
             "countdown": humanize_delta(secs),
+            "is_overdue": secs < 0,
+            "publish_outcome": outcome,
+            "publish_outcome_tr": outcome_tr,
+            "failure_reason": reason,
         }
         days[dt.weekday()]["items"].append(entry)
 
@@ -366,15 +463,25 @@ def overview(cfg: Any) -> dict[str, Any]:
     if future:
         it = future[0]
         secs = seconds_until(it.get("scheduled_at"), now)
+        outcome, outcome_tr = _publish_outcome(it, secs)
+        reason = _publish_reason(it, secs)
         name = it.get("asset_name") or it.get("mp4_name") or ""
         ref = next((c for c in content if c["name"] == name), {})
         next_pub = {
             "name": name,
             "title": ref.get("title") or _derive_title(name, {}),
             "type": ref.get("type") or "gorsel",
+            "url": _resolve_story_url(cfg, name, ref.get("url")),
             "scheduled_at": it.get("scheduled_at"),
             "seconds_until": secs,
             "countdown": humanize_delta(secs),
+            "is_overdue": bool(secs is not None and secs < 0),
+            "publish_outcome": outcome,
+            "publish_outcome_tr": outcome_tr,
+            "failure_reason": reason,
+            "queue_status": it.get("status"),
+            "last_attempt_at": it.get("last_attempt_at"),
+            "last_result_at": it.get("last_result_at"),
         }
 
     # Yayına hazır sırası (kuyruk sırası)
@@ -383,6 +490,8 @@ def overview(cfg: Any) -> dict[str, Any]:
         name = it.get("asset_name") or it.get("mp4_name") or ""
         ref = next((c for c in content if c["name"] == name), {})
         secs = seconds_until(it.get("scheduled_at"), now)
+        outcome, outcome_tr = _publish_outcome(it, secs)
+        reason = _publish_reason(it, secs)
         ready_queue.append({
             "order": idx,
             "name": name,
@@ -391,6 +500,10 @@ def overview(cfg: Any) -> dict[str, Any]:
             "url": ref.get("url"),
             "scheduled_at": it.get("scheduled_at"),
             "countdown": humanize_delta(secs),
+            "is_overdue": bool(secs is not None and secs < 0),
+            "publish_outcome": outcome,
+            "publish_outcome_tr": outcome_tr,
+            "failure_reason": reason,
         })
 
     return {
@@ -428,6 +541,8 @@ def publishes(cfg: Any) -> dict[str, Any]:
         ref = by_name.get(name, {})
         secs = seconds_until(it.get("scheduled_at"), now)
         q_status = it.get("status")
+        outcome, outcome_tr = _publish_outcome(it, secs)
+        reason = _publish_reason(it, secs)
         ui_status = {
             "pending": "scheduled", "ready": "approved",
             "uploading": "publishing", "failed": "failed",
@@ -437,13 +552,20 @@ def publishes(cfg: Any) -> dict[str, Any]:
             "name": name,
             "title": ref.get("title") or _derive_title(name, {}),
             "type": ref.get("type") or ("gorsel" if name.lower().endswith((".jpg", ".jpeg", ".png")) else "haber"),
-            "url": ref.get("url"),
+            "url": _resolve_story_url(cfg, name, ref.get("url")),
             "scheduled_at": it.get("scheduled_at"),
             "seconds_until": secs,
             "countdown": humanize_delta(secs),
+            "is_overdue": bool(secs is not None and secs < 0),
             "status": ui_status,
             "status_tr": STATUS_TR.get(ui_status, ui_status),
-            "error": it.get("result") if q_status == "failed" else None,
+            "queue_status": q_status,
+            "publish_outcome": outcome,
+            "publish_outcome_tr": outcome_tr,
+            "failure_reason": reason,
+            "last_attempt_at": it.get("last_attempt_at"),
+            "last_result_at": it.get("last_result_at"),
+            "error": reason if q_status == "failed" else None,
         })
 
     # Yayınlananlar — uploads_log
@@ -460,6 +582,8 @@ def publishes(cfg: Any) -> dict[str, Any]:
             "uploaded_at": rec.get("uploaded_at"),
             "permalink": rec.get("permalink"),
             "method": rec.get("method"),
+            "publish_outcome": "success",
+            "publish_outcome_tr": PUBLISH_OUTCOME_TR["success"],
             # Performans verisi backend'de yoksa None — UI 'veri yok' gösterir
             "metrics": rec.get("metrics"),
         })
