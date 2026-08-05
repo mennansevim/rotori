@@ -2,7 +2,7 @@
 // pages/automation.js — Otomasyon (yayın slotları)
 // =========================================================================
 import { api, el, icons, typeBadge, countdownText, fmtDate, fmtTime,
-         errorState, loadingState, toast } from '../lib.js';
+         errorState, loadingState, toast } from '../lib.js?v=20260804-7';
 
 const DAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];  // launchd: 1..6,0
 const DAY_TO_LAUNCHD = [1, 2, 3, 4, 5, 6, 0];  // index → launchd weekday
@@ -85,9 +85,13 @@ export async function renderAutomation(root, ctx) {
     btn.disabled = true;
     try {
       const res = await api.automationConfigSet({ news: cfg.news, topic: cfg.topic });
-      toast('Otomasyon ayarları kaydedildi.', 'ok');
+      const scheduled = res.queue_sync?.scheduled || 0;
+      const rescheduled = res.queue_sync?.rescheduled || 0;
+      toast(scheduled || rescheduled
+        ? `Ayarlar kaydedildi · ${scheduled + rescheduled} kartın yayın sırası güncellendi.`
+        : 'Otomasyon ayarları kaydedildi.', 'ok');
       if (res.launchd && res.launchd.length) console.log('launchd:', res.launchd);
-      renderAutomation(root, ctx);
+      await renderAutomation(root, ctx);
     } catch (e) { toast('Kayıt başarısız: ' + e.message, 'err'); btn.disabled = false; }
   }
 }
@@ -101,10 +105,7 @@ function weekFlow(tl) {
       el('div', { class: 'timeline__day' }, day.day_name),
       el('div', { class: 'timeline__date' }, day.date_label));
     if (!day.items.length) col.append(el('div', { class: 'timeline__empty' }, '—'));
-    else for (const it of day.items)
-      col.append(el('div', { class: 'tl-item' },
-        el('div', { class: 'tl-item__time' }, el('span', { class: `tl-item__dot ${it.type}` }), it.time),
-        el('div', { class: 'tl-item__title' }, it.title)));
+    else for (const it of day.items) col.append(timelineItem(it));
     grid.append(col);
   }
   return el('div', { class: 'card' },
@@ -112,6 +113,23 @@ function weekFlow(tl) {
       el('h3', {}, 'Bu Hafta Yayın Akışı'),
       el('span', { class: 'badge badge--muted' }, `Bu hafta ${total} yayın`)),
     el('div', { style: 'padding:8px 12px' }, grid));
+}
+
+function timelineItem(it) {
+  const media = el('div', { class: 'tl-item__media' },
+    el('span', { class: 'tl-item__placeholder', html: icons.image }));
+  if (it.url) {
+    const img = el('img', {
+      class: 'tl-item__thumb', src: it.url, alt: '', loading: 'lazy',
+      onerror: () => img.remove(),
+    });
+    media.prepend(img);
+  }
+  return el('div', { class: `tl-item ${it.type}` },
+    media,
+    el('div', { class: 'tl-item__body' },
+      el('div', { class: 'tl-item__time' }, el('span', { class: `tl-item__dot ${it.type}` }), it.time),
+      el('div', { class: 'tl-item__title' }, it.title)));
 }
 
 function nextCard(next, now) {

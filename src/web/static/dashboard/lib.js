@@ -48,6 +48,7 @@ export const api = {
   storyMeta: (name) => req('GET', `/api/story/meta/${encodeURIComponent(name)}`),
   storyUpdate: (name, b) => req('POST', `/api/story/update/${encodeURIComponent(name)}`, b),
   storyDelete: (name) => req('DELETE', `/api/story/${encodeURIComponent(name)}`),
+  storyUnmarkReady: (name) => req('POST', `/api/story/unmark_ready/${encodeURIComponent(name)}`),
   // Üretim
   aiFromText: (b) => req('POST', '/api/story/ai_from_text', b),
   aiFromImage: (b) => req('POST', '/api/story/ai_from_image', b),
@@ -167,6 +168,7 @@ export const icons = {
   send: I('<path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/>'),
   link: I('<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>'),
   inbox: I('<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5 5h14l3 7v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/>'),
+  grip: I('<path d="M9 5h.01M15 5h.01M9 12h.01M15 12h.01M9 19h.01M15 19h.01" stroke-width="3"/>'),
 };
 
 /* ------------------------------------------------------------- Toast */
@@ -201,9 +203,18 @@ export function openModal({ title, body, footer, wide = false, onClose }) {
 export function confirmModal({ title, message, confirmLabel = 'Onayla', danger = false }) {
   return new Promise((resolve) => {
     let ctl;
-    const cancel = el('button', { class: 'btn', onclick: () => { ctl.close(); resolve(false); } }, 'Vazgeç');
-    const ok = el('button', { class: `btn ${danger ? 'btn--danger' : 'btn--primary'}`, onclick: () => { ctl.close(); resolve(true); } }, confirmLabel);
-    ctl = openModal({ title, body: el('p', { class: 'muted' }, message), footer: [cancel, ok], onClose: () => resolve(false) });
+    let settled = false;
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      resolve(value);
+      ctl.close();
+    };
+    const cancel = el('button', { class: 'btn', onclick: () => finish(false) }, 'Vazgeç');
+    const ok = el('button', { class: `btn ${danger ? 'btn--danger' : 'btn--primary'}`, onclick: () => finish(true) }, confirmLabel);
+    ctl = openModal({ title, body: el('p', { class: 'muted' }, message), footer: [cancel, ok], onClose: () => {
+      if (!settled) resolve(false);
+    } });
   });
 }
 
