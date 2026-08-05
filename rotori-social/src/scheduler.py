@@ -142,6 +142,44 @@ def _next_available_slot(
     return fallback.strftime("%Y-%m-%dT08:00:00")
 
 
+def next_automation_slot(
+    queue: list[dict[str, Any]],
+    launchd_days: list[int],
+    hour: int,
+    minute: int,
+    from_dt: datetime | None = None,
+) -> str:
+    """İçerik tipinin otomasyon günlerindeki ilk boş yayın slotunu bul."""
+    days = {int(day) for day in launchd_days if 0 <= int(day) <= 6}
+    if not days:
+        raise ValueError("Otomasyon için en az bir yayın günü seçilmeli.")
+
+    hour = max(0, min(23, int(hour)))
+    minute = max(0, min(59, int(minute)))
+    now = from_dt or _now()
+    occupied = {
+        item.get("scheduled_at")
+        for item in queue
+        if item.get("scheduled_at")
+        and item.get("status") not in ("done", "cancelled", "failed")
+    }
+
+    for delta_day in range(366):
+        candidate_day = now.date() + timedelta(days=delta_day)
+        launchd_weekday = (candidate_day.weekday() + 1) % 7
+        if launchd_weekday not in days:
+            continue
+        slot_dt = datetime(candidate_day.year, candidate_day.month, candidate_day.day,
+                           hour, minute)
+        if slot_dt <= now:
+            continue
+        slot = slot_dt.strftime("%Y-%m-%dT%H:%M:%S")
+        if slot not in occupied:
+            return slot
+
+    raise ValueError("Seçili otomasyon günlerinde 1 yıl içinde boş slot bulunamadı.")
+
+
 # ---------------------------------------------------------------------------
 # Kuyruğa ekleme / çıkarma
 # ---------------------------------------------------------------------------
@@ -155,6 +193,8 @@ def enqueue(
     default_times: list[str] | None = None,
     queue_file: str = "data/scheduler_queue.json",
     kind: str = "reel",                # "reel" (mp4) | "story" (jpg)
+    auto_publish: bool | None = None,
+    automation_kind: str = "",
 ) -> dict[str, Any]:
     """Asset'i (MP4 reel veya JPG story) posting kuyruğuna ekle.
 
@@ -169,10 +209,13 @@ def enqueue(
 
         # Idempotency: aynı dosya zaten kuyrukta aktif mi?
         for item in queue:
+            existing_name = item.get("asset_name") or item.get("mp4_name")
+            if existing_name == mp4_path.name and item.get("status") == "failed":
+                item["status"] = "cancelled"
+                item["cancelled_reason"] = "automation_rescheduled"
             active = item.get("status") not in ("done", "cancelled", "failed")
             if not active:
                 continue
-            existing_name = item.get("asset_name") or item.get("mp4_name")
             if existing_name == mp4_path.name:
                 raise ValueError(f"Bu içerik zaten kuyrukta: {mp4_path.name}")
 
@@ -194,12 +237,63 @@ def enqueue(
             "added_at": _now().strftime("%Y-%m-%dT%H:%M:%S"),
             "result": None,
         }
+        if auto_publish is not None:
+            entry["auto_publish"] = bool(auto_publish)
+        if automation_kind:
+            entry["automation_kind"] = automation_kind
         queue.append(entry)
         # scheduled_at'e göre sırala
         queue.sort(key=lambda x: x.get("scheduled_at", ""))
         _save_queue(project_root, queue, queue_file)
         log.info(f"Kuyruğa eklendi [{kind}]: {mp4_path.name} → {scheduled_at}")
         return entry
+
+
+def sync_automation_slots(
+    project_root: Path,
+    automation_config: dict[str, Any],
+    queue_file: str = "data/scheduler_queue.json",
+) -> dict[str, int]:
+    """Aktif otomasyon girdilerini güncel tip slotlarına yeniden yerleştir."""
+    with _LOCK:
+        queue = load_queue(project_root, queue_file)
+        movable = [
+            item for item in queue
+            if item.get("automation_kind") in ("news", "topic")
+            and item.get("status") in ("pending", "ready")
+        ]
+        movable.sort(key=lambda item: (
+            item.get("scheduled_at", ""), item.get("added_at", ""),
+            item.get("asset_name") or item.get("mp4_name") or "",
+        ))
+        movable_ids = {id(item) for item in movable}
+        occupancy = [item for item in queue if id(item) not in movable_ids]
+        rescheduled = 0
+        unscheduled = 0
+
+        for item in movable:
+            automation_kind = item.get("automation_kind", "")
+            slot_cfg = automation_config.get(automation_kind) or {}
+            days = [int(day) for day in (slot_cfg.get("days") or [])
+                    if 0 <= int(day) <= 6]
+            if not slot_cfg.get("enabled") or not days:
+                item["status"] = "cancelled"
+                item["cancelled_reason"] = "automation_disabled"
+                unscheduled += 1
+                occupancy.append(item)
+                continue
+            item["scheduled_at"] = next_automation_slot(
+                occupancy, days, int(slot_cfg.get("hour", 9)),
+                int(slot_cfg.get("minute", 0)),
+            )
+            item["auto_publish"] = bool(slot_cfg.get("auto_publish", False))
+            item.pop("cancelled_reason", None)
+            occupancy.append(item)
+            rescheduled += 1
+
+        queue.sort(key=lambda item: item.get("scheduled_at", ""))
+        _save_queue(project_root, queue, queue_file)
+        return {"rescheduled": rescheduled, "unscheduled": unscheduled}
 
 
 def remove_from_queue(
@@ -300,7 +394,9 @@ def process_due(
             item["status"] = "uploading"
             changed = True
 
-            if not auto_upload:
+            entry_auto_upload = item.get("auto_publish")
+            should_upload = auto_upload if entry_auto_upload is None else bool(entry_auto_upload)
+            if not should_upload:
                 # auto_upload kapalı → kullanıcı UI'dan yayınlar
                 item["status"] = "ready"
                 item["result"] = "manual_upload_required"

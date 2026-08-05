@@ -7,10 +7,14 @@ mevcut gerçek config + dosya sistemi okunur (conftest client fixture).
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import pytest
 
 from src.web import dashboard_state as ds
+
+
+DASHBOARD_STATIC = Path(__file__).resolve().parent.parent / "src" / "web" / "static" / "dashboard"
 
 
 # --------------------------------------------------------------- Endpoint sözleşmesi
@@ -67,6 +71,8 @@ def test_automation_shape(client):
         assert kind in data["config"]
         for f in ("enabled", "days", "hour", "minute"):
             assert f in data["config"][kind]
+    timeline_items = [item for day in data["timeline"]["days"] for item in day["items"]]
+    assert all("url" in item for item in timeline_items)
 
 
 # --------------------------------------------------------------- Saf fonksiyonlar
@@ -110,3 +116,16 @@ def test_status_tr_covers_model():
     for s in ("draft", "pending_approval", "approved", "queued", "scheduled",
               "publishing", "published", "rejected", "failed"):
         assert s in ds.STATUS_TR
+
+
+def test_recovered_dark_board_and_timeline_contracts():
+    overview_js = (DASHBOARD_STATIC / "pages" / "overview.js").read_text(encoding="utf-8")
+    automation_js = (DASHBOARD_STATIC / "pages" / "automation.js").read_text(encoding="utf-8")
+    styles = (DASHBOARD_STATIC / "styles.css").read_text(encoding="utf-8")
+    lib_js = (DASHBOARD_STATIC / "lib.js").read_text(encoding="utf-8")
+    assert "kanban-card--" in overview_js
+    assert "timelineItem(it)" in automation_js
+    assert "await renderAutomation(root, ctx)" in automation_js
+    assert ".tl-item__thumb" in styles
+    assert "--bg-app: #0f172a" in styles
+    assert "settled = true" in lib_js
