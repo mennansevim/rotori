@@ -63,6 +63,19 @@ def test_publishes_shape(client):
     for key in ("upcoming", "published", "timeline", "metrics_available"):
         assert key in data
 
+    if data["upcoming"]:
+        item = data["upcoming"][0]
+        for key in (
+            "queue_status", "is_overdue", "publish_outcome", "publish_outcome_tr",
+            "failure_reason", "last_attempt_at", "last_result_at",
+        ):
+            assert key in item, f"upcoming publish alanı eksik: {key}"
+
+    if data["published"]:
+        item = data["published"][0]
+        for key in ("publish_outcome", "publish_outcome_tr"):
+            assert key in item, f"published alanı eksik: {key}"
+
 
 def test_automation_shape(client):
     data = client.get("/api/dashboard/automation").json()
@@ -116,6 +129,25 @@ def test_status_tr_covers_model():
     for s in ("draft", "pending_approval", "approved", "queued", "scheduled",
               "publishing", "published", "rejected", "failed"):
         assert s in ds.STATUS_TR
+
+
+def test_publish_reason_failed_prefers_explicit_reason():
+    item = {"status": "failed", "failure_reason": "instagram quota"}
+    assert ds._publish_reason(item, -120) == "instagram quota"
+
+
+def test_publish_reason_overdue_manual_upload():
+    item = {"status": "ready", "result": "manual_upload_required"}
+    txt = ds._publish_reason(item, -60)
+    assert txt is not None
+    assert "manuel" in txt.lower()
+
+
+def test_publish_outcome_overdue_pending():
+    item = {"status": "pending"}
+    outcome, outcome_tr = ds._publish_outcome(item, -1)
+    assert outcome == "overdue"
+    assert outcome_tr == ds.PUBLISH_OUTCOME_TR["overdue"]
 
 
 def test_recovered_dark_board_and_timeline_contracts():
