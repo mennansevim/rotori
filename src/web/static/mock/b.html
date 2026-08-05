@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>02 · Timeline — Japonya Rüyası</title>
+<style>
+  :root{--paper:#f2efe7;--white:#fcfbf7;--ink:#1e211d;--muted:#70736b;--line:#dad7ce;--red:#e34332;--green:#1f6b50;--yellow:#f2c35b;--navy:#1f3448}
+  *{box-sizing:border-box}
+  body{margin:0;background:#1a1d1a;color:#eaeae4;font:13.5px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  .picker{position:fixed;top:14px;right:14px;z-index:20;background:#fff;color:#1a1d1a;padding:6px 12px;border-radius:99px;font-size:11px;font-weight:700;text-decoration:none;letter-spacing:.08em;text-transform:uppercase}
+
+  .app{display:grid;grid-template-columns:64px 1fr 340px;min-height:100vh}
+
+  /* NAV RAIL */
+  .rail{background:#0e100e;border-right:1px solid #262a26;padding:16px 8px;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .rail .logo{width:38px;height:38px;border-radius:12px;background:var(--red);display:grid;place-items:center;font:700 14px Georgia,serif;color:#fff;margin-bottom:14px}
+  .rail button{width:44px;height:44px;border:0;background:transparent;color:#8a908a;border-radius:11px;font-size:16px;cursor:pointer;position:relative}
+  .rail button:hover{background:#1f231f;color:#fff}
+  .rail button.active{background:#fff;color:#1a1d1a}
+  .rail button .n{position:absolute;top:5px;right:5px;background:var(--red);color:#fff;font-size:9px;font-weight:800;min-width:15px;padding:0 4px;height:15px;border-radius:99px;display:grid;place-items:center}
+  .rail .spacer{flex:1}
+
+  /* TIMELINE */
+  .tl{padding:24px 32px 40px;overflow-y:auto;max-height:100vh}
+  .head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px;gap:20px}
+  .head h1{margin:0;font:600 26px/1.1 Georgia,serif;letter-spacing:-.02em}
+  .head .k{color:var(--red);font-size:10.5px;font-weight:850;letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px}
+  .head p{color:#9aa19a;margin:6px 0 0;font-size:13px}
+  .head .actions{display:flex;gap:8px}
+  .btn{background:#252925;border:1px solid #363b36;color:#eaeae4;border-radius:10px;padding:8px 14px;font-weight:700;font-size:12.5px;cursor:pointer}
+  .btn:hover{background:#2f342f}
+  .btn.p{background:var(--red);border-color:var(--red);color:#fff}
+  .btn.p:hover{background:#a72a22}
+
+  .day{margin-bottom:32px;position:relative}
+  .day-head{display:flex;align-items:center;gap:12px;margin-bottom:14px;position:sticky;top:0;background:#1a1d1a;padding:6px 0;z-index:2}
+  .day-head b{font:600 15px Georgia,serif}
+  .day-head small{color:#8a908a;font-size:11.5px}
+  .day-head .live{display:inline-block;background:var(--red);color:#fff;font-size:9.5px;font-weight:800;padding:2px 8px;border-radius:99px;letter-spacing:.08em;text-transform:uppercase;margin-left:8px}
+
+  .slot{display:grid;grid-template-columns:76px 1fr;gap:14px;margin-bottom:12px}
+  .slot .t{padding-top:10px;text-align:right;color:#9aa19a;font:600 12px Georgia,serif;position:relative}
+  .slot .t b{display:block;font-size:16px;color:#eaeae4}
+  .slot .t small{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#8a908a}
+
+  .post{background:#232722;border:1px solid #2f342f;border-radius:14px;padding:12px;display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;transition:.15s}
+  .post:hover{border-color:#4a504a;background:#272c27}
+  .post .thumb{width:64px;aspect-ratio:4/5;border-radius:9px;background:#0e100e center/cover;position:relative;overflow:hidden}
+  .post .thumb .b{position:absolute;top:4px;left:4px;background:#fff;color:#1a1d1a;font-size:8.5px;font-weight:800;padding:1.5px 5px;border-radius:99px;letter-spacing:.06em;text-transform:uppercase}
+  .post .thumb .b.reel{background:var(--red);color:#fff}
+  .post .body b{display:block;font-size:13px;line-height:1.25;color:#fff}
+  .post .body small{color:#9aa19a;font-size:11px;display:block;margin-top:3px}
+  .post .body .tag{display:inline-block;background:#0e100e;color:#c9cec9;border:1px solid #363b36;font-size:10px;padding:1px 8px;border-radius:99px;margin-top:6px;font-weight:700}
+  .post .go{display:flex;gap:4px}
+  .post .go button{background:transparent;color:#8a908a;border:1px solid #363b36;border-radius:8px;width:30px;height:30px;font-size:13px;cursor:pointer}
+  .post .go button:hover{color:#fff;border-color:#5a605a}
+
+  .empty-slot{background:transparent;border:1.5px dashed #363b36;border-radius:14px;padding:14px;color:#6a706a;font-size:12px;font-weight:700;text-align:center;cursor:pointer}
+  .empty-slot:hover{background:#1f231f;color:#eaeae4;border-color:#5a605a}
+
+  /* INBOX (right column) */
+  .inbox{background:#0e100e;border-left:1px solid #262a26;padding:24px 20px;max-height:100vh;overflow-y:auto;position:sticky;top:0}
+  .inbox h2{margin:0 0 4px;font:600 16px Georgia,serif}
+  .inbox .sub{color:#8a908a;font-size:11.5px;margin-bottom:16px}
+  .inbox .prod{display:flex;gap:6px;margin-bottom:18px}
+  .inbox .prod button{flex:1;background:#252925;border:1px solid #363b36;color:#eaeae4;padding:9px;border-radius:10px;font-size:11.5px;font-weight:700;cursor:pointer}
+  .inbox .prod button:hover{background:#2f342f}
+  .inbox-card{background:#161816;border:1px solid #262a26;border-radius:12px;padding:10px;margin-bottom:10px;cursor:grab}
+  .inbox-card:hover{border-color:#4a504a}
+  .inbox-card .thumb{aspect-ratio:4/5;border-radius:9px;background:#0e100e center/cover;position:relative;overflow:hidden;margin-bottom:8px}
+  .inbox-card .thumb .b{position:absolute;top:5px;left:5px;background:#fff;color:#1a1d1a;font-size:8.5px;font-weight:800;padding:1.5px 5px;border-radius:99px;letter-spacing:.06em;text-transform:uppercase}
+  .inbox-card b{display:block;font-size:12px;line-height:1.25;color:#fff}
+  .inbox-card small{color:#8a908a;font-size:10.5px;display:block;margin-top:3px}
+  .inbox-card .row{display:flex;gap:5px;margin-top:8px}
+  .inbox-card .row button{flex:1;background:#252925;border:1px solid #363b36;color:#eaeae4;padding:5px;border-radius:7px;font-size:10.5px;font-weight:700;cursor:pointer}
+  .inbox-card .row .approve{background:var(--red);border-color:var(--red);color:#fff}
+
+  .stat-strip{display:flex;gap:14px;background:#0e100e;border:1px solid #262a26;border-radius:12px;padding:12px 14px;margin-bottom:22px;font-size:11.5px}
+  .stat-strip div{flex:1}
+  .stat-strip b{display:block;font:600 16px Georgia,serif;color:#fff}
+  .stat-strip small{color:#8a908a;text-transform:uppercase;letter-spacing:.08em;font-size:9.5px;font-weight:700}
+
+  @media(max-width:1100px){.app{grid-template-columns:64px 1fr}.inbox{display:none}}
+</style>
+</head>
+<body>
+<a class="picker" href="/static/mock/">← Tasarım seç</a>
+
+<div class="app">
+
+  <div class="rail">
+    <div class="logo">日</div>
+    <button class="active" title="Zaman şeridi">◷</button>
+    <button title="AI Stüdyo">✦</button>
+    <button title="Kütüphane">▦</button>
+    <button title="Onay bekleyenler">✓<span class="n">7</span></button>
+    <button title="Analiz">↗</button>
+    <div class="spacer"></div>
+    <button title="Ayarlar">⚙</button>
+  </div>
+
+  <div class="tl">
+    <div class="head">
+      <div>
+        <div class="k">Yayın zaman şeridi · @japonyaruyasi</div>
+        <h1>Sonraki 7 gün.</h1>
+        <p>Her slot = otomasyon saati. Sağdaki onay bekleyenleri buraya sürükle ya da <b style="color:#fff">Otomatik doldur</b>.</p>
+      </div>
+      <div class="actions">
+        <button class="btn">◀ Bu hafta</button>
+        <button class="btn p">⚡ Otomatik doldur (7)</button>
+      </div>
+    </div>
+
+    <div class="stat-strip">
+      <div><small>Onay bekliyor</small><b>7 kart</b></div>
+      <div><small>Planlandı</small><b>5 kart · 3 gün</b></div>
+      <div><small>Boş slot</small><b>9 slot</b></div>
+      <div><small>Sıradaki yayın</small><b style="color:var(--red)">6 sa 14 dk</b></div>
+      <div><small>Otomasyon</small><b style="color:var(--green)">Açık</b></div>
+    </div>
+
+    <div class="day">
+      <div class="day-head"><b>Bugün</b><small>· 2 Ağustos Cumartesi</small><span class="live">Aktif</span></div>
+
+      <div class="slot"><div class="t"><b>08:00</b><small>Sabah</small></div>
+        <div class="post" style="opacity:.55">
+          <div class="thumb" style="background-image:linear-gradient(135deg,#4a4a4a,#1a1a1a)"><span class="b">Görsel</span></div>
+          <div class="body"><b>doğa manzarası</b><small>Story · Yayınlandı 08:00 · <span style="color:var(--green)">✓ 890 erişim</span></small></div>
+          <div class="go"><button>↗</button></div>
+        </div>
+      </div>
+
+      <div class="slot"><div class="t"><b>20:00</b><small>Akşam</small></div>
+        <div class="post" style="border-color:var(--red);box-shadow:0 0 0 3px rgba(227,67,50,.15)">
+          <div class="thumb" style="background-image:linear-gradient(135deg,#8a4820,#3a1a08)"><span class="b">Görsel</span></div>
+          <div class="body"><b>kyoto sabah tapınakları</b><small>Story · <b style="color:var(--red)">6 sa 14 dk sonra</b></small><span class="tag">Story</span></div>
+          <div class="go"><button title="Değiştir">✎</button><button title="Şimdi yayınla">▶</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="day">
+      <div class="day-head"><b>Yarın</b><small>· 3 Ağustos Pazar</small></div>
+
+      <div class="slot"><div class="t"><b>08:00</b><small>Sabah</small></div>
+        <div class="post">
+          <div class="thumb" style="background-image:linear-gradient(135deg,#204030,#0a2015)"><span class="b">Görsel</span></div>
+          <div class="body"><b>onsen etiketi</b><small>Story · Konu otomasyonu</small><span class="tag">Story</span></div>
+          <div class="go"><button title="Değiştir">✎</button><button title="Kaldır">✕</button></div>
+        </div>
+      </div>
+
+      <div class="slot"><div class="t"><b>20:00</b><small>Akşam</small></div>
+        <div class="post">
+          <div class="thumb" style="background-image:linear-gradient(135deg,#3a2a5a,#1a0f2f)"><span class="b reel">Reels</span></div>
+          <div class="body"><b>hotel hallway</b><small>Reel · 27 sn · H.264 hazır</small><span class="tag">Reels</span></div>
+          <div class="go"><button title="Değiştir">✎</button><button title="Kaldır">✕</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="day">
+      <div class="day-head"><b>Pzt</b><small>· 4 Ağustos</small></div>
+      <div class="slot"><div class="t"><b>08:00</b><small>Sabah</small></div>
+        <div class="post">
+          <div class="thumb" style="background-image:linear-gradient(135deg,#8a2020,#3a0808)"><span class="b">Görsel</span></div>
+          <div class="body"><b>tokyo metrosunda kaybolmamak için</b><small>Story · Onay otomatik</small><span class="tag">Story</span></div>
+          <div class="go"><button>✎</button><button>✕</button></div>
+        </div>
+      </div>
+      <div class="slot"><div class="t"><b>20:00</b><small>Akşam</small></div>
+        <button class="empty-slot">＋ Boş slot · sürükle bırak veya otomatik doldur</button>
+      </div>
+    </div>
+
+    <div class="day">
+      <div class="day-head"><b>Sal</b><small>· 5 Ağustos</small></div>
+      <div class="slot"><div class="t"><b>08:00</b><small>Sabah</small></div><button class="empty-slot">＋ Boş slot</button></div>
+      <div class="slot"><div class="t"><b>20:00</b><small>Akşam</small></div><button class="empty-slot">＋ Boş slot</button></div>
+    </div>
+
+    <div class="day">
+      <div class="day-head"><b>Çar</b><small>· 6 Ağustos</small></div>
+      <div class="slot"><div class="t"><b>08:00</b><small>Sabah</small></div><button class="empty-slot">＋ Boş slot</button></div>
+      <div class="slot"><div class="t"><b>20:00</b><small>Akşam</small></div><button class="empty-slot">＋ Boş slot</button></div>
+    </div>
+
+  </div>
+
+  <div class="inbox">
+    <h2>Onay bekleyenler</h2>
+    <div class="sub">7 kart · üret, onayla, sürükle</div>
+    <div class="prod">
+      <button>＋ Haber</button>
+      <button>＋ Konu</button>
+      <button>＋ Reels</button>
+    </div>
+
+    <div class="inbox-card">
+      <div class="thumb" style="background-image:linear-gradient(135deg,#8a4820,#3a1a08)"><span class="b">Görsel</span></div>
+      <b>karaoke japonya nın vazgeçilmez…</b>
+      <small>2 Ağu · 1080×1350 · Stil 1</small>
+      <div class="row"><button>Düzenle</button><button class="approve">Onayla ▶</button></div>
+    </div>
+
+    <div class="inbox-card">
+      <div class="thumb" style="background-image:linear-gradient(135deg,#3a5a8a,#1a2f4a)"><span class="b">Görsel</span></div>
+      <b>japonya da hızlı tren kültürü</b>
+      <small>1 Ağu · 1080×1350 · Stil 2</small>
+      <div class="row"><button>Düzenle</button><button class="approve">Onayla ▶</button></div>
+    </div>
+
+    <div class="inbox-card">
+      <div class="thumb" style="background-image:linear-gradient(135deg,#5a3a1a,#2a1a08)"><span class="b reel">Reels</span></div>
+      <b>famous landmark</b>
+      <small>1 Ağu · 27 sn · MP4</small>
+      <div class="row"><button>Düzenle</button><button class="approve">Onayla ▶</button></div>
+    </div>
+
+    <div class="inbox-card" style="opacity:.7">
+      <div class="thumb" style="background-image:linear-gradient(135deg,#2a4a3a,#0a1a15)"><span class="b">Görsel</span></div>
+      <b>hotel hallway</b>
+      <small>1 Ağu · 1080×1350</small>
+      <div class="row"><button>Düzenle</button><button class="approve">Onayla ▶</button></div>
+    </div>
+
+  </div>
+
+</div>
+</body>
+</html>
