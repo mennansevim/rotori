@@ -8,7 +8,6 @@ import { openCreateModal } from './create.js';
 
 const STATUS_FILTERS = [
   ['all', 'Tümü'],
-  ['pending_approval', 'Onay Bekleyen'],
   ['ready', 'Yayına Hazır'],
   ['draft', 'Taslak'],
   ['published', 'Yayınlandı'],
@@ -109,7 +108,6 @@ export async function renderLibrary(root, ctx, params) {
       el('div', { class: 'card__head' }, el('h3', {}, 'Özet')),
       el('div', { class: 'card__body' },
         el('div', { class: 'stat-grid', style: 'grid-template-columns:1fr 1fr' },
-          miniStat('amber', icons.clock, data.counts.pending_approval, 'Onay bekleyen'),
           miniStat('green', icons.calendar, data.counts.ready, 'Yayına hazır'),
           miniStat('blue', icons.file, data.counts.all, 'Toplam içerik'),
           miniStat('red', icons.send, data.counts.published, 'Yayınlandı')))));

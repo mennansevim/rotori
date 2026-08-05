@@ -34,11 +34,15 @@ Geriye dönük uyumluluk: eski girdilerde 'mp4_name'/'mp4_path' varsa okurken no
 from __future__ import annotations
 
 import json
+import re
 import threading
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
+
+import requests
 
 from src.utils.logging import get_logger
 
@@ -60,6 +64,8 @@ def _now() -> datetime:
 log = get_logger("scheduler")
 
 _LOCK = threading.Lock()
+_NGROK_TUNNELS_API = "http://127.0.0.1:4040/api/tunnels"
+_CLOUDFLARED_METRICS = "http://127.0.0.1:20241/metrics"
 
 
 # ---------------------------------------------------------------------------
@@ -329,6 +335,173 @@ def cancel_entry(
         return False
 
 
+def _story_public_url_from_asset(base: str, stories_root: Path | None, asset: Path) -> str:
+    """Story dosyası için public URL üret.
+
+    stories_root altında ise alt klasör yapısını korur (örn. ready/xxx.jpg).
+    """
+    clean_base = base.strip().rstrip("/")
+    if stories_root is not None:
+        try:
+            rel = asset.relative_to(stories_root)
+        except ValueError:
+            rel = None
+        if rel is not None:
+            return f"{clean_base}/media/stories/" + "/".join(quote(p) for p in rel.parts)
+    return f"{clean_base}/media/stories/{quote(asset.name)}"
+
+
+def _detect_ngrok_public_base_url(timeout_sn: float = 1.2) -> str | None:
+    """Local ngrok API'den aktif HTTPS public URL'i yakala."""
+    try:
+        resp = requests.get(_NGROK_TUNNELS_API, timeout=timeout_sn)
+        resp.raise_for_status()
+        payload = resp.json()
+    except (requests.RequestException, ValueError):
+        return None
+
+    tunnels = payload.get("tunnels") if isinstance(payload, dict) else []
+    if not isinstance(tunnels, list):
+        return None
+    for tunnel in tunnels:
+        if not isinstance(tunnel, dict):
+            continue
+        pub = str(tunnel.get("public_url") or "").strip().rstrip("/")
+        if pub.startswith("https://"):
+            return pub
+    return None
+
+
+def _detect_trycloudflare_public_base_url(timeout_sn: float = 1.0) -> str | None:
+    """cloudflared metrics çıktısından quick tunnel URL'ini yakala."""
+    try:
+        resp = requests.get(_CLOUDFLARED_METRICS, timeout=timeout_sn)
+        resp.raise_for_status()
+        text = resp.text
+    except requests.RequestException:
+        return None
+
+    match = re.search(r'userHostname="(https://[^"\s]+\.trycloudflare\.com)"', text)
+    if not match:
+        return None
+    return match.group(1).strip().rstrip("/")
+
+
+def _story_url_preflight(url: str, timeout_sn: int = 8) -> tuple[bool, str]:
+    """Public URL dışarıdan erişilebilir mi (HTTP 200 + image/*)?"""
+    try:
+        with requests.get(
+            url,
+            timeout=timeout_sn,
+            stream=True,
+            allow_redirects=True,
+            headers={"User-Agent": "rotori-social-scheduler/1.0"},
+        ) as resp:
+            ctype = (resp.headers.get("content-type") or "").split(";")[0].strip().lower()
+            if resp.status_code != 200:
+                return False, f"HTTP {resp.status_code}"
+            if not ctype.startswith("image/"):
+                return False, f"content-type={ctype or '-'}"
+            return True, "ok"
+    except requests.RequestException as exc:
+        return False, f"ağ hatası: {exc}"
+
+
+def _pick_story_public_url(cfg_any: Any, asset: Path, emit: Any = None) -> str:
+    """Story yayınında kullanılacak public URL'i seç.
+
+    Önce config'teki public_base_url denenir; erişilemiyorsa local tünel
+    adayları (ngrok → trycloudflare) preflight ile test edilip fallback edilir.
+    """
+    ig = getattr(cfg_any, "instagram", None)
+    configured_base = ((ig.public_base_url if ig else "") or "").strip().rstrip("/")
+
+    stories_root = None
+    stories_cfg = getattr(cfg_any, "stories", None)
+    if stories_cfg is not None:
+        stories_root = getattr(stories_cfg, "output_dir", None)
+        if stories_root is not None:
+            stories_root = Path(stories_root)
+
+    candidate_bases: list[str] = []
+    if configured_base:
+        candidate_bases.append(configured_base)
+
+    for detected in (
+        _detect_ngrok_public_base_url(),
+        _detect_trycloudflare_public_base_url(),
+    ):
+        if detected and detected not in candidate_bases:
+            candidate_bases.append(detected)
+
+    if not candidate_bases:
+        raise RuntimeError(
+            "public_base_url boş — story yayınlanamaz "
+            "(ve aktif tünel URL'i de tespit edilemedi)."
+        )
+
+    diagnostics: list[str] = []
+    for base in candidate_bases:
+        image_url = _story_public_url_from_asset(base, stories_root, asset)
+        ok, reason = _story_url_preflight(image_url)
+        if ok:
+            if emit and configured_base and base != configured_base:
+                emit(
+                    f"ℹ Story public URL fallback aktif: {base}",
+                    "warn",
+                )
+            return image_url
+        diagnostics.append(f"{image_url} -> {reason}")
+
+    detail = " | ".join(diagnostics) if diagnostics else "preflight sonucu yok"
+    raise RuntimeError(
+        "Story public URL erişilemedi. "
+        "Aşağıdaki URL'ler test edildi: "
+        f"{detail}"
+    )
+
+
+def _ensure_story_asset_ready(cfg_any: Any, item: dict[str, Any], asset: Path) -> Path:
+    """Story dosyası ready/ altında değilse oraya taşı ve queue item'ını güncelle."""
+    stories_cfg = getattr(cfg_any, "stories", None)
+    if stories_cfg is None:
+        return asset
+
+    stories_root = Path(getattr(stories_cfg, "output_dir", ""))
+    if not stories_root:
+        return asset
+
+    try:
+        rel = asset.relative_to(stories_root)
+    except ValueError:
+        return asset
+
+    if rel.parts and rel.parts[0] == "ready":
+        return asset
+
+    ready_dir = stories_root / "ready"
+    ready_dir.mkdir(parents=True, exist_ok=True)
+    target = ready_dir / asset.name
+
+    if target != asset:
+        if target.exists():
+            asset = target
+        else:
+            asset.rename(target)
+            for suf in (".txt", ".json"):
+                src_side = (stories_root / rel).with_suffix(suf)
+                dst_side = target.with_suffix(suf)
+                if src_side.exists() and not dst_side.exists():
+                    src_side.rename(dst_side)
+            asset = target
+
+    item["asset_name"] = asset.name
+    item["asset_path"] = str(asset)
+    item["mp4_name"] = asset.name
+    item["mp4_path"] = str(asset)
+    return asset
+
+
 # ---------------------------------------------------------------------------
 # Zamanı gelen girdileri işle
 # ---------------------------------------------------------------------------
@@ -418,21 +591,12 @@ def process_due(
                 if kind == "story":
                     # Graph API — public HTTPS URL üzerinden yayın
                     from src import instagram_graph
-                    ig = getattr(cfg_any, "instagram", None)
-                    base = ((ig.public_base_url if ig else "") or "").strip().rstrip("/")
-                    if not base:
-                        raise RuntimeError("public_base_url boş — story yayınlanamaz")
-                    # Kart 'ready/' altındaysa oradan servis edelim; değilse output_dir'e göre relative
-                    from urllib.parse import quote
-                    stories_root = None
-                    stories_cfg = getattr(cfg_any, "stories", None)
-                    if stories_cfg is not None:
-                        stories_root = stories_cfg.output_dir
-                    if stories_root and asset.is_relative_to(stories_root):
-                        rel = asset.relative_to(stories_root)
-                        image_url = f"{base}/media/stories/" + "/".join(quote(p) for p in rel.parts)
-                    else:
-                        image_url = f"{base}/media/stories/{quote(asset.name)}"
+                    before_asset = asset
+                    asset = _ensure_story_asset_ready(cfg_any, item, asset)
+                    if asset != before_asset:
+                        changed = True
+                    image_url = _pick_story_public_url(cfg_any, asset, _emit)
+                    item["public_url"] = image_url
                     caption = item.get("caption") or ""
                     if not caption:
                         cap_txt = asset.with_suffix(".txt")
