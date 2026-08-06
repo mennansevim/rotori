@@ -154,8 +154,14 @@ def next_automation_slot(
     hour: int,
     minute: int,
     from_dt: datetime | None = None,
+    automation_kind: str | None = None,
 ) -> str:
-    """İçerik tipinin otomasyon günlerindeki ilk boş yayın slotunu bul."""
+    """İçerik tipinin otomasyon günlerindeki ilk boş yayın slotunu bul.
+
+    automation_kind verildiyse ("news" | "topic") sadece aynı otomasyon
+    kanalındaki kayıtlarla çakışma kontrolü yapılır. automation_kind'i olmayan
+    legacy/manual kayıtlar geriye uyum için yine engelleyici kabul edilir.
+    """
     days = {int(day) for day in launchd_days if 0 <= int(day) <= 6}
     if not days:
         raise ValueError("Otomasyon için en az bir yayın günü seçilmeli.")
@@ -163,11 +169,28 @@ def next_automation_slot(
     hour = max(0, min(23, int(hour)))
     minute = max(0, min(59, int(minute)))
     now = from_dt or _now()
+    kind_filter = (automation_kind or "").strip().lower() or None
+
+    def _is_occupied(item: dict[str, Any]) -> bool:
+        if item.get("status") in ("done", "cancelled", "failed"):
+            return False
+        if not item.get("scheduled_at"):
+            return False
+        if kind_filter is None:
+            return True
+
+        item_kind = str(item.get("automation_kind") or "").strip().lower()
+        if not item_kind:
+            # Legacy/manual kayıtlar otomasyon lane'i bilinmediği için bloklayıcı.
+            return True
+        if item_kind not in ("news", "topic"):
+            return True
+        return item_kind == kind_filter
+
     occupied = {
         item.get("scheduled_at")
         for item in queue
-        if item.get("scheduled_at")
-        and item.get("status") not in ("done", "cancelled", "failed")
+        if _is_occupied(item)
     }
 
     for delta_day in range(366):
@@ -291,6 +314,7 @@ def sync_automation_slots(
             item["scheduled_at"] = next_automation_slot(
                 occupancy, days, int(slot_cfg.get("hour", 9)),
                 int(slot_cfg.get("minute", 0)),
+                automation_kind=automation_kind,
             )
             item["auto_publish"] = bool(slot_cfg.get("auto_publish", False))
             item.pop("cancelled_reason", None)
@@ -532,6 +556,26 @@ def process_due(
     with _LOCK:
         queue = load_queue(project_root, queue_file)
         changed = False
+        published_stems = _published_stems_from_uploads_log(cfg_any)
+
+        # Housekeeping: içerik uploads_log'da yayınlanmış görünüyorsa kuyruktaki
+        # aktif/stale girdiyi otomatik tamamlandıya çek.
+        if published_stems:
+            completed_at = _now().strftime("%Y-%m-%dT%H:%M:%S")
+            for item in queue:
+                if item.get("status") in ("done", "cancelled"):
+                    continue
+                asset_name = item.get("asset_name") or item.get("mp4_name") or ""
+                if Path(str(asset_name)).stem not in published_stems:
+                    continue
+                item["status"] = "done"
+                item["result"] = "already_published"
+                item["last_result_at"] = item.get("last_result_at") or completed_at
+                item["last_result_status"] = "done"
+                item.pop("failure_reason", None)
+                changed = True
+                processed.append(dict(item))
+                _emit(f"ℹ Stale kuyruk girdisi kapatıldı (zaten yayınlı): {asset_name}", "log")
 
         for item in queue:
             if item.get("status") != "pending":
@@ -708,6 +752,86 @@ def _normalize_entry_asset(item: dict[str, Any], asset_path: Path, caption: str 
     item["result"] = None
     item.pop("failure_reason", None)
     item.pop("last_result_status", None)
+    
+def _published_stems_from_uploads_log(cfg_any: Any) -> set[str]:
+    """uploads_log içindeki yayınlanmış içerik stem'lerini döndür.
+
+    cfg_any tam Config olmayabilir (testlerde SimpleNamespace). Alanlardan biri
+    eksikse sessizce boş set döner.
+    """
+    ig = getattr(cfg_any, "instagram", None)
+    project_root = getattr(cfg_any, "project_root", None)
+    uploads_log = getattr(ig, "uploads_log", None) if ig is not None else None
+    if ig is None or project_root is None or not uploads_log:
+        return set()
+
+    path = Path(project_root) / str(uploads_log)
+    if not path.exists():
+        return set()
+
+    stems: set[str] = set()
+    try:
+        with path.open("r", encoding="utf-8") as fh:
+            for line in fh:
+                raw = line.strip()
+                if not raw:
+                    continue
+                try:
+                    rec = json.loads(raw)
+                except json.JSONDecodeError:
+                    continue
+                name = str(rec.get("name") or "").strip()
+                if name:
+                    stems.add(name)
+    except OSError:
+        return set()
+    return stems
+
+
+def maintenance_cleanup(
+    project_root: Path,
+    cfg_any: Any,
+    queue_file: str = "data/scheduler_queue.json",
+    emit: Any = None,
+) -> dict[str, Any]:
+    """uploads_log'a göre stale kuyruk girdilerini done durumuna geçir."""
+
+    def _emit(msg: str, lvl: str = "log") -> None:
+        if emit:
+            emit(msg, lvl)
+        else:
+            log.info(msg)
+
+    with _LOCK:
+        queue = load_queue(project_root, queue_file)
+        published_stems = _published_stems_from_uploads_log(cfg_any)
+        if not published_stems:
+            return {"ok": True, "cleaned": 0, "items": []}
+
+        cleaned_items: list[dict[str, Any]] = []
+        changed = False
+        completed_at = _now().strftime("%Y-%m-%dT%H:%M:%S")
+
+        for item in queue:
+            if item.get("status") in ("done", "cancelled"):
+                continue
+            asset_name = item.get("asset_name") or item.get("mp4_name") or ""
+            if Path(str(asset_name)).stem not in published_stems:
+                continue
+
+            item["status"] = "done"
+            item["result"] = "already_published"
+            item["last_result_at"] = item.get("last_result_at") or completed_at
+            item["last_result_status"] = "done"
+            item.pop("failure_reason", None)
+            changed = True
+            cleaned_items.append(dict(item))
+            _emit(f"ℹ Maintenance cleanup: stale kayıt kapatıldı → {asset_name}", "log")
+
+        if changed:
+            _save_queue(project_root, queue, queue_file)
+
+        return {"ok": True, "cleaned": len(cleaned_items), "items": cleaned_items}
 
 
 def replace_entry_asset(
