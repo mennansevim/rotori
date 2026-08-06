@@ -69,7 +69,9 @@ class _ViewerDrawer extends ConsumerWidget {
       _DrawerActionSpec(
           icon: Icons.currency_yen_rounded,
           label: s.s('scanner.tt'),
-          onTap: () => context.go('/live-currency-scanner')),
+          // push (go değil): tarayıcıdan geri dönünce viewer'a döner, plan
+          // listesine düşmez.
+          onTap: () => context.push('/live-currency-scanner')),
     ];
 
     return Drawer(
@@ -1450,7 +1452,9 @@ class _DrawerActionGrid extends StatelessWidget {
   }
 }
 
-/// Tek bir dikey aksiyon karosu.
+/// Tek bir dikey aksiyon karosu — yalnız ikon (etiket yok). Etiket erişilebilirlik
+/// için Tooltip/Semantics'te taşınır. Arka plan sert beyaz yerine yumuşak accent
+/// tonu; ikonlar renk dengesi bakımından palette accent'iyle uyumlu.
 class _DrawerActionTile extends StatelessWidget {
   const _DrawerActionTile({required this.spec, required this.palette});
   final _DrawerActionSpec spec;
@@ -1459,49 +1463,31 @@ class _DrawerActionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = palette;
-    return Material(
-      color: p.card,
-      borderRadius: BorderRadius.circular(16),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () {
-          Navigator.of(context).pop();
-          spec.onTap();
-        },
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: p.border),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 13),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: p.accent.withValues(alpha: .12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(spec.icon, size: 20, color: p.accent),
+    return Tooltip(
+      message: spec.label,
+      child: Semantics(
+        button: true,
+        label: spec.label,
+        child: Material(
+          color: p.accent.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(16),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () {
+              Navigator.of(context).pop();
+              spec.onTap();
+            },
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: p.accent.withValues(alpha: 0.18)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                child: Center(
+                  child: Icon(spec.icon, size: 24, color: p.accent),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  spec.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: p.textPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    height: 1.1,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),

@@ -21,6 +21,69 @@ temiz; 100 base × 4 profil ürün kalite kapısının bütün maddeleri geçti.
 
 ## Tamamlananlar (bu ve önceki oturumlardan)
 
+- ✅ **2026-08-06** rotori-social otomasyon zamanlama düzeltmesi:
+  (1) `next_automation_slot` lane-aware hale getirildi; `news` ve `topic`
+  otomasyonları artık slot hesaplamasında birbirini yanlışlıkla bloke etmiyor
+  (legacy/manual kuyruk girdileri korumalı bloklayıcı kalıyor). Böylece
+  "bugün +5 dk" gibi yakın zaman hedefleri başka lane çakışması yüzünden
+  haftalara ötelenmiyor. (2) `news_automation` CLI `--publish` argümanını
+  destekleyecek şekilde güncellendi; launchd auto_publish çağrısı artık
+  geçerli akışa düşüyor (`run_once_with_publish`). (3) Regresyon testleri:
+  `test_contracts_scheduler.py` yeni near-future lane izolasyonu + same-lane
+  bloklama senaryoları ve `test_news_automation_cli.py` ile `--publish`
+  kontratı eklendi. Hedef test setleri yeşil (9 + 58 test).
+
+- ✅ **2026-08-06** Viewer kalite turu (kritik geri bildirim düzeltmeleri):
+  (1) Akıllı rota sheet'inde "Güvenilir rota verisine ulaşılamıyor" diye
+  maskelenen hatanın kök nedeni ayrıştırıldı; matrix fallback zaten varken
+  optimizer infeasible kaldığında hard-error veriyordu. `PlanOptimizationController`
+  artık `noFeasibleRoute/routeDataMissing/fixedConflict/protectedInfeasible`
+  durumlarında **yerel kural tabanlı fallback preview** üretir (aktiviteleri
+  korur, karşılaştırma kartı açılır, kullanıcı uygulayabilir). Ayrıca hata
+  metinleri failure code'a göre ayrıştırıldı (`noFeasible`, `fixedConflict`,
+  `routeDataMissing`, `dataIssue`) — simülasyon kaynaklı yanlış alarm azalır.
+  (2) Drawer'daki "Yemek rehberi" aksiyonu artık must-know yerine yeni
+  `FoodGuideScreen` açıyor; bu ekranda canlı birim maliyet tablosundan kısa
+  fiyat referansları + aktif diyet tercihleri + pratik yemek ipuçları var.
+  (3) "Mutlaka Bilmeniz Gerekenler" üst başlık çipleri, istek doğrultusunda
+  dropdown filtreye çevrildi; "Tümü" veya seçili konuya göre alt içerik
+  gösterilip gizleniyor. Hedef analiz temiz, controller testleri (9/9) yeşil.
+
+- ✅ **2026-08-06** Route regression follow-up: `PlanViewerScreen` view modunun
+  varsayılanı tekrar **aktif gün açık** olacak şekilde sabitlendi (rota
+  aksiyonlarının görünürlüğü korunuyor). `plan_viewer_test` içindeki
+  karşılaştırma/onay senaryosu, scrollable bottom sheet'te onay butonuna
+  dokunmadan önce `ensureVisible` kullanacak şekilde stabilize edildi.
+  Hedefli rota testleri yeniden yeşil.
+
+- ✅ **2026-08-06** Keşif haritası rütbe-kazanım kutlaması okunabilirlik
+  iyileştirmesi: eski tam ekran yarı-transparan metin katmanı yerine yüksek
+  kontrastlı merkez kart + bulanık/karartılmış backdrop modeline geçirildi
+  (örnek uygulamalardaki achievement modal desenine benzer). Yazı hiyerarşisi
+  sadeleştirildi (label → romaji → açıklama → CTA), otomatik kapanış süresi
+  hafif uzatıldı ve kutlama açıkken keşif/snackbar bildirimleri bastırılarak
+  çakışma kaldırıldı.
+
+- ✅ **2026-08-06** Mobil viewer yardımcılarında beş iyileştirme: (1) Rehber
+  ("Mutlaka Bilmeniz Gerekenler") ekranına en üstte gruplanmış "Konu
+  Başlıkları" hızlı erişim rozetleri eklendi (dokununca ilgili bölüme kaydırır)
+  ve yeni "Acil Durum ve Güvenlik" bölümü (110/119, JNTO yardım hattı,
+  sigorta, Safety tips app, büyükelçilik) yazıldı. (2) Canlı fiyat çevirici
+  artık AR "yerinde" mod: çevrilen tutar algılanan fiyat kutusunun tam üzerine,
+  opak zeminle yerleştiriliyor — kamera görüntüsünde fiyat sanki TL yazıyormuş
+  gibi görünüyor. (3) Taraycıdan geri dönüş hatası düzeltildi: drawer artık
+  `context.push` kullanıyor, geri tuşu plan listesine değil viewer'a döner.
+  (4) Sandviç panel KEŞFET karoları yalnız-ikon yapıldı (etiketler kaldırıldı,
+  erişilebilirlik için Tooltip/Semantics'e taşındı); sert beyaz zemin yumuşak
+  accent tonuyla dengelendi. (5) Bütçe ekranına yıl bazlı, AI KULLANMAYAN
+  tahmini gider dökümü eklendi: düzenlenebilir `assets/data/unit_costs.ini`
+  birim maliyet tablosu (yetişkin/çocuk, mevsim çarpanı) + saf-Dart
+  `cost_estimate.dart` tahmincisi (uçak/otel/yemek/tren/taksi/alışveriş/
+  elektronik/gezi min–max) + "Bu rota sizin için ₺X – ₺Y" başlığı, kalem kalem
+  satırlar ve örnek birim fiyatlar (ramen, shinkansen vb.). `flutter analyze`
+  temiz; yeni `cost_estimate_test.dart` dahil 25 test yeşil.
+
+
 - ✅ **2026-08-05** rotori-social otomasyon görünürlüğü iyileştirildi: yayın
   kuyruğu girdilerine son deneme zamanı/sonuç zamanı/deneme sayısı ve
   başarısızlık nedeni metadata alanları eklendi; dashboard aggregation

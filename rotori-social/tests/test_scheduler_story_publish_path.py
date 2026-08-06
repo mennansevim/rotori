@@ -118,3 +118,142 @@ def test_pick_story_public_url_falls_back_to_ngrok_when_config_base_unreachable(
 
     picked = scheduler._pick_story_public_url(cfg_any, asset)
     assert picked == "https://demo.ngrok-free.dev/media/stories/ready/demo_story.jpg"
+
+
+def test_process_due_housekeeping_marks_stale_published_item_done(tmp_path):
+    project_root = tmp_path
+    stories_root = project_root / "output" / "stories"
+    stories_root.mkdir(parents=True, exist_ok=True)
+
+    story = stories_root / "already_live.jpg"
+    story.write_bytes(b"fake-jpg")
+
+    queue_file = "queue.json"
+    scheduler.enqueue(
+        project_root=project_root,
+        mp4_path=story,
+        caption="",
+        scheduled_at="2000-01-01T00:00:00",
+        queue_file=queue_file,
+        kind="story",
+        auto_publish=True,
+    )
+
+    uploads_log = project_root / "data" / "instagram_uploads.jsonl"
+    uploads_log.parent.mkdir(parents=True, exist_ok=True)
+    uploads_log.write_text(
+        '{"name":"already_live","media_id":"1789","uploaded_at":"2026-08-05T23:40:00"}\n',
+        encoding="utf-8",
+    )
+
+    cfg_any = SimpleNamespace(
+        project_root=project_root,
+        instagram=SimpleNamespace(public_base_url="https://api.rotori.app", uploads_log="data/instagram_uploads.jsonl"),
+        stories=SimpleNamespace(output_dir=stories_root),
+    )
+
+    processed = scheduler.process_due(
+        project_root=project_root,
+        output_dir=project_root / "output" / "reels",
+        cfg_any=cfg_any,
+        queue_file=queue_file,
+        auto_upload=True,
+    )
+
+    assert len(processed) == 1
+    assert processed[0]["status"] == "done"
+    assert processed[0]["result"] == "already_published"
+
+    saved = scheduler.load_queue(project_root, queue_file=queue_file)
+    assert saved[0]["status"] == "done"
+    assert saved[0]["result"] == "already_published"
+
+
+def test_process_due_housekeeping_closes_future_stale_item(tmp_path):
+    """Kuyruk gelecekte olsa bile uploads_log'da yayınlandıysa temizlenmeli."""
+    project_root = tmp_path
+    stories_root = project_root / "output" / "stories"
+    stories_root.mkdir(parents=True, exist_ok=True)
+
+    story = stories_root / "future_slot_but_live.jpg"
+    story.write_bytes(b"fake-jpg")
+
+    queue_file = "queue.json"
+    scheduler.enqueue(
+        project_root=project_root,
+        mp4_path=story,
+        caption="",
+        scheduled_at="2099-01-01T00:00:00",
+        queue_file=queue_file,
+        kind="story",
+        auto_publish=True,
+    )
+
+    uploads_log = project_root / "data" / "instagram_uploads.jsonl"
+    uploads_log.parent.mkdir(parents=True, exist_ok=True)
+    uploads_log.write_text(
+        '{"name":"future_slot_but_live","media_id":"1790","uploaded_at":"2026-08-06T00:10:00"}\n',
+        encoding="utf-8",
+    )
+
+    cfg_any = SimpleNamespace(
+        project_root=project_root,
+        instagram=SimpleNamespace(public_base_url="https://api.rotori.app", uploads_log="data/instagram_uploads.jsonl"),
+        stories=SimpleNamespace(output_dir=stories_root),
+    )
+
+    processed = scheduler.process_due(
+        project_root=project_root,
+        output_dir=project_root / "output" / "reels",
+        cfg_any=cfg_any,
+        queue_file=queue_file,
+        auto_upload=True,
+    )
+
+    assert len(processed) == 1
+    assert processed[0]["status"] == "done"
+    assert processed[0]["result"] == "already_published"
+
+
+def test_maintenance_cleanup_marks_stale_entries_done(tmp_path):
+    project_root = tmp_path
+    stories_root = project_root / "output" / "stories"
+    stories_root.mkdir(parents=True, exist_ok=True)
+
+    story = stories_root / "manual_cleanup_target.jpg"
+    story.write_bytes(b"fake-jpg")
+
+    queue_file = "queue.json"
+    scheduler.enqueue(
+        project_root=project_root,
+        mp4_path=story,
+        caption="",
+        scheduled_at="2099-01-01T00:00:00",
+        queue_file=queue_file,
+        kind="story",
+        auto_publish=True,
+    )
+
+    uploads_log = project_root / "data" / "instagram_uploads.jsonl"
+    uploads_log.parent.mkdir(parents=True, exist_ok=True)
+    uploads_log.write_text(
+        '{"name":"manual_cleanup_target","media_id":"2001","uploaded_at":"2026-08-06T12:00:00"}\n',
+        encoding="utf-8",
+    )
+
+    cfg_any = SimpleNamespace(
+        project_root=project_root,
+        instagram=SimpleNamespace(public_base_url="https://api.rotori.app", uploads_log="data/instagram_uploads.jsonl"),
+        stories=SimpleNamespace(output_dir=stories_root),
+    )
+
+    result = scheduler.maintenance_cleanup(
+        project_root=project_root,
+        cfg_any=cfg_any,
+        queue_file=queue_file,
+    )
+
+    assert result["ok"] is True
+    assert result["cleaned"] == 1
+    assert result["items"][0]["status"] == "done"
+    assert result["items"][0]["result"] == "already_published"

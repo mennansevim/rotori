@@ -19,6 +19,7 @@ class CurrencyDetectionLabel extends StatelessWidget {
     required this.taxType,
     required this.palette,
     required this.lowConfidenceThreshold,
+    this.inPlace = false,
     this.onTap,
   });
 
@@ -29,14 +30,66 @@ class CurrencyDetectionLabel extends StatelessWidget {
   final JapanesePriceTaxType taxType;
   final ViewerPalette palette;
   final double lowConfidenceThreshold;
+
+  /// AR "yerinde" mod: etiket algılanan fiyat kutusunu tam kaplar; opak zemin
+  /// orijinal ¥ metnini örter ve çevrilen tutar tek satır olarak kutuya sığar.
+  final bool inPlace;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final p = palette;
     final isLow = confidence < lowConfidenceThreshold;
-    final bg = Colors.black.withValues(alpha: isLow ? 0.55 : 0.78);
     final accent = isLow ? p.textSecondary : p.accent;
+
+    if (inPlace) {
+      // Kutuyu örtecek opak zemin — canlı kamerada fiyat "TL yazıyormuş" gibi.
+      final bg = Colors.black.withValues(alpha: isLow ? 0.82 : 0.92);
+      return Semantics(
+        label:
+            '${MoneyFormat.jpy(amountInJpy)} → ${MoneyFormat.format(converted, targetCurrency)}',
+        button: onTap != null,
+        child: GestureDetector(
+          onTap: onTap,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(7),
+              border: Border.all(
+                color: accent.withValues(alpha: isLow ? 0.5 : 0.95),
+                width: 1.4,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              child: Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    MoneyFormat.format(converted, targetCurrency),
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      height: 1.0,
+                      shadows: [
+                        Shadow(
+                          color: accent.withValues(alpha: .85),
+                          blurRadius: 6,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final bg = Colors.black.withValues(alpha: isLow ? 0.55 : 0.78);
 
     return Semantics(
       label:

@@ -262,7 +262,9 @@ void main() {
     expect(find.text('Sonra'), findsOneWidget);
     expect(find.text('Rotayı uygula'), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('confirm-route-optimization')));
+    final confirm = find.byKey(const ValueKey('confirm-route-optimization'));
+    await tester.ensureVisible(confirm);
+    await tester.tap(confirm);
     await tester.pumpAndSettle();
 
     expect(find.text('Rotayı uygula'), findsNothing);

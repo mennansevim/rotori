@@ -5,6 +5,7 @@
 
 import 'dart:math' as math;
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -71,6 +72,8 @@ class RewardMapScreen extends ConsumerStatefulWidget {
 class _RewardMapScreenState extends ConsumerState<RewardMapScreen> {
   GeofenceController? _wired;
   int? _lastTier;
+  bool _rankDialogOpen = false;
+  DateTime? _lastFeedbackAt;
 
   /// Controller değiştiğinde rütbe-atlama dinleyicisini bağlar. İlk bağlamada
   /// mevcut rütbe referans alınır (açılışta kutlama tetiklenmez).
@@ -95,7 +98,11 @@ class _RewardMapScreenState extends ConsumerState<RewardMapScreen> {
   /// Ghibli esintili rütbe-atlama kutlaması: yumuşak ışık, süzülen toz
   /// zerreleri + parıltı ve nazikçe beliren madalyon. Haptik ile eşlenir.
   void _celebrateRankUp(int tier) {
-    if (!mounted) return;
+    if (!mounted || _rankDialogOpen) return;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    messenger?.hideCurrentSnackBar();
+    messenger?.clearSnackBars();
+    _rankDialogOpen = true;
     HapticFeedback.mediumImpact();
     final palette = ViewerPalette.of(context);
     final rank = _kRanks[tier.clamp(0, _kRanks.length - 1)];
@@ -103,14 +110,26 @@ class _RewardMapScreenState extends ConsumerState<RewardMapScreen> {
       context: context,
       barrierDismissible: true,
       barrierLabel: 'rank-up',
-      barrierColor: Colors.black.withValues(alpha: 0.5),
+      barrierColor: Colors.transparent,
       transitionDuration: const Duration(milliseconds: 320),
       pageBuilder: (_, __, ___) => _RankUpCelebration(
         palette: palette,
         rank: rank,
         color: _rankColor(palette, tier),
       ),
-    );
+    ).whenComplete(() {
+      _rankDialogOpen = false;
+    });
+  }
+
+  bool _shouldShowFeedback() {
+    final now = DateTime.now();
+    final last = _lastFeedbackAt;
+    if (last != null && now.difference(last) < const Duration(milliseconds: 900)) {
+      return false;
+    }
+    _lastFeedbackAt = now;
+    return true;
   }
 
   @override
@@ -120,11 +139,13 @@ class _RewardMapScreenState extends ConsumerState<RewardMapScreen> {
   }
 
   void _showDiscovery(Geofence fence) {
-    if (!mounted) return;
+    if (!mounted || _rankDialogOpen || !_shouldShowFeedback()) return;
     final s = LanguageScope.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
+        duration: const Duration(milliseconds: 1500),
+        backgroundColor: Colors.black.withValues(alpha: 0.84),
         content: Text(
           s.p('reward.discovered', {
             'emoji': fence.emoji,
@@ -138,19 +159,24 @@ class _RewardMapScreenState extends ConsumerState<RewardMapScreen> {
 
   void _showBadges(List<BadgeDefinition> newly) {
     if (!mounted || newly.isEmpty) return;
+    if (_rankDialogOpen) return;
+    if (!_shouldShowFeedback()) return;
     final s = LanguageScope.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    for (final b in newly) {
-      messenger.showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text(s.p('reward.badgeEarned', {
-            'emoji': b.emoji,
-            'title': s.s(b.title),
-          })),
-        ),
-      );
-    }
+    final message = newly.length == 1
+        ? s.p('reward.badgeEarned', {
+            'emoji': newly.first.emoji,
+            'title': s.s(newly.first.title),
+          })
+        : s.p('reward.badgeEarnedMany', {'count': '${newly.length}'});
+    messenger.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(milliseconds: 1800),
+        backgroundColor: Colors.black.withValues(alpha: 0.84),
+        content: Text(message),
+      ),
+    );
   }
 
   void _openSimulator() {
@@ -876,7 +902,7 @@ class _RankUpCelebrationState extends State<_RankUpCelebration>
       duration: const Duration(milliseconds: 900),
     )..forward();
     // Kendiliğinden yumuşak kapanış.
-    Future.delayed(const Duration(milliseconds: 2800), _dismiss);
+    Future.delayed(const Duration(milliseconds: 3400), _dismiss);
   }
 
   void _dismiss() {
@@ -895,6 +921,7 @@ class _RankUpCelebrationState extends State<_RankUpCelebration>
   @override
   Widget build(BuildContext context) {
     final s = LanguageScope.of(context);
+    final p = widget.palette;
     final color = widget.color;
 
     return GestureDetector(
@@ -902,101 +929,227 @@ class _RankUpCelebrationState extends State<_RankUpCelebration>
       behavior: HitTestBehavior.opaque,
       child: Stack(
         children: [
-          // Yumuşak sıcak ışık — merkezden yayılan Ghibli parıltısı.
+          // Örnek uygulama desenleriyle uyumlu: bulanık + karartılmış backdrop
+          // üzerine tek odaklı merkez kart. Böylece yazılar her içerikte
+          // okunaklı kalır.
           Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: const Alignment(0, -0.15),
-                  radius: 0.9,
-                  colors: [
-                    color.withValues(alpha: 0.32),
-                    color.withValues(alpha: 0.10),
-                    Colors.transparent,
-                  ],
-                  stops: const [0, 0.45, 1],
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: const Alignment(0, -0.12),
+                    radius: 0.95,
+                    colors: [
+                      color.withValues(alpha: 0.24),
+                      Colors.black.withValues(alpha: 0.64),
+                    ],
+                    stops: const [0, 1],
+                  ),
                 ),
               ),
             ),
           ),
-          // Süzülen toz zerreleri + parıltılar.
+          // Süzülen toz zerreleri + parıltılar (okunurluk için daha sakin).
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _drift,
               builder: (_, __) => CustomPaint(
-                painter: _DustPainter(t: _drift.value, color: color),
+                painter: _DustPainter(
+                  t: _drift.value,
+                  color: Color.lerp(color, Colors.white, .22)!,
+                ),
               ),
             ),
           ),
-          // Merkez içerik.
-          Center(
-            child: AnimatedBuilder(
-              animation: _enter,
-              builder: (_, child) {
-                final e = Curves.easeOutBack.transform(
-                  _enter.value.clamp(0.0, 1.0),
-                );
-                final fade = Curves.easeOut.transform(
-                  _enter.value.clamp(0.0, 1.0),
-                );
-                return Opacity(
-                  opacity: fade,
-                  child: Transform.scale(scale: 0.7 + 0.3 * e, child: child),
-                );
-              },
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _GlowMedallion(kanji: widget.rank.kanji, color: color),
-                  const SizedBox(height: 20),
-                  Text(
-                    s.s('reward.rankUp.label'),
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.85),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 3,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.rank.romaji,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 34,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5,
-                      height: 1,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    s.s('reward.rank.${widget.rank.id}'),
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.82),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 48),
-                    child: Text(
-                      s.s('reward.rankUp.body'),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.62),
-                        fontSize: 13,
-                        height: 1.4,
+          SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                child: AnimatedBuilder(
+                  animation: _enter,
+                  builder: (_, child) {
+                    final e = Curves.easeOutBack.transform(
+                      _enter.value.clamp(0.0, 1.0),
+                    );
+                    final fade = Curves.easeOut.transform(
+                      _enter.value.clamp(0.0, 1.0),
+                    );
+                    return Opacity(
+                      opacity: fade,
+                      child: Transform.scale(scale: 0.78 + 0.22 * e, child: child),
+                    );
+                  },
+                  child: GestureDetector(
+                    onTap: () {},
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 360),
+                      child: _RankUpCard(
+                        palette: p,
+                        rank: widget.rank,
+                        color: color,
+                        label: s.s('reward.rankUp.label'),
+                        body: s.s('reward.rankUp.body'),
+                        closeLabel: s.s('wx.close'),
+                        actionLabel: s.s('shell.continue'),
+                        onClose: _dismiss,
                       ),
                     ),
                   ),
-                ],
+                ),
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Örnek uygulamalardaki başarı/level-up yüzeylerine benzer biçimde tek odaklı,
+/// yüksek kontrastlı merkez kart.
+class _RankUpCard extends StatelessWidget {
+  const _RankUpCard({
+    required this.palette,
+    required this.rank,
+    required this.color,
+    required this.label,
+    required this.body,
+    required this.closeLabel,
+    required this.actionLabel,
+    required this.onClose,
+  });
+
+  final ViewerPalette palette;
+  final _RankInfo rank;
+  final Color color;
+  final String label;
+  final String body;
+  final String closeLabel;
+  final String actionLabel;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondaryColor = Colors.white.withValues(alpha: 0.86);
+
+    return Stack(
+      alignment: Alignment.topCenter,
+      children: [
+        Container(
+          margin: const EdgeInsets.only(top: 58),
+          padding: const EdgeInsets.fromLTRB(20, 72, 20, 18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color.lerp(color, Colors.black, .66)!,
+                Color.lerp(palette.bg, Colors.black, .52)!,
+              ],
+            ),
+            border: Border.all(color: Colors.white.withValues(alpha: .20)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: .42),
+                blurRadius: 28,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.82),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.8,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: closeLabel,
+                    splashRadius: 18,
+                    onPressed: onClose,
+                    icon: Icon(
+                      Icons.close_rounded,
+                      color: Colors.white.withValues(alpha: 0.92),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                rank.romaji,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 36,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.4,
+                  height: 1,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                LanguageScope.of(context).s('reward.rank.${rank.id}'),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: secondaryColor,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  height: 1.2,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.20),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                ),
+                child: Text(
+                  body,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.92),
+                    fontSize: 14,
+                    height: 1.42,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: onClose,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Color.lerp(color, Colors.black, .45),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    textStyle: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  child: Text(actionLabel),
+                ),
+              ),
+            ],
+          ),
+        ),
+        _GlowMedallion(kanji: rank.kanji, color: color),
+      ],
     );
   }
 }
@@ -1073,35 +1226,15 @@ class _DustPainter extends CustomPainter {
       // Girişte belirip çıkışta sönen yumuşak opaklık.
       final fade = math.sin(prog * math.pi).clamp(0.0, 1.0);
 
-      if (m.sparkle) {
-        final paint = Paint()
-          ..color = color.withValues(alpha: 0.9 * fade)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.2);
-        _drawSparkle(canvas, Offset(x, y), m.size * 1.6, paint);
-      } else {
-        // Susuwatari — yumuşak koyu toz zerresi.
-        final paint = Paint()
-          ..color = Colors.black.withValues(alpha: 0.28 * fade)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5);
-        canvas.drawCircle(Offset(x, y), m.size, paint);
-      }
+      final paint = Paint()
+        ..color = (m.sparkle ? color : Colors.black)
+            .withValues(alpha: (m.sparkle ? 0.42 : 0.24) * fade)
+        ..maskFilter = MaskFilter.blur(
+          BlurStyle.normal,
+          m.sparkle ? 1.8 : 1.4,
+        );
+      canvas.drawCircle(Offset(x, y), m.sparkle ? m.size * 0.9 : m.size, paint);
     }
-  }
-
-  void _drawSparkle(Canvas canvas, Offset c, double r, Paint paint) {
-    final path = Path();
-    for (var i = 0; i < 4; i++) {
-      final a = i * math.pi / 2;
-      path.moveTo(c.dx, c.dy);
-      path.lineTo(c.dx + math.cos(a) * r, c.dy + math.sin(a) * r);
-    }
-    canvas.drawPath(
-      path,
-      paint
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.4
-        ..strokeCap = StrokeCap.round,
-    );
   }
 
   @override

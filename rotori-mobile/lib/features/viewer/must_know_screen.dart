@@ -39,7 +39,7 @@ class MustKnowScreen extends ConsumerWidget {
   }
 }
 
-class _MustKnowView extends StatelessWidget {
+class _MustKnowView extends StatefulWidget {
   const _MustKnowView({required this.palette, required this.lang});
 
   final ViewerPalette palette;
@@ -48,8 +48,18 @@ class _MustKnowView extends StatelessWidget {
   /// Bölümlere sırayla dağıtılan vurgu renkleri (compass'taki çok renkli görünüm).
   static const _accentOrder = <int>[0, 1, 2, 3, 4, 5];
 
+  @override
+  State<_MustKnowView> createState() => _MustKnowViewState();
+}
+
+class _MustKnowViewState extends State<_MustKnowView> {
+  int? _selectedSectionIndex;
+
+  ViewerPalette get palette => widget.palette;
+  AppLang get lang => widget.lang;
+
   Color _accentFor(int index) {
-    switch (_accentOrder[index % _accentOrder.length]) {
+    switch (_MustKnowView._accentOrder[index % _MustKnowView._accentOrder.length]) {
       case 0:
         return palette.sky;
       case 1:
@@ -67,6 +77,9 @@ class _MustKnowView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final visibleIndices = _selectedSectionIndex == null
+        ? List<int>.generate(kMustKnowSections.length, (i) => i)
+        : <int>[_selectedSectionIndex!];
     return Scaffold(
       backgroundColor: palette.bg,
       appBar: AppBar(
@@ -96,16 +109,107 @@ class _MustKnowView extends StatelessWidget {
             ).of(lang),
             style: TextStyle(color: palette.textSecondary, fontSize: 14),
           ),
+          const SizedBox(height: 14),
+          _SectionFilterCard(
+            palette: palette,
+            lang: lang,
+            selectedIndex: _selectedSectionIndex,
+            onChanged: (value) => setState(() => _selectedSectionIndex = value),
+          ),
           const SizedBox(height: 16),
-          for (var i = 0; i < kMustKnowSections.length; i++) ...[
-            if (i > 0) const SizedBox(height: 16),
+          for (var idx = 0; idx < visibleIndices.length; idx++) ...[
+            if (idx > 0) const SizedBox(height: 16),
             _SectionCard(
-              section: kMustKnowSections[i],
+              section: kMustKnowSections[visibleIndices[idx]],
               palette: palette,
               lang: lang,
-              accent: _accentFor(i),
+              accent: _accentFor(visibleIndices[idx]),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Konu seçici — dropdown ile tek konuya odaklanma veya tümünü gösterme.
+// ---------------------------------------------------------------------------
+
+class _SectionFilterCard extends StatelessWidget {
+  const _SectionFilterCard({
+    required this.palette,
+    required this.lang,
+    required this.selectedIndex,
+    required this.onChanged,
+  });
+
+  final ViewerPalette palette;
+  final AppLang lang;
+  final int? selectedIndex;
+  final ValueChanged<int?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: p.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: p.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            const LText('KONU BAŞLIĞI', 'TOPIC').of(lang),
+            style: TextStyle(
+              color: p.textMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<int?>(
+            initialValue: selectedIndex,
+            isExpanded: true,
+            decoration: InputDecoration(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              filled: true,
+              fillColor: p.elevated,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: p.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: p.border),
+              ),
+            ),
+            icon: Icon(Icons.keyboard_arrow_down_rounded,
+                color: p.textSecondary),
+            dropdownColor: p.card,
+            style: TextStyle(color: p.textPrimary, fontSize: 14),
+            items: [
+              DropdownMenuItem<int?>(
+                value: null,
+                child: Text(const LText('Tümü', 'All topics').of(lang)),
+              ),
+              for (var i = 0; i < kMustKnowSections.length; i++)
+                DropdownMenuItem<int?>(
+                  value: i,
+                  child: Text(
+                    '${kMustKnowSections[i].emoji} ${kMustKnowSections[i].title.of(lang)}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+            ],
+            onChanged: onChanged,
+          ),
         ],
       ),
     );

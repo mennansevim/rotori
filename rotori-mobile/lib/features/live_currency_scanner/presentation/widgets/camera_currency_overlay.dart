@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../viewer/viewer_theme.dart';
@@ -73,13 +75,19 @@ class CameraCurrencyOverlay extends StatelessWidget {
             settings: settings,
           );
 
-          const labelH = 52.0;
-          // Üstte yer yoksa altına yerleştir.
-          final above = screenBox.top - labelH - 6;
-          final top = above >= 0 ? above : screenBox.bottom + 6;
-          var left = screenBox.left.clamp(4.0, previewSize.width - 140.0);
+          // AR yerinde çeviri: etiketi tam algılanan fiyat kutusunun ÜZERİNE
+          // yerleştir; opak zemin orijinal ¥ metnini örter, böylece kamera
+          // canlı görüntüde fiyat sanki TL yazıyormuş gibi görünür.
+          final w = screenBox.width.clamp(56.0, previewSize.width).toDouble();
+          final h = screenBox.height.clamp(24.0, 140.0).toDouble();
+          final left = screenBox.left
+              .clamp(0.0, math.max(0.0, previewSize.width - w))
+              .toDouble();
+          final top = screenBox.top
+              .clamp(0.0, math.max(0.0, previewSize.height - h))
+              .toDouble();
 
-          final labelRect = Rect.fromLTWH(left, top, 140, labelH);
+          final labelRect = Rect.fromLTWH(left, top, w, h);
           if (placed.any((r) => r.overlaps(labelRect))) {
             continue; // üst üste binmeyi engelle
           }
@@ -87,8 +95,11 @@ class CameraCurrencyOverlay extends StatelessWidget {
 
           children.add(Positioned(
             left: left,
-            top: top.clamp(0.0, previewSize.height - labelH),
+            top: top,
+            width: w,
+            height: h,
             child: CurrencyDetectionLabel(
+              inPlace: true,
               amountInJpy: track.price.amountInJpy,
               converted: conversion.convertedAsDouble,
               targetCurrency: settings.targetCurrency,

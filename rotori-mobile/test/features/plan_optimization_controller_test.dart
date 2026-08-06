@@ -92,6 +92,29 @@ void main() {
     expect(repository.callCount, 2);
   });
 
+  test('infeasible gün yerel fallback ile önizleme üretir', () async {
+    final repository = FakeRouteMatrixRepository(matrix);
+    final container = ProviderContainer(
+      overrides: [
+        routeMatrixRepositoryProvider.overrideWithValue(repository),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(planOptimizationControllerProvider.notifier)
+        .optimizeDay(_impossibleInput(hotel));
+
+    final state = container.read(planOptimizationControllerProvider);
+    expect(state.hasError, isFalse);
+    final preview = state.valueOrNull;
+    expect(preview, isNotNull);
+    expect(preview!.result.isSuccess, isFalse);
+    expect(preview.result.failure?.code, OptimizationFailureCode.noFeasibleRoute);
+    expect(preview.optimizedTrip.days.single.items.length, 2,
+        reason: 'fallback tüm aktiviteleri korumalı');
+  });
+
   test('koordinatı eksik aktivite rota API çağrısından önce reddedilir',
       () async {
     final repository = FakeRouteMatrixRepository(matrix);
@@ -450,6 +473,60 @@ DayOptimizationInput _mealTitleInput(TripLocation hotel) {
       endLocation: hotel,
       availableStartTime: DateTime(day.year, day.month, day.day, 6),
       availableEndTime: DateTime(day.year, day.month, day.day, 23),
+    ),
+  );
+}
+
+DayOptimizationInput _impossibleInput(TripLocation hotel) {
+  final day = DateTime(2026, 9, 1);
+  return DayOptimizationInput(
+    trip: Trip(
+      id: 'trip-impossible',
+      slug: 'trip-impossible',
+      title: 'Kyoto',
+      timezone: 'Asia/Tokyo',
+      tripStart: '2026-09-01',
+      tripEnd: '2026-09-01',
+      flights: TripFlights(),
+      preferences: TripPreferences(
+        travelDates: TravelDates(start: '2026-09-01', end: '2026-09-01'),
+        pace: Pace.moderate,
+      ),
+      days: [
+        DayPlan(
+          dayNumber: 1,
+          date: '2026-09-01',
+          theme: 'Kyoto',
+          items: [
+            TimelineItem(
+              id: 'a',
+              title: 'A',
+              lat: 35.1,
+              lng: 139.1,
+              durationMin: 60,
+              time: '09:00',
+              scheduledTime: '09:00',
+            ),
+            TimelineItem(
+              id: 'b',
+              title: 'B',
+              lat: 35.2,
+              lng: 139.2,
+              durationMin: 60,
+              time: '09:30',
+              scheduledTime: '09:30',
+            ),
+          ],
+        ),
+      ],
+    ),
+    dayNumber: 1,
+    planVersion: 1,
+    constraints: DayRouteConstraints(
+      startLocation: hotel,
+      endLocation: hotel,
+      availableStartTime: DateTime(day.year, day.month, day.day, 9),
+      availableEndTime: DateTime(day.year, day.month, day.day, 10),
     ),
   );
 }

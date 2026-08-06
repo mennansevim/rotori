@@ -43,6 +43,7 @@ import '../auth/auth_repository.dart';
 import '../shared/place_detail_sheet.dart';
 import '../shared/ticket_support.dart';
 import '../viewer/budget_screen.dart';
+import '../viewer/food_guide_screen.dart';
 import '../viewer/home_widget_hook.dart';
 import '../viewer/japanese_phrases_screen.dart';
 import '../viewer/must_know_screen.dart';
@@ -209,9 +210,9 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
       ValueNotifier<String?>(null);
 
   /// Akordiyon davranışı moda göre değişir:
-  /// - **View modu (varsayılan kapalı):** ilk açılışta bütün günler kapalı.
-  ///   Kullanıcı okumak istediği güne dokununca o gün `_expandedInView`'a
-  ///   girer ve açılır.
+  /// - **View modu (varsayılan aktif gün açık):** ilk açılışta yalnız aktif
+  ///   gün açıktır. Kullanıcı okumak istediği güne dokununca o gün
+  ///   `_expandedInView` içinde aç/kapa yapılır.
   /// - **Edit modu (varsayılan açık):** ✎ butonuna basınca bütün günler açılır
   ///   (drag/drop için ideal). Kullanıcı bir günü kapatmak isterse
   ///   `_collapsedInEdit`'e girer.
@@ -245,6 +246,12 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
   @override
   void initState() {
     super.initState();
+    final initialDays = [...widget.trip.days]
+      ..sort((a, b) => a.dayNumber.compareTo(b.dayNumber));
+    final initialActiveDay = _activeDayIndex(initialDays);
+    if (initialDays.isNotEmpty && initialActiveDay >= 0) {
+      _expandedInView.add(initialActiveDay);
+    }
     _editSession = PlanEditSession(
       initialTrip: widget.trip,
       persist: (trip) async {
@@ -352,7 +359,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
         onOpenBudget: _openBudget,
         onOpenPrep: _openPrep,
         onOpenWeather: _openWeather,
-        onOpenFoodGuide: _openMustKnow,
+        onOpenFoodGuide: _openFoodGuide,
         onReportBug: () => _openBugReport(trip),
       ),
       body: SafeArea(
@@ -1078,9 +1085,15 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
     setState(() {
       _editMode = !_editMode;
       // Mod değişince kullanıcı toggle'ları resetlenir; her mod kendi
-      // varsayılanına döner. View: hepsi kapalı, edit: hepsi açık.
+      // varsayılanına döner. View: aktif gün açık, edit: hepsi açık.
       _expandedInView.clear();
       _collapsedInEdit.clear();
+      if (!_editMode) {
+        final activeIndex = _activeDayIndex(_sortedDays);
+        if (activeIndex >= 0) {
+          _expandedInView.add(activeIndex);
+        }
+      }
     });
   }
 
@@ -1222,6 +1235,22 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
           child: ViewerPaletteScope(
             palette: palette,
             child: MustKnowScreen(trip: _trip),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Yemek rehberi — ne yemeli, bütçe, diyet ve sipariş ipuçları.
+  void _openFoodGuide() {
+    final palette = ref.read(viewerPaletteProvider);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => Theme(
+          data: palette.toThemeData(),
+          child: ViewerPaletteScope(
+            palette: palette,
+            child: FoodGuideScreen(trip: _trip),
           ),
         ),
       ),
@@ -2680,6 +2709,23 @@ String _profileLabel(LanguageScope s, RouteOptimizationProfile profile) {
 }
 
 String _optimizationErrorMessage(LanguageScope s, Object error) {
+  if (error is PlanOptimizationException) {
+    final failure = error.failure;
+    if (failure == null) return s.s('routeOptimization.unavailable');
+    return switch (failure.code) {
+      OptimizationFailureCode.noFeasibleRoute =>
+        s.s('routeOptimization.noFeasible'),
+      OptimizationFailureCode.fixedTimeConflict ||
+      OptimizationFailureCode.protectedActivityInfeasible =>
+        s.s('routeOptimization.fixedConflict'),
+      OptimizationFailureCode.routeDataMissing =>
+        s.s('routeOptimization.routeDataMissing'),
+      OptimizationFailureCode.duplicateActivityId ||
+      OptimizationFailureCode.fixedActivityMissingTime ||
+      OptimizationFailureCode.invalidRequest =>
+        s.s('routeOptimization.dataIssue'),
+    };
+  }
   if (error is StateError) {
     return s.s('routeOptimization.missingLocation');
   }

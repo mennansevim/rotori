@@ -2736,6 +2736,7 @@ def _auto_fill_ready_impl() -> dict[str, Any]:
             scheduled_at = sched_mod.next_automation_slot(
                 existing_queue, days, int(slot_cfg.get("hour", 9)),
                 int(slot_cfg.get("minute", 0)),
+                automation_kind=automation_kind,
             )
             entry = sched_mod.enqueue(
                 project_root=cfg.project_root,
@@ -2787,6 +2788,19 @@ def scheduler_run_now() -> dict[str, Any]:
         auto_upload=cfg.scheduler.auto_upload if cfg.scheduler else False,
     )
     return {"ok": True, "processed": len(processed), "items": processed}
+
+
+@app.post("/api/scheduler/maintenance_cleanup")
+def scheduler_maintenance_cleanup() -> dict[str, Any]:
+    """uploads_log'a göre stale queue kayıtlarını manuel temizle."""
+    from src import scheduler as sched_mod
+
+    result = sched_mod.maintenance_cleanup(
+        project_root=cfg.project_root,
+        cfg_any=cfg,
+        queue_file=cfg.scheduler.queue_file if cfg.scheduler else "data/scheduler_queue.json",
+    )
+    return result
 
 
 # =============================================================================

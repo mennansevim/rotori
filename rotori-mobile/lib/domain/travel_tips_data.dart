@@ -311,6 +311,82 @@ const List<MustKnowSection> kMustKnowSections = [
   ),
 
   // -------------------------------------------------------------------------
+  // 🚨 Acil durum ve güvenlik
+  // -------------------------------------------------------------------------
+  MustKnowSection(
+    emoji: '🚨',
+    title: LText('Acil Durum ve Güvenlik', 'Emergency & Safety'),
+    tips: [
+      MustKnowTip(
+        emoji: '📞',
+        text: LText(
+          'Acil numaralar: Polis 110, İtfaiye/Ambulans 119. Ücretsiz ve 7/24 '
+          'aranır; sabit hatta bile açar. Sakin, yavaş ve mümkünse İngilizce '
+          'konuş; adresi/istasyon adını söyle.',
+          'Emergency numbers: Police 110, Fire/Ambulance 119. Free and 24/7; '
+          'they answer even from a payphone. Speak calmly and slowly, in English '
+          'if you can; give the address or nearest station name.',
+        ),
+      ),
+      MustKnowTip(
+        emoji: '🪪',
+        text: LText(
+          'Otelin adını, adresini ve telefonunu bir kağıda (Japonca yazılı) veya '
+          'telefon ekran görüntüsü olarak taşı. Kaybolursan taksiciye/polise '
+          'göstermen en hızlı çözüm olur.',
+          'Carry your hotel\'s name, address and phone on a card (written in '
+          'Japanese) or as a phone screenshot. If you get lost, showing it to a '
+          'taxi driver or police officer is the fastest fix.',
+        ),
+      ),
+      MustKnowTip(
+        emoji: '🏥',
+        text: LText(
+          'Sağlık sorununda Japonya Ulusal Turizm Örgütü (JNTO) 7/24 çok dilli '
+          'yardım hattını ara: 050-3816-2787. Sana en yakın İngilizce hizmet '
+          'veren hastaneyi/kliniği yönlendirir.',
+          'For a medical issue, call the Japan National Tourism Organization '
+          '(JNTO) 24/7 multilingual help line: 050-3816-2787. They direct you to '
+          'the nearest hospital/clinic with English service.',
+        ),
+      ),
+      MustKnowTip(
+        emoji: '🛡️',
+        text: LText(
+          'Gitmeden seyahat sağlık sigortası yaptır: Japonya\'da tedavi çok '
+          'pahalıdır. Poliçe numaranı ve acil asistans telefonunu offline olarak '
+          'yanında bulundur.',
+          'Get travel health insurance before you go: treatment in Japan is very '
+          'expensive. Keep your policy number and emergency assistance phone '
+          'available offline.',
+        ),
+      ),
+      MustKnowTip(
+        emoji: '📲',
+        text: LText(
+          'Resmi "Safety tips" uygulamasını indir (JNTO/JTA): deprem, tayfun ve '
+          'tsunami erken uyarılarını İngilizce verir ve en yakın tahliye '
+          'noktalarını gösterir.',
+          'Install the official "Safety tips" app (JNTO/JTA): it gives '
+          'earthquake, typhoon and tsunami early warnings in English and shows '
+          'the nearest evacuation points.',
+        ),
+      ),
+      MustKnowTip(
+        emoji: '🇹🇷',
+        text: LText(
+          'T.C. Tokyo Büyükelçiliği\'nin adresini ve telefonunu kaydet. Pasaport '
+          'kaybı/çalınması durumunda önce en yakın karakoldan tutanak (todokede) '
+          'al, sonra büyükelçiliğe başvur.',
+          'Save the address and phone of the Turkish Embassy in Tokyo. If your '
+          'passport is lost/stolen, first get a report (todokede) from the '
+          'nearest police box, then apply to the embassy.',
+        ),
+      ),
+    ],
+  ),
+
+  // -------------------------------------------------------------------------
   // 🎒 Valiz
   // -------------------------------------------------------------------------
   MustKnowSection(
