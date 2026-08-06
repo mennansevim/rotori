@@ -50,6 +50,16 @@ def test_scheduler_run_endpoint_reachable(client):
     assert isinstance(data["processed"], int)
 
 
+def test_scheduler_maintenance_cleanup_endpoint_reachable(client):
+    """POST /api/scheduler/maintenance_cleanup — stale queue temizliği tetiklenebilir olmalı."""
+    r = client.post("/api/scheduler/maintenance_cleanup")
+    assert r.status_code == 200
+    data = r.json()
+    assert data.get("ok") is True
+    assert "cleaned" in data
+    assert "items" in data
+
+
 def test_automation_slot_uses_selected_weekdays_in_order():
     queue = [{"scheduled_at": "2026-08-05T17:05:00", "status": "pending"}]
     slot = scheduler.next_automation_slot(
@@ -64,6 +74,42 @@ def test_failed_item_does_not_block_automation_slot():
         queue, [3], 17, 5, from_dt=datetime(2026, 8, 4, 12, 0, 0)
     )
     assert slot == "2026-08-05T17:05:00"
+
+
+def test_automation_slot_ignores_other_lane_entries():
+    """Haber slotu hesaplanırken topic slotu aynı saati bloke etmemeli."""
+    queue = [{
+        "scheduled_at": "2026-08-06T20:59:00",
+        "status": "pending",
+        "automation_kind": "topic",
+    }]
+    slot = scheduler.next_automation_slot(
+        queue,
+        [4],
+        20,
+        59,
+        from_dt=datetime(2026, 8, 6, 20, 54, 0),
+        automation_kind="news",
+    )
+    assert slot == "2026-08-06T20:59:00"
+
+
+def test_automation_slot_blocks_same_lane_entries():
+    """Aynı lane (news-news) çakışmaları hâlâ bir sonraki slota ötelenmeli."""
+    queue = [{
+        "scheduled_at": "2026-08-06T20:59:00",
+        "status": "pending",
+        "automation_kind": "news",
+    }]
+    slot = scheduler.next_automation_slot(
+        queue,
+        [4],
+        20,
+        59,
+        from_dt=datetime(2026, 8, 6, 20, 54, 0),
+        automation_kind="news",
+    )
+    assert slot == "2026-08-13T20:59:00"
 
 
 def test_sync_automation_slots_replans_existing_items(tmp_path):
