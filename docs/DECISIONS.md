@@ -7,6 +7,29 @@
 
 ---
 
+## 2026-08-06 — rotori-social deploy kaynağı tek monorepo origin'a birleştirildi
+
+**Supersedes:** rotori-social için ayrı `rotori-social` repository/remote ile
+yürüyen deploy pratiği.
+
+**Karar:** rotori-social canlı dağıtım kaynağı artık yalnız
+`mennansevim/japan-trip` monorepo `main` branch'idir. Pi5 üzerinde aktif
+çalışma ağacı `~/rotori-app/rotori-social` olarak sabitlendi; eski bağımsız
+`~/rotori-social` klonu arşivlenip (`~/rotori-social-legacy-<ts>`) aynı yeni
+dizine symlink bırakıldı.
+
+**Neden:** Çift repo/çift remote akışı deploy sırasında non-fast-forward ve
+senkronizasyon riski üretiyordu. Tek kaynak, tek commit geçmişi ve daha az
+operasyonel sürtünme sağlar.
+
+**Etki:**
+- Yerelde `social` remote kaldırıldı; tek remote `origin` kaldı.
+- Pi üzerinde `git remote -v` artık yalnız monorepo origin'i gösterir.
+- Deploy komutları rotori-social alt dizininden (`~/rotori-app/rotori-social`)
+  çalıştırılır; eski yol symlink sayesinde kırılmaz.
+
+---
+
 ## 2026-08-03 — rotori-social içine `japan-reels-maker` taşıması tamamlandı
 
 **Supersedes:** 2026-08-03 monorepo düzenleme kaydındaki

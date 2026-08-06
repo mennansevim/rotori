@@ -4,8 +4,8 @@
 > Kalıcı kurallar için `CLAUDE.md`, günlük iş için `CURRENT_TASK.md`.
 > Rota motorunun ayrıntılı akış ve maliyet notu: `ROUTE_OPTIMIZATION.md`.
 
-Son güncelleme: **2026-08-01** (aydınlık varsayılan tema ve viewer hamburger
-menüsünün yeni bilgi mimarisi).
+Son güncelleme: **2026-08-06** (rotori-social deploy kaynağı tek monorepo
+akışına taşındı).
 
 ---
 
@@ -272,6 +272,10 @@ packages/
 - **Mobil:** Xcode → App Store Connect (F1 hazırlığı `11f3541`).
 - **Site:** `website/index.html` + `website/img/` + `website/audio/` birlikte
   versiyonlanır ve statik host'a kopyalanır.
+- **Sosyal servis (`rotori-social/`):** tek kaynak `origin`
+  (`mennansevim/japan-trip`, monorepo). Pi5 deploy dizini
+  `~/rotori-app/rotori-social`; `./deploy.sh` bu dizinden çalışır.
+  Geriye uyumluluk için `~/rotori-social` symlink'i aynı dizine işaret eder.
 
 ## 15. Bilinen Yumuşak Noktalar
 

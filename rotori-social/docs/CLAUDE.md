@@ -176,7 +176,7 @@ Bir özellik "bitti" sayılır ise:
 
 ## 17. Deploy pipeline
 - **Yerel Mac dev**: `.venv/bin/uvicorn src.web.app:app --reload --port 8000` (dev).
-- **Prod Pi5**: `./deploy.sh` — git commit env → `docker-compose build && up -d`. Container `rotori-social:3090` → Cloudflare Tunnel → `api.rotori.app`.
+- **Prod Pi5**: `cd ~/rotori-app/rotori-social && ./deploy.sh` — git commit env → `docker-compose build && up -d`. Container `rotori-social:3090` → Cloudflare Tunnel → `api.rotori.app`.
 - **Persist edilen volumeler**: `config.yaml:ro`, `data/`, `output/`, `assets/`.
 - **VERSION**: elle `VERSION` dosyası bump, `BUILD_INFO` deploy sırasında yazılır (commit hash + tarih).
 

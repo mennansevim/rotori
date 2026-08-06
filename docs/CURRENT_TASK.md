@@ -21,6 +21,13 @@ temiz; 100 base × 4 profil ürün kalite kapısının bütün maddeleri geçti.
 
 ## Tamamlananlar (bu ve önceki oturumlardan)
 
+- ✅ **2026-08-06** rotori-social deploy hattı tek monorepo akışına alındı:
+  Pi5'te bağımsız `~/rotori-social` git klonu arşivlenip çalışma dizini
+  `~/rotori-app/rotori-social` oldu; servis bu dizinden rebuild edildi ve
+  `commit=cbff51e` ile ayağa kalktı. Geriye uyumluluk için
+  `~/rotori-social -> ~/rotori-app/rotori-social` symlink'i bırakıldı.
+  Yerelde `social` remote kaldırılarak tek remote (`origin`) düzenine geçildi.
+
 - ✅ **2026-08-06** rotori-social otomasyon zamanlama düzeltmesi:
   (1) `next_automation_slot` lane-aware hale getirildi; `news` ve `topic`
   otomasyonları artık slot hesaplamasında birbirini yanlışlıkla bloke etmiyor

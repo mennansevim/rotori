@@ -1,7 +1,7 @@
 # ARCHITECTURE.md — Güncel Mimari
 
 > Kod değiştiğinde bu dosya **aynı PR'da** güncellenmelidir.
-> Son revizyon: 2026-07-30 (v1.0.2, `main` @ 95e059e + uncommitted: sade içerik iş akışı arayüzü + editöryel dashboard tasarımı — bkz. Karar 10)
+> Son revizyon: 2026-08-06 (deploy kaynağı monorepo `japan-trip/main`)
 
 ## 1. Yüksek seviye
 
@@ -313,10 +313,11 @@ scheduler_queue.json (kalıcı)
        Developer Mac (kod düzenleme)
              │  git push
              ▼
-       GitHub main branch
+       GitHub monorepo main branch
+       (mennansevim/japan-trip)
              │  Pi5 SSH: git pull
              ▼
-       Pi5:  deploy.sh
+       Pi5:  ~/rotori-app/rotori-social/deploy.sh
              ├─ export GIT_COMMIT + BUILD_DATE
              ├─ docker-compose build --pull
              └─ docker-compose up -d
@@ -332,6 +333,9 @@ scheduler_queue.json (kalıcı)
                      │
              https://api.rotori.app
 ```
+
+Not: Geriye uyumluluk için Pi'de `~/rotori-social` yolu symlink olarak
+`~/rotori-app/rotori-social` dizinine işaret eder.
 
 ## 15. Test mimarisi
 - **Contract testleri (2026-07-30 itibariyle)** — `tests/` altında pytest + FastAPI TestClient. Kurulum: `pip install -r requirements-dev.txt`.
