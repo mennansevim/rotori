@@ -6,6 +6,7 @@ import '../../data/route_matrix_cache.dart';
 import '../../data/route_matrix_remote.dart';
 import '../../data/route_matrix_resolution.dart';
 import '../../domain/itinerary_optimizer.dart';
+import '../../domain/route_time_bounds.dart';
 import '../../domain/route_matrix.dart';
 import '../../domain/route_optimization_validator.dart';
 import '../../domain/types.dart';
@@ -424,7 +425,7 @@ int _durationFor(TimelineItem item) {
       DateTime(dayDate.year, dayDate.month, dayDate.day, h, m);
   if (hint == _MealHint.breakfast) {
     return (
-      open: at(7, 0),
+      open: at(kRouteStartHour, 0),
       close: at(10, 30),
       preferred: TimeOfDayPreference.morning,
     );
@@ -439,14 +440,14 @@ int _durationFor(TimelineItem item) {
   if (hint == _MealHint.dinner) {
     return (
       open: at(17, 30),
-      close: at(21, 30),
+      close: at(kRouteEndHour, 0),
       preferred: TimeOfDayPreference.evening,
     );
   }
   // Kahvaltı — 10:30'dan önce planlanmış öğün.
   if (minutes >= 0 && minutes < 10 * 60 + 30) {
     return (
-      open: at(7, 0),
+      open: at(kRouteStartHour, 0),
       close: at(10, 30),
       preferred: TimeOfDayPreference.morning,
     );
@@ -455,7 +456,7 @@ int _durationFor(TimelineItem item) {
   if (minutes >= 16 * 60) {
     return (
       open: at(17, 30),
-      close: at(21, 30),
+      close: at(kRouteEndHour, 0),
       preferred: TimeOfDayPreference.evening,
     );
   }

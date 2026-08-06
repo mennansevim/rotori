@@ -139,6 +139,8 @@ class _BudgetView extends ConsumerWidget {
           ],
           _TotalCard(summary: summary, party: party, palette: palette),
           const SizedBox(height: 16),
+          _ExpertBudgetMetricsCard(summary: summary, palette: palette),
+          const SizedBox(height: 16),
           _FamilyMaxEstimateCard(
             trip: trip,
             summary: summary,
@@ -387,6 +389,149 @@ class _TotalCard extends StatelessWidget {
               'total': '${summary.itemsTotal}',
             }),
             style: TextStyle(color: palette.textMuted, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExpertBudgetMetricsCard extends StatelessWidget {
+  const _ExpertBudgetMetricsCard({
+    required this.summary,
+    required this.palette,
+  });
+
+  final BudgetSummary summary;
+  final ViewerPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
+    final coveragePct = (summary.coverageRatio * 100).clamp(0, 100).round();
+
+    return _Card(
+      palette: palette,
+      borderColor: palette.matcha.withValues(alpha: 0.35),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionTitle(
+            text: s.s('budget.expert.title'),
+            palette: palette,
+          ),
+          _metricRow(
+            s.s('budget.expert.coverage'),
+            '$coveragePct%',
+          ),
+          _metricRow(
+            s.s('budget.expert.dailyBurn'),
+            formatTry(summary.dailyBurnTry),
+          ),
+          _metricRow(
+            s.s('budget.expert.fixed'),
+            formatTry(summary.fixedEssentialTry),
+          ),
+          _metricRow(
+            s.s('budget.expert.flex'),
+            formatTry(summary.discretionaryTry),
+          ),
+          _metricRow(
+            s.s('budget.expert.contingency'),
+            formatTry(summary.contingencyTry),
+          ),
+          _metricRow(
+            s.s('budget.expert.cashFloor'),
+            formatTry(summary.suggestedCashTry),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            s.s('budget.expert.scenarioTitle'),
+            style: TextStyle(
+              color: palette.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _scenarioChip(
+                label: s.s('budget.expert.frugal'),
+                value: formatTry(summary.frugalScenarioTry),
+              ),
+              _scenarioChip(
+                label: s.s('budget.expert.realistic'),
+                value: formatTry(summary.realisticScenarioTry),
+              ),
+              _scenarioChip(
+                label: s.s('budget.expert.comfort'),
+                value: formatTry(summary.comfortScenarioTry),
+              ),
+            ],
+          ),
+          if (summary.nonStandardCurrencyItems > 0) ...[
+            const SizedBox(height: 10),
+            Text(
+              s.p('budget.expert.currencyWarning', {
+                'n': '${summary.nonStandardCurrencyItems}',
+              }),
+              style: TextStyle(color: palette.sunset, fontSize: 12),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _metricRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(color: palette.textSecondary, fontSize: 13),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: palette.textPrimary,
+              fontWeight: FontWeight.w700,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _scenarioChip({required String label, required String value}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: palette.elevated,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: palette.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(color: palette.textMuted, fontSize: 11),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: palette.textPrimary,
+              fontWeight: FontWeight.w700,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
           ),
         ],
       ),

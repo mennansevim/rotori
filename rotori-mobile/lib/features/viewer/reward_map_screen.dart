@@ -4,6 +4,7 @@
 // pasif görünümlü aktivite rozetleri.
 
 import 'dart:math' as math;
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -666,6 +667,8 @@ class _TrackingCard extends StatelessWidget {
         status != GeofencePermissionStatus.denied &&
         status != GeofencePermissionStatus.deniedForever &&
         status != GeofencePermissionStatus.unsupported;
+    final outOfWindow =
+      controller.smartTrackingEnabled && !controller.isInTripWindow;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -712,6 +715,65 @@ class _TrackingCard extends StatelessWidget {
             s.s('reward.tracking.body'),
             style: TextStyle(color: p.textSecondary, fontSize: 12.5, height: 1.4),
           ),
+          const SizedBox(height: 10),
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            value: controller.smartTrackingEnabled,
+            onChanged: status == GeofencePermissionStatus.unsupported
+                ? null
+                : (value) =>
+                    unawaited(controller.setSmartTrackingEnabled(value)),
+            title: Text(
+              s.s('reward.tracking.smartMode'),
+              style: TextStyle(
+                color: p.textPrimary,
+                fontWeight: FontWeight.w700,
+                fontSize: 13.5,
+              ),
+            ),
+            subtitle: Text(
+              s.s('reward.tracking.smartModeHint'),
+              style: TextStyle(color: p.textSecondary, fontSize: 12),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              for (final mode in GeofenceTrackingMode.values)
+                ChoiceChip(
+                  selected: controller.trackingMode == mode,
+                  onSelected: status == GeofencePermissionStatus.unsupported
+                      ? null
+                      : (selected) {
+                          if (!selected) return;
+                          unawaited(controller.setTrackingMode(mode));
+                        },
+                  label: Text(
+                    switch (mode) {
+                      GeofenceTrackingMode.batterySaver =>
+                        s.s('reward.tracking.mode.battery'),
+                      GeofenceTrackingMode.balanced =>
+                        s.s('reward.tracking.mode.balanced'),
+                      GeofenceTrackingMode.precise =>
+                        s.s('reward.tracking.mode.precise'),
+                    },
+                  ),
+                ),
+            ],
+          ),
+          if (outOfWindow) ...[
+            const SizedBox(height: 8),
+            Text(
+              s.s('reward.tracking.tripWindowPaused'),
+              style: TextStyle(
+                color: p.textMuted,
+                fontSize: 11.5,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
           const SizedBox(height: 14),
           if (status == GeofencePermissionStatus.deniedForever)
             _TrackingButton(

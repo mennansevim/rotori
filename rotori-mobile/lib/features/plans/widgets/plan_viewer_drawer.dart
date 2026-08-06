@@ -19,6 +19,7 @@ class _ViewerDrawer extends ConsumerWidget {
     required this.onOpenBudget,
     required this.onOpenPrep,
     required this.onOpenWeather,
+    required this.onOpenFoodGuide,
     required this.onReportBug,
   });
   final ViewerPalette palette;
@@ -28,6 +29,7 @@ class _ViewerDrawer extends ConsumerWidget {
   final VoidCallback onOpenBudget;
   final VoidCallback onOpenPrep;
   final VoidCallback onOpenWeather;
+  final VoidCallback onOpenFoodGuide;
   final VoidCallback onReportBug;
 
   @override
@@ -49,9 +51,13 @@ class _ViewerDrawer extends ConsumerWidget {
     // KEŞFET — en sık kullanılan araçlar, yan yana dikey karolar.
     final discoverActions = <_DrawerActionSpec>[
       _DrawerActionSpec(
-          icon: Icons.light_mode_outlined,
+        icon: Icons.cloud_outlined,
           label: s.s('viewer.tt.weather'),
           onTap: onOpenWeather),
+      _DrawerActionSpec(
+        icon: Icons.restaurant_menu_outlined,
+        label: s.s('viewer.tt.foodGuide'),
+        onTap: onOpenFoodGuide),
       _DrawerActionSpec(
           icon: Icons.account_balance_wallet_outlined,
           label: s.s('viewer.tt.budget'),

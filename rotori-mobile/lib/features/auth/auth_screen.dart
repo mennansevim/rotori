@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -252,7 +251,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(CupertinoIcons.apple_logo, size: 18),
+                            const Text(
+                              '',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                height: 1,
+                              ),
+                            ),
                             const SizedBox(width: 8),
                             Text(s.s('auth.signInWithApple')),
                           ],
