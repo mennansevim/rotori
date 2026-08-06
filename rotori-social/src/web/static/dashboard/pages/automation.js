@@ -2,7 +2,7 @@
 // pages/automation.js — Otomasyon (yayın slotları)
 // =========================================================================
 import { api, el, icons, typeBadge, countdownText, fmtDate, fmtTime,
-         errorState, loadingState, toast, openModal } from '../lib.js?v=20260805-8';
+         errorState, loadingState, toast, openModal } from '../lib.js?v=20260807-1';
 
 const DAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];  // launchd: 1..6,0
 const DAY_TO_LAUNCHD = [1, 2, 3, 4, 5, 6, 0];  // index → launchd weekday
@@ -290,8 +290,18 @@ function flowSlot(type, slot, isAnchor, approvedPool, nowIso, root, ctx) {
   }
 
   const title = slot.title || 'Planlı gönderi';
-  const etaText = compactRemaining(slot.scheduled_at, nowIso);
-  const statusText = slot.publish_outcome_tr || slot.status_tr || 'Planlandı';
+  const pendingDispatch = Boolean(root._automationState?.pendingDispatch?.has(slot.entry_id));
+  const seconds = parseDeltaSeconds(slot.scheduled_at, nowIso);
+  const dispatching = shouldShowDispatching({
+    seconds,
+    outcome: slot.publish_outcome,
+    pending: pendingDispatch,
+  });
+  const etaText = compactRemaining(slot.scheduled_at, nowIso, {
+    outcome: slot.publish_outcome,
+    pendingDispatch,
+  });
+  const statusText = flowStatusText(slot, dispatching);
 
   const btn = el('button', {
     class: `flow-slot flow-slot--${type} ${isAnchor ? 'is-anchor' : ''}`,
@@ -315,15 +325,25 @@ function flowSlot(type, slot, isAnchor, approvedPool, nowIso, root, ctx) {
       el('span', { class: `badge badge--${statusToneFromOutcome(slot.publish_outcome)}` }, statusText)),
     el('div', { class: 'flow-slot__title clamp-2' }, title),
     el('div', { class: 'flow-slot__bottom' },
-      el('span', { class: 'flow-slot__eta', dataset: { scheduledAt: slot.scheduled_at } }, etaText),
+      el('span', {
+        class: `flow-slot__eta${dispatching ? ' is-dispatching' : ''}`,
+        dataset: {
+          scheduledAt: slot.scheduled_at || '',
+          outcome: slot.publish_outcome || '',
+          entryId: slot.entry_id || '',
+        },
+      }, etaText),
       el('span', { class: 'flow-slot__action' }, 'Replace'))));
 
   if (isAnchor) {
     btn.classList.add('is-live-anchor');
     btn.append(el('span', { class: 'flow-slot__live-badge' }, 'Canlı'));
   }
-  if (root._automationState?.pendingDispatch?.has(slot.entry_id)) {
+  if (dispatching || pendingDispatch) {
     btn.classList.add('is-sending');
+  }
+  if (!dispatching && Number.isFinite(seconds) && seconds > 0 && seconds <= 120) {
+    btn.classList.add('is-near-due');
   }
   return btn;
 }
@@ -400,8 +420,23 @@ function clearAutomationTimers(root) {
 function tickFlowCountdowns(root) {
   const offset = Number(root._flowClockOffsetMs || 0);
   const now = Date.now() + offset;
+  const state = root._automationState;
   root.querySelectorAll('.flow-slot__eta[data-scheduled-at]').forEach((node) => {
-    node.textContent = compactRemaining(node.dataset.scheduledAt, now);
+    const outcome = node.dataset.outcome || '';
+    const entryId = node.dataset.entryId || '';
+    const pendingDispatch = Boolean(entryId && state?.pendingDispatch?.has(entryId));
+    const seconds = parseDeltaSeconds(node.dataset.scheduledAt, now);
+    const dispatching = shouldShowDispatching({
+      seconds,
+      outcome,
+      pending: pendingDispatch,
+    });
+    node.textContent = compactRemaining(node.dataset.scheduledAt, now, { outcome, pendingDispatch });
+    node.classList.toggle('is-dispatching', dispatching);
+
+    const slotNode = node.closest('.flow-slot');
+    slotNode?.classList.toggle('is-sending', dispatching || pendingDispatch);
+    slotNode?.classList.toggle('is-near-due', !dispatching && Number.isFinite(seconds) && seconds > 0 && seconds <= 120);
   });
 }
 
@@ -427,8 +462,10 @@ async function maybeDispatchDueAnchors(root, flowPanel, refreshFlow) {
     state.dispatchCooldown.set(entryId, now + 90_000);
     const node = root.querySelector(`.flow-slot[data-entry-id="${entryId}"]`);
     node?.classList.add('is-sending');
+    node?.querySelector('.flow-slot__eta')?.classList.add('is-dispatching');
 
     try {
+      toast('Yayın saati geldi, gönderiliyor...', '');
       const result = await api.schedulerRunNow();
       const processed = Array.isArray(result?.items) ? result.items : [];
       const hit = processed.find((it) => it.id === entryId);
@@ -480,7 +517,9 @@ async function manualDispatchSlot(slot, root, ctx) {
   state.pendingDispatch.add(entryId);
   const node = root.querySelector(`.flow-slot[data-entry-id="${entryId}"]`);
   node?.classList.add('is-sending');
+  node?.querySelector('.flow-slot__eta')?.classList.add('is-dispatching');
   try {
+    toast('Gönderi hazırlanıyor, şimdi gönderiliyor...', '');
     await api.reschedule(entryId, retryAt);
     const result = await api.schedulerRunNow();
     const processed = Array.isArray(result?.items) ? result.items : [];
@@ -607,26 +646,56 @@ function resolveAssetName(item) {
   return String(item?.name || item?.asset_name || item?.story_name || '').trim();
 }
 
-function compactRemaining(scheduledAt, nowRef) {
-  if (!scheduledAt) return '—';
-  const target = new Date(scheduledAt).getTime();
-  const now = typeof nowRef === 'number'
-    ? nowRef
-    : (nowRef ? new Date(nowRef).getTime() : Date.now());
-  let secs = Math.floor((target - now) / 1000);
+function compactRemaining(scheduledAt, nowRef, options = {}) {
+  const outcome = String(options.outcome || '');
+  const pendingDispatch = Boolean(options.pendingDispatch);
+
+  if (outcome === 'manual') return 'Manuel yayın';
+  if (outcome === 'failed') return 'Tekrar denenecek';
+
+  const secs = parseDeltaSeconds(scheduledAt, nowRef);
   if (!Number.isFinite(secs)) return '—';
-  if (secs <= 0 && secs >= -2) return '0 sn';
-  if (secs < -2) return 'Süresi geçti';
-  const day = Math.floor(secs / 86400);
-  secs -= day * 86400;
-  const hour = Math.floor(secs / 3600);
-  secs -= hour * 3600;
-  const min = Math.floor(secs / 60);
-  const sec = secs - (min * 60);
+
+  if (shouldShowDispatching({ seconds: secs, outcome, pending: pendingDispatch })) {
+    return 'Gönderiliyor...';
+  }
+
+  let remain = secs;
+  if (remain <= 15) return 'Birazdan';
+  const day = Math.floor(remain / 86400);
+  remain -= day * 86400;
+  const hour = Math.floor(remain / 3600);
+  remain -= hour * 3600;
+  const min = Math.floor(remain / 60);
+  const sec = remain - (min * 60);
   if (day > 0) return `${day} gün sonra`;
   if (hour > 0) return `${hour} saat sonra`;
   if (min > 0) return `${min} dk sonra`;
   return `${Math.max(1, sec)} sn sonra`;
+}
+
+function parseDeltaSeconds(scheduledAt, nowRef) {
+  if (!scheduledAt) return null;
+  const target = new Date(scheduledAt).getTime();
+  const now = typeof nowRef === 'number'
+    ? nowRef
+    : (nowRef ? new Date(nowRef).getTime() : Date.now());
+  if (!Number.isFinite(target) || !Number.isFinite(now)) return null;
+  return Math.floor((target - now) / 1000);
+}
+
+function shouldShowDispatching({ seconds, outcome, pending }) {
+  if (pending) return true;
+  if (outcome === 'publishing') return true;
+  if (outcome === 'failed' || outcome === 'manual' || outcome === 'success') return false;
+  return Number.isFinite(seconds) && seconds <= 0;
+}
+
+function flowStatusText(slot, dispatching) {
+  if (slot?.publish_outcome === 'manual') return slot.publish_outcome_tr || 'Manuel yayın gerekli';
+  if (slot?.publish_outcome === 'failed') return slot.publish_outcome_tr || 'Başarısız';
+  if (dispatching) return 'Gönderiliyor';
+  return slot?.publish_outcome_tr || slot?.status_tr || 'Planlandı';
 }
 
 function weekFlow(tl) {
