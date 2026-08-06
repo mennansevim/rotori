@@ -44,6 +44,7 @@ export const api = {
   dequeue: (id) => req('DELETE', `/api/scheduler/queue/${encodeURIComponent(id)}`),
   reschedule: (id, at) => req('POST', `/api/scheduler/reschedule/${encodeURIComponent(id)}`, { scheduled_at: at }),
   schedulerRunNow: () => req('POST', '/api/scheduler/run'),
+  schedulerMaintenanceCleanup: () => req('POST', '/api/scheduler/maintenance_cleanup'),
   schedulerReplaceAsset: (id, b) => req('POST', `/api/scheduler/replace_asset/${encodeURIComponent(id)}`, b),
   // Yayın
   publish: (name) => req('POST', `/api/instagram/publish/${encodeURIComponent(name)}`),

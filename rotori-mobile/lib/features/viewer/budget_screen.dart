@@ -11,7 +11,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/l10n.dart';
 import '../../data/exchange_rate_store.dart';
+import '../../data/unit_cost_table_store.dart';
 import '../../domain/budget.dart';
+import '../../domain/cost_estimate.dart';
 import '../../domain/types.dart';
 import 'viewer_theme.dart';
 
@@ -36,6 +38,10 @@ String formatTry(double value) => '₺${groupThousands(value.round())}';
 
 /// "¥12.340" — JPY, en yakın tam sayıya yuvarlanır.
 String formatJpy(num value) => '¥${groupThousands(value.round())}';
+
+/// Seçili görüntüleme birimiyle biçimlendirir: "$1.234" / "€1.234" / "₺1.234".
+String formatMoney(num value, DisplayCurrency currency) =>
+    '${currency.symbol}${groupThousands(value.round())}';
 
 /// Kuru okunur biçimde: "0,25" (Türkçe ondalık virgül). Sondaki sıfırlar
 /// kırpılır (0,5000 → 0,5), tam sayı ise ondalıksız (1 → 1).
@@ -110,9 +116,14 @@ class _BudgetView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = ViewerPalette.of(context);
     final s = LanguageScope.of(context);
-    final rate = ref.watch(jpyToTryProvider);
+    final selected =
+        ref.watch(displayCurrencyProvider) ?? DisplayCurrencyX.defaultFor(s.lang);
+    final rate = jpyRateFor(ref, selected);
     final summary = computeBudget(trip, jpyToTry: rate);
-    final party = trip.preferences.partySize ?? 1;
+    final unitTable =
+        ref.watch(unitCostTableProvider).valueOrNull ?? UnitCostTable.defaults();
+    final estimate = estimateTripCost(trip, unitTable);
+    final overrides = ref.watch(costOverrideProvider);
 
     return Scaffold(
       backgroundColor: palette.bg,
@@ -130,42 +141,59 @@ class _BudgetView extends ConsumerWidget {
         foregroundColor: palette.textPrimary,
         elevation: 0,
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
-        children: [
-          if (summary.itemsWithCost == 0) ...[
-            _EmptyBanner(palette: palette),
+      // Boş alana dokununca klavye kapanır (döviz girdisi tuzağına karşı).
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+          children: [
+            _CurrencyRatesCard(
+              selected: selected,
+              rate: rate,
+              palette: palette,
+              onSelect: (currency) =>
+                  ref.read(displayCurrencyProvider.notifier).set(currency),
+              onEditRate: () => _editRate(context, ref, selected, rate),
+            ),
             const SizedBox(height: 16),
+            _EstimatedCostBreakdownCard(
+              estimate: estimate,
+              currency: selected,
+              jpyRate: rate,
+              overrides: overrides,
+              palette: palette,
+              onEditLine: (category) => _editLineCost(
+                context,
+                ref,
+                category,
+                selected,
+                rate,
+                overrides[category.name],
+              ),
+              onClearLine: (category) =>
+                  ref.read(costOverrideProvider.notifier).clear(category.name),
+            ),
+            if (summary.itemsWithCost > 0) ...[
+              const SizedBox(height: 16),
+              _CategorySection(
+                summary: summary,
+                palette: palette,
+              ),
+              const SizedBox(height: 16),
+              _DaySection(
+                summary: summary,
+                palette: palette,
+              ),
+            ],
+            const SizedBox(height: 16),
+            _ConverterSection(
+              rate: rate,
+              currency: selected,
+              palette: palette,
+            ),
           ],
-          _TotalCard(summary: summary, party: party, palette: palette),
-          const SizedBox(height: 16),
-          _ExpertBudgetMetricsCard(summary: summary, palette: palette),
-          const SizedBox(height: 16),
-          _FamilyMaxEstimateCard(
-            trip: trip,
-            summary: summary,
-            jpyToTry: rate,
-            palette: palette,
-          ),
-          const SizedBox(height: 16),
-          _RateCard(
-            rate: rate,
-            palette: palette,
-            onEdit: () => _editRate(context, ref, rate),
-          ),
-          if (summary.itemsWithCost > 0) ...[
-            const SizedBox(height: 16),
-            _CategorySection(summary: summary, palette: palette),
-            const SizedBox(height: 16),
-            _DaySection(summary: summary, palette: palette),
-          ],
-          if (summary.plannedMealTry > 0 || summary.actualMealTry > 0) ...[
-            const SizedBox(height: 16),
-            _MealBudgetSection(summary: summary, palette: palette),
-          ],
-          const SizedBox(height: 16),
-          _ConverterSection(rate: rate, palette: palette),
-        ],
+        ),
       ),
     );
   }
@@ -173,8 +201,11 @@ class _BudgetView extends ConsumerWidget {
   Future<void> _editRate(
     BuildContext context,
     WidgetRef ref,
+    DisplayCurrency currency,
     double current,
   ) async {
+    // JPY referans birimidir; kuru düzenlenemez.
+    if (currency == DisplayCurrency.jpy) return;
     final controller = TextEditingController(text: formatRate(current));
     final palette = ref.read(viewerPaletteProvider);
     final s = LanguageScope.of(context);
@@ -194,13 +225,17 @@ class _BudgetView extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  s.s('budget.rateQuestion'),
+                  s.p('budget.rateQuestionCurrency', {'code': currency.code}),
                   style: TextStyle(color: palette.textSecondary, fontSize: 13),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: controller,
                   autofocus: true,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => Navigator.of(ctx).pop(
+                    double.tryParse(controller.text.trim().replaceAll(',', '.')),
+                  ),
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -212,7 +247,7 @@ class _BudgetView extends ConsumerWidget {
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                   decoration: InputDecoration(
-                    prefixText: '₺ ',
+                    prefixText: '${currency.symbol} ',
                     prefixStyle: TextStyle(color: palette.textSecondary),
                     border: const OutlineInputBorder(),
                   ),
@@ -244,7 +279,106 @@ class _BudgetView extends ConsumerWidget {
       },
     );
     if (result != null && result > 0) {
-      await ref.read(jpyToTryProvider.notifier).set(result);
+      final notifier = switch (currency) {
+        DisplayCurrency.tryLira => ref.read(jpyToTryProvider.notifier),
+        DisplayCurrency.usd => ref.read(jpyToUsdProvider.notifier),
+        DisplayCurrency.eur => ref.read(jpyToEurProvider.notifier),
+        DisplayCurrency.jpy => ref.read(jpyToTryProvider.notifier),
+      };
+      await notifier.set(result);
+    }
+  }
+
+  /// Bir gider kalemi için gerçek maliyeti seçili para biriminde girer; JPY'ye
+  /// çevirip üstünüş olarak saklar. Boş bırakılırsa üstünüş kaldırılır.
+  Future<void> _editLineCost(
+    BuildContext context,
+    WidgetRef ref,
+    CostCategory category,
+    DisplayCurrency currency,
+    double jpyRate,
+    int? currentJpy,
+  ) async {
+    final palette = ref.read(viewerPaletteProvider);
+    final s = LanguageScope.of(context);
+    final initial = currentJpy != null && jpyRate > 0
+        ? groupThousands((currentJpy * jpyRate).round()).replaceAll('.', '')
+        : '';
+    final controller = TextEditingController(text: initial);
+    final result = await showDialog<double?>(
+      context: context,
+      builder: (ctx) {
+        return Theme(
+          data: palette.toThemeData(),
+          child: AlertDialog(
+            backgroundColor: palette.card,
+            title: Text(
+              s.p('budget.editLineTitle', {'item': s.s(_costCatKey(category))}),
+              style: TextStyle(color: palette.textPrimary),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  s.s('budget.editLineHint'),
+                  style: TextStyle(color: palette.textSecondary, fontSize: 13),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => Navigator.of(ctx).pop(
+                    double.tryParse(controller.text.trim().replaceAll(',', '.')),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                  ],
+                  style: TextStyle(
+                    color: palette.textPrimary,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                  decoration: InputDecoration(
+                    prefixText: '${currency.symbol} ',
+                    prefixStyle: TextStyle(color: palette.textSecondary),
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              if (currentJpy != null)
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(-1.0),
+                  child: Text(s.s('budget.clearOverride')),
+                ),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(s.s('common.cancel')),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(
+                  double.tryParse(controller.text.trim().replaceAll(',', '.')),
+                ),
+                child: Text(s.s('common.save')),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (result == null) return;
+    final notifier = ref.read(costOverrideProvider.notifier);
+    if (result < 0) {
+      await notifier.clear(category.name);
+      return;
+    }
+    if (result > 0 && jpyRate > 0) {
+      await notifier.set(category.name, (result / jpyRate).round());
     }
   }
 }
@@ -297,188 +431,292 @@ class _SectionTitle extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// 1) Toplam hero.
+// 1) Döviz kurları + görüntüleme birimi seçici (₺ / $ / € / ¥).
 // ---------------------------------------------------------------------------
 
-class _TotalCard extends StatelessWidget {
-  const _TotalCard({
-    required this.summary,
-    required this.party,
+class _CurrencyRatesCard extends StatelessWidget {
+  const _CurrencyRatesCard({
+    required this.selected,
+    required this.rate,
     required this.palette,
+    required this.onSelect,
+    required this.onEditRate,
   });
 
-  final BudgetSummary summary;
-  final int party;
+  final DisplayCurrency selected;
+  final double rate;
   final ViewerPalette palette;
+  final ValueChanged<DisplayCurrency> onSelect;
+  final VoidCallback onEditRate;
 
   @override
   Widget build(BuildContext context) {
     final s = LanguageScope.of(context);
+    final p = palette;
     return _Card(
-      palette: palette,
-      borderColor: palette.accent.withValues(alpha: 0.35),
+      palette: p,
+      borderColor: p.accent.withValues(alpha: 0.35),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            s.s('budget.total'),
-            style: TextStyle(color: palette.textSecondary, fontSize: 13),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            formatTry(summary.grandTotalTry),
-            style: TextStyle(
-              color: palette.textPrimary,
-              fontSize: 40,
-              fontWeight: FontWeight.w800,
-              height: 1.1,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-          if (summary.grandTotalJpy > 0) ...[
-            const SizedBox(height: 4),
-            Text(
-              '(≈ ${formatJpy(summary.grandTotalJpy)} JPY)',
-              style: TextStyle(
-                color: palette.textMuted,
-                fontSize: 14,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-          ],
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: palette.elevated,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: palette.border),
-            ),
-            child: Row(
-              children: [
-                const Text('👤', style: TextStyle(fontSize: 16)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    s.s('budget.perPerson'),
-                    style: TextStyle(
-                      color: palette.textSecondary,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                Text(
-                  s.p('budget.perPersonValue', {
-                    'amount': formatTry(summary.perPersonTry),
-                    'n': '$party',
-                  }),
-                  style: TextStyle(
-                    color: palette.textPrimary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            s.p('budget.itemsWithCost', {
-              'done': '${summary.itemsWithCost}',
-              'total': '${summary.itemsTotal}',
-            }),
-            style: TextStyle(color: palette.textMuted, fontSize: 12),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ExpertBudgetMetricsCard extends StatelessWidget {
-  const _ExpertBudgetMetricsCard({
-    required this.summary,
-    required this.palette,
-  });
-
-  final BudgetSummary summary;
-  final ViewerPalette palette;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = LanguageScope.of(context);
-    final coveragePct = (summary.coverageRatio * 100).clamp(0, 100).round();
-
-    return _Card(
-      palette: palette,
-      borderColor: palette.matcha.withValues(alpha: 0.35),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SectionTitle(
-            text: s.s('budget.expert.title'),
-            palette: palette,
-          ),
-          _metricRow(
-            s.s('budget.expert.coverage'),
-            '$coveragePct%',
-          ),
-          _metricRow(
-            s.s('budget.expert.dailyBurn'),
-            formatTry(summary.dailyBurnTry),
-          ),
-          _metricRow(
-            s.s('budget.expert.fixed'),
-            formatTry(summary.fixedEssentialTry),
-          ),
-          _metricRow(
-            s.s('budget.expert.flex'),
-            formatTry(summary.discretionaryTry),
-          ),
-          _metricRow(
-            s.s('budget.expert.contingency'),
-            formatTry(summary.contingencyTry),
-          ),
-          _metricRow(
-            s.s('budget.expert.cashFloor'),
-            formatTry(summary.suggestedCashTry),
+            s.s('budget.currencyTitle'),
+            style: TextStyle(color: p.textSecondary, fontSize: 13),
           ),
           const SizedBox(height: 10),
-          Text(
-            s.s('budget.expert.scenarioTitle'),
-            style: TextStyle(
-              color: palette.textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              _scenarioChip(
-                label: s.s('budget.expert.frugal'),
-                value: formatTry(summary.frugalScenarioTry),
-              ),
-              _scenarioChip(
-                label: s.s('budget.expert.realistic'),
-                value: formatTry(summary.realisticScenarioTry),
-              ),
-              _scenarioChip(
-                label: s.s('budget.expert.comfort'),
-                value: formatTry(summary.comfortScenarioTry),
-              ),
+              for (final currency in DisplayCurrency.values)
+                _CurrencyChip(
+                  currency: currency,
+                  selected: currency == selected,
+                  palette: p,
+                  onTap: () => onSelect(currency),
+                ),
             ],
           ),
-          if (summary.nonStandardCurrencyItems > 0) ...[
-            const SizedBox(height: 10),
+          if (selected != DisplayCurrency.jpy) ...[
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '1 ¥ = ${selected.symbol}${formatRate(rate)}',
+                    style: TextStyle(
+                      color: p.textPrimary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: onEditRate,
+                  icon: const Icon(Icons.edit_outlined, size: 16),
+                  label: Text(s.s('budget.editRate')),
+                  style: TextButton.styleFrom(
+                    foregroundColor: p.accent,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
             Text(
-              s.p('budget.expert.currencyWarning', {
-                'n': '${summary.nonStandardCurrencyItems}',
-              }),
-              style: TextStyle(color: palette.sunset, fontSize: 12),
+              s.s('budget.rateManual'),
+              style: TextStyle(color: p.textMuted, fontSize: 12),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _CurrencyChip extends StatelessWidget {
+  const _CurrencyChip({
+    required this.currency,
+    required this.selected,
+    required this.palette,
+    required this.onTap,
+  });
+
+  final DisplayCurrency currency;
+  final bool selected;
+  final ViewerPalette palette;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    return Material(
+      color: selected ? p.accent : p.elevated,
+      borderRadius: BorderRadius.circular(999),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          child: Text(
+            '${currency.symbol} ${currency.code}',
+            style: TextStyle(
+              color: selected ? Colors.white : p.textPrimary,
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 2c) Tahmini gider dökümü — yıl bazlı birim tablodan (AI'sız) kalem kalem
+//     min–max. "Bu rota sizin için ₺X – ₺Y arası" başlığı + kategori satırları
+//     + örnek birim fiyatlar.
+// ---------------------------------------------------------------------------
+
+String _costCatEmoji(CostCategory c) => switch (c) {
+      CostCategory.flight => '✈️',
+      CostCategory.hotel => '🏨',
+      CostCategory.food => '🍜',
+      CostCategory.train => '🚄',
+      CostCategory.taxi => '🚕',
+      CostCategory.shopping => '🛍️',
+      CostCategory.electronics => '🎮',
+      CostCategory.attractions => '🎢',
+    };
+
+String _costCatKey(CostCategory c) => switch (c) {
+      CostCategory.flight => 'budget.cat.flight',
+      CostCategory.hotel => 'budget.cat.hotel',
+      CostCategory.food => 'budget.cat.food',
+      CostCategory.train => 'budget.cat.train',
+      CostCategory.taxi => 'budget.cat.taxi',
+      CostCategory.shopping => 'budget.cat.shopping',
+      CostCategory.electronics => 'budget.cat.electronics',
+      CostCategory.attractions => 'budget.cat.attractions',
+    };
+
+class _EstimatedCostBreakdownCard extends StatelessWidget {
+  const _EstimatedCostBreakdownCard({
+    required this.estimate,
+    required this.currency,
+    required this.jpyRate,
+    required this.overrides,
+    required this.palette,
+    required this.onEditLine,
+    required this.onClearLine,
+  });
+
+  final CostEstimate estimate;
+  final DisplayCurrency currency;
+  final double jpyRate;
+  final Map<String, int> overrides;
+  final ViewerPalette palette;
+  final ValueChanged<CostCategory> onEditLine;
+  final ValueChanged<CostCategory> onClearLine;
+
+  int _effMin(CostLine line) => overrides[line.category.name] ?? line.minJpy;
+  int _effMax(CostLine line) => overrides[line.category.name] ?? line.maxJpy;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
+    final p = palette;
+    var totalMinJpy = 0;
+    var totalMaxJpy = 0;
+    for (final line in estimate.lines) {
+      totalMinJpy += _effMin(line);
+      totalMaxJpy += _effMax(line);
+    }
+    final minMoney = totalMinJpy * jpyRate;
+    final maxMoney = totalMaxJpy * jpyRate;
+    final childrenStr = estimate.children > 0
+        ? s.p('budget.estimate.people', {
+            'adults': '${estimate.adults}',
+            'children': '${estimate.children}',
+          })
+        : s.p('budget.estimate.adultsOnly', {'adults': '${estimate.adults}'});
+
+    return _Card(
+      palette: p,
+      borderColor: p.accent.withValues(alpha: 0.35),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            s.s('budget.estimate.title'),
+            style: TextStyle(color: p.textSecondary, fontSize: 13),
+          ),
+          const SizedBox(height: 6),
+          // İki değerli aralık tek satıra sığsın (küçülterek).
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '${formatMoney(minMoney, currency)} – ${formatMoney(maxMoney, currency)}',
+              maxLines: 1,
+              style: TextStyle(
+                color: p.textPrimary,
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                height: 1.1,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            s.p('budget.estimate.sub', {
+              'jpyMin': formatJpy(totalMinJpy),
+              'jpyMax': formatJpy(totalMaxJpy),
+              'days': '${estimate.days}',
+              'people': childrenStr,
+            }),
+            style: TextStyle(
+              color: p.textMuted,
+              fontSize: 12.5,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+          const SizedBox(height: 14),
+          for (final line in estimate.lines)
+            _EstimateRow(
+              emoji: _costCatEmoji(line.category),
+              label: s.s(_costCatKey(line.category)),
+              minMoney: _effMin(line) * jpyRate,
+              maxMoney: _effMax(line) * jpyRate,
+              currency: currency,
+              isOverridden: overrides.containsKey(line.category.name),
+              palette: p,
+              onEdit: () => onEditLine(line.category),
+              onClear: () => onClearLine(line.category),
+            ),
+          const SizedBox(height: 4),
+          Text(
+            s.s('budget.estimate.editHint'),
+            style: TextStyle(color: p.textMuted, fontSize: 12),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: p.elevated,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: p.border),
+            ),
+            child: Text(
+              s.p('budget.estimate.note', {'year': '${estimate.year}'}),
+              style: TextStyle(color: p.textSecondary, fontSize: 12),
+            ),
+          ),
+          if (estimate.references.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Text(
+              s.s('budget.estimate.refTitle'),
+              style: TextStyle(
+                color: p.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final ref in estimate.references)
+                  _ReferenceChip(
+                    label: _referenceLabel(s, ref.key),
+                    jpy: ref.jpy,
+                    jpyRate: jpyRate,
+                    currency: currency,
+                    palette: p,
+                  ),
+              ],
             ),
           ],
         ],
@@ -486,220 +724,168 @@ class _ExpertBudgetMetricsCard extends StatelessWidget {
     );
   }
 
-  Widget _metricRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(color: palette.textSecondary, fontSize: 13),
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              color: palette.textPrimary,
-              fontWeight: FontWeight.w700,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _scenarioChip({required String label, required String value}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: palette.elevated,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: palette.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(color: palette.textMuted, fontSize: 11),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              color: palette.textPrimary,
-              fontWeight: FontWeight.w700,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-        ],
-      ),
-    );
+  String _referenceLabel(LanguageScope s, String key) {
+    final resolved = s.s('budget.ref.$key');
+    // Bilinmeyen anahtar için l10n kendi anahtarını döner → ham anahtarı göster.
+    if (resolved == 'budget.ref.$key') {
+      return key.replaceAll('_', ' ');
+    }
+    return resolved;
   }
 }
 
-// ---------------------------------------------------------------------------
-// 2) Kur.
-// ---------------------------------------------------------------------------
-
-class _RateCard extends StatelessWidget {
-  const _RateCard({
-    required this.rate,
+class _EstimateRow extends StatelessWidget {
+  const _EstimateRow({
+    required this.emoji,
+    required this.label,
+    required this.minMoney,
+    required this.maxMoney,
+    required this.currency,
+    required this.isOverridden,
     required this.palette,
     required this.onEdit,
+    required this.onClear,
   });
 
-  final double rate;
+  final String emoji;
+  final String label;
+  final double minMoney;
+  final double maxMoney;
+  final DisplayCurrency currency;
+  final bool isOverridden;
   final ViewerPalette palette;
   final VoidCallback onEdit;
+  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
+    final p = palette;
     final s = LanguageScope.of(context);
-    return _Card(
-      palette: palette,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      s.s('budget.exchangeRate'),
-                      style: TextStyle(
-                        color: palette.textSecondary,
-                        fontSize: 13,
-                      ),
+    final valueText = isOverridden
+        ? formatMoney(minMoney, currency)
+        : '${formatMoney(minMoney, currency)} – ${formatMoney(maxMoney, currency)}';
+    return InkWell(
+      onTap: onEdit,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 15)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      label,
+                      style: TextStyle(color: p.textSecondary, fontSize: 13.5),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '1 ¥ = ₺${formatRate(rate)}',
-                      style: TextStyle(
-                        color: palette.textPrimary,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                  if (isOverridden) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: p.matcha.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        s.s('budget.overrideBadge'),
+                        style: TextStyle(
+                          color: p.matcha,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(
+                  valueText,
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: p.textPrimary,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
               ),
-              FilledButton.icon(
-                onPressed: onEdit,
-                icon: const Icon(Icons.edit_outlined, size: 16),
-                label: Text(s.s('budget.editRate')),
-                style: FilledButton.styleFrom(
-                  backgroundColor: palette.accent,
-                  foregroundColor: Colors.white,
+            ),
+            SizedBox(
+              width: 34,
+              height: 34,
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                iconSize: 16,
+                tooltip: isOverridden
+                    ? s.s('budget.clearOverride')
+                    : s.s('budget.editLine'),
+                onPressed: isOverridden ? onClear : onEdit,
+                icon: Icon(
+                  isOverridden ? Icons.close_rounded : Icons.edit_outlined,
+                  color: p.textMuted,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            s.s('budget.rateManual'),
-            style: TextStyle(color: palette.textMuted, fontSize: 12),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// 2b) Aile için üst-limit tahmin kartı.
-// ---------------------------------------------------------------------------
-
-class _FamilyMaxEstimateCard extends StatelessWidget {
-  const _FamilyMaxEstimateCard({
-    required this.trip,
-    required this.summary,
-    required this.jpyToTry,
+class _ReferenceChip extends StatelessWidget {
+  const _ReferenceChip({
+    required this.label,
+    required this.jpy,
+    required this.jpyRate,
+    required this.currency,
     required this.palette,
   });
 
-  final Trip trip;
-  final BudgetSummary summary;
-  final double jpyToTry;
+  final String label;
+  final int jpy;
+  final double jpyRate;
+  final DisplayCurrency currency;
   final ViewerPalette palette;
 
   @override
   Widget build(BuildContext context) {
-    final s = LanguageScope.of(context);
-    final party = (trip.preferences.partySize ?? 1).clamp(1, 12);
-    final children = (trip.preferences.childrenCount ?? 0).clamp(0, 8);
-    final outboundTransfers =
-        (trip.flights.outbound.length > 1) ? trip.flights.outbound.length - 1 : 0;
-    final returnTransfers =
-        (trip.flights.returnLegs.length > 1) ? trip.flights.returnLegs.length - 1 : 0;
-    final transferCount = outboundTransfers + returnTransfers;
-    final isOneWay = trip.flights.returnLegs.isEmpty ||
-        (trip.preferences.tripType?.toLowerCase().trim() == 'oneway');
-
-    // Eğer plan maliyeti henüz girilmediyse kişi başı taban kabulüyle kaba tahmin.
-    final baseJpyFromPlan = summary.grandTotalJpy > 0
-        ? summary.grandTotalJpy.toDouble()
-        : (summary.grandTotalTry > 0
-            ? (summary.grandTotalTry / jpyToTry)
-            : (party * 85000 + children * 30000).toDouble());
-
-    final transferBuffer = (0.03 * transferCount).clamp(0.0, 0.12);
-    final oneWayBuffer = isOneWay ? 0.04 : 0.0;
-    final childBuffer = children * 6000;
-    final multiplier = 1.18 + transferBuffer + oneWayBuffer;
-
-    final maxJpy = ((baseJpyFromPlan * multiplier) + childBuffer).round();
-    final maxTry = maxJpy * jpyToTry;
-
-    return _Card(
-      palette: palette,
-      borderColor: palette.fuji.withValues(alpha: 0.35),
+    final p = palette;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: p.elevated,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: p.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            s.s('budget.familyMaxTitle'),
-            style: TextStyle(color: palette.textSecondary, fontSize: 13),
+            label,
+            style: TextStyle(color: p.textMuted, fontSize: 11),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 2),
           Text(
-            formatTry(maxTry),
+            '${formatJpy(jpy)} · ≈ ${formatMoney(jpy * jpyRate, currency)}',
             style: TextStyle(
-              color: palette.textPrimary,
-              fontSize: 30,
-              fontWeight: FontWeight.w800,
-              height: 1.1,
+              color: p.textPrimary,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            s.p('budget.familyMaxJpy', {'jpy': formatJpy(maxJpy)}),
-            style: TextStyle(
-              color: palette.textMuted,
-              fontSize: 13,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            s.p('budget.familyMaxAssumption', {
-              'transfer': '$transferCount',
-              'tripType': isOneWay
-                  ? s.s('budget.tripType.oneway')
-                  : s.s('budget.tripType.roundtrip'),
-              'multiplier': multiplier.toStringAsFixed(2),
-            }),
-            style: TextStyle(color: palette.textSecondary, fontSize: 12),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            s.s('budget.familyMaxHint'),
-            style: TextStyle(color: palette.textMuted, fontSize: 12),
           ),
         ],
       ),
@@ -901,101 +1087,18 @@ class _DaySection extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// 5) Yemek bütçesi (planlanan vs gerçekleşen).
-// ---------------------------------------------------------------------------
-
-class _MealBudgetSection extends StatelessWidget {
-  const _MealBudgetSection({required this.summary, required this.palette});
-
-  final BudgetSummary summary;
-  final ViewerPalette palette;
-
-  @override
-  Widget build(BuildContext context) {
-    final planned = summary.plannedMealTry;
-    final actual = summary.actualMealTry;
-    final over = planned > 0 && actual > planned;
-    final barColor = over ? palette.sunset : palette.matcha;
-    final fraction = planned > 0 ? (actual / planned).clamp(0.0, 1.0) : 1.0;
-
-    final s = LanguageScope.of(context);
-    return _Card(
-      palette: palette,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SectionTitle(text: s.s('budget.foodBudget'), palette: palette),
-          Text.rich(
-            TextSpan(
-              style: TextStyle(color: palette.textSecondary, fontSize: 14),
-              children: [
-                TextSpan(text: s.s('budget.planned')),
-                TextSpan(
-                  text: formatTry(planned),
-                  style: TextStyle(
-                    color: palette.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                TextSpan(text: s.s('budget.actual')),
-                TextSpan(
-                  text: formatTry(actual),
-                  style: TextStyle(
-                    color: over ? palette.sunset : palette.matcha,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Stack(
-                  children: [
-                    Container(
-                      height: 10,
-                      width: double.infinity,
-                      color: palette.elevated,
-                    ),
-                    Container(
-                      height: 10,
-                      width: constraints.maxWidth * fraction,
-                      color: barColor,
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            over
-                ? s.p('budget.over', {'n': formatTry(actual - planned)})
-                : planned > 0
-                    ? s.p('budget.under', {'n': formatTry(planned - actual)})
-                    : s.s('budget.noFood'),
-            style: TextStyle(
-              color: over ? palette.sunset : palette.textMuted,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// 6) Çevirici — JPY girdi → TL çıktı (canlı).
+// 4) Çevirici — JPY girdi → seçili birim çıktı (canlı).
 // ---------------------------------------------------------------------------
 
 class _ConverterSection extends StatefulWidget {
-  const _ConverterSection({required this.rate, required this.palette});
+  const _ConverterSection({
+    required this.rate,
+    required this.currency,
+    required this.palette,
+  });
 
   final double rate;
+  final DisplayCurrency currency;
   final ViewerPalette palette;
 
   @override
@@ -1004,12 +1107,22 @@ class _ConverterSection extends StatefulWidget {
 
 class _ConverterSectionState extends State<_ConverterSection> {
   final _controller = TextEditingController(text: '1000');
+  final _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
+
+  void _dismiss() => FocusScope.of(context).unfocus();
 
   @override
   Widget build(BuildContext context) {
@@ -1017,7 +1130,10 @@ class _ConverterSectionState extends State<_ConverterSection> {
     final s = LanguageScope.of(context);
     final jpy =
         double.tryParse(_controller.text.trim().replaceAll(',', '.')) ?? 0;
-    final tl = jpy * widget.rate;
+    final converted = jpy * widget.rate;
+    final targetLabel = widget.currency == DisplayCurrency.jpy
+        ? s.s('budget.yen')
+        : '${widget.currency.symbol} ${widget.currency.code}';
 
     return _Card(
       palette: palette,
@@ -1027,7 +1143,25 @@ class _ConverterSectionState extends State<_ConverterSection> {
           _SectionTitle(text: s.s('budget.converter'), palette: palette),
           TextField(
             controller: _controller,
+            focusNode: _focusNode,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: TextInputAction.done,
+            // Numerik klavyede return tuşu yok; dış alana dokununca da kapansın.
+            onTapOutside: (_) => _dismiss(),
+            onEditingComplete: _dismiss,
+            onSubmitted: (_) => _dismiss(),
+            // iOS'un kötü konumlanan "Metni Tara" (Live Text kamera) seçeneğini
+            // bu alandan kaldır — OCR için özel canlı çevirici ekranı vardır.
+            contextMenuBuilder: (context, editableState) {
+              final items = editableState.contextMenuButtonItems
+                  .where((item) =>
+                      item.type != ContextMenuButtonType.liveTextInput)
+                  .toList();
+              return AdaptiveTextSelectionToolbar.buttonItems(
+                anchors: editableState.contextMenuAnchors,
+                buttonItems: items,
+              );
+            },
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
             ],
@@ -1043,6 +1177,13 @@ class _ConverterSectionState extends State<_ConverterSection> {
               labelStyle: TextStyle(color: palette.textSecondary),
               prefixText: '¥ ',
               prefixStyle: TextStyle(color: palette.textSecondary),
+              // Klavye üstünde "return" olmadığı için görünür "Bitti" düğmesi.
+              suffixIcon: _focusNode.hasFocus
+                  ? TextButton(
+                      onPressed: _dismiss,
+                      child: Text(s.s('common.done')),
+                    )
+                  : null,
               border: const OutlineInputBorder(),
               enabledBorder: OutlineInputBorder(
                 borderSide: BorderSide(color: palette.border),
@@ -1062,12 +1203,12 @@ class _ConverterSectionState extends State<_ConverterSection> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  s.s('budget.lira'),
+                  targetLabel,
                   style: TextStyle(color: palette.textSecondary, fontSize: 12),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  formatTry(tl),
+                  formatMoney(converted, widget.currency),
                   style: TextStyle(
                     color: palette.textPrimary,
                     fontSize: 26,
@@ -1084,42 +1225,3 @@ class _ConverterSectionState extends State<_ConverterSection> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Boş durum banner'ı.
-// ---------------------------------------------------------------------------
-
-class _EmptyBanner extends StatelessWidget {
-  const _EmptyBanner({required this.palette});
-
-  final ViewerPalette palette;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: palette.gold.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: palette.gold.withValues(alpha: 0.35)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('💡', style: TextStyle(fontSize: 18)),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              LanguageScope.of(context).s('budget.empty'),
-              style: TextStyle(
-                color: palette.textPrimary,
-                fontSize: 13,
-                height: 1.4,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

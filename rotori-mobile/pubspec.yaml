@@ -90,6 +90,8 @@ flutter:
     - assets/tts/ja/
     # Hamburger menüsünün Japonya hero görseli.
     - assets/images/hamb-menu-top-bg.png
+    # Yıl bazlı birim maliyet tablosu (bütçe tahmini; elle düzenlenebilir).
+    - assets/data/unit_costs.ini
 
   fonts:
     # Keşif rütbesi kanji glifleri için Noto Sans JP subset (yalnızca

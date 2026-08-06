@@ -4,10 +4,9 @@
 // Aynı `geofenceControllerProvider(trip)` örneğini kullanır; böylece burada
 // yapılan keşifler kalıcıdır ve keşif haritasında da yeşillenir.
 //
-// Nasıl çalışır: her fence için, fence merkezinde iki GeoSample itilir —
-// biri `t` anında (oturum açılır), biri `t + minDwellSeconds + 1s` anında
-// (dwell eşiği aşılır → engine tamamlar → +XP + rozet). Sim saati elle veya
-// otomatik turla ilerletilir.
+// Nasıl çalışır: "Buraya git" ile ilgili fence merkezine girilir ve dwell
+// oturumu başlar. Simüle saat ilerletildikçe motor 120 sn adımlarla beslenir;
+// 10 dakika eşiği geçilince keşif otomatik tamamlanır (+XP + rozet).
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,8 +27,15 @@ class GpsSimScreen extends ConsumerStatefulWidget {
 class _GpsSimScreenState extends ConsumerState<GpsSimScreen> {
   // Simüle edilen saat — gerçek zamandan bağımsız ilerletilir.
   DateTime _simClock = DateTime.now();
+  String? _activeFenceId;
+  DateTime? _activeFenceEnteredAt;
 
-  void _advance(Duration d) => setState(() => _simClock = _simClock.add(d));
+  void _advance(GeofenceController c, Duration d) {
+    final from = _simClock;
+    final to = from.add(d);
+    _feedActiveFenceDwell(c, from: from, to: to);
+    setState(() => _simClock = to);
+  }
 
   void _snack(String msg) {
     if (!mounted) return;
@@ -39,46 +45,90 @@ class _GpsSimScreenState extends ConsumerState<GpsSimScreen> {
   }
 
   /// Fence konumuna anlık ışınlanma (tek örnek, current sim saatiyle).
-  void _teleport(GeofenceController c, Geofence f) {
+  void _teleport(GeofenceController c, Geofence f, {bool silent = false}) {
     c.debugPushSample(GeoSample(
       lat: f.lat,
       lng: f.lng,
       accuracy: 10,
       timestamp: _simClock,
     ));
-    _snack(LanguageScope.of(context)
-        .p('gps.snack.teleport', {'emoji': f.emoji, 'name': f.name}));
-  }
-
-  /// Fence'te 10 dk kal & onayla. Motor her örnek arası dwell artışını
-  /// graceSeconds+60 ile sınırladığı için TEK büyük sıçrama yetmez —
-  /// bu yüzden minDwellSeconds boyunca 120 sn'lik küçük adımlarla besleriz.
-  void _dwellAndConfirm(GeofenceController c, Geofence f) {
-    var t = _simClock;
-    GeoSample sampleAt(DateTime ts) =>
-        GeoSample(lat: f.lat, lng: f.lng, accuracy: 10, timestamp: ts);
-    c.debugPushSample(sampleAt(t)); // oturum açılır
-    const step = 120; // saniye — motorun 180 sn'lik delta sınırının altında
-    var dwelled = 0;
-    while (dwelled < f.minDwellSeconds + step) {
-      t = t.add(const Duration(seconds: step));
-      c.debugPushSample(sampleAt(t));
-      dwelled += step;
+    setState(() {
+      _activeFenceId = f.id;
+      _activeFenceEnteredAt = _simClock;
+    });
+    if (!silent) {
+      _snack(LanguageScope.of(context)
+          .p('gps.snack.teleport', {'emoji': f.emoji, 'name': f.name}));
     }
-    setState(() => _simClock = t);
   }
 
-  /// İlk ~6 fence'i sırayla tamamlayarak birden çok rozetin açılışını izletir.
+  void _feedActiveFenceDwell(
+    GeofenceController c, {
+    required DateTime from,
+    required DateTime to,
+  }) {
+    final activeId = _activeFenceId;
+    if (activeId == null) return;
+    Geofence? f;
+    for (final item in c.fences) {
+      if (item.id == activeId) {
+        f = item;
+        break;
+      }
+    }
+    if (f == null || c.visits.records[f.id]?.completedAt != null) {
+      _activeFenceId = null;
+      _activeFenceEnteredAt = null;
+      return;
+    }
+
+    var cursor = from;
+    while (cursor.isBefore(to)) {
+      final next = cursor.add(const Duration(seconds: 120));
+      final tick = next.isAfter(to) ? to : next;
+      c.debugPushSample(GeoSample(
+        lat: f.lat,
+        lng: f.lng,
+        accuracy: 10,
+        timestamp: tick,
+      ));
+      cursor = tick;
+    }
+
+    if (c.visits.records[f.id]?.completedAt != null) {
+      _activeFenceId = null;
+      _activeFenceEnteredAt = null;
+    }
+  }
+
+  /// İlk ~6 fence'i sırayla ziyaret eder; her durakta saat ilerledikçe keşif
+  /// otomatik tamamlanır.
   void _autoTour(GeofenceController c, List<Geofence> fences) {
     final targets = fences.take(6).toList();
     for (final f in targets) {
       if (c.visits.records[f.id]?.completedAt != null) continue;
-      _dwellAndConfirm(c, f);
+      _teleport(c, f, silent: true);
+      _advance(c, const Duration(minutes: 11));
       // Sonraki durağa "yolculuk" için saati biraz ilerlet.
-      _simClock = _simClock.add(const Duration(minutes: 5));
+      _advance(c, const Duration(minutes: 5));
     }
-    setState(() {});
     _snack(LanguageScope.of(context).s('gps.snack.autoTourDone'));
+  }
+
+  Geofence? _activeFence(GeofenceController c) {
+    final id = _activeFenceId;
+    if (id == null) return null;
+    for (final f in c.fences) {
+      if (f.id == id) return f;
+    }
+    return null;
+  }
+
+  int _activeElapsedMinutes() {
+    final enteredAt = _activeFenceEnteredAt;
+    if (enteredAt == null) return 0;
+    final delta = _simClock.difference(enteredAt);
+    return delta.inMinutes.clamp(0, 24 * 60);
   }
 
   String _fmtClock(DateTime t) {
@@ -131,15 +181,20 @@ class _GpsSimScreenState extends ConsumerState<GpsSimScreen> {
                               children: [
                                 OutlinedButton(
                                   onPressed: () =>
-                                      _advance(const Duration(minutes: 1)),
+                                      _advance(controller, const Duration(minutes: 1)),
                                   child: Text(s.s('gps.plus1min')),
                                 ),
                                 OutlinedButton(
                                   onPressed: () =>
-                                      _advance(const Duration(minutes: 10)),
+                                      _advance(controller, const Duration(minutes: 10)),
                                   child: Text(s.s('gps.plus10min')),
                                 ),
                               ],
+                            ),
+                            const SizedBox(height: 10),
+                            _CurrentZoneChip(
+                              activeFence: _activeFence(controller),
+                              elapsedMinutes: _activeElapsedMinutes(),
                             ),
                           ],
                         ),
@@ -191,8 +246,11 @@ class _GpsSimScreenState extends ConsumerState<GpsSimScreen> {
                           fence: f,
                           discovered:
                               visits.records[f.id]?.completedAt != null,
+                          isActive: _activeFenceId == f.id,
+                          activeElapsedMinutes: _activeFenceId == f.id
+                              ? _activeElapsedMinutes()
+                              : 0,
                           onGo: () => _teleport(controller, f),
-                          onDwell: () => _dwellAndConfirm(controller, f),
                         ),
                     const SizedBox(height: 24),
                   ],
@@ -233,14 +291,16 @@ class _FenceRow extends StatelessWidget {
   const _FenceRow({
     required this.fence,
     required this.discovered,
+    required this.isActive,
+    required this.activeElapsedMinutes,
     required this.onGo,
-    required this.onDwell,
   });
 
   final Geofence fence;
   final bool discovered;
+  final bool isActive;
+  final int activeElapsedMinutes;
   final VoidCallback onGo;
-  final VoidCallback onDwell;
 
   @override
   Widget build(BuildContext context) {
@@ -276,18 +336,67 @@ class _FenceRow extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  if (isActive)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Text(
+                        s.p('gps.fence.activeProgress', {
+                          'mins': '$activeElapsedMinutes',
+                        }),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
                   OutlinedButton(
                     onPressed: onGo,
                     child: Text(s.s('gps.fence.goHere')),
                   ),
-                  const SizedBox(height: 4),
-                  FilledButton(
-                    onPressed: onDwell,
-                    child: Text(s.s('gps.fence.dwell')),
-                  ),
                 ],
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CurrentZoneChip extends StatelessWidget {
+  const _CurrentZoneChip({
+    required this.activeFence,
+    required this.elapsedMinutes,
+  });
+
+  final Geofence? activeFence;
+  final int elapsedMinutes;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
+    final theme = Theme.of(context);
+    final active = activeFence != null;
+    final label = active
+        ? s.p('gps.currentZone.active', {
+            'emoji': activeFence!.emoji,
+            'name': activeFence!.name,
+            'city': activeFence!.city,
+            'mins': '$elapsedMinutes',
+          })
+        : s.s('gps.currentZone.none');
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withValues(alpha: active ? 0.08 : 0.04),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: theme.colorScheme.onSurface,
         ),
       ),
     );

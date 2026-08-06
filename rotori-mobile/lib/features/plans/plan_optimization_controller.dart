@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/route_matrix_cache.dart';
 import '../../data/route_matrix_remote.dart';
 import '../../data/route_matrix_resolution.dart';
+import '../../domain/day_optimizer.dart';
 import '../../domain/itinerary_optimizer.dart';
 import '../../domain/route_time_bounds.dart';
 import '../../domain/route_matrix.dart';
@@ -271,6 +272,14 @@ class PlanOptimizationController
     );
     final result = await ref.read(itineraryOptimizerProvider).optimize(request);
     if (!result.isSuccess || result.metrics == null) {
+      final fallbackPreview = _buildLocalFallbackPreview(
+        input: input,
+        dayIndex: dayIndex,
+        request: request,
+        cacheKey: cacheKey,
+        failure: result.failure,
+      );
+      if (fallbackPreview != null) return fallbackPreview;
       throw PlanOptimizationException(result.failure);
     }
     final validationIssues = const RouteOptimizationValidator().validate(
@@ -278,16 +287,14 @@ class PlanOptimizationController
       result,
     );
     if (validationIssues.isNotEmpty) {
-      throw PlanOptimizationException(
-        OptimizationFailure(
-          code: OptimizationFailureCode.invalidRequest,
-          message:
-              'Rota doğrulama başarısız: ${validationIssues.first.message}',
-          activityId: validationIssues.first.activityId,
-          fromLocationId: validationIssues.first.fromLocationId,
-          toLocationId: validationIssues.first.toLocationId,
-        ),
+      final failure = OptimizationFailure(
+        code: OptimizationFailureCode.invalidRequest,
+        message: 'Rota doğrulama başarısız: ${validationIssues.first.message}',
+        activityId: validationIssues.first.activityId,
+        fromLocationId: validationIssues.first.fromLocationId,
+        toLocationId: validationIssues.first.toLocationId,
       );
+      throw PlanOptimizationException(failure);
     }
 
     final optimizedTrip = _applyResult(input.trip, dayIndex, result);
@@ -386,6 +393,74 @@ class PlanOptimizationController
       estimatedTransportCostYen: cost,
       isComplete: complete,
     );
+  }
+
+  PlanOptimizationPreview? _buildLocalFallbackPreview({
+    required DayOptimizationInput input,
+    required int dayIndex,
+    required OptimizationRequest request,
+    required String cacheKey,
+    required OptimizationFailure? failure,
+  }) {
+    if (!_shouldUseLocalFallback(failure)) return null;
+
+    final originalDay = input.trip.days[dayIndex];
+    final optimizedItems = optimizeDayItems(
+      originalDay.items.map((item) => item.copyWith()).toList(growable: false),
+    );
+    if (optimizedItems.isEmpty) return null;
+
+    final fixedById = {
+      for (final item in originalDay.items)
+        if (item.isFixed) item.id: item,
+    };
+    final normalizedItems = [
+      for (final item in optimizedItems)
+        if (fixedById.containsKey(item.id))
+          item.copyWith(
+            time: fixedById[item.id]!.time,
+            scheduledTime: fixedById[item.id]!.scheduledTime,
+            fixedStartTime: fixedById[item.id]!.fixedStartTime,
+            fixedEndTime: fixedById[item.id]!.fixedEndTime,
+          )
+        else
+          item,
+    ];
+
+    final optimizedTrip = _cloneTrip(input.trip);
+    optimizedTrip.days[dayIndex] = optimizedTrip.days[dayIndex].copyWith(
+      items: normalizedItems,
+    );
+
+    final fallbackFailure =
+        failure ??
+        const OptimizationFailure(
+          code: OptimizationFailureCode.noFeasibleRoute,
+          message: 'Kural tabanlı yerel rota önerisi kullanıldı.',
+        );
+
+    final preview = PlanOptimizationPreview(
+      originalTrip: _cloneTrip(input.trip),
+      optimizedTrip: optimizedTrip,
+      dayNumber: input.dayNumber,
+      before: _summarizeOriginal(request, originalDay.items),
+      after: _summarizeOriginal(request, normalizedItems),
+      result: OptimizationResult.failure(fallbackFailure),
+      cacheKey: cacheKey,
+    );
+    ref.read(planOptimizationPreviewCacheProvider).put(cacheKey, preview);
+    return preview;
+  }
+
+  bool _shouldUseLocalFallback(OptimizationFailure? failure) {
+    if (failure == null) return false;
+    return switch (failure.code) {
+      OptimizationFailureCode.noFeasibleRoute ||
+      OptimizationFailureCode.routeDataMissing ||
+      OptimizationFailureCode.fixedTimeConflict ||
+      OptimizationFailureCode.protectedActivityInfeasible => true,
+      _ => false,
+    };
   }
 }
 

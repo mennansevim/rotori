@@ -12,6 +12,7 @@ Akış (run_once):
 
 Kullanım:
     python -m src.news_automation            # 1 tur çalıştır (Drive'a atar)
+    python -m src.news_automation --publish  # üret + Onay Bekleyen'e taşı
     python -m src.news_automation --dry-run  # sadece seçim + metin, dosya yazmaz
 """
 from __future__ import annotations
@@ -739,11 +740,14 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Japonya haber otomasyonu — 1 tur")
     ap.add_argument("--dry-run", action="store_true",
                     help="Sadece haber seçimi + metin üret, dosya yazma/Drive'a atma")
+    ap.add_argument("--publish", action="store_true",
+                    help="Üretilen kartı Onay Bekleyen'e taşı")
     ap.add_argument("--config", default=None, help="config.yaml yolu")
     args = ap.parse_args(argv)
     cfg = load_config(args.config)
     try:
-        res = run_once(cfg, dry_run=args.dry_run)
+        res = run_once_with_publish(cfg, auto_publish=args.publish,
+                                    dry_run=args.dry_run)
     except Exception as exc:
         log.error(f"HATA: {exc}")
         return 1

@@ -840,6 +840,75 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en:
         '{n} items use non-JPY/TRY currencies; totals are approximate.',
   },
+  // ----- Tahmini gider dökümü (yıl bazlı birim tablo, AI'sız) -----
+  'budget.estimate.title': {
+    AppLang.tr: 'Bu rota sizin için tahminen',
+    AppLang.en: 'Estimated cost for this route',
+  },
+  'budget.estimate.sub': {
+    AppLang.tr: '≈ {jpyMin} – {jpyMax} · {days} gün · {people}',
+    AppLang.en: '≈ {jpyMin} – {jpyMax} · {days} days · {people}',
+  },
+  'budget.estimate.people': {
+    AppLang.tr: '{adults} yetişkin + {children} çocuk',
+    AppLang.en: '{adults} adults + {children} children',
+  },
+  'budget.estimate.adultsOnly': {
+    AppLang.tr: '{adults} yetişkin',
+    AppLang.en: '{adults} adults',
+  },
+  'budget.estimate.note': {
+    AppLang.tr:
+        'Tahmin {year} ortalama birim fiyatlarına dayanır; yapay zekâ kullanılmaz, değerler birim maliyet tablosundan gelir.',
+    AppLang.en:
+        'Estimate is based on {year} average unit prices; no AI is used — values come from the unit cost table.',
+  },
+  'budget.estimate.refTitle': {
+    AppLang.tr: 'Örnek birim fiyatlar',
+    AppLang.en: 'Sample unit prices',
+  },
+  'budget.cat.flight': {AppLang.tr: 'Uçak bileti', AppLang.en: 'Flight'},
+  'budget.cat.hotel': {AppLang.tr: 'Konaklama', AppLang.en: 'Accommodation'},
+  'budget.cat.food': {AppLang.tr: 'Yemek', AppLang.en: 'Food'},
+  'budget.cat.train': {AppLang.tr: 'Tren', AppLang.en: 'Train'},
+  'budget.cat.taxi': {AppLang.tr: 'Taksi', AppLang.en: 'Taxi'},
+  'budget.cat.shopping': {AppLang.tr: 'Alışveriş', AppLang.en: 'Shopping'},
+  'budget.cat.electronics': {
+    AppLang.tr: 'Elektronik',
+    AppLang.en: 'Electronics',
+  },
+  'budget.cat.attractions': {
+    AppLang.tr: 'Gezi / giriş',
+    AppLang.en: 'Attractions',
+  },
+  'budget.ref.ramen': {AppLang.tr: 'Ramen', AppLang.en: 'Ramen'},
+  'budget.ref.sushi_set': {AppLang.tr: 'Suşi seti', AppLang.en: 'Sushi set'},
+  'budget.ref.konbini_meal': {
+    AppLang.tr: 'Konbini yemeği',
+    AppLang.en: 'Konbini meal',
+  },
+  'budget.ref.coffee': {AppLang.tr: 'Kahve', AppLang.en: 'Coffee'},
+  'budget.ref.subway_ride': {
+    AppLang.tr: 'Metro bileti',
+    AppLang.en: 'Subway ride',
+  },
+  'budget.ref.taxi_start': {
+    AppLang.tr: 'Taksi açılış',
+    AppLang.en: 'Taxi base fare',
+  },
+  'budget.ref.shinkansen_tokyo_kyoto': {
+    AppLang.tr: 'Shinkansen Tokyo–Kyoto',
+    AppLang.en: 'Shinkansen Tokyo–Kyoto',
+  },
+  'budget.ref.hotel_night_family': {
+    AppLang.tr: 'Otel/gece (aile)',
+    AppLang.en: 'Hotel/night (family)',
+  },
+  'budget.ref.day_pass': {
+    AppLang.tr: 'Günlük ulaşım kartı',
+    AppLang.en: 'Day transit pass',
+  },
+  'budget.ref.museum': {AppLang.tr: 'Müze girişi', AppLang.en: 'Museum entry'},
   // Kategori adları (budget kind).
   'kind.activity': {AppLang.tr: 'Aktivite', AppLang.en: 'Activity'},
   'kind.meal': {AppLang.tr: 'Yemek', AppLang.en: 'Food'},
@@ -2559,6 +2628,18 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: '⏱️ 10 dk kal & onayla',
     AppLang.en: '⏱️ Stay 10 min & confirm'
   },
+  'gps.fence.activeProgress': {
+    AppLang.tr: '⏱️ {mins}/10 dk',
+    AppLang.en: '⏱️ {mins}/10 min'
+  },
+  'gps.currentZone.none': {
+    AppLang.tr: '📍 Şu an bir noktada değilsin',
+    AppLang.en: '📍 You are not inside a spot right now'
+  },
+  'gps.currentZone.active': {
+    AppLang.tr: '📍 Şu an: {emoji} {name} · {city} · {mins} dk',
+    AppLang.en: '📍 Current: {emoji} {name} · {city} · {mins} min'
+  },
   'map.dayTitle': {AppLang.tr: '🗺️ Gün {day}', AppLang.en: '🗺️ Day {day}'},
   'map.prewarm': {
     AppLang.tr: '📥 Çevrimdışı hazırla',
@@ -2666,6 +2747,30 @@ const Map<String, Map<AppLang, String>> _strings = {
         'Güvenilir rota verisine şu anda ulaşılamıyor. Planın değiştirilmedi.',
     AppLang.en:
         'Reliable route data is unavailable right now. Your plan was not changed.'
+  },
+  'routeOptimization.noFeasible': {
+    AppLang.tr:
+        'Bu gün çok sıkışık görünüyor; tüm durakları bu zaman penceresine güvenli biçimde sığdıramadım.',
+    AppLang.en:
+        'This day looks too dense; I could not safely fit all stops into this time window.',
+  },
+  'routeOptimization.fixedConflict': {
+    AppLang.tr:
+        'Sabit saatli aktiviteler çakışıyor. Sabit saatleri biraz esnetip tekrar deneyin.',
+    AppLang.en:
+        'Fixed-time activities conflict. Loosen fixed times a bit and try again.',
+  },
+  'routeOptimization.routeDataMissing': {
+    AppLang.tr:
+        'Duraklar arasında rota bağlantısı eksik görünüyor. Farklı bir profil seçip tekrar deneyin.',
+    AppLang.en:
+        'Route connectivity between stops appears incomplete. Try another profile and retry.',
+  },
+  'routeOptimization.dataIssue': {
+    AppLang.tr:
+        'Plan verisinde tutarsızlık tespit edildi. Planı düzenleyip tekrar deneyin.',
+    AppLang.en:
+        'An inconsistency was detected in plan data. Edit the plan and try again.',
   },
   'routeOptimization.needTwoStops': {
     AppLang.tr: 'Optimizasyon için en az iki durak gerekli.',
@@ -3216,6 +3321,10 @@ const Map<String, Map<AppLang, String>> _strings = {
   'reward.badgeEarned': {
     AppLang.tr: '🎉 {emoji} {title} rozeti kazanıldı!',
     AppLang.en: '🎉 {emoji} {title} badge earned!'
+  },
+  'reward.badgeEarnedMany': {
+    AppLang.tr: '🎉 {count} yeni rozet kazanıldı!',
+    AppLang.en: '🎉 {count} new badges earned!'
   },
   'reward.summary': {
     AppLang.tr:
