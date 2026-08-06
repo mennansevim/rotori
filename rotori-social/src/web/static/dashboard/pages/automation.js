@@ -2,11 +2,12 @@
 // pages/automation.js — Otomasyon (yayın slotları)
 // =========================================================================
 import { api, el, icons, typeBadge, countdownText, fmtDate, fmtTime,
-         errorState, loadingState, toast, openModal } from '../lib.js?v=20260807-1';
+         errorState, loadingState, toast, openModal } from '../lib.js?v=20260808-1';
 
 const DAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];  // launchd: 1..6,0
 const DAY_TO_LAUNCHD = [1, 2, 3, 4, 5, 6, 0];  // index → launchd weekday
 const FLOW_LIMIT = 5;
+const FLOW_HORIZON_DAYS = 7;
 const READY_LIBRARY_STATUSES = new Set(['approved', 'queued', 'scheduled', 'publishing', 'failed']);
 const REPLACE_ELIGIBLE_STATUSES = new Set(['approved', 'queued', 'scheduled']);
 
@@ -21,6 +22,11 @@ const FLOW_META = {
     subtitle: 'Konu/görsel üretim slotları (canlı takip)',
     action: 'Onaylı görsel üretim kartıyla değiştir',
   },
+};
+
+const FLOW_KIND_TO_CONFIG = {
+  haber: 'news',
+  gorsel: 'topic',
 };
 
 export async function renderAutomation(root, ctx) {
@@ -74,6 +80,7 @@ export async function renderAutomation(root, ctx) {
     nowIso: publishes?.now || data?.timeline?.now || null,
     publishes,
     library: Array.isArray(library?.items) ? library.items : [],
+    config: cfg,
     pendingDispatch: new Set(),
     dispatchCooldown: new Map(),
   };
@@ -171,6 +178,7 @@ function renderFlowPanel(panel, state, root, ctx, options = {}) {
   const nowIso = state.nowIso;
   const upcoming = Array.isArray(state.publishes?.upcoming) ? state.publishes.upcoming : [];
   const approvedPool = state.library.filter((it) => READY_LIBRARY_STATUSES.has(it.status));
+  const activeFlowTypes = activeFlowLaneTypes(state.config);
 
   panel.innerHTML = '';
   panel.append(el('div', { class: 'card flow-hero' }, el('div', { class: 'card__body flow-hero__body' },
@@ -181,13 +189,27 @@ function renderFlowPanel(panel, state, root, ctx, options = {}) {
         'Sağdaki son kart canlı takip edilir. Saati gelince gönderim tetiklenir; başarılıysa sıra kayarak güncellenir.')),
     el('div', { class: 'flow-hero__meta' },
       el('span', { class: 'badge badge--muted' }, `Onaylı havuz: ${approvedPool.length}`),
+      el('span', { class: 'badge badge--muted' }, `Aktif akış: ${activeFlowTypes.length}`),
       el('span', { class: 'badge badge--muted' }, `Saat: ${fmtTime(nowIso) || '—'}`))
   )));
 
   const flowStack = el('div', { class: 'flow-stack' });
   const anchors = {};
-  ['haber', 'gorsel'].forEach((type) => {
-    const flowData = buildFlowData(upcoming, type);
+
+  if (!activeFlowTypes.length) {
+    flowStack.append(el('div', { class: 'card' }, el('div', { class: 'card__body' },
+      el('p', { class: 'muted', style: 'margin:0' },
+        'Otomasyon akışları kapalı. Slot Ayarları sekmesinden haber veya görsel akışını açabilirsiniz.'))));
+    panel.append(flowStack);
+    panel.append(el('div', { class: 'foot-note', html:
+      'Hata durumlarını soldaki <b>Logs</b> sekmesinden takip edebilirsiniz.<br>Flow kartına tıklayınca onaylı görsellerden seçip slotu replace edebilirsiniz.' }));
+    state.anchors = anchors;
+    root._flowClockOffsetMs = computeServerOffset(nowIso);
+    return;
+  }
+
+  activeFlowTypes.forEach((type) => {
+    const flowData = buildFlowData(upcoming, type, nowIso);
     anchors[type] = flowData.anchor;
     flowStack.append(flowRow(type, flowData, approvedPool, nowIso, root, ctx, options));
   });
@@ -199,18 +221,41 @@ function renderFlowPanel(panel, state, root, ctx, options = {}) {
   root._flowClockOffsetMs = computeServerOffset(nowIso);
 }
 
-function buildFlowData(upcoming, type) {
+function buildFlowData(upcoming, type, nowIso) {
   const typed = [...upcoming]
     .filter((it) => (it.type || 'gorsel') === type)
     .sort((a, b) => new Date(a.scheduled_at || 0).getTime() - new Date(b.scheduled_at || 0).getTime());
 
-  const nearest = typed.slice(0, FLOW_LIMIT);
+  const nowMs = parseNowMs(nowIso);
+  const horizonEndMs = Number.isFinite(nowMs)
+    ? nowMs + (FLOW_HORIZON_DAYS * 24 * 60 * 60 * 1000)
+    : null;
+  const nearStartMs = Number.isFinite(nowMs)
+    ? nowMs - (6 * 60 * 60 * 1000)
+    : null;
+
+  const typedNear = typed.filter((it) => {
+    if (it.publish_outcome === 'publishing' || it.publish_outcome === 'failed' || it.publish_outcome === 'manual') {
+      return true;
+    }
+    if (!Number.isFinite(horizonEndMs) || !Number.isFinite(nearStartMs)) return true;
+    const ms = new Date(it.scheduled_at || '').getTime();
+    if (!Number.isFinite(ms)) return false;
+    return ms >= nearStartMs && ms <= horizonEndMs;
+  });
+
+  const nearest = typedNear.slice(0, FLOW_LIMIT);
   const ordered = [...nearest].reverse(); // solda uzak tarih, sağda en yakın
 
   if (!ordered.length) {
     return {
       total: typed.length,
-      slots: [{ _placeholder: 'empty', _type: type }],
+      totalNear: typedNear.length,
+      hiddenFuture: Math.max(0, typed.length - typedNear.length),
+      slots: [{
+        _placeholder: typed.length ? 'quiet' : 'empty',
+        _type: type,
+      }],
       anchor: null,
       compact: true,
       empty: true,
@@ -224,6 +269,8 @@ function buildFlowData(upcoming, type) {
 
   return {
     total: typed.length,
+    totalNear: typedNear.length,
+    hiddenFuture: Math.max(0, typed.length - typedNear.length),
     slots,
     anchor: ordered.length ? ordered[ordered.length - 1] : null,
     compact: ordered.length < FLOW_LIMIT,
@@ -240,6 +287,7 @@ function flowRow(type, flowData, approvedPool, nowIso, root, ctx, options) {
       el('div', { class: 'flow-row__sub' }, meta.subtitle)),
     el('div', { class: 'hstack' },
       el('span', { html: typeBadge(type) }),
+      el('span', { class: 'badge badge--muted' }, `Bu hafta: ${flowData.totalNear || 0}`),
       el('span', { class: 'badge badge--muted' }, `Toplam ${flowData.total} slot`)));
 
   const trackClasses = ['flow-track'];
@@ -278,7 +326,9 @@ function flowRow(type, flowData, approvedPool, nowIso, root, ctx, options) {
   row.append(head, el('div', { class: 'card__body flow-row__body' }, track,
     el('div', { class: 'flow-row__legend' },
       el('div', { class: 'flow-row__legend-main' },
-        el('span', {}, 'Kutuya tıkla → ', meta.action),
+        el('span', {}, (flowData.hiddenFuture || 0) > 0
+          ? `Uzak planlı ${flowData.hiddenFuture} slot gizlendi (yalnızca haftalık görünüm). Kutuya tıkla → ${meta.action}`
+          : `Kutuya tıkla → ${meta.action}`),
         anchor ? el('span', { class: 'flow-row__live' }, `Canlı takip: ${anchor.title || 'Sıradaki gönderi'}`) : null),
       el('div', { class: 'flow-row__legend-actions' }, nowSendBtn))));
   return row;
@@ -351,17 +401,24 @@ function flowSlot(type, slot, isAnchor, approvedPool, nowIso, root, ctx) {
 function flowPlaceholderSlot(type, mode, ctx) {
   const kind = type === 'haber' ? 'haber' : 'görsel';
   const isEmpty = mode === 'empty';
+  const isQuiet = mode === 'quiet';
   const title = isEmpty
     ? `Henüz planlı ${kind} slotu yok`
+    : isQuiet
+      ? `Bu akışta yakın vadede planlı ${kind} slotu yok`
     : `${kind[0].toUpperCase()}${kind.slice(1)} akışında boş yer var`;
   const subtitle = isEmpty
     ? 'Kütüphanede onaylayıp otomasyona ekleyin.'
-    : 'Onaylı içeriklerle sırayı hızlıca doldurabilirsiniz.';
+    : isQuiet
+      ? `Haftalık akış görünümü yalnızca önümüzdeki ${FLOW_HORIZON_DAYS} günü gösterir.`
+      : 'Onaylı içeriklerle sırayı hızlıca doldurabilirsiniz.';
 
   return el('button', {
-    class: `flow-slot flow-slot--cta ${isEmpty ? 'is-empty' : 'is-add'}`,
+    class: `flow-slot flow-slot--cta ${isEmpty ? 'is-empty' : (isQuiet ? 'is-empty' : 'is-add')}`,
     type: 'button',
-    onclick: () => ctx.navigate('library'),
+    onclick: () => {
+      if (!isQuiet) ctx.navigate('library');
+    },
   },
   el('span', { class: 'flow-slot__cta-icon', html: icons.plus }),
   el('strong', { class: 'flow-slot__cta-title' }, title),
@@ -381,6 +438,7 @@ async function refreshFlowData(flowPanel, root, ctx, options = {}) {
     state.publishes = publishes;
     state.nowIso = publishes?.now || state.nowIso;
     state.library = Array.isArray(library?.items) ? library.items : state.library;
+    if (autoState?.config) state.config = JSON.parse(JSON.stringify(autoState.config));
     if (options.forceAll && autoState) {
       // slot ayar paneli kaydetmeden sonra yeniden güncel kalsın
       const settingsPanel = document.getElementById('automation-settings-panel');
@@ -682,6 +740,24 @@ function parseDeltaSeconds(scheduledAt, nowRef) {
     : (nowRef ? new Date(nowRef).getTime() : Date.now());
   if (!Number.isFinite(target) || !Number.isFinite(now)) return null;
   return Math.floor((target - now) / 1000);
+}
+
+function parseNowMs(nowRef) {
+  if (!nowRef) return Date.now();
+  if (typeof nowRef === 'number') return nowRef;
+  const ms = new Date(nowRef).getTime();
+  return Number.isFinite(ms) ? ms : Date.now();
+}
+
+function activeFlowLaneTypes(config) {
+  const out = [];
+  ['haber', 'gorsel'].forEach((type) => {
+    const key = FLOW_KIND_TO_CONFIG[type];
+    if (!key) return;
+    const lane = config?.[key];
+    if (lane?.enabled) out.push(type);
+  });
+  return out;
 }
 
 function shouldShowDispatching({ seconds, outcome, pending }) {
