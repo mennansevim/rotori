@@ -131,7 +131,7 @@ export const countdownText = (scheduledAt, serverNowIso) => {
   const target = new Date(scheduledAt).getTime();
   const now = serverNowIso ? new Date(serverNowIso).getTime() : Date.now();
   let secs = Math.floor((target - now) / 1000);
-  if (secs < 0) return 'Yayın zamanı geçti';
+  if (secs < 0) return 'Gönderim hazırlanıyor';
   const d = Math.floor(secs / 86400); secs -= d * 86400;
   const h = Math.floor(secs / 3600); secs -= h * 3600;
   const m = Math.floor(secs / 60);

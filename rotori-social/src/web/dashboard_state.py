@@ -49,7 +49,7 @@ PUBLISH_OUTCOME_TR = {
     "failed": "Başarısız",
     "publishing": "Yayınlanıyor",
     "manual": "Manuel yayın gerekli",
-    "overdue": "Yayın zamanı geçti",
+    "overdue": "Gönderim hazırlanıyor",
     "scheduled": "Planlandı",
     "approved": "Hazır",
     "queued": "Kuyrukta",
@@ -314,11 +314,11 @@ def seconds_until(scheduled_at: str | None, now: datetime) -> int | None:
 
 
 def humanize_delta(seconds: int | None) -> str:
-    """'4 gün 12 saat kaldı' / '42 dakika kaldı' / 'Yayın zamanı geçti'."""
+    """'4 gün 12 saat kaldı' / '42 dakika kaldı' / 'Gönderim hazırlanıyor'."""
     if seconds is None:
         return "—"
     if seconds < 0:
-        return "Yayın zamanı geçti"
+        return "Gönderim hazırlanıyor"
     days, rem = divmod(seconds, 86400)
     hours, rem = divmod(rem, 3600)
     minutes = rem // 60
@@ -371,9 +371,9 @@ def _publish_reason(item: dict[str, Any], seconds: int | None) -> str | None:
         if q_status == "ready" and item.get("result") == "manual_upload_required":
             return "Otomatik yayın kapalı; içerik manuel yayın bekliyor."
         if q_status == "ready":
-            return "Yayın zamanı geçti; içerik hazır durumda bekliyor."
+            return "Gönderim sırası geldi; içerik hazır durumda işleniyor."
         if q_status == "pending":
-            return "Yayın zamanı geçti; kuyruk girdisi henüz işlenmedi."
+            return "Gönderim sırası geldi; kuyruk girdisi işleniyor."
 
     return reason or None
 

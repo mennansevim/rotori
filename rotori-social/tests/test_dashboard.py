@@ -102,7 +102,7 @@ def test_humanize_delta_past_no_negative():
     """Geçmiş tarih negatif süre göstermemeli."""
     txt = ds.humanize_delta(-500)
     assert "-" not in txt
-    assert txt == "Yayın zamanı geçti"
+    assert txt == "Gönderim hazırlanıyor"
 
 
 def test_humanize_delta_none():
