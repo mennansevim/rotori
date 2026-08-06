@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # rotori-social deploy — Pi'de tek komutluk güncelleme.
-# Kullanım (Pi'de, ~/rotori-social içinde):  ./deploy.sh
+# Kullanım (Pi'de):  cd ~/rotori-app/rotori-social && ./deploy.sh
 set -euo pipefail
 cd "$(dirname "$0")"
 
 if [ ! -f config.yaml ]; then
   echo "❌ config.yaml yok. Önce Mac'ten kopyala:"
-  echo "   scp config.yaml mennano@192.168.1.60:~/rotori-social/config.yaml"
+  echo "   scp config.yaml mennano@192.168.1.60:~/rotori-app/rotori-social/config.yaml"
   exit 1
 fi
 
