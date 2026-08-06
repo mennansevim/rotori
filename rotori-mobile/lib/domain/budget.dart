@@ -37,6 +37,9 @@ String _currencyOf(TimelineItem item) {
 bool _isJpy(String currency) =>
     currency == 'JPY' || currency == '¥' || currency == 'YEN';
 
+bool _isTry(String currency) =>
+  currency == 'TRY' || currency == 'TL' || currency == '₺';
+
 /// Bütçe özeti — tüm alanlar TL cinsinden (aksi belirtilmedikçe).
 class BudgetSummary {
   const BudgetSummary({
@@ -49,6 +52,16 @@ class BudgetSummary {
     required this.actualMealTry,
     required this.itemsWithCost,
     required this.itemsTotal,
+    required this.fixedEssentialTry,
+    required this.discretionaryTry,
+    required this.dailyBurnTry,
+    required this.coverageRatio,
+    required this.contingencyTry,
+    required this.frugalScenarioTry,
+    required this.realisticScenarioTry,
+    required this.comfortScenarioTry,
+    required this.suggestedCashTry,
+    required this.nonStandardCurrencyItems,
   });
 
   /// Tüm maliyetlerin TL'ye çevrilmiş toplamı.
@@ -77,6 +90,36 @@ class BudgetSummary {
 
   /// Plandaki toplam öğe sayısı.
   final int itemsTotal;
+
+  /// Ulaşım + konaklama gibi sabit/temel harcama kısmı (TL).
+  final double fixedEssentialTry;
+
+  /// Aktivite + yemek gibi esnek/discretionary harcama kısmı (TL).
+  final double discretionaryTry;
+
+  /// Günlük ortalama yakım hızı (TL/gün).
+  final double dailyBurnTry;
+
+  /// Maliyet girilen öğe kapsama oranı: 0..1.
+  final double coverageRatio;
+
+  /// Güvenlik payı (varsayılan %12).
+  final double contingencyTry;
+
+  /// Senaryo tahmini (TL): temkinli.
+  final double frugalScenarioTry;
+
+  /// Senaryo tahmini (TL): gerçekçi.
+  final double realisticScenarioTry;
+
+  /// Senaryo tahmini (TL): konforlu.
+  final double comfortScenarioTry;
+
+  /// Nakit ağırlıklı noktalar için önerilen alt seviye nakit (TL).
+  final double suggestedCashTry;
+
+  /// JPY/TRY dışındaki para birimi girdisi sayısı.
+  final int nonStandardCurrencyItems;
 }
 
 /// Trip'in tüm gün/öğe maliyetlerini toplayıp [BudgetSummary] üretir.
@@ -86,6 +129,7 @@ BudgetSummary computeBudget(Trip trip, {required double jpyToTry}) {
   var actualMealTry = 0.0;
   var itemsWithCost = 0;
   var itemsTotal = 0;
+  var nonStandardCurrencyItems = 0;
 
   final byCategory = <TimelineItemKind, double>{};
   final byDay = <({int dayNumber, String date, double totalTry})>[];
@@ -103,6 +147,9 @@ BudgetSummary computeBudget(Trip trip, {required double jpyToTry}) {
       grandTotalTry += tryValue;
       dayTotalTry += tryValue;
       if (_isJpy(currency)) grandTotalJpy += cost;
+      if (!_isJpy(currency) && !_isTry(currency)) {
+        nonStandardCurrencyItems++;
+      }
       itemsWithCost++;
 
       final kind = item.kind ?? TimelineItemKind.activity;
@@ -119,6 +166,17 @@ BudgetSummary computeBudget(Trip trip, {required double jpyToTry}) {
 
   final party = math.max(1, trip.preferences.partySize ?? 1);
   final perPersonTry = grandTotalTry / party;
+  final fixedEssentialTry =
+      (byCategory[TimelineItemKind.transport] ?? 0) +
+          (byCategory[TimelineItemKind.hotel] ?? 0);
+  final discretionaryTry = math.max(0.0, grandTotalTry - fixedEssentialTry);
+  final dailyBurnTry = trip.days.isEmpty ? 0.0 : grandTotalTry / trip.days.length;
+  final coverageRatio = itemsTotal == 0 ? 0.0 : itemsWithCost / itemsTotal;
+  final contingencyTry = grandTotalTry * 0.12;
+  final frugalScenarioTry = grandTotalTry * 0.9;
+  final realisticScenarioTry = grandTotalTry * 1.1;
+  final comfortScenarioTry = grandTotalTry * 1.3;
+  final suggestedCashTry = (grandTotalTry * 0.35) + (actualMealTry * 0.15);
 
   final mealPerPerson = trip.preferences.mealBudgetPerPerson ?? 0;
   final plannedMealTry = mealPerPerson == 0
@@ -141,5 +199,15 @@ BudgetSummary computeBudget(Trip trip, {required double jpyToTry}) {
     actualMealTry: actualMealTry,
     itemsWithCost: itemsWithCost,
     itemsTotal: itemsTotal,
+    fixedEssentialTry: fixedEssentialTry,
+    discretionaryTry: discretionaryTry,
+    dailyBurnTry: dailyBurnTry,
+    coverageRatio: coverageRatio,
+    contingencyTry: contingencyTry,
+    frugalScenarioTry: frugalScenarioTry,
+    realisticScenarioTry: realisticScenarioTry,
+    comfortScenarioTry: comfortScenarioTry,
+    suggestedCashTry: suggestedCashTry,
+    nonStandardCurrencyItems: nonStandardCurrencyItems,
   );
 }

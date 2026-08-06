@@ -16,6 +16,7 @@ import '../../../domain/itinerary_generator.dart';
 import '../../../domain/japan_suggestions.dart';
 import '../../../domain/place_guide.dart';
 import '../../../domain/plan_schedule_engine.dart';
+import '../../../domain/route_time_bounds.dart';
 import '../../../domain/rules.dart';
 import '../../../domain/trip_factory.dart';
 import '../../../domain/types.dart';
@@ -1296,6 +1297,11 @@ class _DayCard extends StatelessWidget {
                 ],
               ),
             ),
+            IconButton(
+              tooltip: s.s('wx.close'),
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.close_rounded),
+            ),
           ],
         ),
         content: Column(
@@ -2265,14 +2271,14 @@ class _AddItemSheetState extends State<_AddItemSheet> {
     return '$h:$m';
   }
 
-  /// 08:00 → 22:00, 30 dk aralıkla, dolu dilimlerin ±30 dk çevresi hariç.
+  /// 09:00 → 20:00, 30 dk aralıkla, dolu dilimlerin ±30 dk çevresi hariç.
   List<String> _computeSlots() {
     final occupied = <int>[
       for (final t in widget.occupiedTimes)
         if (_minutes(t) >= 0) _minutes(t),
     ];
     final result = <String>[];
-    for (var m = 8 * 60; m <= 22 * 60; m += 30) {
+    for (var m = kRouteStartMinuteOfDay; m <= kRouteEndMinuteOfDay; m += 30) {
       final blocked = occupied.any((o) => (o - m).abs() < 30);
       if (!blocked) result.add(_fmt(m));
     }

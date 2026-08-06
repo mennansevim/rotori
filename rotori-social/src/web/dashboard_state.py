@@ -198,6 +198,17 @@ def _queue_index(summary: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return idx
 
 
+def _queue_item_name(item: dict[str, Any]) -> str:
+    """Kuyruk girdisinden medya dosya adını normalize et."""
+    return str(item.get("asset_name") or item.get("mp4_name") or "")
+
+
+def _queue_item_stem(item: dict[str, Any]) -> str:
+    """Kuyruk girdisinden stem (uzantısız ad) çıkar."""
+    name = _queue_item_name(item)
+    return Path(name).stem if name else ""
+
+
 # ---------------------------------------------------------------------------
 # İçerik tarama — tek gerçek kaynak
 # ---------------------------------------------------------------------------
@@ -376,6 +387,7 @@ def weekly_timeline(cfg: Any, content: list[dict[str, Any]] | None = None) -> di
     if content is None:
         content = scan_content(cfg)
     by_name = {c["name"]: c for c in content}
+    published_stems = set(_uploads_log(cfg).keys())
 
     summary = _queue_summary(cfg)
     monday = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -397,6 +409,10 @@ def weekly_timeline(cfg: Any, content: list[dict[str, Any]] | None = None) -> di
     for it in summary.get("items", []):
         sch = it.get("scheduled_at")
         if not sch:
+            continue
+        if _queue_item_stem(it) in published_stems:
+            # Aynı içerik zaten yayınlandıysa geçmiş/stale kuyruk kaydını
+            # timeline'da tekrar "yayın zamanı geçti" gibi göstermeyiz.
             continue
         try:
             dt = datetime.fromisoformat(sch)
@@ -444,6 +460,7 @@ def overview(cfg: Any) -> dict[str, Any]:
     now = _now(cfg)
     content = scan_content(cfg)
     summary = _queue_summary(cfg)
+    published_stems = set(_uploads_log(cfg).keys())
 
     drafts = [c for c in content if c["status"] == "draft"]
     pending = [c for c in content if c["status"] == "pending_approval"]
@@ -457,7 +474,9 @@ def overview(cfg: Any) -> dict[str, Any]:
     next_pub = None
     future = sorted(
         (i for i in summary.get("items", [])
-         if i.get("scheduled_at") and i.get("status") in ("pending", "ready")),
+         if i.get("scheduled_at")
+         and i.get("status") in ("pending", "ready")
+         and _queue_item_stem(i) not in published_stems),
         key=lambda x: x["scheduled_at"],
     )
     if future:
@@ -530,6 +549,8 @@ def publishes(cfg: Any) -> dict[str, Any]:
     now = _now(cfg)
     content = scan_content(cfg)
     summary = _queue_summary(cfg)
+    uploads = _uploads_log(cfg)
+    published_stems = set(uploads.keys())
     by_name = {c["name"]: c for c in content}
 
     upcoming = []
@@ -537,6 +558,10 @@ def publishes(cfg: Any) -> dict[str, Any]:
         (i for i in summary.get("items", []) if i.get("scheduled_at")),
         key=lambda x: x["scheduled_at"],
     ):
+        if _queue_item_stem(it) in published_stems:
+            # Manual/harici yayın sonrası kuyrukta kalan eski kayıtları
+            # upcoming listesinde göstermeyiz.
+            continue
         name = it.get("asset_name") or it.get("mp4_name") or ""
         ref = by_name.get(name, {})
         secs = seconds_until(it.get("scheduled_at"), now)
@@ -569,7 +594,6 @@ def publishes(cfg: Any) -> dict[str, Any]:
         })
 
     # Yayınlananlar — uploads_log
-    uploads = _uploads_log(cfg)
     published = []
     for stem, rec in uploads.items():
         ref = next((c for c in content if c["stem"] == stem), {})

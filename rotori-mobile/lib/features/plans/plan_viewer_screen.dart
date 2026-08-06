@@ -36,6 +36,7 @@ import '../../domain/place_coords.dart';
 import '../../domain/place_image_resolver.dart';
 import '../../domain/plan_schedule_engine.dart';
 import '../../domain/plan_warnings.dart';
+import '../../domain/route_time_bounds.dart';
 import '../../domain/route_matrix.dart';
 import '../../domain/types.dart';
 import '../auth/auth_repository.dart';
@@ -123,6 +124,18 @@ String _minutesToTime(int mins) {
   final h = m ~/ 60;
   final mm = m % 60;
   return '${h.toString().padLeft(2, '0')}:${mm.toString().padLeft(2, '0')}';
+}
+
+class _WeatherRouteAdjustment {
+  const _WeatherRouteAdjustment({
+    required this.profile,
+    required this.hintKey,
+    this.maximumWalkingMinutes,
+  });
+
+  final RouteOptimizationProfile profile;
+  final int? maximumWalkingMinutes;
+  final String hintKey;
 }
 
 // ---------------------------------------------------------------------------
@@ -339,6 +352,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
         onOpenBudget: _openBudget,
         onOpenPrep: _openPrep,
         onOpenWeather: _openWeather,
+        onOpenFoodGuide: _openMustKnow,
         onReportBug: () => _openBugReport(trip),
       ),
       body: SafeArea(
@@ -404,6 +418,14 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                             _sortedDestinations,
                             days[i].date,
                           ),
+                        ),
+                        onOptimizeWeatherRoute:
+                            (day, destination, forecast) =>
+                                _openRouteOptimization(
+                          day,
+                          destination,
+                          forecast: forecast,
+                          useWeatherAdjustment: true,
                         ),
                         onDropItem: _dropActivity,
                         onDeleteItem: _deleteItem,
@@ -1277,6 +1299,10 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
   Future<void> _openRouteOptimization(
     DayPlan day,
     TripDestination? destination,
+    {
+    DayForecast? forecast,
+    bool useWeatherAdjustment = false,
+  }
   ) async {
     final s = LanguageScope.of(context);
     if (day.items.length < 2) {
@@ -1330,6 +1356,9 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
 
     final date = DateTime.tryParse(day.date);
     if (date == null) return;
+    final weatherAdjustment = useWeatherAdjustment
+      ? _weatherRouteAdjustmentFor(forecast)
+      : null;
     final base = TripLocation(
       id: 'day-${day.dayNumber}-base',
       name: destination?.city ?? s.s('routeOptimization.dayBase'),
@@ -1345,8 +1374,10 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
       constraints: DayRouteConstraints(
         startLocation: base,
         endLocation: base,
-        availableStartTime: DateTime(date.year, date.month, date.day, 6),
-        availableEndTime: DateTime(date.year, date.month, date.day, 23),
+        availableStartTime:
+            DateTime(date.year, date.month, date.day, kRouteStartHour),
+        availableEndTime:
+            DateTime(date.year, date.month, date.day, kRouteEndHour),
       ),
     );
 
@@ -1357,6 +1388,10 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
       builder: (_) => _RouteOptimizationSheet(
         input: input,
         palette: ViewerPalette.of(context),
+        initialProfile: weatherAdjustment?.profile,
+        weatherHintText:
+            weatherAdjustment == null ? null : s.s(weatherAdjustment.hintKey),
+        weatherMaximumWalkingMinutes: weatherAdjustment?.maximumWalkingMinutes,
         onPersist: (optimized) async {
           try {
             await ref.read(plansRepositoryProvider)?.save(optimized);
@@ -1445,6 +1480,42 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
           ),
         ],
       ),
+    );
+  }
+
+  _WeatherRouteAdjustment? _weatherRouteAdjustmentFor(DayForecast? forecast) {
+    if (forecast == null) return null;
+    final code = forecast.code;
+    final precip = forecast.precipProb ?? 0;
+    final isStorm = (code >= 95 && code <= 99) || code == 77;
+    final isHeavyRain =
+        (code >= 80 && code <= 82) || (code >= 51 && code <= 67) || precip >= 65;
+    final isSnow = code >= 71 && code <= 76;
+
+    if (isStorm || isSnow) {
+      return const _WeatherRouteAdjustment(
+        profile: RouteOptimizationProfile.leastWalking,
+        maximumWalkingMinutes: 45,
+        hintKey: 'routeOptimization.weather.storm',
+      );
+    }
+    if (isHeavyRain) {
+      return const _WeatherRouteAdjustment(
+        profile: RouteOptimizationProfile.leastWalking,
+        maximumWalkingMinutes: 65,
+        hintKey: 'routeOptimization.weather.rain',
+      );
+    }
+    if (forecast.tempMax >= 34 || forecast.tempMin <= 2) {
+      return const _WeatherRouteAdjustment(
+        profile: RouteOptimizationProfile.leastWalking,
+        maximumWalkingMinutes: 75,
+        hintKey: 'routeOptimization.weather.extremeTemp',
+      );
+    }
+    return const _WeatherRouteAdjustment(
+      profile: RouteOptimizationProfile.balanced,
+      hintKey: 'routeOptimization.weather.clear',
     );
   }
 }
@@ -2199,11 +2270,17 @@ class _RouteOptimizationSheet extends ConsumerStatefulWidget {
     required this.input,
     required this.palette,
     required this.onPersist,
+    this.initialProfile,
+    this.weatherHintText,
+    this.weatherMaximumWalkingMinutes,
   });
 
   final DayOptimizationInput input;
   final ViewerPalette palette;
   final OptimizedPlanPersist onPersist;
+  final RouteOptimizationProfile? initialProfile;
+  final String? weatherHintText;
+  final int? weatherMaximumWalkingMinutes;
 
   @override
   ConsumerState<_RouteOptimizationSheet> createState() =>
@@ -2212,11 +2289,12 @@ class _RouteOptimizationSheet extends ConsumerStatefulWidget {
 
 class _RouteOptimizationSheetState
     extends ConsumerState<_RouteOptimizationSheet> {
-  RouteOptimizationProfile _profile = RouteOptimizationProfile.balanced;
+  late RouteOptimizationProfile _profile;
 
   @override
   void initState() {
     super.initState();
+    _profile = widget.initialProfile ?? RouteOptimizationProfile.balanced;
     WidgetsBinding.instance.addPostFrameCallback((_) => _optimize());
   }
 
@@ -2229,7 +2307,7 @@ class _RouteOptimizationSheetState
             constraints: widget.input.constraints,
             preferences: RoutePreferences(
               profile: _profile,
-              maximumWalkingMinutes:
+                maximumWalkingMinutes: widget.weatherMaximumWalkingMinutes ??
                   widget.input.preferences.maximumWalkingMinutes,
               partySize: widget.input.preferences.partySize,
               hasLuggage: widget.input.preferences.hasLuggage,
@@ -2271,14 +2349,54 @@ class _RouteOptimizationSheetState
                 ),
               ),
               const SizedBox(height: 18),
-              Text(
-                s.s('routeOptimization.title'),
-                style: TextStyle(
-                  color: p.textPrimary,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      s.s('routeOptimization.title'),
+                      style: TextStyle(
+                        color: p.textPrimary,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: s.s('wx.close'),
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
               ),
+              if (widget.weatherHintText != null) ...[
+                const SizedBox(height: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: p.sky.withValues(alpha: .12),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: p.sky.withValues(alpha: .45)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Text('🌦️', style: TextStyle(fontSize: 14)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          widget.weatherHintText!,
+                          style: TextStyle(
+                            color: p.textPrimary,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 6),
               Text(
                 s.s('routeOptimization.subtitle'),
@@ -2847,6 +2965,7 @@ class _DayCard extends StatefulWidget {
     required this.onOpenItem,
     required this.onOpenMap,
     required this.onOptimizeRoute,
+    required this.onOptimizeWeatherRoute,
     required this.onDropItem,
     required this.onDeleteItem,
     required this.onEditItemTime,
@@ -2880,6 +2999,11 @@ class _DayCard extends StatefulWidget {
   final void Function(TimelineItem item, TripDestination? dest) onOpenItem;
   final void Function(DayPlan day) onOpenMap;
   final VoidCallback onOptimizeRoute;
+  final void Function(
+    DayPlan day,
+    TripDestination? destination,
+    DayForecast? forecast,
+  ) onOptimizeWeatherRoute;
 
   /// Item'ı bırakılan kesin satır aralığına taşır.
   final void Function(
@@ -3441,6 +3565,11 @@ class _DayCardState extends State<_DayCard> {
                   ],
                 ),
               ),
+              IconButton(
+                tooltip: s.s('wx.close'),
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close_rounded),
+              ),
             ],
           ),
           content: Column(
@@ -3457,6 +3586,18 @@ class _DayCardState extends State<_DayCard> {
             ],
           ),
           actions: [
+            FilledButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                widget.onOptimizeWeatherRoute(
+                  widget.day,
+                  widget.dest,
+                  widget.forecast,
+                );
+              },
+              icon: const Icon(Icons.auto_awesome, size: 16),
+              label: Text(s.s('routeOptimization.weatherAction')),
+            ),
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
@@ -4098,8 +4239,8 @@ class _EditItemDayTimeSheet extends StatefulWidget {
 
 class _EditItemDayTimeSheetState extends State<_EditItemDayTimeSheet> {
   static const _engine = PlanScheduleEngine();
-  static const _firstSlot = 8 * 60;
-  static const _lastSlot = 22 * 60;
+  static const _firstSlot = kRouteStartMinuteOfDay;
+  static const _lastSlot = kRouteEndMinuteOfDay;
   late DayPlan _targetDay;
   late int _timeMinutes;
   late int _durationMinutes;

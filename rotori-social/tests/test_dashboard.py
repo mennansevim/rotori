@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -161,3 +162,92 @@ def test_recovered_dark_board_and_timeline_contracts():
     assert ".tl-item__thumb" in styles
     assert "--bg-app: #0f172a" in styles
     assert "settled = true" in lib_js
+
+
+def test_publishes_skips_stale_queue_entry_if_already_published(monkeypatch, tmp_path):
+    """Aynı kart uploads_log'da varsa queue'daki eski kayıt upcoming'e düşmemeli."""
+    cfg = SimpleNamespace(stories=SimpleNamespace(output_dir=tmp_path), project_root=tmp_path)
+
+    monkeypatch.setattr(ds, "_now", lambda _cfg: datetime(2026, 8, 6, 12, 0, 0))
+    monkeypatch.setattr(ds, "scan_content", lambda _cfg: [
+        {
+            "name": "published-card.jpg",
+            "stem": "published-card",
+            "title": "Published Card",
+            "type": "gorsel",
+            "url": "/media/stories/ready/published-card.jpg",
+            "status": "published",
+        }
+    ])
+    monkeypatch.setattr(ds, "_queue_summary", lambda _cfg: {
+        "items": [
+            {
+                "id": "q1",
+                "asset_name": "published-card.jpg",
+                "scheduled_at": "2026-08-05T23:21:00",
+                "status": "pending",
+            }
+        ]
+    })
+    monkeypatch.setattr(ds, "_uploads_log", lambda _cfg: {
+        "published-card": {
+            "media_id": "1789",
+            "uploaded_at": "2026-08-05T23:40:00",
+        }
+    })
+
+    data = ds.publishes(cfg)
+    assert data["upcoming"] == []
+    assert len(data["published"]) == 1
+    assert data["published"][0]["stem"] == "published-card"
+
+
+def test_overview_next_publish_ignores_stale_published_queue(monkeypatch, tmp_path):
+    """Sıradaki yayın seçimi, zaten yayınlanan kartın stale queue kaydını atlamalı."""
+    cfg = SimpleNamespace(stories=SimpleNamespace(output_dir=tmp_path), project_root=tmp_path)
+
+    monkeypatch.setattr(ds, "_now", lambda _cfg: datetime(2026, 8, 6, 12, 0, 0))
+    monkeypatch.setattr(ds, "scan_content", lambda _cfg: [
+        {
+            "name": "published-card.jpg",
+            "stem": "published-card",
+            "title": "Published Card",
+            "type": "gorsel",
+            "url": "/media/stories/ready/published-card.jpg",
+            "status": "published",
+        },
+        {
+            "name": "next-card.jpg",
+            "stem": "next-card",
+            "title": "Next Card",
+            "type": "gorsel",
+            "url": "/media/stories/ready/next-card.jpg",
+            "status": "scheduled",
+        },
+    ])
+    monkeypatch.setattr(ds, "_queue_summary", lambda _cfg: {
+        "items": [
+            {
+                "id": "q-old",
+                "asset_name": "published-card.jpg",
+                "scheduled_at": "2026-08-05T23:21:00",
+                "status": "pending",
+            },
+            {
+                "id": "q-next",
+                "asset_name": "next-card.jpg",
+                "scheduled_at": "2026-08-07T10:00:00",
+                "status": "pending",
+            },
+        ]
+    })
+    monkeypatch.setattr(ds, "_uploads_log", lambda _cfg: {
+        "published-card": {
+            "media_id": "1789",
+            "uploaded_at": "2026-08-05T23:40:00",
+        }
+    })
+
+    data = ds.overview(cfg)
+    assert data["next_publish"] is not None
+    assert data["next_publish"]["name"] == "next-card.jpg"

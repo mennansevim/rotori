@@ -8,6 +8,7 @@ import 'city_places.dart';
 import 'destination_profiles.dart';
 import 'explore.dart';
 import 'japan_suggestions.dart';
+import 'route_time_bounds.dart';
 import 'trip_factory.dart';
 import 'types.dart';
 
@@ -57,7 +58,7 @@ int _interestScore(PlaceSuggestion p, List<InterestTag> interests) {
 // aralıkları doğrular; buradaki değerler üretimde uyarı çıkarmaz.
 const _timesRelaxed = ['10:00', '15:30'];
 const _timesModerate = ['09:00', '11:00', '15:00', '17:00'];
-const _timesIntense = ['08:00', '10:00', '14:30', '16:30', '20:30'];
+const _timesIntense = ['09:00', '10:30', '13:30', '16:00', '18:30'];
 
 /// Öğle yemeği için ayrılan sabit slot — hiçbir aktivite slotuyla çakışmaz,
 /// 11:00-15:00 pencere içindedir.
@@ -525,7 +526,9 @@ DayPlan _buildArrivalDay(
   final transferMin = _hotelTransferMinutes(airportIata);
   final atHotelMin = exitMin + transferMin;
   final checkInMin = atHotelMin + 30;
-  final dinnerMin = (checkInMin + 3 * 60).clamp(19 * 60 + 30, 21 * 60 + 30);
+  final dinnerMin = (checkInMin + 3 * 60)
+      .clamp(19 * 60, kRouteEndMinuteOfDay)
+      .toInt();
   final isLateArrival = landMin >= 20 * 60;
 
   return _buildArrivalDayLegacy(day, city, flag, lang, landMin, atHotelMin,

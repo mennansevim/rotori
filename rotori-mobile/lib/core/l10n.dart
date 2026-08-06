@@ -433,6 +433,10 @@ const Map<String, Map<AppLang, String>> _strings = {
   'viewer.tt.checklist': {AppLang.tr: 'Checklist', AppLang.en: 'Checklist'},
   'viewer.tt.phrases': {AppLang.tr: 'Japonca', AppLang.en: 'Japanese'},
   'viewer.tt.mustKnow': {AppLang.tr: 'Bilmelisin', AppLang.en: 'Must-know'},
+  'viewer.tt.foodGuide': {
+    AppLang.tr: 'Yemek rehberi',
+    AppLang.en: 'Food guide'
+  },
   'viewer.tt.theme': {AppLang.tr: 'Tema', AppLang.en: 'Theme'},
   'viewer.tt.edit': {AppLang.tr: 'Düzenle', AppLang.en: 'Edit'},
   'viewer.tt.viewTrain': {
@@ -785,6 +789,56 @@ const Map<String, Map<AppLang, String>> _strings = {
   'budget.tripType.roundtrip': {
     AppLang.tr: 'gidiş-dönüş',
     AppLang.en: 'round-trip',
+  },
+  'budget.expert.title': {
+    AppLang.tr: 'Uzman görünümü',
+    AppLang.en: 'Expert view',
+  },
+  'budget.expert.coverage': {
+    AppLang.tr: 'Maliyet kapsama oranı',
+    AppLang.en: 'Cost coverage ratio',
+  },
+  'budget.expert.dailyBurn': {
+    AppLang.tr: 'Günlük ortalama yakım',
+    AppLang.en: 'Daily burn rate',
+  },
+  'budget.expert.fixed': {
+    AppLang.tr: 'Sabit gider (ulaşım+otel)',
+    AppLang.en: 'Fixed costs (transport+hotel)',
+  },
+  'budget.expert.flex': {
+    AppLang.tr: 'Esnek gider (aktivite+yemek)',
+    AppLang.en: 'Flexible costs (activity+food)',
+  },
+  'budget.expert.contingency': {
+    AppLang.tr: 'Güvenlik payı (%12)',
+    AppLang.en: 'Contingency buffer (12%)',
+  },
+  'budget.expert.cashFloor': {
+    AppLang.tr: 'Önerilen nakit tabanı',
+    AppLang.en: 'Suggested cash floor',
+  },
+  'budget.expert.scenarioTitle': {
+    AppLang.tr: 'Senaryo toplamları',
+    AppLang.en: 'Scenario totals',
+  },
+  'budget.expert.frugal': {
+    AppLang.tr: 'Tutumlu',
+    AppLang.en: 'Frugal',
+  },
+  'budget.expert.realistic': {
+    AppLang.tr: 'Gerçekçi',
+    AppLang.en: 'Realistic',
+  },
+  'budget.expert.comfort': {
+    AppLang.tr: 'Konforlu',
+    AppLang.en: 'Comfort',
+  },
+  'budget.expert.currencyWarning': {
+    AppLang.tr:
+        '{n} kalemde JPY/TRY dışı para birimi var; toplamlar yaklaşık gösterilir.',
+    AppLang.en:
+        '{n} items use non-JPY/TRY currencies; totals are approximate.',
   },
   // Kategori adları (budget kind).
   'kind.activity': {AppLang.tr: 'Aktivite', AppLang.en: 'Activity'},
@@ -2587,6 +2641,26 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Tekrar dene',
     AppLang.en: 'Try again'
   },
+  'routeOptimization.weatherAction': {
+    AppLang.tr: 'Havaya göre optimize et',
+    AppLang.en: 'Optimize for weather',
+  },
+  'routeOptimization.weather.clear': {
+    AppLang.tr: 'Hava uygun: dengeli profil seçildi.',
+    AppLang.en: 'Weather is favorable: balanced profile selected.',
+  },
+  'routeOptimization.weather.rain': {
+    AppLang.tr: 'Yağış bekleniyor: az yürüyüş profili seçildi.',
+    AppLang.en: 'Rain expected: less-walking profile selected.',
+  },
+  'routeOptimization.weather.storm': {
+    AppLang.tr: 'Sert hava koşulu: yürüyüş limiti düşürüldü.',
+    AppLang.en: 'Severe weather: walking limit reduced.',
+  },
+  'routeOptimization.weather.extremeTemp': {
+    AppLang.tr: 'Sıcaklık sert: yürüyüş limiti düşürüldü.',
+    AppLang.en: 'Extreme temperature: walking limit reduced.',
+  },
   'routeOptimization.unavailable': {
     AppLang.tr:
         'Güvenilir rota verisine şu anda ulaşılamıyor. Planın değiştirilmedi.',
@@ -3209,6 +3283,34 @@ const Map<String, Map<AppLang, String>> _strings = {
         'Noktaların otomatik gezildi olması için konum takibi gerekir. Bir yerde 10 dk+ kalınca kendiliğinden yeşillenir ve bildirim alırsın. Batarya için uygulama arka plandayken takip duraklatılır.',
     AppLang.en:
         'Location tracking is needed for spots to be marked visited automatically. Staying somewhere for 10+ min turns it green on its own and sends you a notification. To save battery, tracking pauses while the app is in the background.'
+  },
+  'reward.tracking.smartMode': {
+    AppLang.tr: 'Akıllı takip modu',
+    AppLang.en: 'Smart tracking mode',
+  },
+  'reward.tracking.smartModeHint': {
+    AppLang.tr:
+        'Gezi tarihleri içinde otomatik aktif olur, dışında kendini durdurur.',
+    AppLang.en:
+        'Automatically active during trip dates, pauses itself outside the window.',
+  },
+  'reward.tracking.mode.battery': {
+    AppLang.tr: 'Tasarruf',
+    AppLang.en: 'Battery saver',
+  },
+  'reward.tracking.mode.balanced': {
+    AppLang.tr: 'Dengeli',
+    AppLang.en: 'Balanced',
+  },
+  'reward.tracking.mode.precise': {
+    AppLang.tr: 'Hassas',
+    AppLang.en: 'Precise',
+  },
+  'reward.tracking.tripWindowPaused': {
+    AppLang.tr:
+        'Akıllı mod nedeniyle takip şu an beklemede (gezi tarih aralığı dışında).',
+    AppLang.en:
+        'Smart mode is paused right now (outside the trip date window).',
   },
   'reward.tracking.openSettings': {
     AppLang.tr: 'Ayarlar\'dan konum iznini aç',

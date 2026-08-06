@@ -10,9 +10,11 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/supabase_client.dart';
 import '../../data/plans_repository.dart' show sharedPrefsProvider;
@@ -32,6 +34,12 @@ enum GeofencePermissionStatus {
   /// Kalıcı red — kullanıcıyı Ayarlar'a yönlendirmek gerekir.
   deniedForever,
   unsupported,
+}
+
+enum GeofenceTrackingMode {
+  batterySaver,
+  balanced,
+  precise,
 }
 
 /// Tek bir konum örneği — Geolocator `Position`'dan bağımsız, test edilebilir.
@@ -167,14 +175,17 @@ class GeofenceController extends ChangeNotifier with WidgetsBindingObserver {
     required List<Geofence> fences,
     required VisitStore visitStore,
     required UserStatsStore statsStore,
+    SharedPreferences? prefs,
+    String? userId,
     int graceSeconds = 120,
     PositionStreamFactory? positionStreamFactory,
     PermissionRequester? permissionRequester,
   })  : _trip = trip,
         _visitStore = visitStore,
         _statsStore = statsStore,
-        _positionStreamFactory =
-            positionStreamFactory ?? _defaultPositionStream,
+      _prefs = prefs,
+      _prefsPrefix = userId == null ? null : 'geofence:$userId',
+      _positionStreamFactory = positionStreamFactory,
         _permissionRequester = permissionRequester ?? _defaultPermission {
     _engine = GeofenceEngine(
       fences: fences,
@@ -183,13 +194,16 @@ class GeofenceController extends ChangeNotifier with WidgetsBindingObserver {
       onCompleted: _handleCompleted,
     );
     _stats = statsStore.load();
+    _loadTrackingPrefs();
     WidgetsBinding.instance.addObserver(this);
   }
 
   final Trip _trip;
   final VisitStore _visitStore;
   final UserStatsStore _statsStore;
-  final PositionStreamFactory _positionStreamFactory;
+  final SharedPreferences? _prefs;
+  final String? _prefsPrefix;
+  final PositionStreamFactory? _positionStreamFactory;
   final PermissionRequester _permissionRequester;
 
   late final GeofenceEngine _engine;
@@ -202,6 +216,8 @@ class GeofenceController extends ChangeNotifier with WidgetsBindingObserver {
 
   GeofencePermissionStatus _status = GeofencePermissionStatus.idle;
   GeoSample? _lastSample;
+  GeofenceTrackingMode _trackingMode = GeofenceTrackingMode.batterySaver;
+  bool _smartTrackingEnabled = true;
 
   /// UI'nın SnackBar göstermesi için keşif bildirimi.
   void Function(Geofence fence)? onDiscovered;
@@ -216,6 +232,9 @@ class GeofenceController extends ChangeNotifier with WidgetsBindingObserver {
   GeoSample? get lastSample => _lastSample;
   List<Geofence> get fences => _engine.fences;
   bool get isTracking => _sub != null || _pausedByLifecycle;
+  GeofenceTrackingMode get trackingMode => _trackingMode;
+  bool get smartTrackingEnabled => _smartTrackingEnabled;
+  bool get isInTripWindow => _isWithinTripWindow(DateTime.now());
 
   /// Konum takibini başlat (izin akışı dahil).
   Future<void> start() async {
@@ -230,6 +249,10 @@ class GeofenceController extends ChangeNotifier with WidgetsBindingObserver {
       notifyListeners();
       return;
     }
+    if (!_shouldTrackNow()) {
+      notifyListeners();
+      return;
+    }
     _subscribe();
     notifyListeners();
   }
@@ -240,6 +263,38 @@ class GeofenceController extends ChangeNotifier with WidgetsBindingObserver {
     _sub = null;
     _pausedByLifecycle = false;
     _engine.clearSessions();
+    notifyListeners();
+  }
+
+  Future<void> setTrackingMode(GeofenceTrackingMode mode) async {
+    if (_trackingMode == mode) return;
+    _trackingMode = mode;
+    _saveTrackingPrefs();
+
+    final shouldResubscribe = _sub != null;
+    if (shouldResubscribe) {
+      await _sub?.cancel();
+      _sub = null;
+      if (_status == GeofencePermissionStatus.granted && _shouldTrackNow()) {
+        _subscribe();
+      }
+    }
+    notifyListeners();
+  }
+
+  Future<void> setSmartTrackingEnabled(bool enabled) async {
+    if (_smartTrackingEnabled == enabled) return;
+    _smartTrackingEnabled = enabled;
+    _saveTrackingPrefs();
+    if (!enabled) {
+      stop();
+      return;
+    }
+    if (_isWithinTripWindow(DateTime.now())) {
+      await start();
+      return;
+    }
+    if (_sub != null) stop();
     notifyListeners();
   }
 
@@ -262,7 +317,8 @@ class GeofenceController extends ChangeNotifier with WidgetsBindingObserver {
   void debugPushSample(GeoSample s) => _onSample(s);
 
   void _subscribe() {
-    _sub = _positionStreamFactory().listen(
+    final streamFactory = _positionStreamFactory ?? _defaultPositionStream;
+    _sub = streamFactory().listen(
       _onSample,
       onError: (Object err) {
         if (err is PermissionDeniedException) {
@@ -313,9 +369,14 @@ class GeofenceController extends ChangeNotifier with WidgetsBindingObserver {
           _pausedByLifecycle = true;
         }
       case AppLifecycleState.resumed:
-        if (_pausedByLifecycle) {
+        if (_pausedByLifecycle && _shouldTrackNow()) {
           _pausedByLifecycle = false;
           _subscribe();
+        } else if (_pausedByLifecycle) {
+          _pausedByLifecycle = false;
+        }
+        if (_smartTrackingEnabled && !_isWithinTripWindow(DateTime.now())) {
+          stop();
         }
       case AppLifecycleState.inactive:
       case AppLifecycleState.detached:
@@ -333,11 +394,8 @@ class GeofenceController extends ChangeNotifier with WidgetsBindingObserver {
 
   // --- Varsayılan (gerçek) Geolocator entegrasyonu ---
 
-  static Stream<GeoSample> _defaultPositionStream() {
-    const settings = LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 10,
-    );
+  Stream<GeoSample> _defaultPositionStream() {
+    final settings = _locationSettingsForMode(_trackingMode);
     return Geolocator.getPositionStream(locationSettings: settings).map(
       (pos) => GeoSample(
         lat: pos.latitude,
@@ -346,6 +404,94 @@ class GeofenceController extends ChangeNotifier with WidgetsBindingObserver {
         timestamp: pos.timestamp,
       ),
     );
+  }
+
+  LocationSettings _locationSettingsForMode(GeofenceTrackingMode mode) {
+    if (!kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.macOS)) {
+      return AppleSettings(
+        accuracy: switch (mode) {
+          GeofenceTrackingMode.batterySaver => LocationAccuracy.low,
+          GeofenceTrackingMode.balanced => LocationAccuracy.medium,
+          GeofenceTrackingMode.precise => LocationAccuracy.bestForNavigation,
+        },
+        distanceFilter: switch (mode) {
+          GeofenceTrackingMode.batterySaver => 60,
+          GeofenceTrackingMode.balanced => 25,
+          GeofenceTrackingMode.precise => 10,
+        },
+        activityType: ActivityType.fitness,
+        pauseLocationUpdatesAutomatically: true,
+        showBackgroundLocationIndicator: false,
+      );
+    }
+
+    return LocationSettings(
+      accuracy: switch (mode) {
+        GeofenceTrackingMode.batterySaver => LocationAccuracy.low,
+        GeofenceTrackingMode.balanced => LocationAccuracy.medium,
+        GeofenceTrackingMode.precise => LocationAccuracy.best,
+      },
+      distanceFilter: switch (mode) {
+        GeofenceTrackingMode.batterySaver => 80,
+        GeofenceTrackingMode.balanced => 30,
+        GeofenceTrackingMode.precise => 12,
+      },
+    );
+  }
+
+  bool _shouldTrackNow() {
+    if (!_smartTrackingEnabled) return true;
+    return _isWithinTripWindow(DateTime.now());
+  }
+
+  bool _isWithinTripWindow(DateTime now) {
+    final tripStart = DateTime.tryParse(_trip.tripStart);
+    final tripEnd = DateTime.tryParse(_trip.tripEnd);
+    if (tripStart == null || tripEnd == null) return true;
+
+    final startBuffer = DateTime(
+      tripStart.year,
+      tripStart.month,
+      tripStart.day,
+    ).subtract(const Duration(days: 1));
+    final endBuffer = DateTime(
+      tripEnd.year,
+      tripEnd.month,
+      tripEnd.day,
+      23,
+      59,
+      59,
+    ).add(const Duration(days: 1));
+    return !now.isBefore(startBuffer) && !now.isAfter(endBuffer);
+  }
+
+  void _loadTrackingPrefs() {
+    if (_prefs == null || _prefsPrefix == null) return;
+    final modeRaw = _prefs.getString('$_prefsPrefix:mode');
+    final smart = _prefs.getBool('$_prefsPrefix:smart');
+
+    _trackingMode = switch (modeRaw) {
+      'battery' => GeofenceTrackingMode.batterySaver,
+      'precise' => GeofenceTrackingMode.precise,
+      _ => GeofenceTrackingMode.batterySaver,
+    };
+    if (smart != null) {
+      _smartTrackingEnabled = smart;
+    }
+  }
+
+  void _saveTrackingPrefs() {
+    if (_prefs == null || _prefsPrefix == null) return;
+    final modeRaw = switch (_trackingMode) {
+      GeofenceTrackingMode.batterySaver => 'battery',
+      GeofenceTrackingMode.balanced => 'balanced',
+      GeofenceTrackingMode.precise => 'precise',
+    };
+    _prefs
+      ..setString('$_prefsPrefix:mode', modeRaw)
+      ..setBool('$_prefsPrefix:smart', _smartTrackingEnabled);
   }
 
   static Future<GeofencePermissionStatus> _defaultPermission() async {
@@ -382,5 +528,7 @@ final geofenceControllerProvider = ChangeNotifierProvider.autoDispose
     fences: fences,
     visitStore: VisitStore(prefs, userId),
     statsStore: UserStatsStore(prefs, userId),
+    prefs: prefs,
+    userId: userId,
   );
 });
