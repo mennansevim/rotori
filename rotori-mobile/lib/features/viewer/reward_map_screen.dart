@@ -46,6 +46,12 @@ const List<_RankInfo> _kRanks = [
 
 int _tierForLevel(int level) => (level - 1).clamp(0, _kRanks.length - 1);
 
+bool _prefersReducedMotion(BuildContext context) {
+  final mq = MediaQuery.maybeOf(context);
+  return (mq?.disableAnimations ?? false) ||
+      (mq?.accessibleNavigation ?? false);
+}
+
 /// Rütbe kademesine palete uyumlu bir vurgu rengi verir (temaya göre uyum).
 Color _rankColor(ViewerPalette p, int tier) {
   final colors = [
@@ -99,11 +105,16 @@ class _RewardMapScreenState extends ConsumerState<RewardMapScreen> {
   /// zerreleri + parıltı ve nazikçe beliren madalyon. Haptik ile eşlenir.
   void _celebrateRankUp(int tier) {
     if (!mounted || _rankDialogOpen) return;
+    final reduceMotion = _prefersReducedMotion(context);
     final messenger = ScaffoldMessenger.maybeOf(context);
     messenger?.hideCurrentSnackBar();
     messenger?.clearSnackBars();
     _rankDialogOpen = true;
-    HapticFeedback.mediumImpact();
+    if (reduceMotion) {
+      HapticFeedback.lightImpact();
+    } else {
+      HapticFeedback.mediumImpact();
+    }
     final palette = ViewerPalette.of(context);
     final rank = _kRanks[tier.clamp(0, _kRanks.length - 1)];
     showGeneralDialog<void>(
@@ -111,11 +122,13 @@ class _RewardMapScreenState extends ConsumerState<RewardMapScreen> {
       barrierDismissible: true,
       barrierLabel: 'rank-up',
       barrierColor: Colors.transparent,
-      transitionDuration: const Duration(milliseconds: 320),
+      transitionDuration:
+          reduceMotion ? Duration.zero : const Duration(milliseconds: 320),
       pageBuilder: (_, __, ___) => _RankUpCelebration(
         palette: palette,
         rank: rank,
         color: _rankColor(palette, tier),
+        reduceMotion: reduceMotion,
       ),
     ).whenComplete(() {
       _rankDialogOpen = false;
@@ -875,10 +888,12 @@ class _RankUpCelebration extends StatefulWidget {
     required this.palette,
     required this.rank,
     required this.color,
+    required this.reduceMotion,
   });
   final ViewerPalette palette;
   final _RankInfo rank;
   final Color color;
+  final bool reduceMotion;
 
   @override
   State<_RankUpCelebration> createState() => _RankUpCelebrationState();
@@ -896,13 +911,24 @@ class _RankUpCelebrationState extends State<_RankUpCelebration>
     _drift = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 6),
-    )..repeat();
+    );
+    if (widget.reduceMotion) {
+      _drift.value = 0.45;
+    } else {
+      _drift.repeat();
+    }
     _enter = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration:
+          widget.reduceMotion ? Duration.zero : const Duration(milliseconds: 900),
     )..forward();
     // Kendiliğinden yumuşak kapanış.
-    Future.delayed(const Duration(milliseconds: 3400), _dismiss);
+    Future.delayed(
+      widget.reduceMotion
+          ? const Duration(milliseconds: 2600)
+          : const Duration(milliseconds: 3400),
+      _dismiss,
+    );
   }
 
   void _dismiss() {
@@ -950,18 +976,19 @@ class _RankUpCelebrationState extends State<_RankUpCelebration>
               ),
             ),
           ),
-          // Süzülen toz zerreleri + parıltılar (okunurluk için daha sakin).
-          Positioned.fill(
-            child: AnimatedBuilder(
-              animation: _drift,
-              builder: (_, __) => CustomPaint(
-                painter: _DustPainter(
-                  t: _drift.value,
-                  color: Color.lerp(color, Colors.white, .22)!,
+          if (!widget.reduceMotion)
+            // Süzülen toz zerreleri + parıltılar (okunurluk için daha sakin).
+            Positioned.fill(
+              child: AnimatedBuilder(
+                animation: _drift,
+                builder: (_, __) => CustomPaint(
+                  painter: _DustPainter(
+                    t: _drift.value,
+                    color: Color.lerp(color, Colors.white, .22)!,
+                  ),
                 ),
               ),
             ),
-          ),
           SafeArea(
             child: Center(
               child: Padding(

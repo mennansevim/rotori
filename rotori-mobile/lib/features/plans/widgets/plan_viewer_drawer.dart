@@ -55,8 +55,8 @@ class _ViewerDrawer extends ConsumerWidget {
           label: s.s('viewer.tt.weather'),
           onTap: onOpenWeather),
       _DrawerActionSpec(
-        icon: Icons.restaurant_menu_outlined,
-        label: s.s('viewer.tt.foodGuide'),
+        icon: Icons.ramen_dining_outlined,
+        label: s.s('viewer.tt.eats'),
         onTap: onOpenFoodGuide),
       _DrawerActionSpec(
           icon: Icons.account_balance_wallet_outlined,

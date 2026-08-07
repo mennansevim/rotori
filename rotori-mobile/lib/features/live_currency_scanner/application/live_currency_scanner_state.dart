@@ -2,6 +2,7 @@ import 'dart:ui' show Size;
 
 import '../domain/currency_code.dart';
 import '../domain/exchange_rate.dart';
+import '../domain/product_price_query.dart';
 import '../domain/tracked_price.dart';
 
 /// Tarayıcı yaşam döngüsü durumu.
@@ -35,6 +36,12 @@ class LiveCurrencyScannerState {
     this.imageSize = Size.zero,
     this.rotationDegrees = 0,
     this.mirrored = false,
+    this.productQueryCandidate,
+    this.activeProductQueryCandidate,
+    this.productQueryStatus = ProductPriceQueryStatus.idle,
+    this.productQueryProgress = const [],
+    this.productPriceComparison,
+    this.productQueryErrorMessageKey,
     this.errorMessageKey,
   });
 
@@ -52,6 +59,24 @@ class LiveCurrencyScannerState {
   final int rotationDegrees;
   final bool mirrored;
 
+  /// Kamerada şu anda sorgulanabilir olarak bulunan ürün adayı.
+  final ProductQueryCandidate? productQueryCandidate;
+
+  /// Kullanıcının sorgulamayı başlattığı anın sabit ürün adayı.
+  final ProductQueryCandidate? activeProductQueryCandidate;
+
+  /// HB/TY/Amazon sorgu üst durum makinesi.
+  final ProductPriceQueryStatus productQueryStatus;
+
+  /// Kaynak bazlı ilerleme satırları.
+  final List<ProductPriceSourceProgress> productQueryProgress;
+
+  /// Sorgu tamamlandığında hesaplanan karşılaştırma özeti.
+  final ProductPriceComparison? productPriceComparison;
+
+  /// Ürün sorgu akışı için kullanıcıya gösterilecek hata anahtarı.
+  final String? productQueryErrorMessageKey;
+
   /// Kullanıcıya gösterilecek i18n hata anahtarı (teknik metin değil).
   final String? errorMessageKey;
 
@@ -59,6 +84,14 @@ class LiveCurrencyScannerState {
       status == ScannerStatus.ready || status == ScannerStatus.scanning;
 
   bool get hasDetections => trackedPrices.isNotEmpty;
+
+    bool get hasQueryableProduct => productQueryCandidate != null;
+
+    bool get isProductQueryRunning =>
+      productQueryStatus == ProductPriceQueryStatus.loading;
+
+    bool get isProductQuerySheetVisible =>
+      productQueryStatus != ProductPriceQueryStatus.idle;
 
   LiveCurrencyScannerState copyWith({
     ScannerStatus? status,
@@ -72,7 +105,17 @@ class LiveCurrencyScannerState {
     Size? imageSize,
     int? rotationDegrees,
     bool? mirrored,
+    ProductQueryCandidate? productQueryCandidate,
+    ProductQueryCandidate? activeProductQueryCandidate,
+    ProductPriceQueryStatus? productQueryStatus,
+    List<ProductPriceSourceProgress>? productQueryProgress,
+    ProductPriceComparison? productPriceComparison,
+    String? productQueryErrorMessageKey,
     String? errorMessageKey,
+    bool clearProductQueryCandidate = false,
+    bool clearActiveProductQueryCandidate = false,
+    bool clearProductQueryError = false,
+    bool clearProductPriceComparison = false,
     bool clearError = false,
   }) {
     return LiveCurrencyScannerState(
@@ -87,6 +130,20 @@ class LiveCurrencyScannerState {
       imageSize: imageSize ?? this.imageSize,
       rotationDegrees: rotationDegrees ?? this.rotationDegrees,
       mirrored: mirrored ?? this.mirrored,
+          productQueryCandidate: clearProductQueryCandidate
+            ? null
+            : (productQueryCandidate ?? this.productQueryCandidate),
+          activeProductQueryCandidate: clearActiveProductQueryCandidate
+            ? null
+            : (activeProductQueryCandidate ?? this.activeProductQueryCandidate),
+        productQueryStatus: productQueryStatus ?? this.productQueryStatus,
+        productQueryProgress: productQueryProgress ?? this.productQueryProgress,
+        productPriceComparison: clearProductPriceComparison
+          ? null
+          : (productPriceComparison ?? this.productPriceComparison),
+        productQueryErrorMessageKey: clearProductQueryError
+          ? null
+          : (productQueryErrorMessageKey ?? this.productQueryErrorMessageKey),
       errorMessageKey:
           clearError ? null : (errorMessageKey ?? this.errorMessageKey),
     );

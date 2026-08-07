@@ -84,6 +84,7 @@ void main() {
     await tester.pumpWidget(_wrap(CurrencyDetectionLabel(
       amountInJpy: 12800,
       converted: 3260,
+      exchangeRate: 0.30,
       targetCurrency: CurrencyCode.tryl,
       confidence: 0.9,
       taxType: JapanesePriceTaxType.taxIncluded,

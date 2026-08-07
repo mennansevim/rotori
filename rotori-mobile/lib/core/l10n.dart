@@ -171,6 +171,7 @@ const Map<String, Map<AppLang, String>> _strings = {
   'common.add': {AppLang.tr: 'Ekle', AppLang.en: 'Add'},
   'common.delete': {AppLang.tr: 'Sil', AppLang.en: 'Delete'},
   'common.copy': {AppLang.tr: 'Kopyala', AppLang.en: 'Copy'},
+  'common.done': {AppLang.tr: 'Bitti', AppLang.en: 'Done'},
 
   // ----- Hata bildirimi -----
   'bugReport.menu': {
@@ -354,6 +355,10 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Sistem ayarlarını aç',
     AppLang.en: 'Open system settings',
   },
+  'scanner.closeCamera': {
+    AppLang.tr: 'Kamerayı kapat',
+    AppLang.en: 'Close camera',
+  },
   'scanner.detecting': {
     AppLang.tr: 'Fiyat algılanıyor',
     AppLang.en: 'Detecting price'
@@ -374,6 +379,7 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Vergi hariç',
     AppLang.en: 'Tax excluded'
   },
+  'scanner.rateShort': {AppLang.tr: 'Kur', AppLang.en: 'Rate'},
   'scanner.rateUsed': {AppLang.tr: 'Kullanılan kur', AppLang.en: 'Rate used'},
   'scanner.addToBudget': {
     AppLang.tr: 'Bütçeye ekle',
@@ -400,6 +406,100 @@ const Map<String, Map<AppLang, String>> _strings = {
   'scanner.error.unknown': {
     AppLang.tr: 'Beklenmeyen bir kamera hatası oluştu.',
     AppLang.en: 'An unexpected camera error occurred.',
+  },
+  'scanner.market.queryReadyBadge': {
+    AppLang.tr: 'Ürün sorguya hazır',
+    AppLang.en: 'Ready to query',
+  },
+  'scanner.market.queryCta': {
+    AppLang.tr: 'Fiyatı Sorgula',
+    AppLang.en: 'Query price',
+  },
+  'scanner.market.loadingTitle': {
+    AppLang.tr: 'Pazar fiyatları sorgulanıyor',
+    AppLang.en: 'Checking market prices',
+  },
+  'scanner.market.resultsTitle': {
+    AppLang.tr: 'Pazar fiyat karşılaştırması',
+    AppLang.en: 'Market price comparison',
+  },
+  'scanner.market.close': {
+    AppLang.tr: 'Kapat',
+    AppLang.en: 'Close',
+  },
+  'scanner.market.jpReference': {
+    AppLang.tr: 'Japonya referansı',
+    AppLang.en: 'Japan reference',
+  },
+  'scanner.market.summaryTitle': {
+    AppLang.tr: 'Özet',
+    AppLang.en: 'Summary',
+  },
+  'scanner.market.trMedian': {
+    AppLang.tr: 'TR medyan',
+    AppLang.en: 'TR median',
+  },
+  'scanner.market.trMin': {
+    AppLang.tr: 'TR en düşük',
+    AppLang.en: 'TR minimum',
+  },
+  'scanner.market.trMax': {
+    AppLang.tr: 'TR en yüksek',
+    AppLang.en: 'TR maximum',
+  },
+  'scanner.market.diff': {
+    AppLang.tr: 'Fark',
+    AppLang.en: 'Difference',
+  },
+  'scanner.market.cheaperInJapan': {
+    AppLang.tr: 'Japonya fiyatı daha avantajlı görünüyor.',
+    AppLang.en: 'Japan price currently looks better.',
+  },
+  'scanner.market.expensiveInJapan': {
+    AppLang.tr: 'Türkiye fiyatı daha avantajlı görünüyor.',
+    AppLang.en: 'Turkey market price currently looks better.',
+  },
+  'scanner.market.estimatedHint': {
+    AppLang.tr:
+        'Not: İlk sürümde market sonuçları tahmini/önizleme verisi olabilir.',
+    AppLang.en:
+        'Note: In this first release, market results may be estimated/preview data.',
+  },
+  'scanner.market.estimatedBadge': {
+    AppLang.tr: 'Tahmini',
+    AppLang.en: 'Estimated',
+  },
+  'scanner.market.confidence': {
+    AppLang.tr: 'Güven',
+    AppLang.en: 'Confidence',
+  },
+  'scanner.market.source.hepsiburada': {
+    AppLang.tr: 'Hepsiburada',
+    AppLang.en: 'Hepsiburada',
+  },
+  'scanner.market.source.trendyol': {
+    AppLang.tr: 'Trendyol',
+    AppLang.en: 'Trendyol',
+  },
+  'scanner.market.source.amazon': {
+    AppLang.tr: 'Amazon Türkiye',
+    AppLang.en: 'Amazon Turkey',
+  },
+  'scanner.market.status.pending': {
+    AppLang.tr: 'Bekliyor',
+    AppLang.en: 'Pending',
+  },
+  'scanner.market.status.loading': {
+    AppLang.tr: 'Sorgulanıyor',
+    AppLang.en: 'Loading',
+  },
+  'scanner.market.status.failed': {
+    AppLang.tr: 'Ulaşılamadı',
+    AppLang.en: 'Failed',
+  },
+  'scanner.market.error.noResults': {
+    AppLang.tr: 'Hiç fiyat sonucu alınamadı. Tekrar deneyin.',
+    AppLang.en: 'No price result was returned. Please try again.',
   },
   'viewer.quick.explore': {AppLang.tr: 'Keşfet', AppLang.en: 'Explore'},
   'viewer.quick.tickets': {AppLang.tr: 'Biletler', AppLang.en: 'Tickets'},
@@ -437,6 +537,7 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Yemek rehberi',
     AppLang.en: 'Food guide'
   },
+  'viewer.tt.eats': {AppLang.tr: 'Rotori Eats', AppLang.en: 'Rotori Eats'},
   'viewer.tt.theme': {AppLang.tr: 'Tema', AppLang.en: 'Theme'},
   'viewer.tt.edit': {AppLang.tr: 'Düzenle', AppLang.en: 'Edit'},
   'viewer.tt.viewTrain': {
@@ -866,6 +967,34 @@ const Map<String, Map<AppLang, String>> _strings = {
   'budget.estimate.refTitle': {
     AppLang.tr: 'Örnek birim fiyatlar',
     AppLang.en: 'Sample unit prices',
+  },
+  'budget.currencyTitle': {
+    AppLang.tr: 'Para birimi',
+    AppLang.en: 'Currency',
+  },
+  'budget.overrideBadge': {AppLang.tr: 'elle', AppLang.en: 'custom'},
+  'budget.editLine': {
+    AppLang.tr: 'Satırı düzenle',
+    AppLang.en: 'Edit line',
+  },
+  'budget.editLineHint': {
+    AppLang.tr:
+        'Bu kalem için kendi tutarını gir. Boş bırakırsan tahmine döner.',
+    AppLang.en:
+        'Enter your own amount for this item. Leave empty to revert to the estimate.',
+  },
+  'budget.clearOverride': {AppLang.tr: 'Sıfırla', AppLang.en: 'Reset'},
+  'budget.estimate.editHint': {
+    AppLang.tr: 'Bir kaleme dokunarak kendi tutarını girebilirsin.',
+    AppLang.en: 'Tap a line to enter your own amount.',
+  },
+  'budget.editLineTitle': {
+    AppLang.tr: '{item} tutarını düzenle',
+    AppLang.en: 'Edit {item} amount',
+  },
+  'budget.rateQuestionCurrency': {
+    AppLang.tr: '1 ¥ kaç {code}?',
+    AppLang.en: 'How many {code} per ¥?',
   },
   'budget.cat.flight': {AppLang.tr: 'Uçak bileti', AppLang.en: 'Flight'},
   'budget.cat.hotel': {AppLang.tr: 'Konaklama', AppLang.en: 'Accommodation'},
@@ -1585,6 +1714,12 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Check-in time, floor, extra notes'
   },
   'hotels.done': {AppLang.tr: 'Bitti', AppLang.en: 'Done'},
+  'hotels.saveHotel': {AppLang.tr: 'Oteli kaydet', AppLang.en: 'Save hotel'},
+  'hotels.saving': {AppLang.tr: 'Kaydediliyor…', AppLang.en: 'Saving…'},
+  'hotels.saveError': {
+    AppLang.tr: 'Plan yüklenemedi.',
+    AppLang.en: 'Could not load the plan.',
+  },
   'hotels.pickDate': {AppLang.tr: 'Tarih seç', AppLang.en: 'Pick a date'},
   'publish.title': {AppLang.tr: 'Yayına hazır', AppLang.en: 'Ready to publish'},
   'publish.subtitle': {

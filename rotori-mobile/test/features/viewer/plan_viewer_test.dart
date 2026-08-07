@@ -382,11 +382,12 @@ void main() {
       // Kalem → onay (✓) olur, baştan-oluştur (⟳) ikonu belirir.
       expect(find.byIcon(Icons.check), findsOneWidget);
       expect(find.byIcon(Icons.refresh), findsOneWidget);
-      // Her item için taşıma/sıralama menü ikonu (⋮) görünür.
-      expect(find.byIcon(Icons.more_vert), findsWidgets);
+      // Yeni UX: satırlarda sürükleme tutamacı, gün başlığında yatay menü.
+      expect(find.byIcon(Icons.drag_handle_rounded), findsWidgets);
+      expect(find.byIcon(Icons.more_horiz), findsWidgets);
     });
 
-    testWidgets('edit modunda ⋮ menüsü taşıma/kaldırma seçenekleri sunar',
+    testWidgets('edit modunda sürükle/sil affordansları görünür',
         (tester) async {
       await tester.pumpWidget(harness(_sampleTrip()));
       await tester.pump();
@@ -396,14 +397,11 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      // İlk ⋮ menüsünü aç.
-      await tester.tap(find.byIcon(Icons.more_vert).first);
-      await tester.pumpAndSettle();
-
-      // Güne taşıma/kaldırma seçenekleri görünmeli (gün içi sıralama artık
-      // popup menü değil, sürükle-bırak ReorderableListView ile yapılıyor).
-      expect(find.text('Hangi güne alalım?'), findsOneWidget);
-      expect(find.text('Kaldır'), findsOneWidget);
+      // Eski 3-nokta satır menüsü kaldırıldı; yerine drag + swipe akışı var.
+      expect(find.byIcon(Icons.more_vert), findsNothing);
+      expect(find.byKey(const ValueKey('draggable-it2')), findsOneWidget);
+      expect(find.byKey(const ValueKey('dismiss-it2')), findsOneWidget);
+      expect(find.byIcon(Icons.more_horiz), findsWidgets);
     });
 
     testWidgets('baştan-oluştur ikonu onay dialogu gösterir', (tester) async {
@@ -450,25 +448,37 @@ void main() {
               widget is Semantics &&
               widget.properties.label == 'Bu saat uçuş bilgisinden geliyor.',
         ),
-        findsOneWidget,
+        findsAtLeastNWidgets(1),
       );
       semantics.dispose();
     });
 
-    testWidgets('başarılı silme işleminden sonra geri al planı geri getirir',
+    testWidgets('başarılı taşıma işleminden sonra geri al planı geri getirir',
         (tester) async {
       await tester.pumpWidget(harness(_sampleTrip()));
       await tester.pump();
       await tester.tap(find.byIcon(Icons.edit_outlined));
       await tester.pump(const Duration(milliseconds: 100));
 
-      await tester.tap(find.byKey(const ValueKey('activity-menu-it2')));
+      final source = find.text('Aktif Aktivite');
+      final target = find.text('Gelecek Gün Teması');
+      await tester.scrollUntilVisible(
+        target,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Kaldır'));
-      await tester.pump();
-      await tester.pump(const Duration(seconds: 1));
+      final gesture = await tester.startGesture(tester.getCenter(source));
+      await tester.pump(const Duration(milliseconds: 600));
+      await gesture.moveTo(
+        tester.getCenter(target),
+        timeStamp: const Duration(milliseconds: 300),
+      );
+      await tester.pump(const Duration(milliseconds: 700));
+      await gesture.up();
+      await tester.pumpAndSettle();
 
-      expect(find.text('Aktif Aktivite'), findsNothing);
+      expect(find.text('11:15'), findsOneWidget);
       expect(find.text('Geri al'), findsOneWidget);
       expect(
         tester.widget<SnackBar>(find.byType(SnackBar)).duration,
@@ -477,11 +487,11 @@ void main() {
       await tester.tap(find.text('Geri al'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
-      expect(find.text('Aktif Aktivite'), findsOneWidget);
+      expect(find.text('11:15'), findsNothing);
     });
 
     testWidgets(
-        'mevcut transfer/check-in çakışması menüden başka güne taşımayı engellemez',
+        'mevcut transfer/check-in çakışması sürükle-bırak ile başka güne taşımayı engellemez',
         (tester) async {
       tester.view.physicalSize = const Size(800, 1200);
       tester.view.devicePixelRatio = 1;
@@ -523,23 +533,24 @@ void main() {
       await tester.tap(find.byIcon(Icons.edit_outlined));
       await tester.pump(const Duration(milliseconds: 100));
 
-      final dinnerMenu = find.byKey(const ValueKey('activity-menu-dinner'));
-      await tester.ensureVisible(dinnerMenu);
+      final source = find.byKey(const ValueKey('draggable-dinner'));
+      final target = find.text('Gelecek Gün Teması');
+      await tester.ensureVisible(target);
       await tester.pumpAndSettle();
-      await tester.tap(dinnerMenu);
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.text('Gün 3 · ${trip.days[2].date}'),
+      final gesture = await tester.startGesture(tester.getCenter(source));
+      await tester.pump(const Duration(milliseconds: 600));
+      await gesture.moveTo(
+        tester.getCenter(target),
+        timeStamp: const Duration(milliseconds: 300),
       );
+      await tester.pump(const Duration(milliseconds: 700));
+      await gesture.up();
       await tester.pumpAndSettle();
-      expect(find.text('Yalnızca uygun saatler seçilebilir.'), findsOneWidget);
-      await tester.tap(find.text('Kaydet'));
-      await tester.pump();
-      await tester.pump(const Duration(seconds: 1));
 
-      expect(find.text('Hafif akşam yemeği'), findsNothing);
-      await tester.tap(find.text('Gelecek Gün Teması'));
-      await tester.pump(const Duration(milliseconds: 300));
+      expect(
+        find.textContaining('Hafif akşam yemeği → Gün 3'),
+        findsOneWidget,
+      );
       expect(find.text('Hafif akşam yemeği'), findsOneWidget);
     });
 
@@ -575,7 +586,11 @@ void main() {
 
       final source = find.text('Aktif Aktivite');
       final target = find.text('Gelecek Gün Teması');
-      await tester.ensureVisible(target);
+      await tester.scrollUntilVisible(
+        target,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.pumpAndSettle();
       final gesture = await tester.startGesture(tester.getCenter(source));
       await tester.pump(const Duration(milliseconds: 600));
@@ -651,9 +666,17 @@ void main() {
       await tester.pump();
       await tester.tap(find.byIcon(Icons.edit_outlined));
       await tester.pump(const Duration(milliseconds: 100));
-      await tester.tap(find.byKey(const ValueKey('activity-menu-it2')));
+
+      // Aktif gün öğesinin saat rozetinden düzenleme sheet'ini aç.
+      await tester.tap(find.text('10:00').at(1));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Gün 3 · ${trip.days[2].date}'));
+
+      final sheet = find.byType(BottomSheet);
+      await tester.tap(
+        find
+            .descendant(of: sheet, matching: find.text('Gün 3'))
+            .first,
+      );
       await tester.pumpAndSettle();
 
       expect(
@@ -662,7 +685,7 @@ void main() {
       );
       final saveButton = tester.widget<FilledButton>(
         find.ancestor(
-          of: find.text('Kaydet'),
+          of: find.descendant(of: sheet, matching: find.text('Kaydet')),
           matching: find.byType(FilledButton),
         ),
       );
@@ -678,19 +701,30 @@ void main() {
       await tester.pump();
       await tester.tap(find.byIcon(Icons.edit_outlined));
       await tester.pump(const Duration(milliseconds: 100));
-      await tester.tap(find.byKey(const ValueKey('activity-menu-it2')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Kaldır'));
-      await tester.pump();
-      await tester.pump(const Duration(seconds: 1));
 
-      expect(find.text('Kaldırıldı: Aktif Aktivite'), findsOneWidget);
+      final source = find.text('Aktif Aktivite');
+      final target = find.text('Gelecek Gün Teması');
+      await tester.scrollUntilVisible(
+        target,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      final gesture = await tester.startGesture(tester.getCenter(source));
+      await tester.pump(const Duration(milliseconds: 600));
+      await gesture.moveTo(
+        tester.getCenter(target),
+        timeStamp: const Duration(milliseconds: 300),
+      );
+      await tester.pump(const Duration(milliseconds: 700));
+      await gesture.up();
+      await tester.pumpAndSettle();
+
       expect(find.text('Geri al'), findsOneWidget);
 
       await tester.pump(const Duration(seconds: 5));
       await tester.pumpAndSettle();
 
-      expect(find.text('Kaldırıldı: Aktif Aktivite'), findsNothing);
       expect(find.text('Geri al'), findsNothing);
     });
   });

@@ -74,9 +74,7 @@ class JapanesePriceParser {
       // Harf/kod komşuluğu → ürün/model kodu.
       if (_hasAlphaNeighbor(line, start, end)) continue;
 
-      final amount = _interpretJpy(token, hasCurrencyContext: () {
-        return _currencyContext(line, start, end);
-      });
+      final amount = _interpretJpy(token);
       if (amount == null) continue;
 
       final hasCurrency = _currencyContext(line, start, end);
@@ -184,25 +182,14 @@ class JapanesePriceParser {
     return false;
   }
 
-  /// Token'ı tam sayı yene çevirir. Binlik virgül kaldırılır; nokta bağlama
-  /// göre binlik ayırıcı (`1.280` → 1280) veya ondalık olarak ele alınır.
-  int? _interpretJpy(String token,
-      {required bool Function() hasCurrencyContext}) {
-    final noCommas = token.replaceAll(',', '');
-    if (!noCommas.contains('.')) {
-      return int.tryParse(noCommas);
-    }
-    final parts = noCommas.split('.');
-    // Tüm nokta-sonrası gruplar 3 haneli → binlik ayırıcı (OCR virgülü nokta
-    // sanmış). `1.280` → 1280, `1.234.567` → 1234567.
-    final trailing = parts.sublist(1);
-    final allThree =
-        trailing.isNotEmpty && trailing.every((p) => p.length == 3);
-    final leadOk = parts.first.isNotEmpty && parts.first.length <= 3;
-    if (allThree && leadOk) {
-      return int.tryParse(parts.join());
-    }
-    // Aksi halde tam sayı kısmını al (JPY ondalıksızdır).
-    return int.tryParse(parts.first);
+  /// Token'ı tam sayı yene çevirir.
+  ///
+  /// JPY'nin ondalık (kuruş) birimi yoktur; bu yüzden fiyat içindeki her `,`
+  /// veya `.` daima binlik ayırıcıdır (ya da OCR gürültüsü) — asla ondalık
+  /// değildir. Virgül mü nokta mı ayrımı yapmaya gerek yok: ikisini de kaldırıp
+  /// kalan rakamları tam sayı olarak okuruz. `¥2,999` `¥2.999` `2 999` → 2999.
+  int? _interpretJpy(String token) {
+    final digitsOnly = token.replaceAll(RegExp(r'[.,]'), '');
+    return int.tryParse(digitsOnly);
   }
 }

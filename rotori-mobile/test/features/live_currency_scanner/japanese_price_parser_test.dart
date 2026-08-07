@@ -31,6 +31,10 @@ void main() {
     test('tam genişlik １２，８００円', () => expect(amountOf('１２，８００円'), 12800));
     test('OCR nokta hatası ¥1.280 → 1280',
         () => expect(amountOf('¥1.280'), 1280));
+    test('binlik virgül ¥2,999 → 2999', () => expect(amountOf('¥2,999'), 2999));
+    test('binlik virgül ¥1,198 → 1198', () => expect(amountOf('¥1,198'), 1198));
+    test('OCR virgülü nokta sanmış ¥2.999 → 2999',
+        () => expect(amountOf('¥2.999'), 2999));
   });
 
   group('fiyat olmayanları ele', () {
