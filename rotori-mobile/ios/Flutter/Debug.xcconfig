@@ -1,2 +1,5 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
 #include "Generated.xcconfig"
+
+// MLKit Apple Silicon simülatörde arm64 sunmadığından simülatör derlemesinde hariç tutulur.
+EXCLUDED_ARCHS[sdk=iphonesimulator*] = arm64
