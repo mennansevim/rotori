@@ -779,6 +779,8 @@ class _EstimateRow extends StatelessWidget {
                   Flexible(
                     child: Text(
                       label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: p.textSecondary, fontSize: 13.5),
                     ),
                   ),

@@ -43,6 +43,19 @@ class ScannerTuning {
   /// Düşük güven altında overlay daha temkinli gösterilir.
   static const double lowConfidenceThreshold = 0.55;
 
+  // --- Ürün sorgu adayı (market compare) ----------------------------------
+  /// Kamera üstünde "Fiyatı sorgula" göstermek için minimum görülme sayısı.
+  static const int queryCandidateMinSeen = 2;
+
+  /// Ürün satırı adayının minimum skor eşiği.
+  static const double queryCandidateMinScore = 0.52;
+
+  /// Ürün çerçevesi hesaplanırken kutuya eklenecek dış pay.
+  static const double queryFrameInflatePx = 18;
+
+  /// Çerçeve üzerindeki başlık için maksimum karakter.
+  static const int queryCandidateMaxTitleChars = 72;
+
   // --- Kur eskimesi ---------------------------------------------------------
   /// Bu yaştan sonra güncelleme denenir.
   static const Duration refreshAfter = Duration(hours: 24);

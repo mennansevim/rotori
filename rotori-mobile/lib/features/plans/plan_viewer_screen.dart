@@ -43,7 +43,7 @@ import '../auth/auth_repository.dart';
 import '../shared/place_detail_sheet.dart';
 import '../shared/ticket_support.dart';
 import '../viewer/budget_screen.dart';
-import '../viewer/food_guide_screen.dart';
+import '../viewer/eats_screen.dart';
 import '../viewer/home_widget_hook.dart';
 import '../viewer/japanese_phrases_screen.dart';
 import '../viewer/must_know_screen.dart';
@@ -359,7 +359,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
         onOpenBudget: _openBudget,
         onOpenPrep: _openPrep,
         onOpenWeather: _openWeather,
-        onOpenFoodGuide: _openFoodGuide,
+        onOpenFoodGuide: _openEats,
         onReportBug: () => _openBugReport(trip),
       ),
       body: SafeArea(
@@ -1241,8 +1241,8 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
     );
   }
 
-  /// Yemek rehberi — ne yemeli, bütçe, diyet ve sipariş ipuçları.
-  void _openFoodGuide() {
+  /// Rotori Eats — restoranlar (helal/vejetaryen filtre), bütçe ve diyet.
+  void _openEats() {
     final palette = ref.read(viewerPaletteProvider);
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -1250,7 +1250,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
           data: palette.toThemeData(),
           child: ViewerPaletteScope(
             palette: palette,
-            child: FoodGuideScreen(trip: _trip),
+            child: EatsScreen(trip: _trip),
           ),
         ),
       ),

@@ -3,8 +3,8 @@
 > Bu dosya *bugünkü* çalışmanın canlı görünümüdür. Her tamamlanan görevden
 > hemen sonra güncellenir.
 
-**Bugünün tarihi:** 2026-08-03
-**Aktif branch:** `main`
+**Bugünün tarihi:** 2026-08-07
+**Aktif branch:** `codex/mobile-p0-viewer-test-fix-20260807-1022`
 **Sprint hedefi:** Rota optimizasyonu iyileştirme planının Faz 0–5 çekirdek
 domain, harness schema v2, kalite kapısı ve AI-maliyet sınırlarını tamamlamak.
 
@@ -20,6 +20,25 @@ optimum rota hesabı yerel deterministik motor olarak ayrıldı. Statik analiz
 temiz; 100 base × 4 profil ürün kalite kapısının bütün maddeleri geçti.
 
 ## Tamamlananlar (bu ve önceki oturumlardan)
+
+- ✅ **2026-08-07** Canlı fiyat çeviriciye ürün pazar sorgu akışı eklendi:
+  kamerada sorgulanabilir ürün çerçevesi + `Fiyatı Sorgula` CTA, açılır
+  sorgu sheet'inde Hepsiburada/Trendyol/Amazon kaynak ilerlemesi,
+  kaynak bazlı fiyat/başarısızlık durumları, karşılaştırma özetinde
+  TR medyan/min/max + JP referansı + fark (TL/%). Yeni `scanner.market.*`
+  i18n anahtarları eklendi, resolver/controller/widget testleri yazıldı
+  (`product_query_candidate_resolver_test`,
+  `live_currency_scanner_controller_test`,
+  `live_currency_scanner_page_query_ui_test`). Doğrulama:
+  scanner hedef kapsamında `flutter analyze` temiz; ilgili test setleri yeşil.
+
+- ✅ **2026-08-07** Viewer P0 test kırıkları güncel UI davranışına hizalanarak
+  kapatıldı. `checklist_screen_test.dart`, `budget_screen_test.dart` ve
+  `plan_viewer_test.dart` senaryoları yeni drawer/edit/bütçe yüzeyine göre
+  stabilize edildi (eski `⋮` menü ve sabit toplam metni beklentileri
+  kaldırıldı; drag/sheet/undo akışı doğrulandı). Doğrulama: hedefli viewer
+  test paketi yeşil, ardından tam paket `flutter test` **+566 passed** ve
+  `flutter analyze` temiz.
 
 - ✅ **2026-08-06** rotori-social deploy hattı tek monorepo akışına alındı:
   Pi5'te bağımsız `~/rotori-social` git klonu arşivlenip çalışma dizini
@@ -414,13 +433,6 @@ temiz; 100 base × 4 profil ürün kalite kapısının bütün maddeleri geçti.
   yapılandırması ($99/yıl Developer + Services ID) — `[[supabase-backend]]`.
 
 ## Bilinen Blocker'lar
-
-- **Önceden var olan widget testi hataları** (bu oturumdan bağımsız, baseline
-  `39ad0cb`'de de kırık): `test/features/viewer/plan_viewer_test.dart` edit-mode
-  senaryoları (⋮ menü, geri al, hedef gün boşluğu, kilitli aktivite) ve
-  `test/features/viewer/checklist_screen_test.dart` kategori render'ı ile
-  welcome-flow görsel testleri. Drawer görsel/refactor çalışması bunları ne
-  bozdu ne düzeltti; ayrı bir görev olarak ele alınmalı.
 
 - Native `integration_test` koşusu için bağlı iOS/Android cihaz veya emulator
   yok. Web integration runner desteklenmiyor; macOS desktop hedefi projede

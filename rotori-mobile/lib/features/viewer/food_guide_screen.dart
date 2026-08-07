@@ -296,9 +296,7 @@ class _EatsSectionState extends State<_EatsSection> {
     final lang = widget.lang;
     final all = filterEats(kEatsPlaces, _filter);
     final shown = all.take(kEatsFreeLimit).toList();
-    final lockedForFilter = all.length - shown.length;
-    final totalLocked =
-      kEatsPlaces.length > kEatsFreeLimit ? kEatsPlaces.length - kEatsFreeLimit : 0;
+    final locked = all.length - shown.length;
 
     return Container(
       width: double.infinity,
@@ -325,7 +323,6 @@ class _EatsSectionState extends State<_EatsSection> {
                   ),
                 ),
               ),
-              _EatsFreeBadge(palette: palette, lang: lang),
             ],
           ),
           const SizedBox(height: 4),
@@ -364,31 +361,11 @@ class _EatsSectionState extends State<_EatsSection> {
               if (i > 0) const SizedBox(height: 8),
               _EatsCard(place: shown[i], palette: palette, lang: lang),
             ],
-          const SizedBox(height: 10),
-          _EatsPremiumCard(
-            countForFilter: lockedForFilter > 0 ? lockedForFilter : null,
-            totalLocked: totalLocked,
-            palette: palette,
-            lang: lang,
-            onTap: () => _showEatsPaywall(context, palette, lang),
-          ),
+          if (locked > 0) ...[
+            const SizedBox(height: 8),
+            _EatsLockedCard(count: locked, palette: palette, lang: lang),
+          ],
         ],
-      ),
-    );
-  }
-
-  void _showEatsPaywall(
-    BuildContext context,
-    ViewerPalette palette,
-    AppLang lang,
-  ) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => ViewerPaletteScope(
-        palette: palette,
-        child: _EatsPaywallSheet(palette: palette, lang: lang),
       ),
     );
   }
@@ -596,480 +573,50 @@ class _EatsBadge extends StatelessWidget {
   }
 }
 
-/// Free katman etiketi — kullanıcı sınırın “ücretsiz” kısmını net görür.
-class _EatsFreeBadge extends StatelessWidget {
-  const _EatsFreeBadge({required this.palette, required this.lang});
-
-  final ViewerPalette palette;
-  final AppLang lang;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: palette.matcha.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        const LText('Ücretsiz · ilk $kEatsFreeLimit', 'Free · first $kEatsFreeLimit')
-            .of(lang),
-        style: TextStyle(
-          color: palette.textPrimary,
-          fontSize: 10.5,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
-/// Rotori Eats premium rozet/ikonu — kart ve paywall'da tutarlı vitrin dili.
-class _EatsPremiumLogo extends StatelessWidget {
-  const _EatsPremiumLogo({required this.palette, this.size = 58});
-
-  final ViewerPalette palette;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  palette.accent,
-                  palette.gold,
-                ],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: palette.accent.withValues(alpha: 0.30),
-                  blurRadius: 14,
-                  offset: const Offset(0, 7),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            width: size * 0.74,
-            height: size * 0.74,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withValues(alpha: 0.92),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.65)),
-            ),
-            alignment: Alignment.center,
-            child: Icon(
-              Icons.ramen_dining_rounded,
-              size: size * 0.36,
-              color: palette.accent,
-            ),
-          ),
-          Positioned(
-            right: -2,
-            top: -2,
-            child: Container(
-              width: size * 0.34,
-              height: size * 0.34,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: palette.textPrimary,
-                border: Border.all(color: palette.card, width: 1.5),
-              ),
-              alignment: Alignment.center,
-              child: Icon(
-                Icons.auto_awesome_rounded,
-                size: size * 0.17,
-                color: palette.gold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Free limitin ötesi için premium upsell kartı — değer önerileri + CTA.
-/// Satın alma henüz bağlı değil; CTA paywall önizlemesini açar.
-class _EatsPremiumCard extends StatelessWidget {
-  const _EatsPremiumCard({
-    required this.countForFilter,
-    required this.totalLocked,
+/// Free limitin ötesindeki sonuçlar için "yakında" teaser'ı. Premium gate
+/// ayrı bir çalışmada bağlanacak (bkz. monetizasyon tartışması).
+class _EatsLockedCard extends StatelessWidget {
+  const _EatsLockedCard({
+    required this.count,
     required this.palette,
     required this.lang,
-    required this.onTap,
   });
 
-  final int? countForFilter;
-  final int totalLocked;
+  final int count;
   final ViewerPalette palette;
   final AppLang lang;
-  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final accent = palette.accent;
-    final unlockedIntro = lang == AppLang.tr
-        ? (countForFilter != null
-            ? 'Bu filtrede $countForFilter restoran daha açılır.'
-            : 'Tüm şehirlerde $totalLocked restoran daha açılır.')
-        : (countForFilter != null
-            ? '$countForFilter more restaurants unlock in this filter.'
-            : '$totalLocked more restaurants unlock across cities.');
-
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: accent.withValues(alpha: 0.55)),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            accent.withValues(alpha: 0.18),
-            palette.gold.withValues(alpha: 0.10),
-          ],
+        color: palette.bg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: palette.border,
+          style: BorderStyle.solid,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _EatsPremiumLogo(palette: palette),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      const LText('Rotori Eats Pass', 'Rotori Eats Pass').of(lang),
-                      style: TextStyle(
-                        color: palette.textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      unlockedIntro,
-                      style: TextStyle(
-                        color: palette.textSecondary,
-                        fontSize: 12,
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              _PremiumHintChip(
-                text: const LText('📍 Yakınımdakiler', '📍 Near me').of(lang),
-                palette: palette,
-              ),
-              _PremiumHintChip(
-                text: const LText('🕒 Şu an açık', '🕒 Open now').of(lang),
-                palette: palette,
-              ),
-              _PremiumHintChip(
-                text: const LText('⭐ Rotori skoru', '⭐ Rotori score').of(lang),
-                palette: palette,
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            const LText(
-              'Kısa tanıtım: premium ile filtrelenmiş listeyi genişletir, '
-              'kararını hızlandırır ve plana tek dokunuşla ekleme açar.',
-              'Quick intro: premium expands your filtered list, speeds up '
-              'decisions, and unlocks one-tap add to plan.',
-            ).of(lang),
-            style: TextStyle(
-              color: palette.textSecondary,
-              fontSize: 12.5,
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: onTap,
-              style: FilledButton.styleFrom(
-                backgroundColor: accent,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 11),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(11),
-                ),
-              ),
-              icon: const Icon(Icons.lock_open_rounded, size: 17),
-              label: Text(
-                const LText('Hepsini aç', 'Unlock all').of(lang),
-                style: const TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w700,
-                ),
+          Icon(Icons.lock_outline_rounded, size: 18, color: palette.textSecondary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              LText(
+                'Bu filtrede $count restoran daha var · yakında',
+                '$count more restaurants in this filter · coming soon',
+              ).of(lang),
+              style: TextStyle(
+                color: palette.textSecondary,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PremiumHintChip extends StatelessWidget {
-  const _PremiumHintChip({required this.text, required this.palette});
-
-  final String text;
-  final ViewerPalette palette;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        color: palette.card.withValues(alpha: 0.70),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: palette.border),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: palette.textPrimary,
-          fontSize: 11.5,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
-
-/// Rotori Eats Pass paywall önizlemesi. Satın alma akışı henüz bağlı değil
-/// (monetizasyon ayrı çalışma); değer + fiyat modeli gösterilir, birincil
-/// aksiyon “yakında” durumundadır.
-class _EatsPaywallSheet extends StatelessWidget {
-  const _EatsPaywallSheet({required this.palette, required this.lang});
-
-  final ViewerPalette palette;
-  final AppLang lang;
-
-  static const _benefits = <({String emoji, LText text})>[
-    (emoji: '🔓', text: LText('Tüm restoran listesi (sınırsız)', 'Full restaurant list (unlimited)')),
-    (emoji: '📍', text: LText('Yakınımdakiler — konuma göre sıralama', 'Near me — sorted by location')),
-    (emoji: '🕒', text: LText('Şu an açık filtresi', 'Open-now filter')),
-    (emoji: '⭐', text: LText('Rotori öneri skoru (diyet + bütçe)', 'Rotori recommendation score (diet + budget)')),
-    (emoji: '🗓️', text: LText('Plana tek dokunuşla ekle', 'Add to your plan in one tap')),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottomInset),
-      child: Container(
-        decoration: BoxDecoration(
-          color: palette.card,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-          border: Border.all(color: palette.border),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: palette.border,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _EatsPremiumLogo(palette: palette, size: 54),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        const LText('Rotori Eats Pass', 'Rotori Eats Pass').of(lang),
-                        style: TextStyle(
-                          color: palette.textPrimary,
-                          fontSize: 19,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        const LText(
-                          'Gezi boyunca tüm restoranlar ve “şimdi nereye gitmeliyim?”’in '
-                          'cevabı — tek gezi için.',
-                          'All restaurants during your trip and the answer to “where '
-                          'should I eat now?” — for a single trip.',
-                        ).of(lang),
-                        style: TextStyle(color: palette.textSecondary, fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Text(
-              const LText('Premium ile açılanlar', 'What unlocks with premium').of(lang),
-              style: TextStyle(
-                color: palette.textPrimary,
-                fontSize: 13.5,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 10),
-            for (final b in _benefits)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(b.emoji, style: const TextStyle(fontSize: 15)),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        b.text.of(lang),
-                        style: TextStyle(
-                          color: palette.textPrimary,
-                          fontSize: 13.5,
-                          height: 1.3,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 6),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: palette.elevated,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: palette.border),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          const LText('Trip Pass · gezi başına', 'Trip Pass · per trip').of(lang),
-                          style: TextStyle(
-                            color: palette.textPrimary,
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          const LText('Abonelik yok — tek seferlik.', 'No subscription — one-time.').of(lang),
-                          style: TextStyle(
-                            color: palette.textSecondary,
-                            fontSize: 11.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: palette.accent.withValues(alpha: 0.16),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      const LText('Yakında', 'Soon').of(lang),
-                      style: TextStyle(
-                        color: palette.textPrimary,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        const LText(
-                          'Rotori Eats Pass çok yakında geliyor.',
-                          'Rotori Eats Pass is coming very soon.',
-                        ).of(lang),
-                      ),
-                    ),
-                  );
-                },
-                style: FilledButton.styleFrom(
-                  backgroundColor: palette.accent,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  const LText('Beni haberdar et', 'Notify me').of(lang),
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Center(
-              child: TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text(
-                  const LText('Kapat', 'Close').of(lang),
-                  style: TextStyle(color: palette.textSecondary),
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

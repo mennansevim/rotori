@@ -3,12 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/supabase_client.dart';
 import '../../../data/plans_repository.dart' show sharedPrefsProvider;
 import '../domain/currency_converter.dart';
+import '../domain/repositories/product_price_query_repository.dart';
 import '../domain/repositories/exchange_rate_repository.dart';
 import '../domain/repositories/scanner_settings_repository.dart';
 import '../infrastructure/exchange_rates/exchange_rate_local_data_source.dart';
 import '../infrastructure/exchange_rates/exchange_rate_remote_data_source.dart';
 import '../infrastructure/exchange_rates/exchange_rate_repository_impl.dart';
+import '../infrastructure/market_prices/market_price_query_repository_impl.dart';
 import '../infrastructure/ocr/ocr_price_extractor.dart';
+import '../infrastructure/parsing/product_query_candidate_resolver.dart';
 import '../infrastructure/settings/scanner_settings_repository_impl.dart';
 import 'live_currency_scanner_state.dart';
 import 'scanner_settings_controller.dart';
@@ -48,6 +51,16 @@ final currencyConverterProvider =
 /// OCR sonucundan fiyat çıkaran saf servis.
 final ocrPriceExtractorProvider =
     Provider<OcrPriceExtractor>((ref) => const OcrPriceExtractor());
+
+/// OCR satırlarından sorgulanabilir ürün adayı çıkarır.
+final productQueryCandidateResolverProvider =
+  Provider<ProductQueryCandidateResolver>(
+    (ref) => const ProductQueryCandidateResolver());
+
+/// TR market fiyat karşılaştırma repository'si.
+final productPriceQueryRepositoryProvider =
+  Provider<ProductPriceQueryRepository>(
+    (ref) => const MarketPriceQueryRepositoryImpl());
 
 /// [DateTime.now] anına göre kur tazeliği.
 RateFreshness freshnessFor(DateTime fetchedAt, DateTime now) {

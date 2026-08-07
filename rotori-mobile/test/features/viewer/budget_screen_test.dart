@@ -93,7 +93,7 @@ void main() {
     );
   }
 
-  testWidgets('toplam ve çevirici render edilir', (tester) async {
+  testWidgets('tahmin kartı, kırılım ve çevirici render edilir', (tester) async {
     useTallViewport(tester);
     await tester.pumpWidget(harness(_sampleTrip()));
     await tester.pump();
@@ -101,8 +101,10 @@ void main() {
 
     // Başlık
     expect(find.text('💰 Bütçe'), findsOneWidget);
-    // Toplam: (1000 + 2000 + 4000) * 0.25 = 1750 → ₺1.750 (benzersiz)
-    expect(find.text('₺1.750'), findsOneWidget);
+    // Yeni tasarımda toplam tek satır yerine tahmin + kategori/gün kırılımı var.
+    expect(find.text('Bu rota sizin için tahminen'), findsOneWidget);
+    expect(find.text('Kategoriye göre'), findsOneWidget);
+    expect(find.text('₺750'), findsOneWidget);
     // Çevirici bölümü
     expect(find.text('Çevirici'), findsOneWidget);
     // Varsayılan kur satırı
@@ -122,7 +124,8 @@ void main() {
     expect(find.text('₺2.500'), findsOneWidget);
   });
 
-  testWidgets('kur düzenlenince toplam güncellenir', (tester) async {
+  testWidgets('kur düzenlenince kur satırı ve çevirici çıktısı güncellenir',
+      (tester) async {
     useTallViewport(tester);
     await tester.pumpWidget(harness(_sampleTrip()));
     await tester.pump();
@@ -144,9 +147,15 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    // Yeni kurla toplam: 7000 * 0.5 = 3500 → ₺3.500 (benzersiz)
-    expect(find.text('₺3.500'), findsOneWidget);
-    // Kur satırı güncellenir
+    // Kur satırı güncellenir.
     expect(find.text('1 ¥ = ₺0,5'), findsOneWidget);
+
+    // Çeviriciyi yeni kurla doğrula: 7000 * 0.5 = ₺3.500
+    await tester.enterText(find.byType(TextField).first, '7000');
+    await tester.pump();
+    expect(find.text('₺3.500'), findsOneWidget);
+
+    // Gün toplamı da yeni kura göre artar: (1000+2000) * 0.5 = ₺1.500
+    expect(find.text('₺1.500'), findsOneWidget);
   });
 }
