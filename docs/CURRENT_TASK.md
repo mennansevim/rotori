@@ -21,6 +21,16 @@ temiz; 100 base × 4 profil ürün kalite kapısının bütün maddeleri geçti.
 
 ## Tamamlananlar (bu ve önceki oturumlardan)
 
+- ✅ **2026-08-07** Yeni mobil **price-tag scanner** özelliği ayrı feature
+  paketi olarak eklendi (`rotori-mobile/lib/features/price_tag_scanner/`):
+  `view/` (tam ekran kamera + merkez viewfinder overlay), `controller/`
+  (Riverpod state makinesi: Scanning → ExtractedData → FetchingMockPrices
+  → ResultReady → Error, 450 ms frame throttling, single-flight OCR),
+  `services/` (1 sn gecikmeli Hepsiburada/Trendyol/Amazon TR mock JSON fiyat
+  repository) ve `utils/` (`TagParser`: JPY/model regex parse, ポイント
+  eleme, 税込 önceliği). Test: `tag_parser_test.dart` (3 mock OCR bloğu)
+  geçti; hedef kapsam analyzer temiz.
+
 - ✅ **2026-08-07** Canlı fiyat çeviriciye ürün pazar sorgu akışı eklendi:
   kamerada sorgulanabilir ürün çerçevesi + `Fiyatı Sorgula` CTA, açılır
   sorgu sheet'inde Hepsiburada/Trendyol/Amazon kaynak ilerlemesi,
