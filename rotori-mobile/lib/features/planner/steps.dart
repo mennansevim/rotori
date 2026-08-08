@@ -4,7 +4,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../core/l10n.dart';
 
-enum StepId { welcome, journey, explore, title, hotels, food, plan, publish }
+enum StepId { welcome, journey, title, hotels, plan, publish }
 
 class StepDef {
   const StepDef(this.id, this.label, this.num);
@@ -12,22 +12,17 @@ class StepDef {
   final String label;
   final int num;
 
-  /// Aktif dildeki nav etiketi — `steps.<id>` anahtarından çözülür.
-  /// [label] alanı Türkçe yedeği ve veri karşılaştırmaları için korunur.
   String labelFor(BuildContext context) =>
       LanguageScope.of(context).s('steps.${id.name}');
 }
 
-/// steps.ts STEPS dizisi — sıra ve etiketler birebir (i18n nav.* Türkçesi).
 const List<StepDef> kSteps = [
   StepDef(StepId.welcome, 'Başla', 1),
   StepDef(StepId.journey, 'Rota', 2),
-  StepDef(StepId.explore, 'Keşfet', 3),
-  StepDef(StepId.title, 'Başlık', 4),
-  StepDef(StepId.hotels, 'Konaklama', 5),
-  StepDef(StepId.food, 'Yemek', 6),
-  StepDef(StepId.plan, 'Plan', 7),
-  StepDef(StepId.publish, 'Yayın', 8),
+  StepDef(StepId.title, 'Başlık', 3),
+  StepDef(StepId.hotels, 'Konaklama', 4),
+  StepDef(StepId.plan, 'Plan', 5),
+  StepDef(StepId.publish, 'Yayın', 6),
 ];
 
 int stepIndex(StepId id) => kSteps.indexWhere((s) => s.id == id);

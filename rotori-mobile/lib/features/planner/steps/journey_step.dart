@@ -1032,12 +1032,10 @@ class _CityChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 16)),
-            const SizedBox(width: 6),
             Text(label,
                 style: TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                     color: active ? Colors.white : PT.text)),
             if (active) ...[
               const SizedBox(width: 6),

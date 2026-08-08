@@ -33,10 +33,8 @@ class PublishStep extends StatelessWidget {
 
   static const Map<String, StepId> _stepIds = {
     'journey': StepId.journey,
-    'explore': StepId.explore,
     'title': StepId.title,
     'hotels': StepId.hotels,
-    'food': StepId.food,
     'plan': StepId.plan,
   };
 

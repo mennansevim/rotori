@@ -67,11 +67,9 @@ class _ViewerDrawer extends ConsumerWidget {
           label: s.s('viewer.tt.checklist'),
           onTap: onOpenPrep),
       _DrawerActionSpec(
-          icon: Icons.currency_yen_rounded,
-          label: s.s('scanner.tt'),
-          // push (go değil): tarayıcıdan geri dönünce viewer'a döner, plan
-          // listesine düşmez.
-          onTap: () => context.push('/live-currency-scanner')),
+          icon: Icons.sell_outlined,
+          label: s.s('scanner.price_tag'),
+          onTap: () => context.push('/price-tag-scanner')),
     ];
 
     return Drawer(
@@ -141,6 +139,13 @@ class _ViewerDrawer extends ConsumerWidget {
                   ),
                   const SizedBox(height: 22),
                   _DrawerSectionLabel(
+                    label: s.s('drawer.section.language'),
+                    palette: p,
+                  ),
+                  const SizedBox(height: 8),
+                  _DrawerLangSwitcher(palette: p),
+                  const SizedBox(height: 22),
+                  _DrawerSectionLabel(
                     label: s.s('drawer.section.account'),
                     palette: p,
                   ),
@@ -155,6 +160,15 @@ class _ViewerDrawer extends ConsumerWidget {
                   _DrawerNavGroup(
                     palette: p,
                     children: [
+                      _DrawerNavTile(
+                        palette: p,
+                        icon: Icons.shopping_bag_outlined,
+                        label: s.s('drawer.nav.travelEssentials'),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          onOpenPrep();
+                        },
+                      ),
                       _DrawerNavTile(
                         palette: p,
                         icon: Icons.list_alt_rounded,
@@ -173,6 +187,8 @@ class _ViewerDrawer extends ConsumerWidget {
                           onReportBug();
                         },
                       ),
+                      if (kDebugMode)
+                        _DebugPremiumTile(palette: p),
                       _DrawerNavTile(
                         palette: p,
                         icon: Icons.logout_rounded,
@@ -1490,6 +1506,125 @@ class _DrawerActionTile extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Debug: premium mod aç/kapa. Sadece debug build'lerde görünür.
+class _DebugPremiumTile extends StatefulWidget {
+  const _DebugPremiumTile({required this.palette});
+  final ViewerPalette palette;
+  @override
+  State<_DebugPremiumTile> createState() => _DebugPremiumTileState();
+}
+
+class _DebugPremiumTileState extends State<_DebugPremiumTile> {
+  bool _premium = false;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _premium = prefs.getBool('debug_premium') ?? false;
+      _loaded = true;
+    });
+  }
+
+  Future<void> _toggle() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('debug_premium', !_premium);
+    setState(() => _premium = !_premium);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = widget.palette;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _loaded ? _toggle : null,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 50),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            child: Row(
+              children: [
+                Container(
+                  width: 32, height: 32,
+                  decoration: BoxDecoration(
+                    color: _premium ? const Color(0xFFFFD700).withValues(alpha: 0.14) : p.textSecondary.withValues(alpha: 0.09),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(Icons.science_outlined, size: 18, color: _premium ? const Color(0xFFFFD700) : p.textSecondary),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('Debug: ${_premium ? 'Premium AÇIK' : 'Premium KAPALI'}',
+                      style: TextStyle(color: _premium ? const Color(0xFFFFD700) : p.textSecondary, fontSize: 13)),
+                ),
+                Switch(value: _premium, onChanged: (_) => _toggle(), activeColor: const Color(0xFFFFD700)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Drawer içi dil değiştirici — iOS segment control tarzı.
+class _DrawerLangSwitcher extends ConsumerWidget {
+  const _DrawerLangSwitcher({required this.palette});
+  final ViewerPalette palette;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = palette;
+    final current = ref.watch(appLangProvider);
+    final notifier = ref.read(appLangProvider.notifier);
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(color: p.elevated, borderRadius: BorderRadius.circular(14), border: Border.all(color: p.border)),
+      child: Row(children: [
+        Expanded(child: _DrawerLangOption(label: '🇹🇷 Türkçe', active: current == AppLang.tr, onTap: () => notifier.set(AppLang.tr), palette: p)),
+        Expanded(child: _DrawerLangOption(label: '🇬🇧 English', active: current == AppLang.en, onTap: () => notifier.set(AppLang.en), palette: p)),
+      ]),
+    );
+  }
+}
+
+class _DrawerLangOption extends StatelessWidget {
+  const _DrawerLangOption({required this.label, required this.active, required this.onTap, required this.palette});
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  final ViewerPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: active ? palette.accent : Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          alignment: Alignment.center,
+          child: Text(label, style: TextStyle(
+            color: active ? Colors.white : palette.textSecondary,
+            fontSize: 13, fontWeight: FontWeight.w600,
+          )),
         ),
       ),
     );

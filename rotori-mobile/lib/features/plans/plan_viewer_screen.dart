@@ -17,6 +17,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/l10n.dart';
@@ -32,12 +34,18 @@ import '../../domain/bug_report.dart';
 import '../../domain/day_schedule.dart' as sched;
 import '../../domain/destination_profiles.dart';
 import '../../domain/itinerary_optimizer.dart';
+import '../../domain/japanese_phrases_data.dart';
+import '../../domain/localized_text.dart';
 import '../../domain/place_coords.dart';
 import '../../domain/place_image_resolver.dart';
 import '../../domain/plan_schedule_engine.dart';
 import '../../domain/plan_warnings.dart';
 import '../../domain/route_time_bounds.dart';
 import '../../domain/route_matrix.dart';
+import '../../data/affiliate_links.dart';
+import '../../data/tts_service.dart';
+import '../../domain/localized_text.dart';
+import '../../domain/travel_tips_data.dart';
 import '../../domain/types.dart';
 import '../auth/auth_repository.dart';
 import '../shared/place_detail_sheet.dart';
@@ -225,6 +233,10 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
   /// aksiyonları her item için görünür. Kayıt her mutasyonda anlık yapılır
   /// (`plansRepositoryProvider.save`).
   bool _editMode = false;
+
+  /// Aktif tab — 0: Ana Sayfa, 1: Biletler, 2: Japonca, 3: Rehber.
+  int _activeTab = 0;
+
   late final PlanEditSession _editSession;
   PlanEditState? _editState;
   Timer? _undoSnackTimer;
@@ -375,77 +387,90 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
               onRebuild: _confirmRebuild,
             ),
             Expanded(
-              child: ListView(
-                controller: _scrollController,
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
+              child: IndexedStack(
+                index: _activeTab,
                 children: [
-                  if (days.isEmpty)
-                    _EmptyDaysCard(palette: palette)
-                  else
-                    for (var i = 0; i < days.length; i++) ...[
-                      _DayCard(
-                        key: i == activeIndex ? _activeDayKey : null,
-                        day: days[i],
-                        palette: palette,
-                        dest: getDestinationForDate(
-                          _sortedDestinations,
-                          days[i].date,
-                        ),
-                        bubbleColor: cityColorFor(
-                          _sortedDestinations,
-                          getDestinationForDate(
-                            _sortedDestinations,
-                            days[i].date,
-                          )?.id,
-                        ),
-                        forecast: _forecast[days[i].date],
-                        isPast: i < activeIndex,
-                        isActive: i == activeIndex,
-                        expanded: _editMode
-                            ? !_collapsedInEdit.contains(i)
-                            : _expandedInView.contains(i),
-                        onToggleExpand: () => setState(() {
-                          if (_editMode) {
-                            if (!_collapsedInEdit.remove(i)) {
-                              _collapsedInEdit.add(i);
-                            }
-                          } else {
-                            if (!_expandedInView.remove(i)) {
-                              _expandedInView.add(i);
-                            }
-                          }
-                        }),
-                        editMode: _editMode,
-                        allDays: days,
-                        onOpenItem: _openItem,
-                        onOpenMap: _openDayMap,
-                        onOptimizeRoute: () => _openRouteOptimization(
-                          days[i],
-                          getDestinationForDate(
-                            _sortedDestinations,
-                            days[i].date,
+                  // Tab 0 — Ana Sayfa: gün akışı.
+                  ListView(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
+                    children: [
+                      if (days.isEmpty)
+                        _EmptyDaysCard(palette: palette)
+                      else
+                        for (var i = 0; i < days.length; i++) ...[
+                          _DayCard(
+                            key: i == activeIndex ? _activeDayKey : null,
+                            day: days[i],
+                            palette: palette,
+                            dest: getDestinationForDate(
+                              _sortedDestinations,
+                              days[i].date,
+                            ),
+                            bubbleColor: cityColorFor(
+                              _sortedDestinations,
+                              getDestinationForDate(
+                                _sortedDestinations,
+                                days[i].date,
+                              )?.id,
+                            ),
+                            forecast: _forecast[days[i].date],
+                            isPast: i < activeIndex,
+                            isActive: i == activeIndex,
+                            expanded: _editMode
+                                ? !_collapsedInEdit.contains(i)
+                                : _expandedInView.contains(i),
+                            onToggleExpand: () => setState(() {
+                              if (_editMode) {
+                                if (!_collapsedInEdit.remove(i)) {
+                                  _collapsedInEdit.add(i);
+                                }
+                              } else {
+                                if (!_expandedInView.remove(i)) {
+                                  _expandedInView.add(i);
+                                }
+                              }
+                            }),
+                            editMode: _editMode,
+                            allDays: days,
+                            onOpenItem: _openItem,
+                            onOpenMap: _openDayMap,
+                            onOptimizeRoute: () => _openRouteOptimization(
+                              days[i],
+                              getDestinationForDate(
+                                _sortedDestinations,
+                                days[i].date,
+                              ),
+                            ),
+                            onOptimizeWeatherRoute:
+                                (day, destination, forecast) =>
+                                    _openRouteOptimization(
+                              day,
+                              destination,
+                              forecast: forecast,
+                              useWeatherAdjustment: true,
+                            ),
+                            onDropItem: _dropActivity,
+                            onDeleteItem: _deleteItem,
+                            onEditItemTime: _editItemTime,
+                            onAddItem: _addItemToDay,
+                            onEditDay: _editDay,
+                            onMoveDay: _moveDay,
+                            onDragUpdate: _autoScrollDuringDrag,
+                            dragActive: _dragActiveNotifier,
                           ),
-                        ),
-                        onOptimizeWeatherRoute:
-                            (day, destination, forecast) =>
-                                _openRouteOptimization(
-                          day,
-                          destination,
-                          forecast: forecast,
-                          useWeatherAdjustment: true,
-                        ),
-                        onDropItem: _dropActivity,
-                        onDeleteItem: _deleteItem,
-                        onEditItemTime: _editItemTime,
-                        onAddItem: _addItemToDay,
-                        onEditDay: _editDay,
-                        onMoveDay: _moveDay,
-                        onDragUpdate: _autoScrollDuringDrag,
-                        dragActive: _dragActiveNotifier,
-                      ),
-                      if (i < days.length - 1)
-                        _cityTransitionBetween(days[i], days[i + 1], palette),
+                          if (i < days.length - 1)
+                            _cityTransitionBetween(
+                                days[i], days[i + 1], palette),
+                        ],
                     ],
+                  ),
+                  // Tab 1 — Biletler.
+                  _TabTicketsView(trip: trip, palette: palette),
+                  // Tab 2 — Japonca.
+                  _TabPhrasesView(palette: palette, lang: ref.watch(appLangProvider)),
+                  // Tab 3 — Rehber.
+                  _TabMustKnowView(palette: palette, lang: ref.watch(appLangProvider)),
                 ],
               ),
             ),
@@ -454,10 +479,8 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
       ),
       bottomNavigationBar: _ViewerQuickNav(
         palette: palette,
-        onExplore: _openMap,
-        onTickets: _openTickets,
-        onJapanese: _openPhrases,
-        onGuide: _openMustKnow,
+        activeTab: _activeTab,
+        onTabChanged: (tab) => setState(() => _activeTab = tab),
       ),
     );
   }
@@ -1484,20 +1507,31 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                 width: 1,
               ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('🚄', style: TextStyle(fontSize: 13)),
-                const SizedBox(width: 6),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: p.accent,
-                    fontWeight: FontWeight.w700,
-                  ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(999),
+              onTap: () async {
+                final uri = Uri.tryParse('https://www.jrailpass.com/?aff=rotori');
+                if (uri != null) {
+                  try { await launchUrl(uri, mode: LaunchMode.externalApplication); } catch (_) {}
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('🚄', style: TextStyle(fontSize: 13)),
+                    const SizedBox(width: 4),
+                    Text(label, style: TextStyle(fontSize: 12, color: p.accent, fontWeight: FontWeight.w700)),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                      decoration: BoxDecoration(color: const Color(0xFFFFD700).withValues(alpha: 0.18), borderRadius: BorderRadius.circular(4)),
+                      child: const Text('JR Pass', style: TextStyle(fontSize: 8.5, color: Color(0xFFD4A017), fontWeight: FontWeight.w800)),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
           const SizedBox(width: 10),
@@ -1830,62 +1864,60 @@ class _BarBellButton extends ConsumerWidget {
   }
 }
 
-/// Ana gezi akışındaki dört sık kullanılan özelliği her zaman görünür tutar.
-/// Drawer ikincil araçlar için kalır; bu bar yalnızca günlük kullanım aksiyonlarını taşır.
+/// iOS tarzı persistent tab bar — yazı + emoji bazlı, net ve anlaşılır.
 class _ViewerQuickNav extends StatelessWidget {
   const _ViewerQuickNav({
     required this.palette,
-    required this.onExplore,
-    required this.onTickets,
-    required this.onJapanese,
-    required this.onGuide,
+    required this.activeTab,
+    required this.onTabChanged,
   });
 
   final ViewerPalette palette;
-  final VoidCallback onExplore;
-  final VoidCallback onTickets;
-  final VoidCallback onJapanese;
-  final VoidCallback onGuide;
+  final int activeTab;
+  final ValueChanged<int> onTabChanged;
 
   @override
   Widget build(BuildContext context) {
-    final s = LanguageScope.of(context);
-    final items = [
-      (Icons.explore_outlined, s.s('viewer.quick.explore'), onExplore),
-      (Icons.confirmation_num_outlined, s.s('viewer.quick.tickets'), onTickets),
-      (Icons.translate_outlined, s.s('viewer.quick.japanese'), onJapanese),
-      (Icons.menu_book_outlined, s.s('viewer.quick.guide'), onGuide),
+    final activeColor = palette.accent;
+    final inactiveColor = palette.textSecondary;
+
+    final tabs = <({String emoji, String label})>[
+      (emoji: '🏠', label: 'Ana Sayfa'),
+      (emoji: '🎫', label: 'Biletler'),
+      (emoji: '🇯🇵', label: 'Japonca'),
+      (emoji: '📖', label: 'Rehber'),
     ];
+
     return Material(
       color: palette.card.withValues(alpha: 0.98),
       child: SafeArea(
         top: false,
         child: Container(
-          height: 70,
+          height: 64,
           decoration: BoxDecoration(
             border: Border(top: BorderSide(color: palette.border)),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Row(
             children: [
-              for (final item in items)
+              for (var i = 0; i < tabs.length; i++)
                 Expanded(
                   child: InkWell(
                     borderRadius: BorderRadius.circular(14),
-                    onTap: item.$3,
+                    onTap: () => onTabChanged(i),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(item.$1, color: palette.textSecondary, size: 22),
-                        const SizedBox(height: 3),
+                        Text(tabs[i].emoji, style: TextStyle(fontSize: activeTab == i ? 22 : 20)),
+                        const SizedBox(height: 2),
                         Text(
-                          item.$2,
+                          tabs[i].label,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: palette.textSecondary,
+                            color: activeTab == i ? activeColor : inactiveColor,
                             fontSize: 11,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: activeTab == i ? FontWeight.w700 : FontWeight.w600,
                           ),
                         ),
                       ],
@@ -1896,6 +1928,315 @@ class _ViewerQuickNav extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Tab içerik widget'ları — persistent tab bar ile kullanım için
+// Scaffold/AppBar'sız, sadece içerik.
+// ---------------------------------------------------------------------------
+
+/// Tab 1 — Biletler: kullanıcının girdiği biletleri listeler.
+class _TabTicketsView extends StatelessWidget {
+  const _TabTicketsView({required this.trip, required this.palette});
+  final Trip trip;
+  final ViewerPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
+    final p = palette;
+    if (trip.tickets.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.confirmation_num_outlined, size: 48, color: p.textMuted),
+            const SizedBox(height: 12),
+            Text(
+              s.s('viewer.quick.noTickets'),
+              style: TextStyle(color: p.textSecondary, fontSize: 15),
+            ),
+          ],
+        ),
+      );
+    }
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+      children: [
+        for (final ticket in trip.tickets)
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: p.card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: p.border),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: (ticket.kind == 'train'
+                            ? p.fuji
+                            : p.sakura)
+                        .withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: Icon(
+                    ticket.kind == 'train'
+                        ? Icons.train_outlined
+                        : Icons.confirmation_num_outlined,
+                    color: ticket.kind == 'train' ? p.fuji : p.sakura,
+                    size: 25,
+                  ),
+                ),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(ticket.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: p.textPrimary,
+                              fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 3),
+                      Text(
+                          ticket.visitDate ??
+                              (ticket.purchased
+                                  ? s.s('viewer.quick.ticketPurchased')
+                                  : s.s('viewer.quick.ticketPending')),
+                          style:
+                              TextStyle(color: p.textSecondary, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                Icon(
+                  ticket.purchased
+                      ? Icons.check_circle_outline
+                      : Icons.schedule_outlined,
+                  color: ticket.purchased ? p.matcha : p.gold,
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Tab 2 — Japonca: pratik kelimeler & cümleler (AppBar'sız, tab içi).
+class _TabPhrasesView extends StatefulWidget {
+  const _TabPhrasesView({required this.palette, required this.lang});
+  final ViewerPalette palette;
+  final AppLang lang;
+  @override
+  State<_TabPhrasesView> createState() => _TabPhrasesViewState();
+}
+
+class _TabPhrasesViewState extends State<_TabPhrasesView> {
+  int _activeCat = 0;
+
+  void _speak(String text) {
+    try { TtsService.instance.speakJa(text); } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = widget.palette;
+    final lang = widget.lang;
+    final category = kJapanesePhraseCategories[_activeCat];
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+      children: [
+        Text(const LText('Japonca', 'Japanese').of(lang),
+            style: TextStyle(color: p.textPrimary, fontSize: 20, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 8),
+        // Kategori sekmeleri — emoji yerine anlamlı ikon + kısa metin
+        SizedBox(
+          height: 38,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: kJapanesePhraseCategories.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, i) {
+              final cat = kJapanesePhraseCategories[i];
+              final active = i == _activeCat;
+              return Material(
+                color: active ? p.accent.withValues(alpha: 0.14) : p.elevated,
+                borderRadius: BorderRadius.circular(999),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(999),
+                  onTap: () => setState(() => _activeCat = i),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: active ? p.accent : p.border),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Text(cat.emoji, style: const TextStyle(fontSize: 14)),
+                      const SizedBox(width: 5),
+                      Text(cat.title.of(lang),
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                              color: active ? p.accent : p.textSecondary)),
+                    ]),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Cümleler
+        for (final phrase in category.phrases)
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: p.card, borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: p.border),
+            ),
+            child: InkWell(
+              onTap: () => _speak(phrase.jp),
+              borderRadius: BorderRadius.circular(14),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(phrase.meaning.of(lang),
+                              style: TextStyle(color: p.textSecondary, fontSize: 12)),
+                          const SizedBox(height: 4),
+                          Text(phrase.jp,
+                              style: TextStyle(color: p.textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
+                          if (phrase.romaji != null && phrase.romaji!.isNotEmpty)
+                            Text(phrase.romaji!,
+                                style: TextStyle(color: p.textMuted, fontSize: 13, fontStyle: FontStyle.italic)),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.volume_up_rounded, size: 20, color: p.accent),
+                      onPressed: () => _speak(phrase.jp),
+                      tooltip: const LText('Sesli dinle', 'Listen').of(lang),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Tab 3 — Rehber: mutlaka bilinmesi gerekenler (AppBar'sız, tab içi).
+class _TabMustKnowView extends StatelessWidget {
+  const _TabMustKnowView({required this.palette, required this.lang});
+  final ViewerPalette palette;
+  final AppLang lang;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    final lang = this.lang;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+      children: [
+        Text(
+          const LText('Mutlaka Bilmeniz Gerekenler', 'Must-Know Before You Go').of(lang),
+          style: TextStyle(color: p.textPrimary, fontSize: 20, fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          const LText(
+            'Japonya\'ya çıkmadan önce ve yolda işine yarayacak pratik tavsiyeler.',
+            'Practical tips that will help you before and during your trip.',
+          ).of(lang),
+          style: TextStyle(color: p.textSecondary, fontSize: 14),
+        ),
+        const SizedBox(height: 16),
+        for (final section in kMustKnowSections)
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: p.card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: p.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Text(section.emoji, style: const TextStyle(fontSize: 20)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(section.title.of(lang),
+                        style: TextStyle(color: p.textPrimary, fontWeight: FontWeight.w700, fontSize: 15)),
+                  ),
+                ]),
+                const SizedBox(height: 10),
+                for (final tip in section.tips)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('• ', style: TextStyle(color: p.accent, fontSize: 16)),
+                        Expanded(
+                          child: Text(tip.text.of(lang),
+                              style: TextStyle(color: p.textSecondary, fontSize: 13.5, height: 1.35)),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        // Seyahat öncesi hallet — affiliate kartları
+        const SizedBox(height: 24),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft, end: Alignment.bottomRight,
+              colors: [p.accent.withValues(alpha: 0.08), p.gold.withValues(alpha: 0.06)],
+            ),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: p.accent.withValues(alpha: 0.2)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(const LText('📦 Seyahat öncesi hallet', '📦 Book before you go').of(lang),
+                  style: TextStyle(color: p.textPrimary, fontSize: 15, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 2),
+              Text(const LText('Bunları şimdiden ayırt, yerin garanti olsun.', 'Book now, secure your spot.').of(lang),
+                  style: TextStyle(color: p.textSecondary, fontSize: 12)),
+              const SizedBox(height: 12),
+              for (final link in kPreDepartureAffiliates)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _AffiliateCard(link: link, palette: p, lang: lang),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -2994,6 +3335,145 @@ class _SwipeDeleteBg extends StatelessWidget {
   }
 }
 
+/// Gün kartı altındaki yan yana aksiyon butonu.
+class _DayActionButton extends StatelessWidget {
+  const _DayActionButton({required this.icon, required this.label, required this.color, required this.onTap, this.badge});
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  final String? badge;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 16, color: color),
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(child: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 12))),
+          if (badge != null) ...[
+            const SizedBox(width: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD4A017).withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: const Color(0xFFD4A017).withValues(alpha: 0.4)),
+              ),
+              child: Text(badge!, style: const TextStyle(color: Color(0xFFD4A017), fontSize: 8.5, fontWeight: FontWeight.w800)),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+Widget _DayBtn(IconData icon, String label, Color color, VoidCallback onTap, {String? badge}) {
+  final labelWidget = badge != null
+      ? Row(mainAxisSize: MainAxisSize.min, children: [
+          Flexible(child: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 12))),
+          const SizedBox(width: 4),
+          Container(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), decoration: BoxDecoration(color: const Color(0xFFFFD700).withValues(alpha: 0.16), borderRadius: BorderRadius.circular(4), border: Border.all(color: const Color(0xFFFFD700).withValues(alpha: 0.4))), child: Text(badge, style: const TextStyle(color: Color(0xFFFFD700), fontSize: 8.5, fontWeight: FontWeight.w800))),
+        ])
+      : Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 12));
+  return TextButton.icon(
+    onPressed: onTap,
+    icon: Icon(icon, size: 16, color: color),
+    style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+    label: labelWidget,
+  );
+}
+
+/// Rota optimizasyonu premium bilgilendirme sheet'i.
+void _showOptimizePaywall(BuildContext context, ViewerPalette p) {
+  final s = LanguageScope.of(context);
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (ctx) => Container(
+      decoration: BoxDecoration(
+        color: p.card,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border.all(color: p.border),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 38,
+              height: 4,
+              decoration: BoxDecoration(
+                color: p.textMuted.withValues(alpha: .45),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: p.gold.withValues(alpha: 0.14),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.lock_rounded, size: 28, color: p.gold),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              s.s('routeOptimization.premium.title'),
+              style: TextStyle(
+                color: p.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              s.s('routeOptimization.premium.body'),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: p.textSecondary,
+                fontSize: 14,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 22),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                style: FilledButton.styleFrom(
+                  backgroundColor: p.accent,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: Text(
+                  s.s('wx.close'),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 class _DayCard extends StatefulWidget {
   const _DayCard({
     super.key,
@@ -3465,48 +3945,17 @@ class _DayCardState extends State<_DayCard> {
                               ),
                           if (day.items.isNotEmpty) ...[
                             const SizedBox(height: 6),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 4,
-                              children: [
-                                TextButton.icon(
-                                  onPressed: () => widget.onOpenMap(day),
-                                  icon: Icon(Icons.map_outlined,
-                                      size: 18, color: p.accent),
-                                  label: Text(
-                                    LanguageScope.of(context)
-                                        .s('viewer.day.viewOnMap'),
-                                    style: TextStyle(
-                                      color: p.accent,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ),
-                                TextButton.icon(
-                                  key: ValueKey(
-                                      'optimize-route-${day.dayNumber}'),
-                                  onPressed: widget.onOptimizeRoute,
-                                  icon: Icon(Icons.route_outlined,
-                                      size: 18, color: p.sakura),
-                                  label: Text(
-                                    LanguageScope.of(context)
-                                        .s('routeOptimization.action'),
-                                    style: TextStyle(
-                                      color: p.sakura,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                            Row(children: [
+                              Expanded(child: _DayBtn(Icons.map_outlined, LanguageScope.of(context).s('viewer.day.viewOnMap'), p.accent, () => widget.onOpenMap(day))),
+                              const SizedBox(width: 8),
+                              Expanded(child: _DayBtn(Icons.lock_outlined, LanguageScope.of(context).s('routeOptimization.action'), p.textMuted, () => _showOptimizePaywall(context, p), badge: 'Premium')),
+                            ]),
                           ],
                         ],
                       ],
+                      ),
                     ),
                   ),
-          ),
         ],
       ),
     );
@@ -5604,6 +6053,57 @@ class _Swatch extends StatelessWidget {
             gradient: LinearGradient(colors: palette.gradientSakura),
             shape: BoxShape.circle,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Rehber ve checklist'te kullanılan affiliate kartı.
+class _AffiliateCard extends StatelessWidget {
+  const _AffiliateCard({required this.link, required this.palette, required this.lang});
+  final AffiliateLink link;
+  final ViewerPalette palette;
+  final AppLang lang;
+
+  Future<void> _open(BuildContext context) async {
+    final uri = Uri.tryParse(link.url);
+    if (uri == null) return;
+    try { await launchUrl(uri, mode: LaunchMode.externalApplication); } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(LanguageScope.of(context).s('map.openFailed'))));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    return Material(
+      color: p.bg,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: () => _open(context),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: p.border)),
+          child: Row(children: [
+            Text(link.emoji, style: const TextStyle(fontSize: 22)),
+            const SizedBox(width: 10),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(link.label.of(lang), style: TextStyle(color: p.textPrimary, fontSize: 13, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 1),
+              Text(link.description.of(lang), maxLines: 2, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: p.textSecondary, fontSize: 11, height: 1.3)),
+            ])),
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              decoration: BoxDecoration(color: p.accent.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
+              child: Text(link.cta.of(lang), style: TextStyle(color: p.accent, fontSize: 11, fontWeight: FontWeight.w700)),
+            ),
+          ]),
         ),
       ),
     );
