@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -12,8 +13,6 @@ import '../plans/plan_providers.dart';
 import 'planner_shell.dart';
 import 'planner_theme.dart';
 import 'steps.dart';
-import 'steps/explore_step.dart';
-import 'steps/food_step.dart';
 import 'steps/hotels_step.dart';
 import 'steps/journey_step.dart';
 import 'steps/plan_step.dart';
@@ -78,19 +77,7 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
         title != 'Japonya Turu') {
       done.add(StepId.title);
     }
-    // Keşfet: opsiyonel gezgin tercihleri — en az bir ilgi alanı, gezgin
-    // profili ya da yemek hassasiyeti seçilmişse tamamlandı say.
-    // (React App.tsx'te explore hiç işaretlenmez; bilinçli hafif sapma.)
-    if (t.preferences.interests.isNotEmpty ||
-        t.preferences.childProfiles.isNotEmpty ||
-        t.preferences.foodSensitivities.isNotEmpty) {
-      done.add(StepId.explore);
-    }
     if (_hotelsComplete(t)) done.add(StepId.hotels);
-    if (t.preferences.destinationFood
-        .any((f) => f.dietaryTags.isNotEmpty || f.foodLikes.isNotEmpty)) {
-      done.add(StepId.food);
-    }
     if (t.days.any((d) => d.items.isNotEmpty)) done.add(StepId.plan);
     done.add(StepId.publish);
 
@@ -142,20 +129,16 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
     if (!_welcomeComplete(t)) {
       locked.addAll([
         StepId.journey,
-        StepId.explore,
         StepId.title,
         StepId.hotels,
-        StepId.food,
         StepId.plan,
         StepId.publish,
       ]);
     }
     if (!_canContinueJourney(t)) {
       locked.addAll([
-        StepId.explore,
         StepId.title,
         StepId.hotels,
-        StepId.food,
         StepId.plan,
         StepId.publish,
       ]);
@@ -165,11 +148,13 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
   }
 
   void _goNext() {
+    HapticFeedback.lightImpact();
     final i = stepIndex(_step);
     if (i < kSteps.length - 1) setState(() => _step = kSteps[i + 1].id);
   }
 
   void _goPrev() {
+    HapticFeedback.selectionClick();
     final i = stepIndex(_step);
     if (i > 0) setState(() => _step = kSteps[i - 1].id);
   }
@@ -232,15 +217,31 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
               onStep: (s) => setState(() => _step = s),
             ),
             Expanded(
-              child: Center(
+              child: GestureDetector(
+                onTap: () => FocusScope.of(context).unfocus(),
+                behavior: HitTestBehavior.translucent,
+                child: Center(
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
                     maxWidth: (_step == StepId.plan || _step == StepId.journey)
                         ? 960
                         : 680,
                   ),
-                  child: _buildBody(trip),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 260),
+                    switchInCurve: Curves.easeOut,
+                    switchOutCurve: Curves.easeIn,
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: child,
+                    ),
+                    child: KeyedSubtree(
+                      key: ValueKey(_step),
+                      child: _buildBody(trip),
+                    ),
+                  ),
                 ),
+              ),
               ),
             ),
             if (!isWelcome)
@@ -273,11 +274,6 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
           trip: trip,
           onChange: _onChange,
         );
-      case StepId.explore:
-        return ExploreStep(
-          trip: trip,
-          onChange: _onChange,
-        );
       case StepId.title:
         return TitleStep(
           trip: trip,
@@ -285,11 +281,6 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
         );
       case StepId.hotels:
         return HotelsStep(
-          trip: trip,
-          onChange: _onChange,
-        );
-      case StepId.food:
-        return FoodStep(
           trip: trip,
           onChange: _onChange,
         );

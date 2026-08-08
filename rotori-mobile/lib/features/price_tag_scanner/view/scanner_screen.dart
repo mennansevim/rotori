@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../data/tag_scanner_client.dart';
 import '../controller/scanner_controller.dart';
 
 class ScannerScreen extends ConsumerStatefulWidget {
@@ -86,13 +87,6 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
                     ],
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: _TopModelPanel(
-                    state: state,
-                    onEdit: () => _editModel(context, controller, state),
-                  ),
-                ),
               ],
             ),
           ),
@@ -112,6 +106,11 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
                 canCapture: state.canCapture,
                 hasModel: state.hasModel,
                 onCapture: controller.capture,
+                isLimitReached: state.isLimitReached,
+                remaining: state.dailyLimitRemaining ?? 10,
+                maxScans: (state.isPremiumUser == true) ? 100 : 10,
+                isPremium: state.isPremiumUser == true,
+                onPremiumTap: () => _showPremiumSheet(context),
               ),
             )
           else
@@ -226,21 +225,8 @@ class _CoveredPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final previewSize = controller.value.previewSize;
-    if (previewSize == null) {
-      return CameraPreview(controller);
-    }
-
-    return ClipRect(
-      child: FittedBox(
-        fit: BoxFit.cover,
-        child: SizedBox(
-          width: previewSize.height,
-          height: previewSize.width,
-          child: CameraPreview(controller),
-        ),
-      ),
-    );
+    // iOS'ta boyut takası sorun çıkarabiliyor — direkt CameraPreview kullan.
+    return CameraPreview(controller);
   }
 }
 
@@ -318,24 +304,20 @@ class _GlassIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Tooltip(
       message: tooltip,
-      child: ClipRRect(
+      child: Material(
+        color: Colors.black.withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(18),
-        child: BackdropFilter(
-          filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-          child: Material(
-            color: Colors.white.withValues(alpha: 0.15),
-            child: InkWell(
-              onTap: onTap,
-              child: Ink(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
-                ),
-                child: Icon(icon, size: 18, color: Colors.white),
-              ),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
             ),
+            child: Icon(icon, size: 18, color: Colors.white),
           ),
         ),
       ),
@@ -477,11 +459,21 @@ class _CaptureBar extends StatelessWidget {
     required this.canCapture,
     required this.hasModel,
     required this.onCapture,
+    this.isLimitReached = false,
+    this.remaining = 0,
+    this.maxScans = 10,
+    this.isPremium = false,
+    this.onPremiumTap,
   });
 
   final bool canCapture;
   final bool hasModel;
   final VoidCallback onCapture;
+  final bool isLimitReached;
+  final int remaining;
+  final int maxScans;
+  final bool isPremium;
+  final VoidCallback? onPremiumTap;
 
   @override
   Widget build(BuildContext context) {
@@ -492,18 +484,70 @@ class _CaptureBar extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              hasModel
-                  ? 'Modeli yakaladık — çekip fiyatı sorgulayın'
-                  : 'Model kodunu çerçeveye hizalayın',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                shadows: [Shadow(color: Colors.black, blurRadius: 6)],
+            if (isLimitReached)
+              _LimitReachedCard(onPremiumTap: onPremiumTap, isPremium: isPremium)
+            else ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: isPremium
+                          ? const Color(0xFFFFD700).withValues(alpha: 0.2)
+                          : remaining <= 3
+                              ? const Color(0xFFFFAB91).withValues(alpha: 0.2)
+                              : const Color(0xFFA5D6A7).withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      isPremium ? 'Premium $remaining/$maxScans' : 'Ücretsiz $remaining/$maxScans',
+                      style: TextStyle(
+                        color: isPremium
+                            ? const Color(0xFFFFD700)
+                            : remaining <= 3
+                                ? const Color(0xFFFFAB91)
+                                : const Color(0xFFA5D6A7),
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  if (!isPremium) ...[
+                    const SizedBox(width: 6),
+                    InkWell(
+                      onTap: onPremiumTap,
+                      borderRadius: BorderRadius.circular(999),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFD700).withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: const Color(0xFFFFD700).withValues(alpha: 0.4)),
+                        ),
+                        child: const Text(
+                          'Premium 100/gün →',
+                          style: TextStyle(color: Color(0xFFFFD700), fontSize: 9.5, fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
-            ),
+              const SizedBox(height: 6),
+              Text(
+                hasModel
+                    ? 'Modeli yakaladık — çekip fiyatı sorgulayın'
+                    : 'Model kodunu çerçeveye hizalayın',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  shadows: [Shadow(color: Colors.black, blurRadius: 6)],
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             GestureDetector(
               onTap: canCapture ? onCapture : null,
@@ -574,6 +618,160 @@ String _groupThousands(String raw) {
     }
   }
   return negative ? '-$buffer' : '$buffer';
+}
+
+/// Günlük tarama limiti dolduğunda gösterilen premium teklif kartı.
+class _LimitReachedCard extends StatelessWidget {
+  const _LimitReachedCard({this.onPremiumTap, this.isPremium = false});
+  final VoidCallback? onPremiumTap;
+  final bool isPremium;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = isPremium ? 'Premium limit doldu' : 'Günlük limit doldu';
+    final subtitle = isPremium
+        ? 'Premium 100/100 · Yarın yenilenir'
+        : 'Ücretsiz 10/10 · Premium\'da 100/gün';
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: (isPremium ? const Color(0xFFFFD700) : const Color(0xFFFFAB91)).withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: (isPremium ? const Color(0xFFFFD700) : const Color(0xFFFFAB91)).withValues(alpha: 0.18),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(isPremium ? Icons.auto_awesome_rounded : Icons.hourglass_empty_rounded,
+                    size: 20, color: isPremium ? const Color(0xFFFFD700) : const Color(0xFFFFAB91)),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 2),
+                    Text(subtitle, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (!isPremium) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: onPremiumTap,
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFD700),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                icon: const Icon(Icons.rocket_launch_rounded, size: 18),
+                label: const Text('Premium\'a geç', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Premium bilgilendirme bottom sheet'i.
+void _showPremiumSheet(BuildContext context) {
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (ctx) => Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF1B1B1F),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 38, height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              width: 56, height: 56,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFD700).withValues(alpha: 0.14),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.auto_awesome_rounded, size: 28, color: Color(0xFFFFD700)),
+            ),
+            const SizedBox(height: 14),
+            const Text('Rotori Premium', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            const Text(
+              'Günlük 100 tarama hakkı. Fiyat etiketi tarayıcısını limitsiz kullan, '
+              'istediğin kadar ürün sorgula.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Color(0xFFCFD8DC), fontSize: 14, height: 1.4),
+            ),
+            const SizedBox(height: 16),
+            _PremiumFeatureRow(icon: Icons.check_circle_rounded, text: 'Günlük 100 tarama (ücretsiz: 10)'),
+            _PremiumFeatureRow(icon: Icons.check_circle_rounded, text: 'GPT-4o-mini ile akıllı model tespiti'),
+            _PremiumFeatureRow(icon: Icons.check_circle_rounded, text: 'Trendyol, HB, Amazon canlı fiyat karşılaştırma'),
+            const SizedBox(height: 22),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFD700),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                child: const Text('Kapat', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _PremiumFeatureRow extends StatelessWidget {
+  const _PremiumFeatureRow({required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: const Color(0xFFA5D6A7)),
+          const SizedBox(width: 10),
+          Expanded(child: Text(text, style: const TextStyle(color: Color(0xFFECEFF1), fontSize: 13.5))),
+        ],
+      ),
+    );
+  }
 }
 
 class _ErrorCard extends StatelessWidget {
@@ -665,16 +863,40 @@ class _FrozenResultPanel extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'SORGULANAN ÜRÜN',
-                            style: TextStyle(
-                              color: Color(0xFF9BE7FF),
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.6,
-                            ),
+                          Row(
+                            children: [
+                              const Text(
+                                'SORGULANAN ÜRÜN',
+                                style: TextStyle(
+                                  color: Color(0xFF9BE7FF),
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                              if (state.llmResult != null &&
+                                  !state.isLlmFallback) ...[
+                                const SizedBox(width: 6),
+                                _LlmBadge(confidence: state.llmResult!.confidence),
+                              ],
+                              if (state.isLlmFallback) ...[
+                                const SizedBox(width: 6),
+                                const _FallbackBadge(),
+                              ],
+                            ],
                           ),
                           const SizedBox(height: 3),
+                          if (state.resolvedBrand != null)
+                            Text(
+                              state.resolvedBrand!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF90CAF9),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           Text(
                             model,
                             maxLines: 1,
@@ -717,66 +939,17 @@ class _FrozenResultPanel extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                if (isFetching)
-                  const Row(
-                    children: [
-                      SizedBox(
-                        width: 15,
-                        height: 15,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Hepsiburada, Trendyol ve Amazon TR fiyatları alınıyor…',
-                          style: TextStyle(
-                            color: Color(0xFFECEFF1),
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                else if (state.marketPrices.isNotEmpty) ...[
-                  Text(
-                    'Türkiye pazar yerleri · tahmini fiyat (mock)',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.75),
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ...state.marketPrices.map((item) {
-                    final platform = item['platform']?.toString() ?? '-';
-                    final priceRaw = item['priceTry'];
-                    final price = priceRaw is num ? priceRaw.toDouble() : 0.0;
-                    final inStock = item['inStock'] == true;
-                    final url = item['url']?.toString();
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: _MarketPriceCard(
-                        platform: platform,
-                        priceTry: formatTry(price),
-                        inStock: inStock,
-                        onOpen: url == null ? null : () => _openSearch(url),
-                      ),
-                    );
-                  }),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Fiyatlar demo amaçlı üretilir. "Sitede ara" gerçek arama '
-                    'sayfasını açar.',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.5),
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                // LLM'in tespit ettiği ikincil fiyatlar (kasko, garanti, aksesuar).
+                if (state.secondaryPrices.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  _SecondaryPricesSection(prices: state.secondaryPrices),
                 ],
-                const SizedBox(height: 12),
+
+                if (model != null && model != '—') ...[
+                  const SizedBox(height: 12),
+                  _ManualSearchRow(model: model),
+                ],
+                const SizedBox(height: 14),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
@@ -845,18 +1018,92 @@ class _MetricTile extends StatelessWidget {
   }
 }
 
+/// Tespit edilen modelle manuel arama butonları.
+class _ManualSearchRow extends StatelessWidget {
+  const _ManualSearchRow({required this.model});
+  final String model;
+
+  @override
+  Widget build(BuildContext context) {
+    final q = Uri.encodeQueryComponent(model);
+    final searches = <({String label, IconData icon, String url})>[
+      (label: 'Trendyol', icon: Icons.shopping_bag_outlined, url: 'https://www.trendyol.com/sr?q=$q'),
+      (label: 'Hepsiburada', icon: Icons.store_outlined, url: 'https://www.hepsiburada.com/ara?q=$q'),
+      (label: 'Amazon TR', icon: Icons.local_shipping_outlined, url: 'https://www.amazon.com.tr/s?k=$q'),
+      (label: 'Google', icon: Icons.search, url: 'https://www.google.com/search?q=$q+site:com.tr'),
+    ];
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Fiyat araştır',
+            style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.5),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Model: $model',
+            style: const TextStyle(color: Color(0xFF80D8FF), fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final s in searches)
+                Material(
+                  color: Colors.white.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(999),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(999),
+                    onTap: () => _openSearch(s.url),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(s.icon, size: 14, color: const Color(0xFF80D8FF)),
+                          const SizedBox(width: 6),
+                          Text(s.label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _MarketPriceCard extends StatelessWidget {
   const _MarketPriceCard({
     required this.platform,
     required this.priceTry,
     required this.inStock,
     this.onOpen,
+    this.source = 'mock',
+    this.isReal = false,
   });
 
   final String platform;
   final String priceTry;
   final bool inStock;
   final VoidCallback? onOpen;
+  final String source;
+  final bool isReal;
 
   @override
   Widget build(BuildContext context) {
@@ -872,7 +1119,11 @@ class _MarketPriceCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            border: Border.all(
+              color: isReal
+                  ? const Color(0xFFA5D6A7).withValues(alpha: 0.3)
+                  : Colors.white.withValues(alpha: 0.12),
+            ),
           ),
           child: Row(
             children: [
@@ -881,13 +1132,56 @@ class _MarketPriceCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      platform,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          platform,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        if (source == 'html') ...[
+                          const SizedBox(width: 5),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFA5D6A7)
+                                  .withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: const Text(
+                              'canlı',
+                              style: TextStyle(
+                                color: Color(0xFFA5D6A7),
+                                fontSize: 8.5,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ] else if (source == 'llm') ...[
+                          const SizedBox(width: 5),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFE082)
+                                  .withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: const Text(
+                              'AI',
+                              style: TextStyle(
+                                color: Color(0xFFFFE082),
+                                fontSize: 8.5,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     if (onOpen != null) ...[
                       const SizedBox(height: 2),
@@ -921,11 +1215,13 @@ class _MarketPriceCard extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
                   color: stockColor.withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: stockColor.withValues(alpha: 0.8)),
+                  border:
+                      Border.all(color: stockColor.withValues(alpha: 0.8)),
                 ),
                 child: Text(
                   inStock ? 'Stokta' : 'Stok yok',
@@ -939,6 +1235,240 @@ class _MarketPriceCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Pazar fiyatları başlığı — gerçek/mock durumunu gösterir.
+class _MarketPricesHeader extends StatelessWidget {
+  const _MarketPricesHeader({required this.prices, this.llmResult});
+
+  final List<Map<String, dynamic>> prices;
+  final TagScanResult? llmResult;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasReal = prices.any((p) => p['isReal'] == true);
+    return Text(
+      hasReal ? 'Türkiye pazar yerleri · canlı fiyat' : 'Türkiye pazar yerleri · tahmini fiyat (mock)',
+      style: TextStyle(
+        color:
+            hasReal ? const Color(0xFFA5D6A7) : Colors.white.withValues(alpha: 0.75),
+        fontSize: 11.5,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+  }
+}
+
+/// Pazar fiyatları alt açıklaması.
+class _MarketPricesFooter extends StatelessWidget {
+  const _MarketPricesFooter({required this.prices});
+
+  final List<Map<String, dynamic>> prices;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasReal = prices.any((p) => p['isReal'] == true);
+    return Text(
+      hasReal
+          ? '"Sitede ara" gerçek arama sayfasını açar.'
+          : 'Fiyatlar demo amaçlı üretilir. "Sitede ara" gerçek arama sayfasını açar.',
+      style: TextStyle(
+        color: Colors.white.withValues(alpha: 0.5),
+        fontSize: 10.5,
+        fontWeight: FontWeight.w500,
+      ),
+    );
+  }
+}
+
+/// LLM'in asıl üründen ayırdığı ikincil fiyatlar (kasko, garanti vb.).
+class _SecondaryPricesSection extends StatelessWidget {
+  const _SecondaryPricesSection({required this.prices});
+
+  final List<PriceItem> prices;
+
+  String _categoryLabel(PriceCategory cat) {
+    switch (cat) {
+      case PriceCategory.warranty:
+        return 'Garanti';
+      case PriceCategory.accessory:
+        return 'Aksesuar';
+      case PriceCategory.tax:
+        return 'Vergi';
+      case PriceCategory.point:
+        return 'Puan';
+      case PriceCategory.discount:
+        return 'İndirim';
+      default:
+        return 'Diğer';
+    }
+  }
+
+  Color _categoryColor(PriceCategory cat) {
+    switch (cat) {
+      case PriceCategory.warranty:
+        return const Color(0xFFFFAB91);
+      case PriceCategory.accessory:
+        return const Color(0xFFCE93D8);
+      case PriceCategory.tax:
+        return const Color(0xFF80CBC4);
+      case PriceCategory.point:
+        return const Color(0xFFFFE082);
+      case PriceCategory.discount:
+        return const Color(0xFFA5D6A7);
+      default:
+        return const Color(0xFFB0BEC5);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.info_outline_rounded, size: 14, color: Colors.amber),
+              SizedBox(width: 6),
+              Text(
+                'DİĞER FİYATLAR (asıl ürün değil)',
+                style: TextStyle(
+                  color: Color(0xFFFFCC80),
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...prices.map((p) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  children: [
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _categoryColor(p.category).withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        _categoryLabel(p.category),
+                        style: TextStyle(
+                          color: _categoryColor(p.category),
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        p.label.isNotEmpty ? p.label : '—',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFFCFD8DC),
+                          fontSize: 11.5,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      formatJpy(p.amountJpy),
+                      style: const TextStyle(
+                        color: Color(0xFFCFD8DC),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+        ],
+      ),
+    );
+  }
+}
+
+/// LLM güven skoru rozeti.
+class _LlmBadge extends StatelessWidget {
+  const _LlmBadge({required this.confidence});
+
+  final double confidence;
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (confidence * 100).round();
+    final color = pct >= 85
+        ? const Color(0xFFA5D6A7)
+        : pct >= 65
+            ? const Color(0xFFFFE082)
+            : const Color(0xFFFFAB91);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.auto_awesome_rounded, size: 11, color: color),
+          const SizedBox(width: 3),
+          Text(
+            'AI %$pct',
+            style: TextStyle(
+              color: color,
+              fontSize: 9.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// TagParser fallback rozeti (LLM başarısız olduğunda gösterilir).
+class _FallbackBadge extends StatelessWidget {
+  const _FallbackBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.rule_rounded, size: 11, color: Colors.amber),
+          SizedBox(width: 3),
+          Text(
+            'regex',
+            style: TextStyle(
+              color: Color(0xFFFFCC80),
+              fontSize: 9.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }

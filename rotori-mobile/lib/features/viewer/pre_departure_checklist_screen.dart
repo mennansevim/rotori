@@ -9,9 +9,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/l10n.dart';
+import '../../data/affiliate_links.dart';
+import '../../data/language_store.dart';
 import '../../data/pre_departure_checklist_repository.dart';
+import '../../domain/localized_text.dart';
 import '../../domain/pre_departure_checklist.dart';
 import '../../domain/types.dart';
 import 'viewer_theme.dart';
@@ -82,6 +86,8 @@ class _PrepView extends ConsumerWidget {
                   ? () => notifier.removeCustom(item.id)
                   : null,
             ),
+          const SizedBox(height: 24),
+          _AffiliateSection(palette: palette),
           const SizedBox(height: 12),
           _AddCustomTile(
             palette: palette,
@@ -521,6 +527,107 @@ class _AddCustomTileState extends State<_AddCustomTile> {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Seyahat öncesi alınması gerekenler — affiliate linkler.
+class _AffiliateSection extends ConsumerWidget {
+  const _AffiliateSection({required this.palette});
+  final ViewerPalette palette;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(appLangProvider);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          const LText('Seyahat öncesi hallet 📦', 'Book before you go 📦').of(lang),
+          style: TextStyle(color: palette.textPrimary, fontSize: 15, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          const LText(
+            'Bunları şimdiden ayırt, hem yerin garanti olsun hem fiyatlar yükselmesin.',
+            'Book these now to secure your spot and lock in current prices.',
+          ).of(lang),
+          style: TextStyle(color: palette.textSecondary, fontSize: 12.5),
+        ),
+        const SizedBox(height: 10),
+        for (final link in kPreDepartureAffiliates)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _AffiliateCard(link: link, palette: palette, lang: lang),
+          ),
+      ],
+    );
+  }
+}
+
+class _AffiliateCard extends StatelessWidget {
+  const _AffiliateCard({required this.link, required this.palette, required this.lang});
+  final AffiliateLink link;
+  final ViewerPalette palette;
+  final AppLang lang;
+
+  Future<void> _open(BuildContext context) async {
+    final uri = Uri.tryParse(link.url);
+    if (uri == null) return;
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(LanguageScope.of(context).s('map.openFailed'))),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: palette.card,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: () => _open(context),
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: palette.border),
+          ),
+          child: Row(
+            children: [
+              Text(link.emoji, style: const TextStyle(fontSize: 24)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(link.label.of(lang), style: TextStyle(color: palette.textPrimary, fontSize: 13.5, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 2),
+                    Text(link.description.of(lang), maxLines: 2, overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: palette.textSecondary, fontSize: 11.5, height: 1.3)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: palette.accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(link.cta.of(lang),
+                    style: TextStyle(color: palette.accent, fontSize: 11.5, fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

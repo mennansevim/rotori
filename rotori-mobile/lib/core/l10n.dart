@@ -263,6 +263,10 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Live Price Converter',
   },
   'scanner.tt': {AppLang.tr: 'Fiyat çevir', AppLang.en: 'Convert price'},
+  'scanner.price_tag': {
+    AppLang.tr: 'Fiyat etiketi tara',
+    AppLang.en: 'Scan price tag',
+  },
   'scanner.hint': {
     AppLang.tr: 'Kamerayı fiyat etiketine tutun',
     AppLang.en: 'Point the camera at a price tag',
@@ -501,6 +505,7 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Hiç fiyat sonucu alınamadı. Tekrar deneyin.',
     AppLang.en: 'No price result was returned. Please try again.',
   },
+  'viewer.quick.home': {AppLang.tr: 'Ana Sayfa', AppLang.en: 'Home'},
   'viewer.quick.explore': {AppLang.tr: 'Keşfet', AppLang.en: 'Explore'},
   'viewer.quick.tickets': {AppLang.tr: 'Biletler', AppLang.en: 'Tickets'},
   'viewer.quick.weather': {AppLang.tr: 'Hava', AppLang.en: 'Weather'},
@@ -2941,6 +2946,18 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'En ucuz',
     AppLang.en: 'Cheapest'
   },
+  'routeOptimization.premium.title': {
+    AppLang.tr: '🔒 Premium Özellik',
+    AppLang.en: '🔒 Premium Feature'
+  },
+  'routeOptimization.premium.body': {
+    AppLang.tr:
+        'Rota optimizasyonu premium üyeler için sunulacak. '
+        'Şimdilik rotanı "Haritada gör" butonuyla Google Maps üzerinden takip edebilirsin.',
+    AppLang.en:
+        'Route optimization will be available for premium members. '
+        'For now, you can follow your route on Google Maps using the "View on map" button.'
+  },
   'home.appTitle': {
     AppLang.tr: 'Rotori Önizleme',
     AppLang.en: 'Rotori Preview'
@@ -3355,6 +3372,7 @@ const Map<String, Map<AppLang, String>> _strings = {
   },
   'drawer.role.guest': {AppLang.tr: 'Misafir', AppLang.en: 'Guest'},
   'drawer.role.traveler': {AppLang.tr: 'Gezgin', AppLang.en: 'Traveler'},
+  'drawer.nav.travelEssentials': {AppLang.tr: 'Seyahat öncesi hallet 📦', AppLang.en: 'Book before you go 📦'},
   'drawer.nav.plans': {AppLang.tr: 'Planlarım', AppLang.en: 'My plans'},
   'drawer.nav.viewer': {AppLang.tr: 'Rehber', AppLang.en: 'Guide'},
   'drawer.nav.reminders': {

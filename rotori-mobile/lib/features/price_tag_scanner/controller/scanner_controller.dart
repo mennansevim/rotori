@@ -6,7 +6,11 @@ import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart' show AppLifecycleState;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../data/tag_price_repository.dart';
+import '../../../data/tag_scanner_client.dart';
 import '../../live_currency_scanner/infrastructure/camera/camera_frame_adapter.dart';
 import '../../live_currency_scanner/infrastructure/ocr/on_device_text_recognizer.dart';
 import '../../live_currency_scanner/infrastructure/ocr/text_recognizer_factory.dart';
@@ -50,6 +54,12 @@ class ScannerState {
     this.rotationDegrees = 0,
     this.mirrored = false,
     this.errorMessage,
+    this.llmResult,
+    this.secondaryPrices = const [],
+    this.isLlmFallback = false,
+    this.isLimitReached = false,
+    this.dailyLimitRemaining,
+    this.isPremiumUser,
   });
 
   final ScannerPhase phase;
@@ -79,12 +89,33 @@ class ScannerState {
 
   final String? errorMessage;
 
+  /// LLM'den gelen yapılandırılmış sonuç (başarılıysa).
+  final TagScanResult? llmResult;
+
+  /// Kasko, garanti, aksesuar gibi ikincil fiyatlar.
+  final List<PriceItem> secondaryPrices;
+
+  /// LLM başarısız olup TagParser fallback kullanıldıysa true.
+  final bool isLlmFallback;
+
+  /// Günlük tarama limiti doldu mu.
+  final bool isLimitReached;
+
+  /// Kalan günlük tarama hakkı (free user için).
+  final int? dailyLimitRemaining;
+
+  /// Premium kullanıcı mı.
+  final bool? isPremiumUser;
+
   bool get isLive => mode == ScannerCaptureMode.live;
   bool get isFrozen => mode == ScannerCaptureMode.frozen;
   bool get hasModel => productModel != null && productModel!.isNotEmpty;
 
+  /// LLM sonucu veya TagParser ile belirlenen marka.
+  String? get resolvedBrand => llmResult?.brand;
+
   /// Foto çekip sorgulamak için yeterli veri var mı (model şart).
-  bool get canCapture => hasModel && isCameraReady;
+  bool get canCapture => hasModel && isCameraReady && !isLimitReached;
 
   ScannerState copyWith({
     ScannerPhase? phase,
@@ -103,11 +134,20 @@ class ScannerState {
     int? rotationDegrees,
     bool? mirrored,
     String? errorMessage,
+    TagScanResult? llmResult,
+    List<PriceItem>? secondaryPrices,
+    bool? isLlmFallback,
+    bool? isLimitReached,
+    int? dailyLimitRemaining,
+    bool? isPremiumUser,
     bool clearModel = false,
     bool clearPrice = false,
     bool clearCapturedImage = false,
     bool clearMarketPrices = false,
     bool clearError = false,
+    bool clearLlmResult = false,
+    bool clearSecondaryPrices = false,
+    bool clearLimitState = false,
   }) {
     return ScannerState(
       phase: phase ?? this.phase,
@@ -129,6 +169,19 @@ class ScannerState {
       rotationDegrees: rotationDegrees ?? this.rotationDegrees,
       mirrored: mirrored ?? this.mirrored,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      llmResult: clearLlmResult ? null : (llmResult ?? this.llmResult),
+      secondaryPrices: clearSecondaryPrices
+          ? const []
+          : (secondaryPrices ?? this.secondaryPrices),
+      isLlmFallback: isLlmFallback ?? this.isLlmFallback,
+      isLimitReached: clearLimitState
+          ? false
+          : (isLimitReached ?? this.isLimitReached),
+      dailyLimitRemaining: clearLimitState
+          ? null
+          : (dailyLimitRemaining ?? this.dailyLimitRemaining),
+      isPremiumUser:
+          clearLimitState ? null : (isPremiumUser ?? this.isPremiumUser),
     );
   }
 }
@@ -137,6 +190,18 @@ final tagParserProvider = Provider<TagParser>((ref) => const TagParser());
 
 final mockPriceRepositoryProvider =
     Provider<MockPriceRepository>((ref) => const MockPriceRepository());
+
+final tagPriceRepositoryProvider = Provider<TagPriceRepository>((ref) {
+  return TagPriceRepository(
+    supabase: Supabase.instance.client,
+  );
+});
+
+final tagScannerClientProvider = Provider<TagScannerClient>((ref) {
+  return TagScannerClient(
+    supabase: Supabase.instance.client,
+  );
+});
 
 final scannerControllerProvider =
     StateNotifierProvider.autoDispose<ScannerController, ScannerState>((ref) {
@@ -149,6 +214,7 @@ class ScannerController extends StateNotifier<ScannerState> {
         super(const ScannerState());
 
   static const Duration _ocrThrottle = Duration(milliseconds: 450);
+  static const int _maxBufferLines = 80;
 
   final Ref _ref;
   final OnDeviceTextRecognizer _recognizer;
@@ -162,16 +228,26 @@ class ScannerController extends StateNotifier<ScannerState> {
   int _fetchToken = 0;
 
   // Çok-kareli oylama: OCR titremesine karşı model/fiyatı kararlı kılar.
-  // Oylar merkez-ağırlıklıdır: viewfinder merkezine yakın metin daha çok oy alır.
   final Map<String, double> _modelVotes = <String, double>{};
   final Map<int, double> _priceVotes = <int, double>{};
 
+  // LLM'e gönderilmek üzere OCR metin birikimi.
+  final Set<String> _ocrLineBuffer = <String>{};
+
   TagParser get _tagParser => _ref.read(tagParserProvider);
-  MockPriceRepository get _mockRepo => _ref.read(mockPriceRepositoryProvider);
+  TagPriceRepository get _priceRepo => _ref.read(tagPriceRepositoryProvider);
+  TagScannerClient get _tagClient => _ref.read(tagScannerClientProvider);
 
   CameraController? get cameraController => _camera;
 
+  bool _debugPremium = false;
+
   Future<void> init() async {
+    // Debug premium kontrolü
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _debugPremium = prefs.getBool('debug_premium') ?? false;
+    } catch (_) {}
     if (_disposed) return;
     await _startCamera();
   }
@@ -258,6 +334,14 @@ class ScannerController extends StateNotifier<ScannerState> {
 
       final roiLines = _roiLines(recognized);
       if (roiLines.isEmpty) return;
+
+      // OCR metnini LLM buffer'ına ekle (benzersiz satırlar).
+      for (final line in roiLines) {
+        final trimmed = line.text.trim();
+        if (trimmed.isNotEmpty && _ocrLineBuffer.length < _maxBufferLines) {
+          _ocrLineBuffer.add(trimmed);
+        }
+      }
 
       // Model: her satırı ayrı değerlendirip merkeze yakınlığına göre oy ver.
       // Böylece yandaki komşu ürünün kodu değil, çerçeve ortasındaki ürün kazanır.
@@ -355,12 +439,20 @@ class ScannerController extends StateNotifier<ScannerState> {
     return out;
   }
 
-  /// Kareyi dondurur: fotoğrafı çeker, canlı OCR'ı durdurur ve tek seferlik
-  /// pazar sorgusu başlatır. Sonuç ekranı artık titremez (sabit kalır).
+  /// Kareyi dondurur: fotoğrafı çeker, canlı OCR'ı durdurur ve
+  /// LLM (Edge Function) ile yapılandırılmış etiket analizi yapar.
+  /// LLM başarısız olursa TagParser'a fallback yapar.
   Future<void> capture() async {
-    if (_disposed || state.isFrozen || !state.hasModel) return;
+    if (_disposed || state.isFrozen) return;
+
+    if (state.isLimitReached) return;
+
     final camera = _camera;
     if (camera == null || !camera.value.isInitialized) return;
+
+    // Anlık sayaç: backend cevabını beklemeden 1 azalt.
+    final currentRemaining = state.dailyLimitRemaining;
+    final nextRemaining = currentRemaining != null ? currentRemaining - 1 : null;
 
     String? imagePath;
     try {
@@ -378,12 +470,120 @@ class ScannerController extends StateNotifier<ScannerState> {
     state = state.copyWith(
       mode: ScannerCaptureMode.frozen,
       phase: ScannerPhase.fetchingMockPrices,
+      dailyLimitRemaining: nextRemaining,
+      isLimitReached: nextRemaining != null && nextRemaining <= 0,
       capturedImagePath: imagePath,
       clearMarketPrices: true,
+      clearLlmResult: true,
+      clearSecondaryPrices: true,
       clearError: true,
     );
 
-    await _fetchMockPrices();
+    await _callLlmAndFetchPrices();
+  }
+
+  /// LLM çağrısı → sonuç → TR pazar fiyatları.
+  /// Başarısız olursa TagParser fallback.
+  Future<void> _callLlmAndFetchPrices() async {
+    final token = ++_fetchToken;
+
+    // Birikmiş OCR metin satırlarını al.
+    final ocrLines = _ocrLineBuffer.toList();
+    final hasBuffer = ocrLines.isNotEmpty;
+
+    if (hasBuffer) {
+      try {
+        final llmResult = await _tagClient.parse(ocrLines: ocrLines);
+
+        if (_disposed || token != _fetchToken) return;
+
+        // LLM sonucu TagParser'dan daha iyi: ana ürün + kasko ayrımı yaptı.
+        final nextModel = llmResult.productModel ?? state.productModel;
+        final nextJpy = llmResult.mainPriceJpy ?? state.jpyPrice;
+        final nextTry = nextJpy == null
+            ? (state.tryPrice)
+            : nextJpy * kJpyToTryMockRate;
+        final secondary = llmResult.secondaryPrices;
+
+        state = state.copyWith(
+          productModel: nextModel,
+          jpyPrice: nextJpy,
+          tryPrice: nextTry,
+          isModelLocked: true,
+          llmResult: llmResult,
+          secondaryPrices: secondary,
+          isLlmFallback: false,
+          dailyLimitRemaining: llmResult.limitRemaining,
+          isPremiumUser: (llmResult.limitPremium == true) || _debugPremium,
+          isLimitReached: _debugPremium
+              ? false
+              : llmResult.limitRemaining == 0 &&
+                  !(llmResult.limitPremium == true),
+          clearError: true,
+        );
+
+        // Pazar fiyatlarını getir (phase'i fetchingMockPrices yapar).
+        await _fetchMarketPrices();
+        return;
+
+      } on TagScannerLimitExceeded catch (e) {
+        if (_disposed || token != _fetchToken) return;
+
+        state = state.copyWith(
+          phase: ScannerPhase.error,
+          isLimitReached: true,
+          dailyLimitRemaining: 0,
+          errorMessage: e.toString(),
+        );
+        return;
+
+      } on TagScannerApiException catch (e) {
+        _debug('llm.api', e, StackTrace.current);
+        // LLM API hatası → TagParser fallback'e devam et.
+      } catch (error, stackTrace) {
+        _debug('llm.unexpected', error, stackTrace);
+        // Beklenmeyen hata → TagParser fallback'e devam et.
+      }
+    }
+
+    // --- LLM başarısız oldu: TagParser fallback ---
+    _fallbackToTagParser(token);
+  }
+
+  /// LLM başarısız olduğunda TagParser ile çalışır.
+  void _fallbackToTagParser(int token) {
+    if (_disposed || token != _fetchToken) return;
+
+    final fullText = _ocrLineBuffer.toList().join('\n');
+    if (fullText.isEmpty) {
+      _setError('Etiket metni okunamadı. Daha net bir açıyla tekrar deneyin.');
+      return;
+    }
+
+    final parseResult = _tagParser.parse(fullText);
+    final model = parseResult.productModel ?? state.productModel;
+    final jpy = parseResult.jpyPrice ?? state.jpyPrice;
+    final tr = jpy == null ? (state.tryPrice) : jpy * kJpyToTryMockRate;
+
+    state = state.copyWith(
+      phase: (model != null || jpy != null)
+          ? ScannerPhase.extractedData
+          : ScannerPhase.error,
+      productModel: model,
+      isModelLocked: model != null,
+      jpyPrice: jpy,
+      tryPrice: tr,
+      isLlmFallback: true,
+      clearError: model == null && jpy == null ? false : true,
+      errorMessage: model == null && jpy == null
+          ? 'Model ve fiyat tespit edilemedi. El ile girin veya tekrar tarayın.'
+          : null,
+    );
+
+    if (model != null || jpy != null) {
+      // Pazar fiyatlarını yine de getir (mock).
+      unawaited(_fetchMarketPrices());
+    }
   }
 
   /// Dondurulmuş ekrandan canlı taramaya geri döner.
@@ -401,6 +601,7 @@ class ScannerController extends StateNotifier<ScannerState> {
     _fetchToken++;
     _modelVotes.clear();
     _priceVotes.clear();
+    _ocrLineBuffer.clear();
 
     state = state.copyWith(
       mode: ScannerCaptureMode.live,
@@ -410,6 +611,8 @@ class ScannerController extends StateNotifier<ScannerState> {
       clearPrice: true,
       clearCapturedImage: true,
       clearMarketPrices: true,
+      clearLlmResult: true,
+      clearSecondaryPrices: true,
       clearError: true,
     );
 
@@ -439,16 +642,17 @@ class ScannerController extends StateNotifier<ScannerState> {
     );
 
     if (state.isFrozen) {
-      await _fetchMockPrices();
+      await _fetchMarketPrices();
     }
   }
 
-  Future<void> _fetchMockPrices() async {
+  Future<void> _fetchMarketPrices() async {
     final model = state.productModel;
     if (model == null || model.isEmpty) return;
 
     final referenceTry =
         state.tryPrice ?? (state.jpyPrice ?? 0) * kJpyToTryMockRate;
+    final referenceJpy = state.jpyPrice;
     final token = ++_fetchToken;
 
     state = state.copyWith(
@@ -458,9 +662,10 @@ class ScannerController extends StateNotifier<ScannerState> {
     );
 
     try {
-      final response = await _mockRepo.fetchMarketplacePrices(
+      final response = await _priceRepo.fetchMarketplacePrices(
         productModel: model,
         referenceTryPrice: referenceTry,
+        referenceJpyPrice: referenceJpy,
       );
 
       if (_disposed || token != _fetchToken) return;
@@ -473,9 +678,9 @@ class ScannerController extends StateNotifier<ScannerState> {
         clearError: true,
       );
     } catch (error, stackTrace) {
-      _debug('mock.fetch', error, stackTrace);
+      _debug('market.fetch', error, stackTrace);
       if (_disposed || token != _fetchToken) return;
-      _setError('Mock pazar fiyatları alınamadı.');
+      _setError('TR pazar fiyatları alınamadı.');
     }
   }
 
@@ -540,6 +745,7 @@ class ScannerController extends StateNotifier<ScannerState> {
     _fetchToken++;
     _modelVotes.clear();
     _priceVotes.clear();
+    _ocrLineBuffer.clear();
     await _disposeCamera();
     state = const ScannerState();
     await _startCamera();

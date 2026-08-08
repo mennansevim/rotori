@@ -559,4 +559,116 @@ const List<MustKnowSection> kMustKnowSections = [
       ),
     ],
   ),
+
+  // -------------------------------------------------------------------------
+  // 🍜 Yemek kültürü (Rotori Eats'ten taşındı)
+  // -------------------------------------------------------------------------
+  MustKnowSection(
+    emoji: '🍜',
+    title: LText('Ne Yenir?', 'What to Eat?'),
+    tips: [
+      MustKnowTip(
+        emoji: '🍜',
+        text: LText(
+          'Öğle için ramen/udon/soba, akşam için donburi veya set menü güvenli başlangıçtır.',
+          'For lunch, ramen/udon/soba; for dinner, donburi or a set menu is a safe start.',
+        ),
+      ),
+      MustKnowTip(
+        emoji: '🏪',
+        text: LText(
+          'Konbini (7‑Eleven/Lawson/FamilyMart) hızlı ve ekonomik: onigiri + sandviç + içecek kombinasyonu iş görür.',
+          'Konbini (7‑Eleven/Lawson/FamilyMart) is fast and affordable: onigiri + sandwich + drink works well.',
+        ),
+      ),
+      MustKnowTip(
+        emoji: '🕐',
+        text: LText(
+          'Yoğun gezi günlerinde 12:00–13:30 arası kuyruk uzar; 11:30 veya 13:45 sonrası daha rahattır.',
+          'Queues are longer around 12:00–13:30 on busy days; 11:30 or after 13:45 is usually easier.',
+        ),
+      ),
+    ],
+  ),
+  MustKnowSection(
+    emoji: '🧒',
+    title: LText('Aile ve Çocuk Dostu Plan', 'Family & Kid-Friendly Plan'),
+    tips: [
+      MustKnowTip(
+        emoji: '👨‍👩‍👧',
+        text: LText(
+          'Çocukla en az bir öğünü konbini/food court tutmak tempoyu ve bütçeyi dengeler.',
+          'With kids, making at least one meal konbini/food-court keeps pace and budget balanced.',
+        ),
+      ),
+      MustKnowTip(
+        emoji: '🌶️',
+        text: LText(
+          'Baharat hassasiyeti için siparişte "karakute nai" (acı olmasın) notunu kullan.',
+          'For spice sensitivity, use "karakute nai" (not spicy) when ordering.',
+        ),
+      ),
+      MustKnowTip(
+        emoji: '🍙',
+        text: LText(
+          'Yüksek yürüyüş gününde küçük atıştırmalık (onigiri, protein bar) taşı; öğün gecikmelerini kurtarır.',
+          'Carry small snacks (onigiri, protein bar) on high-walking days; it helps when meals are delayed.',
+        ),
+      ),
+    ],
+  ),
+  MustKnowSection(
+    emoji: '🕌',
+    title: LText('Helal / Vejetaryen İpuçları', 'Halal / Vegetarian Tips'),
+    tips: [
+      MustKnowTip(
+        emoji: '🐷',
+        text: LText(
+          'Domuz türevi (pork extract, lard) için içerik sorgula; ramen bazlarında sık geçer.',
+          'Ask about pork derivatives (pork extract, lard); they are common in ramen bases.',
+        ),
+      ),
+      MustKnowTip(
+        emoji: '🐟',
+        text: LText(
+          'Balık sosu/dashi, vejetaryen yemeklerde gizli olabilir; "dashi nashi" sorusu kritik.',
+          'Fish stock/dashi can be hidden in vegetarian dishes; asking "dashi nashi" is crucial.',
+        ),
+      ),
+      MustKnowTip(
+        emoji: '🏷️',
+        text: LText(
+          'İlk günlerde zincir ve etiketli ürünler daha güvenli; sonrasında yerel keşfi artır.',
+          'On the first days, chains and clearly labeled products are safer; expand to local spots later.',
+        ),
+      ),
+    ],
+  ),
+  MustKnowSection(
+    emoji: '🙏',
+    title: LText('Sipariş ve Restoran Adabı', 'Ordering & Etiquette'),
+    tips: [
+      MustKnowTip(
+        emoji: '🚶',
+        text: LText(
+          'Yürürken yemek yerine dükkan önü/tezgah kenarında bitirmek daha uygundur.',
+          'Instead of eating while walking, finishing near the shop counter is more appropriate.',
+        ),
+      ),
+      MustKnowTip(
+        emoji: '🚰',
+        text: LText(
+          'Birçok restoranda su ücretsiz gelir; ekstra içecek siparişi zorunlu değildir.',
+          'Many restaurants provide free water; ordering extra drinks is usually not required.',
+        ),
+      ),
+      MustKnowTip(
+        emoji: '💰',
+        text: LText(
+          'Bahşiş bırakılmaz; hesabı kasada ödersin. Kart geçmiyorsa nakit hazır tut.',
+          'No tipping; you typically pay at the cashier. Keep cash ready if cards are not accepted.',
+        ),
+      ),
+    ],
+  ),
 ];
