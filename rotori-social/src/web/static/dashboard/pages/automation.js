@@ -263,8 +263,9 @@ function buildFlowData(upcoming, type, nowIso) {
     };
   }
 
-  // Always pad to FLOW_LIMIT with add-placeholder slots
-  const slots = [...ordered];
+  // Show up to 3 filled slots + always 2+ empty add slots (total always 5)
+  const visibleFilled = ordered.slice(0, 3);
+  const slots = [...visibleFilled];
   while (slots.length < FLOW_LIMIT) {
     slots.push({ _placeholder: 'add', _type: type });
   }
@@ -274,9 +275,9 @@ function buildFlowData(upcoming, type, nowIso) {
     totalNear: typedNear.length,
     hiddenFuture: Math.max(0, typed.length - typedNear.length),
     slots,
-    anchor: ordered.length ? ordered[ordered.length - 1] : null,
-    compact: ordered.length < FLOW_LIMIT,
-    empty: false,
+    anchor: visibleFilled.length ? visibleFilled[visibleFilled.length - 1] : null,
+    compact: visibleFilled.length < FLOW_LIMIT,
+    empty: visibleFilled.length === 0,
   };
 }
 
