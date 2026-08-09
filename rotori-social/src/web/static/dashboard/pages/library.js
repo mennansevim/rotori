@@ -150,18 +150,22 @@ function contentCard(it, ctx, serverNow) {
 
   const isPublished = it.status === 'published';
   const isPending = ['draft', 'pending_approval'].includes(it.status);
-  const isReady = ['approved', 'queued', 'scheduled', 'failed'].includes(it.status);
+  const isApproved = it.status === 'approved';
+  const isQueued = ['queued', 'scheduled', 'failed'].includes(it.status);
 
-  // Görünür aksiyon: en fazla 2. Birincil duruma göre değişir, ikincil hep Düzenle.
-  // İkincil/destructive işlemler (Yenile, Reddet/Kaldır, Sil) üç nokta menüsünde.
   const actions = el('div', { class: 'content-card__actions' });
   if (isPending) {
     actions.append(
       el('button', { class: 'btn btn--sm btn--primary', onclick: () => approve(it, ctx), html: icons.check + '<span>Onayla</span>' }),
       el('button', { class: 'btn btn--sm', onclick: () => openContentModal(it, ctx), html: icons.edit + '<span>Düzenle</span>' }));
-  } else if (isReady) {
+  } else if (isApproved) {
     actions.append(
       el('button', { class: 'btn btn--sm btn--primary', onclick: () => addToAutomation(it, ctx), html: icons.plus + '<span>Otomasyona Ekle</span>' }),
+      el('button', { class: 'btn btn--sm', onclick: () => openContentModal(it, ctx), html: icons.edit + '<span>Düzenle</span>' }));
+  } else if (isQueued) {
+    const schedInfo = it.scheduled_at ? fmtDate(it.scheduled_at) + ' · ' + fmtTime(it.scheduled_at) : '';
+    actions.append(
+      el('span', { class: 'badge badge--ok', style: 'padding:6px 12px;font-size:12px', title: schedInfo }, 'Otomasyonda' + (schedInfo ? ' ' + schedInfo : '')),
       el('button', { class: 'btn btn--sm', onclick: () => openContentModal(it, ctx), html: icons.edit + '<span>Düzenle</span>' }));
   } else if (isPublished) {
     const link = it.published && it.published.permalink;
