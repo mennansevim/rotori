@@ -1,7 +1,7 @@
 # ARCHITECTURE.md — Güncel Mimari
 
 > Kod değiştiğinde bu dosya **aynı PR'da** güncellenmelidir.
-> Son revizyon: 2026-08-06 (deploy kaynağı monorepo `japan-trip/main`)
+> Son revizyon: 2026-08-10 (modüler dashboard Kütüphane yaşam döngüsü)
 
 ## 1. Yüksek seviye
 
@@ -166,6 +166,22 @@
 - **Endpoint kullanım tablosu**: bkz. `docs/CURRENT_TASK.md`.
 - **Responsive**: 1100px altında 4→2 sütun; 850px altında sidebar alt navigation bar'a döner; 560px altında search gizlenir, kartlar tek sütun.
 - **Bugünün notu**: eski UI kaldırılmadı — feature flag ile paralel yaşıyor.
+
+## 6b. Modüler dashboard — `static/dashboard/`
+
+- `app.js` sayfa modüllerini yükler; ortak API istemcisi ve bileşen yardımcıları
+  `lib.js` içindedir.
+- Kütüphane ürün akışı yalnız üç ana aşama taşır: **Taslak → Onaylandı →
+  Yayınlandı**. `queued`, `scheduled`, `publishing` ve `failed` teknik durumları
+  Onaylandı aşamasının altında sunulur; kullanıcıya dördüncü bir aşama açmaz.
+- Tek kart otomasyon eylemi `POST /api/scheduler/auto_fill_ready/{name}` ile
+  yalnız seçilen onaylı dosyayı planlar. Toplu eylem mevcut
+  `POST /api/scheduler/auto_fill_ready` endpoint'ini kullanır.
+- Yayın geçmişi `GET /api/dashboard/library` yanıtındaki `published` durumundan
+  türetilir; upload logu güncellendiğinde kart bir sonraki yenilemede Yayınlandı
+  arşivinde görünür.
+- Dashboard modülleri deploy/cache ayrımı için tek sürüm anahtarı kullanır
+  (`20260810-5`).
 
 ## 6. Frontend akışı — `index.html`
 

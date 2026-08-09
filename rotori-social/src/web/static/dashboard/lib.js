@@ -39,6 +39,7 @@ export const api = {
   approvalReject: (name) => req('POST', `/api/approval/reject/${encodeURIComponent(name)}`),
   // Kuyruk
   autoFillReady: () => req('POST', '/api/scheduler/auto_fill_ready'),
+  autoFillReadyItem: (name) => req('POST', `/api/scheduler/auto_fill_ready/${encodeURIComponent(name)}`),
   schedulerQueue: () => req('GET', '/api/scheduler/queue'),
   scheduleStory: (b) => req('POST', '/api/scheduler/schedule_story', b),
   dequeue: (id) => req('DELETE', `/api/scheduler/queue/${encodeURIComponent(id)}`),

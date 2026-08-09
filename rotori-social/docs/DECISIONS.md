@@ -5,6 +5,29 @@
 
 ---
 
+## Karar 13 — 2026-08-10
+### Karar
+Kütüphane içerik yaşam döngüsü yalnız üç ana aşamadan oluşur:
+**Taslak → Onaylandı → Yayınlandı**. Otomasyon bir ana aşama değildir;
+Onaylandı içeriğinin planlama alt durumudur. Tek karttaki otomasyon eylemi
+yalnız o kartı, toplu eylem ise tüm uygun onaylı kartları planlar.
+
+### Neden
+Kullanıcının temel kararları içeriği incelemek, onaylamak ve yayın sonucunu
+görmektir. `Sırada` veya `Otomasyonda` gibi teknik durumları aynı seviyede
+göstermek ürün akışını gereksiz yere dört-beş aşamaya bölüyordu. Ayrıca önceki
+tekli kart eylemi toplu endpoint'i çağırdığı için kullanıcının seçmediği diğer
+onaylı içerikleri de planlayabiliyordu.
+
+### Sonuçları
+- Taslak onaylanınca Onaylandı görünümüne geçer.
+- Onaylandı kartı otomasyona eklenince aynı görünümde kalır ve planlanan zamanı
+  `Otomasyonda` alt durumuyla gösterir.
+- Upload logu yayın sonucunu doğruladığında kart Yayınlandı arşivine geçer.
+- Tekli ve toplu otomasyon eylemlerinin API sözleşmeleri ayrıdır.
+
+---
+
 ## Karar 12 — 2026-08-10
 ### Karar
 Her Social deploy'u UTC zaman damgalı benzersiz bir `DEPLOY_ID` üretir. Bu

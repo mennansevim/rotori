@@ -90,6 +90,24 @@ def test_scheduler_queue_shape(client):
     assert isinstance(data["items"], list)
 
 
+def test_single_approved_item_can_be_added_to_automation(client, monkeypatch):
+    """Kart aksiyonu yalnız seçilen içeriği planlamalı, tüm havuzu değil."""
+    import src.web.app as appmod
+
+    called = {}
+
+    def fake_auto_fill(only_name=None):
+        called["only_name"] = only_name
+        return {"ok": True, "scheduled": 1, "entries": [{"asset_name": only_name}]}
+
+    monkeypatch.setattr(appmod, "_auto_fill_ready_impl", fake_auto_fill)
+    response = client.post("/api/scheduler/auto_fill_ready/ornek-haber.jpg")
+
+    assert response.status_code == 200
+    assert response.json()["scheduled"] == 1
+    assert called["only_name"] == "ornek-haber.jpg"
+
+
 def test_story_list_shape(client):
     """Kütüphane ekranı cards[] okuyor."""
     r = client.get("/api/story/list")
