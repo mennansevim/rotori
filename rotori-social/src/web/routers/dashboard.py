@@ -42,6 +42,8 @@ def dashboard_library() -> dict[str, Any]:
         "all": len(items),
         "draft": sum(1 for i in items if i["status"] == "draft"),
         "pending_approval": sum(1 for i in items if i["status"] == "pending_approval"),
+        "approved": sum(1 for i in items if i["status"] == "approved"),
+        "queued": sum(1 for i in items if i["status"] in ("queued", "scheduled")),
         "ready": sum(1 for i in items if i["status"] in ("approved", "queued", "scheduled")),
         "published": sum(1 for i in items if i["status"] == "published"),
     }

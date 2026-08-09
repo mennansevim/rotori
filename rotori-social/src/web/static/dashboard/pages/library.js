@@ -8,8 +8,9 @@ import { openCreateModal } from './create.js';
 
 const STATUS_FILTERS = [
   ['all', 'Tümü'],
-  ['ready', 'Yayına Hazır'],
   ['draft', 'Taslak'],
+  ['approved', 'Onaylandı'],
+  ['queued', 'Sırada'],
   ['published', 'Yayınlandı'],
 ];
 
@@ -45,7 +46,8 @@ export async function renderLibrary(root, ctx, params) {
     filterbar.innerHTML = '';
     for (const [key, label] of STATUS_FILTERS) {
       const count = key === 'all' ? data.counts.all
-        : key === 'ready' ? data.counts.ready
+        : key === 'approved' ? (data.counts.approved || 0)
+        : key === 'queued' ? (data.counts.queued || 0)
         : data.counts[key] ?? 0;
       filterbar.append(el('button', {
         class: `chip ${state.status === key ? 'is-active' : ''}`,
@@ -73,7 +75,8 @@ export async function renderLibrary(root, ctx, params) {
   const filtered = () => {
     let items = data.items.slice();
     if (state.status !== 'all') {
-      if (state.status === 'ready') items = items.filter((i) => ['approved', 'queued', 'scheduled'].includes(i.status));
+      if (state.status === 'approved') items = items.filter((i) => ['approved'].includes(i.status));
+      else if (state.status === 'queued') items = items.filter((i) => ['queued', 'scheduled'].includes(i.status));
       else items = items.filter((i) => i.status === state.status);
     }
     if (state.type !== 'all') items = items.filter((i) => i.type === state.type);
@@ -158,7 +161,6 @@ function contentCard(it, ctx, serverNow) {
       el('button', { class: 'btn btn--sm', onclick: () => openContentModal(it, ctx), html: icons.edit + '<span>Düzenle</span>' }));
   } else if (isReady) {
     actions.append(
-      el('button', { class: 'btn btn--sm btn--primary', onclick: () => publish(it, ctx), html: icons.send + '<span>Yayınla</span>' }),
       el('button', { class: 'btn btn--sm', onclick: () => openContentModal(it, ctx), html: icons.edit + '<span>Düzenle</span>' }));
   } else if (isPublished) {
     const link = it.published && it.published.permalink;
