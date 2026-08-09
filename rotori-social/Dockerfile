@@ -45,7 +45,9 @@ COPY . .
 # /api/version ikisini birleştirir; container'da .git olmadığı için gerekli.
 ARG GIT_COMMIT=unknown
 ARG BUILD_DATE=
-RUN printf '{"commit":"%s","date":"%s"}\n' "$GIT_COMMIT" "$BUILD_DATE" > /app/BUILD_INFO
+ARG DEPLOY_ID=dev
+RUN printf '{"commit":"%s","date":"%s","deploy":"%s"}\n' \
+    "$GIT_COMMIT" "$BUILD_DATE" "$DEPLOY_ID" > /app/BUILD_INFO
 
 # Web arayüzü portu (compose'da host 3090 → container 8420 map edilir).
 EXPOSE 8420

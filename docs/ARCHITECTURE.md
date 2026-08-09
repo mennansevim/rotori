@@ -31,7 +31,7 @@ akışına taşındı).
 
 > **Monorepo (2026-08-03):** Kök `rotori-app/`. Üç ayak: `rotori-mobile/`,
 > `rotori-website/` (+ `legacy/` eski React PWA & build), `rotori-social/`
-> (`japan-reels-maker` taşındı, nested `.git` kaldırıldı). Paylaşılan `docs/`
+> (sosyal kaynak kod doğrudan bu dizine taşındı, nested `.git` kaldırıldı). Paylaşılan `docs/`
 > ve `supabase/` kökte. Vercel kaldırıldı.
 
 ## 2. Modül Sınırları (mobil)

@@ -42,8 +42,12 @@ def _read_version(project_root: Path) -> dict[str, str]:
         try:
             raw = json.loads(bfile.read_text(encoding="utf-8"))
             if isinstance(raw, dict) and raw.get("commit"):
+                deploy_id = str(raw.get("deploy", "")).strip()
+                build_version = version or "v?"
+                if deploy_id and deploy_id != "dev":
+                    build_version = f"{build_version}+{deploy_id}"
                 return {
-                    "version": version or "v?",
+                    "version": build_version,
                     "commit": str(raw.get("commit", "")).strip()[:7],
                     "date": str(raw.get("date", "")).strip(),
                     "source": "build",

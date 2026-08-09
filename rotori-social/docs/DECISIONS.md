@@ -5,6 +5,49 @@
 
 ---
 
+## Karar 12 — 2026-08-10
+### Karar
+Her Social deploy'u UTC zaman damgalı benzersiz bir `DEPLOY_ID` üretir. Bu
+kimlik Docker imajındaki `BUILD_INFO` dosyasına yazılır ve `/api/version`
+yanıtında SemVer build metadata olarak gösterilir. Dashboard statik dosyaları
+`no-cache, no-store, must-revalidate` ile sunulur.
+
+### Neden
+Aynı commit yeniden deploy edildiğinde önceki commit tarihi değişmediği için
+canlı sürümü ayırt etmek mümkün değildi. Sabit statik dosya URL'leri de eski
+tarayıcı/CDN cache'inin yeni arayüzü gölgelemesine izin veriyordu.
+
+### Sonuçları
+- Her deploy dışarıdan benzersiz bir sürümle doğrulanabilir.
+- `commit: unknown` yalnız deploy scripti atlanırsa görülebilir; normal deploy
+  gerçek commit ve deploy zamanını taşır.
+- Dashboard kodu yeni deploy sonrasında zorunlu olarak yeniden doğrulanır.
+
+---
+
+## Karar 11 — 2026-08-10
+### Karar
+Mavi haber otomasyonu tek bir haftalık günle sınırlandı. Güncel kadans
+Çarşamba 23:21'dir. Dashboard canlı sırası yalnız aktif kuyruk durumlarını
+(`pending`, `ready`, `uploading`) gösterir; başarısız ve iptal edilmiş kayıtlar
+yalnız yayın logunda tutulur.
+
+### Neden
+- Birden fazla haber günü seçilebildiği için sıra haftada iki kez ilerliyordu;
+  ürün beklentisi haber hattında haftada bir yayındır.
+- Geçmiş başarısız kayıtlar aktif sıraya ve canlı anchor seçimine dahil olduğu
+  için ekran geçmiş bir kartta takılı görünebiliyordu.
+- On dört günlük görünüm, haftalık kadansta beş kartlık sıranın çoğunu gizliyordu.
+
+### Sonuçları
+- Haber gün seçici radio gibi davranır ve aktif haber otomasyonu API katmanında
+  tam bir gün gerektirir.
+- İlk beş aktif içerik tarih sırasıyla gösterilir; daha ileridekiler bekleyen
+  adet olarak özetlenir.
+- Mevcut hata geçmişi silinmez; operasyonel inceleme için loglarda kalır.
+
+---
+
 ## Karar 10 — 2026-07-30
 ### Kararı
 `japonya-ruyasi-dashboard-design.zip` paketindeki editöryel dashboard tasarımı üretim kalitesinde uygulandı. Yeni tek dosyalı SPA (`src/web/static/studio.html`) `?ui=new` feature flag'i ve `/studio` route'u ile mevcut arayüzün yanında yayınlandı; eski `index.html` bozulmadan `/` kök adresinde default olarak kaldı.

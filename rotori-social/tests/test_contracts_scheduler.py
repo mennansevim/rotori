@@ -133,3 +133,33 @@ def test_sync_automation_slots_replans_existing_items(tmp_path):
     assert result == {"rescheduled": 1, "unscheduled": 0}
     assert saved["news-1"]["scheduled_at"] == "2026-08-06T18:30:00"
     assert saved["manual-1"]["scheduled_at"] == "2026-08-05T12:00:00"
+
+
+def test_weekly_news_queue_advances_exactly_seven_days():
+    queue = []
+    now = datetime(2026, 8, 10, 10, 0, 0)
+    slots = []
+    for index in range(5):
+        slot = scheduler.next_automation_slot(
+            queue,
+            launchd_days=[3],
+            hour=23,
+            minute=21,
+            from_dt=now,
+            automation_kind="news",
+        )
+        slots.append(slot)
+        queue.append({
+            "id": f"news-{index}",
+            "scheduled_at": slot,
+            "status": "pending",
+            "automation_kind": "news",
+        })
+
+    assert slots == [
+        "2026-08-12T23:21:00",
+        "2026-08-19T23:21:00",
+        "2026-08-26T23:21:00",
+        "2026-09-02T23:21:00",
+        "2026-09-09T23:21:00",
+    ]

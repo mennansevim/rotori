@@ -2,7 +2,7 @@
 // pages/automation.js — Otomasyon (yayın slotları)
 // =========================================================================
 import { api, el, icons, typeBadge, countdownText, fmtDate, fmtTime,
-         errorState, loadingState, toast, openModal } from '../lib.js?v=20260810-3';
+         errorState, loadingState, toast, openModal } from '../lib.js?v=20260810-4';
 
 const DAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];  // launchd: 1..6,0
 const fmtDayTime = (iso) => {
@@ -16,9 +16,9 @@ const fmtDayTime = (iso) => {
 };
 const DAY_TO_LAUNCHD = [1, 2, 3, 4, 5, 6, 0];  // index → launchd weekday
 const FLOW_LIMIT = 5;
-const FLOW_HORIZON_DAYS = 14;
 const READY_LIBRARY_STATUSES = new Set(['approved', 'queued', 'scheduled', 'publishing', 'failed']);
 const REPLACE_ELIGIBLE_STATUSES = new Set(['approved', 'queued', 'scheduled']);
+const ACTIVE_QUEUE_STATUSES = new Set(['pending', 'ready', 'uploading']);
 
 const FLOW_META = {
   haber: {
@@ -145,6 +145,7 @@ function renderSettingsPanel(panel, cfg) {
     'Yayınlar yalnızca onaylandıktan sonra otomasyon kapsamına alınır.<br>Saatler <b>Europe/Istanbul (GMT+3)</b> zaman dilimine göre ayarlanmıştır.' }));
 
   function slotCard(kind, title, sub, conf) {
+    const isWeeklyNews = kind === 'haber';
     const enabledToggle = el('input', { type: 'checkbox', checked: conf.enabled ? '' : null,
       onchange: (e) => { conf.enabled = e.target.checked; } });
     const timeInput = el('input', { class: 'input', type: 'time', style: 'max-width:130px',
@@ -154,6 +155,15 @@ function renderSettingsPanel(panel, cfg) {
       onchange: (e) => { conf.auto_publish = e.target.checked; } });
 
     const dayBtns = el('div', { class: 'daypicker' });
+    const dayButtons = [];
+    const refreshDayButtons = () => {
+      dayButtons.forEach(({ button, weekday }) => {
+        const on = (conf.days || []).includes(weekday);
+        button.classList.toggle('is-on', on);
+        button.classList.toggle(kind, on);
+        button.setAttribute('aria-pressed', String(on));
+      });
+    };
     DAYS.forEach((label, idx) => {
       const lw = DAY_TO_LAUNCHD[idx];
       const on = (conf.days || []).includes(lw);
@@ -161,10 +171,16 @@ function renderSettingsPanel(panel, cfg) {
         'aria-pressed': on ? 'true' : 'false',
         onclick: () => {
           const has = conf.days.includes(lw);
-          conf.days = has ? conf.days.filter((d) => d !== lw) : [...conf.days, lw];
-          b.classList.toggle('is-on'); b.classList.toggle(kind);
-          b.setAttribute('aria-pressed', String(!has));
+          if (isWeeklyNews) {
+            // Mavi haber akışı haftada tam bir kez çalışır; gün seçici radio
+            // gibi davranır ve seçili günü ikinci kez tıklamak boş bırakmaz.
+            conf.days = [lw];
+          } else {
+            conf.days = has ? conf.days.filter((d) => d !== lw) : [...conf.days, lw];
+          }
+          refreshDayButtons();
         } }, label);
+      dayButtons.push({ button: b, weekday: lw });
       dayBtns.append(b);
     });
 
@@ -174,12 +190,15 @@ function renderSettingsPanel(panel, cfg) {
           el('div', { class: `slot-card__icon ${kind}`, html: kind === 'haber' ? icons.news : icons.image }),
           el('div', {}, el('div', { class: 'slot-card__title' }, title), el('div', { class: 'slot-card__sub' }, sub))),
         el('label', { class: 'switch' }, enabledToggle, el('span', { class: 'switch__track' }))),
-      el('div', { class: 'slot-row' }, el('span', { class: 'slot-row__label' }, 'Günler'), dayBtns),
+      el('div', { class: 'slot-row' },
+        el('span', { class: 'slot-row__label' }, isWeeklyNews ? 'Haftalık gün' : 'Günler'), dayBtns),
       el('div', { class: 'slot-row' }, el('span', { class: 'slot-row__label' }, 'Saat'), timeInput),
       el('div', { class: 'slot-row' }, el('span', { class: 'slot-row__label' }, 'Yayın'),
         el('label', { class: 'option', style: 'border:0;padding:0;background:none' }, publishToggle, 'Slot zamanı gelince otomatik yayınla')),
       el('p', { class: 'muted', style: 'font-size:11.5px;margin:14px 0 0' },
-        `Onaylanan ${kind === 'haber' ? 'haber' : 'görsel'} içerikleri belirtilen gün ve saatte otomatik yayınlanır.`)));
+        isWeeklyNews
+          ? 'Onaylanan haberler seçilen tek günde, haftada bir kez sırayla yayınlanır.'
+          : 'Onaylanan görsel içerikleri belirtilen gün ve saatte otomatik yayınlanır.')));
   }
 }
 
@@ -218,9 +237,11 @@ function renderFlowPanel(panel, state, root, ctx, options = {}) {
   }
 
   activeFlowTypes.forEach((type) => {
-    const flowData = buildFlowData(upcoming, type, nowIso);
+    const flowData = buildFlowData(upcoming, type);
     anchors[type] = flowData.anchor;
-    flowStack.append(flowRow(type, flowData, approvedPool, nowIso, root, ctx, options));
+    const configKey = FLOW_KIND_TO_CONFIG[type];
+    flowStack.append(flowRow(type, flowData, approvedPool, nowIso, root, ctx, options,
+      state.config?.[configKey] || {}));
   });
   panel.append(flowStack);
   panel.append(el('div', { class: 'foot-note', html:
@@ -230,39 +251,23 @@ function renderFlowPanel(panel, state, root, ctx, options = {}) {
   root._flowClockOffsetMs = computeServerOffset(nowIso);
 }
 
-function buildFlowData(upcoming, type, nowIso) {
+function buildFlowData(upcoming, type) {
   const typed = [...upcoming]
     .filter((it) => (it.type || 'gorsel') === type)
+    .filter((it) => ACTIVE_QUEUE_STATUSES.has(it.queue_status))
     .sort((a, b) => new Date(a.scheduled_at || 0).getTime() - new Date(b.scheduled_at || 0).getTime());
 
-  const nowMs = parseNowMs(nowIso);
-  const horizonEndMs = Number.isFinite(nowMs)
-    ? nowMs + (FLOW_HORIZON_DAYS * 24 * 60 * 60 * 1000)
-    : null;
-  const nearStartMs = Number.isFinite(nowMs)
-    ? nowMs - (6 * 60 * 60 * 1000)
-    : null;
-
-  const typedNear = typed.filter((it) => {
-    if (it.publish_outcome === 'publishing' || it.publish_outcome === 'failed' || it.publish_outcome === 'manual') {
-      return true;
-    }
-    if (!Number.isFinite(horizonEndMs) || !Number.isFinite(nearStartMs)) return true;
-    const ms = new Date(it.scheduled_at || '').getTime();
-    if (!Number.isFinite(ms)) return false;
-    return ms >= nearStartMs && ms <= horizonEndMs;
-  });
-
-  const nearest = typedNear.slice(0, FLOW_LIMIT);
+  // Aktif sıranın ilk beş kaydı gösterilir. Geçmiş failed/cancelled kayıtlar
+  // logda kalır ama canlı sırayı ve sağdaki anchor kartını bloke etmez.
+  const nearest = typed.slice(0, FLOW_LIMIT);
   const ordered = [...nearest].reverse(); // solda uzak tarih, sağda en yakın
 
   if (!ordered.length) {
     return {
       total: typed.length,
-      totalNear: typedNear.length,
-      hiddenFuture: Math.max(0, typed.length - typedNear.length),
+      hiddenFuture: 0,
       slots: [{
-        _placeholder: typed.length ? 'quiet' : 'empty',
+        _placeholder: 'empty',
         _type: type,
       }],
       anchor: null,
@@ -278,8 +283,7 @@ function buildFlowData(upcoming, type, nowIso) {
 
   return {
     total: typed.length,
-    totalNear: typedNear.length,
-    hiddenFuture: Math.max(0, typed.length - typedNear.length),
+    hiddenFuture: Math.max(0, typed.length - FLOW_LIMIT),
     slots,
     anchor: ordered.length ? ordered[ordered.length - 1] : null,
     compact: ordered.length < FLOW_LIMIT,
@@ -287,7 +291,7 @@ function buildFlowData(upcoming, type, nowIso) {
   };
 }
 
-function flowRow(type, flowData, approvedPool, nowIso, root, ctx, options) {
+function flowRow(type, flowData, approvedPool, nowIso, root, ctx, options, laneConfig) {
   const meta = FLOW_META[type];
   const row = el('section', { class: `card flow-row flow-row--${type}` });
   const head = el('div', { class: 'card__head flow-row__head' },
@@ -296,8 +300,8 @@ function flowRow(type, flowData, approvedPool, nowIso, root, ctx, options) {
       el('div', { class: 'flow-row__sub' }, meta.subtitle)),
     el('div', { class: 'hstack' },
       el('span', { html: typeBadge(type) }),
-      el('span', { class: 'badge badge--muted' }, `Bu hafta: ${flowData.totalNear || 0}`),
-      el('span', { class: 'badge badge--muted' }, `Toplam ${flowData.total} slot`)));
+      el('span', { class: 'badge badge--muted' }, cadenceLabel(laneConfig)),
+      el('span', { class: 'badge badge--muted' }, `Sırada ${flowData.total} içerik`)));
 
   const trackClasses = ['flow-track'];
   if (options.animateShift) trackClasses.push('is-shift');
@@ -336,7 +340,7 @@ function flowRow(type, flowData, approvedPool, nowIso, root, ctx, options) {
     el('div', { class: 'flow-row__legend' },
       el('div', { class: 'flow-row__legend-main' },
         el('span', {}, (flowData.hiddenFuture || 0) > 0
-          ? `Uzak planlı ${flowData.hiddenFuture} slot gizlendi (yalnızca haftalık görünüm). Kutuya tıkla → ${meta.action}`
+          ? `Sonraki ${flowData.hiddenFuture} içerik sırada bekliyor. Kutuya tıkla → ${meta.action}`
           : `Kutuya tıkla → ${meta.action}`),
         anchor ? el('span', { class: 'flow-row__live' }, `Canlı takip: ${anchor.title || 'Sıradaki gönderi'}`) : null),
       el('div', { class: 'flow-row__legend-actions' }, nowSendBtn))));
@@ -407,7 +411,7 @@ function flowSlot(type, slot, isAnchor, approvedPool, nowIso, root, ctx) {
   return btn;
 }
 
-function flowPlaceholderSlot(type, mode, ctx) {
+function flowPlaceholderSlot(type, mode, ctx, root) {
   const kind = type === 'haber' ? 'haber' : 'görsel';
   const isEmpty = mode === 'empty';
   const isQuiet = mode === 'quiet';
@@ -419,7 +423,7 @@ function flowPlaceholderSlot(type, mode, ctx) {
   const subtitle = isEmpty
     ? 'Kütüphanede onaylayıp otomasyona ekleyin.'
     : isQuiet
-      ? `Haftalık akış görünümü yalnızca önümüzdeki ${FLOW_HORIZON_DAYS} günü gösterir.`
+      ? 'Bu akışta yakın vadeli bir yayın bulunmuyor.'
       : 'Onaylı içeriklerle sırayı hızlıca doldurabilirsiniz.';
 
   return el('button', {
@@ -437,6 +441,17 @@ function flowPlaceholderSlot(type, mode, ctx) {
   el('strong', { class: 'flow-slot__cta-title' }, title),
   el('span', { class: 'flow-slot__cta-sub' }, subtitle),
   el('span', { class: 'flow-slot__cta-link' }, (!isEmpty && !isQuiet) ? 'İçerik seç' : 'Kütüphaneye git'));
+}
+
+function cadenceLabel(conf) {
+  const days = Array.isArray(conf?.days) ? conf.days : [];
+  const labels = days
+    .map((weekday) => DAYS[DAY_TO_LAUNCHD.indexOf(Number(weekday))])
+    .filter(Boolean);
+  const hour = String(Number(conf?.hour ?? 0)).padStart(2, '0');
+  const minute = String(Number(conf?.minute ?? 0)).padStart(2, '0');
+  if (!labels.length) return 'Yayın günü seçilmedi';
+  return `Haftada ${labels.length} · ${labels.join(', ')} ${hour}:${minute}`;
 }
 
 async function openAddToFlowPicker({ type, root, ctx }) {
@@ -812,13 +827,6 @@ function parseDeltaSeconds(scheduledAt, nowRef) {
     : (nowRef ? new Date(nowRef).getTime() : Date.now());
   if (!Number.isFinite(target) || !Number.isFinite(now)) return null;
   return Math.floor((target - now) / 1000);
-}
-
-function parseNowMs(nowRef) {
-  if (!nowRef) return Date.now();
-  if (typeof nowRef === 'number') return nowRef;
-  const ms = new Date(nowRef).getTime();
-  return Number.isFinite(ms) ? ms : Date.now();
 }
 
 function activeFlowLaneTypes(config) {

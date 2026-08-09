@@ -1,7 +1,25 @@
 # CURRENT_TASK.md — Aktif İş
 
 > Görev tamamlanır tamamlanmaz güncellenir. Sadece **bugünkü** işi tutar; geçmiş `DECISIONS.md`'e taşınır.
-> Son güncelleme: 2026-07-30 (dashboard-design paketi uygulaması)
+> Son güncelleme: 2026-08-10 (mavi haber akışı haftalık sıra düzeltmesi)
+
+## 2026-08-10 — Tamamlanan iş
+
+- Mavi haber otomasyonu Çarşamba 23:21'de haftada bir çalışacak şekilde
+  tek güne indirildi; bekleyen 10 haber kartı yedişer gün arayla yeniden
+  sıralandı.
+- Haber gün seçicisi çoklu seçimden tek seçime çevrildi ve API aynı kuralı
+  `422` doğrulamasıyla koruyor.
+- Geçmiş `failed/cancelled` kayıtlar canlı flow sırasından çıkarıldı; loglarda
+  görünmeye devam ediyor.
+- Flow başlığı gerçek kadansı (`Haftada 1 · Çar 23:21`) ve bekleyen içerik
+  sayısını gösteriyor; ilk beş aktif haftalık kart tarih sırasıyla görünür.
+- İlgili scheduler, API ve dashboard regresyon testleri eklendi.
+- Dashboard modül cache anahtarı `20260810-4` sürümüne yükseltildi; ana HTML
+  no-store yanıtıyla birlikte eski otomasyon JavaScript'inin tutulması önlendi.
+- Her deploy benzersiz UTC build kimliği üretir ve `/api/version` bunu SemVer
+  build metadata olarak gösterir. Dashboard statik dosyaları ayrıca kalıcı
+  `no-store` politikasıyla sunulur.
 
 ## Sprint hedefi (yeni)
 **"japonya-ruyasi-dashboard-design.zip paketindeki editöryel dashboard tasarımını üretim kalitesinde uygula; mevcut endpoint'leri koru; eski arayüzü kaldırma."**

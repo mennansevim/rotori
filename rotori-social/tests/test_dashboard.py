@@ -164,6 +164,24 @@ def test_recovered_dark_board_and_timeline_contracts():
     assert "settled = true" in lib_js
 
 
+def test_automation_flow_keeps_failed_items_out_of_live_weekly_queue():
+    automation_js = (DASHBOARD_STATIC / "pages" / "automation.js").read_text(encoding="utf-8")
+    assert "ACTIVE_QUEUE_STATUSES.has(it.queue_status)" in automation_js
+    assert "cadenceLabel(laneConfig)" in automation_js
+    assert "conf.days = [lw]" in automation_js
+
+
+def test_dashboard_cachebuster_is_consistent():
+    index_html = (DASHBOARD_STATIC / "index.html").read_text(encoding="utf-8")
+    app_js = (DASHBOARD_STATIC / "app.js").read_text(encoding="utf-8")
+    automation_js = (DASHBOARD_STATIC / "pages" / "automation.js").read_text(encoding="utf-8")
+    version = "20260810-4"
+    assert f"app.js?v={version}" in index_html
+    assert f"pages/automation.js?v={version}" in app_js
+    assert f"lib.js?v={version}" in automation_js
+    assert "20260810-3" not in index_html + app_js + automation_js
+
+
 def test_publishes_skips_stale_queue_entry_if_already_published(monkeypatch, tmp_path):
     """Aynı kart uploads_log'da varsa queue'daki eski kayıt upcoming'e düşmemeli."""
     cfg = SimpleNamespace(stories=SimpleNamespace(output_dir=tmp_path), project_root=tmp_path)
