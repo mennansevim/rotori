@@ -161,6 +161,7 @@ function contentCard(it, ctx, serverNow) {
       el('button', { class: 'btn btn--sm', onclick: () => openContentModal(it, ctx), html: icons.edit + '<span>Düzenle</span>' }));
   } else if (isReady) {
     actions.append(
+      el('button', { class: 'btn btn--sm btn--primary', onclick: () => addToAutomation(it, ctx), html: icons.plus + '<span>Otomasyona Ekle</span>' }),
       el('button', { class: 'btn btn--sm', onclick: () => openContentModal(it, ctx), html: icons.edit + '<span>Düzenle</span>' }));
   } else if (isPublished) {
     const link = it.published && it.published.permalink;
@@ -254,6 +255,17 @@ async function del(it, ctx) {
   try { await api.storyDelete(it.name); toast('İçerik silindi.', 'ok'); ctx.refresh(); }
   catch (e) { toast(e.message, 'err'); }
 }
+async function addToAutomation(it, ctx) {
+  try {
+    const r = await api.autoFillReady();
+    const msg = (r.scheduled || 0) > 0
+      ? `${r.scheduled} içerik otomasyon sırasına eklendi.`
+      : 'İçerik zaten sırada veya otomasyon kapalı.';
+    toast(msg, 'ok');
+    ctx.refresh();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
 async function autoFill(ctx) {
   try {
     const r = await api.autoFillReady();
