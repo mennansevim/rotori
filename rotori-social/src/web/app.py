@@ -2733,11 +2733,20 @@ def _auto_fill_ready_impl() -> dict[str, Any]:
             except OSError:
                 caption = ""
         try:
-            scheduled_at = sched_mod.next_automation_slot(
-                existing_queue, days, int(slot_cfg.get("hour", 9)),
-                int(slot_cfg.get("minute", 0)),
-                automation_kind=automation_kind,
-            )
+            try:
+                scheduled_at = sched_mod.next_automation_slot(
+                    existing_queue, days, int(slot_cfg.get("hour", 9)),
+                    int(slot_cfg.get("minute", 0)),
+                    automation_kind=automation_kind,
+                )
+            except ValueError:
+                # Otomasyon günleri doluysa herhangi bir güne yerleştir
+                sched_cfg = cfg.scheduler
+                daily_limit = sched_cfg.daily_limit if sched_cfg else 2
+                default_times = sched_cfg.default_times if sched_cfg else ["08:00", "20:00"]
+                scheduled_at = sched_mod._next_available_slot(
+                    existing_queue, daily_limit, default_times,
+                )
             entry = sched_mod.enqueue(
                 project_root=cfg.project_root,
                 mp4_path=jpg,

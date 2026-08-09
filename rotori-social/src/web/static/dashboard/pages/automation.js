@@ -263,12 +263,8 @@ function buildFlowData(upcoming, type, nowIso) {
     };
   }
 
-  // Show up to 3 filled slots + always 2+ empty add slots (total always 5)
-  const visibleFilled = ordered.slice(0, 3);
+  const visibleFilled = ordered.slice(0, 4);
   const slots = [...visibleFilled];
-  while (slots.length < FLOW_LIMIT) {
-    slots.push({ _placeholder: 'add', _type: type });
-  }
 
   return {
     total: typed.length,
@@ -299,10 +295,24 @@ function flowRow(type, flowData, approvedPool, nowIso, root, ctx, options) {
   if (flowData.empty) trackClasses.push('is-empty');
   const track = el('div', { class: trackClasses.join(' ') });
   const anchor = flowData.anchor;
+
+  // Show up to 4 filled slots
   flowData.slots.forEach((slot) => {
     track.append(flowSlot(type, slot, slot && anchor && slot.entry_id === anchor.entry_id,
       approvedPool, nowIso, root, ctx));
   });
+
+  // Single "+" add button on the right
+  const addBtn = el('button', {
+    class: 'flow-slot flow-slot--cta is-add',
+    type: 'button',
+    title: 'Onaylı içerik ekle',
+    onclick: () => openAddToSlotPicker({ type, approvedPool, root, ctx }),
+  },
+  el('span', { class: 'flow-slot__cta-icon', html: icons.plus }),
+  el('strong', { class: 'flow-slot__cta-title' }, 'Ekle'),
+  el('span', { class: 'flow-slot__cta-sub' }, 'Onaylı içerik'));
+  track.append(addBtn);
 
   const nowSendBtn = anchor
     ? el('button', {
