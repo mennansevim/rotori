@@ -42,10 +42,46 @@ const _kMealGapMinutes = 15;
 const _kTransitionMinutes = 15;
 
 const _kMealWindows = <_MealKind, _MealWindow>{
-  _MealKind.breakfast: _MealWindow(6 * 60, 11 * 60, 'kahvaltı'),
-  _MealKind.lunch: _MealWindow(11 * 60, 15 * 60, 'öğle yemeği'),
-  _MealKind.dinner: _MealWindow(18 * 60, 22 * 60, 'akşam yemeği'),
+  _MealKind.breakfast:
+      _MealWindow(kBreakfastStartMinutes, kBreakfastEndMinutes, 'kahvaltı'),
+  _MealKind.lunch:
+      _MealWindow(kLunchStartMinutes, kLunchEndMinutes, 'öğle yemeği'),
+  _MealKind.dinner:
+      _MealWindow(kDinnerStartMinutes, kDinnerEndMinutes, 'akşam yemeği'),
 };
+
+// ---------------------------------------------------------------------------
+// Öğün pencereleri — DIŞARIYA AÇIK sözleşme
+// ---------------------------------------------------------------------------
+
+/// Öğün pencerelerinin TEK doğru kaynağı (dakika cinsinden, [start, end)).
+///
+/// **Why public:** Rota optimizasyonu kendi öğün saatlerini ayrı ayrı
+/// tanımlıyordu (akşam 17:30'dan açık). Sonuç: optimizasyon akşam yemeğini
+/// 17:30'a koyuyor, ardından BU dosya aynı öğeyi "normalde 18:00–22:00 arası
+/// yenir" diye uyarıyordu — uygulama kendi çıktısını kural ihlali sayıyordu.
+/// Optimizasyon artık bu değerleri okuyor; iki modül ayrışamaz.
+const int kBreakfastStartMinutes = 6 * 60;
+const int kBreakfastEndMinutes = 11 * 60;
+const int kLunchStartMinutes = 11 * 60;
+const int kLunchEndMinutes = 15 * 60;
+const int kDinnerStartMinutes = 18 * 60;
+const int kDinnerEndMinutes = 22 * 60;
+
+/// Bir öğenin İZİN VERİLEN öğün penceresi — sınıflandırılamıyorsa (kafe,
+/// belirsiz başlık) null.
+///
+/// Bu pencere ÜST SINIRDIR: optimizasyon daha DAR bir tercih uygulayabilir
+/// (ör. öğle yemeğini 11:00 yerine 11:30'dan başlatmak) ama bu pencerenin
+/// DIŞINA çıkamaz — çıkarsa [planWarningsFor] kendi çıktımızı uyarı olarak
+/// işaretler. Bkz. test/domain/optimizer_rules_test.dart.
+({int start, int end})? mealWindowMinutesFor(TimelineItem item) {
+  final kind = _classifyMeal(item);
+  if (kind == null) return null;
+  final window = _kMealWindows[kind];
+  if (window == null) return null; // kafe = penceresiz (esnek)
+  return (start: window.startMinutes, end: window.endMinutes);
+}
 
 /// Bir gün için tespit edilen uyarıları döner. Boş liste = plan temiz.
 List<PlanWarning> planWarningsFor(DayPlan day) {

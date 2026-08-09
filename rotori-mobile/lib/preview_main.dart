@@ -16,6 +16,7 @@ import 'package:go_router/go_router.dart';
 
 import 'core/l10n.dart';
 import 'core/supabase_client.dart' show currentUserProvider;
+import 'data/exchange_rate_store.dart';
 import 'data/language_store.dart';
 import 'domain/city_transfers.dart';
 import 'domain/destination_profiles.dart';
@@ -283,6 +284,8 @@ class _PreviewApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final lang = ref.watch(appLangProvider);
+    // Canlı döviz kuru — açılışta bir kez, sonuç beklenmez.
+    ref.watch(liveFxBootstrapProvider);
     final router = GoRouter(
       initialLocation: '/plans',
       routes: [

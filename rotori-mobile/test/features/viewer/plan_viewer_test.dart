@@ -7,12 +7,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:japan_trip/data/plans_repository.dart';
 import 'package:japan_trip/core/supabase_client.dart';
 import 'package:japan_trip/domain/route_matrix.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:japan_trip/core/l10n.dart';
+import 'package:japan_trip/features/plans/premium_provider.dart';
 import 'package:japan_trip/domain/types.dart';
 import 'package:japan_trip/features/plans/plan_providers.dart';
 import 'package:japan_trip/features/plans/plan_optimization_controller.dart';
 import 'package:japan_trip/features/plans/plan_viewer_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 /// Bugüne göre birkaç geçmiş + bir aktif gün içeren örnek Trip.
 Trip _sampleTrip() {
@@ -187,8 +189,12 @@ void main() {
   // doğrudan optimizasyonu çalıştırmıyor, paywall sheet'ini açıyor.
   // Optimizasyon motorunun kendisi plan_optimization_controller_test.dart
   // tarafından kapsanıyor.
-  testWidgets('gün kartı rota optimizasyonunu premium arkasında sunar',
+  // Rota optimizasyonu premium arkasında. ÜCRETSİZ kullanıcıda paywall,
+  // PREMIUM kullanıcıda gerçek optimizasyon açılmalı. Eskiden buton premium
+  // bayrağını hiç okumuyordu: kullanıcı premium'u açsa bile paywall geliyordu.
+  testWidgets('ücretsiz kullanıcıda optimize butonu paywall açar',
       (tester) async {
+    SharedPreferences.setMockInitialValues({kPremiumPrefsKey: false});
     await tester.pumpWidget(harness(_sampleTrip()));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
@@ -202,7 +208,27 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(tr('routeOptimization.premium.title')), findsOneWidget);
-    expect(find.text(tr('routeOptimization.premium.body')), findsOneWidget);
+  });
+
+  testWidgets('premium açıkken paywall GELMEZ, rozet kalkar', (tester) async {
+    SharedPreferences.setMockInitialValues({kPremiumPrefsKey: true});
+    await tester.pumpWidget(harness(_sampleTrip()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    // Provider prefs'i asenkron okuyor — yerleşmesini bekle.
+    await tester.pump(const Duration(milliseconds: 200));
+
+    final optimize = find.byKey(const ValueKey('optimize-route-2'));
+    expect(optimize, findsOneWidget);
+    expect(find.text('Premium'), findsNothing,
+        reason: 'premium kullanıcıya kilit rozeti gösterilmemeli');
+
+    await tester.ensureVisible(optimize);
+    await tester.tap(optimize);
+    await tester.pumpAndSettle();
+
+    expect(find.text(tr('routeOptimization.premium.title')), findsNothing,
+        reason: 'premium açıkken paywall açılmamalı');
   });
 
   testWidgets('tema seçici açılır ve 3 tema listelenir', (tester) async {

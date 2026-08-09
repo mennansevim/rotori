@@ -220,7 +220,17 @@ class _DrawerStaySummary extends StatelessWidget {
   final ViewerPalette palette;
   final int dayCount;
 
-  int get _hotelNights {
+  /// Gezinin gerçek gece sayısı — gün sayısının bir eksiği.
+  ///
+  /// **Why:** Eskiden bu değer yalnızca REZERVE EDİLMİŞ otellerden
+  /// toplanıyordu. Yeni üretilen planda otel olmadığı için kart "0 Gece ·
+  /// 10 Gün" gibi kendi içinde çelişen bir şey gösteriyordu. Gece sayısı
+  /// gezinin uzunluğunun bir gerçeği; rezervasyon durumu ayrı bir bilgi
+  /// (bkz. [_bookedNights]).
+  int get _tripNights => dayCount > 0 ? dayCount - 1 : 0;
+
+  /// Otel rezervasyonlarının kapsadığı gece sayısı.
+  int get _bookedNights {
     var nights = 0;
     for (final hotel in trip.hotels) {
       final checkIn = DateTime.tryParse(hotel.checkIn);
@@ -229,7 +239,7 @@ class _DrawerStaySummary extends StatelessWidget {
         nights += checkOut.difference(checkIn).inDays.clamp(0, 60);
       }
     }
-    return nights;
+    return nights.clamp(0, _tripNights);
   }
 
   @override
@@ -239,62 +249,113 @@ class _DrawerStaySummary extends StatelessWidget {
     final metrics = [
       (
         Icons.nights_stay_outlined,
-        '$_hotelNights',
+        '$_tripNights',
         s.s('viewer.metric.nights'),
-        p.accent
       ),
       (
         Icons.location_on_outlined,
         '${trip.preferences.destinations.length}',
         s.s('viewer.metric.cities'),
-        p.accent
       ),
       (
         Icons.calendar_month_outlined,
         '$dayCount',
         s.s('viewer.metric.days'),
-        p.accent
       ),
     ];
 
+    final booked = _bookedNights;
+    final covered = _tripNights == 0 ? 0.0 : booked / _tripNights;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+      padding: const EdgeInsets.fromLTRB(8, 16, 8, 14),
       decoration: BoxDecoration(
         color: p.card,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: p.border),
       ),
-      child: Row(
+      child: Column(
         children: [
-          for (var i = 0; i < metrics.length; i++) ...[
-            Expanded(
-              child: Column(
-                children: [
-                  Icon(metrics[i].$1, color: metrics[i].$4, size: 20),
-                  const SizedBox(height: 7),
-                  Text(
-                    metrics[i].$2,
-                    style: TextStyle(
-                      color: p.textPrimary,
-                      fontSize: 21,
-                      fontWeight: FontWeight.w800,
-                      height: 1,
-                    ),
+          Row(
+            children: [
+              for (var i = 0; i < metrics.length; i++) ...[
+                Expanded(
+                  child: Column(
+                    children: [
+                      Icon(metrics[i].$1, color: p.accent, size: 20),
+                      const SizedBox(height: 7),
+                      Text(
+                        metrics[i].$2,
+                        style: TextStyle(
+                          color: p.textPrimary,
+                          fontSize: 21,
+                          fontWeight: FontWeight.w800,
+                          height: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        metrics[i].$3,
+                        style: TextStyle(
+                          color: p.textSecondary,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    metrics[i].$3,
-                    style: TextStyle(
-                      color: p.textSecondary,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w500,
+                ),
+                if (i < metrics.length - 1)
+                  Container(width: 1, height: 44, color: p.border),
+              ],
+            ],
+          ),
+          // Konaklama kapsaması — "kaç gece rezerve edildi" artık gece
+          // sayısının YERİNE değil, YANINDA duruyor.
+          if (_tripNights > 0) ...[
+            const SizedBox(height: 14),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.hotel_outlined,
+                          size: 14, color: p.textSecondary),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          booked == 0
+                              ? s.s('viewer.stay.none')
+                              : s.p('viewer.stay.covered', {
+                                  'booked': '$booked',
+                                  'total': '$_tripNights',
+                                }),
+                          style: TextStyle(
+                            color: booked == 0
+                                ? p.textSecondary
+                                : p.textPrimary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(3),
+                    child: LinearProgressIndicator(
+                      value: covered,
+                      minHeight: 4,
+                      backgroundColor: p.border,
+                      color: covered >= 1 ? p.accent : p.gold,
                     ),
                   ),
                 ],
               ),
             ),
-            if (i < metrics.length - 1)
-              Container(width: 1, height: 44, color: p.border),
           ],
         ],
       ),
@@ -1520,66 +1581,51 @@ class _DrawerActionTile extends StatelessWidget {
 }
 
 /// Debug: premium mod aç/kapa. Sadece debug build'lerde görünür.
-class _DebugPremiumTile extends StatefulWidget {
+///
+/// Durum artık [premiumProvider]'da — bu widget yalnızca onu okuyup yazıyor.
+/// Eskiden kendi yerel state'i vardı ve prefs'i doğrudan yazıyordu; diğer
+/// ekranlar değişiklikten haberdar olmadığı için premium açılmış olmasına
+/// rağmen rota optimizasyonu paywall göstermeye devam ediyordu.
+class _DebugPremiumTile extends ConsumerWidget {
   const _DebugPremiumTile({required this.palette});
   final ViewerPalette palette;
-  @override
-  State<_DebugPremiumTile> createState() => _DebugPremiumTileState();
-}
-
-class _DebugPremiumTileState extends State<_DebugPremiumTile> {
-  bool _premium = false;
-  bool _loaded = false;
 
   @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
-    setState(() {
-      _premium = prefs.getBool('debug_premium') ?? false;
-      _loaded = true;
-    });
-  }
-
-  Future<void> _toggle() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('debug_premium', !_premium);
-    setState(() => _premium = !_premium);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final p = widget.palette;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = palette;
+    final premium = ref.watch(premiumProvider);
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: _loaded ? _toggle : null,
+        onTap: () => ref.read(premiumProvider.notifier).toggle(),
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 50),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             child: Row(
               children: [
-                Container(
-                  width: 32, height: 32,
-                  decoration: BoxDecoration(
-                    color: _premium ? const Color(0xFFFFD700).withValues(alpha: 0.14) : p.textSecondary.withValues(alpha: 0.09),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(Icons.science_outlined, size: 18, color: _premium ? const Color(0xFFFFD700) : p.textSecondary),
+                Icon(
+                  premium ? Icons.workspace_premium : Icons.lock_outline,
+                  size: 20,
+                  color: premium ? p.gold : p.textMuted,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text('Debug: ${_premium ? 'Premium AÇIK' : 'Premium KAPALI'}',
-                      style: TextStyle(color: _premium ? const Color(0xFFFFD700) : p.textSecondary, fontSize: 13)),
+                  child: Text(
+                    'Premium (debug)',
+                    style: TextStyle(
+                      color: p.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-                Switch(value: _premium, onChanged: (_) => _toggle(), activeColor: const Color(0xFFFFD700)),
+                Switch(
+                  value: premium,
+                  activeThumbColor: p.gold,
+                  onChanged: (v) =>
+                      ref.read(premiumProvider.notifier).setPremium(v),
+                ),
               ],
             ),
           ),

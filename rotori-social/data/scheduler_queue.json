@@ -324,11 +324,16 @@
     "mp4_path": "/Users/sevimm/Documents/Projects/rotori-app/rotori-social/output/stories/ready/japonya-daki-zen-bahceleri-stres-atmanin_1785622521.jpg",
     "caption": "🎌 Kültür Notu\n\nZen bahçeleri, Japon kültürünün önemli bir parçasıdır. Bu bahçeler, meditasyon ve huzur için mükemmel bir ortam sunar.\n\nZen bahçeleri, doğal unsurları ve minimalist tasarımıyla dikkat çeker. Sakin bir atmosferde, meditasyon yaparken zaman kaybetmeden zihninizi dinlendirebilirsiniz. Su, taş ve bitkilerin uyumu, stres atmanıza yardımcı olur.\n\n📌 Turist için: Birçok turist, Zen bahçelerini ziyaret ederek sadece doğanın tadını çıkarmakla kalmaz, aynı zamanda zihinsel bir rahatlama da sağlar. Gezi planınıza bu bahçeleri ekleyerek, ruhsal bir deneyim yaşayabilir ve yoğun tempodan uzaklaşabilirsiniz.\n\n💡 Rotori ipucu: Yerel halkın gittiği bahçeleri tercih ederseniz, daha az kalabalık ve huzurlu bir deneyim yaşarsınız.\n\n🔗 Kaynak: Japonya Turizm Ofisi\n\n#kültürşoku #japonya #zenbahçeleri #meditasyon #doğa",
     "scheduled_at": "2026-08-07T22:22:00",
-    "status": "pending",
+    "status": "failed",
     "added_at": "2026-08-05T13:39:29",
-    "result": null,
+    "result": "'_StubResp' object has no attribute 'raise_for_status'",
     "auto_publish": true,
-    "automation_kind": "topic"
+    "automation_kind": "topic",
+    "last_attempt_at": "2026-08-09T21:19:23",
+    "attempt_count": 1,
+    "failure_reason": "'_StubResp' object has no attribute 'raise_for_status'",
+    "last_result_at": "2026-08-09T21:19:23",
+    "last_result_status": "failed"
   },
   {
     "id": "story_kyoto-daki-mabetler-hakkinda-bilmedigini_1785751071_1785926369",
@@ -339,11 +344,16 @@
     "mp4_path": "/Users/sevimm/Documents/Projects/rotori-app/rotori-social/output/stories/ready/kyoto-daki-mabetler-hakkinda-bilmedigini_1785751071.jpg",
     "caption": "🎌 Kültür Notu\n\nKyoto, tarihi ve kültürel zenginlikleriyle dolu bir şehir. Mabetler, bu zenginliğin en önemli parçalarından biri. Ancak bu mabetleri ziyaret ederken bazı detayları bilmek, deneyiminizi çok daha iyi hale getirebilir.\n\nKyoto’daki mabetler genellikle belirli saatlerde kapalıdır ve kalabalık saatlerde çok yoğun olabilir. Sabah erken saatlerde ziyaret etmek, hem kalabalıktan kaçınmanızı hem de daha huzurlu bir deneyim yaşamanızı sağlar. Ek olarak, bazı mabetlerin girişinde küçük bağış kutuları bulunur; bu bağışlar, mabetlerin bakım ve onarımında kullanılır.\n\n📌 Turist için: Eğer Kyoto'daki mabetleri ziyaret etmek istiyorsanız, günün erken saatlerinde gitmek, hem zamandan tasarruf etmenizi hem de kalabalıkla boğuşmadan keyif almanızı sağlar. Ayrıca, bağış yapmak, Japon kültürünü anlamanız açısından önemli bir deneyim olacaktır.\n\n💡 Rotori ipucu: Mabetlerde kalabalıktan kaçınmak için sabah saat 8'den önce gidin.\n\n🔗 Kaynak: Japonya Turizm Ofisi\n\n#kültürşoku #japonya #kyoto #mabetler #seyahatipucu #gezilecekyerler",
     "scheduled_at": "2026-08-08T23:21:00",
-    "status": "pending",
+    "status": "failed",
     "added_at": "2026-08-05T13:39:29",
-    "result": null,
+    "result": "'_StubResp' object has no attribute 'raise_for_status'",
     "auto_publish": true,
-    "automation_kind": "news"
+    "automation_kind": "news",
+    "last_attempt_at": "2026-08-09T21:19:23",
+    "attempt_count": 1,
+    "failure_reason": "'_StubResp' object has no attribute 'raise_for_status'",
+    "last_result_at": "2026-08-09T21:19:23",
+    "last_result_status": "failed"
   },
   {
     "id": "story_teamlab_1785498788_1785926369",

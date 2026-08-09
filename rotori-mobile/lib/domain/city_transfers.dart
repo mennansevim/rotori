@@ -34,6 +34,13 @@ class CityTransfer {
   final String? tip;
 }
 
+/// Shinkansen'in RESMÎ rezervasyon sitesi (JR Central / JR West ortak
+/// Smart-EX servisi). Bayi ya da afiliye bağlantısı DEĞİLDİR.
+///
+/// Tokaido–Sanyo hattını (Tokyo–Nagoya–Kyoto–Osaka–Hiroshima–Hakata) kapsar;
+/// uygulamadaki şehir geçişlerinin büyük çoğunluğu bu hat üzerindedir.
+const String kShinkansenOfficialUrl = 'https://smart-ex.jp/';
+
 const Map<String, CityTransfer> _transfers = {
   'tokyo|osaka': CityTransfer(
     emoji: '🚄',

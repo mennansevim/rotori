@@ -23,13 +23,15 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/l10n.dart';
 import '../../core/supabase_client.dart';
-import '../../data/google_maps_launcher.dart';
 import '../../data/language_store.dart';
 import '../../data/plans_repository.dart';
 import '../../data/reminders_store.dart';
 import '../../data/weather_service.dart';
 import '../../domain/city_palette.dart';
+import '../../data/google_maps_launcher.dart';
 import '../../domain/city_places.dart';
+import '../../domain/city_transfers.dart'
+    show kShinkansenOfficialUrl, lookupTransfer;
 import '../../domain/bug_report.dart';
 import '../../domain/day_schedule.dart' as sched;
 import '../../domain/destination_profiles.dart';
@@ -55,10 +57,12 @@ import '../viewer/budget_screen.dart';
 import '../viewer/eats_screen.dart';
 import '../viewer/home_widget_hook.dart';
 import '../viewer/pre_departure_checklist_screen.dart';
+import '../viewer/route_map_sheet.dart';
 import '../viewer/viewer_theme.dart';
 import '../viewer/weather_screen.dart';
 import '../../domain/japan_suggestions.dart' show PlaceSuggestion;
 import 'plan_providers.dart';
+import 'premium_provider.dart';
 import 'plan_edit_session.dart';
 import 'plan_optimization_controller.dart';
 import 'widgets/must_see_card.dart';
@@ -537,6 +541,14 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                             allDays: days,
                             onOpenItem: _openItem,
                             onOpenMap: _openDayMap,
+                            isPremium: ref.watch(premiumProvider),
+                            onOptimizeRoute: () => _openRouteOptimization(
+                              days[i],
+                              getDestinationForDate(
+                                _sortedDestinations,
+                                days[i].date,
+                              ),
+                            ),
                             onOptimizeWeatherRoute:
                                 (day, destination, forecast) =>
                                     _openRouteOptimization(
@@ -565,7 +577,11 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                   // Tab 2 — Japonca.
                   _TabPhrasesView(palette: palette, lang: ref.watch(appLangProvider)),
                   // Tab 3 — Rehber.
-                  _TabMustKnowView(palette: palette, lang: ref.watch(appLangProvider)),
+                  _TabMustKnowView(
+                    palette: palette,
+                    lang: ref.watch(appLangProvider),
+                    trip: trip,
+                  ),
                 ],
               ),
             ),
@@ -1310,68 +1326,13 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
     );
   }
 
-  /// Günün duraklarını doğrudan Google Maps ile aç — cihazda Google Maps app
-  /// yüklüyse rota + turn-by-turn yönlendirme (transit); yoksa Google Maps
-  /// web'de aynı rota. İç OSM haritası artık ana giriş noktası değil (kullanıcı
-  /// mesajı: "haritada gör kısmında gerçekten problem var. Google navigation
-  /// kullan burada").
-  Future<void> _openDayMap(DayPlan day) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final s = LanguageScope.of(context);
-    final dest = getDestinationForDate(_sortedDestinations, day.date);
-    final cityData = cityDataForKey(dest?.city);
-    final centerLat = cityData?.places.isNotEmpty == true
-        ? cityData!.places.first.lat
-        : (dest?.lat ?? 35.6762);
-    final centerLng = cityData?.places.isNotEmpty == true
-        ? cityData!.places.first.lng
-        : (dest?.lng ?? 139.6503);
-    final stops = resolveDayStops(
-      day,
-      cityKey: dest?.city,
-      fallbackLat: centerLat,
-      fallbackLng: centerLng,
-    );
-    if (stops.length >= 2) {
-      final res = await openGoogleMapsRoute(
-        points: [
-          for (final st in stops)
-            (lat: st.lat, lng: st.lng, label: st.item.title),
-        ],
-      );
-      if (!mounted) return;
-      if (!res.launched) {
-        messenger.showSnackBar(SnackBar(content: Text(s.s('map.openFailed'))));
-      } else if (res.truncated) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(s.s('map.truncatedWaypoints'))),
-        );
-      }
-      return;
-    }
-    if (stops.length == 1) {
-      final st = stops.first;
-      final ok = await openGoogleMapsPoint(
-        lat: st.lat,
-        lng: st.lng,
-        label: st.item.title,
-      );
-      if (!mounted) return;
-      if (!ok) {
-        messenger.showSnackBar(SnackBar(content: Text(s.s('map.openFailed'))));
-      }
-      return;
-    }
-    // Duraksız gün — şehir merkezini aç.
-    final ok = await openGoogleMapsPoint(
-      lat: centerLat,
-      lng: centerLng,
-      label: dest?.city,
-    );
-    if (!mounted) return;
-    if (!ok) {
-      messenger.showSnackBar(SnackBar(content: Text(s.s('map.openFailed'))));
-    }
+  /// "Haritada gör" — günün rotasını sade (CartoDB) bir zemin üzerinde,
+  /// duraklar arasında sırayla çizilen animasyonlu bir çizgiyle gösteren modal
+  /// sayfayı açar. Turn-by-turn navigasyon isteyen kullanıcı için sheet'in
+  /// içindeki "Yol tarifi" butonu rotayı Google Maps'e taşır — böylece hem
+  /// okunur bir rota önizlemesi hem de gerçek navigasyon tek yerde.
+  Future<void> _openDayMap(DayPlan day) {
+    return showRouteMapSheet(context: context, trip: _trip, day: day);
   }
 
   /// Tüm günlerin rotasını sırayla optimize et. Her uygun gün için mevcut
@@ -1502,6 +1463,18 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
   /// İki günün destinasyonu farklıysa günler arasına yerleştirilen küçük
   /// "şehirler arası geçiş" ayracı. Kart yığınında ulaşım günü olduğunu
   /// belirsizce vurgular; ulaşım kartını değiştirmez.
+  /// Bu transfer raylı mı? Yalnız raylı bacaklarda Shinkansen rezervasyon
+  /// bağlantısı gösterilir — uçak/otobüs bacağında yanıltıcı olurdu.
+  static bool _isRailTransfer(String? mode) {
+    if (mode == null || mode.isEmpty) return false;
+    final m = mode.toLowerCase();
+    return m.contains('shinkansen') ||
+        m.contains('jr ') ||
+        m.contains('express') ||
+        m.contains('train') ||
+        m.contains('line');
+  }
+
   Widget _cityTransitionBetween(
       DayPlan fromDay, DayPlan toDay, ViewerPalette p) {
     final fromDest = getDestinationForDate(_sortedDestinations, fromDay.date);
@@ -1516,6 +1489,11 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
       'from': fromCity,
       'to': toCity,
     });
+    // Rozet + bağlantı GERÇEK transfer moduna göre seçilir. Eskiden her
+    // şehir geçişinde sabit "JR Pass" rozeti ve bir bayi linki vardı; uçakla
+    // gidilen bacaklarda (ör. Tokyo → Sapporo) bu yanlış bilgiydi.
+    final transfer = lookupTransfer(fromCity, toCity);
+    final rail = _isRailTransfer(transfer?.mode);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       child: Row(
@@ -1539,12 +1517,18 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
             ),
             child: InkWell(
               borderRadius: BorderRadius.circular(999),
-              onTap: () async {
-                final uri = Uri.tryParse('https://www.jrailpass.com/?aff=rotori');
-                if (uri != null) {
-                  try { await launchUrl(uri, mode: LaunchMode.externalApplication); } catch (_) {}
-                }
-              },
+              onTap: rail
+                  ? () async {
+                      // Shinkansen'in RESMÎ sitesi (JR Central Smart-EX) —
+                      // bayi/afiliye değil.
+                      final uri = Uri.tryParse(kShinkansenOfficialUrl);
+                      if (uri == null) return;
+                      try {
+                        await launchUrl(uri,
+                            mode: LaunchMode.externalApplication);
+                      } catch (_) {}
+                    }
+                  : null,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 child: Row(
@@ -1554,11 +1538,27 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                     const SizedBox(width: 4),
                     Text(label, style: TextStyle(fontSize: 12, color: p.accent, fontWeight: FontWeight.w700)),
                     const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                      decoration: BoxDecoration(color: const Color(0xFFFFD700).withValues(alpha: 0.18), borderRadius: BorderRadius.circular(4)),
-                      child: const Text('JR Pass', style: TextStyle(fontSize: 8.5, color: Color(0xFFD4A017), fontWeight: FontWeight.w800)),
-                    ),
+                    if (rail) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFD700).withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          s.s('viewer.transition.official'),
+                          style: const TextStyle(
+                            fontSize: 8.5,
+                            color: Color(0xFFD4A017),
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 3),
+                      Icon(Icons.open_in_new_rounded,
+                          size: 11, color: p.accent.withValues(alpha: 0.7)),
+                    ],
                   ],
                 ),
               ),
@@ -2171,102 +2171,409 @@ class _TabPhrasesViewState extends State<_TabPhrasesView> {
   }
 }
 
-/// Tab 3 — Rehber: mutlaka bilinmesi gerekenler (AppBar'sız, tab içi).
-class _TabMustKnowView extends StatelessWidget {
-  const _TabMustKnowView({required this.palette, required this.lang});
+/// Rehber sekmesi.
+///
+/// **Yeniden düzenlendi.** Eskiden 13 bölümün TÜM maddeleri açık haldeydi:
+/// yüzlerce satırlık tek bir duvar. Kullanıcı aradığını bulmak için
+/// kaydırmak zorundaydı ve en altta duran "seyahat öncesi hallet" kartını
+/// (zamana duyarlı, aksiyon gerektiren tek şey) çoğu kimse hiç görmüyordu.
+///
+/// Yeni düzen:
+///  1. Aksiyon gerektiren "seyahat öncesi hallet" EN ÜSTTE,
+///  2. Arama kutusu — 13 bölümde gezinmek yerine yazıp bul,
+///  3. Bölümler KAPALI başlar, dokununca açılır (madde sayısı görünür).
+///
+/// Maddeler geziye göre süzülür: çocuksuz planda çocuk maddeleri gösterilmez.
+class _TabMustKnowView extends StatefulWidget {
+  const _TabMustKnowView({
+    required this.palette,
+    required this.lang,
+    required this.trip,
+  });
   final ViewerPalette palette;
   final AppLang lang;
+  final Trip trip;
+
+  @override
+  State<_TabMustKnowView> createState() => _TabMustKnowViewState();
+}
+
+class _TabMustKnowViewState extends State<_TabMustKnowView> {
+  final _expanded = <int>{};
+  final _searchCtrl = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  /// Gezide çocuk var mı? childrenCount ya da kids ilgi etiketi.
+  bool get _hasKids {
+    final prefs = widget.trip.preferences;
+    if ((prefs.childrenCount ?? 0) > 0) return true;
+    return prefs.interests.contains(InterestTag.kids);
+  }
+
+  bool _tipVisible(MustKnowTip t) =>
+      t.audience == MustKnowAudience.all || _hasKids;
+
+  /// Bölümün bu geziye ve aramaya uyan maddeleri.
+  List<MustKnowTip> _tipsOf(MustKnowSection section) {
+    final q = _query.trim().toLowerCase();
+    return section.tips.where((t) {
+      if (!_tipVisible(t)) return false;
+      if (q.isEmpty) return true;
+      return t.text.of(widget.lang).toLowerCase().contains(q) ||
+          section.title.of(widget.lang).toLowerCase().contains(q);
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final p = palette;
-    final lang = this.lang;
+    final p = widget.palette;
+    final lang = widget.lang;
+    final s = LanguageScope.of(context);
+    final searching = _query.trim().isNotEmpty;
+
+    // Boş bölümler hiç çizilmez (ör. arama eşleşmedi).
+    final sections = <({int index, MustKnowSection section, List<MustKnowTip> tips})>[];
+    for (var i = 0; i < kMustKnowSections.length; i++) {
+      final tips = _tipsOf(kMustKnowSections[i]);
+      if (tips.isEmpty) continue;
+      sections.add((index: i, section: kMustKnowSections[i], tips: tips));
+    }
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
       children: [
+        // 1) AKSİYON — zamana duyarlı olan tek şey, en üstte.
+        _PreDepartureCard(palette: p, lang: lang),
+        const SizedBox(height: 20),
+
         Text(
-          const LText('Mutlaka Bilmeniz Gerekenler', 'Must-Know Before You Go').of(lang),
-          style: TextStyle(color: p.textPrimary, fontSize: 20, fontWeight: FontWeight.w800),
+          const LText('Mutlaka Bilmeniz Gerekenler', 'Must-Know Before You Go')
+              .of(lang),
+          style: TextStyle(
+              color: p.textPrimary, fontSize: 20, fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 4),
         Text(
           const LText(
-            'Japonya\'ya çıkmadan önce ve yolda işine yarayacak pratik tavsiyeler.',
-            'Practical tips that will help you before and during your trip.',
+            'Başlığa dokun, o konudaki maddeler açılsın.',
+            'Tap a topic to open its tips.',
           ).of(lang),
-          style: TextStyle(color: p.textSecondary, fontSize: 14),
+          style: TextStyle(color: p.textSecondary, fontSize: 13.5),
         ),
-        const SizedBox(height: 16),
-        for (final section in kMustKnowSections)
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: p.card,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: p.border),
+        const SizedBox(height: 12),
+
+        // 2) ARAMA — 13 bölümde gezinmeye alternatif.
+        TextField(
+          controller: _searchCtrl,
+          onChanged: (v) => setState(() => _query = v),
+          style: TextStyle(color: p.textPrimary, fontSize: 14),
+          decoration: InputDecoration(
+            hintText: s.s('viewer.guide.search'),
+            hintStyle: TextStyle(color: p.textMuted, fontSize: 14),
+            prefixIcon: Icon(Icons.search_rounded, size: 20, color: p.textMuted),
+            suffixIcon: searching
+                ? IconButton(
+                    icon: Icon(Icons.close_rounded, size: 18, color: p.textMuted),
+                    onPressed: () {
+                      _searchCtrl.clear();
+                      setState(() => _query = '');
+                    },
+                  )
+                : null,
+            filled: true,
+            fillColor: p.card,
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: p.border),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
-                  Text(section.emoji, style: const TextStyle(fontSize: 20)),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(section.title.of(lang),
-                        style: TextStyle(color: p.textPrimary, fontWeight: FontWeight.w700, fontSize: 15)),
-                  ),
-                ]),
-                const SizedBox(height: 10),
-                for (final tip in section.tips)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('• ', style: TextStyle(color: p.accent, fontSize: 16)),
-                        Expanded(
-                          child: Text(tip.text.of(lang),
-                              style: TextStyle(color: p.textSecondary, fontSize: 13.5, height: 1.35)),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: p.accent),
             ),
-          ),
-        // Seyahat öncesi hallet — affiliate kartları
-        const SizedBox(height: 24),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft, end: Alignment.bottomRight,
-              colors: [p.accent.withValues(alpha: 0.08), p.gold.withValues(alpha: 0.06)],
-            ),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: p.accent.withValues(alpha: 0.2)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(const LText('📦 Seyahat öncesi hallet', '📦 Book before you go').of(lang),
-                  style: TextStyle(color: p.textPrimary, fontSize: 15, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 2),
-              Text(const LText('Bunları şimdiden ayırt, yerin garanti olsun.', 'Book now, secure your spot.').of(lang),
-                  style: TextStyle(color: p.textSecondary, fontSize: 12)),
-              const SizedBox(height: 12),
-              for (final link in kPreDepartureAffiliates)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: _AffiliateCard(link: link, palette: p, lang: lang),
-                ),
-            ],
           ),
         ),
+        const SizedBox(height: 14),
+
+        if (sections.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 28),
+            child: Text(
+              s.s('viewer.guide.noResult'),
+              textAlign: TextAlign.center,
+              style: TextStyle(color: p.textSecondary, fontSize: 14),
+            ),
+          ),
+
+        // 3) KATLANABİLİR BÖLÜMLER — arama sırasında kendiliğinden açık.
+        for (final entry in sections)
+          _GuideSectionCard(
+            palette: p,
+            lang: lang,
+            section: entry.section,
+            tips: entry.tips,
+            expanded: searching || _expanded.contains(entry.index),
+            onToggle: () => setState(() {
+              if (!_expanded.remove(entry.index)) _expanded.add(entry.index);
+            }),
+          ),
       ],
+    );
+  }
+}
+
+/// Katlanabilir konu kartı — kapalıyken yalnız başlık + madde sayısı.
+class _GuideSectionCard extends StatelessWidget {
+  const _GuideSectionCard({
+    required this.palette,
+    required this.lang,
+    required this.section,
+    required this.tips,
+    required this.expanded,
+    required this.onToggle,
+  });
+
+  final ViewerPalette palette;
+  final AppLang lang;
+  final MustKnowSection section;
+  final List<MustKnowTip> tips;
+  final bool expanded;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: p.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: p.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Semantics(
+            button: true,
+            expanded: expanded,
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: onToggle,
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    children: [
+                      Text(section.emoji, style: const TextStyle(fontSize: 20)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          section.title.of(lang),
+                          style: TextStyle(
+                            color: p.textPrimary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: p.accent.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${tips.length}',
+                          style: TextStyle(
+                            color: p.accent,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      AnimatedRotation(
+                        turns: expanded ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 180),
+                        child: Icon(Icons.keyboard_arrow_down_rounded,
+                            size: 22, color: p.textMuted),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (expanded)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final tip in tips)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(tip.emoji, style: const TextStyle(fontSize: 14)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              tip.text.of(lang),
+                              style: TextStyle(
+                                color: p.textSecondary,
+                                fontSize: 13.5,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "Seyahat öncesi hallet" — zamana duyarlı afiliye kartları.
+///
+/// Diğer rehber bölümleriyle aynı dil: KATLANABİLİR ve varsayılan KAPALI.
+/// Beş bağlantı açıkken kartın kendisi bir ekran boyu yer kaplıyordu ve
+/// altındaki konu başlıkları hiç görünmüyordu.
+class _PreDepartureCard extends StatefulWidget {
+  const _PreDepartureCard({required this.palette, required this.lang});
+  final ViewerPalette palette;
+  final AppLang lang;
+
+  @override
+  State<_PreDepartureCard> createState() => _PreDepartureCardState();
+}
+
+class _PreDepartureCardState extends State<_PreDepartureCard> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = widget.palette;
+    final lang = widget.lang;
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            p.accent.withValues(alpha: 0.08),
+            p.gold.withValues(alpha: 0.06),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: p.accent.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Semantics(
+            button: true,
+            expanded: _expanded,
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(18),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: () => setState(() => _expanded = !_expanded),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              const LText('📦 Seyahat öncesi hallet',
+                                      '📦 Book before you go')
+                                  .of(lang),
+                              style: TextStyle(
+                                color: p.textPrimary,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              const LText(
+                                'Bunları şimdiden ayırt, yerin garanti olsun.',
+                                'Book now, secure your spot.',
+                              ).of(lang),
+                              style: TextStyle(
+                                color: p.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: p.accent.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${kPreDepartureAffiliates.length}',
+                          style: TextStyle(
+                            color: p.accent,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      AnimatedRotation(
+                        turns: _expanded ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 180),
+                        child: Icon(Icons.keyboard_arrow_down_rounded,
+                            size: 22, color: p.textMuted),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (_expanded)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+              child: Column(
+                children: [
+                  for (final link in kPreDepartureAffiliates)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _AffiliateCard(link: link, palette: p, lang: lang),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -3270,6 +3577,8 @@ class _DayCard extends StatefulWidget {
     required this.allDays,
     required this.onOpenItem,
     required this.onOpenMap,
+    required this.isPremium,
+    required this.onOptimizeRoute,
     required this.onOptimizeWeatherRoute,
     required this.onDropItem,
     required this.onDeleteItem,
@@ -3303,6 +3612,13 @@ class _DayCard extends StatefulWidget {
 
   final void Function(TimelineItem item, TripDestination? dest) onOpenItem;
   final void Function(DayPlan day) onOpenMap;
+
+  /// Kullanıcı premium mü? Rota optimizasyonu buna göre çalışır ya da
+  /// paywall gösterir. Tek kaynak: premiumProvider.
+  final bool isPremium;
+
+  /// Premium'da gerçek rota optimizasyonunu açar.
+  final VoidCallback onOptimizeRoute;
   final void Function(
     DayPlan day,
     TripDestination? destination,
@@ -3726,7 +4042,22 @@ class _DayCardState extends State<_DayCard> {
                             Row(children: [
                               Expanded(child: _DayBtn(Icons.map_outlined, LanguageScope.of(context).s('viewer.day.viewOnMap'), p.accent, () => widget.onOpenMap(day))),
                               const SizedBox(width: 8),
-                              Expanded(child: _DayBtn(Icons.lock_outlined, LanguageScope.of(context).s('routeOptimization.action'), p.textMuted, () => _showOptimizePaywall(context, p), badge: 'Premium', key: ValueKey('optimize-route-${day.dayNumber}'))),
+                              Expanded(
+                                child: _DayBtn(
+                                  widget.isPremium
+                                      ? Icons.auto_awesome
+                                      : Icons.lock_outlined,
+                                  LanguageScope.of(context)
+                                      .s('routeOptimization.action'),
+                                  widget.isPremium ? p.accent : p.textMuted,
+                                  widget.isPremium
+                                      ? widget.onOptimizeRoute
+                                      : () => _showOptimizePaywall(context, p),
+                                  badge: widget.isPremium ? null : 'Premium',
+                                  key: ValueKey(
+                                      'optimize-route-${day.dayNumber}'),
+                                ),
+                              ),
                             ]),
                           ],
                         ],

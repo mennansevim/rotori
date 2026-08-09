@@ -1,7 +1,10 @@
-// JPY→döviz kur deposu — elle güncellenen kurları SharedPreferences'a kalıcı
-// yazan basit StateNotifier'lar. Ağ YOK / canlı FX API YOK; kurlar çevrimdışı,
-// kullanıcı tarafından güncellenir. Dört para birimi desteklenir: TRY, USD,
-// EUR, JPY (referans). Tüm kurlar "1 ¥ = X <birim>" biçimindedir.
+// JPY→döviz kur deposu. Dört para birimi: TRY, USD, EUR, JPY (referans).
+// Tüm kurlar "1 ¥ = X <birim>" biçimindedir.
+//
+// Kur önceliği:
+//   1. KULLANICININ ELLE GİRDİĞİ kur — hiçbir şey ezmez,
+//   2. canlı kur (açılışta çekilir, cache'lenir — bkz. live_fx_service.dart),
+//   3. sabit varsayılan (yalnızca ilk açılış + ağ yok durumunda).
 //
 // viewer_theme.dart'taki viewerThemeProvider ile aynı desen: init'te yükler,
 // set()'te hem state'i günceller hem de kalıcılaştırır.
@@ -12,10 +15,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/l10n.dart';
+import 'live_fx_service.dart';
 import 'plans_repository.dart';
 
-/// Varsayılan JPY→TRY kuru (1 ¥ = 0.25 ₺). Kullanıcı elle değiştirebilir.
+/// Varsayılan JPY→TRY kuru — YALNIZCA ilk açılışta ve ağ yokken kullanılır;
+/// normalde canlı kur bunun üzerine yazar.
 const double kDefaultJpyToTry = 0.25;
+
+/// Kullanıcının kuru elle değiştirdiğini işaretleyen prefs anahtarı eki.
+/// Elle girilen kur canlı kurla EZİLMEZ.
+const String kManualRateSuffix = ':manual';
 
 /// Varsayılan JPY→USD kuru (≈ 150 ¥/$). Kullanıcı elle değiştirebilir.
 const double kDefaultJpyToUsd = 0.0067;
@@ -64,18 +73,49 @@ class _JpyRateNotifier extends StateNotifier<double> {
   final Ref _ref;
   final String _key;
 
+  /// Kullanıcı bu kuru elle girdi mi? Canlı kur bunu ezmez.
+  bool _manual = false;
+  bool get isManual => _manual;
+
+  /// Kullanıcı bu oturumda elle bir değer girdi mi? Açılıştaki [_load]
+  /// asenkron; kullanıcı o çözülmeden kur girerse geç gelen load hem değeri
+  /// hem de "elle girildi" işaretini EZERDİ.
+  bool _userTouched = false;
+
   Future<void> _load() async {
     final prefs = await _ref.read(sharedPrefsProvider.future);
+    if (_userTouched) return; // elle giriş kazanır
+    _manual = prefs.getBool('$_key$kManualRateSuffix') ?? false;
     final stored = prefs.getDouble(_key);
     if (stored != null && stored > 0) state = stored;
   }
 
-  /// Yeni kuru ayarlar (pozitif olmalı) ve kalıcılaştırır.
+  /// Kullanıcının elle girdiği kur — kalıcı ve canlı kurla EZİLMEZ.
   Future<void> set(double rate) async {
+    if (rate <= 0 || !rate.isFinite) return;
+    _userTouched = true;
+    _manual = true;
+    state = rate;
+    final prefs = await _prefs();
+    await prefs.setDouble(_key, rate);
+    await prefs.setBool('$_key$kManualRateSuffix', true);
+  }
+
+  /// Canlı kaynaktan gelen kur. Kullanıcı elle bir değer girdiyse UYGULANMAZ.
+  Future<void> applyLive(double rate) async {
+    if (_manual) return;
     if (rate <= 0 || !rate.isFinite) return;
     state = rate;
     final prefs = await _prefs();
     await prefs.setDouble(_key, rate);
+  }
+
+  /// Elle girilen kuru unutup canlı kura geri döner.
+  Future<void> clearManual() async {
+    _userTouched = true;
+    _manual = false;
+    final prefs = await _prefs();
+    await prefs.setBool('$_key$kManualRateSuffix', false);
   }
 
   Future<SharedPreferences> _prefs() async {
@@ -201,3 +241,67 @@ final costOverrideProvider =
     StateNotifierProvider<CostOverrideNotifier, Map<String, int>>(
   (ref) => CostOverrideNotifier(ref),
 );
+
+
+// ---------------------------------------------------------------------------
+// Canlı kur senkronu
+// ---------------------------------------------------------------------------
+
+const String _kFxCacheKey = 'viewer:fxCache';
+
+/// Son başarılı canlı kur çekiminin zamanı (cache'ten). UI tazelik göstermek
+/// için okuyabilir; kayıt yoksa null.
+final fxLastUpdatedProvider = StateProvider<DateTime?>((ref) => null);
+
+/// Canlı kurları uygular: cache tazeyse ağa çıkmaz, değilse çeker.
+///
+/// Uygulama açılışında bir kez çağrılır. Hata ATMAZ — ağ yoksa cache,
+/// cache yoksa varsayılan kurlarla devam edilir.
+Future<void> syncLiveFxRates(Ref ref, {bool force = false}) async {
+  final prefs = await ref.read(sharedPrefsProvider.future);
+
+  // 1) Cache'i oku ve hemen uygula (ağ beklemeden doğru rakam görünsün).
+  LiveFxRates? cached;
+  final raw = prefs.getString(_kFxCacheKey);
+  if (raw != null) {
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) {
+        cached = LiveFxRates.fromJson(decoded);
+      }
+    } catch (_) {
+      // Bozuk cache — yok say.
+    }
+  }
+  if (cached != null) {
+    await _applyRates(ref, cached);
+    ref.read(fxLastUpdatedProvider.notifier).state = cached.fetchedAt;
+  }
+
+  // 2) Cache tazeyse ağa çıkma.
+  final age = cached == null
+      ? null
+      : DateTime.now().toUtc().difference(cached.fetchedAt.toUtc());
+  if (!force && age != null && age < kFxFreshFor) return;
+
+  // 3) Canlı çek — başarısızsa sessizce cache/varsayılanla devam.
+  final fresh = await ref.read(liveFxServiceProvider).fetch();
+  if (fresh == null) return;
+
+  await _applyRates(ref, fresh);
+  ref.read(fxLastUpdatedProvider.notifier).state = fresh.fetchedAt;
+  await prefs.setString(_kFxCacheKey, jsonEncode(fresh.toJson()));
+}
+
+/// Açılışta BİR kez tetiklenen canlı kur senkronu.
+///
+/// Kök widget bunu izler ama sonucunu beklemez — ağ yavaşsa uygulama
+/// açılışı gecikmez, kurlar geldiğinde ekran kendiliğinden güncellenir.
+final liveFxBootstrapProvider =
+    FutureProvider<void>((ref) => syncLiveFxRates(ref));
+
+Future<void> _applyRates(Ref ref, LiveFxRates r) async {
+  await ref.read(jpyToTryProvider.notifier).applyLive(r.jpyToTry);
+  await ref.read(jpyToUsdProvider.notifier).applyLive(r.jpyToUsd);
+  await ref.read(jpyToEurProvider.notifier).applyLive(r.jpyToEur);
+}

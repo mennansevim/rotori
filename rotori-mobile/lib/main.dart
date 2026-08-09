@@ -6,6 +6,7 @@ import 'package:device_preview/device_preview.dart';
 
 import 'core/l10n.dart';
 import 'core/router.dart';
+import 'data/exchange_rate_store.dart';
 import 'data/language_store.dart';
 import 'env.dart';
 import 'theme.dart';
@@ -50,6 +51,9 @@ class JapanTripApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final lang = ref.watch(appLangProvider);
+    // Canlı döviz kuru — açılışta bir kez çekilir, sonuç BEKLENMEZ.
+    // Ağ yoksa cache/varsayılan kurlarla devam edilir.
+    ref.watch(liveFxBootstrapProvider);
     // LanguageScope MaterialApp'in ÜSTÜNDE — böylece tüm pushed route'lar
     // (viewer alt ekranları) aktif dili miras alır.
     return LanguageScope(

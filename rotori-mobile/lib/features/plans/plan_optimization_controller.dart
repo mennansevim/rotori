@@ -7,6 +7,7 @@ import '../../data/route_matrix_remote.dart';
 import '../../data/route_matrix_resolution.dart';
 import '../../domain/day_optimizer.dart';
 import '../../domain/itinerary_optimizer.dart';
+import '../../domain/plan_warnings.dart';
 import '../../domain/route_time_bounds.dart';
 import '../../domain/route_matrix.dart';
 import '../../domain/route_optimization_validator.dart';
@@ -496,58 +497,50 @@ int _durationFor(TimelineItem item) {
 /// kapanışı aşan öğün elenir. Faz, kalemin optimizasyon-öncesi saatinden
 /// çıkarılır (şablon: 08:00 kahvaltı, 13:00 öğle, 19:00 akşam); saat yoksa
 /// öğle varsayılır. Öğün olmayan kalemler için null döner.
+/// Öğün için izin verilen zaman penceresi.
+///
+/// **Pencereler burada TANIMLANMAZ** — [mealPlacementWindow] üzerinden
+/// plan_warnings.dart'taki tek kaynaktan gelir. Eskiden bu fonksiyonun kendi
+/// saatleri vardı (akşam 17:30'dan açık) ve uyarı motorununkinden (18:00)
+/// farklıydı: optimizasyon akşam yemeğini 17:30'a koyuyor, uygulama da kendi
+/// çıktısını "normalde 18:00–22:00 arası yenir" diye uyarıyordu.
+///
+/// Pencere ayrıca rota günüyle (09:00–20:00) kesiştirilir.
 ({DateTime open, DateTime close, TimeOfDayPreference preferred})? _mealWindow(
   DateTime dayDate,
   TimelineItem item,
 ) {
   if (!_isMealActivity(item)) return null;
-  final hint = _mealHint(item.title);
   final minutes = _minutesOf(item.time ?? item.scheduledTime);
-  DateTime at(int h, int m) =>
-      DateTime(dayDate.year, dayDate.month, dayDate.day, h, m);
-  if (hint == _MealHint.breakfast) {
-    return (
-      open: at(kRouteStartHour, 0),
-      close: at(10, 30),
-      preferred: TimeOfDayPreference.morning,
-    );
-  }
-  if (hint == _MealHint.lunch) {
-    return (
-      open: at(11, 30),
-      close: at(14, 30),
-      preferred: TimeOfDayPreference.afternoon,
-    );
-  }
-  if (hint == _MealHint.dinner) {
-    return (
-      open: at(17, 30),
-      close: at(kRouteEndHour, 0),
-      preferred: TimeOfDayPreference.evening,
-    );
-  }
-  // Kahvaltı — 10:30'dan önce planlanmış öğün.
-  if (minutes >= 0 && minutes < 10 * 60 + 30) {
-    return (
-      open: at(kRouteStartHour, 0),
-      close: at(10, 30),
-      preferred: TimeOfDayPreference.morning,
-    );
-  }
-  // Akşam yemeği — 16:00 ve sonrası.
-  if (minutes >= 16 * 60) {
-    return (
-      open: at(17, 30),
-      close: at(kRouteEndHour, 0),
-      preferred: TimeOfDayPreference.evening,
-    );
-  }
-  // Öğle yemeği — varsayılan.
-  return (
-    open: at(11, 30),
-    close: at(14, 30),
-    preferred: TimeOfDayPreference.afternoon,
+  // Başlıktan tür çıkmazsa: 16:00 öncesi öğle, sonrası akşam (eski sezgi).
+  final window = mealPlacementWindow(
+    item,
+    isFirstMeal: minutes < 0 || minutes < 16 * 60,
   );
+  if (window == null) return null;
+
+  DateTime at(int totalMinutes) {
+    final clamped = totalMinutes.clamp(
+      kRouteStartMinuteOfDay,
+      kRouteEndHour * 60,
+    );
+    return DateTime(
+      dayDate.year,
+      dayDate.month,
+      dayDate.day,
+      clamped ~/ 60,
+      clamped % 60,
+    );
+  }
+
+  final hint = _mealHint(item.title);
+  final pref = hint == _MealHint.breakfast
+      ? TimeOfDayPreference.morning
+      : window.start >= kDinnerStartMinutes
+          ? TimeOfDayPreference.evening
+          : TimeOfDayPreference.afternoon;
+
+  return (open: at(window.start), close: at(window.end), preferred: pref);
 }
 
 int _minutesOf(String? value) {
