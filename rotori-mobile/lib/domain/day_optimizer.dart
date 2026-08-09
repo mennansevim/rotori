@@ -11,6 +11,7 @@
 import 'dart:math';
 
 import 'japan_suggestions.dart' show isTimeLocked;
+import 'plan_warnings.dart';
 import 'types.dart';
 
 /// 'HH:mm' → gün başından dakika. Geçersiz/boş → -1.
@@ -100,6 +101,48 @@ int _durationFor(TimelineItem item) {
   if (item.kind == TimelineItemKind.transport) return 30;
   if (item.kind == TimelineItemKind.hotel) return 30;
   return 90;
+}
+
+/// Optimizasyonun ÖĞÜN TERCİHİ — izin verilen pencereden daha dar olabilir.
+///
+/// Öğle yemeğini 11:00'de değil 11:30'da başlatmak bir tercih; kullanıcı
+/// deneyimi olarak daha iyi ve kural ihlali değil. Akşam yemeğini 17:30'da
+/// başlatmak ise İHLAL'di — o yüzden burada yalnızca "daha geç başlat"
+/// yönünde sapabiliyoruz, asla daha erken değil.
+const Map<String, int> _kPreferredMealStart = {
+  'lunch': 11 * 60 + 30,
+};
+
+/// Öğünün yerleştirileceği pencere: izin verilen pencere ∩ tercih.
+///
+/// [isFirstMeal]: başlıktan öğün türü çıkarılamayan (ör. sadece "Yemek")
+/// kalemler için geri dönüş — günün ilk öğünü öğle, sonrakiler akşam sayılır.
+/// Bu, başlık sınıflandırması eklenmeden önceki davranıştı ve korunuyor.
+({int start, int end})? mealPlacementWindow(
+  TimelineItem item, {
+  required bool isFirstMeal,
+}) {
+  final title = item.title.toLowerCase();
+  final classified = mealWindowMinutesFor(item);
+
+  final ({int start, int end}) allowed;
+  if (classified != null) {
+    allowed = classified;
+  } else if (item.kind == TimelineItemKind.meal) {
+    allowed = isFirstMeal
+        ? (start: kLunchStartMinutes, end: kLunchEndMinutes)
+        : (start: kDinnerStartMinutes, end: kDinnerEndMinutes);
+  } else {
+    return null;
+  }
+
+  final isLunch = allowed.start == kLunchStartMinutes ||
+      title.contains('öğle') ||
+      title.contains('lunch');
+  final preferred = isLunch ? _kPreferredMealStart['lunch']! : allowed.start;
+  // Tercih daha ERKEN olamaz — max ile izin verilen sınırın içinde kalırız.
+  final start = preferred > allowed.start ? preferred : allowed.start;
+  return (start: start, end: allowed.end);
 }
 
 /// Saate göre kararlı (stable) sıralama — saatsizler sona.
@@ -221,17 +264,29 @@ List<TimelineItem> optimizeDayItems(List<TimelineItem> items) {
     // Sıradaki flexible'ı yerleştir.
     var next = flexQueue.removeAt(0);
 
-    // Yemek slot tercihi: öğle (12:00-13:30) ve akşam (18:30-20:00).
+    // Yemek penceresi — hem SINIRLAR hem SINIFLANDIRMA plan_warnings.dart'tan
+    // gelir, burada yeniden tanımlanmaz.
+    //
+    // Eskiden buradaki eşikler ayrıydı (akşam 17:30) ve uyarı motorununkiyle
+    // (18:00) çelişiyordu: kullanıcı "Rotayı optimize et" deyince uygulama
+    // akşam yemeğini 17:30'a alıyor, hemen ardından kendi çıktısını
+    // "normalde 18:00–22:00 arası yenir" diye uyarıyordu.
+    //
+    // Ayrıca eski kontrol "kaçıncı öğün" sayıyordu; artık öğünün KENDİ türüne
+    // bakılıyor — günün tek öğünü akşam yemeğiyse de doğru pencereye düşer.
     if (next.kind == TimelineItemKind.meal) {
-      final lunchOk = lastMealMin < 0 && cursorMin >= 11 * 60 + 30;
-      final dinnerOk = lastMealMin > 0 && cursorMin >= 17 * 60 + 30;
-      if (!lunchOk && !dinnerOk && cursorMin < 11 * 60 + 30) {
-        // Çok erken — flexible'ları yeniden sırala ki meal sonra gelsin.
+      final window =
+          mealPlacementWindow(next, isFirstMeal: lastMealMin < 0);
+      if (window != null && cursorMin < window.start) {
+        // Pencere henüz açılmadı: önce penceresiz bir aktivite varsa onu al,
+        // yoksa imleci pencerenin başına ilerlet.
         final swap =
             flexQueue.indexWhere((f) => f.kind != TimelineItemKind.meal);
         if (swap >= 0) {
           flexQueue.insert(0, next);
           next = flexQueue.removeAt(swap + 1);
+        } else {
+          cursorMin = window.start;
         }
       }
     }
@@ -258,7 +313,7 @@ List<TimelineItem> optimizeDayItems(List<TimelineItem> items) {
     cursorMin += _durationFor(next) + 30; // 30 dk geçiş
 
     // Öğle aralığına ulaştıysak yemek zorla.
-    if (cursorMin >= 12 * 60 + 30 && lastMealMin < 0) {
+    if (cursorMin >= kLunchStartMinutes + 90 && lastMealMin < 0) {
       final mealIdx =
           flexQueue.indexWhere((f) => f.kind == TimelineItemKind.meal);
       if (mealIdx > 0) {

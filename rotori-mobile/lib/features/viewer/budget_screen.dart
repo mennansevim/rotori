@@ -479,6 +479,7 @@ class _CurrencyRatesCard extends StatelessWidget {
           ),
           if (selected != DisplayCurrency.jpy) ...[
             const SizedBox(height: 14),
+            _RateFreshness(palette: p),
             Row(
               children: [
                 Expanded(
@@ -1227,3 +1228,42 @@ class _ConverterSectionState extends State<_ConverterSection> {
   }
 }
 
+
+
+/// Kurun ne zaman güncellendiğini gösterir. Canlı kur hiç çekilemediyse
+/// (ilk açılış + ağ yok) hiçbir şey göstermez — yanlış güven vermeyelim.
+class _RateFreshness extends ConsumerWidget {
+  const _RateFreshness({required this.palette});
+  final ViewerPalette palette;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final updated = ref.watch(fxLastUpdatedProvider);
+    if (updated == null) return const SizedBox.shrink();
+    final s = LanguageScope.of(context);
+    final diff = DateTime.now().toUtc().difference(updated.toUtc());
+
+    final String when;
+    if (diff.inMinutes < 60) {
+      when = s.p('budget.rateAgeMin', {'n': '${diff.inMinutes.clamp(1, 59)}'});
+    } else if (diff.inHours < 24) {
+      when = s.p('budget.rateAgeHour', {'n': '${diff.inHours}'});
+    } else {
+      when = s.p('budget.rateAgeDay', {'n': '${diff.inDays}'});
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          Icon(Icons.sync_rounded, size: 12, color: palette.textMuted),
+          const SizedBox(width: 4),
+          Text(
+            when,
+            style: TextStyle(color: palette.textMuted, fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+}

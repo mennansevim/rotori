@@ -2504,6 +2504,14 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Tüm rotayı Google Maps\'te aç',
     AppLang.en: 'Open the full trip in Google Maps'
   },
+  'map.stopsCount': {AppLang.tr: '{count} durak', AppLang.en: '{count} stops'},
+  'map.replay': {AppLang.tr: 'Tekrar oynat', AppLang.en: 'Replay'},
+  'map.fitRoute': {AppLang.tr: 'Rotaya sığdır', AppLang.en: 'Fit route'},
+  'map.navigate': {AppLang.tr: 'Yol tarifi', AppLang.en: 'Navigate'},
+  'map.minimalAttribution': {
+    AppLang.tr: '© OpenStreetMap katkıda bulunanlar · © CARTO',
+    AppLang.en: '© OpenStreetMap contributors · © CARTO'
+  },
   'routeOptimization.action': {
     AppLang.tr: 'Rotayı optimize et',
     AppLang.en: 'Optimize route'
@@ -3227,6 +3235,38 @@ const Map<String, Map<AppLang, String>> _strings = {
   'flights.regenerated': {
     AppLang.tr: 'Varış ve dönüş günü güncellendi',
     AppLang.en: 'Arrival and departure days updated',
+  },
+  'budget.rateAgeMin': {
+    AppLang.tr: 'Kur {n} dk önce güncellendi',
+    AppLang.en: 'Rate updated {n} min ago',
+  },
+  'budget.rateAgeHour': {
+    AppLang.tr: 'Kur {n} saat önce güncellendi',
+    AppLang.en: 'Rate updated {n}h ago',
+  },
+  'budget.rateAgeDay': {
+    AppLang.tr: 'Kur {n} gün önce güncellendi',
+    AppLang.en: 'Rate updated {n}d ago',
+  },
+  'viewer.guide.search': {
+    AppLang.tr: 'Rehberde ara — Suica, valiz, fiş…',
+    AppLang.en: 'Search the guide — Suica, packing, plugs…',
+  },
+  'viewer.guide.noResult': {
+    AppLang.tr: 'Bu aramaya uyan madde yok.',
+    AppLang.en: 'No tips match that search.',
+  },
+  'viewer.stay.none': {
+    AppLang.tr: 'Konaklama henüz eklenmedi',
+    AppLang.en: 'No stay added yet',
+  },
+  'viewer.stay.covered': {
+    AppLang.tr: '{booked}/{total} gece rezerve edildi',
+    AppLang.en: '{booked}/{total} nights booked',
+  },
+  'viewer.transition.official': {
+    AppLang.tr: 'Resmî bilet',
+    AppLang.en: 'Official',
   },
   'viewer.mustSee.title': {
     AppLang.tr: 'Bunları da gör',

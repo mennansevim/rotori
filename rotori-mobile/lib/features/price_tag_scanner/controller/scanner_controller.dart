@@ -7,6 +7,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart' show AppLifecycleState;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../data/exchange_rate_store.dart';
+import '../../plans/premium_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../data/tag_price_repository.dart';
@@ -19,6 +22,10 @@ import '../utils/tag_parser.dart';
 
 const Rect kPriceTagViewfinderNormalizedRect =
     Rect.fromLTWH(0.14, 0.28, 0.72, 0.34);
+/// Fiyat tarayıcı JPY→TRY kuru için SON ÇARE varsayılanı.
+///
+/// Normalde canlı kur kullanılır (bkz. [_jpyToTry]); bu sabit yalnızca
+/// provider okunamadığında devreye girer.
 const double kJpyToTryMockRate = 0.22;
 
 /// Bir modelin/fiyatın "kilitli" (kararlı) sayılması için gereken oy sayısı.
@@ -242,11 +249,23 @@ class ScannerController extends StateNotifier<ScannerState> {
 
   bool _debugPremium = false;
 
+  /// Güncel JPY→TRY kuru — canlı/cache'li kur deposundan. Depo okunamazsa
+  /// sabit varsayılana düşer.
+  double get _jpyToTry {
+    try {
+      final r = _ref.read(jpyToTryProvider);
+      if (r > 0 && r.isFinite) return r;
+    } catch (_) {}
+    return kJpyToTryMockRate;
+  }
+
   Future<void> init() async {
-    // Debug premium kontrolü
+    // Debug premium bayrağı — anahtar premium_provider.dart ile ORTAK
+    // (kPremiumPrefsKey). Ekran ayrıca provider'ı canlı okuyor; burası
+    // yalnızca limit hesabının açılış değeri.
     try {
       final prefs = await SharedPreferences.getInstance();
-      _debugPremium = prefs.getBool('debug_premium') ?? false;
+      _debugPremium = prefs.getBool(kPremiumPrefsKey) ?? false;
     } catch (_) {}
     if (_disposed) return;
     await _startCamera();
@@ -363,7 +382,7 @@ class ScannerController extends StateNotifier<ScannerState> {
 
       final nextModel = bestModel?.key ?? state.productModel;
       final nextJpy = bestJpy?.key ?? state.jpyPrice;
-      final nextTry = nextJpy == null ? null : nextJpy * kJpyToTryMockRate;
+      final nextTry = nextJpy == null ? null : nextJpy * _jpyToTry;
       final locked = (bestModel?.value ?? 0) >= kStableLockVotes;
 
       state = state.copyWith(
@@ -502,7 +521,7 @@ class ScannerController extends StateNotifier<ScannerState> {
         final nextJpy = llmResult.mainPriceJpy ?? state.jpyPrice;
         final nextTry = nextJpy == null
             ? (state.tryPrice)
-            : nextJpy * kJpyToTryMockRate;
+            : nextJpy * _jpyToTry;
         final secondary = llmResult.secondaryPrices;
 
         state = state.copyWith(
@@ -563,7 +582,7 @@ class ScannerController extends StateNotifier<ScannerState> {
     final parseResult = _tagParser.parse(fullText);
     final model = parseResult.productModel ?? state.productModel;
     final jpy = parseResult.jpyPrice ?? state.jpyPrice;
-    final tr = jpy == null ? (state.tryPrice) : jpy * kJpyToTryMockRate;
+    final tr = jpy == null ? (state.tryPrice) : jpy * _jpyToTry;
 
     state = state.copyWith(
       phase: (model != null || jpy != null)
@@ -651,7 +670,7 @@ class ScannerController extends StateNotifier<ScannerState> {
     if (model == null || model.isEmpty) return;
 
     final referenceTry =
-        state.tryPrice ?? (state.jpyPrice ?? 0) * kJpyToTryMockRate;
+        state.tryPrice ?? (state.jpyPrice ?? 0) * _jpyToTry;
     final referenceJpy = state.jpyPrice;
     final token = ++_fetchToken;
 

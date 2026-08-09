@@ -11,6 +11,7 @@ import '../../domain/eats.dart';
 import '../../domain/localized_text.dart';
 import '../../domain/types.dart';
 import 'budget_screen.dart';
+import '../plans/premium_provider.dart';
 import 'viewer_theme.dart';
 
 class EatsScreen extends ConsumerWidget {
@@ -178,28 +179,33 @@ class _BudgetQuickCard extends StatelessWidget {
 /// Rotori Eats — küratörlü restoran listesi. Free katman: helal/vejetaryen
 /// filtresi + ilk [kEatsFreeLimit] sonuç. Kalanı premium (ayrı çalışma) ile
 /// açılacak; şimdilik "yakında" teaser'ı gösterilir.
-class _EatsSection extends StatefulWidget {
+class _EatsSection extends ConsumerStatefulWidget {
   const _EatsSection({required this.palette, required this.lang});
 
   final ViewerPalette palette;
   final AppLang lang;
 
   @override
-  State<_EatsSection> createState() => _EatsSectionState();
+  ConsumerState<_EatsSection> createState() => _EatsSectionState();
 }
 
-class _EatsSectionState extends State<_EatsSection> {
+class _EatsSectionState extends ConsumerState<_EatsSection> {
   EatsFilter _filter = EatsFilter.halal;
 
   @override
   Widget build(BuildContext context) {
     final palette = widget.palette;
     final lang = widget.lang;
+    // Premium açıksa liste kısıtlanmaz — tek kaynak: premiumProvider.
+    final premium = ref.watch(premiumProvider);
     final all = filterEats(kEatsPlaces, _filter);
-    final shown = all.take(kEatsFreeLimit).toList();
+    final shown = premium ? all : all.take(kEatsFreeLimit).toList();
     final lockedForFilter = all.length - shown.length;
-    final totalLocked =
-      kEatsPlaces.length > kEatsFreeLimit ? kEatsPlaces.length - kEatsFreeLimit : 0;
+    final totalLocked = premium
+        ? 0
+        : (kEatsPlaces.length > kEatsFreeLimit
+            ? kEatsPlaces.length - kEatsFreeLimit
+            : 0);
 
     return Container(
       width: double.infinity,
@@ -265,14 +271,16 @@ class _EatsSectionState extends State<_EatsSection> {
               if (i > 0) const SizedBox(height: 8),
               _EatsCard(place: shown[i], palette: palette, lang: lang),
             ],
-          const SizedBox(height: 10),
-          _EatsPremiumCard(
-            countForFilter: lockedForFilter > 0 ? lockedForFilter : null,
-            totalLocked: totalLocked,
-            palette: palette,
-            lang: lang,
-            onTap: () => _showEatsPaywall(context, palette, lang),
-          ),
+          if (!premium) ...[
+            const SizedBox(height: 10),
+            _EatsPremiumCard(
+              countForFilter: lockedForFilter > 0 ? lockedForFilter : null,
+              totalLocked: totalLocked,
+              palette: palette,
+              lang: lang,
+              onTap: () => _showEatsPaywall(context, palette, lang),
+            ),
+          ],
         ],
       ),
     );
@@ -421,20 +429,31 @@ class _EatsCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
+          // Rozetler dar ekranda alt satıra insin — sabit Row 390px'te
+          // 103px taşıyordu (iki rozet + fiyat yan yana sığmıyor).
           Row(
             children: [
-              if (place.halal)
-                _EatsBadge(
-                  text: const LText('🕌 Helal', '🕌 Halal').of(lang),
-                  palette: palette,
+              Expanded(
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    if (place.halal)
+                      _EatsBadge(
+                        text: const LText('🕌 Helal', '🕌 Halal').of(lang),
+                        palette: palette,
+                      ),
+                    if (place.vegetarianFriendly)
+                      _EatsBadge(
+                        text:
+                            const LText('🥗 Vejetaryen', '🥗 Vegetarian')
+                                .of(lang),
+                        palette: palette,
+                      ),
+                  ],
                 ),
-              if (place.halal) const SizedBox(width: 6),
-              if (place.vegetarianFriendly)
-                _EatsBadge(
-                  text: const LText('🥗 Vejetaryen', '🥗 Vegetarian').of(lang),
-                  palette: palette,
-                ),
-              const Spacer(),
+              ),
+              const SizedBox(width: 8),
               Text(
                 place.priceBand,
                 style: TextStyle(
@@ -1019,10 +1038,11 @@ class _DietaryCard extends StatelessWidget {
           if (options.isEmpty)
             Text(
               const LText(
-                'Plan adımında özel bir beslenme tercihi seçmedin. '
-                'İstersen Plan > Yemek adımından ekleyebilirsin.',
-                'No special dietary preference is selected in the plan. '
-                'You can add one from Plan > Food step.',
+                'Özel bir beslenme tercihi seçili değil — liste tüm '
+                'mekanları gösteriyor. Yukarıdaki helal / vejetaryen '
+                'filtresiyle daraltabilirsin.',
+                'No dietary preference is set — the list shows every place. '
+                'Use the halal / vegetarian filter above to narrow it down.',
               ).of(lang),
               style: TextStyle(color: palette.textSecondary, fontSize: 12.5),
             )

@@ -10,14 +10,32 @@
 import 'localized_text.dart';
 
 /// Tek bir tavsiye/uyarı maddesi: başında bir emoji + iki dilli metin.
+/// Bir maddenin kime hitap ettiği. Rehber sekmesi geziye göre süzer:
+/// çocuksuz bir planda "çocuk Suica'sı nasıl alınır" gösterilmez.
+enum MustKnowAudience {
+  /// Herkese gösterilir.
+  all,
+
+  /// Yalnız çocuklu gezilerde gösterilir
+  /// (preferences.childrenCount > 0 ya da ilgi alanlarında kids varsa).
+  withKids,
+}
+
 class MustKnowTip {
-  const MustKnowTip({required this.emoji, required this.text});
+  const MustKnowTip({
+    required this.emoji,
+    required this.text,
+    this.audience = MustKnowAudience.all,
+  });
 
   /// Madde başı ikonu — literal.
   final String emoji;
 
   /// Madde metni (TR + EN).
   final LText text;
+
+  /// Kime gösterilir.
+  final MustKnowAudience audience;
 }
 
 /// Bir konu başlığı altında gruplanmış tavsiyeler (ör. Belgeler, Para, Sağlık).
@@ -155,6 +173,128 @@ const List<MustKnowSection> kMustKnowSections = [
           'Tax-free: spend over ¥5,000 at one store and buy tax-free with your '
           'passport. Tax-free goods are sealed separately; keep them unopened '
           'until you leave the country.',
+        ),
+      ),
+    ],
+  ),
+
+  // -------------------------------------------------------------------------
+  // 🎴 Suica / IC kart
+  // -------------------------------------------------------------------------
+  MustKnowSection(
+    emoji: '🎴',
+    title: LText('Suica Kartı Nasıl Alınır?', 'How to Get a Suica Card'),
+    tips: [
+      MustKnowTip(
+        emoji: '📱',
+        text: LText(
+          'EN KOLAY YOL — Mobil Suica: iPhone\'da Cüzdan (Wallet) → + → '
+          'Ulaşım Kartı → Suica. Fiziksel kart, depozito ve kuyruk yok; '
+          'kartı daha uçağa binmeden oluşturabilirsin. Android\'de Google '
+          'Cüzdan ya da Mobile Suica uygulaması aynı işi görür.',
+          'EASIEST WAY — Mobile Suica: on iPhone open Wallet → + → Transit '
+          'Card → Suica. No physical card, no deposit, no queue; you can set '
+          'it up before you even board your flight. On Android use Google '
+          'Wallet or the Mobile Suica app.',
+        ),
+      ),
+      MustKnowTip(
+        emoji: '💳',
+        text: LText(
+          'Yükleme: Apple Pay\'e eklediğin kartla anında yükleyebilirsin — '
+          'ancak bazı yabancı kartlar reddedilir. Kartın geçmezse konbini '
+          '(7-Eleven, FamilyMart) kasasında "Suica chaaji" diyerek NAKİT '
+          'yükletebilirsin; en garantili yöntem budur.',
+          'Topping up: you can charge instantly with a card added to Apple '
+          'Pay, but some foreign cards get declined. If yours fails, top up '
+          'with CASH at a konbini register (7-Eleven, FamilyMart) by saying '
+          '"Suica chaaji" — that is the most reliable route.',
+        ),
+      ),
+      MustKnowTip(
+        emoji: '🏪',
+        text: LText(
+          'Suica sadece tren için değil: konbini, otomat, kafe ve çoğu '
+          'mağazada temassız ödeme olarak geçer. Bozuk parayla uğraşmamak '
+          'için günlük harcamada da kullan.',
+          'Suica is not just for trains: it works as contactless payment at '
+          'konbini, vending machines, cafes and most shops. Use it for daily '
+          'spending so you do not juggle coins.',
+        ),
+      ),
+      MustKnowTip(
+        emoji: '🗾',
+        text: LText(
+          'Tek kart tüm ülkede geçer. ICOCA (Kansai) ya da PASMO ile aynı '
+          'ağdadır — Tokyo\'da aldığın Suica\'yı Kyoto, Osaka, Hiroshima\'da '
+          'da kullanırsın. Ayrı kart almana gerek yok.',
+          'One card works nationwide. It shares a network with ICOCA (Kansai) '
+          'and PASMO — a Suica bought in Tokyo also works in Kyoto, Osaka and '
+          'Hiroshima. You do not need a second card.',
+        ),
+      ),
+      MustKnowTip(
+        emoji: '🎟️',
+        text: LText(
+          'Fiziksel kart istiyorsan: havalimanı ve büyük JR East '
+          'istasyonlarında turistlere özel "Welcome Suica" var — depozitosuz, '
+          '28 gün geçerli, iade yok. Normal Suica\'da 500¥ depozito vardır ve '
+          'ayrılırken gişede geri alınır.',
+          'If you want a physical card: airports and major JR East stations '
+          'sell the tourist "Welcome Suica" — no deposit, valid 28 days, no '
+          'refund. A regular Suica carries a ¥500 deposit, refundable at a '
+          'ticket window when you leave.',
+        ),
+      ),
+      // ── Çocuklu geziler ────────────────────────────────────────────────
+      MustKnowTip(
+        emoji: '🧒',
+        audience: MustKnowAudience.withKids,
+        text: LText(
+          'ÇOCUK SUICA\'SI (6–11 yaş): çocuk yarım ücret öder ama bunun için '
+          '"kodomo" (çocuk) Suica gerekir. Bu kartı otomattan ALAMAZSIN ve '
+          'telefona da EKLEYEMEZSİN — yalnızca JR East gişesinden '
+          '(Midori no Madoguchi) alınır.',
+          'CHILD SUICA (ages 6–11): children pay half fare, but that requires '
+          'a "kodomo" (child) Suica. You CANNOT buy it from a machine and you '
+          'CANNOT add it to a phone — it is issued only at a JR East ticket '
+          'office (Midori no Madoguchi).',
+        ),
+      ),
+      MustKnowTip(
+        emoji: '🛂',
+        audience: MustKnowAudience.withKids,
+        text: LText(
+          'Çocuk kartı için çocuğun PASAPORTUNU yanına al — yaş kanıtı '
+          'isteniyor. Kart çocuğun adına düzenlenir. Havalimanındaki JR '
+          'gişesinde hallet; şehir merkezinde kuyruklar daha uzun olur.',
+          'Bring the child\'s PASSPORT — proof of age is required. The card is '
+          'issued in the child\'s name. Do it at the JR office in the airport; '
+          'queues in city centres are longer.',
+        ),
+      ),
+      MustKnowTip(
+        emoji: '👶',
+        audience: MustKnowAudience.withKids,
+        text: LText(
+          '6 yaşından küçük çocuklar trende ÜCRETSİZ — her yetişkinin yanında '
+          'iki çocuğa kadar. Onlar için kart almana gerek yok; ayrı koltuk '
+          'istiyorsan çocuk bileti gerekir.',
+          'Children under 6 travel FREE — up to two per paying adult. You do '
+          'not need a card for them; you only need a child ticket if you want '
+          'them to have their own seat.',
+        ),
+      ),
+      MustKnowTip(
+        emoji: '⏳',
+        audience: MustKnowAudience.withKids,
+        text: LText(
+          'Çocuk 12 yaşına girdiğinde çocuk kartı geçersiz olur, yetişkin '
+          'ücretine geçer. Uzun gezilerde doğum günü tarih aralığına denk '
+          'geliyorsa kontrol et.',
+          'A child card stops being valid once the child turns 12; they move '
+          'to adult fare. On longer trips, check whether a birthday falls '
+          'inside your dates.',
         ),
       ),
     ],

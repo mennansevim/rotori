@@ -5,6 +5,8 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../plans/premium_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../data/tag_scanner_client.dart';
@@ -108,8 +110,8 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
                 onCapture: controller.capture,
                 isLimitReached: state.isLimitReached,
                 remaining: state.dailyLimitRemaining ?? 10,
-                maxScans: (state.isPremiumUser == true) ? 100 : 10,
-                isPremium: state.isPremiumUser == true,
+                maxScans: _premiumNow(ref, state) ? 100 : 10,
+                isPremium: _premiumNow(ref, state),
                 onPremiumTap: () => _showPremiumSheet(context),
               ),
             )
@@ -1473,3 +1475,9 @@ class _FallbackBadge extends StatelessWidget {
     );
   }
 }
+
+/// Premium durumu: canlı bayrak (drawer anahtarı) VEYA sunucudan gelen
+/// yetkilendirme. Ekran controller'ın açılışta aldığı tek seferlik
+/// snapshot'a bağlı kalmasın diye provider da okunuyor.
+bool _premiumNow(WidgetRef ref, ScannerState state) =>
+    ref.watch(premiumProvider) || state.isPremiumUser == true;

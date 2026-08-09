@@ -4,7 +4,10 @@
     {
       "name": "planner",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:planner"],
+      "runtimeArgs": [
+        "run",
+        "dev:planner"
+      ],
       "port": 5174,
       "url": "http://localhost:5174/planner/?u=demo",
       "autoPort": false
@@ -12,7 +15,10 @@
     {
       "name": "viewer",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:viewer"],
+      "runtimeArgs": [
+        "run",
+        "dev:viewer"
+      ],
       "port": 5180,
       "url": "http://localhost:5180/viewer/?u=demo",
       "autoPort": true
@@ -37,6 +43,17 @@
       ],
       "port": 8093,
       "url": "http://127.0.0.1:8093/",
+      "autoPort": false
+    },
+    {
+      "name": "flutter-preview-map",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd rotori-mobile && flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8095 -t lib/preview_main.dart"
+      ],
+      "port": 8095,
+      "url": "http://127.0.0.1:8095/",
       "autoPort": false
     }
   ]

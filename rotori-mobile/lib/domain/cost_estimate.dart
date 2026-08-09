@@ -95,8 +95,8 @@ class UnitCostTable {
     required this.foodAdultMax,
     required this.foodChildMin,
     required this.foodChildMax,
-    required this.trainAdultBaseMin,
-    required this.trainAdultBaseMax,
+    required this.trainLocalDayMin,
+    required this.trainLocalDayMax,
     required this.trainIntercityMin,
     required this.trainIntercityMax,
     required this.trainChildFactor,
@@ -140,11 +140,18 @@ class UnitCostTable {
   final int foodChildMax;
 
   // Tren — kişi başı taban (yerel) + şehirlerarası bacak başına.
-  final int trainAdultBaseMin;
-  final int trainAdultBaseMax;
+  /// Şehir İÇİ ulaşım — GÜN BAŞINA. Eskiden gezi başına sabitti: 3 günlük
+  /// gezi de 14 günlük gezi de aynı yerel ulaşım maliyetini alıyordu.
+  /// Referans: metro bileti ¥210, günlük pass ¥800.
+  final int trainLocalDayMin;
+  final int trainLocalDayMax;
+
+  /// Şehirlerarası BACAK BAŞINA. Referans: Tokyo–Kyoto Nozomi (rezerve)
+  /// ¥14.170; Green Car ~¥19.000.
   final int trainIntercityMin;
   final int trainIntercityMax;
   final double trainChildFactor;
+
 
   // Taksi — grup/gün.
   final int taxiDayMin;
@@ -190,10 +197,10 @@ class UnitCostTable {
         foodAdultMax: 8000,
         foodChildMin: 1500,
         foodChildMax: 4500,
-        trainAdultBaseMin: 6000,
-        trainAdultBaseMax: 12000,
+        trainLocalDayMin: 600,
+        trainLocalDayMax: 1500,
         trainIntercityMin: 9000,
-        trainIntercityMax: 22000,
+        trainIntercityMax: 15000,
         trainChildFactor: 0.5,
         taxiDayMin: 1200,
         taxiDayMax: 5000,
@@ -276,8 +283,8 @@ class UnitCostTable {
       foodAdultMax: gi('food', 'adult_max', d.foodAdultMax),
       foodChildMin: gi('food', 'child_min', d.foodChildMin),
       foodChildMax: gi('food', 'child_max', d.foodChildMax),
-      trainAdultBaseMin: gi('train', 'adult_base_min', d.trainAdultBaseMin),
-      trainAdultBaseMax: gi('train', 'adult_base_max', d.trainAdultBaseMax),
+      trainLocalDayMin: gi('train', 'local_day_min', d.trainLocalDayMin),
+      trainLocalDayMax: gi('train', 'local_day_max', d.trainLocalDayMax),
       trainIntercityMin: gi('train', 'intercity_min', d.trainIntercityMin),
       trainIntercityMax: gi('train', 'intercity_max', d.trainIntercityMax),
       trainChildFactor: gd('train', 'child_factor', d.trainChildFactor),
@@ -410,9 +417,17 @@ CostEstimate estimateTripCost(Trip trip, UnitCostTable table) {
   final foodMax =
       (adults * table.foodAdultMax + children * table.foodChildMax) * days;
 
-  // Tren — yerel taban + şehirlerarası bacaklar; çocuk indirimi.
-  final trainAdultMin = table.trainAdultBaseMin + table.trainIntercityMin * intercityLegs;
-  final trainAdultMax = table.trainAdultBaseMax + table.trainIntercityMax * intercityLegs;
+  // Tren — GÜNLÜK yerel ulaşım + şehirlerarası bacaklar; çocuk indirimi.
+  //
+  // JR Pass HESABA KATILMAZ. 2023 zammından sonra (7 gün ¥50.000) tipik
+  // Tokyo–Kyoto–Osaka rotalarında noktadan noktaya bilet daha ucuz; pass
+  // varsayımı tahmini şişiriyordu.
+  final trainAdultMinRaw =
+      table.trainLocalDayMin * days + table.trainIntercityMin * intercityLegs;
+  final trainAdultMaxRaw =
+      table.trainLocalDayMax * days + table.trainIntercityMax * intercityLegs;
+  final trainAdultMin = trainAdultMinRaw;
+  final trainAdultMax = trainAdultMaxRaw;
   final trainMin = r(adults * trainAdultMin +
       children * trainAdultMin * table.trainChildFactor);
   final trainMax = r(adults * trainAdultMax +
