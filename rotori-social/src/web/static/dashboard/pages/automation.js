@@ -2,7 +2,7 @@
 // pages/automation.js — Otomasyon (yayın slotları)
 // =========================================================================
 import { api, el, icons, typeBadge, countdownText, fmtDate, fmtTime,
-         errorState, loadingState, toast, openModal } from '../lib.js?v=20260808-1';
+         errorState, loadingState, toast, openModal } from '../lib.js?v=20260810-2';
 
 const DAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];  // launchd: 1..6,0
 const DAY_TO_LAUNCHD = [1, 2, 3, 4, 5, 6, 0];  // index → launchd weekday
@@ -10,7 +10,6 @@ const FLOW_LIMIT = 5;
 const FLOW_HORIZON_DAYS = 14;
 const READY_LIBRARY_STATUSES = new Set(['approved', 'queued', 'scheduled', 'publishing', 'failed']);
 const REPLACE_ELIGIBLE_STATUSES = new Set(['approved', 'queued', 'scheduled']);
-const ADD_ELIGIBLE_STATUSES = new Set(['approved']);
 
 const FLOW_META = {
   haber: {
@@ -263,111 +262,168 @@ function buildFlowData(upcoming, type, nowIso) {
     };
   }
 
-  const visibleFilled = ordered.slice(0, 4);
-  const slots = [...visibleFilled];
+  const slots = [...ordered];
+  if (ordered.length < FLOW_LIMIT) {
+    slots.push({ _placeholder: 'add', _type: type });
+  }
 
   return {
     total: typed.length,
     totalNear: typedNear.length,
     hiddenFuture: Math.max(0, typed.length - typedNear.length),
     slots,
-    anchor: visibleFilled.length ? visibleFilled[visibleFilled.length - 1] : null,
-    compact: visibleFilled.length < FLOW_LIMIT,
-    empty: visibleFilled.length === 0,
+    anchor: ordered.length ? ordered[ordered.length - 1] : null,
+    compact: ordered.length < FLOW_LIMIT,
+    empty: false,
   };
 }
 
 function flowRow(type, flowData, approvedPool, nowIso, root, ctx, options) {
   const meta = FLOW_META[type];
-  const row = el('section', { class: 'card' });
-
-  // Header
-  row.append(el('div', { class: 'card__head' },
+  const row = el('section', { class: `card flow-row flow-row--${type}` });
+  const head = el('div', { class: 'card__head flow-row__head' },
     el('div', {},
       el('h3', {}, meta.title),
-      el('div', { class: 'muted', style: 'font-size:12px' }, meta.subtitle)),
-    el('div', { class: 'hstack', style: 'gap:8px' },
+      el('div', { class: 'flow-row__sub' }, meta.subtitle)),
+    el('div', { class: 'hstack' },
       el('span', { html: typeBadge(type) }),
-      el('span', { class: 'badge badge--muted' }, `${flowData.total} planlı`))));
+      el('span', { class: 'badge badge--muted' }, `Bu hafta: ${flowData.totalNear || 0}`),
+      el('span', { class: 'badge badge--muted' }, `Toplam ${flowData.total} slot`)));
 
-  const body = el('div', { class: 'card__body' });
+  const trackClasses = ['flow-track'];
+  if (options.animateShift) trackClasses.push('is-shift');
+  if (flowData.compact) trackClasses.push('is-compact');
+  if (flowData.empty) trackClasses.push('is-empty');
+  const track = el('div', { class: trackClasses.join(' ') });
   const anchor = flowData.anchor;
+  flowData.slots.forEach((slot) => {
+    track.append(flowSlot(type, slot, slot && anchor && slot.entry_id === anchor.entry_id,
+      approvedPool, nowIso, root, ctx));
+  });
 
-  if (flowData.empty) {
-    body.append(el('div', { class: 'empty-state', style: 'padding:24px' },
-      el('p', { class: 'muted', style: 'margin:0 0 12px' }, 'Henüz planlı gönderi yok.'),
-      el('button', { class: 'btn btn--primary', onclick: () => openAddToSlotPicker({ type, approvedPool, root, ctx }) },
-        icons.plus + ' Onaylı İçerik Ekle')));
-  } else {
-    // Clean list of upcoming slots
-    const list = el('div', { class: 'flow-list' });
-    flowData.slots.forEach((slot) => {
-      list.append(flowListItem(type, slot, anchor, approvedPool, nowIso, root, ctx));
-    });
-    body.append(list);
+  const nowSendBtn = anchor
+    ? el('button', {
+      class: 'btn btn--sm btn--ghost flow-row__send-btn',
+      type: 'button',
+      html: `${icons.send}<span>Şimdi Gönder</span>`,
+      onclick: async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const btn = event.currentTarget;
+        const oldHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `${icons.clock}<span>Gönderiliyor...</span>`;
+        try {
+          await manualDispatchSlot(anchor, root, ctx);
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = oldHtml;
+        }
+      },
+    })
+    : null;
 
-    // Add button at the bottom
-    body.append(el('div', { style: 'margin-top:12px' },
-      el('button', { class: 'btn btn--sm btn--primary', onclick: () => openAddToSlotPicker({ type, approvedPool, root, ctx }) },
-        icons.plus + ' Onaylı İçerik Ekle')));
-
-    // Info footer
-    if (flowData.hiddenFuture > 0) {
-      body.append(el('div', { class: 'muted', style: 'font-size:11px;margin-top:8px' },
-        `+${flowData.hiddenFuture} içerik ileri tarihlerde planlandı`));
-    }
-  }
-
-  row.append(body);
+  row.append(head, el('div', { class: 'card__body flow-row__body' }, track,
+    el('div', { class: 'flow-row__legend' },
+      el('div', { class: 'flow-row__legend-main' },
+        el('span', {}, (flowData.hiddenFuture || 0) > 0
+          ? `Uzak planlı ${flowData.hiddenFuture} slot gizlendi (yalnızca haftalık görünüm). Kutuya tıkla → ${meta.action}`
+          : `Kutuya tıkla → ${meta.action}`),
+        anchor ? el('span', { class: 'flow-row__live' }, `Canlı takip: ${anchor.title || 'Sıradaki gönderi'}`) : null),
+      el('div', { class: 'flow-row__legend-actions' }, nowSendBtn))));
   return row;
 }
 
-function flowListItem(type, slot, anchor, approvedPool, nowIso, root, ctx) {
-  const isAnchor = anchor && slot.entry_id === anchor.entry_id;
+function flowSlot(type, slot, isAnchor, approvedPool, nowIso, root, ctx) {
+  if (slot && slot._placeholder) {
+    return flowPlaceholderSlot(type, slot._placeholder, ctx);
+  }
+
   const title = slot.title || 'Planlı gönderi';
   const pendingDispatch = Boolean(root._automationState?.pendingDispatch?.has(slot.entry_id));
   const seconds = parseDeltaSeconds(slot.scheduled_at, nowIso);
-  const dispatching = shouldShowDispatching({ seconds, outcome: slot.publish_outcome, pending: pendingDispatch });
-  const etaText = compactRemaining(slot.scheduled_at, nowIso, { outcome: slot.publish_outcome, pendingDispatch });
+  const dispatching = shouldShowDispatching({
+    seconds,
+    outcome: slot.publish_outcome,
+    pending: pendingDispatch,
+  });
+  const etaText = compactRemaining(slot.scheduled_at, nowIso, {
+    outcome: slot.publish_outcome,
+    pendingDispatch,
+  });
   const statusText = flowStatusText(slot, dispatching);
 
-  const itemEl = el('div', {
-    class: `flow-item ${isAnchor ? 'is-anchor' : ''}`,
+  const btn = el('button', {
+    class: `flow-slot flow-slot--${type} ${isAnchor ? 'is-anchor' : ''}`,
+    type: 'button',
     dataset: {
       entryId: slot.entry_id || '',
       scheduledAt: slot.scheduled_at || '',
       flowType: type,
     },
-    onclick: () => openReplacePicker({ slot, type, approvedPool, root, ctx }),
+    onclick: async () => {
+      await openReplacePicker({ slot, type, approvedPool, root, ctx });
+    },
   },
-    el('div', { class: 'flow-item__time' },
-      el('strong', {}, fmtDate(slot.scheduled_at)),
-      el('span', {}, fmtTime(slot.scheduled_at))),
-    el('div', { class: 'flow-item__thumb' },
-      slot.url
-        ? el('img', { src: slot.url, alt: title, loading: 'lazy' })
-        : el('div', { class: 'flow-item__thumb-empty', html: icons.image })),
-    el('div', { class: 'flow-item__body' },
-      el('div', { class: 'flow-item__title' }, title),
-      el('div', { class: 'flow-item__meta' },
-        el('span', { class: `badge badge--${statusToneFromOutcome(slot.publish_outcome)}`, style: 'font-size:10px' }, statusText),
-        el('span', {
-          class: `flow-item__eta${dispatching ? ' is-dispatching' : ''}`,
-          dataset: {
-            scheduledAt: slot.scheduled_at || '',
-            outcome: slot.publish_outcome || '',
-            entryId: slot.entry_id || '',
-          },
-        }, etaText))),
-    el('span', { class: 'flow-item__action' }, isAnchor ? 'Canlı' : 'Değiştir'));
+  el('div', { class: 'flow-slot__media' },
+    slot.url
+      ? el('img', { src: slot.url, alt: title, class: 'flow-slot__img', loading: 'lazy' })
+      : el('div', { class: 'flow-slot__img flow-slot__img--empty', html: icons.image })),
+  el('div', { class: 'flow-slot__overlay' },
+    el('div', { class: 'flow-slot__top' },
+      el('span', { class: 'flow-slot__time' }, fmtTime(slot.scheduled_at) || '—'),
+      el('span', { class: `badge badge--${statusToneFromOutcome(slot.publish_outcome)}` }, statusText)),
+    el('div', { class: 'flow-slot__title clamp-2' }, title),
+    el('div', { class: 'flow-slot__bottom' },
+      el('span', {
+        class: `flow-slot__eta${dispatching ? ' is-dispatching' : ''}`,
+        dataset: {
+          scheduledAt: slot.scheduled_at || '',
+          outcome: slot.publish_outcome || '',
+          entryId: slot.entry_id || '',
+        },
+      }, etaText),
+      el('span', { class: 'flow-slot__action' }, 'Replace'))));
 
   if (isAnchor) {
-    itemEl.classList.add('is-live-anchor');
+    btn.classList.add('is-live-anchor');
+    btn.append(el('span', { class: 'flow-slot__live-badge' }, 'Canlı'));
   }
   if (dispatching || pendingDispatch) {
-    itemEl.classList.add('is-sending');
+    btn.classList.add('is-sending');
   }
-  return itemEl;
+  if (!dispatching && Number.isFinite(seconds) && seconds > 0 && seconds <= 120) {
+    btn.classList.add('is-near-due');
+  }
+  return btn;
+}
+
+function flowPlaceholderSlot(type, mode, ctx) {
+  const kind = type === 'haber' ? 'haber' : 'görsel';
+  const isEmpty = mode === 'empty';
+  const isQuiet = mode === 'quiet';
+  const title = isEmpty
+    ? `Henüz planlı ${kind} slotu yok`
+    : isQuiet
+      ? `Bu akışta yakın vadede planlı ${kind} slotu yok`
+    : `${kind[0].toUpperCase()}${kind.slice(1)} akışında boş yer var`;
+  const subtitle = isEmpty
+    ? 'Kütüphanede onaylayıp otomasyona ekleyin.'
+    : isQuiet
+      ? `Haftalık akış görünümü yalnızca önümüzdeki ${FLOW_HORIZON_DAYS} günü gösterir.`
+      : 'Onaylı içeriklerle sırayı hızlıca doldurabilirsiniz.';
+
+  return el('button', {
+    class: `flow-slot flow-slot--cta ${isEmpty ? 'is-empty' : (isQuiet ? 'is-empty' : 'is-add')}`,
+    type: 'button',
+    onclick: () => {
+      if (!isQuiet) ctx.navigate('library');
+    },
+  },
+  el('span', { class: 'flow-slot__cta-icon', html: icons.plus }),
+  el('strong', { class: 'flow-slot__cta-title' }, title),
+  el('span', { class: 'flow-slot__cta-sub' }, subtitle),
+  el('span', { class: 'flow-slot__cta-link' }, 'Kütüphaneye git'));
 }
 
 async function refreshFlowData(flowPanel, root, ctx, options = {}) {
@@ -423,7 +479,7 @@ function tickFlowCountdowns(root) {
   const offset = Number(root._flowClockOffsetMs || 0);
   const now = Date.now() + offset;
   const state = root._automationState;
-  root.querySelectorAll('.flow-item__eta[data-scheduled-at]').forEach((node) => {
+  root.querySelectorAll('.flow-slot__eta[data-scheduled-at]').forEach((node) => {
     const outcome = node.dataset.outcome || '';
     const entryId = node.dataset.entryId || '';
     const pendingDispatch = Boolean(entryId && state?.pendingDispatch?.has(entryId));
@@ -436,7 +492,7 @@ function tickFlowCountdowns(root) {
     node.textContent = compactRemaining(node.dataset.scheduledAt, now, { outcome, pendingDispatch });
     node.classList.toggle('is-dispatching', dispatching);
 
-    const slotNode = node.closest('.flow-item');
+    const slotNode = node.closest('.flow-slot');
     slotNode?.classList.toggle('is-sending', dispatching || pendingDispatch);
     slotNode?.classList.toggle('is-near-due', !dispatching && Number.isFinite(seconds) && seconds > 0 && seconds <= 120);
   });
@@ -462,9 +518,9 @@ async function maybeDispatchDueAnchors(root, flowPanel, refreshFlow) {
 
     state.pendingDispatch.add(entryId);
     state.dispatchCooldown.set(entryId, now + 90_000);
-    const node = root.querySelector(`.flow-item[data-entry-id="${entryId}"]`);
+    const node = root.querySelector(`.flow-slot[data-entry-id="${entryId}"]`);
     node?.classList.add('is-sending');
-    node?.querySelector('.flow-item__eta')?.classList.add('is-dispatching');
+    node?.querySelector('.flow-slot__eta')?.classList.add('is-dispatching');
 
     try {
       toast('Yayın saati geldi, gönderiliyor...', '');
@@ -517,9 +573,9 @@ async function manualDispatchSlot(slot, root, ctx) {
     : localIsoNoTz(serverNowMs - 1000);
 
   state.pendingDispatch.add(entryId);
-  const node = root.querySelector(`.flow-item[data-entry-id="${entryId}"]`);
+  const node = root.querySelector(`.flow-slot[data-entry-id="${entryId}"]`);
   node?.classList.add('is-sending');
-  node?.querySelector('.flow-item__eta')?.classList.add('is-dispatching');
+  node?.querySelector('.flow-slot__eta')?.classList.add('is-dispatching');
   try {
     toast('Gönderi hazırlanıyor, şimdi gönderiliyor...', '');
     await api.reschedule(entryId, retryAt);
@@ -553,82 +609,6 @@ function localIsoNoTz(ms) {
   const pad = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
     + `T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-}
-
-async function openAddToSlotPicker({ type, approvedPool, root, ctx }) {
-  const pool = approvedPool
-    .filter((it) => (it.type || 'gorsel') === type)
-    .map((it) => ({ ...it, _assetName: resolveAssetName(it) }))
-    .filter((it) => it._assetName && ADD_ELIGIBLE_STATUSES.has(it.status))
-    .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
-
-  if (!pool.length) {
-    toast('Bu akış için onaylı içerik bulunamadı. Önce kütüphanede bir içeriği onaylayın.', 'err');
-    return;
-  }
-
-  let selected = null;
-  const picker = el('div', { class: 'flow-picker-grid' });
-  const tiles = [];
-  pool.forEach((item) => {
-    const tile = el('button', {
-      class: 'flow-picker-item',
-      type: 'button',
-      onclick: () => {
-        selected = item;
-        tiles.forEach((t) => t.classList.remove('is-selected'));
-        tile.classList.add('is-selected');
-        addBtn.disabled = false;
-      },
-    },
-    item.url
-      ? el('img', { src: item.url, alt: item.title || item.name, loading: 'lazy' })
-      : el('div', { class: 'flow-picker-empty', html: icons.image }),
-    el('div', { class: 'flow-picker-item__meta' },
-      el('strong', { class: 'clamp-1' }, item.title || item.name),
-      el('small', {}, `${fmtDate(item.created_at)} · ${typeBadge(item.type)}`)));
-    tiles.push(tile);
-    picker.append(tile);
-  });
-
-  const addBtn = el('button', {
-    class: 'btn btn--primary',
-    disabled: 'disabled',
-    onclick: async () => {
-      if (!selected) return;
-      addBtn.disabled = true;
-      addBtn.classList.add('is-loading');
-      try {
-        await api.autoFillReady();
-        toast('İçerik otomasyon sırasına eklendi.', 'ok');
-        modalCtl.close();
-        const flowPanel = document.getElementById('automation-flow-panel');
-        if (flowPanel) await refreshFlowData(flowPanel, root, ctx, { animateShift: true });
-      } catch (e) {
-        toast(`Ekleme başarısız: ${e.message}`, 'err');
-        addBtn.disabled = false;
-      } finally {
-        addBtn.classList.remove('is-loading');
-      }
-    },
-  }, 'Seçilenle Slotu Doldur');
-
-  const body = el('div', { class: 'stack', style: 'gap:12px' },
-    el('p', { class: 'muted', style: 'margin:0' },
-      `Onaylı ${type === 'haber' ? 'haber' : 'görsel'} içeriklerinden seçip boş slotu doldurabilirsiniz.`),
-    picker);
-
-  const footer = [
-    el('button', { class: 'btn', onclick: () => modalCtl.close() }, 'Vazgeç'),
-    addBtn,
-  ];
-
-  const modalCtl = openModal({
-    title: `Boş Slotu Doldur · ${type === 'haber' ? 'Haber' : 'Görsel'}`,
-    body,
-    footer,
-    wide: true,
-  });
 }
 
 async function openReplacePicker({ slot, type, approvedPool, root, ctx }) {
