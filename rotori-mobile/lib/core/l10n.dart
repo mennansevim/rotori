@@ -3022,6 +3022,30 @@ const Map<String, Map<AppLang, String>> _strings = {
   'drawer.section.trip': {AppLang.tr: 'YOLCULUK', AppLang.en: 'TRIP'},
   'drawer.section.discover': {AppLang.tr: 'KEŞFET', AppLang.en: 'DISCOVER'},
   'drawer.section.tools': {AppLang.tr: 'ARAÇLAR', AppLang.en: 'TOOLS'},
+  // KEŞFET karolarının tek satırlık açıklamaları. Eskiden karolar etiketsiz
+  // ikon kareleriydi; hangisinin ne yaptığı ancak tooltip ile anlaşılıyordu.
+  'drawer.discover.eats.sub': {
+    AppLang.tr: 'Helal, vejetaryen ve bütçene göre restoranlar',
+    AppLang.en: 'Restaurants by halal, vegetarian and your budget',
+  },
+  'drawer.discover.weather.sub': {
+    AppLang.tr: 'Günlük tahmin',
+    AppLang.en: 'Daily forecast',
+  },
+  'drawer.discover.budget.sub': {
+    AppLang.tr: 'Harcama takibi',
+    AppLang.en: 'Spend tracking',
+  },
+  'drawer.discover.checklist.sub': {
+    AppLang.tr: 'Yola çıkmadan',
+    AppLang.en: 'Before you go',
+  },
+  'drawer.discover.scanner.sub': {
+    AppLang.tr: 'Etiketi çevir',
+    AppLang.en: 'Translate a tag',
+  },
+  'drawer.eats.pass': {AppLang.tr: 'Pass', AppLang.en: 'Pass'},
+  'drawer.eats.free': {AppLang.tr: 'Ücretsiz', AppLang.en: 'Free'},
   'drawer.section.account': {AppLang.tr: 'HESAP', AppLang.en: 'ACCOUNT'},
   'drawer.flights.count': {
     AppLang.tr: '{n} uçuş',

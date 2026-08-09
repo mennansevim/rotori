@@ -48,28 +48,42 @@ class _ViewerDrawer extends ConsumerWidget {
     final avatarInitial =
         isGuest ? '?' : email.trim().substring(0, 1).toUpperCase();
 
-    // KEŞFET — en sık kullanılan araçlar, yan yana dikey karolar.
+    // KEŞFET — Eats vitrin kartı + kalan araçlar 2x2 etiketli ızgara.
+    //
+    // **Why:** Beş araç eşit boyutta, ETİKETSİZ ikon kareleriydi. Sonuç: hiçbiri
+    // kendini anlatmıyordu (etiket yalnızca tooltip'teydi, dokunmatikte tooltip
+    // yok) ve ürünün en zengin özelliği olan Eats, para tarayıcıyla aynı görsel
+    // ağırlıkta kalıyordu. Artık Eats tam genişlikte marka gradyanıyla duruyor,
+    // diğerleri ad + tek satır açıklama + kendi rengiyle ayrışıyor.
     final discoverActions = <_DrawerActionSpec>[
       _DrawerActionSpec(
         icon: Icons.cloud_outlined,
-          label: s.s('viewer.tt.weather'),
-          onTap: onOpenWeather),
+        label: s.s('viewer.tt.weather'),
+        hint: s.s('drawer.discover.weather.sub'),
+        tone: p.sky,
+        onTap: onOpenWeather,
+      ),
       _DrawerActionSpec(
-        icon: Icons.ramen_dining_outlined,
-        label: s.s('viewer.tt.eats'),
-        onTap: onOpenFoodGuide),
+        icon: Icons.account_balance_wallet_outlined,
+        label: s.s('viewer.tt.budget'),
+        hint: s.s('drawer.discover.budget.sub'),
+        tone: p.matcha,
+        onTap: onOpenBudget,
+      ),
       _DrawerActionSpec(
-          icon: Icons.account_balance_wallet_outlined,
-          label: s.s('viewer.tt.budget'),
-          onTap: onOpenBudget),
+        icon: Icons.checklist_rounded,
+        label: s.s('viewer.tt.checklist'),
+        hint: s.s('drawer.discover.checklist.sub'),
+        tone: p.fuji,
+        onTap: onOpenPrep,
+      ),
       _DrawerActionSpec(
-          icon: Icons.checklist_rounded,
-          label: s.s('viewer.tt.checklist'),
-          onTap: onOpenPrep),
-      _DrawerActionSpec(
-          icon: Icons.sell_outlined,
-          label: s.s('scanner.price_tag'),
-          onTap: () => context.push('/price-tag-scanner')),
+        icon: Icons.sell_outlined,
+        label: s.s('scanner.price_tag'),
+        hint: s.s('drawer.discover.scanner.sub'),
+        tone: p.sunset,
+        onTap: () => context.push('/price-tag-scanner'),
+      ),
     ];
 
     return Drawer(
@@ -113,6 +127,11 @@ class _ViewerDrawer extends ConsumerWidget {
                     palette: p,
                   ),
                   const SizedBox(height: 8),
+                  _DrawerEatsCard(
+                    palette: p,
+                    onTap: onOpenFoodGuide,
+                  ),
+                  const SizedBox(height: 10),
                   _DrawerActionGrid(
                     actions: discoverActions,
                     palette: p,
@@ -1413,10 +1432,19 @@ class _DrawerActionSpec {
   const _DrawerActionSpec({
     required this.icon,
     required this.label,
+    required this.hint,
+    required this.tone,
     required this.onTap,
   });
   final IconData icon;
   final String label;
+
+  /// Tek satırlık açıklama — karonun ne işe yaradığını dokunmadan anlatır.
+  final String hint;
+
+  /// Karonun kendi rengi. Hepsi accent olunca ızgara tek bir mavi bloğa
+  /// dönüşüyordu; renk ayrımı taramayı hızlandırır.
+  final Color tone;
   final VoidCallback onTap;
 }
 
@@ -1510,8 +1538,163 @@ class _DrawerAddCard extends StatelessWidget {
   }
 }
 
-/// Drawer içi keşif şeridi — araçlar yan yana, iOS "hızlı aksiyon" tarzı
-/// dikey karolar (ikon üstte, etiket altta). Eşit genişlikte dağılır.
+/// Rotori Eats vitrin kartı — KEŞFET bölümünün başındaki tam genişlik kartı.
+///
+/// Eats, drawer'daki en derin özellik (filtreli restoran keşfi, konum, bütçe
+/// uyumu) ama eşit boyutlu ikon karelerinden biri olduğunda görünmüyordu.
+/// Marka gradyanı + katman rozeti onu bölümün girişi yapar.
+class _DrawerEatsCard extends ConsumerWidget {
+  const _DrawerEatsCard({required this.palette, required this.onTap});
+  final ViewerPalette palette;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final p = palette;
+    final s = LanguageScope.of(context);
+    final premium = ref.watch(premiumProvider);
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(18),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).pop();
+          onTap();
+        },
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: p.brandGradient,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: p.accent.withValues(alpha: 0.26),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.22),
+                    borderRadius: BorderRadius.circular(13),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.34),
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.ramen_dining_rounded,
+                    size: 22,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              s.s('viewer.tt.eats'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          _DrawerEatsTierChip(premium: premium),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        s.s('drawer.discover.eats.sub'),
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          fontSize: 11.5,
+                          height: 1.3,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 22,
+                  color: Colors.white,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Eats kartındaki küçük katman rozeti — Pass açıksa altın, değilse cam.
+class _DrawerEatsTierChip extends StatelessWidget {
+  const _DrawerEatsTierChip({required this.premium});
+  final bool premium;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: premium ? 0.95 : 0.20),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            premium ? Icons.auto_awesome_rounded : Icons.lock_open_rounded,
+            size: 10,
+            color: premium ? const Color(0xFF7C6AEF) : Colors.white,
+          ),
+          const SizedBox(width: 3),
+          Text(
+            premium ? s.s('drawer.eats.pass') : s.s('drawer.eats.free'),
+            style: TextStyle(
+              color: premium ? const Color(0xFF7C6AEF) : Colors.white,
+              fontSize: 9.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Drawer içi keşif ızgarası — iki sütun, her karo ad + tek satır açıklama.
+///
+/// Eskiden beş karo tek satırda, etiketsiz ikon kareleriydi; 5 x ~60 px alanda
+/// metin sığmıyordu. İki sütuna geçince her karo adını ve ne işe yaradığını
+/// söyleyebiliyor.
 class _DrawerActionGrid extends StatelessWidget {
   const _DrawerActionGrid({required this.actions, required this.palette});
   final List<_DrawerActionSpec> actions;
@@ -1520,25 +1703,38 @@ class _DrawerActionGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = palette;
-    // IntrinsicHeight: karolar farklı satır sayılarında bile eşit yükseklikte
-    // kalır; SingleChildScrollView içinde unbounded-height patlamasını da önler.
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (var i = 0; i < actions.length; i++) ...[
-            if (i > 0) const SizedBox(width: 10),
-            Expanded(child: _DrawerActionTile(spec: actions[i], palette: p)),
-          ],
-        ],
-      ),
+    final rows = <Widget>[];
+    for (var i = 0; i < actions.length; i += 2) {
+      final left = actions[i];
+      final right = i + 1 < actions.length ? actions[i + 1] : null;
+      rows.add(
+        // IntrinsicHeight: iki karodan biri iki satır açıklama alsa bile
+        // yükseklikleri eşit kalır.
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: _DrawerActionTile(spec: left, palette: p)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: right == null
+                    ? const SizedBox.shrink()
+                    : _DrawerActionTile(spec: right, palette: p),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (i + 2 < actions.length) rows.add(const SizedBox(height: 10));
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: rows,
     );
   }
 }
 
-/// Tek bir dikey aksiyon karosu — yalnız ikon (etiket yok). Etiket erişilebilirlik
-/// için Tooltip/Semantics'te taşınır. Arka plan sert beyaz yerine yumuşak accent
-/// tonu; ikonlar renk dengesi bakımından palette accent'iyle uyumlu.
+/// Tek bir keşif karosu — renkli ikon rozeti, ad ve tek satır açıklama.
 class _DrawerActionTile extends StatelessWidget {
   const _DrawerActionTile({required this.spec, required this.palette});
   final _DrawerActionSpec spec;
@@ -1547,30 +1743,62 @@ class _DrawerActionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = palette;
-    return Tooltip(
-      message: spec.label,
-      child: Semantics(
-        button: true,
-        label: spec.label,
-        child: Material(
-          color: p.accent.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(16),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: () {
-              Navigator.of(context).pop();
-              spec.onTap();
-            },
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: p.accent.withValues(alpha: 0.18)),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                child: Center(
-                  child: Icon(spec.icon, size: 24, color: p.accent),
-                ),
+    return Semantics(
+      button: true,
+      label: '${spec.label}. ${spec.hint}',
+      child: Material(
+        color: p.card,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () {
+            Navigator.of(context).pop();
+            spec.onTap();
+          },
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: p.border),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: spec.tone.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(spec.icon, size: 18, color: spec.tone),
+                  ),
+                  const SizedBox(height: 9),
+                  Text(
+                    spec.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: p.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    spec.hint,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: p.textSecondary,
+                      fontSize: 11,
+                      height: 1.25,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
