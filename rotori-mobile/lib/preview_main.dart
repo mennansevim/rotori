@@ -40,6 +40,7 @@ import 'features/viewer/budget_screen.dart';
 import 'features/viewer/checklist_screen.dart';
 import 'features/viewer/compass_screen.dart';
 import 'features/viewer/day_map_screen.dart';
+import 'features/viewer/eats_screen.dart';
 import 'features/viewer/gps_sim_screen.dart';
 import 'features/viewer/japanese_phrases_screen.dart';
 import 'features/viewer/must_know_screen.dart';
@@ -332,6 +333,10 @@ class _PreviewApp extends ConsumerWidget {
           builder: (_, s) => _CompassRoute(planId: s.pathParameters['id']!),
         ),
         GoRoute(
+          path: '/plans/:id/eats',
+          builder: (_, s) => _EatsRoute(planId: s.pathParameters['id']!),
+        ),
+        GoRoute(
           path: '/plans/:id/budget',
           builder: (_, s) => _BudgetRoute(planId: s.pathParameters['id']!),
         ),
@@ -462,6 +467,32 @@ class _CompassRoute extends ConsumerWidget {
 }
 
 /// Preview: planByIdProvider'dan trip'i çözüp Bütçe ekranını açar.
+/// Preview: planByIdProvider'dan trip'i çözüp Rotori Eats'i açar.
+/// Ekran normalde plan viewer drawer'ından açılıyor; doğrudan URL rotası
+/// olmadan önizlemede tek başına görüntülenemiyordu.
+class _EatsRoute extends ConsumerWidget {
+  const _EatsRoute({required this.planId});
+  final String planId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final planAsync = ref.watch(planByIdProvider(planId));
+    return planAsync.when(
+      data: (trip) => EatsScreen(trip: trip),
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Scaffold(
+        body: Center(
+          child: Text(
+            LanguageScope.of(context).p('home.planLoadFailed', {'err': '$e'}),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _BudgetRoute extends ConsumerWidget {
   const _BudgetRoute({required this.planId});
   final String planId;
