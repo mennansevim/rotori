@@ -586,14 +586,14 @@ h1, h2, h3 { margin: 0; }
 
 .flow-track {
   display: grid;
-  grid-template-columns: repeat(5, minmax(110px, 1fr));
+  grid-template-columns: repeat(5, minmax(100px, 1fr));
   gap: 10px;
   align-items: end;
+  overflow-x: auto;
 }
 
 .flow-track.is-compact {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 230px));
-  justify-content: flex-start;
+  grid-template-columns: repeat(5, minmax(100px, 1fr));
 }
 
 .flow-track.is-empty {
