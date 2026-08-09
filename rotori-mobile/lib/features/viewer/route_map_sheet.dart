@@ -6,12 +6,12 @@
 //   1) Kamera açılışta tüm durakları içine alacak şekilde `CameraFit.bounds`,
 //   2) Rota çizgisi baştan sona akıcı biçimde çizilir (tek AnimationController),
 //   3) Çizgi bir durağa ulaştığında o durağın kırmızı pini elastik "pop" ile
-//      belirir ve sürekli, hafif bir pulse halosu alır.
+//      belirir ve yerinde sabit kalır.
 //
 // Performans notu: tile katmanı animasyonun DIŞINDA kalır. Yalnızca
-// Polyline/Marker katmanları `AnimatedBuilder` ile 60fps yeniden kurulur,
-// pulse halosu ise her pinin kendi küçük alt ağacında döner — böylece kare
-// başına yeniden kurulan widget yüzeyi minimumda tutulur.
+// Polyline/Marker katmanları `AnimatedBuilder` ile yeniden kurulur ve çizim
+// bittiğinde animasyon tamamen durur — sürekli dönen hiçbir kontrolcü kalmaz,
+// harita boşta CPU yakmaz.
 //
 // Koordinatlar `place_coords.dart` ile çözülür (üretilmiş öğelerde lat/lng
 // çoğunlukla NULL olduğundan başlık küratörlü şehir noktalarıyla eşleştirilir).
@@ -27,6 +27,7 @@ import '../../core/l10n.dart';
 import '../../data/google_maps_launcher.dart';
 import '../../domain/city_places.dart';
 import '../../domain/destination_profiles.dart';
+import '../../domain/hotel_location.dart';
 import '../../domain/place_coords.dart';
 import '../../domain/types.dart';
 import '../shared/place_detail_sheet.dart';
@@ -38,6 +39,10 @@ const LatLng _kJapanCenter = LatLng(36.2048, 138.2529);
 
 /// Rota vurgu rengi — Japon kırmızısı. Sade zeminde tek doygun renk odur.
 const Color kRouteAccent = Color(0xFFE23D4D);
+
+/// Otel pini rengi — rotanın kırmızısından kasten AYRI. Otel bir "durak"
+/// değil, günün başladığı yer; aynı renk olsaydı sıralı duraklarla karışırdı.
+const Color kHotelAccent = Color(0xFF2E7D6B);
 
 /// Bir rota bacağı için ayrılan çizim süresi. Toplam süre bacak sayısıyla
 /// ölçeklenir ama [_kMinDrawMs]/[_kMaxDrawMs] arasında sıkışır: 2 duraklı gün
@@ -213,6 +218,12 @@ class RouteMapSheet extends ConsumerWidget {
       fallbackLng: cityCenter.longitude,
     );
 
+    // Günün başladığı yer. Koordinat çözülemezse (kısa maps.app.goo.gl linki
+    // gibi) pin gösterilmez — oteli yanlış yerde göstermektense hiç
+    // göstermemek doğru: kullanıcı sabah oraya yürümeye kalkar.
+    final hotel = hotelForDate(trip.hotels, day.date);
+    final hotelPoint = hotel == null ? null : hotelCoords(hotel);
+
     final media = MediaQuery.of(context);
     // Alçak ekranlarda haritaya daha fazla yer bırak; tablet/web'de sheet'i
     // ortalayıp genişliğini sınırla (tam ekrana yayılan harita hantal durur).
@@ -261,6 +272,10 @@ class RouteMapSheet extends ConsumerWidget {
                         destination: dest,
                         palette: palette,
                         tileProvider: tileProvider,
+                        hotel: hotel,
+                        hotelPoint: hotelPoint == null
+                            ? null
+                            : LatLng(hotelPoint.lat, hotelPoint.lng),
                       ),
                     ),
                   ],
@@ -293,7 +308,7 @@ class RouteMapSheet extends ConsumerWidget {
   }
 }
 
-/// Sade zemin + sırayla çizilen rota + pulse'lu kırmızı duraklar.
+/// Sade zemin + sırayla çizilen rota + sabit kırmızı duraklar.
 class AnimatedRouteMap extends StatefulWidget {
   const AnimatedRouteMap({
     super.key,
@@ -305,6 +320,8 @@ class AnimatedRouteMap extends StatefulWidget {
     required this.destination,
     required this.palette,
     this.tileProvider,
+    this.hotel,
+    this.hotelPoint,
   });
 
   final Trip trip;
@@ -316,17 +333,22 @@ class AnimatedRouteMap extends StatefulWidget {
   final ViewerPalette palette;
   final TileProvider? tileProvider;
 
+  /// O gün kalınan otel — varsa haritada günün başlangıç noktası olarak
+  /// gösterilir. Rotanın numaralı durakları arasına GİRMEZ.
+  final HotelStay? hotel;
+
+  /// Otelin çözülmüş koordinatı. Otel var ama koordinatı çözülemediyse null
+  /// olur ve pin gizlenir.
+  final LatLng? hotelPoint;
+
   @override
   State<AnimatedRouteMap> createState() => _AnimatedRouteMapState();
 }
 
 class _AnimatedRouteMapState extends State<AnimatedRouteMap>
-    with TickerProviderStateMixin {
+    with SingleTickerProviderStateMixin {
   /// Rota çizim ilerlemesi (0..1) — polyline ve pin belirme sırasını sürer.
   late final AnimationController _drawCtrl;
-
-  /// Sonsuz döngüdeki pin halosu. Çizim bittikten sonra da devam eder.
-  late final AnimationController _pulseCtrl;
 
   final MapController _mapCtrl = MapController();
 
@@ -338,10 +360,6 @@ class _AnimatedRouteMapState extends State<AnimatedRouteMap>
     super.initState();
     _recomputeRoute();
     _drawCtrl = AnimationController(vsync: this, duration: _drawDuration());
-    _pulseCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    );
     if (_points.length < 2) {
       // Tek durak (ya da hiç): çizecek bacak yok, pin hemen görünsün.
       _drawCtrl.value = 1.0;
@@ -352,7 +370,6 @@ class _AnimatedRouteMapState extends State<AnimatedRouteMap>
         if (mounted) _drawCtrl.forward();
       });
     }
-    _pulseCtrl.repeat(reverse: true);
   }
 
   @override
@@ -384,7 +401,6 @@ class _AnimatedRouteMapState extends State<AnimatedRouteMap>
   @override
   void dispose() {
     _drawCtrl.dispose();
-    _pulseCtrl.dispose();
     super.dispose();
   }
 
@@ -434,11 +450,18 @@ class _AnimatedRouteMapState extends State<AnimatedRouteMap>
   Widget _buildMap(TileProvider provider) {
     final isDark = palette.brightness == Brightness.dark;
 
+    // Otel de kadraja girsin — aksi halde kamera duraklara sığar ve günün
+    // başladığı yer ekranın dışında kalır.
+    final framed = <LatLng>[
+      ..._points,
+      if (widget.hotelPoint != null) widget.hotelPoint!,
+    ];
+
     final MapOptions options;
-    if (_points.length >= 2) {
+    if (framed.length >= 2) {
       options = MapOptions(
         initialCameraFit: CameraFit.bounds(
-          bounds: LatLngBounds.fromPoints(_points),
+          bounds: LatLngBounds.fromPoints(framed),
           padding: const EdgeInsets.fromLTRB(56, 56, 56, 96),
         ),
         minZoom: 3,
@@ -448,9 +471,9 @@ class _AnimatedRouteMapState extends State<AnimatedRouteMap>
           flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
         ),
       );
-    } else if (_points.length == 1) {
+    } else if (framed.length == 1) {
       options = MapOptions(
-        initialCenter: _points.first,
+        initialCenter: framed.first,
         initialZoom: 14,
         minZoom: 3,
         maxZoom: 18,
@@ -501,12 +524,40 @@ class _AnimatedRouteMapState extends State<AnimatedRouteMap>
     );
   }
 
+  /// Otelden ilk durağa giden kesikli "çıkış bacağı".
+  ///
+  /// Kesikli çünkü bu bir rota adımı değil, günün nereden başladığını anlatan
+  /// bağlam: kullanıcı sabah otelden çıkıp ilk durağa gidiyor. Düz çizgi
+  /// olsaydı numaralı rotanın bir parçası sanılırdı.
+  Polyline? _hotelLeg() {
+    final hp = widget.hotelPoint;
+    if (hp == null || _points.isEmpty) return null;
+    return Polyline(
+      points: [hp, _points.first],
+      color: kHotelAccent.withValues(alpha: 0.75),
+      strokeWidth: 3,
+      pattern: StrokePattern.dashed(segments: const [7, 6]),
+      strokeCap: StrokeCap.round,
+    );
+  }
+
   Widget _buildRouteLayer() {
-    if (_points.length < 2) return const SizedBox.shrink();
+    final hotelLeg = _hotelLeg();
+    if (_points.length < 2) {
+      // Tek durak (ya da hiç) olsa bile otel bağlantısı anlamlı.
+      return hotelLeg == null
+          ? const SizedBox.shrink()
+          : PolylineLayer(polylines: [hotelLeg]);
+    }
     final drawn = partialRoute(_points, _lineProgress);
-    if (drawn.length < 2) return const SizedBox.shrink();
+    if (drawn.length < 2) {
+      return hotelLeg == null
+          ? const SizedBox.shrink()
+          : PolylineLayer(polylines: [hotelLeg]);
+    }
     return PolylineLayer(
       polylines: [
+        if (hotelLeg != null) hotelLeg,
         // Henüz çizilmemiş bölüm hayalet olarak durur — kullanıcı rotanın
         // nereye gideceğini baştan sezer, çizgi "boşluğa" akmaz.
         if (_lineProgress < 1.0)
@@ -540,6 +591,20 @@ class _AnimatedRouteMapState extends State<AnimatedRouteMap>
 
     return MarkerLayer(
       markers: [
+        // Otel — numaralı durakların ALTINDA çizilir (listede önce gelir), ki
+        // aynı noktaya denk gelirse rota durağı üstte kalsın.
+        if (widget.hotelPoint != null && widget.hotel != null)
+          Marker(
+            point: widget.hotelPoint!,
+            width: _kMarkerWidth,
+            height: _kMarkerHeight,
+            alignment: Alignment.center,
+            child: _HotelPin(
+              hotel: widget.hotel!,
+              palette: palette,
+              onTap: _openHotel,
+            ),
+          ),
         // Çizginin ucundaki akan nokta — hareketin nereye gittiğini gösterir.
         if (head != null)
           Marker(
@@ -560,7 +625,6 @@ class _AnimatedRouteMapState extends State<AnimatedRouteMap>
             child: _RouteStopPin(
               stop: widget.stops[i],
               appear: _appearProgress(i, progress),
-              pulse: _pulseCtrl,
               onTap: () => _openStop(widget.stops[i]),
             ),
           ),
@@ -622,6 +686,20 @@ class _AnimatedRouteMapState extends State<AnimatedRouteMap>
       city: widget.destination?.city ?? '',
       countryCode: widget.destination?.countryCode,
       existingTicket: existing,
+    );
+  }
+
+  /// Otel pinine dokunma — oteli Google Maps'te açar. Kullanıcının otelden
+  /// çıkarken isteyeceği tek şey yol tarifidir; ayrı bir detay sayfası
+  /// göstermek araya gereksiz bir adım koyardı.
+  Future<void> _openHotel() async {
+    final hotel = widget.hotel;
+    final point = widget.hotelPoint;
+    if (hotel == null || point == null) return;
+    await openGoogleMapsPoint(
+      lat: point.latitude,
+      lng: point.longitude,
+      label: hotel.name,
     );
   }
 
@@ -982,14 +1060,14 @@ class _BarButton extends StatelessWidget {
   }
 }
 
-/// Kırmızı durak pini — çizgi ulaştığında elastik "pop" ile belirir, sonra
-/// sürekli hafif bir halo pulse'ı alır. Pin gövdesinde durağın emoji/tür
+/// Kırmızı durak pini — çizgi ulaştığında kısa bir "pop" ile belirir ve
+/// ORADA SABİT KALIR (sürekli dönen bir animasyonu yoktur; harita üzerinde
+/// titreşen nokta okumayı zorlaştırıyordu). Pin gövdesinde durağın emoji/tür
 /// ikonu, hemen altında (yakınlaşınca) durağın adı görünür.
 class _RouteStopPin extends StatelessWidget {
   const _RouteStopPin({
     required this.stop,
     required this.appear,
-    required this.pulse,
     required this.onTap,
   });
 
@@ -998,22 +1076,21 @@ class _RouteStopPin extends StatelessWidget {
   /// 0..1 — belirme ilerlemesi (0 iken pin hiç çizilmez).
   final double appear;
 
-  /// Halo animasyonu; her pin yalnızca kendi küçük alt ağacını yeniden kurar.
-  final Animation<double> pulse;
-
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     if (appear <= 0) return const SizedBox.shrink();
-    final scale = Curves.elasticOut.transform(appear);
+    // easeOutBack: hafif bir "pop" verir ama elasticOut gibi salınmadan
+    // oturur — pin yerleştikten sonra tamamen sabit kalır.
+    final scale = Curves.easeOutBack.transform(appear);
     // Ad etiketi yalnızca şehir ölçeğinde ve üstünde — uzaklaşınca etiketler
     // üst üste binip haritayı okunmaz hale getirir.
     final zoom = MapCamera.maybeOf(context)?.zoom ?? 0;
     final showLabel = zoom >= _kLabelMinZoom;
 
     return Opacity(
-      // Opaklık pop'tan hızlı kapanır; elastik taşma sırasında pin zaten net.
+      // Opaklık ölçekten hızlı dolar; pin daha büyümesini bitirmeden nettir.
       opacity: (appear * 2.2).clamp(0.0, 1.0),
       // Column DEĞİL Stack: etiket yüksekliği yazı tipi metriklerine göre
       // platformdan platforma birkaç piksel oynar ve Column bunu "overflow"
@@ -1039,28 +1116,7 @@ class _RouteStopPin extends StatelessWidget {
             child: GestureDetector(
               onTap: onTap,
               behavior: HitTestBehavior.opaque,
-              child: AnimatedBuilder(
-                animation: pulse,
-                builder: (context, child) {
-                  final t = Curves.easeOut.transform(pulse.value);
-                  return Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Dışa doğru açılıp sönen halo.
-                      Container(
-                        width: _kPinSize + 26 * t,
-                        height: _kPinSize + 26 * t,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: kRouteAccent.withValues(alpha: 0.22 * (1 - t)),
-                        ),
-                      ),
-                      child!,
-                    ],
-                  );
-                },
-                child: _PinCore(stop: stop),
-              ),
+              child: _PinCore(stop: stop),
             ),
           ),
         ],
@@ -1159,6 +1215,77 @@ IconData _kindIcon(TimelineItemKind? kind) => switch (kind) {
 
 /// Pinin altındaki ad etiketi — sade zeminde okunur kalması için opak zemin
 /// ve ince kenarlık. Uzun adlar tek satırda kısaltılır.
+/// Günün başladığı otel pini.
+///
+/// Numaralı rota duraklarından üç şekilde ayrışır: yeşil renk, yuvarlak yerine
+/// "ev" silueti veren damla form ve numara yerine yatak ikonu. Böylece
+/// haritaya bakan biri onu bir durak sanmaz — "buradan çıkıyorum" der.
+class _HotelPin extends StatelessWidget {
+  const _HotelPin({
+    required this.hotel,
+    required this.palette,
+    required this.onTap,
+  });
+
+  final HotelStay hotel;
+  final ViewerPalette palette;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final zoom = MapCamera.maybeOf(context)?.zoom ?? 0;
+    final showLabel = zoom >= _kLabelMinZoom;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.center,
+      children: [
+        if (showLabel)
+          Positioned(
+            top: _kMarkerHeight / 2 + _kPinBox / 2 + 4,
+            left: 0,
+            right: 0,
+            child: IgnorePointer(
+              child: Center(child: _StopLabel(text: hotel.name)),
+            ),
+          ),
+        GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: SizedBox(
+            width: _kPinBox,
+            height: _kPinBox,
+            child: Center(
+              child: Container(
+                width: _kPinSize,
+                height: _kPinSize,
+                decoration: BoxDecoration(
+                  color: kHotelAccent,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.22),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.hotel_rounded,
+                  size: 15,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _StopLabel extends StatelessWidget {
   const _StopLabel({required this.text});
 

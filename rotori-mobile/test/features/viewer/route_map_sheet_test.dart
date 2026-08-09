@@ -247,6 +247,78 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     });
 
+    // Kullanıcı güne oteliden başlıyor: "oradan hareket edeceğim her gün
+    // başında". Harita bunu göstermezse günün ilk bacağı görünmez kalır.
+    testWidgets('o gün kalınan otel haritada ayrı bir pin olarak görünür',
+        (tester) async {
+      final trip = _sampleTrip();
+      trip.hotels.add(HotelStay(
+        id: 'h1',
+        city: 'Kyoto',
+        name: 'Kyoto Test Ryokan',
+        checkIn: '2026-05-13',
+        checkOut: '2026-05-16',
+        address: 'Nakagyo',
+        mapsUrl: 'https://www.google.com/maps/place/R/@35.0116,135.7681,17z',
+      ));
+
+      await tester.pumpWidget(harness(trip));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 6)); // çizim bitsin
+
+      // Otel pini yatak ikonuyla gelir; rota durakları bu ikonu kullanmaz.
+      expect(find.byIcon(Icons.hotel_rounded), findsOneWidget);
+      // Adı etiket olarak okunur.
+      expect(find.text('Kyoto Test Ryokan'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
+    testWidgets('koordinatı çözülemeyen otel için pin gösterilmez',
+        (tester) async {
+      final trip = _sampleTrip();
+      trip.hotels.add(HotelStay(
+        id: 'h1',
+        city: 'Kyoto',
+        name: 'Zzz Bilinmeyen Otel',
+        checkIn: '2026-05-13',
+        checkOut: '2026-05-16',
+        address: 'Bilinmeyen Sokak 5',
+        mapsUrl: 'https://maps.app.goo.gl/short', // koordinat taşımaz
+      ));
+
+      await tester.pumpWidget(harness(trip));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 6));
+
+      // Yanlış yerde pin göstermektense hiç gösterme.
+      expect(find.byIcon(Icons.hotel_rounded), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
+    testWidgets('o güne ait olmayan otel gösterilmez', (tester) async {
+      final trip = _sampleTrip();
+      // Gün 2026-05-13; bu konaklama bir hafta sonra.
+      trip.hotels.add(HotelStay(
+        id: 'h1',
+        city: 'Kyoto',
+        name: 'Sonraki Hafta Oteli',
+        checkIn: '2026-05-20',
+        checkOut: '2026-05-23',
+        address: 'Nakagyo',
+        mapsUrl: 'https://www.google.com/maps/place/R/@35.0116,135.7681,17z',
+      ));
+
+      await tester.pumpWidget(harness(trip));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 6));
+
+      expect(find.byIcon(Icons.hotel_rounded), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
     testWidgets('duraksız günde bilgi bandı gösterir', (tester) async {
       final trip = _sampleTrip();
       final empty = Trip(
