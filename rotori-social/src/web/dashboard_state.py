@@ -555,9 +555,9 @@ def publishes(cfg: Any) -> dict[str, Any]:
     published_stems = set(uploads.keys())
     by_name = {c["name"]: c for c in content}
 
-    # Bu hafta sınırı (Pazartesi 00:00 → Pazar 23:59)
+    # Bu hafta sınırı: bu Pazartesi → 14 gün sonrası (dahil)
     monday = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
-    sunday_end = monday + timedelta(days=14)  # 2 haftalık görünüm
+    sunday_end = monday + timedelta(days=15)  # 2 hafta sonrasının ertesi günü (dışlayıcı sınır)
 
     upcoming = []
     for it in sorted(
@@ -569,7 +569,7 @@ def publishes(cfg: Any) -> dict[str, Any]:
             it_dt = datetime.fromisoformat(it.get("scheduled_at", ""))
         except (ValueError, TypeError):
             continue
-        if it_dt >= sunday_end:
+        if it_dt > sunday_end:
             continue
         if _queue_item_stem(it) in published_stems:
             # Manual/harici yayın sonrası kuyrukta kalan eski kayıtları
