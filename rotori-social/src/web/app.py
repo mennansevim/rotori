@@ -2685,7 +2685,13 @@ def scheduler_auto_fill_ready() -> dict[str, Any]:
     return _auto_fill_ready_impl()
 
 
-def _auto_fill_ready_impl() -> dict[str, Any]:
+@app.post("/api/scheduler/auto_fill_ready/{name}")
+def scheduler_auto_fill_ready_item(name: str) -> dict[str, Any]:
+    """Yalnız seçilen onaylı kartı kendi otomasyon hattına ekle."""
+    return _auto_fill_ready_impl(_safe_story_name(name))
+
+
+def _auto_fill_ready_impl(only_name: str | None = None) -> dict[str, Any]:
     """Planlanmamış Ready kartlarını Haber/Görsel otomasyonuna bağla."""
     if cfg.stories is None:
         raise HTTPException(status_code=400, detail="stories config yok.")
@@ -2715,13 +2721,17 @@ def _auto_fill_ready_impl() -> dict[str, Any]:
 
     candidates = sorted(
         (path for path in ready_dir.glob("*.jpg")
-         if path.name not in queued_names and path.stem not in uploaded_log),
+         if path.name not in queued_names and path.stem not in uploaded_log
+         and (only_name is None or path.name == only_name)),
         key=lambda path: path.stat().st_mtime,
         reverse=True,
     )
     if not candidates:
+        if only_name is not None and not (ready_dir / only_name).exists():
+            raise HTTPException(status_code=404, detail=f"Onaylı kart bulunamadı: {only_name}")
         return {"ok": True, "scheduled": 0, "entries": [],
-                "message": "Zaten hepsi planlı veya yayında."}
+                "message": "İçerik zaten planlı veya yayında." if only_name else
+                           "Zaten hepsi planlı veya yayında."}
 
     scheduled_entries: list[dict[str, Any]] = []
     fails: list[dict[str, str]] = []

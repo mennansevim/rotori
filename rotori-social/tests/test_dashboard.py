@@ -175,11 +175,25 @@ def test_dashboard_cachebuster_is_consistent():
     index_html = (DASHBOARD_STATIC / "index.html").read_text(encoding="utf-8")
     app_js = (DASHBOARD_STATIC / "app.js").read_text(encoding="utf-8")
     automation_js = (DASHBOARD_STATIC / "pages" / "automation.js").read_text(encoding="utf-8")
-    version = "20260810-4"
+    library_js = (DASHBOARD_STATIC / "pages" / "library.js").read_text(encoding="utf-8")
+    version = "20260810-5"
+    assert f"styles.css?v={version}" in index_html
     assert f"app.js?v={version}" in index_html
     assert f"pages/automation.js?v={version}" in app_js
+    assert f"pages/library.js?v={version}" in app_js
     assert f"lib.js?v={version}" in automation_js
-    assert "20260810-3" not in index_html + app_js + automation_js
+    assert f"lib.js?v={version}" in library_js
+    assert "20260810-4" not in index_html + app_js + automation_js + library_js
+
+
+def test_library_uses_three_stage_content_lifecycle():
+    library_js = (DASHBOARD_STATIC / "pages" / "library.js").read_text(encoding="utf-8")
+    assert "Taslak → Onaylandı → Yayınlandı" in library_js
+    assert "label: 'Taslak'" in library_js
+    assert "label: 'Onaylandı'" in library_js
+    assert "label: 'Yayınlandı'" in library_js
+    assert "statuses: new Set(['approved', 'queued', 'scheduled', 'publishing', 'failed'])" in library_js
+    assert "api.autoFillReadyItem(item.name)" in library_js
 
 
 def test_publishes_skips_stale_queue_entry_if_already_published(monkeypatch, tmp_path):

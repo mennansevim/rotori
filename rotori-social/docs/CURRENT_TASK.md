@@ -1,10 +1,21 @@
 # CURRENT_TASK.md — Aktif İş
 
 > Görev tamamlanır tamamlanmaz güncellenir. Sadece **bugünkü** işi tutar; geçmiş `DECISIONS.md`'e taşınır.
-> Son güncelleme: 2026-08-10 (mavi haber akışı haftalık sıra düzeltmesi)
+> Son güncelleme: 2026-08-10 (Kütüphane yaşam döngüsü tasarımı)
 
 ## 2026-08-10 — Tamamlanan iş
 
+- Kütüphane baştan tasarlandı ve ana içerik yaşam döngüsü üç aşamaya
+  sabitlendi: **Taslak → Onaylandı → Yayınlandı**.
+- Otomasyon ayrı bir içerik durumu olmaktan çıkarıldı; planlanan kartlar
+  Onaylandı aşamasında `Otomasyonda` alt durumu ve yayın tarihiyle görünür.
+- Taslaklar kart üzerinden onaylanabilir; onaylanan içerikler tek tek veya
+  açıkça adlandırılmış toplu eylemle otomasyona eklenebilir. Tekli eylem artık
+  yanlışlıkla tüm onaylı havuzu planlamaz.
+- Yayın kaydı oluştuğunda içerik API'nin `published` durumuyla otomatik olarak
+  Yayınlandı arşivine taşınır.
+- Masaüstü ve mobil için yeni aşama navigasyonu, filtreler, içerik kartları,
+  zamanlama/yayın panelleri ve boş durumlar eklendi.
 - Mavi haber otomasyonu Çarşamba 23:21'de haftada bir çalışacak şekilde
   tek güne indirildi; bekleyen 10 haber kartı yedişer gün arayla yeniden
   sıralandı.
@@ -15,7 +26,7 @@
 - Flow başlığı gerçek kadansı (`Haftada 1 · Çar 23:21`) ve bekleyen içerik
   sayısını gösteriyor; ilk beş aktif haftalık kart tarih sırasıyla görünür.
 - İlgili scheduler, API ve dashboard regresyon testleri eklendi.
-- Dashboard modül cache anahtarı `20260810-4` sürümüne yükseltildi; ana HTML
+- Dashboard modül cache anahtarı `20260810-5` sürümüne yükseltildi; ana HTML
   no-store yanıtıyla birlikte eski otomasyon JavaScript'inin tutulması önlendi.
 - Her deploy benzersiz UTC build kimliği üretir ve `/api/version` bunu SemVer
   build metadata olarak gösterir. Dashboard statik dosyaları ayrıca kalıcı
