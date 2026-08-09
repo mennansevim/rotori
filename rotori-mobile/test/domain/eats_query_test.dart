@@ -241,6 +241,11 @@ void main() {
   });
 
   group('skorlama', () {
+    int partValue(EatsScore s, EatsSignal signal) =>
+        s.parts.firstWhere((p) => p.signal == signal).value;
+    bool partKnown(EatsScore s, EatsSignal signal) =>
+        s.parts.firstWhere((p) => p.signal == signal).known;
+
     test('helal isteyen kullanıcıda sertifikalı en yüksek diyet puanını alır', () {
       const ctx = EatsContext(dietTags: {'halal'});
       final certified = scoreEatsPlace(
@@ -253,15 +258,47 @@ void main() {
       );
       final none = scoreEatsPlace(_place(id: 'n'), context: ctx);
 
-      expect(certified.diet, greaterThan(friendly.diet));
-      expect(friendly.diet, greaterThan(none.diet));
-      expect(none.diet, 0);
+      expect(
+        partValue(certified, EatsSignal.diet),
+        greaterThan(partValue(friendly, EatsSignal.diet)),
+      );
+      expect(
+        partValue(friendly, EatsSignal.diet),
+        greaterThan(partValue(none, EatsSignal.diet)),
+      );
+      expect(partValue(none, EatsSignal.diet), 0);
     });
 
-    test('konum bilinmiyorsa mesafe nötr puanlanır — cezalandırmaz', () {
+    // Bu davranış bilinçli olarak DEĞİŞTİ. Eskiden bilinmeyen bileşenlere
+    // nötr puan veriliyordu (diyet 22, bütçe 12, mesafe 12) ve hiçbir tercih
+    // girilmemiş bir gezide bile kendinden emin bir "65/100" çıkıyordu.
+    test('bilinmeyen sinyal skora GİRMEZ, eksik olarak işaretlenir', () {
       final s = scoreEatsPlace(_place(id: 'a'));
-      expect(s.distance, greaterThan(0));
-      expect(s.distance, lessThan(20));
+
+      expect(partKnown(s, EatsSignal.diet), isFalse);
+      expect(partKnown(s, EatsSignal.budget), isFalse);
+      expect(partKnown(s, EatsSignal.distance), isFalse);
+      expect(partKnown(s, EatsSignal.rating), isTrue);
+
+      expect(s.knownCount, 1);
+      expect(s.missingSignals, hasLength(3));
+      // Diyet ve bütçe yoksa ortada kişiselleştirilmiş bir şey yok.
+      expect(s.isPersonalized, isFalse);
+    });
+
+    test('skor yalnızca bilinen sinyaller üzerinden normalize edilir', () {
+      // Sadece puan biliniyor: 4.0 → (4-3)/2*25 = 12.5 → 13; 13/25 = %52.
+      final s = scoreEatsPlace(_place(id: 'a', rating: 4.0));
+      expect(s.score, closeTo(52, 2));
+    });
+
+    test('tercih girilince kişiselleştirilmiş sayılır', () {
+      final s = scoreEatsPlace(
+        _place(id: 'a', halal: HalalTrust.certified),
+        context: const EatsContext(dietTags: {'halal'}),
+      );
+      expect(s.isPersonalized, isTrue);
+      expect(s.knownCount, 2);
     });
 
     test('bütçe içindeki mekan tam bütçe puanı alır', () {
@@ -274,8 +311,12 @@ void main() {
         _place(id: 'over', minJpy: 8000, maxJpy: 14000),
         context: ctx,
       );
-      expect(inBudget.budget, 20);
-      expect(overBudget.budget, lessThan(inBudget.budget));
+      expect(partValue(inBudget, EatsSignal.budget), 20);
+      expect(
+        partValue(overBudget, EatsSignal.budget),
+        lessThan(partValue(inBudget, EatsSignal.budget)),
+      );
+      expect(inBudget.isPersonalized, isTrue);
     });
 
     test('skor 0–100 aralığında kalır', () {
@@ -299,6 +340,15 @@ void main() {
         distanceKm: 0.05,
       );
       expect(s.score, inInclusiveRange(0, 100));
+      expect(s.knownCount, 4);
+      expect(s.missingSignals, isEmpty);
+    });
+
+    test('tüm sinyaller bilinmiyorken sıralama yine tutarlı kalır', () {
+      // Normalize payda tüm mekanlarda aynı olduğu için göreli sıra bozulmaz.
+      final high = scoreEatsPlace(_place(id: 'h', rating: 4.8));
+      final low = scoreEatsPlace(_place(id: 'l', rating: 3.6));
+      expect(high.score, greaterThan(low.score));
     });
   });
 

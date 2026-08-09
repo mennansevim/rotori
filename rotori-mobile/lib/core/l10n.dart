@@ -3226,6 +3226,41 @@ const Map<String, Map<AppLang, String>> _strings = {
   'create.continue': {AppLang.tr: 'Devam', AppLang.en: 'Continue'},
   'create.back': {AppLang.tr: 'Geri', AppLang.en: 'Back'},
   'create.generate': {AppLang.tr: 'Planımı oluştur', AppLang.en: 'Create my plan'},
+  'create.dates.continue': {AppLang.tr: 'Devam', AppLang.en: 'Continue'},
+  // 3. adım — beslenme tercihi + öğün bütçesi. İkisi de isteğe bağlı; boş
+  // bırakılırsa Rotori uyum skoru o bileşeni "eksik" sayar (uydurmaz).
+  'create.prefs.title': {
+    AppLang.tr: 'Damak tadın',
+    AppLang.en: 'Your taste',
+  },
+  'create.prefs.sub': {
+    AppLang.tr: 'İsteğe bağlı — restoran önerilerini sana göre ayarlar.',
+    AppLang.en: 'Optional — tunes restaurant picks to you.',
+  },
+  'create.prefs.diet': {
+    AppLang.tr: 'Beslenme tercihlerin',
+    AppLang.en: 'Your dietary needs',
+  },
+  'create.prefs.dietHint': {
+    AppLang.tr: 'Birden fazla seçebilirsin. Rotori Eats listeyi buna göre daraltır.',
+    AppLang.en: 'Pick as many as you need. Rotori Eats narrows the list to match.',
+  },
+  'create.prefs.budget': {
+    AppLang.tr: 'Kişi başı öğün bütçen',
+    AppLang.en: 'Meal budget per person',
+  },
+  'create.prefs.budgetHint': {
+    AppLang.tr: 'Bir öğün için ayırdığın üst sınır.',
+    AppLang.en: 'The ceiling you set for a single meal.',
+  },
+  'create.prefs.budgetSkip': {
+    AppLang.tr: 'Belirtmek istemiyorum',
+    AppLang.en: 'Prefer not to say',
+  },
+  'create.prefs.skip': {
+    AppLang.tr: 'Bu adımı atla',
+    AppLang.en: 'Skip this step',
+  },
   'create.generating': {
     AppLang.tr: 'Planın hazırlanıyor…',
     AppLang.en: 'Building your plan…',
