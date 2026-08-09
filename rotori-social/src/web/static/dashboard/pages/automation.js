@@ -456,17 +456,28 @@ async function openAddToFlowPicker({ type, root, ctx }) {
   }
 
   let selected = null;
+  let locking = false;
   const picker = el('div', { class: 'flow-picker-grid' });
   const tiles = [];
   pool.forEach((item) => {
     const tile = el('button', {
       class: 'flow-picker-item',
       type: 'button',
-      onclick: () => {
-        selected = item;
-        tiles.forEach((t) => t.classList.remove('is-selected'));
+      onclick: async () => {
+        if (locking) return;
+        locking = true;
         tile.classList.add('is-selected');
-        addBtn.disabled = false;
+        tile.style.opacity = '0.6';
+        try {
+          await api.autoFillReady();
+          toast('İçerik akışa eklendi.', 'ok');
+          modalCtl.close();
+          await refreshFlowData(document.getElementById('automation-flow-panel'), root, ctx, { animateShift: true });
+        } catch (e) {
+          toast(`Ekleme başarısız: ${e.message}`, 'err');
+          locking = false;
+          tile.style.opacity = '';
+        }
       },
     },
     item.url
@@ -479,35 +490,13 @@ async function openAddToFlowPicker({ type, root, ctx }) {
     picker.append(tile);
   });
 
-  const addBtn = el('button', {
-    class: 'btn btn--primary',
-    disabled: 'disabled',
-    onclick: async () => {
-      if (!selected) return;
-      addBtn.disabled = true;
-      addBtn.classList.add('is-loading');
-      try {
-        await api.autoFillReady();
-        toast('İçerik akışa eklendi.', 'ok');
-        modalCtl.close();
-        await refreshFlowData(document.getElementById('automation-flow-panel'), root, ctx, { animateShift: true });
-      } catch (e) {
-        toast(`Ekleme başarısız: ${e.message}`, 'err');
-        addBtn.disabled = false;
-      } finally {
-        addBtn.classList.remove('is-loading');
-      }
-    },
-  }, 'Akışa Ekle');
-
   const body = el('div', { class: 'stack', style: 'gap:12px' },
     el('p', { class: 'muted', style: 'margin:0' },
-      `${kind} akışına eklemek için onaylı bir içerik seçin.`),
+      `${kind} akışına eklemek için bir içerik seçin (otomatik eklenir).`),
     picker);
 
   const footer = [
     el('button', { class: 'btn', onclick: () => modalCtl.close() }, 'Vazgeç'),
-    addBtn,
   ];
 
   const modalCtl = openModal({
@@ -720,18 +709,31 @@ async function openReplacePicker({ slot, type, approvedPool, root, ctx }) {
     return;
   }
 
-  let selected = null;
+  let locking = false;
   const picker = el('div', { class: 'flow-picker-grid' });
   const tiles = [];
   pool.forEach((item) => {
     const tile = el('button', {
       class: 'flow-picker-item',
       type: 'button',
-      onclick: () => {
-        selected = item;
-        tiles.forEach((t) => t.classList.remove('is-selected'));
+      onclick: async () => {
+        if (locking) return;
+        locking = true;
         tile.classList.add('is-selected');
-        replaceBtn.disabled = false;
+        tile.style.opacity = '0.6';
+        try {
+          const res = await api.schedulerReplaceAsset(slot.entry_id, { asset_name: item._assetName });
+          toast(res?.swapped_with
+            ? 'Slot değiştirildi ve swap yapıldı.'
+            : 'Slot görseli başarıyla değiştirildi.', 'ok');
+          modalCtl.close();
+          await refreshFlowData(document.getElementById('automation-flow-panel'), root, ctx, { animateShift: true });
+        } catch (e) {
+          toast(`Replace başarısız: ${e.message}`, 'err');
+          locking = false;
+          tile.style.opacity = '';
+          tile.classList.remove('is-selected');
+        }
       },
     },
     item.url
@@ -744,37 +746,13 @@ async function openReplacePicker({ slot, type, approvedPool, root, ctx }) {
     picker.append(tile);
   });
 
-  const replaceBtn = el('button', {
-    class: 'btn btn--primary',
-    disabled: 'disabled',
-    onclick: async () => {
-      if (!selected) return;
-      replaceBtn.disabled = true;
-      replaceBtn.classList.add('is-loading');
-      try {
-        const res = await api.schedulerReplaceAsset(slot.entry_id, { asset_name: selected._assetName });
-        toast(res?.swapped_with
-          ? 'Slot değiştirildi ve aktif kuyruk girdisiyle swap yapıldı.'
-          : 'Slot görseli başarıyla değiştirildi.', 'ok');
-        modalCtl.close();
-        await refreshFlowData(document.getElementById('automation-flow-panel'), root, ctx, { animateShift: true });
-      } catch (e) {
-        toast(`Replace başarısız: ${e.message}`, 'err');
-        replaceBtn.disabled = false;
-      } finally {
-        replaceBtn.classList.remove('is-loading');
-      }
-    },
-  }, 'Seçilenle Replace Et');
-
   const body = el('div', { class: 'stack', style: 'gap:12px' },
     el('p', { class: 'muted', style: 'margin:0' },
-      'Bu slotu seçtiğiniz yayına uygun görselle değiştirebilirsiniz. Aynı görsel başka aktif slotta ise sistem swap yapar.'),
+      'Bu slotu değiştirmek için bir görsel seçin (otomatik replace). Aynı görsel başka aktif slotta ise sistem swap yapar.'),
     picker);
 
   const footer = [
     el('button', { class: 'btn', onclick: () => modalCtl.close() }, 'Vazgeç'),
-    replaceBtn,
   ];
 
   const modalCtl = openModal({
