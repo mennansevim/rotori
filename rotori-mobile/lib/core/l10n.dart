@@ -2505,6 +2505,8 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Open the full trip in Google Maps'
   },
   'map.stopsCount': {AppLang.tr: '{count} durak', AppLang.en: '{count} stops'},
+  'map.zoomIn': {AppLang.tr: 'Yakınlaştır', AppLang.en: 'Zoom in'},
+  'map.zoomOut': {AppLang.tr: 'Uzaklaştır', AppLang.en: 'Zoom out'},
   'map.replay': {AppLang.tr: 'Tekrar oynat', AppLang.en: 'Replay'},
   'map.fitRoute': {AppLang.tr: 'Rotaya sığdır', AppLang.en: 'Fit route'},
   'map.navigate': {AppLang.tr: 'Yol tarifi', AppLang.en: 'Navigate'},

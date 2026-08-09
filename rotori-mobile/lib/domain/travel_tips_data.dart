@@ -310,12 +310,25 @@ const List<MustKnowSection> kMustKnowSections = [
       MustKnowTip(
         emoji: '🎫',
         text: LText(
-          'Japan Rail (JR) Pass kullanacaksan gitmeden ONLINE al ve değişim '
-          'kuponunu Japonya\'da JR ofisinde gerçek pasa çevir. Şehirler arası çok '
-          'seyahat edeceksen büyük tasarruf sağlar.',
-          'If you will use a Japan Rail (JR) Pass, buy it ONLINE before you go '
-          'and swap the exchange voucher for the real pass at a JR office in '
-          'Japan. It saves a lot if you travel between many cities.',
+          'JR Pass\'e ACELE ETME. 2023 zammından sonra 7 günlük pass ¥50.000 — '
+          'Tokyo–Kyoto–Osaka gibi tipik rotalarda noktadan noktaya bilet daha '
+          'ucuza geliyor. Pass ancak çok sayıda uzun şehirlerarası bacak '
+          'yapacaksan mantıklı; önce biletleri tek tek topla, karşılaştır.',
+          'DON\'T RUSH into a JR Pass. After the 2023 price rise a 7-day pass '
+          'costs ¥50,000 — on typical Tokyo–Kyoto–Osaka routes point-to-point '
+          'tickets come out cheaper. A pass only pays off with many long '
+          'intercity legs; add up the individual fares first and compare.',
+        ),
+      ),
+      MustKnowTip(
+        emoji: '🚄',
+        text: LText(
+          'Shinkansen koltuğunu Smart-EX (resmî) üzerinden 1 ay öncesinden '
+          'ayırabilirsin. Tokyo–Kyoto rezerve koltuk ~¥14.000. Sabah erken '
+          'seferlerde yer bulmak daha kolay.',
+          'You can reserve a Shinkansen seat via Smart-EX (official) up to a '
+          'month ahead. Tokyo–Kyoto reserved is ~¥14,000. Early-morning '
+          'departures are easier to book.',
         ),
       ),
       MustKnowTip(
