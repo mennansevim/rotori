@@ -351,7 +351,7 @@ class _EatsDetailSheet extends StatelessWidget {
               text: TextSpan(
                 children: [
                   TextSpan(
-                    text: '${const LText('Bunu söyle: ', 'Order this: ').of(lang)}',
+                    text: const LText('Bunu söyle: ', 'Order this: ').of(lang),
                     style: TextStyle(
                       color: p.textSecondary,
                       fontSize: 13,

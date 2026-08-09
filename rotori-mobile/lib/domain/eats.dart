@@ -419,32 +419,6 @@ String _group(int v) {
 }
 
 // ---------------------------------------------------------------------------
-// Geriye dönük uyumluluk
-// ---------------------------------------------------------------------------
-
-/// Eski üç yönlü filtre. Yeni ekran [EatsQuery] kullanır; bu tip yalnızca
-/// eski çağrı yerlerini derlenebilir tutmak için duruyor.
-enum EatsFilter { all, halal, vegetarian }
-
-/// Eski free limiti. Yeni katman modeli [kEatsFreeVisibleLimit] kullanır.
-const int kEatsFreeLimit = 3;
-
-/// Eski basit filtre (puana göre azalan, kararlı sıralama).
-List<EatsPlace> filterEats(List<EatsPlace> places, EatsFilter filter) {
-  bool matches(EatsPlace p) => switch (filter) {
-        EatsFilter.all => true,
-        EatsFilter.halal => p.halalFriendly,
-        EatsFilter.vegetarian => p.vegetarianFriendly,
-      };
-  final out = places.where(matches).where((p) => !p.premiumOnly).toList()
-    ..sort((a, b) {
-      final byRating = b.rating.compareTo(a.rating);
-      return byRating != 0 ? byRating : a.id.compareTo(b.id);
-    });
-  return out;
-}
-
-// ---------------------------------------------------------------------------
 // Küratörlü veri
 // ---------------------------------------------------------------------------
 
