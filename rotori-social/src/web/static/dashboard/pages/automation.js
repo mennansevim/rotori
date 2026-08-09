@@ -10,6 +10,7 @@ const FLOW_LIMIT = 5;
 const FLOW_HORIZON_DAYS = 14;
 const READY_LIBRARY_STATUSES = new Set(['approved', 'queued', 'scheduled', 'publishing', 'failed']);
 const REPLACE_ELIGIBLE_STATUSES = new Set(['approved', 'queued', 'scheduled']);
+const ADD_ELIGIBLE_STATUSES = new Set(['approved']);
 
 const FLOW_META = {
   haber: {
@@ -262,8 +263,9 @@ function buildFlowData(upcoming, type, nowIso) {
     };
   }
 
+  // Always pad to FLOW_LIMIT with add-placeholder slots
   const slots = [...ordered];
-  if (ordered.length < FLOW_LIMIT) {
+  while (slots.length < FLOW_LIMIT) {
     slots.push({ _placeholder: 'add', _type: type });
   }
 
@@ -336,7 +338,7 @@ function flowRow(type, flowData, approvedPool, nowIso, root, ctx, options) {
 
 function flowSlot(type, slot, isAnchor, approvedPool, nowIso, root, ctx) {
   if (slot && slot._placeholder) {
-    return flowPlaceholderSlot(type, slot._placeholder, ctx);
+    return flowPlaceholderSlot(type, slot._placeholder, ctx, approvedPool, root);
   }
 
   const title = slot.title || 'Planlı gönderi';
@@ -398,32 +400,37 @@ function flowSlot(type, slot, isAnchor, approvedPool, nowIso, root, ctx) {
   return btn;
 }
 
-function flowPlaceholderSlot(type, mode, ctx) {
+function flowPlaceholderSlot(type, mode, ctx, approvedPool, root) {
   const kind = type === 'haber' ? 'haber' : 'görsel';
   const isEmpty = mode === 'empty';
   const isQuiet = mode === 'quiet';
+  const isAdd = mode === 'add';
   const title = isEmpty
     ? `Henüz planlı ${kind} slotu yok`
     : isQuiet
       ? `Bu akışta yakın vadede planlı ${kind} slotu yok`
-    : `${kind[0].toUpperCase()}${kind.slice(1)} akışında boş yer var`;
+    : `${kind[0].toUpperCase()}${kind.slice(1)} akışında boş slot — onaylı içerik ekleyin`;
   const subtitle = isEmpty
     ? 'Kütüphanede onaylayıp otomasyona ekleyin.'
     : isQuiet
       ? `Haftalık akış görünümü yalnızca önümüzdeki ${FLOW_HORIZON_DAYS} günü gösterir.`
-      : 'Onaylı içeriklerle sırayı hızlıca doldurabilirsiniz.';
+      : 'Tıkla → onaylı içeriklerden seç → slotu doldur.';
 
   return el('button', {
     class: `flow-slot flow-slot--cta ${isEmpty ? 'is-empty' : (isQuiet ? 'is-empty' : 'is-add')}`,
     type: 'button',
     onclick: () => {
-      if (!isQuiet) ctx.navigate('library');
+      if (isQuiet) {
+        ctx.navigate('library');
+      } else {
+        openAddToSlotPicker({ type, approvedPool, root, ctx });
+      }
     },
   },
   el('span', { class: 'flow-slot__cta-icon', html: icons.plus }),
   el('strong', { class: 'flow-slot__cta-title' }, title),
   el('span', { class: 'flow-slot__cta-sub' }, subtitle),
-  el('span', { class: 'flow-slot__cta-link' }, 'Kütüphaneye git'));
+  el('span', { class: 'flow-slot__cta-link' }, isQuiet ? 'Kütüphaneye git' : 'Onaylı içerik seç'));
 }
 
 async function refreshFlowData(flowPanel, root, ctx, options = {}) {
@@ -609,6 +616,82 @@ function localIsoNoTz(ms) {
   const pad = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
     + `T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+async function openAddToSlotPicker({ type, approvedPool, root, ctx }) {
+  const pool = approvedPool
+    .filter((it) => (it.type || 'gorsel') === type)
+    .map((it) => ({ ...it, _assetName: resolveAssetName(it) }))
+    .filter((it) => it._assetName && ADD_ELIGIBLE_STATUSES.has(it.status))
+    .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+
+  if (!pool.length) {
+    toast('Bu akış için onaylı içerik bulunamadı. Önce kütüphanede bir içeriği onaylayın.', 'err');
+    return;
+  }
+
+  let selected = null;
+  const picker = el('div', { class: 'flow-picker-grid' });
+  const tiles = [];
+  pool.forEach((item) => {
+    const tile = el('button', {
+      class: 'flow-picker-item',
+      type: 'button',
+      onclick: () => {
+        selected = item;
+        tiles.forEach((t) => t.classList.remove('is-selected'));
+        tile.classList.add('is-selected');
+        addBtn.disabled = false;
+      },
+    },
+    item.url
+      ? el('img', { src: item.url, alt: item.title || item.name, loading: 'lazy' })
+      : el('div', { class: 'flow-picker-empty', html: icons.image }),
+    el('div', { class: 'flow-picker-item__meta' },
+      el('strong', { class: 'clamp-1' }, item.title || item.name),
+      el('small', {}, `${fmtDate(item.created_at)} · ${typeBadge(item.type)}`)));
+    tiles.push(tile);
+    picker.append(tile);
+  });
+
+  const addBtn = el('button', {
+    class: 'btn btn--primary',
+    disabled: 'disabled',
+    onclick: async () => {
+      if (!selected) return;
+      addBtn.disabled = true;
+      addBtn.classList.add('is-loading');
+      try {
+        await api.autoFillReady();
+        toast('İçerik otomasyon sırasına eklendi.', 'ok');
+        modalCtl.close();
+        const flowPanel = document.getElementById('automation-flow-panel');
+        if (flowPanel) await refreshFlowData(flowPanel, root, ctx, { animateShift: true });
+      } catch (e) {
+        toast(`Ekleme başarısız: ${e.message}`, 'err');
+        addBtn.disabled = false;
+      } finally {
+        addBtn.classList.remove('is-loading');
+      }
+    },
+  }, 'Seçilenle Slotu Doldur');
+
+  const body = el('div', { class: 'stack', style: 'gap:12px' },
+    el('p', { class: 'muted', style: 'margin:0' },
+      `Onaylı ${type === 'haber' ? 'haber' : 'görsel'} içeriklerinden seçip boş slotu doldurabilirsiniz.`),
+    picker);
+
+  const footer = [
+    el('button', { class: 'btn', onclick: () => modalCtl.close() }, 'Vazgeç'),
+    addBtn,
+  ];
+
+  const modalCtl = openModal({
+    title: `Boş Slotu Doldur · ${type === 'haber' ? 'Haber' : 'Görsel'}`,
+    body,
+    footer,
+    wide: true,
+  });
 }
 
 async function openReplacePicker({ slot, type, approvedPool, root, ctx }) {
