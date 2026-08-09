@@ -422,7 +422,9 @@ def weekly_timeline(cfg: Any, content: list[dict[str, Any]] | None = None) -> di
             continue
         name = it.get("asset_name") or it.get("mp4_name") or ""
         content_ref = by_name.get(name, {})
-        ctype = content_ref.get("type") or (
+        auto_kind = it.get("automation_kind", "")
+        queue_type = {"news": "haber", "topic": "gorsel"}.get(auto_kind, "")
+        ctype = content_ref.get("type") or queue_type or (
             "gorsel" if name.lower().endswith((".jpg", ".jpeg", ".png")) else "haber"
         )
         secs = int((dt - now).total_seconds())
@@ -583,11 +585,18 @@ def publishes(cfg: Any) -> dict[str, Any]:
             "pending": "scheduled", "ready": "approved",
             "uploading": "publishing", "failed": "failed",
         }.get(q_status, "queued")
+        # Tip: önce metadata, yoksa automation_kind → haber/gorsel, yoksa dosya uzantısı
+        auto_kind = it.get("automation_kind", "")
+        queue_type = {"news": "haber", "topic": "gorsel"}.get(auto_kind, "")
+        item_type = (
+            ref.get("type") or queue_type
+            or ("gorsel" if name.lower().endswith((".jpg", ".jpeg", ".png")) else "haber")
+        )
         upcoming.append({
             "entry_id": it.get("id"),
             "name": name,
             "title": ref.get("title") or _derive_title(name, {}),
-            "type": ref.get("type") or ("gorsel" if name.lower().endswith((".jpg", ".jpeg", ".png")) else "haber"),
+            "type": item_type,
             "url": _resolve_story_url(cfg, name, ref.get("url")),
             "scheduled_at": it.get("scheduled_at"),
             "seconds_until": secs,
