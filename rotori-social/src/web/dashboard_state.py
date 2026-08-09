@@ -424,7 +424,7 @@ def weekly_timeline(cfg: Any, content: list[dict[str, Any]] | None = None) -> di
         content_ref = by_name.get(name, {})
         auto_kind = it.get("automation_kind", "")
         queue_type = {"news": "haber", "topic": "gorsel"}.get(auto_kind, "")
-        ctype = content_ref.get("type") or queue_type or (
+        ctype = queue_type or content_ref.get("type") or (
             "gorsel" if name.lower().endswith((".jpg", ".jpeg", ".png")) else "haber"
         )
         secs = int((dt - now).total_seconds())
@@ -577,8 +577,9 @@ def publishes(cfg: Any) -> dict[str, Any]:
         # Tip: önce metadata, yoksa automation_kind → haber/gorsel, yoksa dosya uzantısı
         auto_kind = it.get("automation_kind", "")
         queue_type = {"news": "haber", "topic": "gorsel"}.get(auto_kind, "")
+        # automation_kind öncelikli: kuyruktaki lane her şeyden üstün
         item_type = (
-            ref.get("type") or queue_type
+            queue_type or ref.get("type")
             or ("gorsel" if name.lower().endswith((".jpg", ".jpeg", ".png")) else "haber")
         )
         upcoming.append({

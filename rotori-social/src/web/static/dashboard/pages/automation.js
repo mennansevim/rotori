@@ -7,7 +7,7 @@ import { api, el, icons, typeBadge, countdownText, fmtDate, fmtTime,
 const DAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];  // launchd: 1..6,0
 const DAY_TO_LAUNCHD = [1, 2, 3, 4, 5, 6, 0];  // index → launchd weekday
 const FLOW_LIMIT = 5;
-const FLOW_HORIZON_DAYS = 7;
+const FLOW_HORIZON_DAYS = 14;
 const READY_LIBRARY_STATUSES = new Set(['approved', 'queued', 'scheduled', 'publishing', 'failed']);
 const REPLACE_ELIGIBLE_STATUSES = new Set(['approved', 'queued', 'scheduled']);
 
