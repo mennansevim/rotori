@@ -5,6 +5,15 @@ import { api, el, icons, typeBadge, countdownText, fmtDate, fmtTime,
          errorState, loadingState, toast, openModal } from '../lib.js?v=20260810-2';
 
 const DAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];  // launchd: 1..6,0
+const fmtDayTime = (iso) => {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    const day = DAYS[(d.getDay() + 6) % 7];  // JS getDay: 0=Paz, DAYS: 0=Pzt
+    const time = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+    return `${day} ${time}`;
+  } catch { return ''; }
+};
 const DAY_TO_LAUNCHD = [1, 2, 3, 4, 5, 6, 0];  // index → launchd weekday
 const FLOW_LIMIT = 5;
 const FLOW_HORIZON_DAYS = 14;
@@ -371,7 +380,7 @@ function flowSlot(type, slot, isAnchor, approvedPool, nowIso, root, ctx) {
       : el('div', { class: 'flow-slot__img flow-slot__img--empty', html: icons.image })),
   el('div', { class: 'flow-slot__overlay' },
     el('div', { class: 'flow-slot__top' },
-      el('span', { class: 'flow-slot__time' }, fmtTime(slot.scheduled_at) || '—'),
+      el('span', { class: 'flow-slot__time' }, fmtDayTime(slot.scheduled_at) || '—'),
       el('span', { class: `badge badge--${statusToneFromOutcome(slot.publish_outcome)}` }, statusText)),
     el('div', { class: 'flow-slot__title clamp-2' }, title),
     el('div', { class: 'flow-slot__bottom' },

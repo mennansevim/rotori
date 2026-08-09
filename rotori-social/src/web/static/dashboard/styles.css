@@ -613,8 +613,8 @@ h1, h2, h3 { margin: 0; }
 
 .flow-slot {
   position: relative;
-  flex: 0 0 200px;
-  height: 160px;
+  flex: 0 0 178px;
+  height: 144px;
   border: 1px solid var(--line);
   border-radius: 14px;
   overflow: hidden;
