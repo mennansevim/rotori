@@ -345,7 +345,7 @@ function flowRow(type, flowData, approvedPool, nowIso, root, ctx, options) {
 
 function flowSlot(type, slot, isAnchor, approvedPool, nowIso, root, ctx) {
   if (slot && slot._placeholder) {
-    return flowPlaceholderSlot(type, slot._placeholder, ctx);
+    return flowPlaceholderSlot(type, slot._placeholder, ctx, root);
   }
 
   const title = slot.title || 'Planlı gönderi';
@@ -426,13 +426,96 @@ function flowPlaceholderSlot(type, mode, ctx) {
     class: `flow-slot flow-slot--cta ${isEmpty ? 'is-empty' : (isQuiet ? 'is-empty' : 'is-add')}`,
     type: 'button',
     onclick: () => {
-      if (!isQuiet) ctx.navigate('library');
+      if (!isEmpty && !isQuiet) {
+        openAddToFlowPicker({ type, root, ctx });
+      } else if (!isQuiet) {
+        ctx.navigate('library');
+      }
     },
   },
   el('span', { class: 'flow-slot__cta-icon', html: icons.plus }),
   el('strong', { class: 'flow-slot__cta-title' }, title),
   el('span', { class: 'flow-slot__cta-sub' }, subtitle),
-  el('span', { class: 'flow-slot__cta-link' }, 'Kütüphaneye git'));
+  el('span', { class: 'flow-slot__cta-link' }, (!isEmpty && !isQuiet) ? 'İçerik seç' : 'Kütüphaneye git'));
+}
+
+async function openAddToFlowPicker({ type, root, ctx }) {
+  const state = root._automationState;
+  const library = Array.isArray(state?.library) ? state.library : [];
+  const kind = type === 'haber' ? 'Haber' : 'Görsel';
+  const pool = library
+    .filter((it) => (it.type || 'gorsel') === type)
+    .filter((it) => READY_LIBRARY_STATUSES.has(it.status) || it.status === 'approved')
+    .map((it) => ({ ...it, _assetName: resolveAssetName(it) }))
+    .filter((it) => it._assetName)
+    .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+
+  if (!pool.length) {
+    toast(`${kind} için uygun onaylı içerik bulunamadı. Önce kütüphanede onaylayın.`, 'err');
+    return;
+  }
+
+  let selected = null;
+  const picker = el('div', { class: 'flow-picker-grid' });
+  const tiles = [];
+  pool.forEach((item) => {
+    const tile = el('button', {
+      class: 'flow-picker-item',
+      type: 'button',
+      onclick: () => {
+        selected = item;
+        tiles.forEach((t) => t.classList.remove('is-selected'));
+        tile.classList.add('is-selected');
+        addBtn.disabled = false;
+      },
+    },
+    item.url
+      ? el('img', { src: item.url, alt: item.title || item.name, loading: 'lazy' })
+      : el('div', { class: 'flow-picker-empty', html: icons.image }),
+    el('div', { class: 'flow-picker-item__meta' },
+      el('strong', { class: 'clamp-1' }, item.title || item.name),
+      el('small', {}, fmtDate(item.created_at))));
+    tiles.push(tile);
+    picker.append(tile);
+  });
+
+  const addBtn = el('button', {
+    class: 'btn btn--primary',
+    disabled: 'disabled',
+    onclick: async () => {
+      if (!selected) return;
+      addBtn.disabled = true;
+      addBtn.classList.add('is-loading');
+      try {
+        await api.autoFillReady();
+        toast('İçerik akışa eklendi.', 'ok');
+        modalCtl.close();
+        await refreshFlowData(document.getElementById('automation-flow-panel'), root, ctx, { animateShift: true });
+      } catch (e) {
+        toast(`Ekleme başarısız: ${e.message}`, 'err');
+        addBtn.disabled = false;
+      } finally {
+        addBtn.classList.remove('is-loading');
+      }
+    },
+  }, 'Akışa Ekle');
+
+  const body = el('div', { class: 'stack', style: 'gap:12px' },
+    el('p', { class: 'muted', style: 'margin:0' },
+      `${kind} akışına eklemek için onaylı bir içerik seçin.`),
+    picker);
+
+  const footer = [
+    el('button', { class: 'btn', onclick: () => modalCtl.close() }, 'Vazgeç'),
+    addBtn,
+  ];
+
+  const modalCtl = openModal({
+    title: `Akışa Ekle · ${kind}`,
+    body,
+    footer,
+    wide: true,
+  });
 }
 
 async function refreshFlowData(flowPanel, root, ctx, options = {}) {
@@ -727,18 +810,20 @@ function compactRemaining(scheduledAt, nowRef, options = {}) {
     return 'Gönderiliyor...';
   }
 
-  let remain = secs;
-  if (remain <= 15) return 'Birazdan';
-  const day = Math.floor(remain / 86400);
-  remain -= day * 86400;
-  const hour = Math.floor(remain / 3600);
-  remain -= hour * 3600;
-  const min = Math.floor(remain / 60);
-  const sec = remain - (min * 60);
-  if (day > 0) return `${day} gün sonra`;
-  if (hour > 0) return `${hour} saat sonra`;
-  if (min > 0) return `${min} dk sonra`;
-  return `${Math.max(1, sec)} sn sonra`;
+  // Tarih + saat göster (örn: "12 Ağu 20:00")
+  return fmtDayDate(scheduledAt);
+}
+
+function fmtDayDate(iso) {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    const day = d.getDate();
+    const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+    const month = months[d.getMonth()];
+    const time = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+    return `${day} ${month} ${time}`;
+  } catch { return '—'; }
 }
 
 function parseDeltaSeconds(scheduledAt, nowRef) {
