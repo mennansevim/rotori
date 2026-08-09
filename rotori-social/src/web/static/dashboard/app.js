@@ -1,11 +1,11 @@
 // =========================================================================
 // app.js — Router + sidebar + account · Japonya Rüyası İçerik Stüdyosu
 // =========================================================================
-import { api, el, icons } from './lib.js?v=20260808-1';
-import { renderCreate, openCreateModal } from './pages/create.js?v=20260805-1';
-import { renderAutomation } from './pages/automation.js?v=20260808-1';
-import { renderLogs } from './pages/logs.js?v=20260806-2';
-import { renderLibrary } from './pages/library.js?v=20260806-1';
+import { api, el, icons } from './lib.js?v=20260809-2';
+import { renderCreate, openCreateModal } from './pages/create.js?v=20260809-2';
+import { renderAutomation } from './pages/automation.js?v=20260809-2';
+import { renderLogs } from './pages/logs.js?v=20260809-2';
+import { renderLibrary } from './pages/library.js?v=20260809-2';
 import { renderSettings } from './pages/settings.js';
 
 const ROUTES = [
