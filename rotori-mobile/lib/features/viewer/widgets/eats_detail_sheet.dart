@@ -852,10 +852,14 @@ class _EatsDetailSheet extends StatelessWidget {
   Widget _verifiedNote() {
     return Text(
       lang == AppLang.tr
-          ? 'Son kontrol: ${place.verifiedOn}. Helal sertifikası, menü ve '
-              'çalışma saatleri değişebilir — mekanda teyit et.'
-          : 'Last checked: ${place.verifiedOn}. Halal certification, menu and '
-              'hours can change — confirm at the venue.',
+          ? 'Bu bilgi küratörlü ve kamuya açık kaynaklardan derlenmiştir '
+              '(derleme: ${place.verifiedOn}); mekandan doğrudan teyit '
+              'ALINMAMIŞTIR. Helal sertifikası, menü ve çalışma saatleri '
+              'değişebilir — sipariş öncesi mekanda sor.'
+          : 'This entry is curated from public sources '
+              '(compiled ${place.verifiedOn}); it has NOT been confirmed with '
+              'the venue directly. Halal certification, menu and hours can '
+              'change — ask before you order.',
       style: TextStyle(color: p.textMuted, fontSize: 11, height: 1.35),
     );
   }

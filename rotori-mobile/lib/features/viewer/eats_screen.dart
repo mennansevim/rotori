@@ -2439,14 +2439,18 @@ class _DataNote extends StatelessWidget {
     final p = palette;
     return Text(
       lang == AppLang.tr
-          ? 'Veri küratörlüdür ve çevrimdışı çalışır; son toplu kontrol: '
-              '$kEatsDataVerifiedOn. Puanlar Google ölçeğine yakın yaklaşık '
-              'değerlerdir — Japonya\'da Tabelog 3.5 zaten üst seviyedir. Helal '
-              'sertifikası, menü ve çalışma saatleri değişebilir; mekanda teyit et.'
-          : 'The data is curated and works offline; last full review: '
-              '$kEatsDataVerifiedOn. Ratings approximate the Google scale — in '
-              'Japan a Tabelog 3.5 is already elite. Halal certification, menus '
-              'and hours can change; confirm at the venue.',
+          ? 'Bu liste küratörlüdür ve tamamen çevrimdışı çalışır — Google '
+              'Places ya da başka bir canlı kaynaktan ÇEKİLMEZ. Kayıtlar '
+              'kamuya açık kaynaklardan elle derlendi ($kEatsDataVerifiedOn); '
+              'puanlar Google ölçeğine yakın yaklaşık değerlerdir (Japonya\'da '
+              'Tabelog 3.5 zaten üst seviyedir). Sertifika, menü, fiyat ve '
+              'çalışma saatleri değişmiş olabilir — mekanda teyit et.'
+          : 'This list is curated and works fully offline — it is NOT pulled '
+              'from Google Places or any live source. Entries were compiled by '
+              'hand from public sources ($kEatsDataVerifiedOn); ratings '
+              'approximate the Google scale (in Japan a Tabelog 3.5 is already '
+              'elite). Certification, menus, prices and hours may have changed '
+              '— confirm at the venue.',
       style: TextStyle(color: p.textMuted, fontSize: 11, height: 1.4),
     );
   }

@@ -384,7 +384,12 @@ class EatsPlace {
   /// Premium içgörü — "ne zaman git, ne söyle, neye dikkat et".
   final LText? insiderTip;
 
-  /// Verinin son gözden geçirilme ayı (YYYY-MM). Helal sertifikası değişebilir.
+  /// Kaydın DERLENDİĞİ ay (YYYY-MM).
+  ///
+  /// DİKKAT: Bu bir doğrulama kaydı DEĞİLDİR. Mekan aranmamış, sertifika
+  /// belgesi görülmemiş, hiçbir üçüncü taraf API'sinden teyit alınmamıştır;
+  /// yalnızca kamuya açık kaynaklardan derlemenin yapıldığı ayı gösterir.
+  /// UI bunu "son kontrol" diye sunmaz (bkz. eats_detail_sheet.dart).
   final String verifiedOn;
 
   /// Rotori Seçkisi — yalnızca premium'da görünen küratörlü kayıt.

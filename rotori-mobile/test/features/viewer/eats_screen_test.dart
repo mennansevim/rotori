@@ -310,7 +310,12 @@ void main() {
       // Helal seviyesi açıklaması + sipariş frazları kilitli DEĞİL.
       expect(find.text('Kapıda göster / sor'), findsOneWidget);
       expect(find.text('これに豚肉は入っていますか？'), findsOneWidget);
-      expect(find.textContaining('Son kontrol:'), findsOneWidget);
+      // Veri küratörlü ve canlı DEĞİL; sorumluluk reddi bunu açıkça söyler
+      // ("son kontrol" gibi doğrulama iması taşımaz).
+      expect(
+        find.textContaining('doğrudan teyit ALINMAMIŞTIR'),
+        findsOneWidget,
+      );
 
       // Karar zekası ise kilitli.
       expect(find.text('Rotori uyum skoru'), findsOneWidget);
