@@ -327,11 +327,17 @@ function flowListItem(type, slot, anchor, approvedPool, nowIso, root, ctx) {
   const title = slot.title || 'Planlı gönderi';
   const pendingDispatch = Boolean(root._automationState?.pendingDispatch?.has(slot.entry_id));
   const seconds = parseDeltaSeconds(slot.scheduled_at, nowIso);
+  const dispatching = shouldShowDispatching({ seconds, outcome: slot.publish_outcome, pending: pendingDispatch });
   const etaText = compactRemaining(slot.scheduled_at, nowIso, { outcome: slot.publish_outcome, pendingDispatch });
-  const statusText = flowStatusText(slot, false);
+  const statusText = flowStatusText(slot, dispatching);
 
-  return el('div', {
+  const itemEl = el('div', {
     class: `flow-item ${isAnchor ? 'is-anchor' : ''}`,
+    dataset: {
+      entryId: slot.entry_id || '',
+      scheduledAt: slot.scheduled_at || '',
+      flowType: type,
+    },
     onclick: () => openReplacePicker({ slot, type, approvedPool, root, ctx }),
   },
     el('div', { class: 'flow-item__time' },
@@ -345,8 +351,23 @@ function flowListItem(type, slot, anchor, approvedPool, nowIso, root, ctx) {
       el('div', { class: 'flow-item__title' }, title),
       el('div', { class: 'flow-item__meta' },
         el('span', { class: `badge badge--${statusToneFromOutcome(slot.publish_outcome)}`, style: 'font-size:10px' }, statusText),
-        el('span', { class: 'muted', style: 'font-size:11px' }, etaText))),
+        el('span', {
+          class: `flow-item__eta${dispatching ? ' is-dispatching' : ''}`,
+          dataset: {
+            scheduledAt: slot.scheduled_at || '',
+            outcome: slot.publish_outcome || '',
+            entryId: slot.entry_id || '',
+          },
+        }, etaText))),
     el('span', { class: 'flow-item__action' }, isAnchor ? 'Canlı' : 'Değiştir'));
+
+  if (isAnchor) {
+    itemEl.classList.add('is-live-anchor');
+  }
+  if (dispatching || pendingDispatch) {
+    itemEl.classList.add('is-sending');
+  }
+  return itemEl;
 }
 
 async function refreshFlowData(flowPanel, root, ctx, options = {}) {
@@ -402,7 +423,7 @@ function tickFlowCountdowns(root) {
   const offset = Number(root._flowClockOffsetMs || 0);
   const now = Date.now() + offset;
   const state = root._automationState;
-  root.querySelectorAll('.flow-slot__eta[data-scheduled-at]').forEach((node) => {
+  root.querySelectorAll('.flow-item__eta[data-scheduled-at]').forEach((node) => {
     const outcome = node.dataset.outcome || '';
     const entryId = node.dataset.entryId || '';
     const pendingDispatch = Boolean(entryId && state?.pendingDispatch?.has(entryId));
@@ -415,7 +436,7 @@ function tickFlowCountdowns(root) {
     node.textContent = compactRemaining(node.dataset.scheduledAt, now, { outcome, pendingDispatch });
     node.classList.toggle('is-dispatching', dispatching);
 
-    const slotNode = node.closest('.flow-slot');
+    const slotNode = node.closest('.flow-item');
     slotNode?.classList.toggle('is-sending', dispatching || pendingDispatch);
     slotNode?.classList.toggle('is-near-due', !dispatching && Number.isFinite(seconds) && seconds > 0 && seconds <= 120);
   });
@@ -441,9 +462,9 @@ async function maybeDispatchDueAnchors(root, flowPanel, refreshFlow) {
 
     state.pendingDispatch.add(entryId);
     state.dispatchCooldown.set(entryId, now + 90_000);
-    const node = root.querySelector(`.flow-slot[data-entry-id="${entryId}"]`);
+    const node = root.querySelector(`.flow-item[data-entry-id="${entryId}"]`);
     node?.classList.add('is-sending');
-    node?.querySelector('.flow-slot__eta')?.classList.add('is-dispatching');
+    node?.querySelector('.flow-item__eta')?.classList.add('is-dispatching');
 
     try {
       toast('Yayın saati geldi, gönderiliyor...', '');
@@ -496,9 +517,9 @@ async function manualDispatchSlot(slot, root, ctx) {
     : localIsoNoTz(serverNowMs - 1000);
 
   state.pendingDispatch.add(entryId);
-  const node = root.querySelector(`.flow-slot[data-entry-id="${entryId}"]`);
+  const node = root.querySelector(`.flow-item[data-entry-id="${entryId}"]`);
   node?.classList.add('is-sending');
-  node?.querySelector('.flow-slot__eta')?.classList.add('is-dispatching');
+  node?.querySelector('.flow-item__eta')?.classList.add('is-dispatching');
   try {
     toast('Gönderi hazırlanıyor, şimdi gönderiliyor...', '');
     await api.reschedule(entryId, retryAt);
