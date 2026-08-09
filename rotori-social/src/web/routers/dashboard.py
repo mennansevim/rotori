@@ -56,7 +56,31 @@ def dashboard_library() -> dict[str, Any]:
 
 @router.get("/publishes")
 def dashboard_publishes() -> dict[str, Any]:
-    return ds.publishes(get_cfg())
+    from pathlib import Path
+    import json
+
+    cfg = get_cfg()
+    result = ds.publishes(cfg)
+
+    # Devre dışı otomasyon lane'lerindeki upcoming öğeleri filtrele
+    auto_conf_path = Path(cfg.project_root) / "data" / "automation_config.json"
+    if auto_conf_path.exists():
+        try:
+            auto_cfg = json.loads(auto_conf_path.read_text(encoding="utf-8"))
+            disabled_kinds = []
+            if not auto_cfg.get("news", {}).get("enabled"):
+                disabled_kinds.append("haber")
+            if not auto_cfg.get("topic", {}).get("enabled"):
+                disabled_kinds.append("gorsel")
+            if disabled_kinds:
+                result["upcoming"] = [
+                    it for it in result.get("upcoming", [])
+                    if it.get("type") not in disabled_kinds
+                ]
+        except (OSError, ValueError):
+            pass
+
+    return result
 
 
 @router.get("/automation")
