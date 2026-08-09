@@ -155,6 +155,7 @@ def next_automation_slot(
     minute: int,
     from_dt: datetime | None = None,
     automation_kind: str | None = None,
+    horizon_days: int = 90,
 ) -> str:
     """İçerik tipinin otomasyon günlerindeki ilk boş yayın slotunu bul.
 
@@ -193,7 +194,7 @@ def next_automation_slot(
         if _is_occupied(item)
     }
 
-    for delta_day in range(90):  # 90 gün ≈ 12 hafta — haftalık slot zinciri için yeterli
+    for delta_day in range(horizon_days):  # dinamik — içerik sayısına göre ayarlanır
         candidate_day = now.date() + timedelta(days=delta_day)
         launchd_weekday = (candidate_day.weekday() + 1) % 7
         if launchd_weekday not in days:
@@ -206,7 +207,7 @@ def next_automation_slot(
         if slot not in occupied:
             return slot
 
-    raise ValueError("Seçili otomasyon günlerinde 90 gün içinde boş slot bulunamadı. Günlük limiti artırın veya slotları temizleyin.")
+    raise ValueError(f"Seçili otomasyon günlerinde {horizon_days} gün içinde boş slot bulunamadı.")
 
 
 # ---------------------------------------------------------------------------
