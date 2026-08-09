@@ -123,7 +123,7 @@ def _next_available_slot(
             day_counts[day] = day_counts.get(day, 0) + 1
 
     # Gün + saat kombinasyonlarını tara, ilk boşu döndür
-    for delta_day in range(14):  # en fazla 2 hafta ileriye bak
+    for delta_day in range(90):  # 90 gün ≈ 12 hafta — haftalık slot zinciri için yeterli
         candidate_day = now.date() + timedelta(days=delta_day)
         day_str = candidate_day.isoformat()
         count = day_counts.get(day_str, 0)
@@ -193,7 +193,7 @@ def next_automation_slot(
         if _is_occupied(item)
     }
 
-    for delta_day in range(14):  # en fazla 2 hafta ileriye bak (haftalık gönderim)
+    for delta_day in range(90):  # 90 gün ≈ 12 hafta — haftalık slot zinciri için yeterli
         candidate_day = now.date() + timedelta(days=delta_day)
         launchd_weekday = (candidate_day.weekday() + 1) % 7
         if launchd_weekday not in days:
@@ -206,7 +206,7 @@ def next_automation_slot(
         if slot not in occupied:
             return slot
 
-    raise ValueError("Seçili otomasyon günlerinde 2 hafta içinde boş slot bulunamadı. Günlük limiti artırın veya slotları temizleyin.")
+    raise ValueError("Seçili otomasyon günlerinde 90 gün içinde boş slot bulunamadı. Günlük limiti artırın veya slotları temizleyin.")
 
 
 # ---------------------------------------------------------------------------
