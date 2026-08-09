@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:japan_trip/core/l10n.dart';
 import 'package:japan_trip/data/plans_repository.dart';
+import 'package:japan_trip/domain/place_coords.dart';
 import 'package:japan_trip/domain/types.dart';
 import 'package:japan_trip/features/viewer/route_map_sheet.dart';
 import 'package:latlong2/latlong.dart';
@@ -210,6 +211,38 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('route-map-replay')));
       await tester.pump();
       expect(find.byKey(const ValueKey('route-stop-3')), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
+    testWidgets('pinler durak emojisini ve ad etiketini taşır',
+        (tester) async {
+      await tester.pumpWidget(harness(_sampleTrip()));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 3));
+
+      // Küratörlü nokta eşleşmesi emoji sağlar (city_places.dart).
+      final stops = resolveDayStops(
+        _sampleTrip().days.first,
+        cityKey: 'Kyoto',
+      );
+      expect(stops, hasLength(3));
+      expect(stops.every((s) => s.place != null), isTrue);
+
+      // Kamera duraklara sığdığında zoom şehir ölçeğindedir → adlar görünür.
+      for (final stop in stops) {
+        expect(find.text(stop.item.title), findsOneWidget);
+      }
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
+    testWidgets('zoom kontrolleri harita üstünde durur', (tester) async {
+      await tester.pumpWidget(harness(_sampleTrip()));
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('route-map-zoom-in')), findsOneWidget);
+      expect(find.byKey(const ValueKey('route-map-zoom-out')), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
     });

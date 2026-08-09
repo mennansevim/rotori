@@ -22,6 +22,7 @@ class ResolvedStop {
     required this.lat,
     required this.lng,
     required this.order,
+    this.place,
   });
 
   final TimelineItem item;
@@ -30,6 +31,11 @@ class ResolvedStop {
 
   /// Gün içindeki sıra (1-index) — harita pininin numarası.
   final int order;
+
+  /// Başlığın eşleştiği küratörlü şehir noktası — varsa emoji/kategori gibi
+  /// gösterim ipuçları buradan gelir. Öğenin kendi lat/lng'siyle çözülen ya da
+  /// hiç eşleşmeyen duraklarda null.
+  final CityPlace? place;
 }
 
 /// Gevşek bir şehir dizesini ('Tokyo', 'tokyo', 'Kyoto (ITM)') küratörlü
@@ -57,29 +63,36 @@ bool _nameMatches(CityPlace p, String t) {
   return t == n || t.contains(n) || n.contains(t);
 }
 
-/// Başlığı küratörlü şehir noktalarıyla eşleştirip lat/lng döndürür.
+/// Başlığı küratörlü şehir noktalarıyla eşleştirip eşleşen noktayı döndürür.
 /// [cityKey] verilirse o şehrin noktaları önce denenir; bulunamazsa tüm
 /// şehirler taranır. Eşleşme yoksa null.
-({double lat, double lng})? resolvePlaceCoords(
-  String title, {
-  String? cityKey,
-}) {
+CityPlace? resolveCityPlace(String title, {String? cityKey}) {
   final t = normalizeTitle(title);
   if (t.isEmpty) return null;
 
   final preferred = cityDataForKey(cityKey);
   if (preferred != null) {
     for (final p in preferred.places) {
-      if (_nameMatches(p, t)) return (lat: p.lat, lng: p.lng);
+      if (_nameMatches(p, t)) return p;
     }
   }
   for (final c in kCityData) {
     if (identical(c, preferred)) continue;
     for (final p in c.places) {
-      if (_nameMatches(p, t)) return (lat: p.lat, lng: p.lng);
+      if (_nameMatches(p, t)) return p;
     }
   }
   return null;
+}
+
+/// Başlığı küratörlü şehir noktalarıyla eşleştirip lat/lng döndürür.
+/// Eşleşme yoksa null. Bkz. [resolveCityPlace].
+({double lat, double lng})? resolvePlaceCoords(
+  String title, {
+  String? cityKey,
+}) {
+  final p = resolveCityPlace(title, cityKey: cityKey);
+  return p == null ? null : (lat: p.lat, lng: p.lng);
 }
 
 /// Bir günün öğelerini koordinatlı duraklara çevirir. Öğenin kendi lat/lng'si
@@ -100,11 +113,13 @@ List<ResolvedStop> resolveDayStops(
   for (final item in day.items) {
     double? lat = item.lat;
     double? lng = item.lng;
+    // Emoji/kategori ipucu için başlık eşleşmesi her durumda denenir — öğenin
+    // kendi koordinatı olsa bile küratörlü nokta gösterim bilgisi taşır.
+    final matched = resolveCityPlace(item.title, cityKey: cityKey);
     if (lat == null || lng == null) {
-      final resolved = resolvePlaceCoords(item.title, cityKey: cityKey);
-      if (resolved != null) {
-        lat = resolved.lat;
-        lng = resolved.lng;
+      if (matched != null) {
+        lat = matched.lat;
+        lng = matched.lng;
       } else if (fallbackLat != null && fallbackLng != null) {
         // Şehir merkezi etrafında spiral bir kayma (~250-500m) ver: her
         // çözülemeyen öğe farklı bir açı/yarıçapta konumlanır.
@@ -118,7 +133,15 @@ List<ResolvedStop> resolveDayStops(
       }
     }
     order += 1;
-    out.add(ResolvedStop(item: item, lat: lat, lng: lng, order: order));
+    out.add(
+      ResolvedStop(
+        item: item,
+        lat: lat,
+        lng: lng,
+        order: order,
+        place: matched,
+      ),
+    );
   }
   return out;
 }

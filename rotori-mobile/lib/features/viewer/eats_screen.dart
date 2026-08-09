@@ -438,7 +438,7 @@ class _EatsCard extends StatelessWidget {
                   spacing: 6,
                   runSpacing: 6,
                   children: [
-                    if (place.halal)
+                    if (place.halal != HalalTrust.none)
                       _EatsBadge(
                         text: const LText('🕌 Helal', '🕌 Halal').of(lang),
                         palette: palette,

@@ -4,6 +4,7 @@
 /// i18n: Kart metinleri LText ile iki dilli (TR/EN) — uygulama geneliyle uyumlu.
 
 import '../domain/localized_text.dart';
+import '../domain/city_transfers.dart' show kShinkansenOfficialUrl;
 
 class AffiliateLink {
   const AffiliateLink({
@@ -25,18 +26,22 @@ class AffiliateLink {
 
 /// Seyahat öncesi hazırlık — en yüksek dönüşüm noktası.
 const kPreDepartureAffiliates = <AffiliateLink>[
+  // JR Pass ÖNERİLMİYOR: 2023 zammından sonra (7 gün ¥50.000) tipik
+  // Tokyo–Kyoto–Osaka rotasında noktadan noktaya bilet daha ucuz. Eski kart
+  // "tek tek bilet almaktan çok daha ucuz" diyordu — artık doğru değil.
+  // Yerine Shinkansen'in RESMÎ rezervasyon servisi konuldu.
   AffiliateLink(
     emoji: '🚄',
-    label: LText('JR Pass (Tüm Japonya)', 'JR Pass (All Japan)'),
+    label: LText('Shinkansen bileti (resmî)', 'Shinkansen ticket (official)'),
     description: LText(
-      '7/14/21 günlük sınırsız tren bileti. Şehirler arası seyahat edeceksen '
-      'tek tek bilet almaktan çok daha ucuz.',
-      '7/14/21-day unlimited rail pass. Much cheaper than individual tickets '
-      'if you travel between cities.',
+      'Tokyo–Kyoto–Osaka hattında koltuğunu 1 ay öncesinden ayır. '
+      'Noktadan noktaya bilet, çoğu rotada JR Pass\'ten ucuza geliyor.',
+      'Reserve your seat up to a month ahead on the Tokyo–Kyoto–Osaka line. '
+      'Point-to-point tickets beat a JR Pass on most itineraries.',
     ),
-    url: 'https://www.jrailpass.com/?aff=rotori',
-    cta: LText('JR Pass al', 'Get JR Pass'),
-    priceHint: LText('7 gün ~¥50,000', '7 days ~¥50,000'),
+    url: kShinkansenOfficialUrl,
+    cta: LText('Bilet ayır', 'Reserve'),
+    priceHint: LText('Tokyo–Kyoto ~¥14,000', 'Tokyo–Kyoto ~¥14,000'),
   ),
   AffiliateLink(
     emoji: '📶',

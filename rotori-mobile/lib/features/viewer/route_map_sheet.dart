@@ -53,6 +53,27 @@ const int _kMaxDrawMs = 5200;
 /// bitiş anında tetiklenir ve hiç görünmeden animasyon durur.
 const double _kPinAppearWindow = 0.12;
 
+/// Pin dairesinin çapı.
+const double _kPinSize = 30;
+
+/// Pin gövdesinin kutusu — sıra rozeti daireden taştığı için biraz geniş.
+/// Daire kutunun tam ortasında durur, dolayısıyla kutunun merkezi = pinin ucu.
+const double _kPinBox = _kPinSize + 10;
+
+/// Marker kutusu — pin ortada, ad etiketi altında. Kutu ne kadar genişse
+/// etiket o kadar uzun yazılabilir; ama kutular çakışınca dokunma alanları da
+/// çakışır, bu yüzden ölçülü tutuldu. Yükseklik, pinin ALTINDA etikete yer
+/// kalacak şekilde seçilir: `height / 2 >= _kPinBox / 2 + etiket yüksekliği`.
+const double _kMarkerWidth = 112;
+const double _kMarkerHeight = 112;
+
+/// Ad etiketlerinin görünmeye başladığı zoom — altında etiketler üst üste
+/// biner, harita okunmaz olur.
+const double _kLabelMinZoom = 11.5;
+
+/// Zoom butonlarının adım büyüklüğü.
+const double _kZoomStep = 1;
+
 /// Duraklar arası kümülatif ilerleme oranları (0..1).
 ///
 /// `out[i]`, çizgi `points[i]`'ye ulaştığı andaki animasyon ilerlemesidir;
@@ -385,6 +406,15 @@ class _AnimatedRouteMapState extends State<AnimatedRouteMap>
             child: _EmptyBanner(palette: palette),
           ),
         Positioned(
+          right: 12,
+          top: 12,
+          child: _ZoomControls(
+            palette: palette,
+            onZoomIn: () => _zoomBy(_kZoomStep),
+            onZoomOut: () => _zoomBy(-_kZoomStep),
+          ),
+        ),
+        Positioned(
           left: 12,
           right: 12,
           bottom: 12,
@@ -522,11 +552,13 @@ class _AnimatedRouteMapState extends State<AnimatedRouteMap>
         for (var i = 0; i < widget.stops.length; i++)
           Marker(
             point: _points[i],
-            width: 60,
-            height: 60,
+            // Kutu, pin + altındaki ad etiketini birlikte sarar; nokta
+            // kutunun MERKEZİNDE, yani pinin tam ortasında durur.
+            width: _kMarkerWidth,
+            height: _kMarkerHeight,
             alignment: Alignment.center,
             child: _RouteStopPin(
-              order: widget.stops[i].order,
+              stop: widget.stops[i],
               appear: _appearProgress(i, progress),
               pulse: _pulseCtrl,
               onTap: () => _openStop(widget.stops[i]),
@@ -550,6 +582,17 @@ class _AnimatedRouteMapState extends State<AnimatedRouteMap>
     _drawCtrl
       ..reset()
       ..forward();
+  }
+
+  /// Kamerayı merkezi koruyarak [delta] kadar yakınlaştırır/uzaklaştırır.
+  /// MapOptions'taki min/max sınırlarına klamplanır.
+  void _zoomBy(double delta) {
+    final camera = _mapCtrl.camera;
+    final next = (camera.zoom + delta)
+        .clamp(camera.minZoom ?? 3, camera.maxZoom ?? 18)
+        .toDouble();
+    if (next == camera.zoom) return;
+    _mapCtrl.move(camera.center, next);
   }
 
   void _fitToRoute() {
@@ -714,6 +757,89 @@ class _SheetHeader extends StatelessWidget {
   }
 }
 
+/// Harita sağ üstündeki dikey yakınlaştırma kontrolü. Pinch/çift dokunuş
+/// zaten açık; bu, tek elle ve masaüstünde kesin adımlı zoom sağlar.
+class _ZoomControls extends StatelessWidget {
+  const _ZoomControls({
+    required this.palette,
+    required this.onZoomIn,
+    required this.onZoomOut,
+  });
+
+  final ViewerPalette palette;
+  final VoidCallback onZoomIn;
+  final VoidCallback onZoomOut;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: palette.card.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: palette.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ZoomButton(
+            key: const ValueKey('route-map-zoom-in'),
+            palette: palette,
+            icon: Icons.add,
+            tooltip: LanguageScope.of(context).s('map.zoomIn'),
+            onTap: onZoomIn,
+          ),
+          Container(width: 26, height: 1, color: palette.border),
+          _ZoomButton(
+            key: const ValueKey('route-map-zoom-out'),
+            palette: palette,
+            icon: Icons.remove,
+            tooltip: LanguageScope.of(context).s('map.zoomOut'),
+            onTap: onZoomOut,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ZoomButton extends StatelessWidget {
+  const _ZoomButton({
+    super.key,
+    required this.palette,
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final ViewerPalette palette;
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: SizedBox(
+          width: 40,
+          height: 38,
+          child: Icon(icon, size: 19, color: palette.textPrimary),
+        ),
+      ),
+    );
+  }
+}
+
 /// Harita üstündeki yüzen aksiyon barı — tekrar oynat, rotaya sığdır,
 /// Google Maps'te aç. Altında zorunlu CARTO/OSM atıfı.
 class _MapActionBar extends StatelessWidget {
@@ -756,7 +882,7 @@ class _MapActionBar extends StatelessWidget {
           ),
           child: Row(
             children: [
-              if (canReplay)
+              if (canReplay) ...[
                 _BarButton(
                   key: const ValueKey('route-map-replay'),
                   palette: palette,
@@ -764,6 +890,8 @@ class _MapActionBar extends StatelessWidget {
                   label: s.s('map.replay'),
                   onTap: onReplay,
                 ),
+                const SizedBox(width: 5),
+              ],
               _BarButton(
                 key: const ValueKey('route-map-fit'),
                 palette: palette,
@@ -771,6 +899,7 @@ class _MapActionBar extends StatelessWidget {
                 label: s.s('map.fitRoute'),
                 onTap: onFit,
               ),
+              const SizedBox(width: 5),
               _BarButton(
                 key: const ValueKey('route-map-google'),
                 palette: palette,
@@ -826,12 +955,12 @@ class _BarButton extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(11),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 9),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 17, color: fg),
-                const SizedBox(width: 6),
+                Icon(icon, size: 15, color: fg),
+                const SizedBox(width: 4),
                 Flexible(
                   child: Text(
                     label,
@@ -839,7 +968,7 @@ class _BarButton extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: fg,
-                      fontSize: 12.5,
+                      fontSize: 11.5,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -854,16 +983,17 @@ class _BarButton extends StatelessWidget {
 }
 
 /// Kırmızı durak pini — çizgi ulaştığında elastik "pop" ile belirir, sonra
-/// sürekli hafif bir halo pulse'ı alır.
+/// sürekli hafif bir halo pulse'ı alır. Pin gövdesinde durağın emoji/tür
+/// ikonu, hemen altında (yakınlaşınca) durağın adı görünür.
 class _RouteStopPin extends StatelessWidget {
   const _RouteStopPin({
-    required this.order,
+    required this.stop,
     required this.appear,
     required this.pulse,
     required this.onTap,
   });
 
-  final int order;
+  final ResolvedStop stop;
 
   /// 0..1 — belirme ilerlemesi (0 iken pin hiç çizilmez).
   final double appear;
@@ -877,37 +1007,63 @@ class _RouteStopPin extends StatelessWidget {
   Widget build(BuildContext context) {
     if (appear <= 0) return const SizedBox.shrink();
     final scale = Curves.elasticOut.transform(appear);
+    // Ad etiketi yalnızca şehir ölçeğinde ve üstünde — uzaklaşınca etiketler
+    // üst üste binip haritayı okunmaz hale getirir.
+    final zoom = MapCamera.maybeOf(context)?.zoom ?? 0;
+    final showLabel = zoom >= _kLabelMinZoom;
+
     return Opacity(
       // Opaklık pop'tan hızlı kapanır; elastik taşma sırasında pin zaten net.
       opacity: (appear * 2.2).clamp(0.0, 1.0),
-      child: Transform.scale(
-        scale: scale,
-        child: GestureDetector(
-          onTap: onTap,
-          behavior: HitTestBehavior.opaque,
-          child: AnimatedBuilder(
-            animation: pulse,
-            builder: (context, child) {
-              final t = Curves.easeOut.transform(pulse.value);
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Dışa doğru açılıp sönen halo.
-                  Container(
-                    width: 30 + 26 * t,
-                    height: 30 + 26 * t,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: kRouteAccent.withValues(alpha: 0.22 * (1 - t)),
-                    ),
-                  ),
-                  child!,
-                ],
-              );
-            },
-            child: _PinCore(order: order),
+      // Column DEĞİL Stack: etiket yüksekliği yazı tipi metriklerine göre
+      // platformdan platforma birkaç piksel oynar ve Column bunu "overflow"
+      // hatası sayardı. Stack'te pin daima kutunun merkezinde (= coğrafi
+      // nokta) durur, etiket onun altına konumlanır.
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          if (showLabel)
+            Positioned(
+              top: _kMarkerHeight / 2 + _kPinBox / 2 + 4,
+              left: 0,
+              right: 0,
+              // Etiket dokunmayı yutmasın: harita sürüklemesi etiketin
+              // üzerinden de çalışsın, dokunma yalnızca pinde olsun.
+              child: IgnorePointer(
+                child: Center(child: _StopLabel(text: stop.item.title)),
+              ),
+            ),
+          Transform.scale(
+            scale: scale,
+            child: GestureDetector(
+              onTap: onTap,
+              behavior: HitTestBehavior.opaque,
+              child: AnimatedBuilder(
+                animation: pulse,
+                builder: (context, child) {
+                  final t = Curves.easeOut.transform(pulse.value);
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Dışa doğru açılıp sönen halo.
+                      Container(
+                        width: _kPinSize + 26 * t,
+                        height: _kPinSize + 26 * t,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: kRouteAccent.withValues(alpha: 0.22 * (1 - t)),
+                        ),
+                      ),
+                      child!,
+                    ],
+                  );
+                },
+                child: _PinCore(stop: stop),
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -915,37 +1071,127 @@ class _RouteStopPin extends StatelessWidget {
 
 /// Pulse'tan bağımsız, sabit pin gövdesi — `AnimatedBuilder`'ın `child`'ı
 /// olarak bir kez kurulur, her karede yeniden inşa edilmez.
+///
+/// Gövdede durağın türü (küratörlü nokta emojisi, yoksa `TimelineItemKind`
+/// ikonu) durur; sıra numarası sağ üstteki küçük rozete taşınır — böylece hem
+/// "burası ne" hem "kaçıncı durak" tek bakışta okunur.
 class _PinCore extends StatelessWidget {
-  const _PinCore({required this.order});
+  const _PinCore({required this.stop});
 
-  final int order;
+  final ResolvedStop stop;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      key: ValueKey('route-stop-$order'),
-      width: 30,
-      height: 30,
-      decoration: BoxDecoration(
-        color: kRouteAccent,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2.5),
-        boxShadow: [
-          BoxShadow(
-            color: kRouteAccent.withValues(alpha: 0.45),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    final emoji = stop.place?.emoji;
+    return SizedBox(
+      width: _kPinBox,
+      height: _kPinBox,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: 5,
+            top: 5,
+            child: Container(
+              key: ValueKey('route-stop-${stop.order}'),
+              width: _kPinSize,
+              height: _kPinSize,
+              decoration: BoxDecoration(
+                color: kRouteAccent,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: kRouteAccent.withValues(alpha: 0.45),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: emoji != null && emoji.isNotEmpty
+                  ? Text(
+                      emoji,
+                      style: const TextStyle(fontSize: 15, height: 1),
+                    )
+                  : Icon(
+                      _kindIcon(stop.item.kind),
+                      size: 16,
+                      color: Colors.white,
+                    ),
+            ),
+          ),
+          Positioned(
+            right: 0,
+            top: 0,
+            child: Container(
+              width: 16,
+              height: 16,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                border: Border.all(color: kRouteAccent, width: 1.5),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                '${stop.order}',
+                style: const TextStyle(
+                  color: kRouteAccent,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 9.5,
+                  height: 1,
+                ),
+              ),
+            ),
           ),
         ],
       ),
-      alignment: Alignment.center,
+    );
+  }
+}
+
+IconData _kindIcon(TimelineItemKind? kind) => switch (kind) {
+      TimelineItemKind.meal => Icons.restaurant,
+      TimelineItemKind.transport => Icons.directions_transit,
+      TimelineItemKind.hotel => Icons.hotel,
+      _ => Icons.place,
+    };
+
+/// Pinin altındaki ad etiketi — sade zeminde okunur kalması için opak zemin
+/// ve ince kenarlık. Uzun adlar tek satırda kısaltılır.
+class _StopLabel extends StatelessWidget {
+  const _StopLabel({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = ViewerPalette.of(context);
+    return Container(
+      constraints: const BoxConstraints(maxWidth: _kMarkerWidth),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+      decoration: BoxDecoration(
+        color: palette.card.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: palette.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 5,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
       child: Text(
-        '$order',
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w800,
-          fontSize: 13,
-          height: 1,
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: palette.textPrimary,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w700,
+          height: 1.15,
         ),
       ),
     );
