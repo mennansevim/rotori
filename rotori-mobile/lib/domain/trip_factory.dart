@@ -314,8 +314,20 @@ List<DayPlan> applyDayTemplate(
 // Destinasyon senkronizasyonu (TS: destinations/tripDestinations.ts + route.ts)
 // ---------------------------------------------------------------------------
 
-String newDestinationId() =>
-    'dest-${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}';
+int _destSeq = 0;
+
+/// Destinasyon id'si — ÇAKIŞMASIZ olmak zorunda.
+///
+/// Eski hâli yalnızca `millisecondsSinceEpoch` kullanıyordu; bir döngüde
+/// arka arkaya üretilen destinasyonlar AYNI id'yi alıyordu. Bu, id'ye anahtar
+/// olarak güvenen her yeri (gün→şehir kapsama sayımı, _cityColor, dedup)
+/// sessizce bozuyordu. newItemId ile aynı desen: zaman + sıra + rastgele.
+String newDestinationId() {
+  _destSeq = (_destSeq + 1) % 1000000;
+  final ts = DateTime.now().millisecondsSinceEpoch.toRadixString(36);
+  final r = List.generate(3, (_) => _rand.nextInt(36).toRadixString(36)).join();
+  return 'dest-$ts-${_destSeq.toRadixString(36)}$r';
+}
 
 DestinationFoodPrefs defaultFoodPrefsForDestination(TripDestination dest) {
   final profile = getDestinationProfile(dest.countryCode);

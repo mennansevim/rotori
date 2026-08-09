@@ -1,11 +1,13 @@
-// Hotels adımı — gating (hotelsComplete) + booking URL parse + kart render.
+// hotelsComplete + parseBookingUrl — saf domain testleri.
+//
+// Kaynak: test/features/hotels_flow_test.dart (wizard sökülürken buraya
+// taşındı; UI'dan bağımsız oldukları için korunuyor).
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:japan_trip/domain/hotel_booking.dart';
 import 'package:japan_trip/domain/trip_factory.dart';
 import 'package:japan_trip/domain/types.dart';
-import 'package:japan_trip/features/planner/planner_theme.dart';
-import 'package:japan_trip/features/planner/steps/hotels_step.dart';
+
 
 Trip _tripWithDest() {
   final t = createEmptyTrip();
@@ -20,6 +22,7 @@ Trip _tripWithDest() {
   ));
   return t;
 }
+
 
 void main() {
   group('hotelsComplete gating', () {
@@ -112,40 +115,5 @@ void main() {
       expect(parseBookingUrl('merhaba'), isNull);
       expect(parseBookingUrl(''), isNull);
     });
-  });
-
-  testWidgets('boş otel listesinde "+ Otel ekle" + stayArea inputu gösterilir',
-      (tester) async {
-    final t = _tripWithDest();
-    await tester.pumpWidget(MaterialApp(
-      theme: PT.theme(),
-      home: Scaffold(
-        body: HotelsStep(trip: t, onChange: (m) => m(t)),
-      ),
-    ));
-    expect(find.text('Konaklama'), findsOneWidget);
-    expect(find.text('+ Otel ekle'), findsOneWidget);
-    // Konaklanacak bölge (opsiyonel) alanı üstte görünür.
-    expect(find.text('🏘️ Konaklanacak bölge (opsiyonel)'), findsOneWidget);
-  });
-
-  testWidgets('otel kartı şehir + ada göre render eder', (tester) async {
-    final t = _tripWithDest();
-    t.hotels.add(HotelStay(
-      id: 'h1',
-      city: 'Tokyo',
-      name: 'Hotel Sakura',
-      checkIn: t.preferences.travelDates.start,
-      checkOut: t.preferences.travelDates.end,
-      address: '1-2-3 Shibuya',
-    ));
-    await tester.pumpWidget(MaterialApp(
-      theme: PT.theme(),
-      home: Scaffold(
-        body: HotelsStep(trip: t, onChange: (m) => m(t)),
-      ),
-    ));
-    expect(find.text('Hotel Sakura'), findsOneWidget);
-    expect(find.text('+ Başka otel ekle'), findsOneWidget);
   });
 }

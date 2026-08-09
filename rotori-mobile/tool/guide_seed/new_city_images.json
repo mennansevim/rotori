@@ -1,0 +1,279 @@
+{
+ "yk-minato": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/Minato_Mirai_-_Yokohama_Skyline_March_2025.jpg/960px-Minato_Mirai_-_Yokohama_Skyline_March_2025.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Minato_Mirai_21_202403.jpg/960px-Minato_Mirai_21_202403.jpg"
+ ],
+ "yk-akarenga": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Yokohama_Red_Brick_Warehouse_2012.JPG/960px-Yokohama_Red_Brick_Warehouse_2012.JPG"
+ ],
+ "hm-castle": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Ch%C3%A2teau_de_Himeji02.jpg/960px-Ch%C3%A2teau_de_Himeji02.jpg"
+ ],
+ "yk-chinatown": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/d/da/Zenrin_Gate_%28Yokohama_Chinatown%29_20211212-2.jpg/960px-Zenrin_Gate_%28Yokohama_Chinatown%29_20211212-2.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/0/06/Zenrin_Gate_%28Yokohama_Chinatown%29_20211212-1.jpg/960px-Zenrin_Gate_%28Yokohama_Chinatown%29_20211212-1.jpg"
+ ],
+ "yk-sankeien": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ad/Sankei-en_-_Kanagawa_-_Sept_5_2021_various_00_10_51_515000.jpeg/960px-Sankei-en_-_Kanagawa_-_Sept_5_2021_various_00_10_51_515000.jpeg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Sankei-en_20221127-2.jpg/960px-Sankei-en_20221127-2.jpg"
+ ],
+ "yk-cupnoodle": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Cupnoodles-Museum-Yokohama.jpg/960px-Cupnoodles-Museum-Yokohama.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Cup_Noodle_Museum_Yokohama.jpg/960px-Cup_Noodle_Museum_Yokohama.jpg"
+ ],
+ "hk-shrine": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Torii_on_Lake_Ashi_%40_Hakone_Shrine_%2813776878594%29.jpg/960px-Torii_on_Lake_Ashi_%40_Hakone_Shrine_%2813776878594%29.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Torii_on_Lake_Ashi_%40_Hakone_Shrine_%2813776879364%29.jpg/960px-Torii_on_Lake_Ashi_%40_Hakone_Shrine_%2813776879364%29.jpg"
+ ],
+ "hk-owakudani": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a3/Owakudani_%40_Hakone_%2810621413133%29.jpg/960px-Owakudani_%40_Hakone_%2810621413133%29.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Owakudani_%40_Hakone_%2810621374853%29.jpg/960px-Owakudani_%40_Hakone_%2810621374853%29.jpg"
+ ],
+ "hk-ashi": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/LakeAshi_and_MtFuji_Hakone.JPG/960px-LakeAshi_and_MtFuji_Hakone.JPG",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Lake_Ashi_%26_Mt_Fuji_%26_Hakone_Shrine.jpg/960px-Lake_Ashi_%26_Mt_Fuji_%26_Hakone_Shrine.jpg"
+ ],
+ "hk-openair": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Hakone_Open-air_Museum_20211202-5.jpg/960px-Hakone_Open-air_Museum_20211202-5.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Hakone_Open-air_Museum_20211202-9.jpg/960px-Hakone_Open-air_Museum_20211202-9.jpg"
+ ],
+ "hk-gora": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Walking_path_in_Gora_town%2C_Hakone%2C_Japan.jpg/960px-Walking_path_in_Gora_town%2C_Hakone%2C_Japan.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Hakone_Tozan_3000_series_at_Gora_Station_2025-03-17.jpg/960px-Hakone_Tozan_3000_series_at_Gora_Station_2025-03-17.jpg"
+ ],
+ "km-daibutsu": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Kamakura_Budda_Daibutsu_front_1885.jpg/960px-Kamakura_Budda_Daibutsu_front_1885.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/The_Great_Buddha_of_K%C5%8Dtoku-in_%28Kamakura_Daibutsu%29.jpg/960px-The_Great_Buddha_of_K%C5%8Dtoku-in_%28Kamakura_Daibutsu%29.jpg"
+ ],
+ "km-hasedera": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Entrance_to_Hydrangea_Path_at_Hasedera_%28Kamakura%29.jpg/960px-Entrance_to_Hydrangea_Path_at_Hasedera_%28Kamakura%29.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/230128_Hasedera_Kamakura_Kanagawa_pref_Japan04s3.jpg/960px-230128_Hasedera_Kamakura_Kanagawa_pref_Japan04s3.jpg"
+ ],
+ "km-hachimangu": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Tsurugaoka_Hachimangu_001.jpg/960px-Tsurugaoka_Hachimangu_001.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Tsurugaoka_Hachimangu_%2811417%29.jpg/960px-Tsurugaoka_Hachimangu_%2811417%29.jpg"
+ ],
+ "km-enoshima": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Enoshima_Island%2C_Etajima_Hiroshima_Aerial_photograph.2008.jpg/960px-Enoshima_Island%2C_Etajima_Hiroshima_Aerial_photograph.2008.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/6/61/Island_Enoshima._The_Fuji_can_be_seen_far_away.jpg/960px-Island_Enoshima._The_Fuji_can_be_seen_far_away.jpg"
+ ],
+ "km-hokokuji": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/Hokokuji_Bamboo_Forest_Kamakura.jpg/960px-Hokokuji_Bamboo_Forest_Kamakura.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Hokokuji_bamboo_forest_%285712271526%29.jpg/960px-Hokokuji_bamboo_forest_%285712271526%29.jpg"
+ ],
+ "fj-kawaguchi": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Lake_Kawaguchiko_Sakura_Mount_Fuji_4.JPG/960px-Lake_Kawaguchiko_Sakura_Mount_Fuji_4.JPG",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Mount_Fuji_from_Lake_Kawaguchi_20170206.jpg/960px-Mount_Fuji_from_Lake_Kawaguchi_20170206.jpg"
+ ],
+ "fj-chureito": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Chureito_Pagoda_and_Mount_Fuji_2023-03-07.jpg/960px-Chureito_Pagoda_and_Mount_Fuji_2023-03-07.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Chureito_Pagoda_and_Mount_Fuji_20241022.jpg/960px-Chureito_Pagoda_and_Mount_Fuji_20241022.jpg"
+ ],
+ "fj-oshino": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Oshino-Hakkai-Nakaike.jpg/960px-Oshino-Hakkai-Nakaike.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/231028_Waku-ike_Oshino_Hakkai_springs_Oshino_Yamanashi_pref_Japan01s3.jpg/960px-231028_Waku-ike_Oshino_Hakkai_springs_Oshino_Yamanashi_pref_Japan01s3.jpg"
+ ],
+ "fj-fujiq": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Fuji-Q_Highland_%285900036032%29.jpg/960px-Fuji-Q_Highland_%285900036032%29.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Fuji-Q_Highland_%285899355849%29.jpg/960px-Fuji-Q_Highland_%285899355849%29.jpg"
+ ],
+ "fj-5th": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/20100728_Mount_Fuji_Fifth_Station_Kawaguchiko_Side_6191.jpg/960px-20100728_Mount_Fuji_Fifth_Station_Kawaguchiko_Side_6191.jpg"
+ ],
+ "nk-toshogu": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/The_Three_Wise_Monkeys%2C_Nikk%C5%8D_T%C5%8Dsh%C5%8D-g%C5%AB%3B_April_2018.jpg/960px-The_Three_Wise_Monkeys%2C_Nikk%C5%8D_T%C5%8Dsh%C5%8D-g%C5%AB%3B_April_2018.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Nikko_toshogu_shrine.jpg/960px-Nikko_toshogu_shrine.jpg"
+ ],
+ "nk-kegon": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Kegon_Falls_Elevator_entrance.jpg/960px-Kegon_Falls_Elevator_entrance.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Kegon_falls-2006-03-21_2.jpg/960px-Kegon_falls-2006-03-21_2.jpg"
+ ],
+ "nk-chuzenji": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Mount_nantai_and_lake_chuzenji.jpg/960px-Mount_nantai_and_lake_chuzenji.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/A_Torii_on_Lake_Chuzenji%2C_Japan_by_John_La_Farge.jpg/960px-A_Torii_on_Lake_Chuzenji%2C_Japan_by_John_La_Farge.jpg"
+ ],
+ "nk-shinkyo": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Shinkyo_bridge_of_Nikko_-_January_2024.jpg/960px-Shinkyo_bridge_of_Nikko_-_January_2024.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Shinkyo_Bridge_over_the_Daiya_River_at_Nikko%2C_Japan3.jpg/960px-Shinkyo_Bridge_over_the_Daiya_River_at_Nikko%2C_Japan3.jpg"
+ ],
+ "nk-rinnoji": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Rinnoji_Temple_%40_Nikko_%2814012257893%29.jpg/960px-Rinnoji_Temple_%40_Nikko_%2814012257893%29.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Nikkosan_Rinnoji_Temple%2C_Nikko%2C_Japan.jpg/960px-Nikkosan_Rinnoji_Temple%2C_Nikko%2C_Japan.jpg"
+ ],
+ "ng-castle": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Nagoya_Castle%28Larger%29.jpg/960px-Nagoya_Castle%28Larger%29.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/Nagoya_Castle%28Edit2%29.jpg/960px-Nagoya_Castle%28Edit2%29.jpg"
+ ],
+ "ng-atsuta": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Atsuta_Shrine.jpg/960px-Atsuta_Shrine.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Atsuta_Shrine%2C_Nagoya%3B_Febuary_2012.jpg/960px-Atsuta_Shrine%2C_Nagoya%3B_Febuary_2012.jpg"
+ ],
+ "ng-osu": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/%C5%8Csu_Kannon_%28Naka-ku%2C_Nagoya%29_VLux5_hdsr_d03.jpg/960px-%C5%8Csu_Kannon_%28Naka-ku%2C_Nagoya%29_VLux5_hdsr_d03.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Osu_Kannon_station_map_Nagoya_subway%27s_Tsurumai_line_2014.png/960px-Osu_Kannon_station_map_Nagoya_subway%27s_Tsurumai_line_2014.png"
+ ],
+ "ng-toyota": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Toyota_tecno_museum.jpg/960px-Toyota_tecno_museum.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Toyota_Commemorative_Museum_of_Industry_and_Technology_-_Joy_of_Museums.jpg/960px-Toyota_Commemorative_Museum_of_Industry_and_Technology_-_Joy_of_Museums.jpg"
+ ],
+ "ng-ghibli": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/d/db/Train_of_Aichi_Loop_Line_with_signboard_of_Ghibli_Park_at_Kozoji_station.jpg/960px-Train_of_Aichi_Loop_Line_with_signboard_of_Ghibli_Park_at_Kozoji_station.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/Linimo_train_advertising_Ghibli_Park_at_Yakusa_Station.jpg/960px-Linimo_train_advertising_Ghibli_Park_at_Yakusa_Station.jpg"
+ ],
+ "kb-harborland": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Kobe_Port_Tower_and_Harborland_at_night_20190202-2.jpg/960px-Kobe_Port_Tower_and_Harborland_at_night_20190202-2.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Kobe_Port_Tower_and_Harborland_at_night_20190202-3.jpg/960px-Kobe_Port_Tower_and_Harborland_at_night_20190202-3.jpg"
+ ],
+ "kb-kitano": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ee/Weathercock_House_Kobe_Kitano_Ijinkan_%E9%A2%A8%E8%A6%8B%E9%B6%8F%E3%81%AE%E9%A4%A8%EF%BC%88%E6%97%A7%E3%83%88%E3%83%BC%E3%83%9E%E3%82%B9%E4%BD%8F%E5%AE%85%EF%BC%89.jpg/960px-Weathercock_House_Kobe_Kitano_Ijinkan_%E9%A2%A8%E8%A6%8B%E9%B6%8F%E3%81%AE%E9%A4%A8%EF%BC%88%E6%97%A7%E3%83%88%E3%83%BC%E3%83%9E%E3%82%B9%E4%BD%8F%E5%AE%85%EF%BC%89.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/%E5%8C%97%E9%87%8E%E7%95%B0%E4%BA%BA%E9%A4%A8%E6%98%9F%E5%B7%B4%E5%85%8B_%2834939838295%29.jpg/960px-%E5%8C%97%E9%87%8E%E7%95%B0%E4%BA%BA%E9%A4%A8%E6%98%9F%E5%B7%B4%E5%85%8B_%2834939838295%29.jpg"
+ ],
+ "kb-rokko": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Night_view_of_Rokk%C5%8D_Island_and_Higashinada-ku%2C_Kobe%2C_Japan.jpg/960px-Night_view_of_Rokk%C5%8D_Island_and_Higashinada-ku%2C_Kobe%2C_Japan.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Rokko_Tenrandai_Night_View.jpg/960px-Rokko_Tenrandai_Night_View.jpg"
+ ],
+ "kb-nunobiki": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Odaki%2C_from_the_Nunobiki_Falls.jpg/960px-Odaki%2C_from_the_Nunobiki_Falls.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Nunobiki_Falls_Kobe_2026_dllu.jpg/960px-Nunobiki_Falls_Kobe_2026_dllu.jpg"
+ ],
+ "kb-nankinmachi": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Kobe_Nankinmachi_%28chinatown%29_entrance.jpg/960px-Kobe_Nankinmachi_%28chinatown%29_entrance.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Kobe_Kobe_Chinatown_1.jpg/960px-Kobe_Kobe_Chinatown_1.jpg"
+ ],
+ "hm-kokoen": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Raised_garden_beds_in_the_Garden_of_Seedlings%2C_K%C5%8Dko-en%2C_Himeji%2C_2016.jpg/960px-Raised_garden_beds_in_the_Garden_of_Seedlings%2C_K%C5%8Dko-en%2C_Himeji%2C_2016.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Himeji_Koko-en_Garden_NIK_0898.jpg/960px-Himeji_Koko-en_Garden_NIK_0898.jpg"
+ ],
+ "hm-engyoji": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Engyoji05s4592.jpg/960px-Engyoji05s4592.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Engy%C3%B4-ji_Temple_-_Nightlight.jpg/960px-Engy%C3%B4-ji_Temple_-_Nightlight.jpg"
+ ],
+ "hm-otemae": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Manneken_Belgian_waffle_shop%2C_Otemae-dori%2C_Himeji%2C_2016.jpg/960px-Manneken_Belgian_waffle_shop%2C_Otemae-dori%2C_Himeji%2C_2016.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Himeji_Otemae-dori_Street_201506_01.JPG/960px-Himeji_Otemae-dori_Street_201506_01.JPG"
+ ],
+ "hm-nadagikkenn": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Himeji-central-park-entrance.JPG/960px-Himeji-central-park-entrance.JPG",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Himeji_Central_Park_entrance.jpg/960px-Himeji_Central_Park_entrance.jpg"
+ ],
+ "tk-sanmachi": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/6/61/Takayama_Old_Town_%28Sanmachi_Suji%29_%2835819349621%29.jpg/960px-Takayama_Old_Town_%28Sanmachi_Suji%29_%2835819349621%29.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Takayamacity_center_Old_town_No%2C2.JPG/960px-Takayamacity_center_Old_town_No%2C2.JPG"
+ ],
+ "tk-jinya": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Takayama_Jinya_inside_view_201706.jpg/960px-Takayama_Jinya_inside_view_201706.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/2024-10-27_Takayama_Jinya.jpg/960px-2024-10-27_Takayama_Jinya.jpg"
+ ],
+ "tk-folk": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/Hida_Folk_Village%2C_Takayama_-_panoramio.jpg/960px-Hida_Folk_Village%2C_Takayama_-_panoramio.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/Hida_Takayama_folk_village.JPG/960px-Hida_Takayama_folk_village.JPG"
+ ],
+ "tk-market": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Hida-Takayama_Miyagawa_Morning_Market_%2815668520238%29.jpg/960px-Hida-Takayama_Miyagawa_Morning_Market_%2815668520238%29.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/Miyagawa_Morning_market_%2C_%E5%AE%AE%E5%B7%9D%E6%9C%9D%E5%B8%82_-_panoramio_%282%29.jpg/960px-Miyagawa_Morning_market_%2C_%E5%AE%AE%E5%B7%9D%E6%9C%9D%E5%B8%82_-_panoramio_%282%29.jpg"
+ ],
+ "tk-shirakawa": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Gassho-zukuri_farmhouse-01.jpg/960px-Gassho-zukuri_farmhouse-01.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Gassho-zukuri_farmhouse-02.jpg/960px-Gassho-zukuri_farmhouse-02.jpg"
+ ],
+ "mt-castle": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Matsumoto_Castle05s5s4592.jpg/960px-Matsumoto_Castle05s5s4592.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Inui_Kotenshu_roof_details_seen_from_the_Dai-Tenshu%2C_Matsumoto_Castle%2C_2016.jpg/960px-Inui_Kotenshu_roof_details_seen_from_the_Dai-Tenshu%2C_Matsumoto_Castle%2C_2016.jpg"
+ ],
+ "mt-nakamachi": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Nakamachi_street_Matsumoto_Nagano_pref_Japan07n.jpg/960px-Nakamachi_street_Matsumoto_Nagano_pref_Japan07n.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/Nakamachi_street_Matsumoto_Nagano_pref_Japan01s3.jpg/960px-Nakamachi_street_Matsumoto_Nagano_pref_Japan01s3.jpg"
+ ],
+ "mt-kamikochi": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/150920_Kappa-bashi_Kamikochi_Japan01n.jpg/960px-150920_Kappa-bashi_Kamikochi_Japan01n.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/150920_Kappa-bashi_Kamikochi_Japan02n.jpg/960px-150920_Kappa-bashi_Kamikochi_Japan02n.jpg"
+ ],
+ "mt-wasabi": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Daio_Wasabi_Farm%2C_Azumino_-_panoramio.jpg/960px-Daio_Wasabi_Farm%2C_Azumino_-_panoramio.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Azumino_Wasabi_Field_Spring_Water_flock.jpg/960px-Azumino_Wasabi_Field_Spring_Water_flock.jpg"
+ ],
+ "mt-art": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Matsumoto_city_museum_of_art07nt3200.jpg/960px-Matsumoto_city_museum_of_art07nt3200.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/220728_Matsumoto_City_Museum_of_Art_Japan03s3.jpg/960px-220728_Matsumoto_City_Museum_of_Art_Japan03s3.jpg"
+ ],
+ "fk-ohori": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/%C5%8Chori_Park_The_pergola_in_Matsushima_%C5%8Chori-k%C5%8Den_Ch%C5%AB%C5%8D-ku_Fukuoka_20260514.jpg/960px-%C5%8Chori_Park_The_pergola_in_Matsushima_%C5%8Chori-k%C5%8Den_Ch%C5%AB%C5%8D-ku_Fukuoka_20260514.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/%C5%8Chori_Park_The_old_wisteria_vine_twining_around_the_pergola_in_Matsushima_%C5%8Chori-k%C5%8Den_Ch%C5%AB%C5%8D-ku_Fukuoka_20260529_154840.jpg/960px-%C5%8Chori_Park_The_old_wisteria_vine_twining_around_the_pergola_in_Matsushima_%C5%8Chori-k%C5%8Den_Ch%C5%AB%C5%8D-ku_Fukuoka_20260529_154840.jpg"
+ ],
+ "fk-dazaifu": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/20100719_Dazaifu_Tenmangu_Shrine_3328.jpg/960px-20100719_Dazaifu_Tenmangu_Shrine_3328.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Dazaifu_Tenmangu-40.jpg/960px-Dazaifu_Tenmangu-40.jpg"
+ ],
+ "fk-canal": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Canal_City_Hakata_2011.jpg/960px-Canal_City_Hakata_2011.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Canal_City_in_Hakata%2C_Fukuoka_20140104.jpg/960px-Canal_City_in_Hakata%2C_Fukuoka_20140104.jpg"
+ ],
+ "fk-kushida": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Kushida_Shrine_the_Hakata_Wall_and_the_inner_sanctuary_1-41_Kami-kawabatamachi_Hakata-ku_Fukuoka_20231120.jpg/960px-Kushida_Shrine_the_Hakata_Wall_and_the_inner_sanctuary_1-41_Kami-kawabatamachi_Hakata-ku_Fukuoka_20231120.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Kushida_Shrine_the_Hakata_Wall_1-41_Kami-kawabatamachi_Hakata-ku_Fukuoka_20231128.jpg/960px-Kushida_Shrine_the_Hakata_Wall_1-41_Kami-kawabatamachi_Hakata-ku_Fukuoka_20231128.jpg"
+ ],
+ "fk-yatai": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Seiry%C5%AB_Park_Fukuoka_Hakata_Yatai_Nakasu_1-ch%C5%8Dme_Hakata-ku_Fukuoka_20250401_174434.jpg/960px-Seiry%C5%AB_Park_Fukuoka_Hakata_Yatai_Nakasu_1-ch%C5%8Dme_Hakata-ku_Fukuoka_20250401_174434.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ad/Seiry%C5%AB_Park_Fukuoka_Hakata_Yatai_along_Naka_River_Nakasu_1-ch%C5%8Dme_Hakata-ku_Fukuoka_20250401_180028.jpg/960px-Seiry%C5%AB_Park_Fukuoka_Hakata_Yatai_along_Naka_River_Nakasu_1-ch%C5%8Dme_Hakata-ku_Fukuoka_20250401_180028.jpg"
+ ],
+ "ns-peace": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/20190202_Nagasaki_Peace_Park_Statue_of_Peace-2.jpg/960px-20190202_Nagasaki_Peace_Park_Statue_of_Peace-2.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/20190202_Nagasaki_Peace_Park_Statue_of_Peace-1.jpg/960px-20190202_Nagasaki_Peace_Park_Statue_of_Peace-1.jpg"
+ ],
+ "ns-glover": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Nagasaki-Glover-Garden-5415.jpg/960px-Nagasaki-Glover-Garden-5415.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Glover_Garden_Nagasaki-150821401.jpg/960px-Glover_Garden_Nagasaki-150821401.jpg"
+ ],
+ "ns-inasa": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Nagasaki_night_from_Mt_Inasa_Aug2023.jpg/960px-Nagasaki_night_from_Mt_Inasa_Aug2023.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/View_of_Nagasaki_station_area_from_Mt._Inasa.jpg/960px-View_of_Nagasaki_station_area_from_Mt._Inasa.jpg"
+ ],
+ "ns-dejima": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/View_of_the_Former_Dutch_Trading_Post_on_Dejima_from_Tamae_Bridge%2C_Nagasaki%2C_20240815_1501_3720.jpg/960px-View_of_the_Former_Dutch_Trading_Post_on_Dejima_from_Tamae_Bridge%2C_Nagasaki%2C_20240815_1501_3720.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/View_of_the_Former_Dutch_Trading_Post_on_Dejima_from_Tamae_Bridge%2C_Nagasaki%2C_20240815_1459_3716.jpg/960px-View_of_the_Former_Dutch_Trading_Post_on_Dejima_from_Tamae_Bridge%2C_Nagasaki%2C_20240815_1459_3716.jpg"
+ ],
+ "ns-oura": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Oura_Church_in_Nagasaki%2C_20240814_0839_3201.jpg/960px-Oura_Church_in_Nagasaki%2C_20240814_0839_3201.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Oura_Church_in_Nagasaki%2C_20240814_0841_3203.jpg/960px-Oura_Church_in_Nagasaki%2C_20240814_0841_3203.jpg"
+ ],
+ "hd-yama": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/View_from_Mount_Hakodate_Japan01o.jpg/960px-View_from_Mount_Hakodate_Japan01o.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Views_from_Mount_Hakodate_at_night_20140806-1.jpg/960px-Views_from_Mount_Hakodate_at_night_20140806-1.jpg"
+ ],
+ "hd-market": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/Hakodate_Morning_Market%2C_Hakodate_Asaichi%2C_Hakodate%2C_2014.jpg/960px-Hakodate_Morning_Market%2C_Hakodate_Asaichi%2C_Hakodate%2C_2014.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Hakodate_Asaichi_Hokkaido_Japan05bs5.jpg/960px-Hakodate_Asaichi_Hokkaido_Japan05bs5.jpg"
+ ],
+ "hd-kanemori": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/Kanemori_Red_Brick_Warehouse_Hakodate_Hokkaido_pref_Japan04n.jpg/960px-Kanemori_Red_Brick_Warehouse_Hakodate_Hokkaido_pref_Japan04n.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Kanemori_Red_Brick_Warehouse.jpg/960px-Kanemori_Red_Brick_Warehouse.jpg"
+ ],
+ "hd-goryokaku": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Hakodate_Gory%C5%8Dkaku_Park_Sakura_May_2016_5.jpg/960px-Hakodate_Gory%C5%8Dkaku_Park_Sakura_May_2016_5.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Hakodate_Goryokaku_Panorama_1.JPG/960px-Hakodate_Goryokaku_Panorama_1.JPG"
+ ],
+ "hd-motomachi": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Motomachi_Catholic_Church_in_Hakodate_Hokkaido_Japan03n.jpg/960px-Motomachi_Catholic_Church_in_Hakodate_Hokkaido_Japan03n.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Motomachi_Catholic_Church%2C_Hakodate_-_Apr_15%2C_2024.jpg/960px-Motomachi_Catholic_Church%2C_Hakodate_-_Apr_15%2C_2024.jpg"
+ ],
+ "ok-shuri": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/98/Naha_Okinawa_Japan_Shuri-Castle-02.jpg/960px-Naha_Okinawa_Japan_Shuri-Castle-02.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Naha_Shuri_Castle16s5s3200.jpg/960px-Naha_Shuri_Castle16s5s3200.jpg"
+ ],
+ "ok-kokusai": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Kokusai-dori08s3s4440.jpg/960px-Kokusai-dori08s3s4440.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Night_at_Kokusai-dori_20250503184244.jpg/960px-Night_at_Kokusai-dori_20250503184244.jpg"
+ ],
+ "ok-churaumi": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Okinawa_Aquarium.jpg/960px-Okinawa_Aquarium.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Okinawa_Churaumi_Aquarium_3.jpg/960px-Okinawa_Churaumi_Aquarium_3.jpg"
+ ],
+ "ok-manzamo": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Onna_Okinawa_Japan_Cape-Manzamo-01.jpg/960px-Onna_Okinawa_Japan_Cape-Manzamo-01.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Onna_Okinawa_Japan_Cape-Manzamo-02.jpg/960px-Onna_Okinawa_Japan_Cape-Manzamo-02.jpg"
+ ],
+ "ok-naminoue": [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/111204_Naminoue_Beach_and_Naminoue-gu_Naha_Okinawa_pref_Japan01bs.jpg/960px-111204_Naminoue_Beach_and_Naminoue-gu_Naha_Okinawa_pref_Japan01bs.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Naha_Naminoue_Beach_%26_Naminoue-gu_33.jpg/960px-Naha_Naminoue_Beach_%26_Naminoue-gu_33.jpg"
+ ]
+}

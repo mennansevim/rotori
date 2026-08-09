@@ -26,9 +26,10 @@ import 'domain/route_matrix.dart';
 import 'domain/trip_factory.dart';
 import 'domain/types.dart';
 import 'features/auth/auth_screen.dart';
-import 'features/planner/planner_screen.dart';
 import 'features/planner/planner_theme.dart';
-import 'features/planner/steps.dart';
+import 'features/plans/add_hotel_page.dart';
+import 'features/plans/create/create_plan_screen.dart';
+import 'features/plans/flights/flight_details_page.dart';
 import 'features/plans/plan_providers.dart';
 import 'features/plans/plan_viewer_screen.dart';
 import 'features/plans/plan_optimization_controller.dart';
@@ -59,8 +60,13 @@ void main() {
         overrides: [
           // Supabase auth yok → repo null → save() no-op, geofence userId 'anon'.
           currentUserProvider.overrideWithValue(null),
-          // Realtime yerine trip yayınla — id 'demo' seedli, 'new' sıfırdan boş.
+          // Realtime yerine trip yayınla. Öncelik: oluşturma akışının ürettiği
+          // taslak → 'new' boş trip → seedli demo.
           planByIdProvider.overrideWith((ref, id) {
+            final draft = ref.watch(draftTripProvider);
+            if (draft != null && draft.id == id) {
+              return Stream<Trip>.value(draft);
+            }
             if (id == 'new') return Stream<Trip>.value(_buildEmptyTrip());
             return Stream<Trip>.value(demo);
           }),
@@ -271,14 +277,6 @@ String _shiftYmd(String ymd, int days) {
   return '${d.year}-$m-$day';
 }
 
-StepId? _stepFromName(String? name) {
-  if (name == null) return null;
-  for (final s in StepId.values) {
-    if (s.name == name) return s;
-  }
-  return null;
-}
-
 class _PreviewApp extends ConsumerWidget {
   const _PreviewApp();
 
@@ -290,27 +288,30 @@ class _PreviewApp extends ConsumerWidget {
       routes: [
         GoRoute(path: '/', redirect: (_, __) => '/plans'),
         GoRoute(path: '/plans', builder: (_, __) => const _PreviewHome()),
+        // '/plans/:id/...' desenlerinden ÖNCE.
+        GoRoute(
+            path: '/plans/new', builder: (_, __) => const CreatePlanScreen()),
         // Gerçek uygulama ekranları (önizleme): giriş + "Planlarım".
         GoRoute(path: '/auth', builder: (_, __) => const AuthScreen()),
         GoRoute(
             path: '/planslist', builder: (_, __) => const PlansListScreen()),
+        // Wizard kaldırıldı — eski deep-link'ler viewer'a düşer.
         GoRoute(
           path: '/plans/:id/edit',
-          builder: (_, s) => PlannerScreen(
-            planId: s.pathParameters['id']!,
-            initialStep: _stepFromName(s.uri.queryParameters['step']),
-          ),
-        ),
-        GoRoute(
-          path: '/plans/:id/step/:step',
-          builder: (_, s) => PlannerScreen(
-            planId: s.pathParameters['id']!,
-            initialStep: _stepFromName(s.pathParameters['step']),
-          ),
+          redirect: (_, s) => '/plans/${s.pathParameters['id']}/view',
         ),
         GoRoute(
           path: '/plans/:id/view',
           builder: (_, s) => PlanViewerScreen(planId: s.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: '/plans/:id/flights',
+          builder: (_, s) =>
+              FlightDetailsPage(planId: s.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: '/plans/:id/hotels/new',
+          builder: (_, s) => AddHotelPage(planId: s.pathParameters['id']!),
         ),
         GoRoute(
           path: '/plans/:id/gpssim',
@@ -649,14 +650,14 @@ class _PreviewHome extends ConsumerWidget {
                 emoji: '✨',
                 title: s.s('home.card.new.title'),
                 subtitle: s.s('home.card.new.sub'),
-                onTap: () => context.go('/plans/new/edit'),
+                onTap: () => context.push('/plans/new'),
               ),
               const SizedBox(height: 12),
               _NavCard(
-                emoji: '🗓️',
-                title: s.s('home.card.planner.title'),
-                subtitle: s.s('home.card.planner.sub'),
-                onTap: () => context.go('/plans/$id/edit'),
+                emoji: '✈️',
+                title: s.s('flights.title'),
+                subtitle: s.s('viewer.addFlight.body'),
+                onTap: () => context.push('/plans/$id/flights'),
               ),
               const SizedBox(height: 12),
               _NavCard(

@@ -22,7 +22,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "cd mobile && flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8091 -t lib/preview_main.dart"
+        "cd rotori-mobile && flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8091 -t lib/preview_main.dart"
       ],
       "port": 8091,
       "url": "http://127.0.0.1:8091/",
@@ -33,7 +33,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "cd mobile && flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8093 -t lib/main.dart --dart-define-from-file=env.json"
+        "cd rotori-mobile && flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8093 -t lib/main.dart --dart-define-from-file=env.json"
       ],
       "port": 8093,
       "url": "http://127.0.0.1:8093/",

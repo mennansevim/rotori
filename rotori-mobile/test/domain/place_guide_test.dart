@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:japan_trip/domain/city_places.dart';
 import 'package:japan_trip/domain/place_guide.dart';
@@ -31,10 +33,24 @@ void main() {
     expect(matchPlaceGuide('Random Cafe X'), isNull);
   });
 
-  group('kapsama — tüm küratörlü yerler', () {
-    test('her şehir noktasının bir rehberi var', () {
+  /// Küratörlük sınırı domain'de tanımlı (kGuideCuratedCityKeys) — testte
+  /// ayrı bir liste tutmak ikisini kaçınılmaz olarak ayrıştırırdı.
+  Iterable<CityData> curatedCities() =>
+      kCityData.where((c) => kGuideCuratedCityKeys.contains(c.key));
+
+  group('kapsama — küratörlü şehirler', () {
+    test('küratörlük sınırı gerçek şehirlere işaret ediyor', () {
+      // Yanlış yazılmış bir anahtar kapsamayı sessizce boşaltırdı.
+      for (final key in kGuideCuratedCityKeys) {
+        expect(kCityData.any((c) => c.key == key), isTrue,
+            reason: '$key kCityData\'da yok');
+      }
+      expect(curatedCities(), isNotEmpty);
+    });
+
+    test('her küratörlü şehir noktasının bir rehberi var', () {
       final missing = <String>[];
-      for (final city in kCityData) {
+      for (final city in curatedCities()) {
         for (final p in city.places) {
           if (matchPlaceGuide(p.name) == null) {
             missing.add('${city.label}: ${p.name}');
@@ -46,7 +62,7 @@ void main() {
     });
 
     test('rehberlerde temel alanlar dolu', () {
-      for (final city in kCityData) {
+      for (final city in curatedCities()) {
         for (final p in city.places) {
           final g = matchPlaceGuide(p.name)!;
           expect(g.imageUrls, isNotEmpty, reason: '${p.name} görselsiz');
@@ -67,12 +83,37 @@ void main() {
     test('görseller Wikimedia\'nın izin verdiği thumb boyutlarında', () {
       // Wikimedia yalnız 250/500/960/1280px sunuyor; başka genişlik 400 döner.
       final badWidth = RegExp(r'/(?!250px|500px|960px|1280px)\d+px-');
-      for (final city in kCityData) {
+      for (final city in curatedCities()) {
         for (final p in city.places) {
           for (final url in matchPlaceGuide(p.name)!.imageUrls) {
             expect(badWidth.hasMatch(url), isFalse,
                 reason: 'Geçersiz thumb boyutu: $url');
           }
+        }
+      }
+    });
+  });
+
+  group('kapsam dışı şehirler güvenle bozulur', () {
+    test('rehbersiz yer null döner, çökmez', () {
+      final outside =
+          kCityData.where((c) => !kGuideCuratedCityKeys.contains(c.key));
+      expect(outside, isNotEmpty, reason: 'test anlamını yitirdi');
+      for (final city in outside) {
+        for (final p in city.places) {
+          // Rehber olabilir de olmayabilir de — ÖNEMLİ OLAN patlamaması.
+          expect(() => matchPlaceGuide(p.name), returnsNormally,
+              reason: '${city.label}: ${p.name}');
+        }
+      }
+    });
+
+    test('rehbersiz yerin koordinatı var — görsel/harita yedeği çalışabilsin',
+        () {
+      for (final city in kCityData) {
+        for (final p in city.places) {
+          expect(p.lat, isNot(0), reason: '${p.name} enlemsiz');
+          expect(p.lng, isNot(0), reason: '${p.name} boylamsız');
         }
       }
     });
@@ -104,11 +145,36 @@ void main() {
     });
 
     test('şehirlerden 30 km+ uzak koordinat → boş liste', () {
-      // Fuji Dağı zirvesi — hiçbir küratörlü şehre yakın değil.
-      expect(
-        nearbyCityPlaces(title: 'x', lat: 35.3606, lng: 138.7274),
-        isEmpty,
-      );
+      // Japon Denizi'nde açık su — karadaki hiçbir küratörlü noktaya yakın
+      // değil. Eskiden Fuji zirvesi kullanılıyordu; "Fuji & Kawaguchiko"
+      // şehri eklenince zirve 4 km'lik bir yere komşu oldu ve testin
+      // dayanağı sessizce çöktü. O yüzden VARSAYIMI da doğruluyoruz:
+      // nokta gerçekten uzak mı, önce onu iddia et.
+      const lat = 39.0;
+      const lng = 135.0;
+      for (final city in kCityData) {
+        for (final p in city.places) {
+          expect(_haversineKm(lat, lng, p.lat, p.lng), greaterThan(30),
+              reason: '${p.name} seçilen "uzak" noktaya çok yakın — '
+                  'test artık istediğini ölçmüyor');
+        }
+      }
+      expect(nearbyCityPlaces(title: 'x', lat: lat, lng: lng), isEmpty);
     });
   });
+}
+
+/// İki koordinat arası kuş uçuşu mesafe (km) — testin "uzak" varsayımını
+/// doğrulamak için.
+double _haversineKm(double lat1, double lng1, double lat2, double lng2) {
+  const r = 6371.0;
+  double rad(double d) => d * math.pi / 180;
+  final dLat = rad(lat2 - lat1);
+  final dLng = rad(lng2 - lng1);
+  final h = math.sin(dLat / 2) * math.sin(dLat / 2) +
+      math.cos(rad(lat1)) *
+          math.cos(rad(lat2)) *
+          math.sin(dLng / 2) *
+          math.sin(dLng / 2);
+  return r * 2 * math.atan2(math.sqrt(h), math.sqrt(1 - h));
 }

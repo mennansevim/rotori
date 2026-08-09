@@ -38,14 +38,15 @@ import '../../domain/japanese_phrases_data.dart';
 import '../../domain/localized_text.dart';
 import '../../domain/place_coords.dart';
 import '../../domain/place_image_resolver.dart';
+import '../../domain/plan_generation.dart' show tripHasFlightInfo;
 import '../../domain/plan_schedule_engine.dart';
 import '../../domain/plan_warnings.dart';
 import '../../domain/route_time_bounds.dart';
 import '../../domain/route_matrix.dart';
 import '../../data/affiliate_links.dart';
 import '../../data/tts_service.dart';
-import '../../domain/localized_text.dart';
 import '../../domain/travel_tips_data.dart';
+import '../../domain/must_see_suggestions.dart';
 import '../../domain/types.dart';
 import '../auth/auth_repository.dart';
 import '../shared/place_detail_sheet.dart';
@@ -53,15 +54,14 @@ import '../shared/ticket_support.dart';
 import '../viewer/budget_screen.dart';
 import '../viewer/eats_screen.dart';
 import '../viewer/home_widget_hook.dart';
-import '../viewer/japanese_phrases_screen.dart';
-import '../viewer/must_know_screen.dart';
 import '../viewer/pre_departure_checklist_screen.dart';
-import '../viewer/reward_map_screen.dart';
 import '../viewer/viewer_theme.dart';
 import '../viewer/weather_screen.dart';
+import '../../domain/japan_suggestions.dart' show PlaceSuggestion;
 import 'plan_providers.dart';
 import 'plan_edit_session.dart';
 import 'plan_optimization_controller.dart';
+import 'widgets/must_see_card.dart';
 
 // Viewer sandvich (drawer) bileşen ailesi ayrı bir part dosyasında toplanır.
 part 'widgets/plan_viewer_drawer.dart';
@@ -237,6 +237,11 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
   /// Aktif tab — 0: Ana Sayfa, 1: Biletler, 2: Japonca, 3: Rehber.
   int _activeTab = 0;
 
+  /// "✈️ Uçuşunu ekle" kartı ✕ ile kapatıldı mı (bu oturumda) — SharedPreferences
+  /// ile kalıcı, planId'ye özel (bkz. initState _loadFlightCardDismissed).
+  bool _flightCardDismissed = false;
+  bool _mustSeeCardDismissed = false;
+
   late final PlanEditSession _editSession;
   PlanEditState? _editState;
   Timer? _undoSnackTimer;
@@ -291,6 +296,73 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
       (_) => HomeWidgetHook.pushFromTrip(_trip),
     );
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadForecast());
+    _loadFlightCardDismissed();
+    _loadMustSeeCardDismissed();
+  }
+
+  String get _flightCardPrefsKey =>
+      'viewer:flightCardDismissed:${widget.planId}';
+
+  String get _mustSeeCardPrefsKey =>
+      'viewer:mustSeeCardDismissed:${widget.planId}';
+
+  Future<void> _loadFlightCardDismissed() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final dismissed = prefs.getBool(_flightCardPrefsKey) ?? false;
+      if (mounted && dismissed) setState(() => _flightCardDismissed = true);
+    } catch (_) {
+      // Depolama erişilemezse kart görünmeye devam eder — sorun değil.
+    }
+  }
+
+  Future<void> _loadMustSeeCardDismissed() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final dismissed = prefs.getBool(_mustSeeCardPrefsKey) ?? false;
+      if (mounted && dismissed) setState(() => _mustSeeCardDismissed = true);
+    } catch (_) {
+      // Depolama erişilemezse kart görünmeye devam eder — sorun değil.
+    }
+  }
+
+  /// "Bunları da gör" seçimini plana uygular ve kaydeder.
+  ///
+  /// Yeniden ÜRETİM yok: [addHighlightsToPlan] mevcut öğelere dokunmadan
+  /// boşluklara ekler, böylece kullanıcının elle yaptığı düzenlemeler kalır.
+  Future<HighlightPlacement> _applyMustSee(
+    Trip trip,
+    List<PlaceSuggestion> picks,
+  ) async {
+    final s = LanguageScope.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final result = addHighlightsToPlan(trip, picks);
+
+    final repo = ref.read(plansRepositoryProvider);
+    if (repo != null) {
+      try {
+        await repo.saveLocal(trip);
+        unawaited(repo.save(trip).catchError((_) => null));
+      } catch (_) {
+        // Kaydedilemezse bile ekranda görünür; bir sonraki kayıtta senkronlanır.
+      }
+    }
+    ref.read(draftTripProvider.notifier).state = trip;
+    if (mounted) setState(() {});
+
+    final added = result.placed.length;
+    final missed = result.unplaced.length;
+    messenger.showSnackBar(SnackBar(
+      content: Text(
+        added == 0
+            ? s.s('viewer.mustSee.none')
+            : missed == 0
+                ? s.p('viewer.mustSee.added', {'n': '$added'})
+                : s.p('viewer.mustSee.partial',
+                    {'n': '$added', 'm': '$missed'}),
+      ),
+    ));
+    return result;
   }
 
   /// Her destinasyon için Open-Meteo'dan 16 günlük tahmin çek. Bir günün
@@ -331,6 +403,13 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
 
   void _autoScrollToActive() {
     if (_autoScrolled || !mounted) return;
+    // Aktif gün zaten ilk gün ise kaydırma YAPMA: listenin başı zaten görünür
+    // ve kaydırmak, gün akışının üstündeki kartları ("✈️ Uçuşunu ekle" gibi)
+    // kullanıcı hiç görmeden ekranın dışına iter.
+    if (_activeDayIndex(_sortedDays) <= 0) {
+      _autoScrolled = true;
+      return;
+    }
     final ctx = _activeDayKey.currentContext;
     if (ctx == null) return;
     _autoScrolled = true;
@@ -395,6 +474,29 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                     controller: _scrollController,
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
                     children: [
+                      if (!tripHasFlightInfo(trip) && !_flightCardDismissed)
+                        _AddFlightCard(
+                          palette: palette,
+                          planId: widget.planId,
+                          onDismiss: () {
+                            setState(() => _flightCardDismissed = true);
+                            SharedPreferences.getInstance().then(
+                              (p) => p.setBool(_flightCardPrefsKey, true),
+                            );
+                          },
+                        ),
+                      if (!_mustSeeCardDismissed && days.isNotEmpty)
+                        MustSeeCard(
+                          palette: palette,
+                          trip: trip,
+                          onAdd: (picks) => _applyMustSee(trip, picks),
+                          onDismiss: () {
+                            setState(() => _mustSeeCardDismissed = true);
+                            SharedPreferences.getInstance().then(
+                              (p) => p.setBool(_mustSeeCardPrefsKey, true),
+                            );
+                          },
+                        ),
                       if (days.isEmpty)
                         _EmptyDaysCard(palette: palette)
                       else
@@ -435,13 +537,6 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                             allDays: days,
                             onOpenItem: _openItem,
                             onOpenMap: _openDayMap,
-                            onOptimizeRoute: () => _openRouteOptimization(
-                              days[i],
-                              getDestinationForDate(
-                                _sortedDestinations,
-                                days[i].date,
-                              ),
-                            ),
                             onOptimizeWeatherRoute:
                                 (day, destination, forecast) =>
                                     _openRouteOptimization(
@@ -1146,20 +1241,6 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
     }
   }
 
-  void _openMap() {
-    final palette = ref.read(viewerPaletteProvider);
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => Theme(
-          data: palette.toThemeData(),
-          child: ViewerPaletteScope(
-            palette: palette,
-            child: RewardMapScreen(trip: _trip),
-          ),
-        ),
-      ),
-    );
-  }
 
   /// Bütçe & harcama panelini açar (gün/kategori toplamları, JPY→TL çevirici).
   void _openBudget() {
@@ -1210,59 +1291,8 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
     );
   }
 
-  void _openTickets() {
-    final p = ref.read(viewerPaletteProvider);
-    final s = LanguageScope.of(context);
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: p.bg,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-          child: _ViewerTravelSheet(
-            trip: widget.trip,
-            palette: p,
-            emptyTicketsLabel: s.s('viewer.quick.noTickets'),
-            purchasedLabel: s.s('viewer.quick.ticketPurchased'),
-            pendingLabel: s.s('viewer.quick.ticketPending'),
-          ),
-        ),
-      ),
-    );
-  }
 
-  /// Pratik Japonca kelimeler & cümleler sayfası.
-  void _openPhrases() {
-    final palette = ref.read(viewerPaletteProvider);
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => Theme(
-          data: palette.toThemeData(),
-          child: ViewerPaletteScope(
-            palette: palette,
-            child: JapanesePhrasesScreen(trip: _trip),
-          ),
-        ),
-      ),
-    );
-  }
 
-  /// "Mutlaka bilmeniz gerekenler" — seyahat tavsiyeleri sayfası.
-  void _openMustKnow() {
-    final palette = ref.read(viewerPaletteProvider);
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => Theme(
-          data: palette.toThemeData(),
-          child: ViewerPaletteScope(
-            palette: palette,
-            child: MustKnowScreen(trip: _trip),
-          ),
-        ),
-      ),
-    );
-  }
 
   /// Rotori Eats — restoranlar (helal/vejetaryen filtre), bütçe ve diyet.
   void _openEats() {
@@ -2241,308 +2271,9 @@ class _TabMustKnowView extends StatelessWidget {
   }
 }
 
-class _ViewerTravelSheet extends StatelessWidget {
-  const _ViewerTravelSheet({
-    required this.trip,
-    required this.palette,
-    required this.emptyTicketsLabel,
-    required this.purchasedLabel,
-    required this.pendingLabel,
-  });
 
-  final Trip trip;
-  final ViewerPalette palette;
-  final String emptyTicketsLabel;
-  final String purchasedLabel;
-  final String pendingLabel;
 
-  @override
-  Widget build(BuildContext context) {
-    final flights = <List<FlightLeg>>[
-      if (trip.flights.outbound.isNotEmpty) trip.flights.outbound,
-      if (trip.flights.returnLegs.isNotEmpty) trip.flights.returnLegs,
-    ];
-    final s = LanguageScope.of(context);
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            s.s('viewer.quick.transport'),
-            style: TextStyle(
-              color: palette.textPrimary,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 12),
-          if (flights.isNotEmpty)
-            for (var i = 0; i < flights.length; i++) ...[
-              _QuickFlightCard(
-                legs: flights[i],
-                palette: palette,
-                label: i == 0 && flights.length > 1
-                    ? s.s('viewer.quick.outbound')
-                    : i == 1
-                        ? s.s('viewer.quick.return')
-                        : s.s('viewer.quick.flight'),
-              ),
-              const SizedBox(height: 10),
-            ]
-          else
-            _QuickEmptyCard(
-              icon: Icons.flight_outlined,
-              text: s.s('viewer.quick.noFlights'),
-              palette: palette,
-            ),
-          const SizedBox(height: 14),
-          Text(
-            s.s('viewer.quick.tickets'),
-            style: TextStyle(
-              color: palette.textPrimary,
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 8),
-          if (trip.tickets.isEmpty)
-            _QuickEmptyCard(
-              icon: Icons.confirmation_num_outlined,
-              text: emptyTicketsLabel,
-              palette: palette,
-            )
-          else
-            for (final ticket in trip.tickets)
-              _QuickTicketTile(
-                ticket: ticket,
-                palette: palette,
-                purchasedLabel: purchasedLabel,
-                pendingLabel: pendingLabel,
-              ),
-        ],
-      ),
-    );
-  }
-}
 
-class _QuickFlightCard extends StatelessWidget {
-  const _QuickFlightCard({
-    required this.legs,
-    required this.palette,
-    required this.label,
-  });
-
-  final List<FlightLeg> legs;
-  final ViewerPalette palette;
-  final String label;
-
-  String _time(String iso) {
-    final date = DateTime.tryParse(iso);
-    if (date == null) return '—';
-    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-  }
-
-  String _date(String iso) {
-    final date = DateTime.tryParse(iso);
-    if (date == null) return '';
-    return '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final from = legs.first;
-    final to = legs.last;
-    final p = palette;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
-      decoration: BoxDecoration(
-        color: p.elevated,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: p.border),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Icon(Icons.flight_takeoff, color: p.sakura, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  color: p.textSecondary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                _date(from.dateTime),
-                style: TextStyle(color: p.textMuted, fontSize: 11),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(child: _airport(from, alignEnd: false)),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Icon(Icons.flight, color: p.sakura, size: 26),
-              ),
-              Expanded(child: _airport(to, alignEnd: true)),
-            ],
-          ),
-          if (legs.length > 2) ...[
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '${legs.length - 1} aktarma',
-                style: TextStyle(color: p.textMuted, fontSize: 11),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _airport(FlightLeg leg, {required bool alignEnd}) {
-    final p = palette;
-    final airport = leg.airport.trim().isEmpty ? '—' : leg.airport;
-    return Column(
-      crossAxisAlignment:
-          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-      children: [
-        Text(
-          _time(leg.dateTime),
-          style: TextStyle(
-            color: p.textPrimary,
-            fontSize: 25,
-            fontWeight: FontWeight.w800,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
-        ),
-        Text(
-          leg.city.isEmpty ? airport : '${leg.city} · $airport',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: alignEnd ? TextAlign.end : TextAlign.start,
-          style: TextStyle(color: p.textSecondary, fontSize: 11),
-        ),
-      ],
-    );
-  }
-}
-
-class _QuickTicketTile extends StatelessWidget {
-  const _QuickTicketTile({
-    required this.ticket,
-    required this.palette,
-    required this.purchasedLabel,
-    required this.pendingLabel,
-  });
-
-  final Ticket ticket;
-  final ViewerPalette palette;
-  final String purchasedLabel;
-  final String pendingLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = palette;
-    final search = '${ticket.kind} ${ticket.label}'.toLowerCase();
-    final isTrain = search.contains('train') ||
-        search.contains('tren') ||
-        search.contains('shinkansen') ||
-        search.contains('jr');
-    final icon =
-        isTrain ? Icons.train_outlined : Icons.confirmation_num_outlined;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: p.elevated,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: p.border),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: (isTrain ? p.fuji : p.sakura).withValues(alpha: 0.16),
-              borderRadius: BorderRadius.circular(13),
-            ),
-            child: Icon(icon, color: isTrain ? p.fuji : p.sakura, size: 25),
-          ),
-          const SizedBox(width: 11),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  ticket.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: p.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  ticket.visitDate ??
-                      (ticket.purchased ? purchasedLabel : pendingLabel),
-                  style: TextStyle(color: p.textSecondary, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          Icon(
-            ticket.purchased
-                ? Icons.check_circle_outline
-                : Icons.schedule_outlined,
-            color: ticket.purchased ? p.matcha : p.gold,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _QuickEmptyCard extends StatelessWidget {
-  const _QuickEmptyCard({
-    required this.icon,
-    required this.text,
-    required this.palette,
-  });
-
-  final IconData icon;
-  final String text;
-  final ViewerPalette palette;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-      decoration: BoxDecoration(
-        color: palette.elevated,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: palette.border),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: palette.textMuted),
-          const SizedBox(width: 10),
-          Text(text, style: TextStyle(color: palette.textSecondary)),
-        ],
-      ),
-    );
-  }
-}
 
 class _TicketChip extends StatelessWidget {
   const _TicketChip({
@@ -2604,6 +2335,93 @@ class _TicketChip extends StatelessWidget {
     return FadeTransition(
       opacity: Tween<double>(begin: 0.55, end: 1).animate(pulse),
       child: chip,
+    );
+  }
+}
+
+/// "✈️ Uçuşunu ekle" — plan uçuşsuz üretildiyse gün akışının ÜSTÜNDE görünen
+/// opsiyonel kart. Drawer'a değil buraya konur: kullanıcı planı ilk açtığı
+/// anda görsün, drawer'da keşfedilmeden kaybolmasın.
+class _AddFlightCard extends StatelessWidget {
+  const _AddFlightCard({
+    required this.palette,
+    required this.planId,
+    required this.onDismiss,
+  });
+  final ViewerPalette palette;
+  final String planId;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: palette.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: palette.border),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () => context.push('/plans/$planId/flights'),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: palette.accent.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(Icons.flight_takeoff_rounded,
+                      color: palette.accent, size: 18),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        s.s('viewer.addFlight.title'),
+                        style: TextStyle(
+                          color: palette.textPrimary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        s.s('viewer.addFlight.body'),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: palette.textMuted,
+                          fontSize: 12,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, color: palette.textMuted),
+                IconButton(
+                  icon: Icon(Icons.close_rounded,
+                      color: palette.textMuted, size: 18),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: onDismiss,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -3335,47 +3153,8 @@ class _SwipeDeleteBg extends StatelessWidget {
   }
 }
 
-/// Gün kartı altındaki yan yana aksiyon butonu.
-class _DayActionButton extends StatelessWidget {
-  const _DayActionButton({required this.icon, required this.label, required this.color, required this.onTap, this.badge});
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-  final String? badge;
 
-  @override
-  Widget build(BuildContext context) {
-    return TextButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon, size: 16, color: color),
-      style: TextButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Flexible(child: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 12))),
-          if (badge != null) ...[
-            const SizedBox(width: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-              decoration: BoxDecoration(
-                color: const Color(0xFFD4A017).withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: const Color(0xFFD4A017).withValues(alpha: 0.4)),
-              ),
-              child: Text(badge!, style: const TextStyle(color: Color(0xFFD4A017), fontSize: 8.5, fontWeight: FontWeight.w800)),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-Widget _DayBtn(IconData icon, String label, Color color, VoidCallback onTap, {String? badge}) {
+Widget _DayBtn(IconData icon, String label, Color color, VoidCallback onTap, {String? badge, Key? key}) {
   final labelWidget = badge != null
       ? Row(mainAxisSize: MainAxisSize.min, children: [
           Flexible(child: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 12))),
@@ -3384,6 +3163,7 @@ Widget _DayBtn(IconData icon, String label, Color color, VoidCallback onTap, {St
         ])
       : Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 12));
   return TextButton.icon(
+    key: key,
     onPressed: onTap,
     icon: Icon(icon, size: 16, color: color),
     style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
@@ -3490,7 +3270,6 @@ class _DayCard extends StatefulWidget {
     required this.allDays,
     required this.onOpenItem,
     required this.onOpenMap,
-    required this.onOptimizeRoute,
     required this.onOptimizeWeatherRoute,
     required this.onDropItem,
     required this.onDeleteItem,
@@ -3524,7 +3303,6 @@ class _DayCard extends StatefulWidget {
 
   final void Function(TimelineItem item, TripDestination? dest) onOpenItem;
   final void Function(DayPlan day) onOpenMap;
-  final VoidCallback onOptimizeRoute;
   final void Function(
     DayPlan day,
     TripDestination? destination,
@@ -3948,7 +3726,7 @@ class _DayCardState extends State<_DayCard> {
                             Row(children: [
                               Expanded(child: _DayBtn(Icons.map_outlined, LanguageScope.of(context).s('viewer.day.viewOnMap'), p.accent, () => widget.onOpenMap(day))),
                               const SizedBox(width: 8),
-                              Expanded(child: _DayBtn(Icons.lock_outlined, LanguageScope.of(context).s('routeOptimization.action'), p.textMuted, () => _showOptimizePaywall(context, p), badge: 'Premium')),
+                              Expanded(child: _DayBtn(Icons.lock_outlined, LanguageScope.of(context).s('routeOptimization.action'), p.textMuted, () => _showOptimizePaywall(context, p), badge: 'Premium', key: ValueKey('optimize-route-${day.dayNumber}'))),
                             ]),
                           ],
                         ],

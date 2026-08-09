@@ -10,6 +10,7 @@
 
 import 'dart:math';
 
+import 'japan_suggestions.dart' show isTimeLocked;
 import 'types.dart';
 
 /// 'HH:mm' → gün başından dakika. Geçersiz/boş → -1.
@@ -128,12 +129,17 @@ List<TimelineItem> _sortByTimeStable(List<TimelineItem> items) {
 List<TimelineItem> optimizeDayItems(List<TimelineItem> items) {
   if (items.length <= 1) return items;
 
-  // Transport ve hotel kalemleri sabit (uçuş, check-in vb.) — kendi saatlerini tut.
+  // Sabit kalemler — kendi saatlerini tutar, yeniden dizilmez:
+  //  • transport / hotel (uçuş, check-in vb.)
+  //  • SAATLİ GİRİŞ aktiviteleri (teamLab, Disneyland, USJ) ve kullanıcının
+  //    elle kilitlediği öğeler. Bunların bileti belirli bir saate kesilir;
+  //    hava durumuna göre yeniden dizerken oynatmak bileti geçersiz kılar.
   final anchors = <TimelineItem>[];
   final flexible = <TimelineItem>[];
   for (final it in items) {
     if (it.kind == TimelineItemKind.transport ||
-        it.kind == TimelineItemKind.hotel) {
+        it.kind == TimelineItemKind.hotel ||
+        isTimeLocked(it)) {
       anchors.add(it);
     } else {
       flexible.add(it);
