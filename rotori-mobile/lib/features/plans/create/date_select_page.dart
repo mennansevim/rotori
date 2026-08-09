@@ -128,9 +128,11 @@ class DateSelectPage extends StatelessWidget {
             palette: palette,
             block: true,
             busy: generating,
+            // Bu artık son adım DEĞİL: tarihlerden sonra beslenme tercihi ve
+            // öğün bütçesi adımı geliyor. "Oluştur" demek yanıltıcı olurdu.
             label: generating
                 ? s.s('create.generating')
-                : '✨ ${s.s('create.generate')}',
+                : s.s('create.dates.continue'),
             onPressed: onGenerate,
           ),
         ),

@@ -26,6 +26,7 @@ Future<void> showEatsDetailSheet({
   required EatsContext eatsContext,
   required bool premium,
   required Future<void> Function() onUpsell,
+  Future<void> Function()? onEditPreferences,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -40,6 +41,7 @@ Future<void> showEatsDetailSheet({
         eatsContext: eatsContext,
         premium: premium,
         onUpsell: onUpsell,
+        onEditPreferences: onEditPreferences,
       ),
     ),
   );
@@ -53,6 +55,7 @@ class _EatsDetailSheet extends StatelessWidget {
     required this.eatsContext,
     required this.premium,
     required this.onUpsell,
+    this.onEditPreferences,
   });
 
   final ViewerPalette palette;
@@ -61,6 +64,10 @@ class _EatsDetailSheet extends StatelessWidget {
   final EatsContext eatsContext;
   final bool premium;
   final Future<void> Function() onUpsell;
+
+  /// Eksik skor girdilerini doldurma sheet'ini açar. Null ise "eksik" listesi
+  /// yine gösterilir ama doldurma butonu çıkmaz.
+  final Future<void> Function()? onEditPreferences;
 
   ViewerPalette get p => palette;
   EatsPlace get place => result.place;
@@ -440,29 +447,52 @@ class _EatsDetailSheet extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '${s.score}',
-                style: TextStyle(
-                  color: p.textPrimary,
-                  fontSize: 30,
-                  fontWeight: FontWeight.w900,
-                  height: 1,
+          // Diyet ve bütçenin ikisi de bilinmiyorsa ortada kişiselleştirilmiş
+          // bir şey yok — büyük bir sayı basmak yanıltıcı olur.
+          if (s.isPersonalized)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${s.score}',
+                  style: TextStyle(
+                    color: p.textPrimary,
+                    fontSize: 30,
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                  ),
                 ),
+                Text(
+                  ' / 100',
+                  style: TextStyle(color: p.textMuted, fontSize: 13),
+                ),
+                const SizedBox(width: 8),
+                if (s.knownCount < s.totalCount)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: Text(
+                      lang == AppLang.tr
+                          ? '${s.knownCount}/${s.totalCount} sinyal'
+                          : '${s.knownCount}/${s.totalCount} signals',
+                      style: TextStyle(color: p.textMuted, fontSize: 11),
+                    ),
+                  ),
+              ],
+            )
+          else
+            Text(
+              const LText(
+                'Henüz kişiselleştirilemiyor',
+                'Not personalised yet',
+              ).of(lang),
+              style: TextStyle(
+                color: p.textPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
               ),
-              Text(
-                ' / 100',
-                style: TextStyle(color: p.textMuted, fontSize: 13),
-              ),
-            ],
-          ),
+            ),
           const SizedBox(height: 10),
-          _scoreBar(const LText('Diyet uyumu', 'Diet fit'), s.diet, 35),
-          _scoreBar(const LText('Gezgin puanı', 'Traveller rating'), s.rating, 25),
-          _scoreBar(const LText('Bütçe uyumu', 'Budget fit'), s.budget, 20),
-          _scoreBar(const LText('Mesafe', 'Distance'), s.distance, 20),
+          for (final part in s.parts) _scoreBar(part),
           if (s.reasons.isNotEmpty) ...[
             const SizedBox(height: 8),
             for (final r in s.reasons)
@@ -474,12 +504,88 @@ class _EatsDetailSheet extends StatelessWidget {
                 ),
               ),
           ],
+          if (s.missingSignals.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _missingBlock(context, s),
+          ],
         ],
       ),
     );
   }
 
-  Widget _scoreBar(LText label, int value, int max) {
+  /// Eksik sinyalleri ve nasıl doldurulacağını gösterir. Skorun neden
+  /// zayıf olduğunu saklamak yerine kullanıcıya kontrolü verir.
+  Widget _missingBlock(BuildContext context, EatsScore s) {
+    final fillable = s.missingSignals
+        .where((sig) => sig == EatsSignal.diet || sig == EatsSignal.budget)
+        .toList(growable: false);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: p.card,
+        borderRadius: BorderRadius.circular(11),
+        border: Border.all(color: p.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            const LText(
+              'Skoru keskinleştirmek için eksik olanlar',
+              'Missing inputs that would sharpen this score',
+            ).of(lang),
+            style: TextStyle(
+              color: p.textPrimary,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          for (final sig in s.missingSignals)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                '· ${sig.label.of(lang)} — ${sig.missingHint.of(lang)}',
+                style: TextStyle(color: p.textSecondary, fontSize: 11.5),
+              ),
+            ),
+          if (fillable.isNotEmpty && onEditPreferences != null) ...[
+            const SizedBox(height: 9),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  onEditPreferences!();
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: p.accent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 9),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                icon: const Icon(Icons.tune_rounded, size: 15),
+                label: Text(
+                  const LText('Tercihlerimi gir', 'Set my preferences').of(lang),
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _scoreBar(EatsScorePart part) {
+    final known = part.known;
     return Padding(
       padding: const EdgeInsets.only(bottom: 7),
       child: Row(
@@ -487,15 +593,18 @@ class _EatsDetailSheet extends StatelessWidget {
           SizedBox(
             width: 96,
             child: Text(
-              label.of(lang),
-              style: TextStyle(color: p.textSecondary, fontSize: 11.5),
+              part.signal.label.of(lang),
+              style: TextStyle(
+                color: known ? p.textSecondary : p.textMuted,
+                fontSize: 11.5,
+              ),
             ),
           ),
           Expanded(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(999),
               child: LinearProgressIndicator(
-                value: max == 0 ? 0 : (value / max).clamp(0.0, 1.0),
+                value: known ? (part.value / part.max).clamp(0.0, 1.0) : 0,
                 minHeight: 6,
                 backgroundColor: p.border,
                 valueColor: AlwaysStoppedAnimation(p.accent),
@@ -503,12 +612,19 @@ class _EatsDetailSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Text(
-            '$value',
-            style: TextStyle(
-              color: p.textPrimary,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
+          SizedBox(
+            width: 46,
+            child: Text(
+              known
+                  ? '${part.value}'
+                  : const LText('eksik', 'missing').of(lang),
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: known ? p.textPrimary : p.textMuted,
+                fontSize: 11.5,
+                fontWeight: known ? FontWeight.w700 : FontWeight.w500,
+                fontStyle: known ? FontStyle.normal : FontStyle.italic,
+              ),
             ),
           ),
         ],

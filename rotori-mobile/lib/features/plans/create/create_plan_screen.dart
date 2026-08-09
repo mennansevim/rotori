@@ -22,6 +22,7 @@ import '../../../domain/route_sanity.dart';
 import '../../viewer/viewer_theme.dart';
 import '../plan_providers.dart';
 import 'city_select_page.dart';
+import 'preferences_page.dart';
 import 'create_plan_widgets.dart';
 import 'date_select_page.dart';
 
@@ -49,6 +50,13 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
   /// şehirKey → gün. Kullanıcı stepper'la değiştirdiyse dolu; boşsa önerilen
   /// (içerik ağırlıklı) dağılım kullanılır. Toplamı DAİMA gün sayısına eşittir.
   Map<String, int> _dayOverrides = const {};
+
+  /// 3. adım — beslenme tercihleri. İSTEĞE BAĞLI; boş kalırsa Rotori uyum
+  /// skoru bu bileşeni "eksik" gösterir, nötr puanla doldurmaz.
+  final List<String> _dietTags = [];
+
+  /// 3. adım — kişi başı öğün bütçesi (JPY). null = belirtilmedi.
+  int? _mealBudgetJpy;
 
   @override
   void dispose() {
@@ -223,6 +231,16 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
       dayOverrides: _dayOverrides.isEmpty ? null : _dayOverrides,
     );
 
+    // 3. adımda toplanan tercihler. buildTripFromCities bunları parametre
+    // olarak almıyor; üretimden sonra yazmak hem imzayı büyütmemeyi hem de
+    // "boş bırakılırsa hiç yazma" davranışını korumayı sağlıyor.
+    if (_dietTags.isNotEmpty) {
+      trip.preferences.dietaryTags = List<String>.from(_dietTags);
+    }
+    if (_mealBudgetJpy != null) {
+      trip.preferences.mealBudgetJpyPerPerson = _mealBudgetJpy;
+    }
+
     // Repo yokken (önizleme/oturumsuz) viewer planı buradan okur.
     ref.read(draftTripProvider.notifier).state = trip;
 
@@ -280,16 +298,20 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
               BrandHero(
                 palette: palette,
                 step: _page,
-                totalSteps: 2,
+                totalSteps: 3,
                 onBack: _back,
-                title: onFirstPage
-                    ? s.s('create.cities.title')
-                    : s.s('create.dates.title'),
-                subtitle: onFirstPage
-                    ? s.s('create.cities.sub')
-                    : (_selected.isEmpty
-                        ? s.s('create.dates.sub')
-                        : _routeSummary()),
+                title: switch (_page) {
+                  0 => s.s('create.cities.title'),
+                  1 => s.s('create.dates.title'),
+                  _ => s.s('create.prefs.title'),
+                },
+                subtitle: switch (_page) {
+                  0 => s.s('create.cities.sub'),
+                  1 => (_selected.isEmpty
+                      ? s.s('create.dates.sub')
+                      : _routeSummary()),
+                  _ => s.s('create.prefs.sub'),
+                },
               ),
               Expanded(
                 child: PageView(
@@ -322,11 +344,26 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                       onPickRange: _pickRange,
                       onUnknownDates: _useSuggestedDates,
                       onEditCities: () => _goToPage(0),
-                      onGenerate: _canGenerate ? _generate : null,
+                      // Artık son adım değil — tercihler adımına geçirir.
+                      onGenerate: _canGenerate ? () => _goToPage(2) : null,
                       onAdjustDays: _adjustDays,
                       routeSanity: checkRouteOrder(_selected),
                       selectedKeys: List<String>.from(_selected),
                       onFixRoute: _applyRouteOrder,
+                    ),
+                    PreferencesPage(
+                      palette: palette,
+                      dietTags: _dietTags,
+                      mealBudgetJpy: _mealBudgetJpy,
+                      onToggleTag: (id) => setState(() {
+                        _dietTags.contains(id)
+                            ? _dietTags.remove(id)
+                            : _dietTags.add(id);
+                      }),
+                      onPickBudget: (jpy) =>
+                          setState(() => _mealBudgetJpy = jpy),
+                      generating: _generating,
+                      onGenerate: _canGenerate ? _generate : null,
                     ),
                   ],
                 ),

@@ -31,6 +31,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/l10n.dart';
 import '../../data/google_maps_launcher.dart';
 import '../../data/language_store.dart';
+import '../../data/plans_repository.dart';
 import '../../data/unit_cost_table_store.dart';
 import '../../domain/cost_estimate.dart';
 import '../../domain/dietary.dart';
@@ -46,6 +47,7 @@ import 'eats_location.dart';
 import 'viewer_theme.dart';
 import 'widgets/eats_detail_sheet.dart';
 import 'widgets/eats_filter_sheet.dart';
+import 'widgets/eats_preferences_sheet.dart';
 
 class EatsScreen extends ConsumerStatefulWidget {
   const EatsScreen({super.key, required this.trip});
@@ -197,7 +199,44 @@ class _EatsScreenState extends ConsumerState<EatsScreen> {
       eatsContext: ctx,
       premium: premium,
       onUpsell: () => _openPaywall(palette, lang),
+      onEditPreferences: () => _openPreferences(palette, lang),
     );
+  }
+
+  /// Beslenme tercihi + öğün bütçesi toplama. Sonuç doğrudan
+  /// `trip.preferences`'a yazılır ve kalıcılaştırılır; skor bir sonraki
+  /// karede gerçek girdilerle hesaplanır.
+  Future<void> _openPreferences(ViewerPalette palette, AppLang lang) async {
+    final prefs = widget.trip.preferences;
+    final result = await showEatsPreferencesSheet(
+      context: context,
+      palette: palette,
+      lang: lang,
+      initialTags: prefs.dietaryTags,
+      initialBudgetJpy: prefs.mealBudgetJpyPerPerson,
+    );
+    if (result == null || !mounted) return;
+
+    setState(() {
+      prefs
+        ..dietaryTags = result.dietaryTags
+        ..mealBudgetJpyPerPerson = result.mealBudgetJpy;
+      // Yeni diyet tercihi filtreyi de tazelesin — kullanıcı helal seçtiyse
+      // listenin hemen helale daralmasını bekler.
+      _query = _seedQuery(widget.trip).copyWith(text: _query.text);
+    });
+
+    // Kalıcılaştırma en iyi çabadır ve ASLA seçimi geri almaz.
+    //
+    // plansRepositoryProvider'ın kendisi Supabase'e uzanır; önizlemede ve
+    // testlerde `Supabase.instance` başlatılmadığı için provider okuması bile
+    // fırlatabiliyor. Bu yüzden okuma da yazma da aynı try içinde.
+    try {
+      await ref.read(plansRepositoryProvider)?.save(widget.trip);
+    } catch (_) {
+      // Kalıcı yazılamasa da oturum içi seçim geçerli kalır; save() içindeki
+      // saveLocal zaten denendiyse sunucu push'u syncDirty ile telafi edilir.
+    }
   }
 
   Future<void> _openNowPicks(
@@ -323,6 +362,19 @@ class _EatsScreenState extends ConsumerState<EatsScreen> {
                           ? () => _openNowPicks(palette, lang, ctx)
                           : () => _openPaywall(palette, lang),
                     ),
+                    // Diyet/bütçe hiç girilmemişse skorlar kişiselleştirilemez.
+                    // Bunu sessizce nötr puanla kapatmak yerine söylüyoruz.
+                    if (ctx.dietTags.isEmpty || (ctx.mealBudgetJpy ?? 0) <= 0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: _PersonalizePrompt(
+                          palette: palette,
+                          lang: lang,
+                          missingDiet: ctx.dietTags.isEmpty,
+                          missingBudget: (ctx.mealBudgetJpy ?? 0) <= 0,
+                          onTap: () => _openPreferences(palette, lang),
+                        ),
+                      ),
                     const SizedBox(height: 12),
                     _ProximityRow(
                       palette: palette,
@@ -424,6 +476,7 @@ class _EatsScreenState extends ConsumerState<EatsScreen> {
                       trip: widget.trip,
                       palette: palette,
                       lang: lang,
+                      onEdit: () => _openPreferences(palette, lang),
                     ),
                     const SizedBox(height: 14),
                     _DataNote(palette: palette, lang: lang),
@@ -2157,16 +2210,103 @@ class _BudgetQuickCard extends StatelessWidget {
   }
 }
 
+/// Skorun kişiselleştirilemediğini söyleyen ve girdi toplayan çağrı.
+///
+/// Uygulama beslenme tercihini ve öğün bütçesini hiç sormuyordu; skor bu
+/// yüzden herkeste aynı nötr sayıyı üretiyordu. Bunu gizlemek yerine
+/// kullanıcıya söyleyip doldurma yolunu veriyoruz.
+class _PersonalizePrompt extends StatelessWidget {
+  const _PersonalizePrompt({
+    required this.palette,
+    required this.lang,
+    required this.missingDiet,
+    required this.missingBudget,
+    required this.onTap,
+  });
+
+  final ViewerPalette palette;
+  final AppLang lang;
+  final bool missingDiet;
+  final bool missingBudget;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    final what = <String>[
+      if (missingDiet)
+        const LText('beslenme tercihin', 'your dietary needs').of(lang),
+      if (missingBudget)
+        const LText('öğün bütçen', 'your meal budget').of(lang),
+    ].join(lang == AppLang.tr ? ' ve ' : ' and ');
+
+    return Material(
+      color: p.gold.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(13),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: p.gold.withValues(alpha: 0.45)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.tune_rounded, size: 19, color: p.gold),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      const LText(
+                        'Öneriler henüz sana göre değil',
+                        'Recommendations are not yours yet',
+                      ).of(lang),
+                      style: TextStyle(
+                        color: p.textPrimary,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      lang == AppLang.tr
+                          ? '$what bilinmiyor. Gir, sıralama ve skor sana göre çalışsın.'
+                          : 'I don\'t know $what. Set them and the ranking becomes yours.',
+                      style: TextStyle(
+                        color: p.textSecondary,
+                        fontSize: 12,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              Icon(Icons.chevron_right_rounded, size: 20, color: p.textMuted),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _DietaryCard extends StatelessWidget {
   const _DietaryCard({
     required this.trip,
     required this.palette,
     required this.lang,
+    required this.onEdit,
   });
 
   final Trip trip;
   final ViewerPalette palette;
   final AppLang lang;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -2176,6 +2316,7 @@ class _DietaryCard extends StatelessWidget {
     final options = dietaryForCountry('JP')
         .where((option) => tagSet.contains(option.id))
         .toList(growable: false);
+    final budget = trip.preferences.mealBudgetJpyPerPerson;
 
     return Container(
       width: double.infinity,
@@ -2188,27 +2329,48 @@ class _DietaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            const LText(
-              'Aktif Beslenme Tercihlerin',
-              'Your Active Dietary Preferences',
-            ).of(lang),
-            style: TextStyle(
-              color: p.textPrimary,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  const LText(
+                    'Aktif Beslenme Tercihlerin',
+                    'Your Active Dietary Preferences',
+                  ).of(lang),
+                  style: TextStyle(
+                    color: p.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: onEdit,
+                style: TextButton.styleFrom(
+                  minimumSize: Size.zero,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(
+                  const LText('Düzenle', 'Edit').of(lang),
+                  style: TextStyle(
+                    color: p.accent,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           if (options.isEmpty)
             Text(
               const LText(
                 'Özel bir beslenme tercihi seçili değil — liste tüm mekanları '
-                'gösteriyor. Üstteki Filtre butonundan helal güvenini veya '
-                'vejetaryen seviyesini seçebilirsin.',
-                'No dietary preference is set — the list shows every place. Use '
-                'the Filter button above to pick a halal trust level or a '
-                'vegetarian level.',
+                'gösteriyor ve skor bu bileşeni "eksik" sayıyor. "Düzenle" ile '
+                'tercihini gir.',
+                'No dietary preference is set — the list shows every place and '
+                'the score counts this input as missing. Tap "Edit" to set it.',
               ).of(lang),
               style: TextStyle(
                 color: p.textSecondary,
@@ -2245,11 +2407,19 @@ class _DietaryCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              const LText(
-                'Bu tercihler filtreyi ve Rotori uyum skorunu otomatik besliyor.',
-                'These preferences automatically drive the filter and the Rotori score.',
-              ).of(lang),
-              style: TextStyle(color: p.textMuted, fontSize: 11.5),
+              budget != null && budget > 0
+                  ? (lang == AppLang.tr
+                      ? 'Bu tercihler ve ${formatJpy(budget)} öğün bütçen '
+                          'filtreyi ve Rotori uyum skorunu besliyor.'
+                      : 'These preferences and your ${formatJpy(budget)} meal '
+                          'budget drive the filter and the Rotori score.')
+                  : const LText(
+                      'Bu tercihler skoru besliyor. Öğün bütçen henüz girilmedi '
+                          '— o bileşen "eksik" sayılıyor.',
+                      'These preferences drive the score. Your meal budget is '
+                          'not set yet — that input counts as missing.',
+                    ).of(lang),
+              style: TextStyle(color: p.textMuted, fontSize: 11.5, height: 1.35),
             ),
           ],
         ],

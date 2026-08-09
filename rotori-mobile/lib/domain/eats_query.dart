@@ -333,29 +333,107 @@ int _compare(EatsResult a, EatsResult b, EatsSort sort) {
   }
 }
 
+/// Skoru oluşturan sinyaller. Her biri BİLİNİYOR ya da BİLİNMİYOR olabilir.
+enum EatsSignal { diet, rating, budget, distance }
+
+extension EatsSignalX on EatsSignal {
+  LText get label => switch (this) {
+        EatsSignal.diet => const LText('Diyet uyumu', 'Diet fit'),
+        EatsSignal.rating =>
+          const LText('Gezgin puanı', 'Traveller rating'),
+        EatsSignal.budget => const LText('Bütçe uyumu', 'Budget fit'),
+        EatsSignal.distance => const LText('Mesafe', 'Distance'),
+      };
+
+  /// Sinyal bilinmiyorken kullanıcıya NE yapması gerektiğini söyler.
+  LText get missingHint => switch (this) {
+        EatsSignal.diet => const LText(
+            'Beslenme tercihini seç',
+            'Pick your dietary preference',
+          ),
+        EatsSignal.rating => const LText('—', '—'),
+        EatsSignal.budget => const LText(
+            'Öğün bütçeni gir',
+            'Set your meal budget',
+          ),
+        EatsSignal.distance => const LText(
+            'Konumu aç',
+            'Turn on location',
+          ),
+      };
+
+  /// Bu sinyalin skordaki ağırlığı (bilindiğinde).
+  int get weight => switch (this) {
+        EatsSignal.diet => 35,
+        EatsSignal.rating => 25,
+        EatsSignal.budget => 20,
+        EatsSignal.distance => 20,
+      };
+}
+
+/// Tek bir skor bileşeni.
+class EatsScorePart {
+  const EatsScorePart({
+    required this.signal,
+    required this.value,
+    required this.known,
+  });
+
+  final EatsSignal signal;
+
+  /// 0..[signal.weight]. [known] false ise anlamsızdır (0).
+  final int value;
+
+  /// Girdi kullanıcıdan alınmış mı? False ise bu bileşen skora GİRMEZ.
+  final bool known;
+
+  int get max => signal.weight;
+}
+
 /// Skor kırılımı — premium detay sheet'i bunu satır satır gösterir.
+///
+/// **Neden "known" bayrağı var:** İlk sürümde bilinmeyen bileşenlere nötr puan
+/// (diyet 22, bütçe 12, mesafe 12) veriliyordu. Sonuç, hiçbir tercih
+/// girilmemiş bir gezide bile kendinden emin görünen bir "65/100"du — oysa
+/// 65'in 46'sı tamamen uydurmaydı. Uygulama beslenme tercihini ve öğün
+/// bütçesini HİÇBİR YERDE sormuyordu; dolayısıyla bu her kullanıcıda böyleydi.
+/// Artık bilinmeyen bileşen skora katılmaz ve arayüzde "eksik" olarak,
+/// doldurma çağrısıyla birlikte gösterilir.
 class EatsScore {
   const EatsScore({
     required this.score,
-    required this.diet,
-    required this.rating,
-    required this.budget,
-    required this.distance,
+    required this.parts,
     required this.reasons,
   });
 
+  /// 0–100, YALNIZCA bilinen sinyaller üzerinden normalize edilmiş.
   final int score;
-  final int diet;
-  final int rating;
-  final int budget;
-  final int distance;
+
+  final List<EatsScorePart> parts;
   final List<LText> reasons;
+
+  Iterable<EatsScorePart> get knownParts => parts.where((p) => p.known);
+
+  List<EatsSignal> get missingSignals =>
+      parts.where((p) => !p.known).map((p) => p.signal).toList(growable: false);
+
+  int get knownCount => knownParts.length;
+  int get totalCount => parts.length;
+
+  /// Kişiselleştirmenin temeli: diyet ya da bütçe. İkisi de yoksa skor
+  /// yalnızca herkese aynı gelen puandan ibarettir — sayı olarak gösterilmez.
+  bool get isPersonalized => parts.any(
+        (p) =>
+            p.known &&
+            (p.signal == EatsSignal.diet || p.signal == EatsSignal.budget),
+      );
 }
 
-/// Rotori uyum skoru: diyet (35) + puan (25) + bütçe (20) + mesafe (20).
+/// Rotori uyum skoru.
 ///
-/// Bilinmeyen bileşenler NÖTR puanlanır (sıfır değil) — konumu kapalı bir
-/// kullanıcı, konumu açık olana göre topluca cezalandırılmasın.
+/// Ağırlıklar: diyet 35, puan 25, bütçe 20, mesafe 20. Bir sinyal
+/// bilinmiyorsa hem paydan hem paydadan DÜŞER — nötr puanla doldurulmaz.
+/// Böylece "bilmiyorum" ile "orta düzeyde uyuyor" karışmaz.
 EatsScore scoreEatsPlace(
   EatsPlace p, {
   EatsContext context = const EatsContext(),
@@ -363,98 +441,120 @@ EatsScore scoreEatsPlace(
 }) {
   final reasons = <LText>[];
 
-  // --- Diyet uyumu (0–35) --------------------------------------------------
-  int diet;
-  if (context.wantsHalal) {
-    diet = switch (p.halal) {
-      HalalTrust.certified => 35,
-      HalalTrust.muslimFriendly => 26,
-      HalalTrust.porkFreeOption => 12,
-      HalalTrust.none => 0,
-    };
-    if (p.halal == HalalTrust.certified) {
-      reasons.add(const LText(
-        'Helal sertifikalı — tercihinle tam uyumlu',
-        'Halal certified — a perfect match for your preference',
-      ));
+  // --- Diyet uyumu ---------------------------------------------------------
+  final dietKnown = context.dietTags.isNotEmpty;
+  var diet = 0;
+  if (dietKnown) {
+    if (context.wantsHalal) {
+      diet = switch (p.halal) {
+        HalalTrust.certified => 35,
+        HalalTrust.muslimFriendly => 26,
+        HalalTrust.porkFreeOption => 12,
+        HalalTrust.none => 0,
+      };
+      if (p.halal == HalalTrust.certified) {
+        reasons.add(const LText(
+          'Helal sertifikalı — tercihinle tam uyumlu',
+          'Halal certified — a perfect match for your preference',
+        ));
+      }
+    } else if (context.wantsVegan) {
+      diet = switch (p.veggie) {
+        VeggieLevel.veganMenu => 35,
+        VeggieLevel.vegetarianMenu => 18,
+        VeggieLevel.veggieOption => 10,
+        VeggieLevel.none => 0,
+      };
+      if (p.veggie == VeggieLevel.veganMenu) {
+        reasons.add(const LText(
+          'Tam vegan mutfak — dashi riski yok',
+          'Fully vegan kitchen — no hidden dashi',
+        ));
+      }
+    } else if (context.wantsVegetarian) {
+      diet = switch (p.veggie) {
+        VeggieLevel.veganMenu || VeggieLevel.vegetarianMenu => 33,
+        VeggieLevel.veggieOption => 20,
+        VeggieLevel.none => 0,
+      };
+    } else if (context.wantsPorkFree) {
+      diet = p.halal.weight >= HalalTrust.porkFreeOption.weight ? 30 : 8;
+    } else {
+      // Etiket var ama Eats verisiyle eşleşmiyor (ör. yalnızca 'gluten_free').
+      // Bu bir bilgi eksikliği değil; kısıt bu veri setinde ayrıştırılamıyor.
+      diet = 22;
     }
-  } else if (context.wantsVegan) {
-    diet = switch (p.veggie) {
-      VeggieLevel.veganMenu => 35,
-      VeggieLevel.vegetarianMenu => 18,
-      VeggieLevel.veggieOption => 10,
-      VeggieLevel.none => 0,
-    };
-    if (p.veggie == VeggieLevel.veganMenu) {
-      reasons.add(const LText(
-        'Tam vegan mutfak — dashi riski yok',
-        'Fully vegan kitchen — no hidden dashi',
-      ));
-    }
-  } else if (context.wantsVegetarian) {
-    diet = switch (p.veggie) {
-      VeggieLevel.veganMenu || VeggieLevel.vegetarianMenu => 33,
-      VeggieLevel.veggieOption => 20,
-      VeggieLevel.none => 0,
-    };
-  } else if (context.wantsPorkFree) {
-    diet = p.halal.weight >= HalalTrust.porkFreeOption.weight ? 30 : 8;
-  } else {
-    diet = 22; // kısıt yok — nötr
   }
 
-  // --- Puan (0–25) ---------------------------------------------------------
+  // --- Puan (her zaman bilinir) --------------------------------------------
   final ratingPart = (((p.rating - 3.0) / 2.0).clamp(0.0, 1.0) * 25).round();
   if (p.rating >= 4.4) {
     reasons.add(const LText('Gezgin puanı yüksek', 'Highly rated by travellers'));
   }
 
-  // --- Bütçe uyumu (0–20) --------------------------------------------------
-  int budget;
+  // --- Bütçe uyumu ---------------------------------------------------------
   final b = context.mealBudgetJpy;
-  if (b == null || b <= 0) {
-    budget = 12;
-  } else if (p.priceMaxJpy <= b) {
-    budget = 20;
-    reasons.add(LText(
-      'Öğün bütçenin (¥$b) tamamen içinde',
-      'Fully within your ¥$b meal budget',
-    ));
-  } else if (p.priceMinJpy <= b) {
-    budget = 14;
-  } else {
-    final over = (p.priceMinJpy - b) / b;
-    budget = (10 - (over * 12)).clamp(0, 10).round();
+  final budgetKnown = b != null && b > 0;
+  var budget = 0;
+  if (budgetKnown) {
+    if (p.priceMaxJpy <= b) {
+      budget = 20;
+      reasons.add(LText(
+        'Öğün bütçenin (¥$b) tamamen içinde',
+        'Fully within your ¥$b meal budget',
+      ));
+    } else if (p.priceMinJpy <= b) {
+      budget = 14;
+    } else {
+      final over = (p.priceMinJpy - b) / b;
+      budget = (10 - (over * 12)).clamp(0, 10).round();
+    }
   }
 
-  // --- Mesafe (0–20) -------------------------------------------------------
-  int distance;
-  if (distanceKm == null) {
-    distance = 12;
-  } else if (distanceKm <= 0.4) {
-    distance = 20;
-    reasons.add(const LText('Yürüme mesafesinde', 'Within a short walk'));
-  } else if (distanceKm <= 1.0) {
-    distance = 17;
-    reasons.add(const LText('Yürüme mesafesinde', 'Within a short walk'));
-  } else if (distanceKm <= 2.5) {
-    distance = 13;
-  } else if (distanceKm <= 6) {
-    distance = 8;
-  } else if (distanceKm <= 12) {
-    distance = 3;
-  } else {
-    distance = 0;
+  // --- Mesafe --------------------------------------------------------------
+  final distanceKnown = distanceKm != null;
+  var distance = 0;
+  if (distanceKnown) {
+    if (distanceKm <= 0.4) {
+      distance = 20;
+      reasons.add(const LText('Yürüme mesafesinde', 'Within a short walk'));
+    } else if (distanceKm <= 1.0) {
+      distance = 17;
+      reasons.add(const LText('Yürüme mesafesinde', 'Within a short walk'));
+    } else if (distanceKm <= 2.5) {
+      distance = 13;
+    } else if (distanceKm <= 6) {
+      distance = 8;
+    } else if (distanceKm <= 12) {
+      distance = 3;
+    }
   }
 
-  // --- Bağlam bonusları (gerekçe metnine yansır, skora küçük katkı) --------
-  var total = diet + ratingPart + budget + distance;
+  final parts = <EatsScorePart>[
+    EatsScorePart(signal: EatsSignal.diet, value: diet, known: dietKnown),
+    EatsScorePart(signal: EatsSignal.rating, value: ratingPart, known: true),
+    EatsScorePart(signal: EatsSignal.budget, value: budget, known: budgetKnown),
+    EatsScorePart(
+      signal: EatsSignal.distance,
+      value: distance,
+      known: distanceKnown,
+    ),
+  ];
+
+  // Yalnızca bilinen sinyaller üzerinden normalize et.
+  var earned = 0;
+  var possible = 0;
+  for (final part in parts) {
+    if (!part.known) continue;
+    earned += part.value;
+    possible += part.max;
+  }
+
+  // Bağlam bonusları — gerekçeye yansır, küçük katkı verir.
   if (context.partyHasKids && p.amenities.contains(EatsAmenity.kidFriendly)) {
-    total += 3;
+    earned += 3;
+    possible += 3;
     reasons.add(const LText('Çocuklu aile için uygun', 'Works with kids'));
-  }
-  if (context.nowSlot != null && p.slots.contains(context.nowSlot)) {
-    total += 2;
   }
   if (p.amenities.contains(EatsAmenity.cashOnly)) {
     reasons.add(const LText(
@@ -463,12 +563,11 @@ EatsScore scoreEatsPlace(
     ));
   }
 
+  final normalized = possible == 0 ? 0 : (earned / possible * 100).round();
+
   return EatsScore(
-    score: total.clamp(0, 100),
-    diet: diet,
-    rating: ratingPart,
-    budget: budget,
-    distance: distance,
+    score: normalized.clamp(0, 100),
+    parts: parts,
     reasons: reasons.take(3).toList(growable: false),
   );
 }
