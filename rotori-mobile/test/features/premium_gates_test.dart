@@ -9,7 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:japan_trip/domain/eats.dart';
+import 'package:japan_trip/domain/eats_query.dart';
 import 'package:japan_trip/features/plans/premium_provider.dart';
 import 'package:japan_trip/features/viewer/eats_screen.dart';
 import 'package:japan_trip/domain/plan_generation.dart';
@@ -72,7 +72,7 @@ void main() {
   });
 
   group('Rotori Eats listesi', () {
-    testWidgets('ücretsizde ilk $kEatsFreeLimit mekan + upsell kartı',
+    testWidgets('ücretsizde ilk $kEatsFreeVisibleLimit mekan + upsell kartı',
         (tester) async {
       SharedPreferences.setMockInitialValues({kPremiumPrefsKey: false});
       tester.view.physicalSize = const Size(390, 2400);

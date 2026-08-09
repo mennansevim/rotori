@@ -1,3 +1,30 @@
+// Rotori Eats — restoran keşif ekranı.
+//
+// ## Rakip konumlandırması (neden bu ekran böyle)
+//
+// Halal Navi / Halal Gourmet Japan → helal aramayı çözer, bütçe ve plan yok.
+// Tabelog                          → yerel kaliteyi çözer, diyet filtresi yok.
+// Google Maps                      → konum/saati çözer, puanı turist enflasyonlu.
+// HappyCow                         → diyeti çözer, Japonya pratiklerini bilmez.
+//
+// Hiçbiri kullanıcının PLANINI bilmiyor. Rotori biliyor: gezi tarihleri, öğün
+// bütçesi, beslenme etiketleri ve (izin verilirse) anlık konum. Bu ekranın tüm
+// tasarımı tek bir soruyu cevaplamak üzerine kurulu:
+//
+//     "Şu an, buradayken, bütçemle, yiyebildiklerimden — nereye gideyim?"
+//
+// ## Katman kararı
+//
+//   ÜCRETSİZ  → katalog + diyet/şehir/arama filtresi + puana göre sıralama +
+//               ilk [kEatsFreeVisibleLimit] sonuç + tüm güvenlik bilgisi
+//               (helal seviyesi, nakit uyarısı, sipariş frazları, harita).
+//   PASS      → sınırsız sonuç, Rotori Seçkisi kayıtları, "Şimdi ne yesem?",
+//               yakınımda/rotama yakın, mutfak-fiyat-puan-olanak filtreleri,
+//               Rotori uyum skoru ve bilenin ipuçları.
+//
+// Sınır bilinçli olarak "içerik" değil "karar zekası" üzerinden çekildi:
+// birinin yiyemeyeceği bir şeyi yemesini engelleyen bilgi paywall'a konmaz.
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,290 +35,143 @@ import '../../data/unit_cost_table_store.dart';
 import '../../domain/cost_estimate.dart';
 import '../../domain/dietary.dart';
 import '../../domain/eats.dart';
+import '../../domain/eats_query.dart';
+import '../../domain/geofence.dart' show LatLng;
 import '../../domain/localized_text.dart';
+import '../../domain/place_coords.dart';
 import '../../domain/types.dart';
-import 'budget_screen.dart';
 import '../plans/premium_provider.dart';
+import 'budget_screen.dart';
+import 'eats_location.dart';
 import 'viewer_theme.dart';
+import 'widgets/eats_detail_sheet.dart';
+import 'widgets/eats_filter_sheet.dart';
 
-class EatsScreen extends ConsumerWidget {
+class EatsScreen extends ConsumerStatefulWidget {
   const EatsScreen({super.key, required this.trip});
 
   final Trip trip;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final palette = ref.watch(viewerPaletteProvider);
-    final lang = ref.watch(appLangProvider);
-    final table =
-        ref.watch(unitCostTableProvider).valueOrNull ?? UnitCostTable.defaults();
-    return Theme(
-      data: palette.toThemeData(),
-      child: ViewerPaletteScope(
-        palette: palette,
-        child: _EatsView(
-          palette: palette,
-          lang: lang,
-          trip: trip,
-          table: table,
-        ),
-      ),
-    );
-  }
+  ConsumerState<EatsScreen> createState() => _EatsScreenState();
 }
 
-class _EatsView extends StatelessWidget {
-  const _EatsView({
-    required this.palette,
-    required this.lang,
-    required this.trip,
-    required this.table,
-  });
+class _EatsScreenState extends ConsumerState<EatsScreen> {
+  late EatsQuery _query = _seedQuery(widget.trip);
 
-  final ViewerPalette palette;
-  final AppLang lang;
-  final Trip trip;
-  final UnitCostTable table;
+  /// "Yakınımda" açıldı mı? Açılana kadar konum provider'ı hiç okunmaz —
+  /// kullanıcı istemeden izin diyaloğu çıkmaz.
+  bool _nearMe = false;
+
+  /// Konum yerine bugünkü rotanın merkezi kullanılsın mı?
+  bool _nearRoute = false;
+
+  final _searchController = TextEditingController();
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: palette.bg,
-      appBar: AppBar(
-        leading: const BackButton(),
-        title: Text(
-          const LText('Rotori Eats', 'Rotori Eats').of(lang),
-          style: TextStyle(
-            color: palette.textPrimary,
-            fontWeight: FontWeight.w700,
-            fontSize: 17,
-          ),
-        ),
-        backgroundColor: palette.card,
-        foregroundColor: palette.textPrimary,
-        elevation: 0,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
-        children: [
-          Text(
-            const LText(
-              'Damak tadına ve hassasiyetine göre restoranlar. '
-              'Fiyatlar yaklaşıktır. Yemek kültürü ve pratik ipuçları için '
-              '"Mutlaka Bilmeniz Gerekenler"e göz atın.',
-              'Restaurants for your taste and sensitivities. '
-              'Prices are approximate. For food culture and practical tips, '
-              'check "Must-Know Before You Go".',
-            ).of(lang),
-            style: TextStyle(color: palette.textSecondary, fontSize: 14),
-          ),
-          const SizedBox(height: 16),
-          _EatsSection(palette: palette, lang: lang),
-          const SizedBox(height: 16),
-          _BudgetQuickCard(palette: palette, lang: lang, table: table),
-          const SizedBox(height: 16),
-          _DietaryCard(trip: trip, palette: palette, lang: lang),
-        ],
-      ),
-    );
+  void initState() {
+    super.initState();
+    _searchController.text = _query.text;
   }
-}
-
-class _BudgetQuickCard extends StatelessWidget {
-  const _BudgetQuickCard({
-    required this.palette,
-    required this.lang,
-    required this.table,
-  });
-
-  final ViewerPalette palette;
-  final AppLang lang;
-  final UnitCostTable table;
 
   @override
-  Widget build(BuildContext context) {
-    final refByKey = {for (final item in table.references) item.key: item.jpy};
-    final ramen = refByKey['ramen'] ?? 1100;
-    final konbini = refByKey['konbini_meal'] ?? 700;
-    final sushi = refByKey['sushi_set'] ?? 2500;
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: palette.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: palette.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            const LText('Hızlı Bütçe Rehberi', 'Quick Budget Guide').of(lang),
-            style: TextStyle(
-              color: palette.textPrimary,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          _priceRow('🍜 Ramen', ramen, palette),
-          _priceRow('🏪 Konbini öğün', konbini, palette),
-          _priceRow('🍣 Suşi seti', sushi, palette),
-          const SizedBox(height: 8),
-          Text(
-            const LText(
-              'Yetişkin günlük yemek bandı: yaklaşık ¥3.500 – ¥9.000',
-              'Adult daily food band: around ¥3,500 – ¥9,000',
-            ).of(lang),
-            style: TextStyle(color: palette.textSecondary, fontSize: 12.5),
-          ),
-        ],
-      ),
+  /// Kullanıcının beslenme tercihlerinden akıllı başlangıç filtresi üretir.
+  /// Helal seçmiş biri uygulamayı açtığında ilk ekranda helal listeyi görür —
+  /// filtreyi elle kurmak zorunda kalmaz.
+  static EatsQuery _seedQuery(Trip trip) {
+    final tags = trip.preferences.dietaryTags.toSet();
+    if (tags.contains('halal')) {
+      return const EatsQuery(minHalal: HalalTrust.muslimFriendly);
+    }
+    if (tags.contains('vegan')) {
+      return const EatsQuery(minVeggie: VeggieLevel.veganMenu);
+    }
+    if (tags.contains('vegetarian')) {
+      return const EatsQuery(minVeggie: VeggieLevel.veggieOption);
+    }
+    if (tags.contains('no_pork')) {
+      return const EatsQuery(minHalal: HalalTrust.porkFreeOption);
+    }
+    return const EatsQuery();
+  }
+
+  // --- Bağlam --------------------------------------------------------------
+
+  /// Japonya yerel saati — "şu an hangi öğün" bunun üzerinden bulunur.
+  static DateTime _japanNow() =>
+      DateTime.now().toUtc().add(const Duration(hours: 9));
+
+  /// Bugünkü planın durak merkezi (konum izni yokken makul bir başlangıç).
+  LatLng? _routeCentroid() {
+    final today = _japanNow();
+    final iso = '${today.year.toString().padLeft(4, '0')}-'
+        '${today.month.toString().padLeft(2, '0')}-'
+        '${today.day.toString().padLeft(2, '0')}';
+    DayPlan? day;
+    for (final d in widget.trip.days) {
+      if (d.date == iso) {
+        day = d;
+        break;
+      }
+    }
+    day ??= widget.trip.days.isNotEmpty ? widget.trip.days.first : null;
+    if (day == null) return null;
+
+    final stops = resolveDayStops(day);
+    if (stops.isEmpty) return null;
+    var lat = 0.0, lng = 0.0;
+    for (final s in stops) {
+      lat += s.lat;
+      lng += s.lng;
+    }
+    return LatLng(lat / stops.length, lng / stops.length);
+  }
+
+  EatsContext _buildContext(LatLng? origin) {
+    final prefs = widget.trip.preferences;
+    return EatsContext(
+      origin: origin,
+      dietTags: prefs.dietaryTags.toSet(),
+      mealBudgetJpy: prefs.mealBudgetJpyPerPerson,
+      nowSlot: MealSlotX.forHour(_japanNow().hour),
+      partyHasKids: (prefs.childrenCount ?? 0) > 0,
     );
   }
 
-  Widget _priceRow(String label, int jpy, ViewerPalette p) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 5),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(color: p.textSecondary, fontSize: 13),
-            ),
-          ),
-          Text(
-            formatJpy(jpy),
-            style: TextStyle(
-              color: p.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+  // --- Aksiyonlar ----------------------------------------------------------
 
-/// Rotori Eats — küratörlü restoran listesi. Free katman: helal/vejetaryen
-/// filtresi + ilk [kEatsFreeLimit] sonuç. Kalanı premium (ayrı çalışma) ile
-/// açılacak; şimdilik "yakında" teaser'ı gösterilir.
-class _EatsSection extends ConsumerStatefulWidget {
-  const _EatsSection({required this.palette, required this.lang});
-
-  final ViewerPalette palette;
-  final AppLang lang;
-
-  @override
-  ConsumerState<_EatsSection> createState() => _EatsSectionState();
-}
-
-class _EatsSectionState extends ConsumerState<_EatsSection> {
-  EatsFilter _filter = EatsFilter.halal;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = widget.palette;
-    final lang = widget.lang;
-    // Premium açıksa liste kısıtlanmaz — tek kaynak: premiumProvider.
-    final premium = ref.watch(premiumProvider);
-    final all = filterEats(kEatsPlaces, _filter);
-    final shown = premium ? all : all.take(kEatsFreeLimit).toList();
-    final lockedForFilter = all.length - shown.length;
-    final totalLocked = premium
-        ? 0
-        : (kEatsPlaces.length > kEatsFreeLimit
-            ? kEatsPlaces.length - kEatsFreeLimit
-            : 0);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: palette.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: palette.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text('🍽️', style: TextStyle(fontSize: 18)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  const LText('Restoranlar', 'Restaurants').of(lang),
-                  style: TextStyle(
-                    color: palette.textPrimary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              _EatsFreeBadge(palette: palette, lang: lang),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            const LText(
-              'Damak tadına ve hassasiyetine göre seçilmiş mekanlar.',
-              'Places picked for your taste and sensitivities.',
-            ).of(lang),
-            style: TextStyle(color: palette.textSecondary, fontSize: 12.5),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final option in _filterOptions)
-                _EatsFilterChip(
-                  label: option.label.of(lang),
-                  active: _filter == option.filter,
-                  palette: palette,
-                  onTap: () => setState(() => _filter = option.filter),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (shown.isEmpty)
-            Text(
-              const LText(
-                'Bu filtreye uygun mekan bulunamadı.',
-                'No place matches this filter.',
-              ).of(lang),
-              style: TextStyle(color: palette.textSecondary, fontSize: 12.5),
-            )
-          else
-            for (var i = 0; i < shown.length; i++) ...[
-              if (i > 0) const SizedBox(height: 8),
-              _EatsCard(place: shown[i], palette: palette, lang: lang),
-            ],
-          if (!premium) ...[
-            const SizedBox(height: 10),
-            _EatsPremiumCard(
-              countForFilter: lockedForFilter > 0 ? lockedForFilter : null,
-              totalLocked: totalLocked,
-              palette: palette,
-              lang: lang,
-              onTap: () => _showEatsPaywall(context, palette, lang),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  void _showEatsPaywall(
-    BuildContext context,
+  Future<void> _openFilters(
     ViewerPalette palette,
     AppLang lang,
-  ) {
-    showModalBottomSheet<void>(
+    EatsContext ctx,
+    bool premium,
+  ) async {
+    final next = await showEatsFilterSheet(
+      context: context,
+      palette: palette,
+      lang: lang,
+      initial: _query,
+      eatsContext: ctx,
+      premium: premium,
+      places: kEatsPlaces,
+      locationReady: ctx.origin != null,
+      onUpsell: () => _openPaywall(palette, lang),
+    );
+    if (next != null && mounted) {
+      setState(() {
+        _query = next;
+        _searchController.text = next.text;
+      });
+    }
+  }
+
+  Future<void> _openPaywall(ViewerPalette palette, AppLang lang) {
+    return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -302,49 +182,255 @@ class _EatsSectionState extends ConsumerState<_EatsSection> {
     );
   }
 
-  static const _filterOptions = <({EatsFilter filter, LText label})>[
-    (filter: EatsFilter.halal, label: LText('🕌 Helal', '🕌 Halal')),
-    (filter: EatsFilter.vegetarian, label: LText('🥗 Vejetaryen', '🥗 Vegetarian')),
-    (filter: EatsFilter.all, label: LText('Hepsi', 'All')),
-  ];
-}
+  Future<void> _openDetail(
+    ViewerPalette palette,
+    AppLang lang,
+    EatsResult result,
+    EatsContext ctx,
+    bool premium,
+  ) {
+    return showEatsDetailSheet(
+      context: context,
+      palette: palette,
+      lang: lang,
+      result: result,
+      eatsContext: ctx,
+      premium: premium,
+      onUpsell: () => _openPaywall(palette, lang),
+    );
+  }
 
-class _EatsFilterChip extends StatelessWidget {
-  const _EatsFilterChip({
-    required this.label,
-    required this.active,
-    required this.palette,
-    required this.onTap,
-  });
+  Future<void> _openNowPicks(
+    ViewerPalette palette,
+    AppLang lang,
+    EatsContext ctx,
+  ) {
+    final picks = pickEatsNow(kEatsPlaces, context: ctx, base: _query);
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => ViewerPaletteScope(
+        palette: palette,
+        child: _NowPicksSheet(
+          palette: palette,
+          lang: lang,
+          picks: picks,
+          slot: ctx.nowSlot ?? MealSlot.lunch,
+          onPick: (r) {
+            Navigator.of(sheetContext).pop();
+            _openDetail(palette, lang, r, ctx, true);
+          },
+        ),
+      ),
+    );
+  }
 
-  final String label;
-  final bool active;
-  final ViewerPalette palette;
-  final VoidCallback onTap;
+  // --- Build ---------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: active ? palette.accent.withValues(alpha: 0.16) : palette.elevated,
-      borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(999),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: active ? palette.accent : palette.border,
+    final palette = ref.watch(viewerPaletteProvider);
+    final lang = ref.watch(appLangProvider);
+    final premium = ref.watch(premiumProvider);
+    final table =
+        ref.watch(unitCostTableProvider).valueOrNull ?? UnitCostTable.defaults();
+
+    // Konum yalnızca kullanıcı "Yakınımda"yı açtığında istenir.
+    LatLng? origin;
+    var locationPending = false;
+    var locationDenied = false;
+    if (_nearMe && premium) {
+      final async = ref.watch(eatsOriginProvider);
+      locationPending = async.isLoading;
+      final value = async.valueOrNull;
+      if (value != null) {
+        origin = value.point;
+        locationDenied = value.state != EatsLocationState.ok;
+      }
+    } else if (_nearRoute && premium) {
+      origin = _routeCentroid();
+    }
+
+    final ctx = _buildContext(origin);
+    final tier = premium ? EatsTier.premium : EatsTier.free;
+    final all = runEatsQuery(
+      kEatsPlaces,
+      query: _query,
+      context: ctx,
+      tier: tier,
+    );
+    final visible =
+        premium ? all : all.take(kEatsFreeVisibleLimit).toList(growable: false);
+    final hiddenByTier = all.length - visible.length;
+    final curatedLocked =
+        premium ? 0 : kEatsPlaces.where((p) => p.premiumOnly).length;
+
+    return Theme(
+      data: palette.toThemeData(),
+      child: ViewerPaletteScope(
+        palette: palette,
+        child: Scaffold(
+          backgroundColor: palette.bg,
+          appBar: AppBar(
+            leading: const BackButton(),
+            title: Text(
+              const LText('Rotori Eats', 'Rotori Eats').of(lang),
+              style: TextStyle(
+                color: palette.textPrimary,
+                fontWeight: FontWeight.w700,
+                fontSize: 17,
+              ),
             ),
+            backgroundColor: palette.card,
+            foregroundColor: palette.textPrimary,
+            elevation: 0,
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Center(
+                  child: _TierBadge(
+                    palette: palette,
+                    lang: lang,
+                    premium: premium,
+                    onTap: premium ? null : () => _openPaywall(palette, lang),
+                  ),
+                ),
+              ),
+            ],
           ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: active ? palette.textPrimary : palette.textSecondary,
-              fontSize: 12.5,
-              fontWeight: active ? FontWeight.w700 : FontWeight.w600,
-            ),
+          body: Column(
+            children: [
+              _SearchBar(
+                palette: palette,
+                lang: lang,
+                controller: _searchController,
+                activeCount: _query.activeCount,
+                onChanged: (v) =>
+                    setState(() => _query = _query.copyWith(text: v)),
+                onFilter: () => _openFilters(palette, lang, ctx, premium),
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
+                  children: [
+                    _NowCard(
+                      palette: palette,
+                      lang: lang,
+                      premium: premium,
+                      slot: ctx.nowSlot ?? MealSlot.lunch,
+                      onTap: premium
+                          ? () => _openNowPicks(palette, lang, ctx)
+                          : () => _openPaywall(palette, lang),
+                    ),
+                    const SizedBox(height: 12),
+                    _ProximityRow(
+                      palette: palette,
+                      lang: lang,
+                      premium: premium,
+                      nearMe: _nearMe,
+                      nearRoute: _nearRoute,
+                      pending: locationPending,
+                      denied: locationDenied,
+                      onNearMe: () {
+                        if (!premium) {
+                          _openPaywall(palette, lang);
+                          return;
+                        }
+                        setState(() {
+                          _nearMe = !_nearMe;
+                          if (_nearMe) _nearRoute = false;
+                        });
+                      },
+                      onNearRoute: () {
+                        if (!premium) {
+                          _openPaywall(palette, lang);
+                          return;
+                        }
+                        setState(() {
+                          _nearRoute = !_nearRoute;
+                          if (_nearRoute) _nearMe = false;
+                        });
+                      },
+                    ),
+                    if (_query.activeCount > 0) ...[
+                      const SizedBox(height: 12),
+                      _ActiveFilterRow(
+                        palette: palette,
+                        lang: lang,
+                        query: _query,
+                        onClear: () => setState(() {
+                          _query = const EatsQuery();
+                          _searchController.clear();
+                        }),
+                        onOpen: () => _openFilters(palette, lang, ctx, premium),
+                      ),
+                    ],
+                    const SizedBox(height: 14),
+                    _ResultHeader(
+                      palette: palette,
+                      lang: lang,
+                      total: all.length,
+                      shown: visible.length,
+                      sort: _query.sort,
+                    ),
+                    const SizedBox(height: 10),
+                    if (visible.isEmpty)
+                      _EmptyState(
+                        palette: palette,
+                        lang: lang,
+                        onReset: () => setState(() {
+                          _query = const EatsQuery();
+                          _searchController.clear();
+                        }),
+                      )
+                    else
+                      for (var i = 0; i < visible.length; i++) ...[
+                        if (i > 0) const SizedBox(height: 10),
+                        _EatsResultCard(
+                          result: visible[i],
+                          palette: palette,
+                          lang: lang,
+                          premium: premium,
+                          showScore: premium,
+                          onTap: () => _openDetail(
+                            palette,
+                            lang,
+                            visible[i],
+                            ctx,
+                            premium,
+                          ),
+                        ),
+                      ],
+                    if (!premium) ...[
+                      const SizedBox(height: 14),
+                      _EatsPremiumCard(
+                        hiddenByTier: hiddenByTier,
+                        curatedLocked: curatedLocked,
+                        palette: palette,
+                        lang: lang,
+                        onTap: () => _openPaywall(palette, lang),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    _BudgetQuickCard(
+                      palette: palette,
+                      lang: lang,
+                      table: table,
+                      mealBudget: widget.trip.preferences.mealBudgetJpyPerPerson,
+                    ),
+                    const SizedBox(height: 12),
+                    _DietaryCard(
+                      trip: widget.trip,
+                      palette: palette,
+                      lang: lang,
+                    ),
+                    const SizedBox(height: 14),
+                    _DataNote(palette: palette, lang: lang),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -352,135 +438,131 @@ class _EatsFilterChip extends StatelessWidget {
   }
 }
 
-class _EatsCard extends StatelessWidget {
-  const _EatsCard({
-    required this.place,
+// ---------------------------------------------------------------------------
+// Üst arama + filtre çubuğu
+// ---------------------------------------------------------------------------
+
+class _SearchBar extends StatelessWidget {
+  const _SearchBar({
     required this.palette,
     required this.lang,
+    required this.controller,
+    required this.activeCount,
+    required this.onChanged,
+    required this.onFilter,
   });
 
-  final EatsPlace place;
   final ViewerPalette palette;
   final AppLang lang;
+  final TextEditingController controller;
+  final int activeCount;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onFilter;
 
   @override
   Widget build(BuildContext context) {
+    final p = palette;
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
       decoration: BoxDecoration(
-        color: palette.elevated,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: palette.border),
+        color: p.card,
+        border: Border(bottom: BorderSide(color: p.border)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(place.categoryEmoji, style: const TextStyle(fontSize: 18)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          Expanded(
+            child: SizedBox(
+              height: 42,
+              child: TextField(
+                controller: controller,
+                onChanged: onChanged,
+                style: TextStyle(color: p.textPrimary, fontSize: 13.5),
+                decoration: InputDecoration(
+                  isDense: true,
+                  hintText: const LText(
+                    'Ramen, Asakusa, vegan…',
+                    'Ramen, Asakusa, vegan…',
+                  ).of(lang),
+                  hintStyle: TextStyle(color: p.textMuted, fontSize: 13),
+                  prefixIcon: Icon(
+                    Icons.search_rounded,
+                    size: 18,
+                    color: p.textSecondary,
+                  ),
+                  filled: true,
+                  fillColor: p.elevated,
+                  contentPadding: EdgeInsets.zero,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(11),
+                    borderSide: BorderSide(color: p.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(11),
+                    borderSide: BorderSide(color: p.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(11),
+                    borderSide: BorderSide(color: p.accent),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Material(
+            color: activeCount > 0 ? p.accent : p.elevated,
+            borderRadius: BorderRadius.circular(11),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(11),
+              onTap: onFilter,
+              child: Container(
+                height: 42,
+                padding: const EdgeInsets.symmetric(horizontal: 13),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(11),
+                  border: Border.all(
+                    color: activeCount > 0 ? p.accent : p.border,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    Icon(
+                      Icons.tune_rounded,
+                      size: 17,
+                      color: activeCount > 0 ? Colors.white : p.textPrimary,
+                    ),
+                    const SizedBox(width: 6),
                     Text(
-                      place.name,
+                      const LText('Filtre', 'Filter').of(lang),
                       style: TextStyle(
-                        color: palette.textPrimary,
-                        fontSize: 14,
+                        color: activeCount > 0 ? Colors.white : p.textPrimary,
+                        fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    Text(
-                      '${place.category.of(lang)} · ${place.city} · ${place.area}',
-                      style: TextStyle(
-                        color: palette.textSecondary,
-                        fontSize: 11.5,
+                    if (activeCount > 0) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        width: 18,
+                        height: 18,
+                        alignment: Alignment.center,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '$activeCount',
+                          style: TextStyle(
+                            color: p.accent,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
-              ),
-              const SizedBox(width: 8),
-              Row(
-                children: [
-                  Icon(Icons.star_rounded, size: 15, color: palette.gold),
-                  const SizedBox(width: 2),
-                  Text(
-                    place.rating.toStringAsFixed(1),
-                    style: TextStyle(
-                      color: palette.textPrimary,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            place.description.of(lang),
-            style: TextStyle(
-              color: palette.textSecondary,
-              fontSize: 12.5,
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 10),
-          // Rozetler dar ekranda alt satıra insin — sabit Row 390px'te
-          // 103px taşıyordu (iki rozet + fiyat yan yana sığmıyor).
-          Row(
-            children: [
-              Expanded(
-                child: Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    if (place.halal != HalalTrust.none)
-                      _EatsBadge(
-                        text: const LText('🕌 Helal', '🕌 Halal').of(lang),
-                        palette: palette,
-                      ),
-                    if (place.vegetarianFriendly)
-                      _EatsBadge(
-                        text:
-                            const LText('🥗 Vejetaryen', '🥗 Vegetarian')
-                                .of(lang),
-                        palette: palette,
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                place.priceBand,
-                style: TextStyle(
-                  color: palette.textPrimary,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => openGoogleMapsSearch(place.mapsQuery),
-              icon: const Icon(Icons.map_outlined, size: 16),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: palette.textPrimary,
-                side: BorderSide(color: palette.border),
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              label: Text(
-                const LText('Haritada aç', 'Open in Maps').of(lang),
-                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -490,54 +572,922 @@ class _EatsCard extends StatelessWidget {
   }
 }
 
-class _EatsBadge extends StatelessWidget {
-  const _EatsBadge({required this.text, required this.palette});
+// ---------------------------------------------------------------------------
+// "Şimdi ne yesem?" kartı — premium çekirdek
+// ---------------------------------------------------------------------------
 
-  final String text;
+class _NowCard extends StatelessWidget {
+  const _NowCard({
+    required this.palette,
+    required this.lang,
+    required this.premium,
+    required this.slot,
+    required this.onTap,
+  });
+
   final ViewerPalette palette;
+  final AppLang lang;
+  final bool premium;
+  final MealSlot slot;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: palette.matcha.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: palette.textPrimary,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
+    final p = palette;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: p.brandGradient,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: p.accent.withValues(alpha: 0.28),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Text(slot.emoji, style: const TextStyle(fontSize: 26)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            const LText(
+                              'Şimdi ne yesem?',
+                              'What should I eat now?',
+                            ).of(lang),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        if (!premium) ...[
+                          const SizedBox(width: 6),
+                          const Icon(
+                            Icons.lock_rounded,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      lang == AppLang.tr
+                          ? 'Konumun, saatin (${slot.label.tr.toLowerCase()}), '
+                              'bütçen ve diyetin birlikte — 3 net öneri.'
+                          : 'Your location, the time (${slot.label.en.toLowerCase()}), '
+                              'your budget and diet together — 3 clear picks.',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        fontSize: 12.5,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.arrow_forward_rounded,
+                size: 20,
+                color: Colors.white,
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// Free katman etiketi — kullanıcı sınırın “ücretsiz” kısmını net görür.
-class _EatsFreeBadge extends StatelessWidget {
-  const _EatsFreeBadge({required this.palette, required this.lang});
+// ---------------------------------------------------------------------------
+// Yakınlık satırı
+// ---------------------------------------------------------------------------
+
+class _ProximityRow extends StatelessWidget {
+  const _ProximityRow({
+    required this.palette,
+    required this.lang,
+    required this.premium,
+    required this.nearMe,
+    required this.nearRoute,
+    required this.pending,
+    required this.denied,
+    required this.onNearMe,
+    required this.onNearRoute,
+  });
 
   final ViewerPalette palette;
   final AppLang lang;
+  final bool premium;
+  final bool nearMe;
+  final bool nearRoute;
+  final bool pending;
+  final bool denied;
+  final VoidCallback onNearMe;
+  final VoidCallback onNearRoute;
 
   @override
   Widget build(BuildContext context) {
+    final p = palette;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _toggle(
+                emoji: '📍',
+                label: const LText('Yakınımda', 'Near me').of(lang),
+                active: nearMe,
+                locked: !premium,
+                busy: pending,
+                onTap: onNearMe,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _toggle(
+                emoji: '🗺️',
+                label: const LText('Rotama yakın', 'Near my route').of(lang),
+                active: nearRoute,
+                locked: !premium,
+                busy: false,
+                onTap: onNearRoute,
+              ),
+            ),
+          ],
+        ),
+        if (nearMe && denied)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              const LText(
+                'Konum alınamadı — cihaz ayarlarından izni aç, sonra tekrar dene.',
+                'Could not get your location — enable permission in settings and retry.',
+              ).of(lang),
+              style: TextStyle(color: p.sunset, fontSize: 11.5),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _toggle({
+    required String emoji,
+    required String label,
+    required bool active,
+    required bool locked,
+    required bool busy,
+    required VoidCallback onTap,
+  }) {
+    final p = palette;
+    return Material(
+      color: active ? p.accent.withValues(alpha: 0.16) : p.card,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: active ? p.accent : p.border),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (busy)
+                SizedBox(
+                  width: 13,
+                  height: 13,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation(p.accent),
+                  ),
+                )
+              else
+                Text(emoji, style: const TextStyle(fontSize: 13)),
+              const SizedBox(width: 7),
+              Flexible(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: active ? p.textPrimary : p.textSecondary,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              if (locked) ...[
+                const SizedBox(width: 5),
+                Icon(Icons.lock_rounded, size: 12, color: p.textMuted),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Aktif filtre özeti
+// ---------------------------------------------------------------------------
+
+class _ActiveFilterRow extends StatelessWidget {
+  const _ActiveFilterRow({
+    required this.palette,
+    required this.lang,
+    required this.query,
+    required this.onClear,
+    required this.onOpen,
+  });
+
+  final ViewerPalette palette;
+  final AppLang lang;
+  final EatsQuery query;
+  final VoidCallback onClear;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    final labels = <String>[
+      if (query.text.trim().isNotEmpty) '"${query.text.trim()}"',
+      if (query.minHalal != null)
+        '${query.minHalal!.emoji} ${query.minHalal!.label.of(lang)}',
+      if (query.minVeggie != null)
+        '${query.minVeggie!.emoji} ${query.minVeggie!.label.of(lang)}',
+      ...query.cities,
+      ...query.cuisines.map((c) => '${c.emoji} ${c.label.of(lang)}'),
+      ...query.priceTiers.map((t) => t.symbol),
+      if (query.minRating > 0) '⭐ ${query.minRating.toStringAsFixed(1)}+',
+      if (query.slot != null)
+        '${query.slot!.emoji} ${query.slot!.label.of(lang)}',
+      if (query.maxDistanceKm != null)
+        '≤ ${query.maxDistanceKm!.toStringAsFixed(0)} km',
+      ...query.requiredAmenities.map((a) => '${a.emoji} ${a.label.of(lang)}'),
+      ...query.avoidAmenities.map(
+        (a) => '${lang == AppLang.tr ? "yok" : "no"}: ${a.label.of(lang)}',
+      ),
+    ];
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final l in labels)
+                GestureDetector(
+                  onTap: onOpen,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: p.accent.withValues(alpha: 0.13),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: p.accent.withValues(alpha: 0.4)),
+                    ),
+                    child: Text(
+                      l,
+                      style: TextStyle(
+                        color: p.textPrimary,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        GestureDetector(
+          onTap: onClear,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              const LText('Temizle', 'Reset').of(lang),
+              style: TextStyle(
+                color: p.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ResultHeader extends StatelessWidget {
+  const _ResultHeader({
+    required this.palette,
+    required this.lang,
+    required this.total,
+    required this.shown,
+    required this.sort,
+  });
+
+  final ViewerPalette palette;
+  final AppLang lang;
+  final int total;
+  final int shown;
+  final EatsSort sort;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    final text = shown < total
+        ? (lang == AppLang.tr
+            ? '$total sonuçtan $shown tanesi'
+            : '$shown of $total results')
+        : (lang == AppLang.tr ? '$total sonuç' : '$total results');
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: p.textPrimary,
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        Icon(Icons.sort_rounded, size: 14, color: p.textMuted),
+        const SizedBox(width: 4),
+        Text(
+          sort.label.of(lang),
+          style: TextStyle(color: p.textSecondary, fontSize: 12),
+        ),
+      ],
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({
+    required this.palette,
+    required this.lang,
+    required this.onReset,
+  });
+
+  final ViewerPalette palette;
+  final AppLang lang;
+  final VoidCallback onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: p.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: p.border),
+      ),
+      child: Column(
+        children: [
+          const Text('🍱', style: TextStyle(fontSize: 30)),
+          const SizedBox(height: 8),
+          Text(
+            const LText(
+              'Bu kriterlere uyan mekan yok.',
+              'No place matches these criteria.',
+            ).of(lang),
+            style: TextStyle(
+              color: p.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            const LText(
+              'Bir iki filtreyi gevşetmeyi dene — özellikle mesafe ve fiyat.',
+              'Try relaxing a filter or two — distance and price especially.',
+            ).of(lang),
+            style: TextStyle(color: p.textSecondary, fontSize: 12.5),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton(
+            onPressed: onReset,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: p.textPrimary,
+              side: BorderSide(color: p.border),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: Text(
+              const LText('Filtreleri temizle', 'Clear filters').of(lang),
+              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sonuç kartı
+// ---------------------------------------------------------------------------
+
+class _EatsResultCard extends StatelessWidget {
+  const _EatsResultCard({
+    required this.result,
+    required this.palette,
+    required this.lang,
+    required this.premium,
+    required this.showScore,
+    required this.onTap,
+  });
+
+  final EatsResult result;
+  final ViewerPalette palette;
+  final AppLang lang;
+  final bool premium;
+  final bool showScore;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    final place = result.place;
+    return Material(
+      color: p.card,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(13),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: p.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(place.categoryEmoji, style: const TextStyle(fontSize: 20)),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                place.name,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: p.textPrimary,
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            if (place.premiumOnly) ...[
+                              const SizedBox(width: 6),
+                              _miniTag(
+                                '✦ ${const LText('Seçki', 'Curated').of(lang)}',
+                                p.gold,
+                                p,
+                              ),
+                            ],
+                          ],
+                        ),
+                        Text(
+                          '${place.category.of(lang)} · ${place.city} · ${place.area}',
+                          style: TextStyle(color: p.textSecondary, fontSize: 11.5),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.star_rounded, size: 15, color: p.gold),
+                          const SizedBox(width: 2),
+                          Text(
+                            place.rating.toStringAsFixed(1),
+                            style: TextStyle(
+                              color: p.textPrimary,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (showScore) ...[
+                        const SizedBox(height: 3),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: p.accent.withValues(alpha: 0.16),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '${result.score}',
+                            style: TextStyle(
+                              color: p.accent,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 9),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  if (place.halal != HalalTrust.none)
+                    _badge(
+                      '${place.halal.emoji} ${place.halal.label.of(lang)}',
+                      place.halal == HalalTrust.certified ? p.matcha : p.sky,
+                      p,
+                    ),
+                  if (place.veggie != VeggieLevel.none)
+                    _badge(
+                      '${place.veggie.emoji} ${place.veggie.label.of(lang)}',
+                      p.matcha,
+                      p,
+                    ),
+                  for (final a in place.amenities.where((a) => a.isCaution))
+                    _badge('${a.emoji} ${a.label.of(lang)}', p.sunset, p),
+                ],
+              ),
+              const SizedBox(height: 9),
+              Text(
+                '👉 ${place.signature.of(lang)}',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: p.textSecondary,
+                  fontSize: 12,
+                  height: 1.3,
+                ),
+              ),
+              const SizedBox(height: 9),
+              Row(
+                children: [
+                  Text(
+                    place.priceBand,
+                    style: TextStyle(
+                      color: p.textPrimary,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    place.priceTier.symbol,
+                    style: TextStyle(color: p.textMuted, fontSize: 11.5),
+                  ),
+                  if (result.distanceKm != null && premium) ...[
+                    const SizedBox(width: 10),
+                    Icon(
+                      Icons.directions_walk_rounded,
+                      size: 13,
+                      color: p.textSecondary,
+                    ),
+                    const SizedBox(width: 3),
+                    Flexible(
+                      child: Text(
+                        '${result.distanceKm!.toStringAsFixed(1)} km · '
+                        '${result.walkMinutes} ${lang == AppLang.tr ? "dk" : "min"}',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: p.textSecondary, fontSize: 11.5),
+                      ),
+                    ),
+                  ],
+                  const Spacer(),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: () => openGoogleMapsPoint(
+                      lat: place.lat,
+                      lng: place.lng,
+                      label: place.name,
+                    ),
+                    icon: Icon(Icons.map_outlined, size: 18, color: p.accent),
+                    tooltip: const LText('Haritada aç', 'Open in Maps').of(lang),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Widget _badge(String text, Color tone, ViewerPalette p) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: palette.matcha.withValues(alpha: 0.16),
+        color: tone.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: tone.withValues(alpha: 0.38)),
       ),
       child: Text(
-        const LText('Ücretsiz · ilk $kEatsFreeLimit', 'Free · first $kEatsFreeLimit')
-            .of(lang),
+        text,
         style: TextStyle(
-          color: palette.textPrimary,
+          color: p.textPrimary,
           fontSize: 10.5,
           fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  static Widget _miniTag(String text, Color tone, ViewerPalette p) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: tone.withValues(alpha: 0.20),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: p.textPrimary,
+          fontSize: 9.5,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// "Şimdi ne yesem?" sonuç sheet'i
+// ---------------------------------------------------------------------------
+
+class _NowPicksSheet extends StatelessWidget {
+  const _NowPicksSheet({
+    required this.palette,
+    required this.lang,
+    required this.picks,
+    required this.slot,
+    required this.onPick,
+  });
+
+  final ViewerPalette palette;
+  final AppLang lang;
+  final List<EatsResult> picks;
+  final MealSlot slot;
+  final ValueChanged<EatsResult> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    return Container(
+      decoration: BoxDecoration(
+        color: p.card,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+        border: Border.all(color: p.border),
+      ),
+      padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: p.border,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            '${slot.emoji} ${const LText('Şimdi buraya git', 'Go here now').of(lang)}',
+            style: TextStyle(
+              color: p.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            const LText(
+              'Diyetin, bütçen, saatin ve konumun birlikte değerlendirildi.',
+              'Your diet, budget, time of day and location were weighed together.',
+            ).of(lang),
+            style: TextStyle(color: p.textSecondary, fontSize: 12.5),
+          ),
+          const SizedBox(height: 14),
+          if (picks.isEmpty)
+            Text(
+              const LText(
+                'Şu anki filtrelerle öneri çıkmadı — filtreleri gevşet.',
+                'No pick with the current filters — try relaxing them.',
+              ).of(lang),
+              style: TextStyle(color: p.textSecondary, fontSize: 13),
+            )
+          else
+            for (var i = 0; i < picks.length; i++) ...[
+              if (i > 0) const SizedBox(height: 10),
+              _pickRow(i + 1, picks[i]),
+            ],
+        ],
+      ),
+    );
+  }
+
+  Widget _pickRow(int rank, EatsResult r) {
+    final p = palette;
+    return Material(
+      color: p.elevated,
+      borderRadius: BorderRadius.circular(13),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(13),
+        onTap: () => onPick(r),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(
+              color: rank == 1 ? p.accent.withValues(alpha: 0.6) : p.border,
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 26,
+                height: 26,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: rank == 1 ? p.accent : p.border,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '$rank',
+                  style: TextStyle(
+                    color: rank == 1 ? Colors.white : p.textPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${r.place.categoryEmoji} ${r.place.name}',
+                      style: TextStyle(
+                        color: p.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      '${r.place.area} · ${r.place.priceBand}'
+                      '${r.distanceKm != null ? ' · ${r.distanceKm!.toStringAsFixed(1)} km' : ''}',
+                      style: TextStyle(color: p.textSecondary, fontSize: 11.5),
+                    ),
+                    if (r.reasons.isNotEmpty) ...[
+                      const SizedBox(height: 5),
+                      for (final reason in r.reasons)
+                        Text(
+                          '· ${reason.of(lang)}',
+                          style: TextStyle(
+                            color: p.textSecondary,
+                            fontSize: 11.5,
+                          ),
+                        ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: p.accent.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                child: Text(
+                  '${r.score}',
+                  style: TextStyle(
+                    color: p.accent,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Katman rozeti + premium kart + paywall
+// ---------------------------------------------------------------------------
+
+class _TierBadge extends StatelessWidget {
+  const _TierBadge({
+    required this.palette,
+    required this.lang,
+    required this.premium,
+    this.onTap,
+  });
+
+  final ViewerPalette palette;
+  final AppLang lang;
+  final bool premium;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        decoration: BoxDecoration(
+          gradient: premium ? LinearGradient(colors: [p.accent, p.gold]) : null,
+          color: premium ? null : p.elevated,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: premium ? Colors.transparent : p.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              premium ? Icons.auto_awesome_rounded : Icons.lock_open_rounded,
+              size: 12,
+              color: premium ? Colors.white : p.textSecondary,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              premium
+                  ? const LText('Pass aktif', 'Pass active').of(lang)
+                  : const LText('Ücretsiz', 'Free').of(lang),
+              style: TextStyle(
+                color: premium ? Colors.white : p.textSecondary,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -546,13 +1496,15 @@ class _EatsFreeBadge extends StatelessWidget {
 
 /// Rotori Eats premium rozet/ikonu — kart ve paywall'da tutarlı vitrin dili.
 class _EatsPremiumLogo extends StatelessWidget {
-  const _EatsPremiumLogo({required this.palette, this.size = 58});
+  const _EatsPremiumLogo({required this.palette});
 
   final ViewerPalette palette;
-  final double size;
+
+  static const double size = 54;
 
   @override
   Widget build(BuildContext context) {
+    final p = palette;
     return SizedBox(
       width: size,
       height: size,
@@ -568,14 +1520,11 @@ class _EatsPremiumLogo extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  palette.accent,
-                  palette.gold,
-                ],
+                colors: [p.accent, p.gold],
               ),
               boxShadow: [
                 BoxShadow(
-                  color: palette.accent.withValues(alpha: 0.30),
+                  color: p.accent.withValues(alpha: 0.30),
                   blurRadius: 14,
                   offset: const Offset(0, 7),
                 ),
@@ -594,7 +1543,7 @@ class _EatsPremiumLogo extends StatelessWidget {
             child: Icon(
               Icons.ramen_dining_rounded,
               size: size * 0.36,
-              color: palette.accent,
+              color: p.accent,
             ),
           ),
           Positioned(
@@ -605,14 +1554,14 @@ class _EatsPremiumLogo extends StatelessWidget {
               height: size * 0.34,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: palette.textPrimary,
-                border: Border.all(color: palette.card, width: 1.5),
+                color: p.textPrimary,
+                border: Border.all(color: p.card, width: 1.5),
               ),
               alignment: Alignment.center,
               child: Icon(
                 Icons.auto_awesome_rounded,
                 size: size * 0.17,
-                color: palette.gold,
+                color: p.gold,
               ),
             ),
           ),
@@ -622,33 +1571,38 @@ class _EatsPremiumLogo extends StatelessWidget {
   }
 }
 
-/// Free limitin ötesi için premium upsell kartı — değer önerileri + CTA.
-/// Satın alma henüz bağlı değil; CTA paywall önizlemesini açar.
+/// Free limitin ötesi için premium upsell kartı.
 class _EatsPremiumCard extends StatelessWidget {
   const _EatsPremiumCard({
-    required this.countForFilter,
-    required this.totalLocked,
+    required this.hiddenByTier,
+    required this.curatedLocked,
     required this.palette,
     required this.lang,
     required this.onTap,
   });
 
-  final int? countForFilter;
-  final int totalLocked;
+  /// Bu sorguda ücretsiz katman yüzünden gizlenen sonuç sayısı.
+  final int hiddenByTier;
+
+  /// Yalnızca premium'da görünen "Rotori Seçkisi" kayıt sayısı.
+  final int curatedLocked;
+
   final ViewerPalette palette;
   final AppLang lang;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final accent = palette.accent;
-    final unlockedIntro = lang == AppLang.tr
-        ? (countForFilter != null
-            ? 'Bu filtrede $countForFilter restoran daha açılır.'
-            : 'Tüm şehirlerde $totalLocked restoran daha açılır.')
-        : (countForFilter != null
-            ? '$countForFilter more restaurants unlock in this filter.'
-            : '$totalLocked more restaurants unlock across cities.');
+    final p = palette;
+    final accent = p.accent;
+    final intro = lang == AppLang.tr
+        ? (hiddenByTier > 0
+            ? 'Bu aramada $hiddenByTier sonuç daha, artı $curatedLocked Rotori '
+                'Seçkisi mekan açılır.'
+            : '$curatedLocked Rotori Seçkisi mekan ve tüm karar araçları açılır.')
+        : (hiddenByTier > 0
+            ? '$hiddenByTier more results plus $curatedLocked curated places unlock.'
+            : '$curatedLocked curated places and every decision tool unlock.');
 
     return Container(
       width: double.infinity,
@@ -661,7 +1615,7 @@ class _EatsPremiumCard extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [
             accent.withValues(alpha: 0.18),
-            palette.gold.withValues(alpha: 0.10),
+            p.gold.withValues(alpha: 0.10),
           ],
         ),
       ),
@@ -671,7 +1625,7 @@ class _EatsPremiumCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _EatsPremiumLogo(palette: palette),
+              _EatsPremiumLogo(palette: p),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -680,16 +1634,16 @@ class _EatsPremiumCard extends StatelessWidget {
                     Text(
                       const LText('Rotori Eats Pass', 'Rotori Eats Pass').of(lang),
                       style: TextStyle(
-                        color: palette.textPrimary,
+                        color: p.textPrimary,
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      unlockedIntro,
+                      intro,
                       style: TextStyle(
-                        color: palette.textSecondary,
+                        color: p.textSecondary,
                         fontSize: 12,
                         height: 1.35,
                       ),
@@ -704,33 +1658,14 @@ class _EatsPremiumCard extends StatelessWidget {
             spacing: 6,
             runSpacing: 6,
             children: [
-              _PremiumHintChip(
-                text: const LText('📍 Yakınımdakiler', '📍 Near me').of(lang),
-                palette: palette,
-              ),
-              _PremiumHintChip(
-                text: const LText('🕒 Şu an açık', '🕒 Open now').of(lang),
-                palette: palette,
-              ),
-              _PremiumHintChip(
-                text: const LText('⭐ Rotori skoru', '⭐ Rotori score').of(lang),
-                palette: palette,
-              ),
+              for (final t in const [
+                LText('🍽️ Şimdi ne yesem?', '🍽️ What to eat now'),
+                LText('📍 Yakınımda', '📍 Near me'),
+                LText('🎛️ 11 filtre ekseni', '🎛️ 11 filter axes'),
+                LText('⭐ Rotori skoru', '⭐ Rotori score'),
+              ])
+                _PremiumHintChip(text: t.of(lang), palette: p),
             ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            const LText(
-              'Kısa tanıtım: premium ile filtrelenmiş listeyi genişletir, '
-              'kararını hızlandırır ve plana tek dokunuşla ekleme açar.',
-              'Quick intro: premium expands your filtered list, speeds up '
-              'decisions, and unlocks one-tap add to plan.',
-            ).of(lang),
-            style: TextStyle(
-              color: palette.textSecondary,
-              fontSize: 12.5,
-              height: 1.35,
-            ),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -769,17 +1704,18 @@ class _PremiumHintChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = palette;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        color: palette.card.withValues(alpha: 0.70),
+        color: p.card.withValues(alpha: 0.70),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: palette.border),
+        border: Border.all(color: p.border),
       ),
       child: Text(
         text,
         style: TextStyle(
-          color: palette.textPrimary,
+          color: p.textPrimary,
           fontSize: 11.5,
           fontWeight: FontWeight.w600,
         ),
@@ -789,207 +1725,433 @@ class _PremiumHintChip extends StatelessWidget {
 }
 
 /// Rotori Eats Pass paywall önizlemesi. Satın alma akışı henüz bağlı değil
-/// (monetizasyon ayrı çalışma); değer + fiyat modeli gösterilir, birincil
-/// aksiyon “yakında” durumundadır.
+/// (monetizasyon ayrı çalışma); değer + fiyat modeli gösterilir.
+///
+/// Buradaki her madde bugün ÇALIŞAN bir özelliktir — "yakında" vaadi verilmez.
 class _EatsPaywallSheet extends StatelessWidget {
   const _EatsPaywallSheet({required this.palette, required this.lang});
 
   final ViewerPalette palette;
   final AppLang lang;
 
-  static const _benefits = <({String emoji, LText text})>[
-    (emoji: '🔓', text: LText('Tüm restoran listesi (sınırsız)', 'Full restaurant list (unlimited)')),
-    (emoji: '📍', text: LText('Yakınımdakiler — konuma göre sıralama', 'Near me — sorted by location')),
-    (emoji: '🕒', text: LText('Şu an açık filtresi', 'Open-now filter')),
-    (emoji: '⭐', text: LText('Rotori öneri skoru (diyet + bütçe)', 'Rotori recommendation score (diet + budget)')),
-    (emoji: '🗓️', text: LText('Plana tek dokunuşla ekle', 'Add to your plan in one tap')),
+  static const _benefits = <({String emoji, LText title, LText body})>[
+    (
+      emoji: '🍽️',
+      title: LText('Şimdi ne yesem?', 'What should I eat now?'),
+      body: LText(
+        'Konum + saat + bütçe + diyet tek dokunuşta 3 net öneriye dönüşür.',
+        'Location + time + budget + diet become 3 clear picks in one tap.',
+      ),
+    ),
+    (
+      emoji: '📍',
+      title: LText('Yakınımda ve rotama yakın', 'Near me and near my route'),
+      body: LText(
+        'Mesafe, yürüme dakikası ve bugünkü planının merkezine göre sıralama.',
+        'Distance, walking minutes and sorting around today\'s plan.',
+      ),
+    ),
+    (
+      emoji: '🎛️',
+      title: LText('11 eksenli detaylı filtre', '11-axis detailed filter'),
+      body: LText(
+        'Mutfak, fiyat kademesi, puan, servis saati, kart geçer, kuyruksuz, '
+            'namaz alanı, alkolsüz mekan…',
+        'Cuisine, price tier, rating, service time, cards accepted, no queue, '
+            'prayer space, alcohol-free…',
+      ),
+    ),
+    (
+      emoji: '⭐',
+      title: LText('Rotori uyum skoru', 'Rotori match score'),
+      body: LText(
+        'Her mekan için diyet / puan / bütçe / mesafe kırılımı — neden o mekan?',
+        'Diet / rating / budget / distance breakdown for every place — why this one?',
+      ),
+    ),
+    (
+      emoji: '✦',
+      title: LText('Rotori Seçkisi', 'Rotori curated picks'),
+      body: LText(
+        'Turist listelerinde olmayan küratörlü mekanlar ve bilenin ipuçları.',
+        'Curated places off the tourist lists, plus insider tips.',
+      ),
+    ),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final p = palette;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final maxH = MediaQuery.sizeOf(context).height * 0.92;
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
-      child: Container(
-        decoration: BoxDecoration(
-          color: palette.card,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-          border: Border.all(color: palette.border),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: palette.border,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxH),
+        child: Container(
+          decoration: BoxDecoration(
+            color: p.card,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+            border: Border.all(color: p.border),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _EatsPremiumLogo(palette: palette, size: 54),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        const LText('Rotori Eats Pass', 'Rotori Eats Pass').of(lang),
-                        style: TextStyle(
-                          color: palette.textPrimary,
-                          fontSize: 19,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        const LText(
-                          'Gezi boyunca tüm restoranlar ve “şimdi nereye gitmeliyim?”’in '
-                          'cevabı — tek gezi için.',
-                          'All restaurants during your trip and the answer to “where '
-                          'should I eat now?” — for a single trip.',
-                        ).of(lang),
-                        style: TextStyle(color: palette.textSecondary, fontSize: 13),
-                      ),
-                    ],
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: p.border,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Text(
-              const LText('Premium ile açılanlar', 'What unlocks with premium').of(lang),
-              style: TextStyle(
-                color: palette.textPrimary,
-                fontSize: 13.5,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 10),
-            for (final b in _benefits)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
+                const SizedBox(height: 16),
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(b.emoji, style: const TextStyle(fontSize: 15)),
+                    _EatsPremiumLogo(palette: p),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: Text(
-                        b.text.of(lang),
-                        style: TextStyle(
-                          color: palette.textPrimary,
-                          fontSize: 13.5,
-                          height: 1.3,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            const LText('Rotori Eats Pass', 'Rotori Eats Pass')
+                                .of(lang),
+                            style: TextStyle(
+                              color: p.textPrimary,
+                              fontSize: 19,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            const LText(
+                              'Japonya\'da hiçbir uygulama senin planını, bütçeni '
+                                  've diyetini aynı anda bilmiyor. Bu, o farkın adı.',
+                              'No app in Japan knows your plan, your budget and '
+                                  'your diet at the same time. This is that difference.',
+                            ).of(lang),
+                            style: TextStyle(
+                              color: p.textSecondary,
+                              fontSize: 12.5,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ),
-            const SizedBox(height: 6),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: palette.elevated,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: palette.border),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
+                const SizedBox(height: 16),
+                Text(
+                  const LText('Premium ile açılanlar', 'What unlocks with premium')
+                      .of(lang),
+                  style: TextStyle(
+                    color: p.textPrimary,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                for (final b in _benefits)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          const LText('Trip Pass · gezi başına', 'Trip Pass · per trip').of(lang),
-                          style: TextStyle(
-                            color: palette.textPrimary,
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          const LText('Abonelik yok — tek seferlik.', 'No subscription — one-time.').of(lang),
-                          style: TextStyle(
-                            color: palette.textSecondary,
-                            fontSize: 11.5,
+                        Text(b.emoji, style: const TextStyle(fontSize: 16)),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                b.title.of(lang),
+                                style: TextStyle(
+                                  color: p.textPrimary,
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                b.body.of(lang),
+                                style: TextStyle(
+                                  color: p.textSecondary,
+                                  fontSize: 12,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: palette.accent.withValues(alpha: 0.16),
-                      borderRadius: BorderRadius.circular(999),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: p.elevated,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: p.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        const LText(
+                          'Ücretsiz katmanda ne var?',
+                          'What stays free?',
+                        ).of(lang),
+                        style: TextStyle(
+                          color: p.textPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        lang == AppLang.tr
+                            ? 'Katalog, helal/vejetaryen ve şehir filtresi, arama, '
+                                'her aramada ilk $kEatsFreeVisibleLimit sonuç, '
+                                'harita — ve güvenlik bilgisinin tamamı: helal '
+                                'seviyesi açıklaması, nakit uyarısı ve sipariş '
+                                'frazları hiçbir zaman kilitlenmez.'
+                            : 'The catalogue, halal/vegetarian and city filters, '
+                                'search, the first $kEatsFreeVisibleLimit results '
+                                'per search, maps — and all safety information: '
+                                'halal level explainers, cash-only warnings and '
+                                'ordering phrases are never locked.',
+                        style: TextStyle(
+                          color: p.textSecondary,
+                          fontSize: 12,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: p.elevated,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: p.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              const LText(
+                                'Trip Pass · gezi başına',
+                                'Trip Pass · per trip',
+                              ).of(lang),
+                              style: TextStyle(
+                                color: p.textPrimary,
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              const LText(
+                                'Abonelik yok — tek seferlik.',
+                                'No subscription — one-time.',
+                              ).of(lang),
+                              style: TextStyle(
+                                color: p.textSecondary,
+                                fontSize: 11.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: p.accent.withValues(alpha: 0.16),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          const LText('Yakında', 'Soon').of(lang),
+                          style: TextStyle(
+                            color: p.textPrimary,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () {
+                      final messenger = ScaffoldMessenger.of(context);
+                      Navigator.of(context).pop();
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            const LText(
+                              'Rotori Eats Pass çok yakında geliyor.',
+                              'Rotori Eats Pass is coming very soon.',
+                            ).of(lang),
+                          ),
+                        ),
+                      );
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: p.accent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     child: Text(
-                      const LText('Yakında', 'Soon').of(lang),
-                      style: TextStyle(
-                        color: palette.textPrimary,
-                        fontSize: 11.5,
+                      const LText('Beni haberdar et', 'Notify me').of(lang),
+                      style: const TextStyle(
+                        fontSize: 14,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        const LText(
-                          'Rotori Eats Pass çok yakında geliyor.',
-                          'Rotori Eats Pass is coming very soon.',
-                        ).of(lang),
-                      ),
+                ),
+                const SizedBox(height: 6),
+                Center(
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(
+                      const LText('Kapat', 'Close').of(lang),
+                      style: TextStyle(color: p.textSecondary),
                     ),
-                  );
-                },
-                style: FilledButton.styleFrom(
-                  backgroundColor: palette.accent,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Text(
-                  const LText('Beni haberdar et', 'Notify me').of(lang),
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                ),
-              ),
+              ],
             ),
-            const SizedBox(height: 6),
-            Center(
-              child: TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text(
-                  const LText('Kapat', 'Close').of(lang),
-                  style: TextStyle(color: palette.textSecondary),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Alt bilgi kartları
+// ---------------------------------------------------------------------------
+
+class _BudgetQuickCard extends StatelessWidget {
+  const _BudgetQuickCard({
+    required this.palette,
+    required this.lang,
+    required this.table,
+    required this.mealBudget,
+  });
+
+  final ViewerPalette palette;
+  final AppLang lang;
+  final UnitCostTable table;
+  final int? mealBudget;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    final refByKey = {for (final item in table.references) item.key: item.jpy};
+    final ramen = refByKey['ramen'] ?? 1100;
+    final konbini = refByKey['konbini_meal'] ?? 700;
+    final sushi = refByKey['sushi_set'] ?? 2500;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: p.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: p.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            const LText('Hızlı Bütçe Rehberi', 'Quick Budget Guide').of(lang),
+            style: TextStyle(
+              color: p.textPrimary,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _priceRow('🍜 Ramen', ramen, p),
+          _priceRow(
+            lang == AppLang.tr ? '🏪 Konbini öğün' : '🏪 Konbini meal',
+            konbini,
+            p,
+          ),
+          _priceRow(
+            lang == AppLang.tr ? '🍣 Suşi seti' : '🍣 Sushi set',
+            sushi,
+            p,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            mealBudget != null && mealBudget! > 0
+                ? (lang == AppLang.tr
+                    ? 'Senin öğün bütçen: kişi başı ${formatJpy(mealBudget!)} — '
+                        'liste bu bandı göz önüne alarak puanlanıyor.'
+                    : 'Your meal budget: ${formatJpy(mealBudget!)} per person — '
+                        'the list is scored against this band.')
+                : const LText(
+                    'Yetişkin günlük yemek bandı: yaklaşık ¥3.500 – ¥9.000',
+                    'Adult daily food band: around ¥3,500 – ¥9,000',
+                  ).of(lang),
+            style: TextStyle(
+              color: p.textSecondary,
+              fontSize: 12.5,
+              height: 1.35,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _priceRow(String label, int jpy, ViewerPalette p) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 5),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(color: p.textSecondary, fontSize: 13),
+            ),
+          ),
+          Text(
+            formatJpy(jpy),
+            style: TextStyle(
+              color: p.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1008,6 +2170,7 @@ class _DietaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final p = palette;
     final s = LanguageScope.of(context);
     final tagSet = trip.preferences.dietaryTags.toSet();
     final options = dietaryForCountry('JP')
@@ -1018,18 +2181,20 @@ class _DietaryCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: palette.card,
+        color: p.card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: palette.border),
+        border: Border.all(color: p.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            const LText('Aktif Beslenme Tercihlerin', 'Your Active Dietary Preferences')
-                .of(lang),
+            const LText(
+              'Aktif Beslenme Tercihlerin',
+              'Your Active Dietary Preferences',
+            ).of(lang),
             style: TextStyle(
-              color: palette.textPrimary,
+              color: p.textPrimary,
               fontSize: 15,
               fontWeight: FontWeight.w700,
             ),
@@ -1038,15 +2203,20 @@ class _DietaryCard extends StatelessWidget {
           if (options.isEmpty)
             Text(
               const LText(
-                'Özel bir beslenme tercihi seçili değil — liste tüm '
-                'mekanları gösteriyor. Yukarıdaki helal / vejetaryen '
-                'filtresiyle daraltabilirsin.',
-                'No dietary preference is set — the list shows every place. '
-                'Use the halal / vegetarian filter above to narrow it down.',
+                'Özel bir beslenme tercihi seçili değil — liste tüm mekanları '
+                'gösteriyor. Üstteki Filtre butonundan helal güvenini veya '
+                'vejetaryen seviyesini seçebilirsin.',
+                'No dietary preference is set — the list shows every place. Use '
+                'the Filter button above to pick a halal trust level or a '
+                'vegetarian level.',
               ).of(lang),
-              style: TextStyle(color: palette.textSecondary, fontSize: 12.5),
+              style: TextStyle(
+                color: p.textSecondary,
+                fontSize: 12.5,
+                height: 1.35,
+              ),
             )
-          else
+          else ...[
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -1054,16 +2224,18 @@ class _DietaryCard extends StatelessWidget {
                 for (final option in options)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 6),
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
-                      color: palette.elevated,
+                      color: p.elevated,
                       borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: palette.border),
+                      border: Border.all(color: p.border),
                     ),
                     child: Text(
                       '${option.emoji} ${s.s(option.label)}',
                       style: TextStyle(
-                        color: palette.textPrimary,
+                        color: p.textPrimary,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1071,8 +2243,41 @@ class _DietaryCard extends StatelessWidget {
                   ),
               ],
             ),
+            const SizedBox(height: 8),
+            Text(
+              const LText(
+                'Bu tercihler filtreyi ve Rotori uyum skorunu otomatik besliyor.',
+                'These preferences automatically drive the filter and the Rotori score.',
+              ).of(lang),
+              style: TextStyle(color: p.textMuted, fontSize: 11.5),
+            ),
+          ],
         ],
       ),
+    );
+  }
+}
+
+class _DataNote extends StatelessWidget {
+  const _DataNote({required this.palette, required this.lang});
+
+  final ViewerPalette palette;
+  final AppLang lang;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    return Text(
+      lang == AppLang.tr
+          ? 'Veri küratörlüdür ve çevrimdışı çalışır; son toplu kontrol: '
+              '$kEatsDataVerifiedOn. Puanlar Google ölçeğine yakın yaklaşık '
+              'değerlerdir — Japonya\'da Tabelog 3.5 zaten üst seviyedir. Helal '
+              'sertifikası, menü ve çalışma saatleri değişebilir; mekanda teyit et.'
+          : 'The data is curated and works offline; last full review: '
+              '$kEatsDataVerifiedOn. Ratings approximate the Google scale — in '
+              'Japan a Tabelog 3.5 is already elite. Halal certification, menus '
+              'and hours can change; confirm at the venue.',
+      style: TextStyle(color: p.textMuted, fontSize: 11, height: 1.4),
     );
   }
 }
