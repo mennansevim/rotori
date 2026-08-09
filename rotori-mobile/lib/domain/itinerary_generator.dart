@@ -53,12 +53,26 @@ int _interestScore(PlaceSuggestion p, List<InterestTag> interests) {
   return score;
 }
 
+/// Günlük planlama penceresi — üretilen HİÇBİR aktivite bu aralığın dışına
+/// taşmaz. Sabah 09:00'da başlar, 20:00'de biter (varış/dönüş günü uçuş
+/// saatine bağlı olduğu için bu kuralın dışındadır).
+///
+/// Tek doğru kaynak: hem tempo slotları hem fill_empty_days bunu kullanır,
+/// hem de bir yerin çalışma saati (PlaceSuggestion.openHour/closeHour) bu
+/// pencereyle kesiştirilir.
+const int kDayStartMinutes = 9 * 60; // 09:00
+const int kDayEndMinutes = 20 * 60; // 20:00
+
+/// Bir aktivite için varsayılan süre (dk) — yerin kendi süresi yoksa.
+const int kDefaultActivityMinutes = 90;
+
 // Aktivite slotları — yemek saatlerine (13:00 öğle, 19:30 akşam) ve 15 dk
 // tamponlarına saygı gösterecek şekilde seçildi. `plan_warnings.dart` bu
 // aralıkları doğrular; buradaki değerler üretimde uyarı çıkarmaz.
-const _timesRelaxed = ['10:00', '15:30'];
+// Hepsi 09:00'da başlar ve son slot + süre 20:00'yi aşmaz.
+const _timesRelaxed = ['09:00', '14:00'];
 const _timesModerate = ['09:00', '11:00', '15:00', '17:00'];
-const _timesIntense = ['09:00', '10:30', '13:30', '16:00', '18:30'];
+const _timesIntense = ['09:00', '10:30', '13:30', '16:00', '18:00'];
 
 /// Öğle yemeği için ayrılan sabit slot — hiçbir aktivite slotuyla çakışmaz,
 /// 11:00-15:00 pencere içindedir.
@@ -170,6 +184,13 @@ TimelineItem _makeItem(
               : null,
       kind: TimelineItemKind.activity,
       cityId: cityId ?? place.city,
+      // Saatli giriş (teamLab, Disney, USJ): bilet belirli bir saate kesilir.
+      // Rota optimizasyonu bunları OYNATAMAZ — bkz. isTimeLocked.
+      lockType: isTimedEntryTitle(place.name)
+          ? ActivityLockType.ticketedEvent
+          : ActivityLockType.none,
+      canChangeTime: !isTimedEntryTitle(place.name),
+      canChangeDay: !isTimedEntryTitle(place.name),
     );
 
 TimelineItem _mealItem(int dayNumber, String time, String label,
@@ -350,6 +371,51 @@ DayPlan _buildDepartureDay(
   );
 }
 
+/// Bir yerin gün içinde yerleştirildiği saat.
+class _Scheduled {
+  const _Scheduled(this.place, this.time);
+  final PlaceSuggestion place;
+  final String time;
+}
+
+String _hhmm(int minutes) => '${(minutes ~/ 60).toString().padLeft(2, '0')}:'
+    '${(minutes % 60).toString().padLeft(2, '0')}';
+
+/// Seçilen yerleri tempo slotlarına yerleştirir; her yerin çalışma saatini ve
+/// genel 09:00-20:00 penceresini uygular.
+///
+/// Kurallar:
+///  • Slot saati yerin açılışından önceyse açılışa kaydırılır.
+///  • Kaydırma bir öncekiyle çakışıyorsa öncekinin bitişine alınır.
+///  • Aktivite 20:00'den sonra bitiyorsa (ya da yerin kapanışını aşıyorsa)
+///    o yer bugün planlanmaz — sessizce düşer, sonraki gün havuzda kalır.
+List<_Scheduled> _scheduleWithinHours(
+  List<PlaceSuggestion> picked,
+  List<String> times,
+) {
+  final out = <_Scheduled>[];
+  var cursor = kDayStartMinutes;
+
+  for (var i = 0; i < picked.length; i++) {
+    final p = picked[i];
+    final dur = p.durationMin ?? kDefaultActivityMinutes;
+    final (winStart, winEnd) = p.visitWindow(kDayStartMinutes, kDayEndMinutes);
+
+    final slot = _parseHhmm(i < times.length ? times[i] : times.last) ??
+        kDayStartMinutes;
+    var start = slot;
+    if (start < cursor) start = cursor;
+    if (start < winStart) start = winStart;
+
+    // Ne gün penceresine ne de yerin çalışma saatine sığıyorsa atla.
+    if (start + dur > winEnd) continue;
+
+    out.add(_Scheduled(p, _hhmm(start)));
+    cursor = start + dur;
+  }
+  return out;
+}
+
 DayPlan _buildFromPlaces(
   DayPlan day,
   List<PlaceSuggestion> pool,
@@ -371,11 +437,17 @@ DayPlan _buildFromPlaces(
   final items = <TimelineItem>[];
   var stepSum = 0;
 
-  for (var i = 0; i < picked.length; i++) {
-    final time = i < times.length ? times[i] : times.last;
-    items.add(_makeItem(day.dayNumber, time, picked[i], lang, cityId: cityId));
-    stepSum += picked[i].typicalSteps ?? 8000;
+  // Yerleştirme 09:00'da başlar, 20:00'de biter ve her yerin kendi çalışma
+  // saatine saygı gösterir: bir yer slot saatinde kapalıysa açılış saatine
+  // kaydırılır; gün penceresine hiç sığmıyorsa o gün planlanmaz.
+  final scheduled = _scheduleWithinHours(picked, times);
+  for (final s in scheduled) {
+    items.add(_makeItem(day.dayNumber, s.time, s.place, lang, cityId: cityId));
+    stepSum += s.place.typicalSteps ?? 8000;
   }
+  picked
+    ..clear()
+    ..addAll(scheduled.map((s) => s.place));
 
   if (picked.length >= 2 && times.length > 1) {
     _insertChronologically(
@@ -821,11 +893,20 @@ List<DayPlan> generateItineraryFromTrip(Trip trip,
       return cityPool.any((p) => p.name.toLowerCase() == ml);
     });
 
-    if (cityTemplates.isNotEmpty && !cityHasMustSee) {
-      // İlk destinasyonda 0. gün varıştı → şablon sırasını 1 kaydır.
-      final seq = isFirstDest ? (dayIndexInSeg - 1) : dayIndexInSeg;
-      final idx = (seq < 0 ? 0 : seq) % cityTemplates.length;
-      final template = cityTemplates[idx];
+    // İlk destinasyonda 0. gün varıştı → şablon sırasını 1 kaydır.
+    final seq = isFirstDest ? (dayIndexInSeg - 1) : dayIndexInSeg;
+    final seqClamped = seq < 0 ? 0 : seq;
+
+    // Şablon sayısından FAZLA gün varsa modulo ile SARMA — bu, Kyoto/Nara
+    // gibi tek şablonlu şehirlerde ardışık günlerin aynı temayı ("Kyoto &
+    // Fushimi Inari" iki kez) tekrarlamasına sebep oluyordu. Her şablon en
+    // fazla bir kez kullanılır; şehrin şablonu tükenince kalan günler
+    // _buildFromPlaces'e düşer — o da usedPlaces sayesinde farklı yerler
+    // seçer, böylece tekrar yerine çeşitlilik çıkar.
+    if (cityTemplates.isNotEmpty &&
+        !cityHasMustSee &&
+        seqClamped < cityTemplates.length) {
+      final template = cityTemplates[seqClamped];
       final built =
           _buildFromTemplate(day, template, cityPool, pace, lang, cityId: city);
       usedPlaces.addAll(template.places);
@@ -833,6 +914,10 @@ List<DayPlan> generateItineraryFromTrip(Trip trip,
       // teamLab yarım gün).
       return _applyCoverage(built, lang);
     }
+    // Not: bu şehrin önceki günleri zaten template dalından geçtiği için
+    // (trip.days kronolojik işleniyor, segDays aynı şehrin ardışık günleri)
+    // usedPlaces o şablonların yerlerini çoktan içeriyor — burada tekrar
+    // eklemeye gerek yok, _buildFromPlaces doğrudan farklı yerler seçer.
 
     final built = _buildFromPlaces(
       day,

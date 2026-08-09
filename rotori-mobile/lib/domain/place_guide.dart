@@ -62,6 +62,27 @@ class PlaceGuide {
   final LText? bookingHint;
 }
 
+/// REHBER KÜRATÖRLÜK SINIRI — bu şehirlerdeki HER küratörlü yerin tam bir
+/// [PlaceGuide]'ı olmak ZORUNDADIR (bkz. test/domain/place_guide_test.dart).
+///
+/// Listeye şehir eklemek, o şehrin tüm yerlerine doğrulanmış görsel + TR/EN
+/// tanıtım + en az 3 ipucu yazmayı taahhüt etmektir. Bu yüzden liste
+/// kCityData'dan AYRI tutulur: yeni şehir eklemek rehber borcu yaratmasın.
+///
+/// **Kapsam dışı şehirler bozuk değildir.** Rehber yoksa:
+///  • [PlaceImageResolver] çalışma anında Wikipedia'dan görsel çeker,
+///  • place_detail_sheet kategori + şehir özetine düşer.
+/// Rehber, çevrimdışı çalışan ve küratörlü ipucu taşıyan bir İYİLEŞTİRMEDİR.
+const Set<String> kGuideCuratedCityKeys = {
+  'tokyo',
+  'kyoto',
+  'osaka',
+  'nara',
+  'hiroshima',
+  'sapporo',
+  'kanazawa',
+};
+
 const List<PlaceGuide> _kGuides = [
   // ── Tokyo ────────────────────────────────────────────────────────────────
   PlaceGuide(

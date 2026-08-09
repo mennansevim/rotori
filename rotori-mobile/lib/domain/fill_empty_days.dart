@@ -7,6 +7,7 @@ import 'dart:math';
 import '../core/l10n.dart';
 import 'city_places.dart';
 import 'destination_profiles.dart';
+import 'itinerary_generator.dart' show kDayEndMinutes, kDayStartMinutes;
 import 'japan_suggestions.dart' show PlaceCoverage, coverageOfTitle;
 import 'trip_factory.dart';
 import 'types.dart';
@@ -132,10 +133,27 @@ CityData? _fillCityData(String city) {
 }
 
 class _FillPlace {
-  const _FillPlace({required this.name, this.emoji, this.typicalSteps});
+  const _FillPlace({
+    required this.name,
+    this.emoji,
+    this.typicalSteps,
+    this.openHour,
+    this.closeHour,
+  });
   final String name;
   final String? emoji;
   final int? typicalSteps;
+
+  /// Çalışma saatleri (0-24); null = gün boyu açık.
+  final int? openHour;
+  final int? closeHour;
+
+  /// [slotStart] dakikasında [duration] dakika kalınabilir mi?
+  bool fitsAt(int slotStart, int duration) {
+    final open = (openHour ?? 0) * 60;
+    final close = (closeHour ?? 24) * 60;
+    return slotStart >= open && slotStart + duration <= close;
+  }
 }
 
 /// Bir gün için TimelineItem üret — şablon + popularPlace eşle.
@@ -207,7 +225,12 @@ List<DayPlan> fillEmptyDays(
       if (_cleanCity(p.city).toLowerCase() != keyLower) continue;
       if (!seen.add(p.name.toLowerCase())) continue;
       list.add(_FillPlace(
-          name: p.name, emoji: p.emoji, typicalSteps: p.typicalSteps));
+        name: p.name,
+        emoji: p.emoji,
+        typicalSteps: p.typicalSteps,
+        openHour: p.openHour,
+        closeHour: p.closeHour,
+      ));
     }
     // 2) city_places.dart'tan zenginleştir (Kyoto gibi az mekanlı şehirlerde
     //    günler aynı yeri tekrarlamasın diye şart).
@@ -266,6 +289,14 @@ List<DayPlan> fillEmptyDays(
 
     for (final slot in _fillSlots) {
       if (usedTimes.contains(slot.time)) continue;
+      // Planlama penceresi 09:00-20:00 — bu aralığa sığmayan slot atlanır.
+      // (itinerary_generator ile tek doğru kaynak: kDayStart/EndMinutes.)
+      final slotStart = _hhmmToMin(slot.time);
+      if (slotStart == null ||
+          slotStart < kDayStartMinutes ||
+          slotStart + _slotDuration(slot) > kDayEndMinutes) {
+        continue;
+      }
       // Birebir aynı saat yetmez: slot'un süresi mevcut bir aktivitenin
       // üstüne binmemeli. Eskiden yalnızca `usedTimes` eşitliğine bakılıyordu,
       // bu yüzden 10:00'daki bir aktivitenin üzerine 09:00 (90 dk) slot'u
@@ -293,7 +324,10 @@ List<DayPlan> fillEmptyDays(
               day.items.any((it) => it.title.contains(candidate.name));
           final inSupp =
               supplements.any((it) => it.title.contains(candidate.name));
-          if (!inDay && !inSupp) {
+          // Yerin çalışma saati bu slotu kapsamıyorsa (örn. 17:00'de kapanan
+          // pazar için 16:30 slotu) o yeri bu slota koyma — sonraki adaya geç.
+          final open = candidate.fitsAt(slotStart, _slotDuration(slot));
+          if (!inDay && !inSupp && open) {
             place = candidate;
             break;
           }

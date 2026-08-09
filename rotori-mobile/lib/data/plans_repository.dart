@@ -199,6 +199,25 @@ class PlansRepository {
     }
   }
 
+  /// SADECE yerel cache'e yazar (dirty=true), sunucu push'unu beklemez.
+  ///
+  /// Kullanım: yeni plan üretildikten hemen sonra kullanıcıyı bekletmeden
+  /// viewer'a geçmek için. `save()` içindeki Supabase upsert'ü çevrimdışıyken
+  /// DNS timeout'una kadar bloklayabilir; `watch()` zaten önce cache'ten yayın
+  /// yaptığı için saveLocal sonrası plan anında açılır. Sunucu push'u ayrıca
+  /// `save()` ya da `syncDirty()` ile yapılır.
+  Future<void> saveLocal(Trip trip) async {
+    final existing = _cache.load(trip.id);
+    await _cache.save(
+      CachedPlan(
+        trip: trip,
+        version: existing?.version ?? 1,
+        updatedAt: DateTime.now(),
+        dirty: true,
+      ),
+    );
+  }
+
   /// Yerel değişikliği kaydet + sunucuya push et. Sunucu erişilemezse
   /// dirty=true kalır ve `syncDirty` çağrılana kadar bekler.
   ///
@@ -207,14 +226,7 @@ class PlansRepository {
     // 1) Yerel (optimistik).
     final existing = _cache.load(trip.id);
     final version = existing?.version ?? 1;
-    await _cache.save(
-      CachedPlan(
-        trip: trip,
-        version: version,
-        updatedAt: DateTime.now(),
-        dirty: true,
-      ),
-    );
+    await saveLocal(trip);
 
     // 2) Sunucu — upsert.
     try {

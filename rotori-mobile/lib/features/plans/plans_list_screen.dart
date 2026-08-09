@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/l10n.dart';
 import '../../data/plans_repository.dart';
-import '../../domain/trip_factory.dart';
 import '../auth/auth_repository.dart';
 import '../viewer/viewer_theme.dart';
 import 'plan_providers.dart';
@@ -44,14 +43,10 @@ class PlansListScreen extends ConsumerWidget {
     await ref.read(authRepositoryProvider).signOut();
   }
 
-  Future<void> _createNew(BuildContext context, WidgetRef ref) async {
-    final repo = ref.read(plansRepositoryProvider);
-    if (repo == null) return;
-    final trip = createEmptyTrip();
-    await repo.save(trip);
-    ref.invalidate(plansPullProvider);
-    if (context.mounted) context.go('/plans/${trip.id}/edit');
-  }
+  /// Boş trip'i ÖNCEDEN kaydetmez — kullanıcı akıştan çıkarsa listede hayalet
+  /// plan kalmasın. Kayıt, plan üretildikten sonra CreatePlanScreen'de yapılır.
+  /// `push` (go değil): iptal edilirse sistem geri hareketi listeye döner.
+  void _createNew(BuildContext context) => context.push('/plans/new');
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -92,7 +87,7 @@ class PlansListScreen extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _createNew(context, ref),
+        onPressed: () => _createNew(context),
         icon: const Icon(Icons.add),
         label: Text(s.s('plans.newPlan')),
         backgroundColor: palette.accent,

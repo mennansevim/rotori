@@ -10,6 +10,7 @@ import '../../domain/itinerary_optimizer.dart';
 import '../../domain/route_time_bounds.dart';
 import '../../domain/route_matrix.dart';
 import '../../domain/route_optimization_validator.dart';
+import '../../domain/japan_suggestions.dart' show isTimeLocked, isTimedEntryTitle;
 import '../../domain/types.dart';
 
 typedef OptimizedPlanPersist = Future<void> Function(Trip trip);
@@ -199,13 +200,17 @@ class PlanOptimizationController
         );
       }
       final duration = _durationFor(item);
-      final fixedStart = item.isFixed
+      // Saatli giriş (teamLab/Disney/USJ) ve elle kilitlenenler: saat SABİT.
+      // isFixed alanı eski planlarda boş olabildiği için başlıktan türetmeyi
+      // de kapsayan isTimeLocked kullanılır.
+      final locked = isTimeLocked(item);
+      final fixedStart = locked
           ? _onDay(dayDate, item.fixedStartTime ?? item.time)
           : null;
       // Öğün kalemleri sabit değilse makul bir zaman penceresine bağlanır;
       // böylece optimizasyon öğle yemeğini sabahın köründe (ör. 06:13)
       // planlayamaz. Sabit öğünler kendi saatlerini korur.
-      final mealWindow = item.isFixed ? null : _mealWindow(dayDate, item);
+      final mealWindow = locked ? null : _mealWindow(dayDate, item);
       return OptimizationActivity(
         id: item.id,
         name: item.title,
@@ -225,16 +230,18 @@ class PlanOptimizationController
         preferredTime: mealWindow?.preferred,
         fixedStartTime: fixedStart,
         fixedEndTime: _onDay(dayDate, item.fixedEndTime),
-        isFixed: item.isFixed,
-        isLocked: item.lockType != ActivityLockType.none ||
+        isFixed: locked,
+        isLocked: locked ||
+            item.lockType != ActivityLockType.none ||
             !item.canChangeDay ||
             !item.canChangeTime ||
             !item.canReorder,
         hasReservation: item.lockType == ActivityLockType.trainReservation ||
             item.lockType == ActivityLockType.ticketedEvent ||
-            item.lockType == ActivityLockType.external,
+            item.lockType == ActivityLockType.external ||
+            isTimedEntryTitle(item.title),
         category: item.kind?.name,
-        priority: item.kind == TimelineItemKind.meal || item.isFixed
+        priority: item.kind == TimelineItemKind.meal || locked
             ? ActivityPriority.mustDo
             : ActivityPriority.normal,
       );
@@ -412,7 +419,7 @@ class PlanOptimizationController
 
     final fixedById = {
       for (final item in originalDay.items)
-        if (item.isFixed) item.id: item,
+        if (isTimeLocked(item)) item.id: item,
     };
     final normalizedItems = [
       for (final item in optimizedItems)

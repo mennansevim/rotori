@@ -7,7 +7,9 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/auth_screen.dart';
 import '../features/live_currency_scanner/presentation/pages/live_currency_scanner_page.dart';
 import '../features/price_tag_scanner/view/scanner_screen.dart';
-import '../features/planner/planner_screen.dart';
+import '../features/plans/add_hotel_page.dart';
+import '../features/plans/create/create_plan_screen.dart';
+import '../features/plans/flights/flight_details_page.dart';
 import '../features/plans/plan_providers.dart';
 import '../features/plans/plan_viewer_screen.dart';
 import '../features/plans/plans_list_screen.dart';
@@ -56,15 +58,33 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/plans',
         builder: (context, state) => const PlansListScreen(),
       ),
+      // '/plans/:id/...' desenlerinden ÖNCE gelmeli.
+      GoRoute(
+        path: '/plans/new',
+        builder: (context, state) => const CreatePlanScreen(),
+      ),
+      // Eski 6 adımlı wizard kaldırıldı — düzenleme artık planın kendi
+      // üzerinde yapılıyor. Kayıtlı deep-link/bookmark'lar bozulmasın diye
+      // viewer'a yönlendiriyoruz.
       GoRoute(
         path: '/plans/:id/edit',
-        builder: (context, state) =>
-            PlannerScreen(planId: state.pathParameters['id']!),
+        redirect: (context, state) =>
+            '/plans/${state.pathParameters['id']}/view',
       ),
       GoRoute(
         path: '/plans/:id/view',
         builder: (context, state) =>
             PlanViewerScreen(planId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/plans/:id/flights',
+        builder: (context, state) =>
+            FlightDetailsPage(planId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/plans/:id/hotels/new',
+        builder: (context, state) =>
+            AddHotelPage(planId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/plans/:id/prep',

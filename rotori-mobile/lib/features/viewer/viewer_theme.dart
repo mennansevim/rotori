@@ -98,6 +98,11 @@ class ViewerPalette {
   /// Üst durum barındaki metin/ikon rengi.
   final Color topBarOnColor;
 
+  /// Marka gradyanı — mor → sakura. Üç temada da doygun kalır, bu yüzden
+  /// üzerine DAİMA beyaz metin/ikon konur (bkz. plan oluşturma hero'su).
+  /// japanDark.topBar zaten bu ikilinin ta kendisidir.
+  List<Color> get brandGradient => [fuji, sakura];
+
   static const ViewerPalette japanDark = ViewerPalette(
     id: ViewerThemeId.japanDark,
     brightness: Brightness.dark,

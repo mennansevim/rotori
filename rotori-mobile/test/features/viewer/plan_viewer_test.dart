@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:japan_trip/data/plans_repository.dart';
 import 'package:japan_trip/core/supabase_client.dart';
 import 'package:japan_trip/domain/route_matrix.dart';
+import 'package:japan_trip/core/l10n.dart';
 import 'package:japan_trip/domain/types.dart';
 import 'package:japan_trip/features/plans/plan_providers.dart';
 import 'package:japan_trip/features/plans/plan_optimization_controller.dart';
@@ -53,6 +54,8 @@ Trip _sampleTrip() {
     ],
   );
 }
+
+String tr(String key) => L10n.resolve(key, AppLang.tr);
 
 void main() {
   setUp(() {
@@ -180,94 +183,26 @@ void main() {
     expect(find.text('Sıradaki'), findsOneWidget);
   });
 
-  testWidgets('gün kartı akıllı rota aksiyonunu güvenli koşullarla sunar',
+  // Rota optimizasyonu artık PREMIUM arkasında: gün kartındaki buton
+  // doğrudan optimizasyonu çalıştırmıyor, paywall sheet'ini açıyor.
+  // Optimizasyon motorunun kendisi plan_optimization_controller_test.dart
+  // tarafından kapsanıyor.
+  testWidgets('gün kartı rota optimizasyonunu premium arkasında sunar',
       (tester) async {
     await tester.pumpWidget(harness(_sampleTrip()));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
     final optimize = find.byKey(const ValueKey('optimize-route-2'));
+    expect(optimize, findsOneWidget);
+    expect(find.text('Premium'), findsWidgets);
+
     await tester.ensureVisible(optimize);
     await tester.tap(optimize);
-    await tester.pump();
-
-    expect(
-      find.text('Optimizasyon için en az iki durak gerekli.'),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('akıllı rota eski-yeni karşılaştırmasını onaydan önce gösterir',
-      (tester) async {
-    final trip = _sampleTrip();
-    final active = trip.days[1];
-    trip.preferences.destinations = [
-      TripDestination(
-        id: 'tokyo',
-        countryCode: 'JP',
-        countryName: 'Japonya',
-        city: 'Tokyo',
-        lat: 35,
-        lng: 139,
-        arrivalDate: active.date,
-        departureDate: active.date,
-        order: 0,
-      ),
-    ];
-    active.items = [
-      TimelineItem(
-        id: 'b',
-        title: 'B',
-        time: '10:00',
-        durationMin: 30,
-        lat: 35.2,
-        lng: 139.2,
-      ),
-      TimelineItem(
-        id: 'a',
-        title: 'A',
-        time: '12:00',
-        durationMin: 30,
-        lat: 35.1,
-        lng: 139.1,
-      ),
-    ];
-    final repository = FakeRouteMatrixRepository(
-      RouteMatrix(
-        version: 'widget-v1',
-        entries: [
-          _routeEntry('day-2-base', 'a', 10),
-          _routeEntry('day-2-base', 'b', 50),
-          _routeEntry('a', 'b', 10),
-          _routeEntry('b', 'a', 50),
-          _routeEntry('a', 'day-2-base', 10),
-          _routeEntry('b', 'day-2-base', 10),
-        ],
-      ),
-    );
-
-    await tester.pumpWidget(
-      harness(trip, routeRepository: repository),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-
-    final optimize = find.byKey(const ValueKey('optimize-route-2'));
-    await tester.ensureVisible(optimize);
-    await tester.tap(optimize);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 250));
-
-    expect(find.text('Önce'), findsOneWidget);
-    expect(find.text('Sonra'), findsOneWidget);
-    expect(find.text('Rotayı uygula'), findsOneWidget);
-
-    final confirm = find.byKey(const ValueKey('confirm-route-optimization'));
-    await tester.ensureVisible(confirm);
-    await tester.tap(confirm);
     await tester.pumpAndSettle();
 
-    expect(find.text('Rotayı uygula'), findsNothing);
+    expect(find.text(tr('routeOptimization.premium.title')), findsOneWidget);
+    expect(find.text(tr('routeOptimization.premium.body')), findsOneWidget);
   });
 
   testWidgets('tema seçici açılır ve 3 tema listelenir', (tester) async {
@@ -728,22 +663,4 @@ void main() {
       expect(find.text('Geri al'), findsNothing);
     });
   });
-}
-
-RouteMatrixEntry _routeEntry(String from, String to, int minutes) {
-  return RouteMatrixEntry(
-    fromLocationId: from,
-    toLocationId: to,
-    options: [
-      TransportOption(
-        mode: TransportMode.train,
-        doorToDoorMinutes: minutes,
-        walkingMinutes: 3,
-        waitingMinutes: 2,
-        transferCount: 0,
-        estimatedCostYen: 180,
-        reliabilityScore: .95,
-      ),
-    ],
-  );
 }

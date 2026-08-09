@@ -139,13 +139,6 @@ class _ViewerDrawer extends ConsumerWidget {
                   ),
                   const SizedBox(height: 22),
                   _DrawerSectionLabel(
-                    label: s.s('drawer.section.language'),
-                    palette: p,
-                  ),
-                  const SizedBox(height: 8),
-                  _DrawerLangSwitcher(palette: p),
-                  const SizedBox(height: 22),
-                  _DrawerSectionLabel(
                     label: s.s('drawer.section.account'),
                     palette: p,
                   ),
@@ -962,13 +955,20 @@ class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
     final tripsCount = (outbound.isNotEmpty ? 1 : 0) + (ret.isNotEmpty ? 1 : 0);
     final p = widget.palette;
     final s = LanguageScope.of(context);
-    if (tripsCount == 0) {
+    // "Uçuş var mı" kararı bacak SAYISINA bakamaz: createEmptyTrip ve
+    // buildTripFromCities şehir/havaalanı boş bacaklar üretiyor, bu da
+    // kullanıcı hiçbir şey girmemişken dolu bir liste gösteriyordu.
+    // tripHasFlightInfo şehir VE havaalanı dolu bir bacak arar.
+    // (Bacakların kendisi filtrelenmez — dateTime'ı dolu, detayı eksik bir
+    // bacak listede "—" olarak görünmeye devam eder.)
+    if (!tripHasFlightInfo(widget.trip)) {
       return _DrawerAddCard(
         palette: p,
         icon: Icons.flight_takeoff,
         iconColor: p.accent,
         title: s.s('drawer.flights.add'),
         planId: widget.trip.id,
+        route: '/plans/${widget.trip.id}/flights',
       );
     }
     return _DrawerCollapsible(
@@ -1073,6 +1073,7 @@ class _DrawerHotelsMiniState extends State<_DrawerHotelsMini> {
         iconColor: p.accent,
         title: s.s('drawer.hotels.add'),
         planId: widget.trip.id,
+        route: '/plans/${widget.trip.id}/hotels/new',
       );
     }
     return _DrawerCollapsible(
@@ -1368,6 +1369,7 @@ class _DrawerAddCard extends StatelessWidget {
     required this.iconColor,
     required this.title,
     required this.planId,
+    this.route,
   });
 
   final ViewerPalette palette;
@@ -1375,6 +1377,11 @@ class _DrawerAddCard extends StatelessWidget {
   final Color iconColor;
   final String title;
   final String planId;
+
+  /// Hedef route. Verilmezse eski wizard'a (`/plans/:id/edit`) düşer —
+  /// bu, wizard sökülene kadar hâlâ bağlı olan kartlar için geçici bir
+  /// güvenlik ağıdır.
+  final String? route;
 
   @override
   Widget build(BuildContext context) {
@@ -1387,7 +1394,7 @@ class _DrawerAddCard extends StatelessWidget {
       child: InkWell(
         onTap: () {
           Navigator.of(context).pop();
-          context.push('/plans/$planId/edit');
+          context.push(route ?? '/plans/$planId/edit');
         },
         child: DecoratedBox(
           decoration: BoxDecoration(
@@ -1576,55 +1583,6 @@ class _DebugPremiumTileState extends State<_DebugPremiumTile> {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Drawer içi dil değiştirici — iOS segment control tarzı.
-class _DrawerLangSwitcher extends ConsumerWidget {
-  const _DrawerLangSwitcher({required this.palette});
-  final ViewerPalette palette;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final p = palette;
-    final current = ref.watch(appLangProvider);
-    final notifier = ref.read(appLangProvider.notifier);
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(color: p.elevated, borderRadius: BorderRadius.circular(14), border: Border.all(color: p.border)),
-      child: Row(children: [
-        Expanded(child: _DrawerLangOption(label: '🇹🇷 Türkçe', active: current == AppLang.tr, onTap: () => notifier.set(AppLang.tr), palette: p)),
-        Expanded(child: _DrawerLangOption(label: '🇬🇧 English', active: current == AppLang.en, onTap: () => notifier.set(AppLang.en), palette: p)),
-      ]),
-    );
-  }
-}
-
-class _DrawerLangOption extends StatelessWidget {
-  const _DrawerLangOption({required this.label, required this.active, required this.onTap, required this.palette});
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-  final ViewerPalette palette;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: active ? palette.accent : Colors.transparent,
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          alignment: Alignment.center,
-          child: Text(label, style: TextStyle(
-            color: active ? Colors.white : palette.textSecondary,
-            fontSize: 13, fontWeight: FontWeight.w600,
-          )),
         ),
       ),
     );

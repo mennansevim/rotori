@@ -440,6 +440,7 @@ class TripPreferences {
     this.paymentPreference,
     this.hasTicket,
     this.stayArea,
+    this.datesEstimated,
   })  : mustSee = mustSee ?? [],
         foodLikes = foodLikes ?? [],
         foodDislikes = foodDislikes ?? [],
@@ -506,6 +507,10 @@ class TripPreferences {
   /// Konaklanacak bölge/mahalle (opsiyonel) — otel eklenmediğinde taksi/rehber
   /// için serbest metin (örn. "Shinjuku", "Namba istasyon çevresi").
   String? stayArea;
+
+  /// Tarihler kullanıcı tarafından değil, "tarih henüz belli değil" akışında
+  /// sezona göre ÖNERİLDİYSE true. UI bunu "tahmini tarih" rozetiyle gösterir.
+  bool? datesEstimated;
 
   factory TripPreferences.fromJson(Map<String, dynamic> j) => TripPreferences(
         travelDates: TravelDates.fromJson(
@@ -593,6 +598,7 @@ class TripPreferences {
         directFlightsOnly: j['directFlightsOnly'] as bool?,
         hasTicket: j['hasTicket'] as bool?,
         stayArea: j['stayArea'] as String?,
+        datesEstimated: j['datesEstimated'] as bool?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -671,6 +677,7 @@ class TripPreferences {
         if (directFlightsOnly != null) 'directFlightsOnly': directFlightsOnly,
         if (hasTicket != null) 'hasTicket': hasTicket,
         if (stayArea != null) 'stayArea': stayArea,
+        if (datesEstimated != null) 'datesEstimated': datesEstimated,
       };
 }
 

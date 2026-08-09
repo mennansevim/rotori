@@ -27,23 +27,54 @@ Trip _trip({
     );
 
 void main() {
-  test('CITY_DATA React referansıyla aynı boyutlarda', () {
-    expect(kCityData.length, 7);
-    final counts = {for (final c in kCityData) c.key: c.places.length};
-    expect(counts, {
-      'tokyo': 12,
-      'kyoto': 10,
-      'osaka': 9,
-      'nara': 6,
-      'hiroshima': 5,
-      'sapporo': 5,
-      'kanazawa': 5,
-    });
+  /// React portundan gelen ÇEKİRDEK 7 şehir — bu sayılar port sadakati
+  /// sözleşmesidir, değişmemeli. Sonradan eklenen şehirler bu listede yok;
+  /// onlar aşağıdaki "yeni şehirler" testiyle korunuyor.
+  const reactCounts = {
+    'tokyo': 12,
+    'kyoto': 10,
+    'osaka': 9,
+    'nara': 6,
+    'hiroshima': 5,
+    'sapporo': 5,
+    'kanazawa': 5,
+  };
+
+  test('çekirdek 7 şehir React referansıyla aynı boyutlarda', () {
+    final counts = {
+      for (final c in kCityData)
+        if (reactCounts.containsKey(c.key)) c.key: c.places.length,
+    };
+    expect(counts, reactCounts);
+  });
+
+  test('sonradan eklenen şehirler de plan üretecek kadar dolu', () {
+    final extra =
+        kCityData.where((c) => !reactCounts.containsKey(c.key)).toList();
+    expect(extra, isNotEmpty, reason: 'test anlamını yitirdi');
+    for (final c in extra) {
+      expect(c.places.length, greaterThanOrEqualTo(5),
+          reason: '${c.label} 5 yerden az — günler zayıf kalır');
+      expect(c.aliases, isNotEmpty, reason: '${c.label} alias\'sız');
+      // Aynı yer iki kez listelenmesin.
+      final ids = c.places.map((p) => p.id).toSet();
+      expect(ids.length, c.places.length, reason: '${c.label} yinelenen id');
+    }
+  });
+
+  test('şehir anahtarları ve yer id\'leri projede tekil', () {
+    final keys = kCityData.map((c) => c.key).toList();
+    expect(keys.toSet().length, keys.length, reason: 'yinelenen şehir anahtarı');
+    final allIds = [for (final c in kCityData) for (final p in c.places) p.id];
+    expect(allIds.toSet().length, allIds.length, reason: 'yinelenen yer id');
   });
 
   test('cityPlacesToGeofences sabitleri uygular (120 m, 600 sn, 25 XP)', () {
     final fences = cityPlacesToGeofences(kCityData);
-    expect(fences.length, 12 + 10 + 9 + 6 + 5 + 5 + 5);
+    // Sabit sayı yerine kaynaktan türet — şehir eklemek bu testi kırmasın.
+    final expected =
+        kCityData.fold<int>(0, (n, c) => n + c.places.length);
+    expect(fences.length, expected);
     for (final f in fences) {
       expect(f.radiusMeters, kPlaceRadiusM);
       expect(f.minDwellSeconds, kDefaultMinDwell);

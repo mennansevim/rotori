@@ -1343,85 +1343,6 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: '✓ {places} spots spread across {days} days'
   },
   'explore.dayFallback': {AppLang.tr: 'Gün {n}', AppLang.en: 'Day {n}'},
-  'food.title': {AppLang.tr: 'Yemek', AppLang.en: 'Food'},
-  'food.emptyStops': {
-    AppLang.tr: 'Önce Rota adımında durak ekleyin.',
-    AppLang.en: 'First add stops in the Route step.'
-  },
-  'food.prefsTitle': {
-    AppLang.tr: 'Yemek tercihleri',
-    AppLang.en: 'Food preferences'
-  },
-  'food.prefsSub': {
-    AppLang.tr:
-        'Hassasiyetlerini seç — plan ve restoran önerileri buna göre filtrelenir.',
-    AppLang.en:
-        'Pick your sensitivities — plans and restaurant suggestions are filtered accordingly.'
-  },
-  'food.sensTitle': {
-    AppLang.tr: '🍽️ Yemek hassasiyetleri',
-    AppLang.en: '🍽️ Food sensitivities'
-  },
-  'food.sensNote': {
-    AppLang.tr:
-        'Bu seçimler tüm gezi için geçerlidir; viewer\'da hap bilgi ve fraz kartlarına yansır.',
-    AppLang.en:
-        'These choices apply to the whole trip; they show up as info pills and phrase cards in the viewer.'
-  },
-  'food.mealPerPerson': {
-    AppLang.tr: 'Kişi başı öğün ({currency})',
-    AppLang.en: 'Per-person meal ({currency})'
-  },
-  'food.currency': {AppLang.tr: 'Para birimi', AppLang.en: 'Currency'},
-  'food.addMeals': {
-    AppLang.tr: 'Öğünleri plana ekle',
-    AppLang.en: 'Add meals to the plan'
-  },
-  'food.addMealsHint': {
-    AppLang.tr:
-        'Gezi planı oluşturulurken öğle/akşam yemeği durakları eklenir.',
-    AppLang.en:
-        'Lunch and dinner stops are added when the trip plan is generated.'
-  },
-  'food.viewerNote': {
-    AppLang.tr:
-        'Yemek önerileri Rehber\'de (viewer) — bu hassasiyetlere göre restoranları orada listeliyoruz.',
-    AppLang.en:
-        'Food suggestions live in the Guide (viewer) — we list restaurants there based on these sensitivities.'
-  },
-  'food.sens.noPork': {
-    AppLang.tr: 'Domuz eti istemiyorum',
-    AppLang.en: 'No pork'
-  },
-  'food.sens.noPorkDerivatives': {
-    AppLang.tr: 'Domuz yağı / jelatin yok',
-    AppLang.en: 'No pork fat / gelatin'
-  },
-  'food.sens.noSeafood': {
-    AppLang.tr: 'Deniz ürünü istemiyorum',
-    AppLang.en: 'No seafood'
-  },
-  'food.sens.halal': {
-    AppLang.tr: 'Helal seçenek istiyorum',
-    AppLang.en: 'Halal options'
-  },
-  'food.sens.vegetarian': {AppLang.tr: 'Vejetaryen', AppLang.en: 'Vegetarian'},
-  'food.sens.chicken': {
-    AppLang.tr: 'Tavuk ağırlıklı',
-    AppLang.en: 'Chicken-focused'
-  },
-  'food.sens.noFattyMeat': {
-    AppLang.tr: 'Yağlı et sevmiyorum',
-    AppLang.en: 'No fatty meat'
-  },
-  'food.sens.kidFriendly': {
-    AppLang.tr: 'Çocuk dostu restoran',
-    AppLang.en: 'Kid-friendly restaurants'
-  },
-  'food.sens.turkishPalate': {
-    AppLang.tr: 'Türk damak tadına yakın',
-    AppLang.en: 'Close to Turkish taste'
-  },
   'opt.interest.anime': {
     AppLang.tr: 'Anime / Manga',
     AppLang.en: 'Anime / Manga'
@@ -1726,59 +1647,6 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Could not load the plan.',
   },
   'hotels.pickDate': {AppLang.tr: 'Tarih seç', AppLang.en: 'Pick a date'},
-  'publish.title': {AppLang.tr: 'Yayına hazır', AppLang.en: 'Ready to publish'},
-  'publish.subtitle': {
-    AppLang.tr:
-        'Planınız "{slug}" kullanıcısı altında kaydedildi. Uyarıları çözüp Rehber\'e (viewer) geçebilirsin.',
-    AppLang.en:
-        'Your plan is saved under the "{slug}" user. Resolve the warnings, then move on to the Guide (viewer).'
-  },
-  'publish.backToStep': {
-    AppLang.tr: '{step} adımına dön →',
-    AppLang.en: 'Back to {step} →'
-  },
-  'publish.export': {AppLang.tr: 'Dışa aktar', AppLang.en: 'Export'},
-  'publish.import': {AppLang.tr: 'İçe aktar', AppLang.en: 'Import'},
-  'publish.lockNote': {
-    AppLang.tr:
-        'Yayın kilidi: plan boşsa yayın adımı kilitli kalır — viewer boş ekran açmasın diye. En az bir aktivite ekle.',
-    AppLang.en:
-        'Publish lock: if the plan is empty, the publish step stays locked — so the viewer never opens to a blank screen. Add at least one activity.'
-  },
-  'publish.exportTitle': {
-    AppLang.tr: 'JSON dışa aktar',
-    AppLang.en: 'Export JSON'
-  },
-  'publish.jsonCopied': {
-    AppLang.tr: '✓ JSON kopyalandı',
-    AppLang.en: '✓ JSON copied'
-  },
-  'publish.copy': {AppLang.tr: 'Kopyala', AppLang.en: 'Copy'},
-  'publish.close': {AppLang.tr: 'Kapat', AppLang.en: 'Close'},
-  'publish.importTitle': {
-    AppLang.tr: 'JSON içe aktar',
-    AppLang.en: 'Import JSON'
-  },
-  'publish.importHint': {
-    AppLang.tr: 'Buraya Trip JSON yapıştır…',
-    AppLang.en: 'Paste Trip JSON here…'
-  },
-  'publish.cancel': {AppLang.tr: 'Vazgeç', AppLang.en: 'Cancel'},
-  'publish.imported': {
-    AppLang.tr: '✓ Plan içe aktarıldı',
-    AppLang.en: '✓ Plan imported'
-  },
-  'publish.invalidJson': {
-    AppLang.tr: 'Geçersiz JSON: {err}',
-    AppLang.en: 'Invalid JSON: {err}'
-  },
-  'publish.step.journey': {AppLang.tr: 'Rota', AppLang.en: 'Route'},
-  'publish.step.explore': {AppLang.tr: 'Keşfet', AppLang.en: 'Explore'},
-  'publish.step.title': {AppLang.tr: 'Başlık', AppLang.en: 'Title'},
-  'publish.step.hotels': {AppLang.tr: 'Konaklama', AppLang.en: 'Stays'},
-  'publish.step.food': {AppLang.tr: 'Yemek', AppLang.en: 'Food'},
-  'publish.step.plan': {AppLang.tr: 'Plan', AppLang.en: 'Plan'},
-  'publish.step.calendar': {AppLang.tr: 'Takvim', AppLang.en: 'Calendar'},
   'booking.title': {
     AppLang.tr: 'Bilet açılış tarihleri',
     AppLang.en: 'Ticket sale dates'
@@ -1836,47 +1704,6 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Name or code (TK, JL…)'
   },
   'pickers.close': {AppLang.tr: 'Kapat', AppLang.en: 'Close'},
-  'steps.welcome': {AppLang.tr: 'Başla', AppLang.en: 'Start'},
-  'steps.journey': {AppLang.tr: 'Rota', AppLang.en: 'Route'},
-  'steps.explore': {AppLang.tr: 'Keşfet', AppLang.en: 'Explore'},
-  'steps.title': {AppLang.tr: 'Başlık', AppLang.en: 'Title'},
-  'steps.hotels': {AppLang.tr: 'Konaklama', AppLang.en: 'Stay'},
-  'steps.food': {AppLang.tr: 'Yemek', AppLang.en: 'Food'},
-  'steps.plan': {AppLang.tr: 'Plan', AppLang.en: 'Plan'},
-  'steps.publish': {AppLang.tr: 'Yayın', AppLang.en: 'Publish'},
-  'title.autoTitle': {AppLang.tr: 'Japonya {year}', AppLang.en: 'Japan {year}'},
-  'title.headline': {
-    AppLang.tr: 'Planına isim ver',
-    AppLang.en: 'Name your plan'
-  },
-  'title.routeSummary': {
-    AppLang.tr: 'Rotanız: {route} · {n} gün',
-    AppLang.en: 'Your route: {route} · {n} days'
-  },
-  'title.routeIncomplete': {
-    AppLang.tr: 'Önce Rota adımında rotayı tamamlayın.',
-    AppLang.en: 'First complete your route in the Route step.'
-  },
-  'title.displayName': {AppLang.tr: 'Görünen ad', AppLang.en: 'Display name'},
-  'title.field.title': {AppLang.tr: 'Başlık', AppLang.en: 'Title'},
-  'title.titleHint': {
-    AppLang.tr:
-        'Gezinin yılına göre otomatik belirlenir (örn. {sample}). İstersen elle değiştirebilirsin.',
-    AppLang.en:
-        'Set automatically from the trip\'s year (e.g. {sample}). You can change it by hand if you like.'
-  },
-  'title.field.subtitle': {
-    AppLang.tr: 'Açıklama (opsiyonel)',
-    AppLang.en: 'Description (optional)'
-  },
-  'title.subtitleHint': {
-    AppLang.tr: 'Kısa bir not',
-    AppLang.en: 'A short note'
-  },
-  'title.field.pace': {AppLang.tr: 'Tempo', AppLang.en: 'Pace'},
-  'title.pace.relaxed': {AppLang.tr: 'Rahat', AppLang.en: 'Relaxed'},
-  'title.pace.moderate': {AppLang.tr: 'Dengeli', AppLang.en: 'Balanced'},
-  'title.pace.intense': {AppLang.tr: 'Yoğun', AppLang.en: 'Intense'},
   'journey.title': {
     AppLang.tr: '🇯🇵 Japonya rotası',
     AppLang.en: '🇯🇵 Japan route'
@@ -2027,150 +1854,6 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: '{n} seçili',
     AppLang.en: '{n} selected'
   },
-  'welcome.choose.ticket.title': {
-    AppLang.tr: 'Biletim var',
-    AppLang.en: 'I have a ticket'
-  },
-  'welcome.choose.ticket.desc': {
-    AppLang.tr: 'Uçuş bilgilerini gir ya da bilet fotoğrafını yükle',
-    AppLang.en: 'Enter your flight details or upload a photo of your ticket'
-  },
-  'welcome.choose.plan.title': {
-    AppLang.tr: 'Gezi planla',
-    AppLang.en: 'Plan a trip'
-  },
-  'welcome.choose.plan.desc': {
-    AppLang.tr: 'Sana en uygun tarihleri birlikte seçelim',
-    AppLang.en: 'Let\'s pick the dates that suit you best, together'
-  },
-  'welcome.choose.heading': {
-    AppLang.tr: 'Japonya\'yı planlayalım',
-    AppLang.en: 'Let\'s plan Japan'
-  },
-  'welcome.choose.subheading': {
-    AppLang.tr: 'Nereden başlayalım?',
-    AppLang.en: 'Where shall we start?'
-  },
-  'welcome.ticket.title': {
-    AppLang.tr: 'Bilet bilgilerin',
-    AppLang.en: 'Your ticket details'
-  },
-  'welcome.ticket.sub': {
-    AppLang.tr:
-        'Sadece tarihler zorunlu — diğer alanları boş bırakabilirsin. En fazla {n} günlük plan oluşturuyoruz.',
-    AppLang.en:
-        'Only the dates are required — you can leave the other fields blank. We build plans of up to {n} days.'
-  },
-  'welcome.ticket.outDate': {
-    AppLang.tr: 'Gidiş tarihi',
-    AppLang.en: 'Departure date'
-  },
-  'welcome.ticket.retDate': {
-    AppLang.tr: 'Dönüş tarihi',
-    AppLang.en: 'Return date'
-  },
-  'welcome.ticket.tooLong': {
-    AppLang.tr:
-        'En fazla {max} günlük plan oluşturuyoruz — {sel} gün seçildi, otomatik kısaltılacak.',
-    AppLang.en:
-        'We build plans of up to {max} days — you selected {sel} days, so it will be shortened automatically.'
-  },
-  'welcome.ticket.airline': {AppLang.tr: 'Havayolu', AppLang.en: 'Airline'},
-  'welcome.ticket.outFlightNo': {
-    AppLang.tr: 'Uçuş no (gidiş)',
-    AppLang.en: 'Flight no. (outbound)'
-  },
-  'welcome.ticket.retFlightNo': {
-    AppLang.tr: 'Uçuş no (dönüş)',
-    AppLang.en: 'Flight no. (return)'
-  },
-  'welcome.ticket.upload': {
-    AppLang.tr: '📷 Bilet fotoğrafı yükle',
-    AppLang.en: '📷 Upload a photo of your ticket'
-  },
-  'welcome.ticket.ocrSoon': {
-    AppLang.tr: 'Bilet OCR (AI) sonraki iterasyonda bağlanacak.',
-    AppLang.en: 'Ticket OCR (AI) will be connected in a future update.'
-  },
-  'welcome.continue': {AppLang.tr: 'Devam', AppLang.en: 'Continue'},
-  'welcome.plan.title': {
-    AppLang.tr: 'Japonya\'da esnek gezi',
-    AppLang.en: 'Flexible trip in Japan'
-  },
-  'welcome.plan.sub': {
-    AppLang.tr:
-        'Gidiş ve dönüş tarihini seç — otomatik gidiş-dönüş olarak Rota adımına geçelim.',
-    AppLang.en:
-        'Pick your departure and return dates — we\'ll set it up as a round trip and continue to Route.'
-  },
-  'welcome.plan.customRange': {
-    AppLang.tr: '📅 Tarih aralığı seç',
-    AppLang.en: '📅 Pick dates'
-  },
-  'welcome.plan.dateSummary.title': {
-    AppLang.tr: 'Seçilen tarihler',
-    AppLang.en: 'Selected dates'
-  },
-  'welcome.plan.dateSummary.edit': {
-    AppLang.tr: 'Değiştir',
-    AppLang.en: 'Change'
-  },
-  'welcome.range.help': {
-    AppLang.tr: 'Gidiş — Dönüş tarihlerini seç',
-    AppLang.en: 'Select departure — return dates'
-  },
-  'welcome.range.cancel': {AppLang.tr: 'Vazgeç', AppLang.en: 'Cancel'},
-  'welcome.range.confirm': {AppLang.tr: 'Uygula', AppLang.en: 'Apply'},
-  'welcome.save': {AppLang.tr: 'Kaydet', AppLang.en: 'Save'},
-  'welcome.origin.title': {
-    AppLang.tr: 'Kalkış şehri',
-    AppLang.en: 'Departure city'
-  },
-  'welcome.back': {AppLang.tr: '← Geri', AppLang.en: '← Back'},
-  'welcome.originPill': {
-    AppLang.tr: 'Kalkış: {city}',
-    AppLang.en: 'From: {city}'
-  },
-  'welcome.date.placeholder': {
-    AppLang.tr: 'gg.aa.yyyy',
-    AppLang.en: 'dd.mm.yyyy'
-  },
-  'welcome.dest.country': {AppLang.tr: 'Japonya', AppLang.en: 'Japan'},
-  'welcome.dest.tokyo.tag': {
-    AppLang.tr: 'Meiji, İmparatorluk Sarayı ve müzeler',
-    AppLang.en: 'Meiji, the Imperial Palace and museums'
-  },
-  'welcome.dest.osaka.tag': {
-    AppLang.tr: 'Osaka Kalesi\'nin bulunduğu liman şehri',
-    AppLang.en: 'The port city home to Osaka Castle'
-  },
-  'welcome.range.tokyo.sakuraPeak': {
-    AppLang.tr: '🌸 Sakura zirvesi',
-    AppLang.en: '🌸 Peak sakura'
-  },
-  'welcome.range.tokyo.lateSakura': {
-    AppLang.tr: '🌸 Geç sakura, ılıman',
-    AppLang.en: '🌸 Late sakura, mild'
-  },
-  'welcome.range.tokyo.autumn': {
-    AppLang.tr: '🍁 Sonbahar renkleri',
-    AppLang.en: '🍁 Autumn colors'
-  },
-  'welcome.range.osaka.sakuraKansai': {
-    AppLang.tr: '🌸 Sakura + Kansai',
-    AppLang.en: '🌸 Sakura + Kansai'
-  },
-  'welcome.range.osaka.mild': {
-    AppLang.tr: 'Ilıman, kalabalık az',
-    AppLang.en: 'Mild, fewer crowds'
-  },
-  'welcome.range.osaka.autumnFood': {
-    AppLang.tr: '🍁 Sonbahar + gastronomi',
-    AppLang.en: '🍁 Autumn + cuisine'
-  },
-  'welcome.range.week': {AppLang.tr: '~{n} hafta', AppLang.en: '~{n} week'},
-  'welcome.range.weeks': {AppLang.tr: '~{n} hafta', AppLang.en: '~{n} weeks'},
-  'welcome.range.days': {AppLang.tr: '~{n} gün', AppLang.en: '~{n} days'},
   'placeDetail.nearby': {AppLang.tr: 'Yakınlarda', AppLang.en: 'Nearby'},
   'placeDetail.nearbyRestaurants': {
     AppLang.tr: 'Yakındaki restoranlar (haritada aç)',
@@ -3408,6 +3091,185 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Your account has been deleted. Farewell.',
   },
   'drawer.tt.menu': {AppLang.tr: 'Menü', AppLang.en: 'Menu'},
+  // --- Yeni plan oluşturma (2 adım: nereye? → ne zaman?) ---
+  'create.cities.title': {
+    AppLang.tr: 'Japonya\'da nereye?',
+    AppLang.en: 'Where in Japan?',
+  },
+  'create.cities.sub': {
+    AppLang.tr: 'Şehirleri seç · rota sırası seçim sıran olur',
+    AppLang.en: 'Pick your cities · route order follows your selection',
+  },
+  'create.cities.placeCount': {
+    AppLang.tr: '{n} gezilecek yer',
+    AppLang.en: '{n} places to see',
+  },
+  'create.cities.selected': {
+    AppLang.tr: '{n} şehir seçildi',
+    AppLang.en: '{n} cities selected',
+  },
+  'create.cities.selectHint': {
+    AppLang.tr: 'En az bir şehir seç',
+    AppLang.en: 'Pick at least one city',
+  },
+  'create.dates.title': {AppLang.tr: 'Ne zaman?', AppLang.en: 'When?'},
+  'create.dates.sub': {
+    AppLang.tr: 'Gidiş ve dönüş gününü seç',
+    AppLang.en: 'Choose your travel window',
+  },
+  'create.dates.pick': {
+    AppLang.tr: 'Tarih aralığı seç',
+    AppLang.en: 'Pick a date range',
+  },
+  'create.dates.pickHint': {
+    AppLang.tr: 'Gidiş ve dönüş gününü belirle',
+    AppLang.en: 'Set your departure and return days',
+  },
+  'create.dates.depart': {AppLang.tr: 'GİDİŞ', AppLang.en: 'DEPART'},
+  'create.dates.return': {AppLang.tr: 'DÖNÜŞ', AppLang.en: 'RETURN'},
+  'create.dates.change': {AppLang.tr: 'Değiştir', AppLang.en: 'Change'},
+  'create.dates.unknown': {
+    AppLang.tr: '📅 Tarih henüz belli değil',
+    AppLang.en: '📅 I don\'t know the dates yet',
+  },
+  'create.dates.estimated': {
+    AppLang.tr:
+        '🗓️ Sezona göre önerdik — plan hazır olduktan sonra istediğin zaman değiştirebilirsin.',
+    AppLang.en:
+        '🗓️ We picked a good season for you — change it any time after your plan is ready.',
+  },
+  'create.dates.nights': {
+    AppLang.tr: '{nights} gece · {days} gün',
+    AppLang.en: '{nights} nights · {days} days',
+  },
+  'create.dates.cityDays': {AppLang.tr: '{n} gün', AppLang.en: '{n} days'},
+  'create.dates.splitNote': {
+    AppLang.tr: 'Gün dağılımını plan hazır olduktan sonra değiştirebilirsin.',
+    AppLang.en: 'You can adjust the day split once your plan is ready.',
+  },
+  'create.route.longTitle': {
+    AppLang.tr: 'Rotan gereksiz uzun görünüyor',
+    AppLang.en: 'Your route looks longer than it needs to be',
+  },
+  'create.route.current': {
+    AppLang.tr: 'SEÇTİĞİN SIRA',
+    AppLang.en: 'YOUR ORDER',
+  },
+  'create.route.suggested': {
+    AppLang.tr: '~{km} KM DAHA KISA',
+    AppLang.en: '~{km} KM SHORTER',
+  },
+  'create.route.fix': {
+    AppLang.tr: 'Rotayı bu sıraya göre düzelt',
+    AppLang.en: 'Reorder my route',
+  },
+  'create.route.fixed': {
+    AppLang.tr: 'Rota sırası güncellendi.',
+    AppLang.en: 'Route order updated.',
+  },
+  'create.dates.splitEditable': {
+    AppLang.tr:
+        '− / + ile şehir başına günü değiştir. Toplam gün sabit kalır; fark diğer şehirden alınır.',
+    AppLang.en:
+        'Use − / + to change days per city. The total stays fixed — days move between cities.',
+  },
+  'create.dates.tooManyCities': {
+    AppLang.tr:
+        'Seçtiğin şehir sayısı gün sayısından fazla. Tarihi uzat ya da bir şehir çıkar.',
+    AppLang.en:
+        'You picked more cities than days. Extend your dates or remove a city.',
+  },
+  'create.dates.editCities': {
+    AppLang.tr: 'Şehirleri düzenle',
+    AppLang.en: 'Edit cities',
+  },
+  'create.rangeHelp': {
+    AppLang.tr: 'Seyahat tarihlerin',
+    AppLang.en: 'Your travel dates',
+  },
+  'create.rangeConfirm': {AppLang.tr: 'Tamam', AppLang.en: 'Done'},
+  'create.rangeCancel': {AppLang.tr: 'Vazgeç', AppLang.en: 'Cancel'},
+  'create.continue': {AppLang.tr: 'Devam', AppLang.en: 'Continue'},
+  'create.back': {AppLang.tr: 'Geri', AppLang.en: 'Back'},
+  'create.generate': {AppLang.tr: 'Planımı oluştur', AppLang.en: 'Create my plan'},
+  'create.generating': {
+    AppLang.tr: 'Planın hazırlanıyor…',
+    AppLang.en: 'Building your plan…',
+  },
+  'create.ready': {
+    AppLang.tr: '✨ Planın hazır',
+    AppLang.en: '✨ Your plan is ready',
+  },
+  'create.saveFailed': {
+    AppLang.tr: 'Plan kaydedilemedi. Bağlantını kontrol edip tekrar dene.',
+    AppLang.en: 'Couldn\'t save the plan. Check your connection and try again.',
+  },
+  // --- Uçuş sayfası (plan sonrası, opsiyonel) ---
+  'flights.title': {AppLang.tr: 'Uçuş bilgileri', AppLang.en: 'Flight details'},
+  'flights.intro': {
+    AppLang.tr:
+        'Uçuşun girmesen de plan çalışır — varış saati varsayılan olarak 13:00 kabul edilir. '
+        'Gerçek saatlerini girersen varış ve dönüş günü buna göre yeniden düzenlenir.',
+    AppLang.en:
+        'Your plan works even without flight details — arrival defaults to 13:00. '
+        'Enter your real times and the arrival/departure days adjust to match.',
+  },
+  'flights.regenHint': {
+    AppLang.tr:
+        'Saatleri kaydettin — varış ve dönüş gününü bu saatlere göre yeniden düzenleyebilirsin.',
+    AppLang.en:
+        'Times saved — you can rebuild the arrival and departure days to match.',
+  },
+  'flights.regenAction': {
+    AppLang.tr: 'Günleri yeniden düzenle',
+    AppLang.en: 'Rebuild these days',
+  },
+  'flights.regenerated': {
+    AppLang.tr: 'Varış ve dönüş günü güncellendi',
+    AppLang.en: 'Arrival and departure days updated',
+  },
+  'viewer.mustSee.title': {
+    AppLang.tr: 'Bunları da gör',
+    AppLang.en: 'See these too',
+  },
+  'viewer.mustSee.body': {
+    AppLang.tr: 'Rotandaki şehirlerden, planına henüz girmemiş yerler.',
+    AppLang.en: 'Places in your cities that your plan doesn\'t cover yet.',
+  },
+  'viewer.mustSee.cta': {
+    AppLang.tr: 'Plana ekle',
+    AppLang.en: 'Add to plan',
+  },
+  'viewer.mustSee.ctaCount': {
+    AppLang.tr: '{n} yeri plana ekle',
+    AppLang.en: 'Add {n} to plan',
+  },
+  'viewer.mustSee.dismiss': {
+    AppLang.tr: 'Bu kartı gizle',
+    AppLang.en: 'Hide this card',
+  },
+  'viewer.mustSee.added': {
+    AppLang.tr: '{n} yer plana eklendi.',
+    AppLang.en: '{n} place(s) added to your plan.',
+  },
+  'viewer.mustSee.partial': {
+    AppLang.tr: '{n} eklendi · {m} sığmadı (günler dolu).',
+    AppLang.en: '{n} added · {m} didn\'t fit (days are full).',
+  },
+  'viewer.mustSee.none': {
+    AppLang.tr: 'Hiçbiri sığmadı — günlerin dolu. Önce bir şeyler çıkar.',
+    AppLang.en: 'Nothing fit — your days are full. Remove something first.',
+  },
+  'viewer.addFlight.title': {
+    AppLang.tr: '✈️ Uçuşunu ekle',
+    AppLang.en: '✈️ Add your flight',
+  },
+  'viewer.addFlight.body': {
+    AppLang.tr:
+        'Kalkış/varış saatlerini gir — varış ve dönüş günü otomatik düzenlensin.',
+    AppLang.en:
+        'Enter your flight times so arrival and departure days adjust automatically.',
+  },
   'plans.title': {AppLang.tr: 'Planlarım', AppLang.en: 'My plans'},
   'plans.headerSubtitle': {
     AppLang.tr: '旅 · yolculuklarını tek yerde tut',
@@ -4252,8 +4114,4 @@ const Map<String, Map<AppLang, String>> _strings = {
   },
   'cityCard.visited': {AppLang.tr: 'gezildi', AppLang.en: 'visited'},
   'cityCard.detecting': {AppLang.tr: 'algılanıyor…', AppLang.en: 'detecting…'},
-  'welcome.origin.hint': {
-    AppLang.tr: 'İstanbul, Londra, New York…',
-    AppLang.en: 'Istanbul, London, New York…'
-  },
 };

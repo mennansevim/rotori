@@ -2,6 +2,8 @@
 // Japonya POI/mekan veritabanı + gün şablonları — generator ve fillEmptyDays
 // tarafından kullanılır. Veriler birebir (isim, koordinat, tag) porttur.
 
+import 'types.dart';
+
 /// Öneri mekan kaydı.
 /// [category] TS union karşılığı string:
 /// 'culture' | 'nature' | 'food' | 'fun' | 'shopping' | 'transport'.
@@ -17,6 +19,9 @@ class PlaceSuggestion {
     this.rating,
     this.kidFriendly,
     this.imageUrl,
+    this.openHour,
+    this.closeHour,
+    this.durationMin,
   });
 
   final String id;
@@ -35,6 +40,27 @@ class PlaceSuggestion {
 
   /// Kart görseli (public Unsplash/Wikimedia URL). Yoksa emoji fallback.
   final String? imageUrl;
+
+  /// Çalışma saatleri (0-24). null = "gün boyu açık" varsayılır ve yalnızca
+  /// genel planlama penceresi (09:00-20:00) uygulanır. Erken kapanan yerler
+  /// (pazarlar) ya da geç açan yerler burada işaretlenir; üretici bir yeri
+  /// ancak açık olduğu saate yerleştirebiliyorsa seçer.
+  final int? openHour;
+  final int? closeHour;
+
+  /// Yerde geçirilen tipik süre (dk). null → kDefaultActivityMinutes.
+  final int? durationMin;
+
+  /// Bu yerin gerçekten ziyaret edilebileceği dakika aralığı — kendi çalışma
+  /// saati ile genel planlama penceresinin kesişimi. [start, end)
+  (int start, int end) visitWindow(int dayStart, int dayEnd) {
+    final open = (openHour ?? 0) * 60;
+    final close = (closeHour ?? 24) * 60;
+    return (
+      open > dayStart ? open : dayStart,
+      close < dayEnd ? close : dayEnd,
+    );
+  }
 }
 
 /// Bir mekanın günü ne kadar kapladığı.
@@ -56,6 +82,35 @@ PlaceCoverage coverageOfPlaceId(String id) {
   }
 }
 
+/// SAATLİ GİRİŞ — bileti belirli bir saat dilimine kesilen yerler.
+///
+/// teamLab Planets zaman aralıklı giriş satar; Disneyland/DisneySea ve USJ
+/// için de park giriş saati + önceden alınan Express/timed pass vardır.
+/// Rota optimizasyonu (hava durumuna göre yeniden dizme dahil) bu öğelerin
+/// SAATİNİ DEĞİŞTİREMEZ — kullanıcının elindeki bilet geçersiz olur.
+///
+/// Kullanım: [isTimeLocked] — öğenin kendi kilidiyle birleştirir.
+bool isTimedEntryTitle(String title) {
+  final t = title.toLowerCase();
+  return t.contains('teamlab') ||
+      t.contains('team lab') ||
+      t.contains('disneyland') ||
+      t.contains('disneysea') ||
+      t.contains('disney sea') ||
+      t.contains('universal studios') ||
+      t.contains('usj');
+}
+
+/// Bu öğe rota optimizasyonunda SAATİ/GÜNÜ değiştirilebilir mi?
+///
+/// İki kaynağı birleştirir:
+///  • Öğenin kendi kilidi (`isFixed`) — kullanıcı kilitlediyse ya da üretici
+///    ticketedEvent olarak işaretlediyse.
+///  • Başlıktan türetme — bu kilit eklenmeden ÖNCE kaydedilmiş planlar da
+///    korunsun diye (mevcut kullanıcıların teamLab/Disney günleri bozulmasın).
+bool isTimeLocked(TimelineItem item) =>
+    item.isFixed || isTimedEntryTitle(item.title);
+
 /// Bir TimelineItem başlığından coverage çıkarır. fillEmptyDays ve
 /// post-processor buradan okur (title anahtar/ID'den bağımsız kalabilir).
 PlaceCoverage coverageOfTitle(String title) {
@@ -75,29 +130,29 @@ PlaceCoverage coverageOfTitle(String title) {
 }
 
 const List<PlaceSuggestion> kJapanPopular = [
-  PlaceSuggestion(id: 'sensoji', name: 'Senso-ji Asakusa', city: 'Tokyo', emoji: '⛩️', category: 'culture', typicalSteps: 8000, bestForDayTheme: 'Asakusa & tapınak',
+  PlaceSuggestion(id: 'sensoji', name: 'Senso-ji Asakusa', city: 'Tokyo', emoji: '⛩️', category: 'culture', typicalSteps: 8000, openHour: 6, closeHour: 17, bestForDayTheme: 'Asakusa & tapınak',
       imageUrl: 'https://images.unsplash.com/photo-1583400400287-ec8bdcc4b91b?w=400&q=60'),
-  PlaceSuggestion(id: 'skytree', name: 'Tokyo Skytree', city: 'Tokyo', emoji: '🗼', category: 'fun', typicalSteps: 12000,
+  PlaceSuggestion(id: 'skytree', name: 'Tokyo Skytree', city: 'Tokyo', emoji: '🗼', category: 'fun', typicalSteps: 12000, openHour: 10, closeHour: 21,
       imageUrl: 'https://images.unsplash.com/photo-1554797589-7241bb691973?w=400&q=60'),
-  PlaceSuggestion(id: 'shibuya', name: 'Shibuya Sky & Crossing', city: 'Tokyo', emoji: '📸', category: 'fun', typicalSteps: 15000,
+  PlaceSuggestion(id: 'shibuya', name: 'Shibuya Sky & Crossing', city: 'Tokyo', emoji: '📸', category: 'fun', typicalSteps: 15000, openHour: 10, closeHour: 22,
       imageUrl: 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=400&q=60'),
-  PlaceSuggestion(id: 'meiji', name: 'Meiji Jingu', city: 'Tokyo', emoji: '🌳', category: 'culture', typicalSteps: 9000,
+  PlaceSuggestion(id: 'meiji', name: 'Meiji Jingu', city: 'Tokyo', emoji: '🌳', category: 'culture', typicalSteps: 9000, openHour: 6, closeHour: 17,
       imageUrl: 'https://images.unsplash.com/photo-1522547902298-51566e4fb383?w=400&q=60'),
-  PlaceSuggestion(id: 'teamlab', name: 'teamLab Planets', city: 'Tokyo', emoji: '🪐', category: 'fun', typicalSteps: 11000,
+  PlaceSuggestion(id: 'teamlab', name: 'teamLab Planets', city: 'Tokyo', emoji: '🪐', category: 'fun', typicalSteps: 11000, openHour: 9, closeHour: 21,
       imageUrl: 'https://images.unsplash.com/photo-1567013127542-490d757e51fc?w=400&q=60'),
-  PlaceSuggestion(id: 'disney', name: 'Tokyo Disneyland', city: 'Tokyo', emoji: '🏰', category: 'fun', typicalSteps: 22000,
+  PlaceSuggestion(id: 'disney', name: 'Tokyo Disneyland', city: 'Tokyo', emoji: '🏰', category: 'fun', typicalSteps: 22000, openHour: 9, closeHour: 21,
       imageUrl: 'https://images.unsplash.com/photo-1624601573012-efb68931cc8f?w=400&q=60'),
-  PlaceSuggestion(id: 'dotonbori', name: 'Dotonbori', city: 'Osaka', emoji: '🐙', category: 'food', typicalSteps: 10000,
+  PlaceSuggestion(id: 'dotonbori', name: 'Dotonbori', city: 'Osaka', emoji: '🐙', category: 'food', typicalSteps: 10000, openHour: 11, closeHour: 23,
       imageUrl: 'https://images.unsplash.com/photo-1590559899731-a382839e5549?w=400&q=60'),
-  PlaceSuggestion(id: 'usj', name: 'Universal Studios Japan', city: 'Osaka', emoji: '🎢', category: 'fun', typicalSteps: 20000,
+  PlaceSuggestion(id: 'usj', name: 'Universal Studios Japan', city: 'Osaka', emoji: '🎢', category: 'fun', typicalSteps: 20000, openHour: 9, closeHour: 21,
       imageUrl: 'https://images.unsplash.com/photo-1526318472351-c75fcf070305?w=400&q=60'),
-  PlaceSuggestion(id: 'fushimi', name: 'Fushimi Inari', city: 'Kyoto', emoji: '⛩️', category: 'culture', typicalSteps: 14000,
+  PlaceSuggestion(id: 'fushimi', name: 'Fushimi Inari', city: 'Kyoto', emoji: '⛩️', category: 'culture', typicalSteps: 14000, openHour: 0, closeHour: 24,
       imageUrl: 'https://images.unsplash.com/photo-1478436127897-769e1538f1a2?w=400&q=60'),
-  PlaceSuggestion(id: 'nara', name: 'Nara Park & Todai-ji', city: 'Nara', emoji: '🦌', category: 'nature', typicalSteps: 16000,
+  PlaceSuggestion(id: 'nara', name: 'Nara Park & Todai-ji', city: 'Nara', emoji: '🦌', category: 'nature', typicalSteps: 16000, openHour: 8, closeHour: 17,
       imageUrl: 'https://images.unsplash.com/photo-1580100482008-c410e58c58af?w=400&q=60'),
-  PlaceSuggestion(id: 'osaka-castle', name: 'Osaka Kalesi', city: 'Osaka', emoji: '🏯', category: 'culture', typicalSteps: 12000,
+  PlaceSuggestion(id: 'osaka-castle', name: 'Osaka Kalesi', city: 'Osaka', emoji: '🏯', category: 'culture', typicalSteps: 12000, openHour: 9, closeHour: 17,
       imageUrl: 'https://images.unsplash.com/photo-1590253230532-a67f6bc61b1e?w=400&q=60'),
-  PlaceSuggestion(id: 'kuromon', name: 'Kuromon Market', city: 'Osaka', emoji: '🍣', category: 'food', typicalSteps: 8000,
+  PlaceSuggestion(id: 'kuromon', name: 'Kuromon Market', city: 'Osaka', emoji: '🍣', category: 'food', typicalSteps: 8000, openHour: 9, closeHour: 17,
       imageUrl: 'https://images.unsplash.com/photo-1580442151529-343f2f6e0e27?w=400&q=60'),
 ];
 
