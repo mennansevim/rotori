@@ -13,10 +13,11 @@ fi
 echo "→ git pull"
 git pull --ff-only
 
-# Sürüm damgası — /api/version + web sağ üstte gösterilir.
+# Sürüm damgası — her deploy benzersiz bir SemVer build kimliği üretir.
 export GIT_COMMIT="$(git rev-parse --short HEAD)"
-export BUILD_DATE="$(git log -1 --format=%cd --date=format:'%Y-%m-%d %H:%M')"
-echo "→ sürüm: $GIT_COMMIT ($BUILD_DATE)"
+export BUILD_DATE="$(date '+%Y-%m-%d %H:%M:%S %z')"
+export DEPLOY_ID="$(date -u '+%Y%m%d.%H%M%S')"
+echo "→ sürüm: $GIT_COMMIT+$DEPLOY_ID ($BUILD_DATE)"
 
 echo "→ docker compose up -d --build"
 docker compose up -d --build

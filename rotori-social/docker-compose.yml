@@ -13,6 +13,7 @@ services:
       args:
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
         BUILD_DATE: ${BUILD_DATE:-}
+        DEPLOY_ID: ${DEPLOY_ID:-dev}
     container_name: rotori-social
     ports:
       # Host 3090 → container 8420 (uvicorn). Cloudflare Tunnel bu portu okur.

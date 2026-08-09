@@ -294,7 +294,12 @@ scheduler_queue.json (kalıcı)
 
 ## 11. Otomasyon zamanlaması (haber + konu)
 
-- `data/automation_config.json` — haftalık gün + saat (güncel çalışma ağacında haber: `days:[4], 17:05`; konu: `days:[5], 20:00`).
+- `data/automation_config.json` — haftalık gün + saat. Mavi haber hattı tek
+  haftalık günle sınırlıdır (güncel ayar: Çarşamba 23:21); konu/görsel hattı
+  birden fazla haftalık gün kullanabilir.
+- Dashboard canlı akışında yalnız aktif `pending/ready/uploading` kayıtlar
+  sıralanır. `failed/cancelled` kayıtlar yayın logunda korunur ama sıradaki
+  slotu ve canlı anchor kartını bloke etmez.
 - **Ancak in-process cron yok**: bu iş şu an harici bir tetikleyiciye bağlı (crontab, launchd, Pi'de systemd timer veya UI'daki "▶ Şimdi çalıştır" butonu).
 - **UI tetiği**: `POST /api/automation/run_now` (kind=news|topic) veya `POST /api/news/run_now`.
 
@@ -308,6 +313,13 @@ scheduler_queue.json (kalıcı)
 - **Frontend**: PWA manifest + apple-touch-icon. Ancak service worker YOK — offline kullanım tasarlanmamış (kanal içeriği yayın için internet zaten şart).
 
 ## 14. Deploy mimarisi
+
+- `deploy.sh` her çalışmada UTC tabanlı benzersiz `DEPLOY_ID` üretir. Docker
+  build'i bunu `BUILD_INFO` içine yazar; `/api/version` SemVer build metadata
+  biçiminde örneğin `v1.0.2+20260809.230000` döndürür.
+- Dashboard statik JavaScript/CSS yanıtları `no-cache, no-store,
+  must-revalidate` başlığı taşır; yeni deploy eski tarayıcı veya CDN dosyasıyla
+  açılmaz.
 
 ```
        Developer Mac (kod düzenleme)

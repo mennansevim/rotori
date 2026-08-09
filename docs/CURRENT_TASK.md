@@ -163,8 +163,8 @@ temiz; 100 base × 4 profil ürün kalite kapısının bütün maddeleri geçti.
   maliyetini verdi. Aynı öncelikte öğün koruması için regresyon testi eklendi;
   rota prompt kalite eşiği yeniden geçti. `flutter analyze --no-pub` temiz.
 
-- ✅ **2026-08-03** `japan-reels-maker` proje dizini
-  `rotori-social/japan-reels-maker` altına taşındı ve nested `.git`
+- ✅ **2026-08-03** eski sosyal proje dizininin kaynak kodu
+  doğrudan `rotori-social/` altına taşındı ve nested `.git`
   kaldırıldı. Böylece geçerli tek repository kökü `rotori-app/.git` oldu.
 
 - ✅ **2026-08-03** Rota harness P0 doğruluk fixleri (`ROUTE_OPTIMIZATION_FIX_PLAN.md`

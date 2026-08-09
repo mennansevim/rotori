@@ -58,6 +58,28 @@ def test_automation_config_shape(client):
         assert "minute" in conf and isinstance(conf["minute"], int)
 
 
+def test_news_automation_rejects_more_than_one_weekly_day(client, monkeypatch):
+    """Mavi haber akışı çoklu günle yeniden iki-üç günlük sıraya dönmemeli."""
+    import src.web.app as appmod
+
+    monkeypatch.setattr(
+        appmod,
+        "_load_auto_cfg",
+        lambda: {
+            "news": {"enabled": True, "days": [3], "hour": 23, "minute": 21,
+                     "auto_publish": True},
+            "topic": {"enabled": True, "days": [3, 5], "hour": 22, "minute": 22,
+                      "auto_publish": True},
+        },
+    )
+    r = client.post("/api/automation/config", json={
+        "news": {"enabled": True, "days": [3, 6], "hour": 23, "minute": 21},
+        "topic": {},
+    })
+    assert r.status_code == 422
+    assert "haftada tam bir yayın günü" in r.json()["detail"]
+
+
 def test_scheduler_queue_shape(client):
     """Komuta/Özet ekranları bu alanları okuyor."""
     r = client.get("/api/scheduler/queue")

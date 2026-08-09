@@ -37,7 +37,7 @@ Arşivdeki ~1000 Japonya videosu ve/veya haftalık RSS haber akışından **otom
 
 ## 6. Klasör yapısı (kaynak referansı — `ls`'den birebir)
 ```
-japan-reels-maker/
+rotori-social/
 ├── src/
 │   ├── config.py                 # dataclass config loader — SchedulerCfg dahil 13 cfg
 │   ├── step1_analyze.py          # llava vision → data/metadata.csv

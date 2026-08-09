@@ -36,6 +36,17 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 app = FastAPI(title="Japan Reels Maker", docs_url=None, redoc_url=None)
 
+
+@app.middleware("http")
+async def dashboard_cache_policy(request: Request, call_next):
+    """Dashboard kodu deploy sonrasında eski CDN/tarayıcı cache'inden gelmesin."""
+    response = await call_next(request)
+    if request.url.path.startswith("/static/dashboard/"):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
 # system.py: /api/version, /api/status, /api/logs — sözleşmesi contract test
 # ile kilitlidir (tests/test_contracts_system.py).
 app.include_router(system_router.router)
@@ -690,7 +701,7 @@ def story_ai_from_image(req: AIFromImageRequest) -> dict[str, Any]:
         import requests as _req
         try:
             r = _req.get(src_url, timeout=15,
-                         headers={"User-Agent": "japan-reels-maker/1.0"})
+                         headers={"User-Agent": "rotori-social/1.0"})
             r.raise_for_status()
         except _req.RequestException as exc:
             raise HTTPException(status_code=502,
@@ -1488,7 +1499,7 @@ def instagram_publish(name: str) -> dict[str, Any]:
 _AUTO_CFG_PATH = "data/automation_config.json"
 # launchd Weekday: 0=Pazar, 1=Pazartesi, …, 6=Cumartesi
 _DEFAULT_AUTO_CFG = {
-    "news":  {"enabled": False, "days": [1, 4], "hour": 9,  "minute": 0, "auto_publish": False},
+    "news":  {"enabled": False, "days": [3], "hour": 9,  "minute": 0, "auto_publish": False},
     "topic": {"enabled": False, "days": [2, 5], "hour": 12, "minute": 0, "auto_publish": False},
 }
 
@@ -1627,6 +1638,16 @@ def automation_config_post(req: AutomationConfigRequest) -> dict[str, Any]:
         for key in ("enabled", "days", "hour", "minute", "auto_publish"):
             if key in incoming:
                 data[k][key] = incoming[key]
+    news_days = sorted({
+        int(day) for day in (data["news"].get("days") or [])
+        if str(day).lstrip("-").isdigit() and 0 <= int(day) <= 6
+    })
+    if data["news"].get("enabled") and len(news_days) != 1:
+        raise HTTPException(
+            status_code=422,
+            detail="Haber otomasyonu için haftada tam bir yayın günü seçilmeli.",
+        )
+    data["news"]["days"] = news_days
     _save_auto_cfg(data)
     notes = _sync_launchd(data)
     from src import scheduler as sched_mod

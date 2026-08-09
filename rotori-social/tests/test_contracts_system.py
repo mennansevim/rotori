@@ -5,6 +5,10 @@ tüketiliyor. Response şeması ASLA değişmemeli (backwards compat).
 """
 from __future__ import annotations
 
+import json
+
+from src.web.routers import system
+
 
 def test_version_ok(client):
     r = client.get("/api/version")
@@ -69,3 +73,23 @@ def test_version_stable_across_calls(client):
     b = client.get("/api/version").json()
     assert a["source"] == b["source"]
     assert a["commit"] == b["commit"]
+
+
+def test_deploy_id_updates_semver_build_metadata(tmp_path):
+    (tmp_path / "VERSION").write_text("1.0.2\n", encoding="utf-8")
+    (tmp_path / "BUILD_INFO").write_text(json.dumps({
+        "commit": "abcdef123",
+        "date": "2026-08-10 02:00:00 +0300",
+        "deploy": "20260809.230000",
+    }), encoding="utf-8")
+
+    data = system._read_version(tmp_path)
+    assert data["version"] == "v1.0.2+20260809.230000"
+    assert data["commit"] == "abcdef1"
+    assert data["source"] == "build"
+
+
+def test_dashboard_static_assets_are_never_stale(client):
+    r = client.get("/static/dashboard/app.js")
+    assert r.status_code == 200
+    assert r.headers["cache-control"] == "no-cache, no-store, must-revalidate"

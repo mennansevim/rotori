@@ -23,7 +23,7 @@ ve rehber. Marka önce "Tabi" (旅) olarak öneriliydi, 2026-07 civarında
 
 > **Repo yapısı (2026-08-03 yeniden düzenleme):** Kök klasör `rotori-app/`.
 > Üç ürün ayağı: `rotori-mobile/` (Flutter), `rotori-website/` (tanıtım sitesi),
-> `rotori-social/` (sosyal/reels — `japan-reels-maker` kaynak kodu taşındı).
+> `rotori-social/` (sosyal/reels — kaynak kod doğrudan bu dizindedir).
 > Paylaşılan: `docs/`,
 > `supabase/`. Vercel kaldırıldı.
 
@@ -34,7 +34,7 @@ ve rehber. Marka önce "Tabi" (旅) olarak öneriliydi, 2026-07 civarında
 | Klasik rehber | `rotori-website/legacy/index.html` + `.../legacy/apps/viewer/` | Statik JSON tabanlı PWA rehber (eski nesil). |
 | Planner web | `rotori-website/legacy/apps/planner/` | 7 adımlı React planlayıcı (mobil öncesi nesil, hâlâ demoya açık). |
 | API stub | `rotori-website/legacy/apps/api/` + `.../legacy/api/` + `.../legacy/tools/` | Faz 2 / serverless sağlayıcılar — canlı değil. |
-| Sosyal ayak | `rotori-social/` | Reels/sosyal üretim — `japan-reels-maker` artık monorepo içinde (`rotori-social/japan-reels-maker`). |
+| Sosyal ayak | `rotori-social/` | Reels/sosyal üretim — kaynak kod doğrudan monorepo içindeki bu dizindedir. |
 | Backend | Supabase `vsclzcillbveregzsgmj` (Tokyo) | Auth + `plans` + `profiles` + RLS. |
 
 > **Enerji dağılımı:** Bugün asıl geliştirme `rotori-mobile/` içindedir.
