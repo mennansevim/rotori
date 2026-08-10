@@ -151,12 +151,14 @@ def test_publish_outcome_overdue_pending():
     assert outcome_tr == ds.PUBLISH_OUTCOME_TR["overdue"]
 
 
-def test_recovered_dark_board_and_timeline_contracts():
+def test_user_friendly_overview_and_timeline_contracts():
     overview_js = (DASHBOARD_STATIC / "pages" / "overview.js").read_text(encoding="utf-8")
     automation_js = (DASHBOARD_STATIC / "pages" / "automation.js").read_text(encoding="utf-8")
     styles = (DASHBOARD_STATIC / "styles.css").read_text(encoding="utf-8")
     lib_js = (DASHBOARD_STATIC / "lib.js").read_text(encoding="utf-8")
-    assert "kanban-card--" in overview_js
+    assert "Günaydın" in overview_js
+    assert "Taslak" in overview_js and "Onaylandı" in overview_js and "Yayınlandı" in overview_js
+    assert "ctx.navigate(`library:${stage.key}`)" in overview_js
     assert "timelineItem(it)" in automation_js
     assert "await renderAutomation(root, ctx)" in automation_js
     assert ".tl-item__thumb" in styles
@@ -176,14 +178,23 @@ def test_dashboard_cachebuster_is_consistent():
     app_js = (DASHBOARD_STATIC / "app.js").read_text(encoding="utf-8")
     automation_js = (DASHBOARD_STATIC / "pages" / "automation.js").read_text(encoding="utf-8")
     library_js = (DASHBOARD_STATIC / "pages" / "library.js").read_text(encoding="utf-8")
-    version = "20260810-5"
+    overview_js = (DASHBOARD_STATIC / "pages" / "overview.js").read_text(encoding="utf-8")
+    settings_js = (DASHBOARD_STATIC / "pages" / "settings.js").read_text(encoding="utf-8")
+    logs_js = (DASHBOARD_STATIC / "pages" / "logs.js").read_text(encoding="utf-8")
+    version = "20260810-6"
     assert f"styles.css?v={version}" in index_html
     assert f"app.js?v={version}" in index_html
     assert f"pages/automation.js?v={version}" in app_js
     assert f"pages/library.js?v={version}" in app_js
+    assert f"pages/overview.js?v={version}" in app_js
+    assert f"pages/settings.js?v={version}" in app_js
+    assert f"pages/logs.js?v={version}" in app_js
     assert f"lib.js?v={version}" in automation_js
     assert f"lib.js?v={version}" in library_js
-    assert "20260810-4" not in index_html + app_js + automation_js + library_js
+    assert f"lib.js?v={version}" in overview_js
+    assert f"lib.js?v={version}" in settings_js
+    assert f"lib.js?v={version}" in logs_js
+    assert "20260810-5" not in index_html + app_js + automation_js + library_js + overview_js + settings_js + logs_js
 
 
 def test_library_uses_three_stage_content_lifecycle():
@@ -194,6 +205,18 @@ def test_library_uses_three_stage_content_lifecycle():
     assert "label: 'Yayınlandı'" in library_js
     assert "statuses: new Set(['approved', 'queued', 'scheduled', 'publishing', 'failed'])" in library_js
     assert "api.autoFillReadyItem(item.name)" in library_js
+
+
+def test_navigation_and_automation_are_user_safe():
+    app_js = (DASHBOARD_STATIC / "app.js").read_text(encoding="utf-8")
+    automation_js = (DASHBOARD_STATIC / "pages" / "automation.js").read_text(encoding="utf-8")
+    logs_js = (DASHBOARD_STATIC / "pages" / "logs.js").read_text(encoding="utf-8")
+    assert "label: 'Genel Bakış'" in app_js
+    assert "label: 'Aktivite'" in app_js
+    assert "location.hash || '#overview'" in app_js
+    assert "api.autoFillReadyItem(item._assetName)" in automation_js
+    assert "title: 'Şimdi yayınla'" in automation_js
+    assert "title: 'Yayını tekrar dene'" in logs_js
 
 
 def test_publishes_skips_stale_queue_entry_if_already_published(monkeypatch, tmp_path):

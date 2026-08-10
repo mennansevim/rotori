@@ -1,32 +1,34 @@
 // =========================================================================
 // app.js — Router + sidebar + account · Japonya Rüyası İçerik Stüdyosu
 // =========================================================================
-import { api, el, icons } from './lib.js?v=20260810-5';
-import { renderCreate, openCreateModal } from './pages/create.js?v=20260810-5';
-import { renderAutomation } from './pages/automation.js?v=20260810-5';
-import { renderLogs } from './pages/logs.js?v=20260810-5';
-import { renderLibrary } from './pages/library.js?v=20260810-5';
-import { renderSettings } from './pages/settings.js';
+import { api, el, icons } from './lib.js?v=20260810-6';
+import { renderOverview } from './pages/overview.js?v=20260810-6';
+import { renderCreate, openCreateModal } from './pages/create.js?v=20260810-6';
+import { renderAutomation } from './pages/automation.js?v=20260810-6';
+import { renderLogs } from './pages/logs.js?v=20260810-6';
+import { renderLibrary } from './pages/library.js?v=20260810-6';
+import { renderSettings } from './pages/settings.js?v=20260810-6';
 
 const ROUTES = [
-  { key: 'automation', label: 'Automation', icon: icons.automation, render: renderAutomation },
+  { key: 'overview', label: 'Genel Bakış', icon: icons.overview, render: renderOverview },
   { key: 'library', label: 'Kütüphane', icon: icons.library, render: renderLibrary },
-  { key: 'settings', label: 'Settings', icon: icons.settings, render: renderSettings },
-  { key: 'logs', label: 'Logs', icon: icons.file, render: renderLogs },
-  { key: 'create', label: 'Create New Post', icon: icons.create, render: renderCreate, nav: false },
+  { key: 'automation', label: 'Otomasyon', icon: icons.automation, render: renderAutomation },
+  { key: 'logs', label: 'Aktivite', icon: icons.file, render: renderLogs },
+  { key: 'settings', label: 'Ayarlar', icon: icons.settings, render: renderSettings },
+  { key: 'create', label: 'Yeni İçerik', icon: icons.create, render: renderCreate, nav: false },
 ];
 
 const pageRoot = document.getElementById('page-root');
 const nav = document.getElementById('nav');
-let current = { key: 'automation', params: null };
+let current = { key: 'overview', params: null };
 
 // Route parse: "create:gorsel" → { key:'create', params:{tab:'gorsel'} }
 function parseHash() {
-  const raw = (location.hash || '#automation').slice(1);
+  const raw = (location.hash || '#overview').slice(1);
   const [key, arg] = raw.split(':');
   const route = ROUTES.find((r) => r.key === key) || ROUTES[0];
   let params = null;
-  if (arg && route.key === 'create') params = { tab: arg };
+  if (arg && ['create', 'automation', 'library'].includes(route.key)) params = { tab: arg, status: arg };
   return { route, params };
 }
 
@@ -37,6 +39,14 @@ const ctx = {
 };
 
 document.getElementById('top-create')?.addEventListener('click', () => openCreateModal(ctx, 'gorsel'));
+document.getElementById('top-profile')?.addEventListener('click', () => ctx.navigate('settings'));
+document.getElementById('account')?.addEventListener('click', () => ctx.navigate('settings'));
+document.getElementById('account')?.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    ctx.navigate('settings');
+  }
+});
 
 async function renderCurrent() {
   const { route, params } = parseHash();
@@ -93,5 +103,5 @@ window.addEventListener('hashchange', renderCurrent);
 
 buildNav();
 loadAccount();
-if (!location.hash) location.hash = '#automation';
+if (!location.hash) location.hash = '#overview';
 renderCurrent();

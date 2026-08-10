@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rotori Social · Instagram Workspace</title>
+  <title>Rotori Social · İçerik Çalışma Alanı</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/dashboard/styles.css?v=20260810-5" />
+  <link rel="stylesheet" href="/static/dashboard/styles.css?v=20260810-6" />
 </head>
 <body>
   <div class="layout">
@@ -26,11 +26,11 @@
         <span class="brand__mark">R</span>
         <div class="brand__text">
           <div class="brand__title">Rotori Social</div>
-          <div class="brand__sub">Instagram workspace</div>
+          <div class="brand__sub">İçerik çalışma alanı</div>
         </div>
       </div>
       <nav class="nav" id="nav" aria-label="Ana menü"></nav>
-      <div class="account" id="account">
+      <div class="account" id="account" role="button" tabindex="0" aria-label="Hesap ayarlarını aç">
         <div class="account__label">Bağlı Hesap</div>
         <div class="account__row">
           <div class="account__avatar">JR</div>
@@ -44,18 +44,17 @@
 
     <!-- İçerik -->
     <main class="main" id="main">
-      <header class="topbar" aria-label="Workspace araç çubuğu">
+      <header class="topbar" aria-label="Çalışma alanı araç çubuğu">
         <div class="topbar__workspace">
           <span class="topbar__workspace-mark">IG</span>
           <span>
             <strong>Japonya Rüyası</strong>
-            <small>Instagram workspace</small>
+            <small>İçerik çalışma alanı</small>
           </span>
-          <span class="topbar__caret" aria-hidden="true">⌄</span>
         </div>
         <div class="topbar__actions">
-          <button class="btn btn--primary topbar__create" id="top-create"><span aria-hidden="true">＋</span> Create New Post</button>
-          <button class="topbar__profile" id="top-profile" aria-label="Profil"><span>JR</span><i>⌄</i></button>
+          <button class="btn btn--primary topbar__create" id="top-create"><span aria-hidden="true">＋</span> Yeni İçerik</button>
+          <button class="topbar__profile" id="top-profile" aria-label="Hesap ayarlarını aç"><span>JR</span></button>
         </div>
       </header>
       <div id="page-root"></div>
@@ -65,6 +64,6 @@
   <div class="toast-wrap" id="toasts"></div>
   <div id="modal-root"></div>
 
-  <script src="/static/dashboard/app.js?v=20260810-5" type="module"></script>
+  <script src="/static/dashboard/app.js?v=20260810-6" type="module"></script>
 </body>
 </html>

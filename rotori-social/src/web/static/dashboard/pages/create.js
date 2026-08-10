@@ -4,8 +4,8 @@
 //   Görsel Üret : 3 adım — Konu → Görsel seç → Metin + Kartı oluştur
 //   Haber Üret  : RSS pipeline + otomatik yayın toggle
 // =========================================================================
-import { api, el, icons, toast, openModal } from '../lib.js';
-import { openGenOverlay, setGenStages, genAppendLog, finishGenOverlay, pollJobUntilDone, closeGenOverlay } from '../genoverlay.js';
+import { api, el, icons, toast, openModal } from '../lib.js?v=20260810-6';
+import { openGenOverlay, setGenStages, genAppendLog, finishGenOverlay, pollJobUntilDone, closeGenOverlay } from '../genoverlay.js?v=20260810-6';
 
 // -------------------------------------------------------------------------
 // Popup: iki üretim modunu sekmeli modal içinde açar.
@@ -122,8 +122,8 @@ function buildGorsel(ctx, onDone) {
 
   const regenBtn = el('button', { class: 'btn btn--sm btn--ghost', title: 'Seçili görsel varsa görselden, yoksa konudan metni yeniden üret',
     onclick: () => regenerateAciklama(), html: '↻ Açıklamayı yeniden üret' });
-  const capBtn = el('button', { class: 'btn btn--sm btn--ghost', title: 'Instagram caption üret (açıklamaya göre)',
-    onclick: () => aiCaption(false), html: '↻ Caption üret' });
+  const capBtn = el('button', { class: 'btn btn--sm btn--ghost', title: 'Instagram açıklaması üret',
+    onclick: () => aiCaption(false), html: '↻ Açıklama üret' });
   const backBtn = el('button', { class: 'btn', onclick: () => setStep(2), html: '← Görsel değiştir' });
   const renderBtn = el('button', { class: 'btn btn--primary', onclick: () => renderCard(), html: icons.send + '<span>Kartı oluştur</span>' });
 
@@ -134,7 +134,7 @@ function buildGorsel(ctx, onDone) {
       aciInput),
     el('div', { class: 'field' },
       el('div', { class: 'hstack', style: 'justify-content:space-between' },
-        el('label', { class: 'field__label' }, 'Instagram caption'), capCount),
+        el('label', { class: 'field__label' }, 'Instagram açıklaması'), capCount),
       capInput),
     el('div', { class: 'grid-2', style: 'gap:14px' },
       el('div', { class: 'field', style: 'margin:0' },
@@ -171,7 +171,7 @@ function buildGorsel(ctx, onDone) {
     prevKicker, prevTitle, prevImgWrap, prevBody,
     el('div', { class: 'ig-preview__tags' }, '#Japonya #JaponyaRüyası'));
   const right = el('div', { class: 'stack' },
-    el('div', { class: 'card create-preview-card' }, el('div', { class: 'card__head' }, el('h3', {}, 'Canlı Önizleme'), el('span', { class: 'create-preview-card__status' }, '4:5 Post')),
+    el('div', { class: 'card create-preview-card' }, el('div', { class: 'card__head' }, el('h3', {}, 'Canlı Önizleme'), el('span', { class: 'create-preview-card__status' }, '4:5 Gönderi')),
       el('div', { class: 'card__body' }, preview)));
 
   const wrap = el('div', { class: 'grid-2 create-modal__grid' }, left, right);
@@ -272,7 +272,7 @@ function buildGorsel(ctx, onDone) {
       updatePreview();
       await ensureAutoCaption();
       toast('✓ Görselden metin üretildi. Beğenmezsen elle düzenle.', 'ok');
-    } catch (e) { toast('AI vision hatası: ' + e.message, 'err'); }
+    } catch (e) { toast('Görselden metin üretilemedi: ' + e.message, 'err'); }
     finally { regenBtn.disabled = false; }
   }
   async function aiFromText() {
@@ -289,7 +289,7 @@ function buildGorsel(ctx, onDone) {
       updatePreview();
       await ensureAutoCaption();
       toast('✓ Konudan metin üretildi. Şimdi bir görsel seç.', 'ok');
-    } catch (e) { toast('AI text hatası: ' + e.message, 'err'); }
+    } catch (e) { toast('Metin üretilemedi: ' + e.message, 'err'); }
     finally { textOnlyBtn.disabled = false; }
   }
   function regenerateAciklama() { return state.selectedIdx === null ? aiFromText() : aiFromImage(); }
@@ -307,10 +307,10 @@ function buildGorsel(ctx, onDone) {
       capInput.value = (res.caption || res.text || '').trim() || fallback();
     } catch (e) {
       capInput.value = fallback();
-      if (!silent) toast('Caption hatası: ' + e.message, 'err');
+      if (!silent) toast('Instagram açıklaması üretilemedi: ' + e.message, 'err');
     }
     capCount.textContent = `${capInput.value.length} karakter`;
-    if (!silent && capInput.value) toast('✓ Instagram caption üretildi.', 'ok');
+    if (!silent && capInput.value) toast('✓ Instagram açıklaması üretildi.', 'ok');
     return Boolean(capInput.value);
   }
   async function ensureAutoCaption() { return capInput.value.trim() ? true : generateCaption(true); }
@@ -349,7 +349,7 @@ function buildGorsel(ctx, onDone) {
       genAppendLog(`✓ Kart oluşturuldu: ${file || '?'}`);
       finishGenOverlay(true, {
         file,
-        onResult: () => { onDone && onDone(); ctx.navigate('overview'); },
+        onResult: () => { onDone && onDone(); ctx.navigate('library:draft'); },
       });
     } catch (e) {
       genAppendLog('Hata: ' + e.message);
