@@ -3,23 +3,82 @@
 > Bu dosya *bugünkü* çalışmanın canlı görünümüdür. Her tamamlanan görevden
 > hemen sonra güncellenir.
 
-**Bugünün tarihi:** 2026-08-07
-**Aktif branch:** `codex/mobile-p0-viewer-test-fix-20260807-1022`
-**Sprint hedefi:** Rota optimizasyonu iyileştirme planının Faz 0–5 çekirdek
-domain, harness schema v2, kalite kapısı ve AI-maliyet sınırlarını tamamlamak.
+**Bugünün tarihi:** 2026-08-10
+**Aktif branch:** `feat/premium-iap-foundation`
+**Sprint hedefi:** Monetizasyon Faz 1 — abonelik altyapısı (IAP + sunucu
+doğrulama + süreli yetkilendirme). Model kararı verildi ve belgelendi;
+sıra kodda.
+
+---
+
+## 🚦 SIRADAKİ OTURUM BURADAN BAŞLAR
+
+> Bu blok, sıfırdan başlayan bir oturumun ilk okuyacağı yerdir.
+> Önce `docs/MONETIZATION_PLAN.md` okunur (özellikle §3 SKU'lar, §4 yayın
+> kapsamı, §5 Faz 1, §9 karar günlüğü). **Model kararını yeniden tartışma** —
+> §9.1'de kanıtın sınırları ve §9.2'de yeniden değerlendirme kapısı yazılı.
+
+**Durum:** Faz 0 (App Store Connect ürün tanımları) **kullanıcıda**, henüz
+yapılmadı. Faz 1 kodu başlamadı.
+
+**Kullanıcı tarafında bekleyen (kod yazmayı bloke ETMEZ, sandbox testini eder):**
+
+1. App Store Connect → abonelik grubu `rotori_pro`
+   - `com.mennansevim.japanTrip.pro.yearly` — TR ₺499 / global $29.99,
+     **7 gün ücretsiz deneme** introductory offer
+   - `com.mennansevim.japanTrip.pro.monthly` — TR ₺99 / global $4.99,
+     **deneme yok**
+2. Small Business Program başvurusu (komisyon %30 → %15)
+3. `rotori-social/data/automation_config.json` → `topic.enabled: false`
+   açılacak mı? **Kullanıcıya sorulmuş, cevap alınmadı** — bilinçli
+   kapatıldıysa dokunulmaz (bkz. `docs/GROWTH_SEO_STRATEGY.md` §6 sıra 1)
+
+**Kod tarafında ilk iş:** aşağıdaki "Sıradaki Uygulama Adımı" listesi.
 
 ---
 
 ## Aktif Hedef
 
-Rota schema v2, cross-day assignment, priority-aware dropping, bağımsız hard
-validator, timeline/wait/free-time ayrımı, kişi/grup maliyeti, luggage state,
-transfer timeline, yön/time-slice estimated matris ve paired profil suite
-uygulandı. POI keşfi gerektiğinde kullanıcı onaylı tek AI batch + cache;
-optimum rota hesabı yerel deterministik motor olarak ayrıldı. Statik analiz
-temiz; 100 base × 4 profil ürün kalite kapısının bütün maddeleri geçti.
+Monetizasyon modeli pazar araştırmasıyla kararlaştırıldı ve üç belgeye işlendi
+(`MONETIZATION_PLAN.md`, `GROWTH_SEO_STRATEGY.md`, `DECISIONS.md` 2026-08-10
+ve 08-10b). Model: **yıllık ₺499 + aylık ₺99 abonelik, yıllıkta 7 gün deneme,
+kişiselleştirilmiş ön izleme hunisi.** Bu bir hipotez; ilk 100–200 nitelikli
+kullanıcı verisinden sonra yeniden değerlendirilecek.
+
+Sıradaki iş **Faz 1**: `in_app_purchase` entegrasyonu, Apple makbuz
+doğrulaması yapan Edge Function, `subscriptions` tablosu, Apple S2S V2
+bildirim endpoint'i ve `premiumProvider`'ın istemci-prefs'ten sunucu
+yetkilendirmesine taşınması. Okuma tarafı (`is_premium()`) zaten var;
+**yazan taraf ve süre kontrolü yok.**
+
+Önceki sprint (rota optimizasyonu Faz 0–5) tamamlandı: schema v2, cross-day
+assignment, priority-aware dropping, bağımsız hard validator, kişi/grup
+maliyeti, transfer timeline, paired profil suite. 100 base × 4 profil kalite
+kapısı geçti, analyze temiz.
 
 ## Tamamlananlar (bu ve önceki oturumlardan)
+
+- ✅ **2026-08-10** Monetizasyon modeli pazar araştırmasıyla kararlaştırıldı ve
+  belgelendi. Kod envanteri çıkarıldı: uygulama **hiç yayınlanmamış**
+  (`version: 1.0.0+1`, release checklist'te işaretli kutu yok), ödeme
+  altyapısı **sıfır** (`in_app_purchase` yok), sunucu yetkilendirmesinin
+  **okuma tarafı var yazan yok** (`is_premium()`), rota optimizasyonu
+  paywall'ı **satış değil coming-soon duvarı** ve kilidi istemcide
+  (bypass edilebilir), l10n **%100 iki dilli** (1240/1240), sosyal hat
+  kurulu ama otomasyon 2 gönderi yapmış. Araştırma: RevenueCat 2026
+  (seyahat aboneliklerinin %66'sı yıllık, deneme→ödeme %43,5, indirme→ödeme
+  medyanı %2, $1K MRR'a 238 gün, yeni seyahat uygulamalarının %9,8'i 2 yılda
+  $10K MRR) + rakip modelleri (TripIt $49/yıl, Wanderlog $29.99–49.99/yıl +
+  affiliate, Tripsy $59.99/yıl & lifetime $299 = yıllığın 5 katı çıpa,
+  NAVITIME ~¥330/ay) + Wanderlog'un 5M indirmeye SEO ile çıkması.
+  Karar: **yıllık ₺499 + aylık ₺99 abonelik, yıllıkta 7 gün deneme,
+  kişiselleştirilmiş ön izleme hunisi** — "kanıtlanmış model" değil,
+  **test edilecek en güçlü hipotez** (RevenueCat verisi yalnızca abonelik
+  kullanan uygulamalardan geliyor → seçim yanlılığı; trip-pass hipotez
+  olarak açık). Yayın kapsamı 26 → 12.5–15 güne indirildi; offline harita
+  paketi, planlama fazı araçları, bilet kasası ve paylaşım yayın sonrasına
+  ertelendi. Yeni belgeler: `docs/MONETIZATION_PLAN.md`,
+  `docs/GROWTH_SEO_STRATEGY.md`. Commit: `8788454`, `396b6a0`.
 
 - ✅ **2026-08-07** Yeni mobil **price-tag scanner** özelliği ayrı feature
   paketi olarak eklendi (`rotori-mobile/lib/features/price_tag_scanner/`):
@@ -452,26 +511,117 @@ temiz; 100 base × 4 profil ürün kalite kapısının bütün maddeleri geçti.
   değiştirilirse cihaz içi sıra ve dirty-cache korumasına rağmen son yazan
   kazanabilir.
 
-## Sıradaki Uygulama Adımı
+## Sıradaki Uygulama Adımı — Faz 1 iş emri
 
-1. Route matrix backend/Edge Function sağlayıcısını ve merkezi büyük-istasyon
-   metadata normalizasyonunu uygula.
-2. Rota cache'ini kalıcılaştırıp API çağrı/hit-rate ölçümlerini gerçek
-   sağlayıcı üzerinde doğrula.
-3. Planner'a aynı karşılaştırma/onay yüzeyini bağla; günler arası taşımada iki
-   günü tek ön izlemede göster.
-4. Gerçek bir iOS cihaz veya simulator üzerinde offline→online cache/fallback
-   ve sürükle-bırak sonrası yeniden optimizasyonu doğrula.
+> Sıra bağımlılığa göre. Her madde kendi kabul kriteriyle birlikte;
+> tam ayrıntı `docs/MONETIZATION_PLAN.md` §5 Faz 1'de.
+
+### 1. Veri katmanı — `supabase/migrations/0009_subscriptions.sql`
+
+- [ ] `public.subscriptions` tablosu: `user_id`, `original_transaction_id`
+      (**unique** — replay koruması), `product_id`, `status`, `expires_at`,
+      `is_trial`, `platform`, `raw_payload jsonb`, `created_at`, `updated_at`
+- [ ] RLS: kullanıcı kendi kaydını okur; INSERT/UPDATE **yalnız service_role**
+      (istemci DML politikası tanımlanmaz → default deny;
+      `0008_daily_scans.sql` aynı deseni kullanıyor, ona bak)
+- [ ] **`is_premium()` güncellenir** — şu an yalnız
+      `raw_user_meta_data->>'premium'` bayrağına bakıyor
+      (`0008_daily_scans.sql`). Artık `expires_at > now()` koşulu da gerekli,
+      grace period toleransı dahil. **Bu fonksiyonu `parse-price-tag`
+      Edge Function'ı çağırıyor — kırılmamalı.**
+
+**Kabul:** Migration lokal Supabase'de temiz uygulanıyor; `is_premium()` süresi
+geçmiş abone için `false`, geçerli abone için `true` dönüyor; tarama kotası
+regresyona girmiyor.
+
+### 2. Sunucu doğrulama — `supabase/functions/verify-purchase/index.ts`
+
+- [ ] App Store Server API ile JWS `signedTransactionInfo` doğrulaması
+      (legacy `/verifyReceipt` **kullanılmaz**, deprecated)
+- [ ] `bundleId` (`com.mennansevim.japanTrip`) + `productId` + `transactionId`
+      + `expiresDate` kontrolü
+- [ ] Doğrulanırsa `subscriptions`'a upsert + `auth.admin.updateUserById` ile
+      `raw_user_meta_data.premium` ve `premium_expires_at` yazımı
+- [ ] Idempotent: aynı `transactionId` ikinci kez gelirse yeni kayıt açmaz
+- [ ] Mevcut Edge Function desenini takip et: `parse-price-tag/index.ts`
+      service_role client + `_shared/` yardımcıları
+
+**Kabul:** Sandbox makbuzu → kayıt oluşuyor → `is_premium()` true; aynı makbuz
+iki kez gönderildiğinde ikinci istek yeni kayıt açmıyor.
+
+### 3. Apple S2S V2 bildirim endpoint'i — **atlanamaz**
+
+- [ ] `supabase/functions/apple-notifications/index.ts`
+- [ ] İşlenecek olaylar: `DID_RENEW`, `EXPIRED`, `DID_FAIL_TO_RENEW`,
+      `GRACE_PERIOD_EXPIRED`, `REFUND`, `REVOKE`,
+      `DID_CHANGE_RENEWAL_STATUS`
+- [ ] App Store Connect'te endpoint URL'i tanımlanır
+
+**Neden atlanamaz:** Bu olmadan iptal/iade sonrası erişim **süresiz açık
+kalır** — doğrudan gelir sızıntısı.
+
+**Kabul:** Sandbox'ta iptal + süre bitimi erişimi kapatıyor; iade erişimi
+anında kapatıyor.
+
+### 4. İstemci — `rotori-mobile/lib/features/premium/purchase_service.dart`
+
+- [ ] `in_app_purchase: ^3.2.0` → `pubspec.yaml`
+- [ ] Ürün sorgulama (iki SKU birlikte), satın alma, `purchaseStream`
+      dinleyicisi (pending / purchased / error / canceled), `restorePurchases()`
+- [ ] Her başarılı/geri yüklenen işlemde `verificationData` → `verify-purchase`
+- [ ] Hata durumları ayrı ayrı: mağaza erişilemez, ürün bulunamaz, ödeme
+      reddedildi, pending (Ask to Buy / SCA), ağ yok
+- [ ] **Deneme uygunluğu** — kullanıcı denemeyi kullandıysa paywall
+      "7 gün ücretsiz" **demez** (yanlış vaat = App Store red riski)
+
+### 5. `premiumProvider` sunucuya taşınır
+
+- [ ] Tek doğru kaynak sunucu: Supabase metadata + `expires_at`
+- [ ] Prefs yalnızca **offline cache**; süre de yazılır, **süresi geçmiş cache
+      Pro açmaz** (uçuşta/çevrimdışı Pro erişimi korunur)
+- [ ] `kPremiumPrefsKey` `'debug_premium'` → `'premium_entitlement_cache'`
+- [ ] Debug override **ayrı** anahtara: `'debug_premium_override'`, yalnız
+      `kDebugMode` altında okunur
+- [ ] **`rotori-mobile/test/features/premium_gates_test.dart` kırılacak** —
+      satır 67–71 `expect(kPremiumPrefsKey, 'debug_premium')` ile eski
+      sözleşmeyi kilitliyor. **Bu kasıtlı**, regresyon değil; yeni sözleşmeye
+      göre yeniden yazılır. Eats ücretsizliği testleri (satır 80–99) **aynen
+      korunur** — o sözleşme değişmiyor.
+- [ ] `price_tag_scanner/controller/scanner_controller.dart:268` de aynı prefs
+      anahtarını okuyor (`_debugPremium`) — birlikte güncellenir
+
+**Kabul:** Release build'de debug override hiçbir şekilde okunmuyor (test ile
+kanıtlanır); çevrimdışı geçerli abone kilit görmüyor; süresi geçmiş cache Pro
+açmıyor; `flutter analyze` temiz; `flutter test` yeşil.
+
+### Faz 1 sonrası (aynı branch'te devam)
+
+6. **Faz 2** — paywall ekranı (iki SKU, yıllık varsayılan + "en avantajlı",
+   deneme yalnız yıllıkta), Apple abonelik açıklama maddeleri, restore butonu,
+   ToS/Privacy linkleri, `l10n.dart:2646` "sunulacak" kopyasının değişmesi,
+   **rota optimizasyonu AI çağrısının Edge Function'a taşınması** (şu an kilit
+   `plan_viewer_screen.dart:4055`'te istemcide, prefs ile aşılabilir)
+7. **Faz 3** — ön izleme hunisi (ilk oturumda tamamlanmalı: denemelerin %82'si
+   kurulum günü başlıyor), "kazandırdığı saat" göstergesi
+   (`plan_optimization_controller.dart:44` `totalTravelMinutes` farkı —
+   **fallback yolundan gelen sonuçta gösterilmez**), gezi limiti 1 aktif
+8. **Faz 4** — `rotori-mobile/docs/IOS_RELEASE_MANUAL_GATE_CHECKLIST.md`
+   baştan sona (şu an tek kutu işaretli değil — **gerçek kritik yol bu**)
 
 ## Şu An Değişen Dosyalar
 
-Başlangıçta kullanıcıya ait `docs/CLAUDE.md` değişikliği ve untracked kök
-`img/` tasarım kaynağı vardı; ikisine de dokunulmadı. Bu görev kapsamında
-domain motoru, edit session, viewer/planner, repository, l10n, testler ve
-ilgili mimari belgelerdeki mevcut değişiklikler korunacaktır. Yeni rota
-optimizasyonu bu dirty worktree üzerinde yeni izole domain/data/controller/test
-dosyalarıyla eklendi; mevcut kullanıcı değişiklikleri geri alınmadı veya
-üzerlerine yazılmadı.
+Çalışma dizininde **kullanıcıya ait, commit'lenmemiş 3 dosya** var —
+kasıtlı olarak dokunulmuyor, commit'lenmiyor:
+
+- `.claude/launch.json` — `flutter-preview-map` girdisi silinmiş (yerel config)
+- `rotori-social/data/automation_config.json` — `topic.enabled: false`,
+  `news.days`'ten 6 kaldırılmış (**panelden bilinçli mi değiştirildi
+  belirsiz, kullanıcıya soruldu, cevap alınmadı**)
+- `rotori-social/data/scheduler_queue.json` — servisin kendi yazdığı kuyruk
+  durumu (391 satır)
+
+Bunlar servis çalışma-zamanı durumu; git geçmişine girmesi ileride çakışma
+üretir. Faz 1 kodu yazılırken bu dosyalara dokunulmaz.
 
 ## Son Commit'ler (referans)
 
