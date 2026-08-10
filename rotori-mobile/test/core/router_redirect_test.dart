@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/core/router.dart';
+import 'package:rotori/core/router.dart';
 
 void main() {
   group('resolveAuthRedirect', () {

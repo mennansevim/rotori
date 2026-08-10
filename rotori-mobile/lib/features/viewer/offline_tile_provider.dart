@@ -99,7 +99,7 @@ class CachingTileProvider extends TileProvider {
   /// eder, bu paylaşım onları etkilemez.)
   static final CachingTileProvider shared = CachingTileProvider();
 
-  /// 30 gün TTL, max 500 tile — kaba bir üst sınır. `japan_trip_tiles`
+  /// 30 gün TTL, max 500 tile — kaba bir üst sınır. `rotori_tiles`
   /// namespace'i başka cache'lerle çakışmasın diye ayrık.
   static final BaseCacheManager _cacheManager = CacheManager(
     Config(
@@ -109,7 +109,7 @@ class CachingTileProvider extends TileProvider {
     ),
   );
 
-  static const String _kCacheKey = 'japan_trip_tiles_v1';
+  static const String _kCacheKey = 'rotori_tiles_v1';
 
   /// TileLayer bunu her hücre için çağırır. Web'de NetworkImage'e düşeriz.
   @override

@@ -38,7 +38,7 @@ Dashboard → **Authentication → Providers**
 ### Sign in with Apple (App Store için ŞART)
 - Apple Developer hesabı gerekir. Dashboard'da adım adım rehber var: **Providers → Apple → Configure**.
 - Kısa yol:
-  1. Apple Developer → **Certificates, IDs & Profiles** → yeni **Services ID** (ör. `com.mennansevim.japantrip.web`).
+  1. Apple Developer → **Certificates, IDs & Profiles** → yeni **Services ID** (ör. `com.mennansevim.rotori.web`).
   2. **Sign In with Apple** özelliğini etkinleştir; return URL: `https://<proje-ref>.supabase.co/auth/v1/callback`.
   3. **Key** oluştur (Sign in with Apple key), `.p8` dosyasını indir.
   4. Supabase Dashboard'a **Services ID**, **Team ID**, **Key ID**, **.p8 içeriği**'ni gir.

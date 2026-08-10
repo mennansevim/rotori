@@ -2,8 +2,8 @@
 // kalem kalem min–max, mevsim/tek-yön çarpanları ve aile senaryosu.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/cost_estimate.dart';
-import 'package:japan_trip/domain/types.dart';
+import 'package:rotori/domain/cost_estimate.dart';
+import 'package:rotori/domain/types.dart';
 
 Trip _trip({
   int? partySize,

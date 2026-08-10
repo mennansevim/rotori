@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/data/route_matrix_cache.dart';
+import 'package:rotori/data/route_matrix_cache.dart';
 
 void main() {
   RouteMatrixCacheKey key({

@@ -1,5 +1,5 @@
-import 'package:japan_trip/domain/itinerary_optimizer.dart';
-import 'package:japan_trip/domain/route_matrix.dart';
+import 'package:rotori/domain/itinerary_optimizer.dart';
+import 'package:rotori/domain/route_matrix.dart';
 
 import 'route_plan_scenario.dart';
 import 'route_time.dart';

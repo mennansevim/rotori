@@ -4,8 +4,8 @@
 // lib/core/date_format.dart ile birlikte buraya taşındı).
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/core/date_format.dart';
-import 'package:japan_trip/core/l10n.dart' show AppLang;
+import 'package:rotori/core/date_format.dart';
+import 'package:rotori/core/l10n.dart' show AppLang;
 
 void main() {
   group('googleFlightsUrl', () {

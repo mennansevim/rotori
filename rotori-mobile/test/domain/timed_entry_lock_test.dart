@@ -3,10 +3,10 @@
 // kullanıcının bileti geçersiz olur.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/day_optimizer.dart';
-import 'package:japan_trip/domain/japan_suggestions.dart';
-import 'package:japan_trip/domain/plan_generation.dart';
-import 'package:japan_trip/domain/types.dart';
+import 'package:rotori/domain/day_optimizer.dart';
+import 'package:rotori/domain/japan_suggestions.dart';
+import 'package:rotori/domain/plan_generation.dart';
+import 'package:rotori/domain/types.dart';
 
 TimelineItem _item(
   String id,

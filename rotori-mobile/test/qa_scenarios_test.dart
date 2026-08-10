@@ -16,13 +16,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:japan_trip/core/l10n.dart';
-import 'package:japan_trip/data/language_store.dart';
-import 'package:japan_trip/data/plans_repository.dart';
-import 'package:japan_trip/domain/types.dart';
-import 'package:japan_trip/features/plans/plan_providers.dart';
-import 'package:japan_trip/features/plans/plan_viewer_screen.dart';
-import 'package:japan_trip/features/viewer/japanese_phrases_screen.dart';
+import 'package:rotori/core/l10n.dart';
+import 'package:rotori/data/language_store.dart';
+import 'package:rotori/data/plans_repository.dart';
+import 'package:rotori/domain/types.dart';
+import 'package:rotori/features/plans/plan_providers.dart';
+import 'package:rotori/features/plans/plan_viewer_screen.dart';
+import 'package:rotori/features/viewer/japanese_phrases_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'trip_generator.dart';
@@ -528,7 +528,7 @@ void main() {
       final file = File('ios/Runner.xcodeproj/project.pbxproj');
       if (!file.existsSync()) return;
       final content = file.readAsStringSync();
-      expect(content.contains('com.mennansevim.japanTrip'), isTrue);
+      expect(content.contains('com.mennansevim.rotori'), isTrue);
     });
 
     // ---- s100: Fresh install smoke ----

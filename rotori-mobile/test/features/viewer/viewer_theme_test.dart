@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/data/plans_repository.dart';
-import 'package:japan_trip/features/viewer/viewer_theme.dart';
+import 'package:rotori/data/plans_repository.dart';
+import 'package:rotori/features/viewer/viewer_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

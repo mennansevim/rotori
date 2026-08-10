@@ -1,9 +1,9 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/features/live_currency_scanner/domain/currency_code.dart';
-import 'package:japan_trip/features/live_currency_scanner/domain/currency_converter.dart';
-import 'package:japan_trip/features/live_currency_scanner/domain/exchange_rate.dart';
-import 'package:japan_trip/features/live_currency_scanner/domain/scanner_settings.dart';
+import 'package:rotori/features/live_currency_scanner/domain/currency_code.dart';
+import 'package:rotori/features/live_currency_scanner/domain/currency_converter.dart';
+import 'package:rotori/features/live_currency_scanner/domain/exchange_rate.dart';
+import 'package:rotori/features/live_currency_scanner/domain/scanner_settings.dart';
 
 ExchangeRate _rate(String r, {String target = 'TRY'}) => ExchangeRate(
       baseCurrency: 'JPY',

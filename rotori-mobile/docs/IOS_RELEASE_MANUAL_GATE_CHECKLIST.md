@@ -15,7 +15,7 @@ Bu checklist, `mobile/docs/RELEASE_QA_ANALYSIS_2026-07-26.md` bulgularına göre
 
 ## P1 — Önemli (yüksek öncelik)
 
-- [ ] **Widget scope aktifse**: App Group (`group.com.japantrip`) Runner + Widget target’ta bağlı.
+- [ ] **Widget scope aktifse**: App Group (`group.com.mennansevim.rotori`) Runner + Widget target’ta bağlı.
 - [ ] **Bildirimler**: İzin verildiğinde schedule + teslim çalışıyor; deny halinde fallback doğru.
 - [ ] **Location / Camera / Photos deny akışları**: Çökme yok, kullanıcı yönlendirmesi net.
 - [ ] **Offline/zayıf ağ**: Ana akışlarda sonsuz loading yok, hata görünümü anlaşılır.

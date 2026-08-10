@@ -1,9 +1,9 @@
 // Rehber maddelerinin hedef kitlesi + Suica içeriğinin bütünlüğü.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/core/l10n.dart' show AppLang;
-import 'package:japan_trip/domain/localized_text.dart';
-import 'package:japan_trip/domain/travel_tips_data.dart';
+import 'package:rotori/core/l10n.dart' show AppLang;
+import 'package:rotori/domain/localized_text.dart';
+import 'package:rotori/domain/travel_tips_data.dart';
 
 void main() {
   MustKnowSection suica() => kMustKnowSections

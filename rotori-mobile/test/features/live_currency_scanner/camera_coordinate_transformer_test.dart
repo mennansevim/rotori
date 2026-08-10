@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/painting.dart' show BoxFit;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/features/live_currency_scanner/infrastructure/camera/camera_coordinate_transformer.dart';
+import 'package:rotori/features/live_currency_scanner/infrastructure/camera/camera_coordinate_transformer.dart';
 
 void main() {
   const t = CameraCoordinateTransformer();

@@ -2,16 +2,16 @@ import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:japan_trip/core/l10n.dart';
-import 'package:japan_trip/features/live_currency_scanner/application/live_currency_scanner_state.dart';
-import 'package:japan_trip/features/live_currency_scanner/domain/currency_code.dart';
-import 'package:japan_trip/features/live_currency_scanner/domain/exchange_rate.dart';
-import 'package:japan_trip/features/live_currency_scanner/domain/japanese_price_tax_type.dart';
-import 'package:japan_trip/features/live_currency_scanner/presentation/pages/scanner_settings_page.dart';
-import 'package:japan_trip/features/live_currency_scanner/presentation/widgets/camera_permission_view.dart';
-import 'package:japan_trip/features/live_currency_scanner/presentation/widgets/currency_detection_label.dart';
-import 'package:japan_trip/features/live_currency_scanner/presentation/widgets/exchange_rate_status.dart';
-import 'package:japan_trip/features/viewer/viewer_theme.dart';
+import 'package:rotori/core/l10n.dart';
+import 'package:rotori/features/live_currency_scanner/application/live_currency_scanner_state.dart';
+import 'package:rotori/features/live_currency_scanner/domain/currency_code.dart';
+import 'package:rotori/features/live_currency_scanner/domain/exchange_rate.dart';
+import 'package:rotori/features/live_currency_scanner/domain/japanese_price_tax_type.dart';
+import 'package:rotori/features/live_currency_scanner/presentation/pages/scanner_settings_page.dart';
+import 'package:rotori/features/live_currency_scanner/presentation/widgets/camera_permission_view.dart';
+import 'package:rotori/features/live_currency_scanner/presentation/widgets/currency_detection_label.dart';
+import 'package:rotori/features/live_currency_scanner/presentation/widgets/exchange_rate_status.dart';
+import 'package:rotori/features/viewer/viewer_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Widget _wrap(Widget child, {AppLang lang = AppLang.tr}) => ProviderScope(

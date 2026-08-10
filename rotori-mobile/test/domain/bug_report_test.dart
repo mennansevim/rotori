@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/bug_report.dart';
-import 'package:japan_trip/domain/trip_factory.dart';
+import 'package:rotori/domain/bug_report.dart';
+import 'package:rotori/domain/trip_factory.dart';
 
 void main() {
   test('BugReport JSON hassas plan ayrıntılarını taşımaz', () {

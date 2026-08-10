@@ -1,4 +1,4 @@
-import 'package:japan_trip/core/router.dart';
+import 'package:rotori/core/router.dart';
 
 class FlowState {
   FlowState({required this.loggedIn, required this.location});

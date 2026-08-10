@@ -2,8 +2,8 @@
 // olanda susar (yanlış alarm kartı değersizleştirir).
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/city_places.dart';
-import 'package:japan_trip/domain/route_sanity.dart';
+import 'package:rotori/domain/city_places.dart';
+import 'package:rotori/domain/route_sanity.dart';
 
 void main() {
   group('cityCenter', () {

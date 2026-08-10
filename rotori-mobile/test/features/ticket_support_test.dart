@@ -2,8 +2,8 @@
 // requiresTicket (bilet gerektiren yerler) + parseTicketInfo (OCR ayrıştırma).
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/types.dart';
-import 'package:japan_trip/features/shared/ticket_support.dart';
+import 'package:rotori/domain/types.dart';
+import 'package:rotori/features/shared/ticket_support.dart';
 
 TimelineItem _item(String title) => TimelineItem(id: 'i1', title: title);
 

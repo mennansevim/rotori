@@ -7,10 +7,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/core/l10n.dart';
-import 'package:japan_trip/data/plans_repository.dart';
-import 'package:japan_trip/domain/types.dart';
-import 'package:japan_trip/features/viewer/budget_screen.dart';
+import 'package:rotori/core/l10n.dart';
+import 'package:rotori/data/plans_repository.dart';
+import 'package:rotori/domain/types.dart';
+import 'package:rotori/features/viewer/budget_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Trip _sampleTrip() => Trip(

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/route_matrix.dart';
+import 'package:rotori/domain/route_matrix.dart';
 
 import '../../tool/route_opt_harness/matrix_builder.dart';
 import '../../tool/route_opt_harness/harness_output.dart';

@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/city_places.dart';
-import 'package:japan_trip/domain/place_guide.dart';
+import 'package:rotori/domain/city_places.dart';
+import 'package:rotori/domain/place_guide.dart';
 
 void main() {
   test('Senso-ji anahtar kelime rehberi çözer', () {

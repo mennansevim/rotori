@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/ai_poi_discovery.dart';
+import 'package:rotori/domain/ai_poi_discovery.dart';
 
 void main() {
   const policy = CostOptimizedPoiDiscoveryPolicy();

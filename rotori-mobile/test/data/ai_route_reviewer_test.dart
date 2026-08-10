@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/data/ai_route_reviewer.dart';
-import 'package:japan_trip/domain/ai_route_review.dart';
+import 'package:rotori/data/ai_route_reviewer.dart';
+import 'package:rotori/domain/ai_route_review.dart';
 
 void main() {
   const modelConfig = AiModelConfig(

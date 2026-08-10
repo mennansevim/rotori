@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/data/route_matrix_remote.dart';
-import 'package:japan_trip/domain/itinerary_optimizer.dart';
-import 'package:japan_trip/domain/route_matrix.dart';
-import 'package:japan_trip/domain/types.dart';
-import 'package:japan_trip/features/plans/plan_optimization_controller.dart';
+import 'package:rotori/data/route_matrix_remote.dart';
+import 'package:rotori/domain/itinerary_optimizer.dart';
+import 'package:rotori/domain/route_matrix.dart';
+import 'package:rotori/domain/types.dart';
+import 'package:rotori/features/plans/plan_optimization_controller.dart';
 
 void main() {
   const hotel = TripLocation(

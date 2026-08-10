@@ -39,13 +39,13 @@ Future<void> main() async {
   runApp(
     DevicePreview(
       enabled: _enableDevicePreviewInMain,
-      builder: (context) => const ProviderScope(child: JapanTripApp()),
+      builder: (context) => const ProviderScope(child: RotoriApp()),
     ),
   );
 }
 
-class JapanTripApp extends ConsumerWidget {
-  const JapanTripApp({super.key});
+class RotoriApp extends ConsumerWidget {
+  const RotoriApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

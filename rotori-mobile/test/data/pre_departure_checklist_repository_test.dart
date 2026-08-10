@@ -5,8 +5,8 @@
 // bütünlüğü doğrulanır.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/data/pre_departure_checklist_repository.dart';
-import 'package:japan_trip/domain/pre_departure_checklist.dart';
+import 'package:rotori/data/pre_departure_checklist_repository.dart';
+import 'package:rotori/domain/pre_departure_checklist.dart';
 
 PreDepartureChecklistRepository _makeRepo() {
   return PreDepartureChecklistRepository(storage: InMemoryStorage());

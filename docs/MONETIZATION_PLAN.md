@@ -114,8 +114,8 @@ Abonelik grubu `rotori_pro`, **ikisi de v1.0'da**:
 
 | Ürün ID | Tip | TR | Global | Deneme | Paywall'daki rol |
 |---|---|---|---|---|---|
-| `...japanTrip.pro.yearly` | Auto-renewable, 1 yıl | **₺499** | **$29.99** | **7 gün ücretsiz** | Varsayılan seçili, "en avantajlı" |
-| `...japanTrip.pro.monthly` | Auto-renewable, 1 ay | **₺99** | **$4.99** | Yok | Görünür, gizlenmez |
+| `...rotori.pro.yearly` | Auto-renewable, 1 yıl | **₺499** | **$29.99** | **7 gün ücretsiz** | Varsayılan seçili, "en avantajlı" |
+| `...rotori.pro.monthly` | Auto-renewable, 1 ay | **₺99** | **$4.99** | Yok | Görünür, gizlenmez |
 
 Komisyon: Small Business Program ile **%15 sabit**.
 

@@ -9,9 +9,9 @@
 // tahmini çıkıyor, konaklamadan pahalı görünüyordu.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/cost_estimate.dart';
-import 'package:japan_trip/domain/plan_generation.dart';
-import 'package:japan_trip/domain/types.dart';
+import 'package:rotori/domain/cost_estimate.dart';
+import 'package:rotori/domain/plan_generation.dart';
+import 'package:rotori/domain/types.dart';
 
 CostLine _train(
   List<String> cities,

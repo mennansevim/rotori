@@ -8,8 +8,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:japan_trip/data/exchange_rate_store.dart';
-import 'package:japan_trip/data/live_fx_service.dart';
+import 'package:rotori/data/exchange_rate_store.dart';
+import 'package:rotori/data/live_fx_service.dart';
 
 /// Gerçek uç noktanın döndürdüğü biçim (kısaltılmış).
 String _okBody({double tryRate = 0.3021}) => jsonEncode({

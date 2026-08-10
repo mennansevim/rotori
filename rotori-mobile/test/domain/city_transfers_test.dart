@@ -1,9 +1,9 @@
 // packages/shared/src/__tests__/cityTransfers.test.ts'in birebir Dart eşdeğeri.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/city_transfers.dart';
-import 'package:japan_trip/domain/day_optimizer.dart';
-import 'package:japan_trip/domain/types.dart';
+import 'package:rotori/domain/city_transfers.dart';
+import 'package:rotori/domain/day_optimizer.dart';
+import 'package:rotori/domain/types.dart';
 
 DayPlan _day({
   int dayNumber = 1,

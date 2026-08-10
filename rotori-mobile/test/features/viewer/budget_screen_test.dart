@@ -4,9 +4,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/data/plans_repository.dart';
-import 'package:japan_trip/domain/types.dart';
-import 'package:japan_trip/features/viewer/budget_screen.dart';
+import 'package:rotori/data/plans_repository.dart';
+import 'package:rotori/domain/types.dart';
+import 'package:rotori/features/viewer/budget_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Maliyetler, ana toplamların (₺1.750 / ₺3.500) plandaki başka hiçbir

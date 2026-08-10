@@ -9,7 +9,7 @@
 //   - PrepItem.fromJson / toJson round-trip
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/pre_departure_checklist.dart';
+import 'package:rotori/domain/pre_departure_checklist.dart';
 
 void main() {
   group('PrepItem', () {

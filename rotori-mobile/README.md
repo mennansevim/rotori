@@ -39,7 +39,7 @@ Bu depoda sadece `lib/` + `pubspec.yaml` bulunur. Platform (iOS/Android/Web) kla
 
 ```bash
 cd mobile
-flutter create --org com.mennansevim --project-name japan_trip \
+flutter create --org com.mennansevim --project-name rotori \
   --platforms=ios,android,web .
 flutter pub get
 ```

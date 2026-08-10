@@ -1,10 +1,10 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/features/live_currency_scanner/domain/exchange_rate.dart';
-import 'package:japan_trip/features/live_currency_scanner/domain/repositories/exchange_rate_repository.dart';
-import 'package:japan_trip/features/live_currency_scanner/infrastructure/exchange_rates/exchange_rate_local_data_source.dart';
-import 'package:japan_trip/features/live_currency_scanner/infrastructure/exchange_rates/exchange_rate_remote_data_source.dart';
-import 'package:japan_trip/features/live_currency_scanner/infrastructure/exchange_rates/exchange_rate_repository_impl.dart';
+import 'package:rotori/features/live_currency_scanner/domain/exchange_rate.dart';
+import 'package:rotori/features/live_currency_scanner/domain/repositories/exchange_rate_repository.dart';
+import 'package:rotori/features/live_currency_scanner/infrastructure/exchange_rates/exchange_rate_local_data_source.dart';
+import 'package:rotori/features/live_currency_scanner/infrastructure/exchange_rates/exchange_rate_remote_data_source.dart';
+import 'package:rotori/features/live_currency_scanner/infrastructure/exchange_rates/exchange_rate_repository_impl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeRemote implements ExchangeRateRemoteDataSource {

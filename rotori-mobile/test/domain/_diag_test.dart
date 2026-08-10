@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/core/l10n.dart';
-import 'package:japan_trip/domain/city_transfers.dart';
-import 'package:japan_trip/domain/fill_empty_days.dart';
-import 'package:japan_trip/domain/itinerary_generator.dart';
-import 'package:japan_trip/domain/plan_warnings.dart';
-import 'package:japan_trip/domain/trip_factory.dart';
-import 'package:japan_trip/domain/types.dart';
+import 'package:rotori/core/l10n.dart';
+import 'package:rotori/domain/city_transfers.dart';
+import 'package:rotori/domain/fill_empty_days.dart';
+import 'package:rotori/domain/itinerary_generator.dart';
+import 'package:rotori/domain/plan_warnings.dart';
+import 'package:rotori/domain/trip_factory.dart';
+import 'package:rotori/domain/types.dart';
 
 TripDestination _dest(String city, int order, String arr, String dep,
         {String airport = ''}) =>

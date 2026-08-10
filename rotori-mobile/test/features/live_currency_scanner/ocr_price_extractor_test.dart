@@ -1,8 +1,8 @@
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/features/live_currency_scanner/infrastructure/ocr/ocr_price_extractor.dart';
-import 'package:japan_trip/features/live_currency_scanner/infrastructure/ocr/on_device_text_recognizer.dart';
+import 'package:rotori/features/live_currency_scanner/infrastructure/ocr/ocr_price_extractor.dart';
+import 'package:rotori/features/live_currency_scanner/infrastructure/ocr/on_device_text_recognizer.dart';
 
 RecognizedFrame _frame(List<(String, Rect)> lines) => RecognizedFrame(
       lines: [

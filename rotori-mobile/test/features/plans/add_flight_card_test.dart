@@ -7,12 +7,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:japan_trip/core/l10n.dart';
-import 'package:japan_trip/core/supabase_client.dart';
-import 'package:japan_trip/domain/plan_generation.dart';
-import 'package:japan_trip/domain/types.dart';
-import 'package:japan_trip/features/plans/plan_providers.dart';
-import 'package:japan_trip/features/plans/plan_viewer_screen.dart';
+import 'package:rotori/core/l10n.dart';
+import 'package:rotori/core/supabase_client.dart';
+import 'package:rotori/domain/plan_generation.dart';
+import 'package:rotori/domain/types.dart';
+import 'package:rotori/features/plans/plan_providers.dart';
+import 'package:rotori/features/plans/plan_viewer_screen.dart';
 
 String tr(String key) => L10n.resolve(key, AppLang.tr);
 

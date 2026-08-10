@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/features/price_tag_scanner/utils/tag_parser.dart';
+import 'package:rotori/features/price_tag_scanner/utils/tag_parser.dart';
 
 void main() {
   const parser = TagParser();

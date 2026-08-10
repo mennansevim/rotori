@@ -42,7 +42,7 @@
       "title": "Var olan kullanıcı e-posta + parola ile giriş yapar",
       "steps": [
         "Auth ekranını aç",
-        "demo@japantrip.app / Demo1234! (dev default) ile giriş",
+        "demo@rotori.app / Demo1234! (dev default) ile giriş",
         "Home'a inildiği doğrula"
       ],
       "expected": "Session açılır; token localStorage/Supabase client'a düşer",
@@ -860,9 +860,9 @@
       "expected": "URL scheme whitelist",
       "autoRunnable": true },
     { "id": "s99", "category": "polish", "priority": "medium",
-      "title": "Bundle ID com.mennansevim.japanTrip değişmemiş",
+      "title": "Bundle ID com.mennansevim.rotori değişmemiş",
       "steps": ["ios/Runner.xcodeproj/project.pbxproj","PRODUCT_BUNDLE_IDENTIFIER"],
-      "expected": "Bundle ID = com.mennansevim.japanTrip",
+      "expected": "Bundle ID = com.mennansevim.rotori",
       "autoRunnable": true },
     { "id": "s100", "category": "polish", "priority": "critical",
       "title": "Uygulama fresh install → çökme olmadan auth ekranına iner",

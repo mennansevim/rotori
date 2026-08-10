@@ -12,7 +12,7 @@
 // cityCombos.length. Manifest üzerinden iterasyon eder — yani her koşumda
 // aynı 50+ trip taranır. Random değil, deterministik.
 
-import 'package:japan_trip/domain/types.dart';
+import 'package:rotori/domain/types.dart';
 
 /// Farklı tarih pencereleri — sakura (Nisan), Golden Week (Mayıs), yaz
 /// (Ağustos), sonbahar (Ekim), kış (Aralık/Ocak). Trip start/end ISO.

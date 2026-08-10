@@ -12,12 +12,12 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:japan_trip/data/reminders_store.dart';
-import 'package:japan_trip/domain/day_optimizer.dart';
-import 'package:japan_trip/domain/geofence.dart';
-import 'package:japan_trip/domain/types.dart';
-import 'package:japan_trip/features/notifications/notifications_service.dart';
-import 'package:japan_trip/features/viewer/geofence_service.dart';
+import 'package:rotori/data/reminders_store.dart';
+import 'package:rotori/domain/day_optimizer.dart';
+import 'package:rotori/domain/geofence.dart';
+import 'package:rotori/domain/types.dart';
+import 'package:rotori/features/notifications/notifications_service.dart';
+import 'package:rotori/features/viewer/geofence_service.dart';
 
 // ---------------------------------------------------------------------------
 // Yardımcılar

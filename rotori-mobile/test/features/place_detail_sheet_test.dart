@@ -3,8 +3,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/types.dart';
-import 'package:japan_trip/features/shared/place_detail_sheet.dart';
+import 'package:rotori/domain/types.dart';
+import 'package:rotori/features/shared/place_detail_sheet.dart';
 
 Widget _harness(TimelineItem item) => MaterialApp(
       home: Scaffold(

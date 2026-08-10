@@ -26,9 +26,9 @@ yapılmadı. Faz 1 kodu başlamadı.
 **Kullanıcı tarafında bekleyen (kod yazmayı bloke ETMEZ, sandbox testini eder):**
 
 1. App Store Connect → abonelik grubu `rotori_pro`
-   - `com.mennansevim.japanTrip.pro.yearly` — TR ₺499 / global $29.99,
+   - `com.mennansevim.rotori.pro.yearly` — TR ₺499 / global $29.99,
      **7 gün ücretsiz deneme** introductory offer
-   - `com.mennansevim.japanTrip.pro.monthly` — TR ₺99 / global $4.99,
+   - `com.mennansevim.rotori.pro.monthly` — TR ₺99 / global $4.99,
      **deneme yok**
 2. Small Business Program başvurusu (komisyon %30 → %15)
 3. `rotori-social/data/automation_config.json` → `topic.enabled: false`
@@ -561,7 +561,7 @@ iade edilmiş abone `false`; metadata'sını elle `premium: true` yapan kullanı
 
 - [ ] App Store Server API ile `signedTransactionInfo` **JWS imza**
       doğrulaması (legacy `/verifyReceipt` kullanılmaz)
-- [ ] `bundleId` (`com.mennansevim.japanTrip`) + `productId` + `environment`
+- [ ] `bundleId` (`com.mennansevim.rotori`) + `productId` + `environment`
       + `expiresDate` doğrulanır
 - [ ] **`appAccountToken` sahiplik kontrolü** (§8b.4): JWS içindeki değer
       oturumdaki Supabase `user_id` ile eşleşmezse yetki **açılmaz**

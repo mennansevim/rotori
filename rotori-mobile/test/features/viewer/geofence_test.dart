@@ -4,8 +4,8 @@
 // GeoSample.timestamp üzerinden yapılır.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/geofence.dart';
-import 'package:japan_trip/features/viewer/geofence_service.dart';
+import 'package:rotori/domain/geofence.dart';
+import 'package:rotori/features/viewer/geofence_service.dart';
 
 Geofence _fence({
   String id = 'f1',
