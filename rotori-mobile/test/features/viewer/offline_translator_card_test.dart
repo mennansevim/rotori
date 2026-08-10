@@ -20,6 +20,24 @@ void main() {
     expect(gateway.modelCheckCalls, 0);
   });
 
+  testWidgets('premium açılınca kilit kalkar ve model kontrolü başlar',
+      (tester) async {
+    final gateway = _FakeTranslationGateway(supported: true, ready: true);
+    final premium = ValueNotifier<bool>(false);
+    addTearDown(premium.dispose);
+
+    await tester.pumpWidget(_appWithPremium(gateway, premium));
+    expect(find.byKey(const Key('offline-translator-input')), findsNothing);
+
+    premium.value = true;
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('offline-translator-premium-lock')),
+        findsNothing);
+    expect(find.byKey(const Key('offline-translator-input')), findsOneWidget);
+    expect(gateway.modelCheckCalls, 1);
+  });
+
   testWidgets('web/unsupported durumda mobil kullanım bilgisini gösterir',
       (tester) async {
     final gateway = _FakeTranslationGateway(supported: false, ready: false);
@@ -110,6 +128,26 @@ Widget _app(
           palette: palette,
           lang: AppLang.tr,
           isPremium: isPremium,
+          gateway: gateway,
+        ),
+      ),
+    ),
+  );
+}
+
+Widget _appWithPremium(
+  OfflineTranslationGateway gateway,
+  ValueNotifier<bool> premium,
+) {
+  const palette = ViewerPalette.appleLight;
+  return MaterialApp(
+    home: Scaffold(
+      body: ValueListenableBuilder<bool>(
+        valueListenable: premium,
+        builder: (_, value, __) => OfflineTranslatorCard(
+          palette: palette,
+          lang: AppLang.tr,
+          isPremium: value,
           gateway: gateway,
         ),
       ),

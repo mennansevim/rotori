@@ -130,7 +130,10 @@ rotori-mobile/lib/features/
   ulaşım-yürüyüş-aktarma-maliyet özeti gösterilir. Yalnız açık kullanıcı
   onayı repository, edit session ve home widget snapshot'ını yeniler.
 - Onaylanan sonuç, `DayPlan.routeExecutionSnapshot` içinde schema v1 olarak
-  saklanır ve günlük timeline durakların arasına ulaşım kartları yerleştirir.
+  saklanır ve günlük timeline durakların arasına tek satırlık kompakt ulaşım
+  satırları yerleştirir. Snapshot henüz yoksa viewer mevcut durak sırasını
+  değiştirmeden koordinat fallback matrisiyle geçici `TAHMİNİ` satırlar üretir;
+  bunlar kalıcılaştırılmaz ve optimizer sonucu gibi sunulmaz.
   Plan sürümü, aktivite hash'i veya matris sürümü uyuşmazsa snapshot
   kullanılmaz. Tahmini ayaklar hat/yön uydurmaz; reliable ayaklar sağlayıcının
   opsiyonel hat/yön bilgisini gösterebilir.
@@ -521,7 +524,11 @@ süre, yürüyüş, bekleme, aktarma, maliyet, güvenilirlik, tahmin durumu ve
 sağlayıcının opsiyonel hat/yön bilgilerini kayıpsız taşır. Kalıcı
 `RouteExecutionSnapshot` schema v1 versioned ve opsiyoneldir; eski plan
 JSON'ları bozulmaz. Ön izleme ve viewer aynı `RouteExecutionLeg` sunum
-sözleşmesini tüketir. Ayrıntılı fazlar ve kalite kapıları:
+sözleşmesini tüketir. Snapshot bulunmayan eski veya yeni planlarda viewer,
+yalnız görünür geçiş bilgisini boş bırakmamak için mevcut sıra üzerinde
+koordinat tabanlı tahmini ayaklar türetir. Bu türetim skor hesaplamaz, sırayı
+değiştirmez ve kaydedilmez; tam beam-search + validator hattı yalnız
+“Rotayı optimize et” eyleminde çalışır. Ayrıntılı fazlar ve kalite kapıları:
 `docs/ROUTE_EXPERIENCE_REFACTOR_PLAN.md`.
 
 ## 18. Premium Çevrimdışı Japonca Metin Çevirisi

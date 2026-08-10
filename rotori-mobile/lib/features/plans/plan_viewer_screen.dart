@@ -26,6 +26,8 @@ import '../../core/supabase_client.dart';
 import '../../data/language_store.dart';
 import '../../data/plans_repository.dart';
 import '../../data/reminders_store.dart';
+import '../../data/route_matrix_resolution.dart'
+    show buildCoordinateFallbackMatrix;
 import '../../data/weather_service.dart';
 import '../../domain/city_palette.dart';
 import '../../data/google_maps_launcher.dart';
@@ -3693,18 +3695,75 @@ class _RouteExecutionLegCard extends StatelessWidget {
     final direction = !estimated && leg.directionId?.trim().isNotEmpty == true
         ? leg.directionId!.trim()
         : null;
+    final semanticsLabel = s.p('routeOptimization.legs.semantics', {
+      'from': leg.fromName,
+      'to': leg.toName,
+      'mode': _routeModeLabel(s, leg.mode),
+      'minutes': '${leg.travelDurationMinutes}',
+    });
+
+    if (compact) {
+      return Semantics(
+        container: true,
+        label: semanticsLabel,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: .06),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: accent.withValues(alpha: .2)),
+          ),
+          child: Row(
+            children: [
+              Icon(_routeModeIcon(leg.mode), color: accent, size: 16),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  '${leg.fromName}  →  ${leg.toName}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: palette.textPrimary,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${_routeModeLabel(s, leg.mode)} · '
+                '${leg.travelDurationMinutes} ${s.s('routeOptimization.minute')}',
+                maxLines: 1,
+                style: TextStyle(
+                  color: palette.textSecondary,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (estimated) ...[
+                const SizedBox(width: 5),
+                Text(
+                  s.s('routeOptimization.legs.estimated'),
+                  style: TextStyle(
+                    color: accent,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
 
     return Semantics(
       container: true,
-      label: s.p('routeOptimization.legs.semantics', {
-        'from': leg.fromName,
-        'to': leg.toName,
-        'mode': _routeModeLabel(s, leg.mode),
-        'minutes': '${leg.travelDurationMinutes}',
-      }),
+      label: semanticsLabel,
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.all(compact ? 10 : 12),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: accent.withValues(alpha: .08),
           borderRadius: BorderRadius.circular(14),
@@ -3825,7 +3884,7 @@ class _RouteExecutionLegCard extends StatelessWidget {
                   ),
               ],
             ),
-            if (estimated && !compact) ...[
+            if (estimated) ...[
               const SizedBox(height: 8),
               Text(
                 s.s('routeOptimization.legs.estimatedHelp'),
@@ -3844,6 +3903,166 @@ class _RouteExecutionLegCard extends StatelessWidget {
 
   String _clock(DateTime value) => '${value.hour.toString().padLeft(2, '0')}:'
       '${value.minute.toString().padLeft(2, '0')}';
+}
+
+List<RouteExecutionLeg> _displayRouteLegs(
+  DayPlan day,
+  TripDestination? destination,
+) {
+  final saved = day.routeExecutionSnapshot?.legs;
+  if (saved != null && saved.isNotEmpty) return saved;
+  return _estimatedTimelineLegs(day, destination);
+}
+
+List<RouteExecutionLeg> _estimatedTimelineLegs(
+  DayPlan day,
+  TripDestination? destination,
+) {
+  if (day.items.isEmpty) return const [];
+  final date = DateTime.tryParse(day.date);
+  if (date == null) return const [];
+
+  final cityData = cityDataForKey(destination?.city);
+  final centerLat = destination?.lat ??
+      (cityData?.places.isNotEmpty == true
+          ? cityData!.places.first.lat
+          : null);
+  final centerLng = destination?.lng ??
+      (cityData?.places.isNotEmpty == true
+          ? cityData!.places.first.lng
+          : null);
+  if (centerLat == null || centerLng == null) return const [];
+
+  final base = TripLocation(
+    id: 'day-${day.dayNumber}-base',
+    name: destination?.city ?? 'Gün başlangıcı',
+    latitude: centerLat,
+    longitude: centerLng,
+    city: destination?.city,
+    clusterId: destination?.city,
+  );
+  final stops = <({TripLocation location, TimelineItem? item})>[
+    (location: base, item: null),
+    for (final item in day.items)
+      (
+        location: _timelineLocation(
+          item,
+          destination: destination,
+          fallbackLat: centerLat,
+          fallbackLng: centerLng,
+        ),
+        item: item,
+      ),
+    (location: base, item: null),
+  ];
+  final matrix = buildCoordinateFallbackMatrix(
+    stops.map((stop) => stop.location).toSet().toList(growable: false),
+  );
+  final legs = <RouteExecutionLeg>[];
+
+  for (var index = 0; index < stops.length - 1; index++) {
+    final from = stops[index];
+    final to = stops[index + 1];
+    final options = matrix.options(from.location.id, to.location.id);
+    if (options.isEmpty) continue;
+    final option = options.first;
+    if (option.doorToDoorMinutes <= 0) continue;
+
+    final travel = Duration(minutes: option.doorToDoorMinutes);
+    final fromStart = _timelineStart(date, from.item);
+    final toStart = _timelineStart(date, to.item);
+    late final DateTime departure;
+    late final DateTime arrival;
+    if (toStart != null) {
+      arrival = toStart;
+      departure = arrival.subtract(travel);
+    } else if (fromStart != null && from.item != null) {
+      departure = fromStart.add(
+        Duration(minutes: _timelineDurationMinutes(from.item!)),
+      );
+      arrival = departure.add(travel);
+    } else {
+      departure = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        kRouteStartHour,
+      ).add(Duration(minutes: index * 30));
+      arrival = departure.add(travel);
+    }
+
+    final cost = option.costForParty(1);
+    legs.add(
+      RouteExecutionLeg(
+        kind: from.item == null
+            ? RouteExecutionLegKind.departure
+            : to.item == null
+                ? RouteExecutionLegKind.returnToBase
+                : RouteExecutionLegKind.betweenStops,
+        fromLocationId: from.location.id,
+        fromName: from.location.name,
+        toLocationId: to.location.id,
+        toName: to.location.name,
+        mode: option.mode,
+        departureTime: departure,
+        arrivalTime: arrival,
+        travelDurationMinutes: option.doorToDoorMinutes,
+        rideMinutes: option.resolvedRideMinutes,
+        accessMinutes: option.resolvedAccessMinutes,
+        walkingDurationMinutes: option.walkingMinutes,
+        waitingDurationMinutes: option.waitingMinutes,
+        transitWaitMinutes: option.resolvedTransitWaitMinutes,
+        scheduleIdleMinutes: 0,
+        transferCount: option.transferCount,
+        costPerPersonYen: cost.costPerPersonYen,
+        partyTotalCostYen: cost.partyTotalCostYen,
+        vehicleCount: cost.vehicleCount,
+        fareBasis: cost.fareBasis,
+        reliabilityScore: option.reliabilityScore,
+        dataQuality: RouteExecutionDataQuality.estimated,
+        complexityPenalty: option.complexityPenalty,
+        providerId: option.providerId ?? matrix.version,
+      ),
+    );
+  }
+  return List.unmodifiable(legs);
+}
+
+TripLocation _timelineLocation(
+  TimelineItem item, {
+  required TripDestination? destination,
+  required double fallbackLat,
+  required double fallbackLng,
+}) {
+  final coordinate = item.lat != null && item.lng != null
+      ? (lat: item.lat!, lng: item.lng!)
+      : resolvePlaceCoords(item.title, cityKey: destination?.city);
+  return TripLocation(
+    id: item.id,
+    name: item.title,
+    latitude: coordinate?.lat ?? fallbackLat,
+    longitude: coordinate?.lng ?? fallbackLng,
+    city: item.cityId ?? destination?.city,
+    clusterId: item.cityId ?? destination?.city,
+  );
+}
+
+DateTime? _timelineStart(DateTime day, TimelineItem? item) {
+  if (item == null) return null;
+  final minutes = _timeToMinutes(item.time ?? item.scheduledTime);
+  if (minutes == null) return null;
+  return DateTime(day.year, day.month, day.day)
+      .add(Duration(minutes: minutes));
+}
+
+int _timelineDurationMinutes(TimelineItem item) {
+  final duration = item.durationMin;
+  if (duration != null && duration > 0) return duration;
+  return switch (item.kind) {
+    TimelineItemKind.meal => 60,
+    TimelineItemKind.transport || TimelineItemKind.hotel => 30,
+    _ => 90,
+  };
 }
 
 class _RouteLegFact extends StatelessWidget {
@@ -4550,6 +4769,7 @@ class _DayCardState extends State<_DayCard> {
     final warningsMap = warningsByActivity(day);
     final totalWarnings =
         warningsMap.values.fold<int>(0, (acc, list) => acc + list.length);
+    final routeLegs = _displayRouteLegs(day, widget.dest);
 
     final card = Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -4855,12 +5075,9 @@ class _DayCardState extends State<_DayCard> {
                             )
                           else
                             for (var i = 0; i < day.items.length; i++) ...[
-                              for (final leg in day.routeExecutionSnapshot?.legs
-                                      .where((leg) =>
-                                          !leg.isTrivial &&
-                                          leg.toLocationId ==
-                                              day.items[i].id) ??
-                                  const <RouteExecutionLeg>[])
+                              for (final leg in routeLegs.where((leg) =>
+                                  !leg.isTrivial &&
+                                  leg.toLocationId == day.items[i].id))
                                 Padding(
                                   padding:
                                       const EdgeInsets.fromLTRB(8, 3, 0, 5),
@@ -4888,12 +5105,10 @@ class _DayCardState extends State<_DayCard> {
                                     day.items[i], widget.dest),
                               ),
                             ],
-                          for (final leg in day.routeExecutionSnapshot?.legs
-                                  .where((leg) =>
-                                      !leg.isTrivial &&
-                                      leg.kind ==
-                                          RouteExecutionLegKind.returnToBase) ??
-                              const <RouteExecutionLeg>[])
+                          for (final leg in routeLegs.where((leg) =>
+                              !leg.isTrivial &&
+                              leg.kind ==
+                                  RouteExecutionLegKind.returnToBase))
                             Padding(
                               padding: const EdgeInsets.fromLTRB(8, 3, 0, 5),
                               child: _RouteExecutionLegCard(

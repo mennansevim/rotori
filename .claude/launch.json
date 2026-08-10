@@ -46,14 +46,14 @@
       "autoPort": false
     },
     {
-      "name": "flutter-preview-map",
+      "name": "social-web",
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "cd rotori-mobile && flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8095 -t lib/preview_main.dart"
+        "cd rotori-social && .venv/bin/uvicorn src.web.app:app --host 127.0.0.1 --port 8010"
       ],
-      "port": 8095,
-      "url": "http://127.0.0.1:8095/",
+      "port": 8010,
+      "url": "http://127.0.0.1:8010/",
       "autoPort": false
     }
   ]

@@ -2,7 +2,6 @@
   "news": {
     "enabled": true,
     "days": [
-      6,
       3
     ],
     "hour": 23,
@@ -10,7 +9,7 @@
     "auto_publish": true
   },
   "topic": {
-    "enabled": true,
+    "enabled": false,
     "days": [
       5,
       3
