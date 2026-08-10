@@ -227,11 +227,14 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
   -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 92%,rgba(0,0,0,.72) 97%,rgba(0,0,0,0) 100%);
   mask-image:linear-gradient(180deg,#000 0%,#000 92%,rgba(0,0,0,.72) 97%,rgba(0,0,0,0) 100%)}
 
-.hero-nots{position:absolute;inset:3% 0 7%;pointer-events:none;z-index:2}
+/* --gutter: telefonun iki yanındaki serbest alan. Kartlar bu alanın içinde kalır;
+   aksi halde metinleri telefon mockup'ının (z-index:5) altında kayboluyor. */
+.hero-nots{position:absolute;inset:3% 0 7%;pointer-events:none;z-index:2;
+  --gutter:calc((min(1120px,84vw) - min(460px,70vw)) / 2)}
 
 /* Notification card — Flighty-style: 3 opacity tiers, colored circular icons,
    two-line bold title / gray subtitle, generous internal spacing. */
-.hn{position:absolute;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px 20px 15px 15px;display:flex;gap:14px;align-items:center;width:clamp(280px,24vw,400px);transition:opacity 1s var(--ease),transform .6s var(--ease);will-change:transform;box-shadow:0 22px 44px -22px rgba(15,10,30,.22),0 2px 4px rgba(15,10,30,.03)}
+.hn{position:absolute;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px 20px 15px 15px;display:flex;gap:14px;align-items:center;width:min(318px,calc(var(--gutter) - 12px));transition:opacity 1s var(--ease),transform .6s var(--ease);will-change:transform;box-shadow:0 22px 44px -22px rgba(15,10,30,.22),0 2px 4px rgba(15,10,30,.03)}
 .hn .hn-ic{width:44px;height:44px;border-radius:50%;background:var(--card-2);display:grid;place-items:center;font-size:22px;flex:none;color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
 .hn .hn-ic.matcha{background:linear-gradient(135deg,#5EB56E,#4A9F5A)}
 .hn .hn-ic.sakura{background:linear-gradient(135deg,#DB6A8E,#C74A72)}
@@ -240,7 +243,7 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 .hn .hn-ic.jr    {background:linear-gradient(135deg,#2C7BC0,#1B5A9E);border-radius:12px}
 .hn .hn-ic.yamato{background:linear-gradient(160deg,#2A2635,#0F0A1E);border-radius:10px}
 .hn .hn-ic.violet{background:var(--grad-brand)}
-.hn .hn-m{min-width:0;flex:1;padding-left: 50px}
+.hn .hn-m{min-width:0;flex:1;text-align:left}
 .hn .hn-t{font-weight:600;color:var(--ink);font-size:clamp(14px,1.1vw,18px);letter-spacing:-.015em;line-height:1.22;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:capitalize}
 .hn .hn-s{font-size:clamp(12px,.9vw,15px);color:var(--ink-2);margin-top:4px;line-height:1.32;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:capitalize}
 .hn .hn-x{font-size:11px;font-weight:700;color:var(--ink-3);flex:none;padding-left:6px;font-variant-numeric:tabular-nums;text-transform:capitalize}
@@ -251,14 +254,14 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 .hn.t3{opacity:.20;box-shadow:none}
 
 /* Positions — featured cards flank the phone; ambient/ghost stack further out */
-.hn-1{left:5%;top:25%}      /* t1 — Discovery success */
-.hn-2{right:21%;top:5%}     /* t1 — Transit clarity */
-.hn-3{right:15%;top:52%}    /* t1 — Weather intel */
-.hn-4{left:5%;top:4%}       /* t2 — Badge earned */
-.hn-5{left:5%;top:48%}      /* t2 — Luggage */
-.hn-6{right:18%;top:28%}    /* t2 — Reminder */
-.hn-7{left:5%;top:71%}      /* t3 — Widget ghost */
-.hn-8{right:18%;top:74%}    /* t3 — Fitness ghost */
+.hn-1{left:0;top:25%}       /* t1 — Discovery success */
+.hn-2{right:0;top:5%}       /* t1 — Transit clarity */
+.hn-3{right:0;top:52%}      /* t1 — Weather intel */
+.hn-4{left:0;top:4%}        /* t2 — Badge earned */
+.hn-5{left:0;top:48%}       /* t2 — Luggage */
+.hn-6{right:0;top:28%}      /* t2 — Reminder */
+.hn-7{left:0;top:71%}       /* t3 — Widget ghost */
+.hn-8{right:0;top:74%}      /* t3 — Fitness ghost */
 
 /* Very subtle drift — cards feel alive but never distract */
 .hn.d-a{animation:hn-drift-a 12s ease-in-out infinite}
@@ -270,19 +273,19 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 @media(max-width:1180px){
   .hero-stage{transform:translateX(3.5%)}
   .hand-mobile-wrap{--hw:min(440px,66vw)}
-  .hn{width:clamp(250px,30vw,340px);padding:14px 17px 14px 14px}
+  .hero-nots{--gutter:calc((min(1120px,84vw) - min(440px,66vw)) / 2)}
+  .hn{width:min(300px,calc(var(--gutter) - 10px));padding:14px 17px 14px 14px}
   .hn .hn-ic{width:40px;height:40px;font-size:20px}
   .hn .hn-t{font-size:13px}.hn .hn-s{font-size:11.5px}
-  .hn-1{left:5%;top:25%}.hn-2{right:12%;top:6%}.hn-3{right:12%;top:53%}
-  .hn-4{left:5%;top:5%}.hn-5{left:5%;top:49%}.hn-6{right:12%;top:29%}
+  .hn-1{left:0;top:25%}.hn-2{right:0;top:6%}.hn-3{right:0;top:53%}
+  .hn-4{left:0;top:5%}.hn-5{left:0;top:49%}.hn-6{right:0;top:29%}
   .hn-7,.hn-8{display:none}
 }
-@media(max-width:960px){
-  .hn-4,.hn-5,.hn-6{display:none}
-  .hn-1,.hn-2,.hn-3{opacity:.85}
+/* 1100px altında kartlar telefonun yanına okunur genişlikte sığmıyor — tamamen gizle */
+@media(max-width:1100px){
+  .hero-nots{display:none}
 }
 @media(max-width:720px){
-  .hero-nots{display:none}
   .hero-awards{gap:28px;margin-top:36px}
   .hero-stage{width:calc(100% - 32px);margin-top:36px;transform:none}
   .hand-mobile-wrap{--hw:min(500px,96vw)}
@@ -625,7 +628,7 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
       <span class="hero-line"><span class="word grad-text" data-i18n="hero.t1">Sürpriz yok.</span></span><br>
       <span class="hero-line"><span class="word w2 grad-text" data-i18n="hero.t2">Plan var.</span></span>
     </h1>
-    <p class="lead hero-lead" style="margin-top:26px" data-i18n="hero.lead">Tokyo'dan Kyoto'ya; günlük planın, biletlerin ve yol notların tek yerde.</p>
+    <p class="lead hero-lead" style="margin-top:26px" data-i18n="hero.lead">Hazır turun temposunda değil, kendi temponda gez. Günlük planın, biletlerin ve yol notların tek yerde.</p>
     <div class="hero-cta">
       <a class="btn btn-primary" href="#final" data-i18n="hero.cta1">App Store'da indir</a>
       <a class="btn btn-ghost" href="#problem" data-i18n="hero.cta2">Nasıl çalışıyor ↓</a>
@@ -664,8 +667,8 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
       <div class="hero-stage-phone">
         <div class="hand-mobile-wrap float">
           <picture>
-            <source srcset="img/main-hand-phone.avif" type="image/avif" />
-            <img class="hand-mobile" src="img/main-hand-phone.png"
+            <source srcset="img/main-hand-rotori.avif" type="image/avif" />
+            <img class="hand-mobile" src="img/main-hand-rotori.avif"
                  width="930" height="1260"
                  alt="Rotori uygulaması — Japonya günlük plan"
                  loading="eager" decoding="async" fetchpriority="high" />
@@ -694,9 +697,9 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
   <div class="worry-grid">
     <div>
       <span class="eyebrow reveal" data-i18n="problem.eyebrow">Neden Rotori</span>
-      <h2 class="h-1 reveal d1" style="margin-top:16px" data-i18n-html="problem.h">Japonya heyecan verici.<br>Planlamak yorucu olabilir.</h2>
-      <p class="lead reveal d2" style="margin-top:22px" data-i18n="problem.lead">Tren seçimi, açılış saatleri, JR Pass kapsamı, IC kartlar ve ryokan girişleri… Yola çıkmadan önce ayrıntıları tek tek araştırmak zorunda kalma.</p>
-      <p class="reveal d3" style="margin-top:18px;font-size:16px;color:var(--ink-3);max-width:44ch" data-i18n="problem.sub">Rotori, planlama ile yolculuk sırasında ihtiyaç duyacağın bilgileri aynı yerde toplar.</p>
+      <h2 class="h-1 reveal d1" style="margin-top:16px" data-i18n-html="problem.h">Japonya planlamak zor değil.<br>Nereden başlayacağını bilmemek zor.</h2>
+      <p class="lead reveal d2" style="margin-top:22px" data-i18n="problem.lead">Tren seçimi, açılış saatleri, JR Pass kapsamı, IC kartlar ve ryokan girişleri… 47 sekme açıp binlerce yorum okumadan hepsini tek yerde çöz.</p>
+      <p class="reveal d3" style="margin-top:18px;font-size:16px;color:var(--ink-3);max-width:44ch" data-i18n="problem.sub">Kaydettiğin yerler bir rota değildir. Rotori onları gün gün yolculuk planına çevirir.</p>
     </div>
     <div class="worry-cards reveal d2" aria-hidden="true">
       <div class="wc"><span class="em">🚄</span><span data-i18n="problem.w1">Nozomi'de JR Pass geçer mi?</span></div>
@@ -714,7 +717,7 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
   <div style="text-align:center;max-width:720px;margin:0 auto">
     <span class="eyebrow reveal" style="justify-content:center" data-i18n="plan.eyebrow">01 · Planla</span>
     <h2 class="h-1 reveal d1" style="margin-top:16px" data-i18n-html="plan.h">Şehirleri seç.<br>Günleri Rotori dengelesin.</h2>
-    <p class="lead reveal d2" style="margin:22px auto 0" data-i18n="plan.lead">Rotori, sabitlediğin tarihleri korur ve kalan günleri şehirler arasında dengeli biçimde dağıtır.</p>
+    <p class="lead reveal d2" style="margin:22px auto 0" data-i18n="plan.lead">Haftalarca araştırma. Tarihleri gir, şehirleri seç; Rotori sabitlediğin günleri korur, kalanları dengeli dağıtır.</p>
   </div>
 
   <div class="plan-vis reveal d2" id="dayBars">
@@ -753,7 +756,7 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
   <div style="text-align:center;max-width:720px;margin:0 auto">
     <span class="eyebrow reveal" style="justify-content:center" data-i18n="itin.eyebrow">02 · Yaşa</span>
     <h2 class="h-1 reveal d1" style="margin-top:16px" data-i18n="itin.h">Günün her sabah hazır.</h2>
-    <p class="lead reveal d2" style="margin:22px auto 0" data-i18n="itin.lead">Saatleri, yürüme mesafelerini ve yemek molalarını tek akışta gör. Plan değişirse durakları yeniden sırala.</p>
+    <p class="lead reveal d2" style="margin:22px auto 0" data-i18n="itin.lead">Gideceğin yerleri bilmek yetmez; hangi sırayla gideceğini de bil. Saatleri, yürüme mesafelerini ve yemek molalarını tek akışta gör.</p>
   </div>
 
   <div class="tl-card reveal d2">
@@ -945,7 +948,7 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
 <section class="sec" id="timing"><div class="wrap split centered">
   <span class="eyebrow reveal" style="justify-content:center" data-i18n="time.eyebrow">06 · Doğru saat</span>
   <h2 class="h-1 reveal d1" style="margin-top:16px" data-i18n="time.h">Her yeri, doğru saatte.</h2>
-  <p class="lead reveal d2" style="margin-top:22px" data-i18n="time.lead">Fushimi Inari'yi sabah sakinliğinde, Dotonbori'yi neonlar yandığında gör. Rotori durakları uygun saatlere yerleştirir.</p>
+  <p class="lead reveal d2" style="margin-top:22px" data-i18n="time.lead">Fushimi Inari'yi sabah sakinliğinde, Dotonbori'yi neonlar yandığında gör. “Buraya dün gelmeliydik” cümlesi tatilinde hiç geçmesin.</p>
   <div class="timerow reveal d2">
     <div class="tr-slot"><div class="tt">07:00</div><div class="tn" data-i18n="time.s1t">Fushimi Inari</div><div class="tm" data-i18n="time.s1d">Turistlerden önce · sabah sakin</div></div>
     <div class="tr-slot"><div class="tt">13:00</div><div class="tn" data-i18n="time.s2t">Nishiki Market</div><div class="tm" data-i18n="time.s2d">Öğle · yerel esnaf en aktif</div></div>
@@ -958,7 +961,7 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
   <div style="text-align:center;max-width:760px;margin:0 auto">
     <span class="eyebrow reveal" style="justify-content:center" data-i18n="food.eyebrow">07 · Yemek</span>
     <h2 class="h-1 reveal d1" style="margin-top:16px" data-i18n-html="food.h">Soğansız. Domuzsuz.<br>Helal sertifikalı.</h2>
-    <p class="lead reveal d2" style="margin:22px auto 0" data-i18n="food.lead">Beslenme tercihlerini bir kez seç. Rotori uygun restoranları bulur ve öğle ya da akşam planına ekler.</p>
+    <p class="lead reveal d2" style="margin:22px auto 0" data-i18n="food.lead">Her öğünde “burada ne yiyebilirim?” diye sorma. Tercihlerini bir kez seç; Rotori uygun restoranları bulup öğle ya da akşam planına ekler.</p>
     <div class="microline reveal d3" style="justify-content:center;margin-top:16px">
       <span data-i18n="food.m1">9 hassasiyet</span>
       <span>·</span>
@@ -1076,7 +1079,7 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
       <div><span class="off-hero-word strike" data-i18n="off.w1">Bulut yok.</span></div>
       <div style="margin-top:6px"><span class="off-hero-word strike" data-i18n="off.w2">Bekleme yok.</span></div>
     </div>
-    <p class="lead reveal d2" style="margin:32px auto 0" data-i18n="off.lead">Haritaları yolculuktan önce indir. Planın, otel bilgilerin, biletlerin ve Japonca sesler çevrimdışıyken de yanında olsun.</p>
+    <p class="lead reveal d2" style="margin:32px auto 0" data-i18n="off.lead">Telefonun çekmese bile planın çalışmaya devam etsin. Haritaları önceden indir; planın, otel bilgilerin, biletlerin ve Japonca sesler çevrimdışı yanında.</p>
   </div>
 
   <div class="off-tiles reveal d2">
@@ -1107,7 +1110,7 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
 <section class="sec" id="phrases"><div class="wrap split centered">
   <span class="eyebrow reveal" style="justify-content:center" data-i18n="jp.eyebrow">10 · Japonca</span>
   <h2 class="h-1 reveal d1" style="margin-top:16px" data-i18n="jp.h">75 cümle, HD ses, tamamen çevrimdışı.</h2>
-  <p class="lead reveal d2" style="margin-top:22px" data-i18n="jp.lead">Sık kullanılan 75 cümleyi Latin harfli okunuşu, Türkçe anlamı ve Japonca ses kaydıyla çevrimdışı kullan.</p>
+  <p class="lead reveal d2" style="margin-top:22px" data-i18n="jp.lead">Japonca bilmiyor olabilirsin; ihtiyacın olan cümleler yanında olsun. 75 cümleyi Latin harfli okunuşu, Türkçe anlamı ve Japonca ses kaydıyla çevrimdışı kullan.</p>
   <div class="phrase-card reveal d2">
     <div class="ph-jp" id="phraseRomaji" lang="ja-Latn">Eki wa doko desu ka?</div>
     <div class="ph-tr" id="phraseMeaning">İstasyon nerede?</div>
@@ -1232,8 +1235,8 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
   <canvas class="sakura-final" aria-hidden="true"></canvas>
   <div class="wrap reveal">
     <span class="eyebrow" style="justify-content:center"><span lang="ja">旅</span> · Rotori</span>
-    <h2 class="h-hero grad-text" style="margin:20px auto 0;max-width:20ch" data-i18n="final.h">Japonya rotanı bugün kur.</h2>
-    <p class="lead" style="margin:22px auto 0;text-align:center" data-i18n="final.lead">Planın hazır olsun; yolculukta sıradaki adımı Rotori göstersin.</p>
+    <h2 class="h-hero grad-text" style="margin:20px auto 0;max-width:20ch" data-i18n="final.h">Rotanı kur, Japonya'nın tadını çıkar.</h2>
+    <p class="lead" style="margin:22px auto 0;text-align:center" data-i18n="final.lead">Planlama stresini evde bırak; yolculukta sıradaki adımı Rotori göstersin.</p>
     <div class="store">
       <a class="store-badge primary" href="#final" aria-label="App Store">
         <svg width="22" height="26" viewBox="0 0 22 26" fill="currentColor" aria-hidden="true"><path d="M18.3 19.8c-.3.8-.7 1.5-1.2 2.2-.7 1-1.2 1.6-1.7 2-.7.6-1.4.9-2.2.9-.6 0-1.2-.2-2-.5s-1.5-.5-2.1-.5c-.7 0-1.4.2-2.2.5s-1.4.5-1.9.5c-.8 0-1.6-.4-2.3-1.1-.5-.5-1.1-1.2-1.8-2.2-.7-1.1-1.3-2.3-1.8-3.8C.4 16.7 0 15.2 0 13.8c0-1.7.4-3.1 1.1-4.3.6-1 1.3-1.7 2.3-2.3s2-.9 3-.9c.6 0 1.4.2 2.4.6.9.4 1.5.6 1.8.6.2 0 .9-.2 2-.7 1-.4 1.9-.6 2.6-.5 1.9.2 3.4.9 4.3 2.3-1.7 1-2.6 2.5-2.5 4.4 0 1.5.5 2.7 1.6 3.7.5.5 1 .8 1.6 1-.1.4-.3.8-.5 1.1zM14.9.5c0 1.2-.5 2.4-1.4 3.5-1.1 1.3-2.4 2-3.8 1.9 0-.2 0-.3 0-.4 0-1.2.5-2.5 1.4-3.5.5-.5 1-.9 1.7-1.3.7-.3 1.3-.5 1.9-.5 0 .3 0 .5 0 .8z"/></svg>
@@ -1276,7 +1279,7 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
     'hero.eyebrow':{tr:'<span lang="ja">旅</span> · Japonya yolculuğu için tasarlandı',en:'<span lang="ja">旅</span> · Built for travel in Japan'},
     'hero.t1':{tr:'Sürpriz yok.',en:'No surprises.'},
     'hero.t2':{tr:'Plan var.',en:'Just the plan.'},
-    'hero.lead':{tr:'Tokyo\'dan Kyoto\'ya; günlük planın, biletlerin ve yol notların tek yerde.',en:'From Tokyo to Kyoto, keep your daily plan, tickets, and travel notes in one place.'},
+    'hero.lead':{tr:'Hazır turun temposunda değil, kendi temponda gez. Günlük planın, biletlerin ve yol notların tek yerde.',en:'Travel at your own pace, not a tour group\'s. Your daily plan, tickets, and travel notes in one place.'},
     'hero.cta1':{tr:'App Store\'da indir',en:'Download on the App Store'},
     'hero.cta2':{tr:'Nasıl çalışıyor ↓',en:'How it works ↓'},
     'hero.m1':{tr:'iPhone için',en:'For iPhone'},
@@ -1319,9 +1322,9 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
 
     // PROBLEM
     'problem.eyebrow':{tr:'Neden Rotori',en:'Why Rotori'},
-    'problem.h':{tr:'Japonya heyecan verici.<br>Planlamak yorucu olabilir.',en:'Japan is exciting.<br>Planning it can be exhausting.'},
-    'problem.lead':{tr:'Tren seçimi, açılış saatleri, JR Pass kapsamı, IC kartlar ve ryokan girişleri… Yola çıkmadan önce ayrıntıları tek tek araştırmak zorunda kalma.',en:'Train choices, opening hours, JR Pass coverage, IC cards, and ryokan check-ins… Sort out the details before you leave without researching each one separately.'},
-    'problem.sub':{tr:'Rotori, planlama ile yolculuk sırasında ihtiyaç duyacağın bilgileri aynı yerde toplar.',en:'Rotori brings your plan and the information you need during the trip into one place.'},
+    'problem.h':{tr:'Japonya planlamak zor değil.<br>Nereden başlayacağını bilmemek zor.',en:'Planning Japan isn\'t hard.<br>Not knowing where to start is.'},
+    'problem.lead':{tr:'Tren seçimi, açılış saatleri, JR Pass kapsamı, IC kartlar ve ryokan girişleri… 47 sekme açıp binlerce yorum okumadan hepsini tek yerde çöz.',en:'Train choices, opening hours, JR Pass coverage, IC cards, ryokan check-ins… Settle all of it in one place, without 47 open tabs and a thousand reviews.'},
+    'problem.sub':{tr:'Kaydettiğin yerler bir rota değildir. Rotori onları gün gün yolculuk planına çevirir.',en:'Saved places aren\'t a route. Rotori turns them into a day-by-day travel plan.'},
     'problem.w1':{tr:'Nozomi\'de JR Pass geçer mi?',en:'Does JR Pass cover Nozomi?'},
     'problem.w2':{tr:'Yağmur yağarsa planım?',en:'What if it rains?'},
     'problem.w3':{tr:'Restoranda İngilizce yok',en:'No English at the restaurant'},
@@ -1332,7 +1335,7 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
     // PLAN
     'plan.eyebrow':{tr:'01 · Planla',en:'01 · Plan'},
     'plan.h':{tr:'Şehirleri seç.<br>Günleri Rotori dengelesin.',en:'Pick your cities.<br>Let Rotori balance the days.'},
-    'plan.lead':{tr:'Rotori, sabitlediğin tarihleri korur ve kalan günleri şehirler arasında dengeli biçimde dağıtır.',en:'Rotori keeps your fixed dates and distributes the remaining days evenly across your cities.'},
+    'plan.lead':{tr:'Haftalarca araştırma. Tarihleri gir, şehirleri seç; Rotori sabitlediğin günleri korur, kalanları dengeli dağıtır.',en:'No weeks of research. Enter your dates, pick your cities; Rotori keeps the days you fixed and spreads the rest evenly.'},
     'plan.chip1b':{tr:'13 gün',en:'13 days'},
     'plan.chip2b':{tr:'4 şehir',en:'4 cities'},
     'plan.chip3':{tr:'1 dakika kurulum',en:'1-minute setup'},
@@ -1342,7 +1345,7 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
     // ITINERARY
     'itin.eyebrow':{tr:'02 · Yaşa',en:'02 · Live it'},
     'itin.h':{tr:'Günün her sabah hazır.',en:'Your day is ready each morning.'},
-    'itin.lead':{tr:'Saatleri, yürüme mesafelerini ve yemek molalarını tek akışta gör. Plan değişirse durakları yeniden sırala.',en:'See times, walking distances, and meal breaks in one timeline. Reorder the stops when plans change.'},
+    'itin.lead':{tr:'Gideceğin yerleri bilmek yetmez; hangi sırayla gideceğini de bil. Saatleri, yürüme mesafelerini ve yemek molalarını tek akışta gör.',en:'Knowing where to go isn\'t enough — you need the order too. See times, walking distances, and meal breaks in one timeline.'},
     'itin.tlc.title':{tr:'Gün 2 · Tokyo',en:'Day 2 · Tokyo'},
     'itin.tlc.sub':{tr:'Asakusa → Skytree · 👣 15k adım',en:'Asakusa → Skytree · 👣 15k steps'},
     'itin.tlc.r1':{tr:'🏮 Tapınak · 90 dk',en:'🏮 Temple · 90 min'},
@@ -1415,7 +1418,7 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
     // TIMING
     'time.eyebrow':{tr:'06 · Doğru saat',en:'06 · Right time'},
     'time.h':{tr:'Her yeri, doğru saatte.',en:'Every place, at the right hour.'},
-    'time.lead':{tr:'Fushimi Inari\'yi sabah sakinliğinde, Dotonbori\'yi neonlar yandığında gör. Rotori durakları uygun saatlere yerleştirir.',en:'See Fushimi Inari in the quiet morning and Dotonbori after the neon lights come on. Rotori places stops at suitable times.'},
+    'time.lead':{tr:'Fushimi Inari\'yi sabah sakinliğinde, Dotonbori\'yi neonlar yandığında gör. “Buraya dün gelmeliydik” cümlesi tatilinde hiç geçmesin.',en:'See Fushimi Inari in the quiet morning and Dotonbori once the neon comes on. Never say “we should have come here yesterday.”'},
     'time.s1t':{tr:'Fushimi Inari',en:'Fushimi Inari'},
     'time.s1d':{tr:'Turistlerden önce · sabah sakin',en:'Before the tourists · quiet morning'},
     'time.s2t':{tr:'Nishiki Market',en:'Nishiki Market'},
@@ -1426,7 +1429,7 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
     // FOOD — halal-certified · no onion · no pork · added straight to plan
     'food.eyebrow':{tr:'07 · Yemek',en:'07 · Food'},
     'food.h':{tr:'Soğansız. Domuzsuz.<br>Helal sertifikalı.',en:'No onion. No pork.<br>Halal-certified.'},
-    'food.lead':{tr:'Beslenme tercihlerini bir kez seç. Rotori uygun restoranları bulur ve öğle ya da akşam planına ekler.',en:'Choose your dietary preferences once. Rotori finds suitable restaurants and adds them to lunch or dinner.'},
+    'food.lead':{tr:'Her öğünde “burada ne yiyebilirim?” diye sorma. Tercihlerini bir kez seç; Rotori uygun restoranları bulup öğle ya da akşam planına ekler.',en:'Stop asking “what can I eat here?” at every meal. Choose your preferences once; Rotori finds suitable places and adds them to lunch or dinner.'},
     'food.m1':{tr:'9 hassasiyet',en:'9 sensitivities'},
     'food.m2':{tr:'Plana otomatik eklenir',en:'Added to your plan automatically'},
     'food.m3':{tr:'3 şehir · 40+ restoran',en:'3 cities · 40+ restaurants'},
@@ -1477,7 +1480,7 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
     'off.eyebrow':{tr:'09 · Çevrimdışı',en:'09 · Offline'},
     'off.w1':{tr:'Bulut yok.',en:'No cloud.'},
     'off.w2':{tr:'Bekleme yok.',en:'No waiting.'},
-    'off.lead':{tr:'Haritaları yolculuktan önce indir. Planın, otel bilgilerin, biletlerin ve Japonca sesler çevrimdışıyken de yanında olsun.',en:'Download maps before the trip. Keep your plan, hotel details, tickets, and Japanese audio available offline.'},
+    'off.lead':{tr:'Telefonun çekmese bile planın çalışmaya devam etsin. Haritaları önceden indir; planın, otel bilgilerin, biletlerin ve Japonca sesler çevrimdışı yanında.',en:'Your plan keeps working even when your phone doesn\'t. Download maps ahead of time; your plan, hotel details, tickets, and Japanese audio stay with you offline.'},
     'off.t1t':{tr:'Harita paftaları',en:'Map tiles'},
     'off.t1s':{tr:'önden iner',en:'downloaded ahead'},
     'off.t2t':{tr:'Biletler',en:'Tickets'},
@@ -1490,7 +1493,7 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
     // PHRASES
     'jp.eyebrow':{tr:'10 · Japonca',en:'10 · Japanese'},
     'jp.h':{tr:'75 cümle, HD ses, tamamen çevrimdışı.',en:'75 phrases, HD audio, fully offline.'},
-    'jp.lead':{tr:'Sık kullanılan 75 cümleyi Latin harfli okunuşu, Türkçe anlamı ve Japonca ses kaydıyla çevrimdışı kullan.',en:'Use 75 practical phrases offline with Latin-script pronunciation, meaning, and Japanese audio.'},
+    'jp.lead':{tr:'Japonca bilmiyor olabilirsin; ihtiyacın olan cümleler yanında olsun. 75 cümleyi Latin harfli okunuşu, Türkçe anlamı ve Japonca ses kaydıyla çevrimdışı kullan.',en:'You may not speak Japanese — the phrases you need can still be with you. Use 75 practical phrases offline with Latin-script pronunciation, meaning, and Japanese audio.'},
     'jp.phrase':{tr:'Tuvalet nerede?',en:'Where is the toilet?'},
     'jp.audio.play':{tr:'Japonca örnek sesi oynat',en:'Play the Japanese audio sample'},
     'jp.audio.pause':{tr:'Japonca örnek sesi duraklat',en:'Pause the Japanese audio sample'},
@@ -1568,8 +1571,8 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
     'tix.t4s':{tr:'Her hatırlatıcı seni doğrudan resmî satış sayfasına götürür — arama yok, kaçan bilet yok.',en:'Every reminder takes you straight to the official sales page — no searching, no sold-out surprises.'},
 
     // FINAL
-    'final.h':{tr:'Japonya rotanı bugün kur.',en:'Build your Japan route today.'},
-    'final.lead':{tr:'Planın hazır olsun; yolculukta sıradaki adımı Rotori göstersin.',en:'Prepare your plan, then let Rotori show the next step during your trip.'},
+    'final.h':{tr:'Rotanı kur, Japonya\'nın tadını çıkar.',en:'Build your route. Then enjoy Japan.'},
+    'final.lead':{tr:'Planlama stresini evde bırak; yolculukta sıradaki adımı Rotori göstersin.',en:'Leave the planning stress at home; let Rotori show your next step on the road.'},
     'final.get':{tr:'İndir',en:'Download'},
     'final.soon':{tr:'Yakında',en:'Coming soon'},
     'final.micro':{tr:'iPhone için · Türkçe & İngilizce',en:'For iPhone · Turkish & English'},
