@@ -1,5 +1,10 @@
 # Rotori Eats veri toplayıcı — kurulum prompt'u
 
+> **⚠️ BEKLEMEDE — 2026-08-10.** Rotori Eats mekan listesinden yemek
+> rehberine döndü; bu toplayıcıya şu an ihtiyaç yok. Mekan katmanı geri
+> gelirse bu prompt hazır.
+
+
 Aşağıdaki bloğu yeni ve boş bir depoda bir kodlama ajanına (Claude Code vb.)
 olduğu gibi ver. `EATS_DATA_CONTRACT.md` dosyasını da o depoya kopyala.
 

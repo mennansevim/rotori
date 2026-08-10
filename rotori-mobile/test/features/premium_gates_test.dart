@@ -9,7 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:japan_trip/domain/eats_query.dart';
+import 'package:japan_trip/domain/japanese_dishes_data.dart';
 import 'package:japan_trip/features/plans/premium_provider.dart';
 import 'package:japan_trip/features/viewer/eats_screen.dart';
 import 'package:japan_trip/domain/plan_generation.dart';
@@ -71,37 +71,30 @@ void main() {
     });
   });
 
-  group('Rotori Eats listesi', () {
-    testWidgets('ücretsizde ilk $kEatsFreeVisibleLimit mekan + upsell kartı',
-        (tester) async {
-      SharedPreferences.setMockInitialValues({kPremiumPrefsKey: false});
-      tester.view.physicalSize = const Size(390, 2400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.reset);
+  // Rotori Eats artık ÜCRETSİZ ve premium bayrağından etkilenmiyor.
+  //
+  // Eskiden burada "ücretsizde upsell kartı görünür / premiumda görünmez"
+  // testleri vardı. Ekran restoran dizininden Japon yemekleri rehberine
+  // dönüştüğünde paywall tamamen kaldırıldı: diyet bilgisi (neyi yiyebilirsin,
+  // neyi soramalısın) bir ödeme duvarının arkasına konmaz.
+  group('Rotori Eats ücretsizliği', () {
+    for (final premium in [false, true]) {
+      testWidgets('premium=$premium — ekran aynı, paywall yok', (tester) async {
+        SharedPreferences.setMockInitialValues({kPremiumPrefsKey: premium});
+        tester.view.physicalSize = const Size(390, 2400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.reset);
 
-      await tester.pumpWidget(harness(
-        EatsScreen(trip: _trip()),
-      ));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(harness(EatsScreen(trip: _trip())));
+        await tester.pumpAndSettle();
+        await tester.pump(const Duration(milliseconds: 200));
 
-      expect(find.text('Rotori Eats Pass'), findsOneWidget,
-          reason: 'ücretsizde upsell kartı görünmeli');
-    });
-
-    testWidgets('premium açıkken upsell kartı GÖRÜNMEZ', (tester) async {
-      SharedPreferences.setMockInitialValues({kPremiumPrefsKey: true});
-      tester.view.physicalSize = const Size(390, 2400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.reset);
-
-      await tester.pumpWidget(harness(
-        EatsScreen(trip: _trip()),
-      ));
-      await tester.pumpAndSettle();
-      await tester.pump(const Duration(milliseconds: 200));
-
-      expect(find.text('Rotori Eats Pass'), findsNothing,
-          reason: 'premium kullanıcıya upsell gösterilmemeli');
-    });
+        expect(find.text('Rotori Eats Pass'), findsNothing);
+        expect(find.text('Hepsini aç'), findsNothing);
+        expect(find.text('Pass aktif'), findsNothing);
+        // İçerik her iki durumda da geliyor.
+        expect(find.text('Ramen'), findsOneWidget);
+      });
+    }
   });
 }

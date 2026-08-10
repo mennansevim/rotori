@@ -1543,16 +1543,15 @@ class _DrawerAddCard extends StatelessWidget {
 /// Eats, drawer'daki en derin özellik (filtreli restoran keşfi, konum, bütçe
 /// uyumu) ama eşit boyutlu ikon karelerinden biri olduğunda görünmüyordu.
 /// Marka gradyanı + katman rozeti onu bölümün girişi yapar.
-class _DrawerEatsCard extends ConsumerWidget {
+class _DrawerEatsCard extends StatelessWidget {
   const _DrawerEatsCard({required this.palette, required this.onTap});
   final ViewerPalette palette;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final p = palette;
     final s = LanguageScope.of(context);
-    final premium = ref.watch(premiumProvider);
 
     return Material(
       color: Colors.transparent,
@@ -1622,7 +1621,7 @@ class _DrawerEatsCard extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(width: 6),
-                          _DrawerEatsTierChip(premium: premium),
+                          const _DrawerEatsFreeChip(),
                         ],
                       ),
                       const SizedBox(height: 3),
@@ -1653,10 +1652,13 @@ class _DrawerEatsCard extends ConsumerWidget {
   }
 }
 
-/// Eats kartındaki küçük katman rozeti — Pass açıksa altın, değilse cam.
-class _DrawerEatsTierChip extends StatelessWidget {
-  const _DrawerEatsTierChip({required this.premium});
-  final bool premium;
+/// Eats kartındaki "Ücretsiz" rozeti.
+///
+/// Eskiden premium durumunu (Pass / Ücretsiz) gösteriyordu. Rotori Eats
+/// restoran dizininden Japon yemekleri rehberine dönüşünce paywall tamamen
+/// kaldırıldı: diyet bilgisi ödeme duvarının arkasına konmaz.
+class _DrawerEatsFreeChip extends StatelessWidget {
+  const _DrawerEatsFreeChip();
 
   @override
   Widget build(BuildContext context) {
@@ -1664,27 +1666,16 @@ class _DrawerEatsTierChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: premium ? 0.95 : 0.20),
+        color: Colors.white.withValues(alpha: 0.20),
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            premium ? Icons.auto_awesome_rounded : Icons.lock_open_rounded,
-            size: 10,
-            color: premium ? const Color(0xFF7C6AEF) : Colors.white,
-          ),
-          const SizedBox(width: 3),
-          Text(
-            premium ? s.s('drawer.eats.pass') : s.s('drawer.eats.free'),
-            style: TextStyle(
-              color: premium ? const Color(0xFF7C6AEF) : Colors.white,
-              fontSize: 9.5,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
+      child: Text(
+        s.s('drawer.eats.free'),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 9.5,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
