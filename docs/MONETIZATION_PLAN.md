@@ -170,13 +170,20 @@ tamamen bedava yayınlayıp sonra paywall eklemek de yanlış (grandfathering).
 
 | Faz | İş | Gün |
 |---|---|---|
-| 0 | App Store Connect (yıllık + aylık) + SBP | 0.5 |
+| 0 | App Store Connect (yıllık + aylık, S2S URL'leri, Server API anahtarı) + SBP | 0.5 |
 | 0.5 | **Hedef kullanıcı görüşmeleri** (10–20, kod gerektirmez) | paralel |
-| 1 | IAP + receipt doğrulama + S2S — iki SKU | 4.5–5.5 |
+| 1 | Abonelik altyapısı — üç tablolu şema, JWS + `appAccountToken`, S2S durum makinesi + reconciliation, istemci + kalıcı retry, hukuki metinler | **6–9** |
 | 2 | Paywall + Apple uyumu + gate'in sunucuya taşınması | 2–3 |
 | 3 | Ön izleme hunisi + "kazandırdığı saat" + gezi limiti | 2.5 |
-| 4 | Release gate + sandbox testi | 3–5 |
-| | **Toplam** | **12.5–15** |
+| 4 | Release gate + sandbox senaryo matrisi | 3–5 |
+| | **Toplam** | **15–20** |
+
+> Faz 1 ilk tahmini 4–5 gündü; dış inceleme (2026-08-10) kapsamı genişletti:
+> üç tablolu işlem/entitlement/notification şeması, `appAccountToken` hesap
+> sahipliği, S2S durum makinesi + reconciliation, `completePurchase()` +
+> kalıcı doğrulama kuyruğu, deneme uygunluğunun StoreKit 2 API'sinden
+> okunması, hesap silme çakışması ve eksik Kullanım Şartları sayfası.
+> Mimari sözleşme: `ARCHITECTURE.md` §8b.
 
 ### 4.2 v1.0'dan çıkarılanlar
 
