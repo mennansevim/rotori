@@ -5,6 +5,32 @@
 
 ---
 
+## Karar 14 — 2026-08-10
+### Karar
+Modüler Social dashboard teknik Otomasyon ekranından değil, karar odaklı
+**Genel Bakış** ekranından açılır. Ana bilgi mimarisi tamamen Türkçedir:
+`Genel Bakış / Kütüphane / Otomasyon / Aktivite / Ayarlar`. Genel Bakış
+salt-okunur kalır; anında yayınlama, yeniden deneme ve bağlantı kesme eylemleri
+ikinci bir açık kullanıcı onayı ister.
+
+### Neden
+Demo kullanıcı ilk açılışta haftalık slot, anchor ve queue gibi sistem
+kavramlarıyla karşılaşıyordu. İngilizce etiketler, kaydedilmeyen Ayarlar
+seçimleri ve ham hata mesajları kullanıcıya sistem bakım paneli hissi veriyordu.
+Etkili yayın eylemlerinin tek tıkla çalışması da yanlış gönderim riskini
+artırıyordu.
+
+### Sonuçları
+- İlk ekran bugünün kararlarını, üç aşamalı içerik yaşam döngüsünü, sıradaki
+  yayını ve dikkat gereken işleri özetler.
+- Kaydedilmeyen arayüz kontrolleri gösterilmez; gerçek ayar yüzeyine bağlantı
+  verilir.
+- Teknik hata metni kaybolmaz fakat varsayılan görünümde kullanıcı diline
+  çevrilir ve isteğe bağlı ayrıntı altında tutulur.
+- Dashboard modülleri `20260810-6` cache anahtarını birlikte kullanır.
+
+---
+
 ## Karar 13 — 2026-08-10
 ### Karar
 Kütüphane içerik yaşam döngüsü yalnız üç ana aşamadan oluşur:

@@ -2,7 +2,7 @@
 // pages/automation.js — Otomasyon (yayın slotları)
 // =========================================================================
 import { api, el, icons, typeBadge, countdownText, fmtDate, fmtTime,
-         errorState, loadingState, toast, openModal } from '../lib.js?v=20260810-5';
+         errorState, loadingState, toast, openModal, confirmModal } from '../lib.js?v=20260810-6';
 
 const DAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];  // launchd: 1..6,0
 const fmtDayTime = (iso) => {
@@ -38,7 +38,7 @@ const FLOW_KIND_TO_CONFIG = {
   gorsel: 'topic',
 };
 
-export async function renderAutomation(root, ctx) {
+export async function renderAutomation(root, ctx, params) {
   clearAutomationTimers(root);
   root.innerHTML = '';
   const head = el('div', { class: 'page__head' },
@@ -55,13 +55,13 @@ export async function renderAutomation(root, ctx) {
       class: 'automation-tab is-active',
       type: 'button',
       onclick: () => switchTab('flow'),
-      html: `${icons.automation}<span>Flow Takibi</span>`,
+      html: `${icons.automation}<span>Yayın Akışı</span>`,
     }),
     settings: el('button', {
       class: 'automation-tab',
       type: 'button',
       onclick: () => switchTab('settings'),
-      html: `${icons.settings}<span>Slot Ayarları</span>`,
+      html: `${icons.settings}<span>Yayın Düzeni</span>`,
     }),
   };
   tabbar.append(tabButtons.flow, tabButtons.settings);
@@ -104,7 +104,7 @@ export async function renderAutomation(root, ctx) {
   renderSettingsPanel(settingsPanel, cfg);
   renderFlowPanel(flowPanel, state, root, ctx, { animateShift: false });
 
-  switchTab('flow');
+  switchTab(params?.tab === 'settings' ? 'settings' : 'flow');
   startAutomationTimers(root, ctx, flowPanel, async (opts = {}) => {
     await refreshFlowData(flowPanel, root, ctx, opts);
   });
@@ -211,10 +211,10 @@ function renderFlowPanel(panel, state, root, ctx, options = {}) {
   panel.innerHTML = '';
   panel.append(el('div', { class: 'card flow-hero' }, el('div', { class: 'card__body flow-hero__body' },
     el('div', {},
-      el('div', { class: 'flow-hero__eyebrow' }, 'Yeni Tasarım Sekmesi'),
-      el('h3', { class: 'flow-hero__title' }, 'Canlı Yayın Akışı'),
+      el('div', { class: 'flow-hero__eyebrow' }, 'Otomatik yayın'),
+      el('h3', { class: 'flow-hero__title' }, 'Yayın Planı'),
       el('p', { class: 'muted', style: 'margin:6px 0 0' },
-        'Sağdaki son kart canlı takip edilir. Saati gelince gönderim tetiklenir; başarılıysa sıra kayarak güncellenir.')),
+        'En yakın yayın sağda görünür. Saati geldiğinde gönderim otomatik başlar ve sıra kendiliğinden ilerler.')),
     el('div', { class: 'flow-hero__meta' },
       el('span', { class: 'badge badge--muted' }, `Onaylı havuz: ${approvedPool.length}`),
       el('span', { class: 'badge badge--muted' }, `Aktif akış: ${activeFlowTypes.length}`),
@@ -230,7 +230,7 @@ function renderFlowPanel(panel, state, root, ctx, options = {}) {
         'Otomasyon akışları kapalı. Slot Ayarları sekmesinden haber veya görsel akışını açabilirsiniz.'))));
     panel.append(flowStack);
     panel.append(el('div', { class: 'foot-note', html:
-      'Hata durumlarını soldaki <b>Logs</b> sekmesinden takip edebilirsiniz.<br>Flow kartına tıklayınca onaylı görsellerden seçip slotu replace edebilirsiniz.' }));
+      'Hata durumlarını <b>Aktivite</b> ekranından takip edebilirsiniz.<br>Bir yayın kartına tıklayarak içeriği güvenle değiştirebilirsiniz.' }));
     state.anchors = anchors;
     root._flowClockOffsetMs = computeServerOffset(nowIso);
     return;
@@ -245,7 +245,7 @@ function renderFlowPanel(panel, state, root, ctx, options = {}) {
   });
   panel.append(flowStack);
   panel.append(el('div', { class: 'foot-note', html:
-    'Hata durumlarını soldaki <b>Logs</b> sekmesinden takip edebilirsiniz.<br>Flow kartına tıklayınca onaylı görsellerden seçip slotu replace edebilirsiniz.' }));
+    'Hata durumlarını <b>Aktivite</b> ekranından takip edebilirsiniz.<br>Bir yayın kartına tıklayarak içeriği güvenle değiştirebilirsiniz.' }));
 
   state.anchors = anchors;
   root._flowClockOffsetMs = computeServerOffset(nowIso);
@@ -318,10 +318,16 @@ function flowRow(type, flowData, approvedPool, nowIso, root, ctx, options, laneC
     ? el('button', {
       class: 'btn btn--sm btn--ghost flow-row__send-btn',
       type: 'button',
-      html: `${icons.send}<span>Şimdi Gönder</span>`,
+      html: `${icons.send}<span>Şimdi yayınla</span>`,
       onclick: async (event) => {
         event.preventDefault();
         event.stopPropagation();
+        const confirmed = await confirmModal({
+          title: 'Şimdi yayınla',
+          message: `“${anchor.title || 'Sıradaki içerik'}” planlanan saati beklemeden Instagram’a gönderilecek.`,
+          confirmLabel: 'Şimdi yayınla',
+        });
+        if (!confirmed) return;
         const btn = event.currentTarget;
         const oldHtml = btn.innerHTML;
         btn.disabled = true;
@@ -340,8 +346,8 @@ function flowRow(type, flowData, approvedPool, nowIso, root, ctx, options, laneC
     el('div', { class: 'flow-row__legend' },
       el('div', { class: 'flow-row__legend-main' },
         el('span', {}, (flowData.hiddenFuture || 0) > 0
-          ? `Sonraki ${flowData.hiddenFuture} içerik sırada bekliyor. Kutuya tıkla → ${meta.action}`
-          : `Kutuya tıkla → ${meta.action}`),
+          ? `Sonraki ${flowData.hiddenFuture} içerik sırada bekliyor. Kartı seçerek içeriği değiştirebilirsiniz.`
+          : 'Bir kartı seçerek planlanan içeriği değiştirebilirsiniz.'),
         anchor ? el('span', { class: 'flow-row__live' }, `Canlı takip: ${anchor.title || 'Sıradaki gönderi'}`) : null),
       el('div', { class: 'flow-row__legend-actions' }, nowSendBtn))));
   return row;
@@ -396,7 +402,7 @@ function flowSlot(type, slot, isAnchor, approvedPool, nowIso, root, ctx) {
           entryId: slot.entry_id || '',
         },
       }, etaText),
-      el('span', { class: 'flow-slot__action' }, 'Replace'))));
+      el('span', { class: 'flow-slot__action' }, 'Değiştir'))));
 
   if (isAnchor) {
     btn.classList.add('is-live-anchor');
@@ -460,7 +466,7 @@ async function openAddToFlowPicker({ type, root, ctx }) {
   const kind = type === 'haber' ? 'Haber' : 'Görsel';
   const pool = library
     .filter((it) => (it.type || 'gorsel') === type)
-    .filter((it) => READY_LIBRARY_STATUSES.has(it.status) || it.status === 'approved')
+    .filter((it) => ['approved', 'failed'].includes(it.status))
     .map((it) => ({ ...it, _assetName: resolveAssetName(it) }))
     .filter((it) => it._assetName)
     .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
@@ -484,7 +490,7 @@ async function openAddToFlowPicker({ type, root, ctx }) {
         tile.classList.add('is-selected');
         tile.style.opacity = '0.6';
         try {
-          await api.autoFillReady();
+          await api.autoFillReadyItem(item._assetName);
           toast('İçerik akışa eklendi.', 'ok');
           modalCtl.close();
           await refreshFlowData(document.getElementById('automation-flow-panel'), root, ctx, { animateShift: true });
@@ -683,7 +689,7 @@ async function manualDispatchSlot(slot, root, ctx) {
       toast('Şimdi gönderildi: içerik Instagram akışına işlendi.', 'ok');
       await refreshFlowData(flowPanel, root, ctx, { animateShift: true });
     } else if (hit?.status === 'failed') {
-      toast('Gönderim denemesi başarısız. Detayı Logs ekranında görebilirsiniz.', 'err');
+      toast('Gönderim denemesi başarısız. Ayrıntıyı Aktivite ekranında görebilirsiniz.', 'err');
       await refreshFlowData(flowPanel, root, ctx, { animateShift: false });
     } else if (hit?.status === 'ready') {
       toast('Slot işlendi; otomatik yayın kapalı olduğu için manuel bekliyor.', '');
@@ -709,7 +715,7 @@ function localIsoNoTz(ms) {
 
 async function openReplacePicker({ slot, type, approvedPool, root, ctx }) {
   if (!slot?.entry_id) {
-    toast('Bu slot için replace yapılamıyor (queue id yok).', 'err');
+    toast('Bu yayın kartı şu anda değiştirilemiyor.', 'err');
     return;
   }
 
@@ -744,7 +750,7 @@ async function openReplacePicker({ slot, type, approvedPool, root, ctx }) {
           modalCtl.close();
           await refreshFlowData(document.getElementById('automation-flow-panel'), root, ctx, { animateShift: true });
         } catch (e) {
-          toast(`Replace başarısız: ${e.message}`, 'err');
+          toast(`Değiştirme başarısız: ${e.message}`, 'err');
           locking = false;
           tile.style.opacity = '';
           tile.classList.remove('is-selected');
@@ -763,7 +769,7 @@ async function openReplacePicker({ slot, type, approvedPool, root, ctx }) {
 
   const body = el('div', { class: 'stack', style: 'gap:12px' },
     el('p', { class: 'muted', style: 'margin:0' },
-      'Bu slotu değiştirmek için bir görsel seçin (otomatik replace). Aynı görsel başka aktif slotta ise sistem swap yapar.'),
+      'Bu yayın kartını değiştirmek için onaylanmış bir içerik seçin. İçerik başka bir aktif yayındaysa sistem yerlerini güvenle değiştirir.'),
     picker);
 
   const footer = [
@@ -771,7 +777,7 @@ async function openReplacePicker({ slot, type, approvedPool, root, ctx }) {
   ];
 
   const modalCtl = openModal({
-    title: 'Onaylı Görsel Seç · Replace',
+    title: 'Planlanan İçeriği Değiştir',
     body,
     footer,
     wide: true,

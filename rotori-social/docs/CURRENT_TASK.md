@@ -1,10 +1,26 @@
 # CURRENT_TASK.md — Aktif İş
 
 > Görev tamamlanır tamamlanmaz güncellenir. Sadece **bugünkü** işi tutar; geçmiş `DECISIONS.md`'e taşınır.
-> Son güncelleme: 2026-08-10 (Kütüphane yaşam döngüsü tasarımı)
+> Son güncelleme: 2026-08-10 (demo kullanıcı uçtan uca UX iyileştirmesi)
 
 ## 2026-08-10 — Tamamlanan iş
 
+- Modüler dashboard demo kullanıcı olarak uçtan uca denetlendi; varsayılan
+  açılış teknik Otomasyon ekranından karar odaklı **Genel Bakış** ekranına
+  taşındı.
+- Menü ve çalışma alanındaki İngilizce/Türkçe karışımı giderildi:
+  **Genel Bakış / Kütüphane / Otomasyon / Aktivite / Ayarlar**.
+- Genel Bakış; üç aşamalı yaşam döngüsü, sıradaki yayın, dikkat gereken işler
+  ve haftalık yayın planını tek ekranda birleştiriyor.
+- Otomasyonda tek kart seçimi toplu planlama yerine seçilen içeriği planlıyor;
+  “Şimdi yayınla” ve Aktivite ekranındaki “Tekrar dene” eylemleri açık onay
+  gerektiriyor.
+- Ayarlar ekranındaki kaydedilmeyen sahte seçimler kaldırıldı; hesap sağlığı,
+  yayın düzeni, saat dilimi ve güvenli gelişmiş hesap işlemleri ayrıldı.
+- Ham sistem hataları Aktivite ekranında kullanıcı diline çevrildi; teknik
+  ayrıntılar isteğe bağlı açılır bölümde korundu.
+- Masaüstü ve 390×844 mobil görünüm gerçek tarayıcıda doğrulandı; dashboard
+  cache anahtarı `20260810-6` sürümüne yükseltildi.
 - Kütüphane baştan tasarlandı ve ana içerik yaşam döngüsü üç aşamaya
   sabitlendi: **Taslak → Onaylandı → Yayınlandı**.
 - Otomasyon ayrı bir içerik durumu olmaktan çıkarıldı; planlanan kartlar
@@ -26,7 +42,7 @@
 - Flow başlığı gerçek kadansı (`Haftada 1 · Çar 23:21`) ve bekleyen içerik
   sayısını gösteriyor; ilk beş aktif haftalık kart tarih sırasıyla görünür.
 - İlgili scheduler, API ve dashboard regresyon testleri eklendi.
-- Dashboard modül cache anahtarı `20260810-5` sürümüne yükseltildi; ana HTML
+- Dashboard modül cache anahtarı `20260810-6` sürümüne yükseltildi; ana HTML
   no-store yanıtıyla birlikte eski otomasyon JavaScript'inin tutulması önlendi.
 - Her deploy benzersiz UTC build kimliği üretir ve `/api/version` bunu SemVer
   build metadata olarak gösterir. Dashboard statik dosyaları ayrıca kalıcı

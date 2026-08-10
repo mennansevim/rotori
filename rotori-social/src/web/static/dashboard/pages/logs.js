@@ -1,15 +1,17 @@
 // =========================================================================
 // pages/logs.js — Yayın Logları
 // =========================================================================
-import { api, el, typeBadge, fmtDate, fmtTime, errorState, loadingState, emptyState, icons, toast } from '../lib.js?v=20260805-8';
+import { api, el, typeBadge, fmtDate, fmtTime, errorState, loadingState,
+         emptyState, icons, toast, confirmModal } from '../lib.js?v=20260810-6';
 
 export async function renderLogs(root, ctx) {
   root.innerHTML = '';
 
   const head = el('div', { class: 'page__head' },
     el('div', {},
-      el('h1', { class: 'page__title' }, 'Logs'),
-      el('div', { class: 'page__subtitle' }, 'Yayın geçmişi ve son otomasyon sonuçları.')),
+      el('div', { class: 'eyebrow' }, 'Yayın sağlığı'),
+      el('h1', { class: 'page__title' }, 'Aktivite'),
+      el('div', { class: 'page__subtitle' }, 'Yayın sonuçlarını görün, dikkat gereken denemeleri güvenle yönetin.')),
     el('div', { class: 'page__actions' },
       el('button', { class: 'btn btn--ghost', type: 'button', onclick: () => ctx.refresh() }, 'Yenile')));
   root.append(head);
@@ -28,14 +30,26 @@ export async function renderLogs(root, ctx) {
   }
 
   body.innerHTML = '';
+  const upcoming = Array.isArray(publishes?.upcoming) ? publishes.upcoming : [];
+  const published = Array.isArray(publishes?.published) ? publishes.published : [];
+  const failed = upcoming.filter((item) => normalizeLogStatus(item.publish_outcome || item.status) === 'failed');
+  body.append(el('div', { class: 'activity-summary' },
+    activityStat('green', icons.check, published.length, 'Başarılı yayın'),
+    activityStat(failed.length ? 'red' : 'green', failed.length ? icons.x : icons.check, failed.length, 'Dikkat gereken'),
+    activityStat('indigo', icons.calendar, upcoming.length, 'Planlanan yayın')));
   body.append(publishLogCard(publishes, ctx));
+}
+
+function activityStat(tone, icon, value, label) {
+  return el('div', { class: `activity-stat is-${tone}` },
+    el('span', { html: icon }), el('div', {}, el('b', {}, value), el('small', {}, label)));
 }
 
 function publishLogCard(publishes, ctx) {
   const card = el('div', { class: 'card' },
     el('div', { class: 'card__head' },
-      el('h3', {}, 'Yayın Logu (Son Durumlar)'),
-      el('span', { class: 'badge badge--muted' }, 'Başarılı / Başarısız / Tarih')));
+      el('h3', {}, 'Son yayın hareketleri'),
+      el('span', { class: 'badge badge--muted' }, 'En yeni önce')));
 
   const body = el('div', { class: 'card__body', style: 'padding-top:8px' });
   const upcoming = Array.isArray(publishes?.upcoming) ? publishes.upcoming : [];
@@ -51,7 +65,7 @@ function publishLogCard(publishes, ctx) {
     const ts = Date.parse(it.last_result_at || it.last_attempt_at || it.scheduled_at || '') || 0;
     const details = [`Plan: ${fmtDate(it.scheduled_at)} · ${fmtTime(it.scheduled_at)}`];
     if (it.last_attempt_at) details.push(`Son deneme: ${fmtDate(it.last_attempt_at)} · ${fmtTime(it.last_attempt_at)}`);
-    if (it.failure_reason) details.push(`Neden: ${it.failure_reason}`);
+    const rawReason = it.failure_reason || '';
     events.push({
       ts,
       entryId: it.entry_id || '',
@@ -62,6 +76,8 @@ function publishLogCard(publishes, ctx) {
       status,
       statusLabel: it.publish_outcome_tr || it.status_tr || 'Planlandı',
       details: details.join(' · '),
+      friendlyReason: friendlyFailure(rawReason),
+      rawReason,
       canRetry: status === 'failed' || status === 'overdue' || status === 'manual',
     });
   }
@@ -94,6 +110,12 @@ function publishLogCard(publishes, ctx) {
         class: 'btn btn--sm btn--ghost',
         type: 'button',
         onclick: async (event) => {
+          const confirmed = await confirmModal({
+            title: 'Yayını tekrar dene',
+            message: `“${ev.title}” şimdi yeniden yayınlanmayı deneyecek.`,
+            confirmLabel: 'Tekrar dene',
+          });
+          if (!confirmed) return;
           const btn = event.currentTarget;
           const old = btn.textContent;
           btn.disabled = true;
@@ -120,8 +142,14 @@ function publishLogCard(publishes, ctx) {
             btn.disabled = false;
           }
         },
-      }, 'Şimdi Gönder')
-      : el('div', { class: 'rowitem__cd muted', style: 'font-size:11px' }, 'Log');
+      }, 'Tekrar dene')
+      : el('div', { class: 'rowitem__cd muted', style: 'font-size:11px' }, 'Tamamlandı');
+
+    const detailLine = el('div', { class: 'activity-row__details' },
+      el('span', {}, ev.details));
+    if (ev.friendlyReason) detailLine.append(el('strong', {}, ev.friendlyReason));
+    if (ev.rawReason) detailLine.append(el('details', { class: 'activity-tech-detail' },
+      el('summary', {}, 'Teknik ayrıntı'), el('code', {}, ev.rawReason)));
 
     list.append(el('div', { class: 'rowitem' },
       ev.url
@@ -131,13 +159,28 @@ function publishLogCard(publishes, ctx) {
         el('div', { class: 'rowitem__title' }, ev.title),
         el('div', { class: 'rowitem__sub' },
           el('span', { html: typeBadge(ev.type) }),
-          el('span', { class: `badge badge--${statusToneFromOutcome(ev.status)}` }, ev.statusLabel),
-          el('span', {}, ev.details))),
+          el('span', { class: `badge badge--${statusToneFromOutcome(ev.status)}` }, ev.statusLabel)),
+        detailLine),
       retryBtn));
   }
   body.append(list);
   card.append(body);
   return card;
+}
+
+function friendlyFailure(reason) {
+  if (!reason) return '';
+  const value = String(reason).toLocaleLowerCase('tr-TR');
+  if (value.includes('public url') || value.includes('http 404')) {
+    return 'Görsel internete açılamadı. Dosya bağlantısını kontrol edip yeniden deneyin.';
+  }
+  if (value.includes('raise_for_status') || value.includes('stubresp')) {
+    return 'Yayın servisi yanıtı tamamlayamadı. Yeniden deneyebilirsiniz.';
+  }
+  if (value.includes('token') || value.includes('oauth')) {
+    return 'Instagram bağlantısının yenilenmesi gerekiyor.';
+  }
+  return 'Yayın denemesi tamamlanamadı. Teknik ayrıntıyı gerektiğinde açabilirsiniz.';
 }
 
 function localIsoNoTz(ms) {

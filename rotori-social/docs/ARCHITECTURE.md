@@ -1,9 +1,16 @@
 # ARCHITECTURE.md — Güncel Mimari
 
 > Kod değiştiğinde bu dosya **aynı PR'da** güncellenmelidir.
-> Son revizyon: 2026-08-10 (modüler dashboard Kütüphane yaşam döngüsü)
+> Son revizyon: 2026-08-10 (modüler dashboard kullanıcı akışı ve güvenli eylemler)
 
 ## 1. Yüksek seviye
+
+Modüler dashboard varsayılan olarak `#overview` rotasında açılır. Sunum katmanı
+kullanıcıya teknik modülleri değil şu görev sırasını gösterir:
+`Genel Bakış → Kütüphane → Otomasyon → Aktivite → Ayarlar`. Genel Bakış yalnız
+okuma ve yönlendirme yapar; yayın veya durum değişikliği başlatmaz. Anında yayın,
+yeniden deneme ve hesap bağlantısını kesme gibi yüksek etkili işlemler modal
+onayı olmadan API çağrısı yapmaz.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
