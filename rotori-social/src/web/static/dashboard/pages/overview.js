@@ -2,8 +2,8 @@
 // pages/overview.js — Demo kullanıcı için güvenli, karar odaklı ana sayfa
 // =========================================================================
 import { api, el, icons, fmtDate, fmtTime, typeBadge,
-         errorState, loadingState } from '../lib.js?v=20260810-7';
-import { openCreateModal } from './create.js?v=20260810-7';
+         errorState, loadingState } from '../lib.js?v=20260810-8';
+import { openCreateModal } from './create.js?v=20260810-8';
 
 export async function renderOverview(root, ctx) {
   root.innerHTML = '';

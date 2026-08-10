@@ -4,8 +4,8 @@
 //   Görsel Üret : 3 adım — Konu → Görsel seç → Metin + Kartı oluştur
 //   Haber Üret  : RSS pipeline + otomatik yayın toggle
 // =========================================================================
-import { api, el, icons, toast, openModal } from '../lib.js?v=20260810-7';
-import { openGenOverlay, setGenStages, genAppendLog, finishGenOverlay, pollJobUntilDone, closeGenOverlay } from '../genoverlay.js?v=20260810-7';
+import { api, el, icons, toast, openModal } from '../lib.js?v=20260810-8';
+import { openGenOverlay, setGenStages, genAppendLog, finishGenOverlay, pollJobUntilDone, closeGenOverlay } from '../genoverlay.js?v=20260810-8';
 
 // -------------------------------------------------------------------------
 // Popup: iki üretim modunu sekmeli modal içinde açar.
@@ -87,10 +87,14 @@ function buildGorsel(ctx, onDone) {
   const resetBtn = el('button', { class: 'btn btn--sm btn--ghost', onclick: () => resetWizard(), html: '↺ Yeni görsel' });
   const moreBtn = el('button', { class: 'btn btn--sm btn--ghost', style: 'color:var(--accent)', onclick: () => doMore(), html: 'Farklı 10 →' });
   const pickerGrid = el('div', { class: 'picker-grid' });
+  // Sunucu sorguyu zenginleştiriyor (marka → sahne, TR → EN, "japan" çıpası).
+  // Ne arandığı gizli kalmasın: kullanıcı farkı görüp kendi terimini yazabilsin.
+  const queryNote = el('div', { class: 'picker-query-note', hidden: '' });
   const step2 = el('div', { class: 'viz-step', dataset: { vizStep: '2' }, hidden: '' },
     el('div', { class: 'hstack', style: 'justify-content:space-between;margin-bottom:10px' },
       el('label', { class: 'field__label', style: 'margin:0' }, 'Aramadan 10 sonuç — bir görsel seç'),
       el('div', { class: 'hstack', style: 'gap:10px' }, resetBtn, moreBtn)),
+    queryNote,
     pickerGrid);
 
   // --- Adım 3: Metin + kart oluştur ---
@@ -200,6 +204,7 @@ function buildGorsel(ctx, onDone) {
     aciCount.textContent = '0 / 280';
     capCount.textContent = 'AI otomatik oluşturur · 0 karakter';
     stylePicker.querySelectorAll('.style-choice').forEach((x) => x.classList.toggle('is-active', x.dataset.style === 'style2'));
+    queryNote.hidden = true;
     pickerGrid.innerHTML = '';
     prevImg.removeAttribute('src');
     prevImg.hidden = true;
@@ -222,11 +227,29 @@ function buildGorsel(ctx, onDone) {
     try {
       const res = await api.bgPreview({ query: state.query, count: 10, page: state.page });
       state.results = res.results || [];
+      state.effectiveQuery = res.effective_query || state.query;
+      renderQueryNote(res);
       renderPicker();
     } catch (e) {
+      queryNote.hidden = true;
       pickerGrid.innerHTML = '';
       pickerGrid.append(el('div', { class: 'muted', style: 'grid-column:1/-1' }, 'Arama başarısız: ' + e.message));
     }
+  }
+  function renderQueryNote(res) {
+    const effective = (res.effective_query || '').trim();
+    const typed = state.query.trim();
+    if (!effective || effective.toLowerCase() === typed.toLowerCase()) {
+      queryNote.hidden = true;
+      return;
+    }
+    queryNote.hidden = false;
+    queryNote.innerHTML = '';
+    queryNote.append(
+      el('span', { class: 'picker-query-note__icon', html: icons.search }),
+      el('span', {},
+        el('strong', {}, typed), ' → ', el('strong', {}, effective),
+        el('small', {}, ' · stok fotoğrafta bulunabilir sahneye çevrildi')));
   }
   function renderPicker() {
     pickerGrid.innerHTML = '';

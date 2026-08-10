@@ -521,21 +521,17 @@ def _pick_image(cfg, oai, query: str, konu: str,
     Sorgu boş sonuç verirse kademeli genişletir; adayları vision ile doğrular
     (en fazla 3 aday denetlenir); hiçbiri geçmezse ilk kullanılmamışa düşer."""
     from src import downloader
-    queries = [query, f"japan {query.split()[0]}" if query else "japan",
-               "japan travel", "japan"]
-    seen_q, results = set(), []
-    for q in queries:
-        q = q.strip()
-        if not q or q in seen_q:
-            continue
-        seen_q.add(q)
+    # Sorgu zenginleştirme + kademeli fallback ortak yardımcıdan gelir; böylece
+    # LLM'den marka adı sızsa bile ('teamLab') çekilebilir bir sahneye çevrilir.
+    results = []
+    for q in downloader.build_search_queries(query):
         try:
             results = downloader.search_only(cfg, q, count=12)
         except Exception as exc:
             log.warning(f"  Unsplash arama hatası ('{q}'): {exc}")
             results = []
         if results:
-            log.info(f"  görsel arama: '{q}' → {len(results)} sonuç")
+            log.info(f"  görsel arama: '{query}' → '{q}' ({len(results)} sonuç)")
             break
     if not results:
         return None

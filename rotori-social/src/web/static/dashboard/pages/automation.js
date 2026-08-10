@@ -2,7 +2,7 @@
 // pages/automation.js — Otomasyon (yayın slotları)
 // =========================================================================
 import { api, el, icons, typeBadge, countdownText, fmtDate, fmtTime,
-         errorState, loadingState, toast, openModal, confirmModal } from '../lib.js?v=20260810-7';
+         errorState, loadingState, toast, openModal, confirmModal } from '../lib.js?v=20260810-8';
 
 const DAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];  // launchd: 1..6,0
 const fmtDayTime = (iso) => {

@@ -3,6 +3,51 @@
 > Görev tamamlanır tamamlanmaz güncellenir. Sadece **bugünkü** işi tutar; geçmiş `DECISIONS.md`'e taşınır.
 > Son güncelleme: 2026-08-10 (otomasyon algoritması: bulk dayanıklılığı + konu tekrarı)
 
+## 2026-08-11 — Görsel arama sorgusu zenginleştirildi
+
+### Belirti ve teşhis
+- Kullanıcı: "teamlabs yazınca saçmalıyor, teamlab planets yazmama rağmen
+  çıkmadı." Gerçek Unsplash ölçümü teşhisi doğruladı:
+  `teamlabs` → **3 sonuç** (saat kulesi, rastgele portre);
+  `immersive digital art installation japan` → **2068 sonuç** (ışık enstalasyonu).
+- Kök neden: manuel görsel aramada **hiç sorgu zenginleştirme yoktu** — kullanıcının
+  yazdığı kelime `POST /api/backgrounds/preview` → `search_only` üzerinden ham
+  hâlde Unsplash'e gidiyordu.
+- **Bu bir regresyon değil**: eski `studio.html` da aynı endpoint'e ham sorgu
+  gönderiyordu (kod okundu) ve `downloader.py` geçmişinde hiç zenginleştirme
+  eklenip kaldırılmamış (git log). "Eskiden iyi arıyordu" hissi otomasyon
+  yolundan geliyor: orada LLM `gorsel_konsepti` üretiyor (marka adı yasak,
+  genel sahne) ve `_pick_image` "japan …" kademesini uyguluyordu.
+
+### Yapılan
+- `downloader.enrich_query` / `build_search_queries` / `search_with_fallback`:
+  marka → sahne eşlemesi (teamLab, USJ, Disneyland, DisneySea, Ghibli, Pokémon,
+  konbini zincirleri, JR Pass, Suica…), Türkçe → İngilizce gövde eşlemeli sözlük,
+  Japonya çıpası, kademeli + **biriktiren** fallback (grid 10'a tamamlanır),
+  kota için en fazla 3 istek.
+- `POST /api/backgrounds/preview` → yanıta `effective_query` + `tried` eklendi.
+- Dashboard: `picker-query-note` şeridi "teamlabs → japan immersive digital art
+  installation dark room · stok fotoğrafta bulunabilir sahneye çevrildi" gösteriyor.
+- `news_automation._pick_image` kendi ad-hoc kademesini bıraktı, ortak yardımcıyı
+  kullanıyor.
+
+### Stil 1 / Stil 2 sorusu — kaldırılmamış
+- Seçici duruyor: **Yeni İçerik → Görsel Üret → 3. Metin** adımında, "Üst rozet"in
+  yanında "KART STİLİ" başlığıyla (`create.js` `stylePicker`, CSS `.style-picker`).
+  Tarayıcıda doğrulandı; varsayılan Stil 2 (Japonya Rüyası wordmark).
+- Fark şu: eski `studio.html`'de seçici üretim formunun başındaydı, modüler
+  dashboard'da 3. adıma (görsel seçildikten sonra) taşınmış. Gözden kaçması bu
+  yüzden. İstenirse 1. adıma alınabilir — bu bir yerleşim kararı.
+
+### Doğrulama
+- `pytest -q tests/` → **171 passed** (yeni:
+  `tests/test_image_search_enrichment.py`, 36 test).
+- Gerçek tarayıcıda: `teamlabs` araması → 10 ilgili görsel + çeviri şeridi;
+  seçilen kart önizlemesinde karanlık ışık enstalasyonu fotoğrafı.
+- Dashboard cache anahtarı `20260810-8`.
+- Doğrulamada OpenAI çağrısı tetiklenmedi (metin alanı önceden doldurularak
+  otomatik AI çağrısı engellendi); Unsplash'e toplam ~6 arama isteği gitti.
+
 ## 2026-08-10 — Otomasyon algoritması: üç arıza giderildi
 
 ### 1. Toplu üretim kısmi hatada çöküyordu

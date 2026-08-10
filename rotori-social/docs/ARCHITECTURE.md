@@ -351,6 +351,37 @@ scheduler_queue.json (kalıcı)
 - Görsel bulunamaması artık exception değil, `{"ok": False, "reason": "no_image"}`
   sonucudur (hem `news_automation` hem `topic_automation` içinde).
 
+### 11.1b Görsel arama sorgusu zenginleştirme (`downloader.enrich_query`)
+
+Stok fotoğraf arşivinde marka/tesis adı yoktur ve arayüz Türkçedir. Bu yüzden
+hiçbir sorgu ham hâlde Unsplash'e gitmez; üç adımdan geçer:
+
+1. **Marka/tesis → çekilebilir sahne** — `teamLab` → `immersive digital art
+   installation dark room`, `USJ` → `theme park roller coaster`, `JR Pass` →
+   `japanese train station platform`. En uzun anahtar kazanır
+   (`teamlab planets` > `teamlab`).
+2. **Türkçe → İngilizce** — gövde eşlemesiyle ekli sözcükler de çevrilir
+   (`bahçesi` → `garden`, `sokakları` → `street`). Çevrilemeyen Türkçe sözcük
+   (hâlâ çğıöşü taşıyan) sorguyu kirletmemesi için düşürülür.
+3. **Japonya çıpası** — sorguda yer/ülke çıpası yoksa `japan` eklenir. Marka
+   eşlemesi şehri yutarsa (`tokyo disneyland`) şehir geri konur. `fuji` bilinçli
+   olarak çıpa sayılmaz (tek başına Fujifilm kameraları geliyor).
+
+`build_search_queries` bundan kademeli bir liste üretir (spesifik → `japan
+<ana kelime>` → `japan travel` → `japan`). `search_with_fallback` bu kademeyi
+**biriktirerek** kullanır: spesifik sorgu az sonuç verirse (portrait filtresi
+daralttığı için sık olur) grid daha genel sahneyle 10'a tamamlanır, en alakalı
+üstte kalır. İstek kotası (50/saat) için en fazla **3** arama yapılır.
+
+`POST /api/backgrounds/preview` yanıtına `effective_query` ve `tried` eklendi
+(additive, sözleşme bozulmadı); dashboard bunu `picker-query-note` şeridinde
+gösterir — kullanıcı ne arandığını görür ve gerekirse kendi terimini yazar.
+`news_automation._pick_image` de aynı `build_search_queries`'i kullanır, böylece
+LLM'den marka adı sızsa bile çekilebilir sahneye çevrilir.
+
+**Ölçüm**: `teamlabs` ham hâlde 3 alakasız sonuç (saat kulesi, portre);
+zenginleştirilmiş sorgu 2068 sonuç ve gerçek ışık enstalasyonu fotoğrafları.
+
 ### 11.2 Konu tekrarını engelleyen dedup
 
 - **Dört anahtar/kayıt** (`news_automation._dedup_keys`): link id, başlık-link
