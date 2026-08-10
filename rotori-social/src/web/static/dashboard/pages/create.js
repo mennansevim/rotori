@@ -4,8 +4,8 @@
 //   Görsel Üret : 3 adım — Konu → Görsel seç → Metin + Kartı oluştur
 //   Haber Üret  : RSS pipeline + otomatik yayın toggle
 // =========================================================================
-import { api, el, icons, toast, openModal } from '../lib.js?v=20260810-6';
-import { openGenOverlay, setGenStages, genAppendLog, finishGenOverlay, pollJobUntilDone, closeGenOverlay } from '../genoverlay.js?v=20260810-6';
+import { api, el, icons, toast, openModal } from '../lib.js?v=20260810-7';
+import { openGenOverlay, setGenStages, genAppendLog, finishGenOverlay, pollJobUntilDone, closeGenOverlay } from '../genoverlay.js?v=20260810-7';
 
 // -------------------------------------------------------------------------
 // Popup: iki üretim modunu sekmeli modal içinde açar.

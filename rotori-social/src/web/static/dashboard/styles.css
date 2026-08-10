@@ -481,47 +481,7 @@ h1, h2, h3 { margin: 0; }
   height: 34px;
 }
 
-/* -------------------------------------------------------------- Automation flow tab */
-.automation-tabs {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin: -4px auto 14px;
-  padding: 4px;
-  border: 1px solid rgba(100,116,139,.34);
-  border-radius: 10px;
-  background: #111c2f;
-}
-
-.automation-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: transparent;
-  color: #94a3b8;
-  font-size: 12px;
-  font-weight: 650;
-  padding: 8px 12px;
-}
-
-.automation-tab .ic {
-  width: 14px;
-  height: 14px;
-}
-
-.automation-tab:hover {
-  color: #e2e8f0;
-  background: #263650;
-}
-
-.automation-tab.is-active {
-  color: #fff;
-  border-color: #6366f1;
-  background: rgba(99,102,241,.20);
-}
-
+/* -------------------------------------------------------------- Automation flow */
 .automation-panel[hidden] {
   display: none !important;
 }
@@ -878,6 +838,129 @@ h1, h2, h3 { margin: 0; }
   font-weight: 700;
 }
 
+/* Akış kartının içindeki yayın düzeni şeridi */
+.flow-row__head-meta {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.lane-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px 4px 10px;
+  border: 1px solid rgba(100,116,139,.34);
+  border-radius: 999px;
+  background: #111c2f;
+  cursor: pointer;
+}
+
+.lane-switch__text {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: .02em;
+}
+
+.flow-row:not(.is-off) .lane-switch__text { color: #a5b4fc; }
+
+.lane-cfg {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border: 1px solid rgba(100,116,139,.26);
+  border-radius: 10px;
+  background: rgba(17,28,47,.72);
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.lane-cfg.is-dirty {
+  border-color: rgba(245,158,11,.55);
+  background: rgba(69,50,17,.32);
+}
+
+.lane-cfg.is-highlight {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(99,102,241,.18);
+}
+
+.lane-cfg__group {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.lane-cfg__label {
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.lane-cfg .daypicker { gap: 4px; }
+
+.lane-cfg .daypicker button {
+  width: 34px;
+  padding: 6px 0;
+  font-size: 11px;
+  border-radius: 6px;
+}
+
+.lane-cfg__time {
+  max-width: 108px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.lane-cfg__check {
+  color: #cbd5e1;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.lane-cfg__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.lane-cfg__hint { font-size: 11px; color: #64748b; }
+.lane-cfg__dirty { font-size: 11.5px; font-weight: 700; color: #fcd34d; }
+
+.flow-row.is-off { border-color: rgba(100,116,139,.20); background: #17233a; }
+.flow-row.is-off .card__head h3 { color: #94a3b8; }
+
+.flow-row__off {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 22px 16px;
+  border: 1px dashed rgba(100,116,139,.34);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.flow-row__off strong { color: #cbd5e1; font-size: 13px; }
+.flow-row__off .muted { font-size: 11.5px; max-width: 460px; }
+.flow-row__off-icon { color: #475569; display: inline-flex; }
+.flow-row__off-icon .ic { width: 22px; height: 22px; }
+
+.flow-history { margin-top: 14px; }
+
+.flow-history__more {
+  display: flex;
+  justify-content: center;
+  padding-top: 12px;
+  border-top: 1px solid rgba(100,116,139,.20);
+  margin-top: 4px;
+}
+
 .flow-picker-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1088,21 +1171,23 @@ h1, h2, h3 { margin: 0; }
   .timeline__col:first-child { border-top: 0; }
   .page__head { flex-direction: column; }
 
-  .automation-tabs {
-    width: 100%;
-    justify-content: stretch;
-  }
-
-  .automation-tab {
-    flex: 1;
-    justify-content: center;
-  }
-
   .flow-hero__body,
   .flow-row__legend {
     flex-direction: column;
     align-items: flex-start;
   }
+
+  .flow-row__head-meta { justify-content: flex-start; }
+
+  .lane-cfg {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .lane-cfg__group { flex-wrap: wrap; }
+  .lane-cfg .daypicker button { width: 38px; padding: 8px 0; }
+  .lane-cfg__actions { margin-left: 0; flex-wrap: wrap; }
 
   .flow-track {
     grid-template-columns: repeat(2, minmax(0, 1fr));

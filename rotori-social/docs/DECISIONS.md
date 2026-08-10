@@ -5,6 +5,50 @@
 
 ---
 
+## Karar 15 — 2026-08-10
+### Karar
+Otomasyon ekranındaki `Yayın Akışı` / `Yayın Düzeni` sekme ayrımı kaldırıldı.
+Her akışın yayın düzeni (gün, saat, otomatik yayın) artık **kendi akış kartının
+üstünde** durur ve akış kart başlığındaki **aç/kapat anahtarıyla** yönetilir.
+Kapalı akış ekrandan kaybolmaz. Yayınlanmış içerikler akış kartlarının altında
+salt okunur **Yayın Geçmişi** bloğunda listelenir.
+
+### Neden
+Kullanıcı bir akışın kadansını değiştirmek için ekranın bağlamını bırakıp ayrı
+bir sekmeye gidiyor, orada iki slot kartını birbirinden ayırt etmek zorunda
+kalıyordu. Düzen ile onu etkileyen slot listesi aynı ekranda olmadığı için
+"hangi ayar hangi akışı vuruyor" ilişkisi görünmüyordu. Ayrıca kapalı akış
+listeden tamamen düşünce, akışı açmanın yolu ekranda kalmıyordu.
+
+### Değerlendirilen alternatifler
+1. **Sekmeyi koru, sadece etiketleri iyileştir** — reddedildi: bağlam kopukluğu
+   duruyor, düzen hâlâ slot listesinden uzakta.
+2. **Düzeni modalda aç (kart üstünde "Düzenle" düğmesi)** — reddedildi: kadans
+   bir kez ayarlanıp uzun süre bakılan bir bilgi; modal onu gizler ve akış
+   başlığındaki kadans rozetiyle çakışır.
+3. **Düzen şeridini akış kartının içine, slotların üstüne yerleştir** — kabul:
+   ayar, etkisi ve etkilenen içerik tek göz taramasında görünür. (**Kabul**)
+
+### Ödünler
+- **Yararı**: tek ekran; kapalı akış da yönetilebilir; global "Ayarları Kaydet"
+  düğmesi yerine lane başına kaydetme, yanlış lane'i kaydetme riskini bitirir.
+- **Maliyet**: akış kartı uzadı (mobilde düzen şeridi dikey yığılır); düzen
+  girdileri artık 30 saniyelik otomatik yenilemenin çalıştığı panelin içinde
+  yaşıyor, bu yüzden yenileme için "kirli/odaklı" koruması eklemek gerekti.
+
+### Sonuçları
+- `pages/automation.js`: `automation-tabs` ve `renderSettingsPanel` kaldırıldı;
+  yerine `laneConfigStrip` / `saveLane` / `toggleLane` / `renderHistoryPanel`.
+- Kaydetme lane bazlı: `POST /api/automation/config` gövdesinde yalnız
+  `news` **veya** `topic` gider. Endpoint sözleşmesi değişmedi.
+- Akışı kapatmak o lane'in planlı içeriklerini iptal ettiği için kapatma, etkilenen
+  içerik sayısını söyleyen açık bir onay modalı ister. Haber akışı için gün
+  seçilmemişse açma denemesi 422 beklemeden istemcide uyarır.
+- Otomatik yenileme kaydedilmemiş düzeni ezmez (`anyLaneDirty` + odak kontrolü).
+- Dashboard modülleri `20260810-7` cache anahtarını birlikte kullanır.
+
+---
+
 ## Karar 14 — 2026-08-10
 ### Karar
 Modüler Social dashboard teknik Otomasyon ekranından değil, karar odaklı
