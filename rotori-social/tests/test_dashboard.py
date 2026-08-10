@@ -173,6 +173,34 @@ def test_automation_flow_keeps_failed_items_out_of_live_weekly_queue():
     assert "conf.days = [lw]" in automation_js
 
 
+def test_automation_lane_config_lives_inside_flow_card():
+    """Yayın düzeni ayrı sekmede değil, ilgili akış kartının üstünde olmalı."""
+    automation_js = (DASHBOARD_STATIC / "pages" / "automation.js").read_text(encoding="utf-8")
+    styles = (DASHBOARD_STATIC / "styles.css").read_text(encoding="utf-8")
+
+    # Sekmeli yapı kaldırıldı; tek ekran + kart içi düzen şeridi
+    assert "automation-tabs" not in automation_js
+    assert "Yayın Düzeni" not in automation_js
+    assert "automation-settings-panel" not in automation_js
+    assert "laneConfigStrip(type, state, root, ctx)" in automation_js
+
+    # Kapalı akış da listede kalır ve anahtarla yönetilir
+    assert "FLOW_TYPES.forEach((type) => {" in automation_js
+    assert "onchange: (e) => toggleLane(type, state, root, ctx, e.target.checked, e.target)" in automation_js
+    assert "confirmLabel: 'Akışı kapat'" in automation_js
+
+    # Kaydedilmemiş düzen otomatik yenilemeyle ezilmemeli
+    assert "if (state && (anyLaneDirty(state) || state.savingLanes.size)) return;" in automation_js
+
+    # Yayınlananlar akış kartlarının altında geçmiş olarak durur
+    assert "renderHistoryPanel(historyPanel, state, ctx)" in automation_js
+    assert "'Yayın Geçmişi'" in automation_js
+
+    assert ".lane-cfg {" in styles
+    assert ".lane-switch {" in styles
+    assert ".flow-row__off {" in styles
+
+
 def test_dashboard_cachebuster_is_consistent():
     index_html = (DASHBOARD_STATIC / "index.html").read_text(encoding="utf-8")
     app_js = (DASHBOARD_STATIC / "app.js").read_text(encoding="utf-8")
@@ -181,7 +209,7 @@ def test_dashboard_cachebuster_is_consistent():
     overview_js = (DASHBOARD_STATIC / "pages" / "overview.js").read_text(encoding="utf-8")
     settings_js = (DASHBOARD_STATIC / "pages" / "settings.js").read_text(encoding="utf-8")
     logs_js = (DASHBOARD_STATIC / "pages" / "logs.js").read_text(encoding="utf-8")
-    version = "20260810-6"
+    version = "20260810-7"
     assert f"styles.css?v={version}" in index_html
     assert f"app.js?v={version}" in index_html
     assert f"pages/automation.js?v={version}" in app_js
@@ -194,7 +222,7 @@ def test_dashboard_cachebuster_is_consistent():
     assert f"lib.js?v={version}" in overview_js
     assert f"lib.js?v={version}" in settings_js
     assert f"lib.js?v={version}" in logs_js
-    assert "20260810-5" not in index_html + app_js + automation_js + library_js + overview_js + settings_js + logs_js
+    assert "20260810-6" not in index_html + app_js + automation_js + library_js + overview_js + settings_js + logs_js
 
 
 def test_library_uses_three_stage_content_lifecycle():

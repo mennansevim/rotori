@@ -187,8 +187,20 @@ onayı olmadan API çağrısı yapmaz.
 - Yayın geçmişi `GET /api/dashboard/library` yanıtındaki `published` durumundan
   türetilir; upload logu güncellendiğinde kart bir sonraki yenilemede Yayınlandı
   arşivinde görünür.
+- **Otomasyon ekranı tek görünümdür** (sekme yok). Her akış kartı kendi yayın
+  düzenini taşır: kart başlığında aç/kapat anahtarı, hemen altında `lane-cfg`
+  şeridi (gün seçici + saat + otomatik yayın), sonra yayın slotları. Kapalı
+  akış listeden düşmez; düzeni görünür kalır ve "Bu akış kapalı" bilgisi verir.
+  Sayfanın en altında salt okunur **Yayın Geçmişi** kartı durur.
+- Düzen değişiklikleri `state.drafts` içinde tutulur; `POST /api/automation/config`
+  yalnız ilgili lane'in anahtarını (`news` veya `topic`) gönderir. 30 saniyelik
+  otomatik yenileme, kaydedilmemiş düzen veya odaklı alan varken atlanır —
+  kullanıcının yazdığı değer asla ezilmez.
+- Akışı kapatmak `sync_automation_slots` üzerinden o lane'in `pending/ready`
+  girdilerini `cancelled` yapar; bu yüzden kapatma onay modalı etkilenen içerik
+  sayısını söyler. Yeniden açıldığında `auto_fill_ready` kartları sıraya geri alır.
 - Dashboard modülleri deploy/cache ayrımı için tek sürüm anahtarı kullanır
-  (`20260810-5`).
+  (`20260810-7`).
 
 ## 6. Frontend akışı — `index.html`
 

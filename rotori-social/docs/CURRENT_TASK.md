@@ -1,9 +1,41 @@
 # CURRENT_TASK.md — Aktif İş
 
 > Görev tamamlanır tamamlanmaz güncellenir. Sadece **bugünkü** işi tutar; geçmiş `DECISIONS.md`'e taşınır.
-> Son güncelleme: 2026-08-10 (demo kullanıcı uçtan uca UX iyileştirmesi)
+> Son güncelleme: 2026-08-10 (Otomasyon ekranı: düzen akış kartına taşındı)
 
-## 2026-08-10 — Tamamlanan iş
+## 2026-08-10 — Otomasyon ekranı tek görünüme indirildi
+
+- `Yayın Akışı` / `Yayın Düzeni` sekmeleri kaldırıldı; ekran tek görünüm.
+- Her akışın yayın düzeni (gün seçici + saat + "saati gelince otomatik yayınla")
+  ilgili akış kartının **içinde, slotların üstünde** duruyor.
+- Akış kartı başlığına **Açık / Kapalı** anahtarı eklendi. Kapalı akış listeden
+  düşmüyor; düzeni görünür kalıyor ve "Bu akış kapalı" bilgisi veriyor.
+- Kaydetme lane bazlı: düzen değiştiğinde kartın içinde
+  `Kaydedilmemiş düzen · Vazgeç · Kaydet` şeridi açılıyor; global
+  "Ayarları Kaydet" düğmesi kaldırıldı.
+- Akışı kapatmak planlı içerikleri iptal ettiği için onay modalı etkilenen
+  içerik sayısını söylüyor ("14 planlı haber içeriği yayın sırasından
+  çıkarılacak…"). Haber akışı gün seçilmemişken açılmaya çalışılırsa istemci
+  422 beklemeden uyarıyor.
+- 30 saniyelik otomatik yenileme, kaydedilmemiş düzen veya odaklı bir alan
+  varken atlanıyor — kullanıcının girdiği değer ezilmiyor.
+- **Yayın Geçmişi** kartı akış kartlarının altına alındı: ilk 5 kayıt +
+  "Tüm geçmişi göster", Kütüphane arşivine kısayol.
+- Ayarlar ekranındaki "Yayın düzenini aç" kısayolu artık akış kartlarındaki
+  düzen şeritlerini vurguluyor (`automation:settings` → scroll + highlight).
+- Dashboard cache anahtarı `20260810-7` sürümüne yükseltildi.
+
+### Doğrulama
+- `pytest -q tests/` → **120 passed** (yeni:
+  `test_automation_lane_config_lives_inside_flow_card`).
+- `node --input-type=module` ile `automation.js` sözdizimi kontrolü temiz.
+- Gerçek tarayıcı (1440×1000 ve 375×812): akış kartı içi düzen, kirli/temiz
+  şerit, `Vazgeç` ile geri alma, kapatma onay modalı ve iptali, kapalı akış boş
+  durumu, yayın geçmişi doğrulandı. Konsol hatası yok, yatay taşma yok.
+- Doğrulama sırasında hiçbir kayıt yapılmadı: `data/automation_config.json` ve
+  `data/scheduler_queue.json` dokunulmadı (mtime 12:52, oturum öncesi).
+
+## 2026-08-10 — Önceki iş (Genel Bakış / UX denetimi)
 
 - Modüler dashboard demo kullanıcı olarak uçtan uca denetlendi; varsayılan
   açılış teknik Otomasyon ekranından karar odaklı **Genel Bakış** ekranına

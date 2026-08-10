@@ -2,7 +2,7 @@
 // modals.js — İçerik önizleme + düzenleme + görseli yeniden oluştur
 // =========================================================================
 import { api, el, icons, typeBadge, statusBadge, esc, countdownText, fmtDate,
-         fmtTime, openModal, confirmModal, toast } from './lib.js?v=20260810-6';
+         fmtTime, openModal, confirmModal, toast } from './lib.js?v=20260810-7';
 
 /**
  * İçerik önizleme + düzenleme modalı.
