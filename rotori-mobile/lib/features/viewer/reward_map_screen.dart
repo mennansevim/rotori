@@ -27,7 +27,8 @@ import 'widgets/city_card.dart';
 // ---------------------------------------------------------------------------
 
 class _RankInfo {
-  const _RankInfo({required this.kanji, required this.romaji, required this.id});
+  const _RankInfo(
+      {required this.kanji, required this.romaji, required this.id});
   final String kanji;
   final String romaji;
   final String id; // l10n anahtarı: reward.rank.<id>
@@ -138,7 +139,8 @@ class _RewardMapScreenState extends ConsumerState<RewardMapScreen> {
   bool _shouldShowFeedback() {
     final now = DateTime.now();
     final last = _lastFeedbackAt;
-    if (last != null && now.difference(last) < const Duration(milliseconds: 900)) {
+    if (last != null &&
+        now.difference(last) < const Duration(milliseconds: 900)) {
       return false;
     }
     _lastFeedbackAt = now;
@@ -293,7 +295,6 @@ class _RewardMapBody extends StatelessWidget {
               cities: routeCities.length,
             ),
             const SizedBox(height: 20),
-
             if (routeCities.isEmpty)
               _EmptyCities(palette: p)
             else ...[
@@ -314,7 +315,6 @@ class _RewardMapBody extends StatelessWidget {
                   ),
                 ),
             ],
-
             const SizedBox(height: 8),
             _TrackingCard(controller: controller, palette: p),
           ],
@@ -561,7 +561,12 @@ class _DiscoveryStats extends StatelessWidget {
     final p = palette;
     final s = LanguageScope.of(context);
     final metrics = [
-      (Icons.check_circle_outline, '$visited', s.s('reward.stat.visited'), p.matcha),
+      (
+        Icons.check_circle_outline,
+        '$visited',
+        s.s('reward.stat.visited'),
+        p.matcha
+      ),
       (Icons.place_outlined, '$total', s.s('reward.stat.total'), p.accent),
       (Icons.apartment_outlined, '$cities', s.s('reward.stat.cities'), p.fuji),
     ];
@@ -707,7 +712,7 @@ class _TrackingCard extends StatelessWidget {
         status != GeofencePermissionStatus.deniedForever &&
         status != GeofencePermissionStatus.unsupported;
     final outOfWindow =
-      controller.smartTrackingEnabled && !controller.isInTripWindow;
+        controller.smartTrackingEnabled && !controller.isInTripWindow;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -725,8 +730,8 @@ class _TrackingCard extends StatelessWidget {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: (active ? p.matcha : p.textMuted)
-                      .withValues(alpha: 0.14),
+                  color:
+                      (active ? p.matcha : p.textMuted).withValues(alpha: 0.14),
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
@@ -752,27 +757,31 @@ class _TrackingCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             s.s('reward.tracking.body'),
-            style: TextStyle(color: p.textSecondary, fontSize: 12.5, height: 1.4),
+            style:
+                TextStyle(color: p.textSecondary, fontSize: 12.5, height: 1.4),
           ),
           const SizedBox(height: 10),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            value: controller.smartTrackingEnabled,
-            onChanged: status == GeofencePermissionStatus.unsupported
-                ? null
-                : (value) =>
-                    unawaited(controller.setSmartTrackingEnabled(value)),
-            title: Text(
-              s.s('reward.tracking.smartMode'),
-              style: TextStyle(
-                color: p.textPrimary,
-                fontWeight: FontWeight.w700,
-                fontSize: 13.5,
+          Material(
+            color: Colors.transparent,
+            child: SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              value: controller.smartTrackingEnabled,
+              onChanged: status == GeofencePermissionStatus.unsupported
+                  ? null
+                  : (value) =>
+                      unawaited(controller.setSmartTrackingEnabled(value)),
+              title: Text(
+                s.s('reward.tracking.smartMode'),
+                style: TextStyle(
+                  color: p.textPrimary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13.5,
+                ),
               ),
-            ),
-            subtitle: Text(
-              s.s('reward.tracking.smartModeHint'),
-              style: TextStyle(color: p.textSecondary, fontSize: 12),
+              subtitle: Text(
+                s.s('reward.tracking.smartModeHint'),
+                style: TextStyle(color: p.textSecondary, fontSize: 12),
+              ),
             ),
           ),
           const SizedBox(height: 10),
@@ -919,8 +928,9 @@ class _RankUpCelebrationState extends State<_RankUpCelebration>
     }
     _enter = AnimationController(
       vsync: this,
-      duration:
-          widget.reduceMotion ? Duration.zero : const Duration(milliseconds: 900),
+      duration: widget.reduceMotion
+          ? Duration.zero
+          : const Duration(milliseconds: 900),
     )..forward();
     // Kendiliğinden yumuşak kapanış.
     Future.delayed(
@@ -992,7 +1002,8 @@ class _RankUpCelebrationState extends State<_RankUpCelebration>
           SafeArea(
             child: Center(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
                 child: AnimatedBuilder(
                   animation: _enter,
                   builder: (_, child) {
@@ -1004,7 +1015,8 @@ class _RankUpCelebrationState extends State<_RankUpCelebration>
                     );
                     return Opacity(
                       opacity: fade,
-                      child: Transform.scale(scale: 0.78 + 0.22 * e, child: child),
+                      child:
+                          Transform.scale(scale: 0.78 + 0.22 * e, child: child),
                     );
                   },
                   child: GestureDetector(
@@ -1138,11 +1150,13 @@ class _RankUpCard extends StatelessWidget {
               const SizedBox(height: 14),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.20),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.12)),
                 ),
                 child: Text(
                   body,
@@ -1199,7 +1213,8 @@ class _GlowMedallion extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [color, Color.lerp(color, Colors.black, 0.24)!],
         ),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.30), width: 2),
+        border:
+            Border.all(color: Colors.white.withValues(alpha: 0.30), width: 2),
         boxShadow: [
           BoxShadow(
             color: color.withValues(alpha: 0.55),
@@ -1285,4 +1300,3 @@ class _Mote {
   final double wobble;
   final bool sparkle;
 }
-

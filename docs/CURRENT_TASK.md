@@ -3,7 +3,7 @@
 > Bu dosya *bugünkü* çalışmanın canlı görünümüdür. Her tamamlanan görevden
 > hemen sonra güncellenir.
 
-**Bugünün tarihi:** 2026-08-10
+**Bugünün tarihi:** 2026-08-11
 **Aktif branch:** `feat/premium-iap-foundation`
 **Sprint hedefi:** Kullanıcı tarafından yeniden önceliklendirilen rota
 deneyimi refactor'u. Mevcut deterministik rota algoritması korunacak; önce
@@ -85,6 +85,77 @@ maliyeti, transfer timeline, paired profil suite. 100 base × 4 profil kalite
 kapısı geçti, analyze temiz.
 
 ## Tamamlananlar (bu ve önceki oturumlardan)
+
+- ✅ **2026-08-11** Rotori Eats'teki **“Sadece yiyebileceklerimi göster”**
+  filtresi katı güvenli moda alındı. Önceki davranış, uygun bir alt türü
+  bulunan ana yemeği listede tutuyor ve kart üzerinde “Sorman gerek” veya
+  “Uygun değil” hükmü göstermeye devam ediyordu. Anahtar açıkken artık yalnız
+  doğrudan `DishVerdict.safe` yemekler listeleniyor; sayaç aynı filtrelenmiş
+  kümeyi gösteriyor. Yemek/diyet testleri **45/45**, hedefli analiz temiz;
+  iPhone 15 Pro web ön izlemesinde vegan filtre 66 yemekten 5 güvenli yemeğe
+  indi ve görünür kartların tamamı “Yiyebilirsin” olarak doğrulandı.
+
+- ✅ **2026-08-10** Gün bazlı etkinlik ekleme akışına **“Biletim /
+  rezervasyonum var”** seçeneği eklendi. Biletli etkinlik ile bilet tek atomik
+  komutta kimlik üzerinden bağlanıyor; ziyaret tarihi, sabit giriş saati,
+  içeride geçirilecek süre ve erken-varış payı kalıcı saklanıyor. Bilet tarihi
+  başka plan gününe denk gelirse etkinlik o güne taşınıyor; esnek duraklar hard
+  rezervasyonun çevresine yeniden diziliyor. Yer detayından fotoğraf/OCR ile
+  eklenen bilet de aynı komut hattını kullanıyor. USJ/Disney için 12 saat + 60
+  dakika; teamLab türleri için ürün bazlı süre + 30 dakika varsayılanı var.
+  Etkinlik bazlı erken-varış payı rota optimizer'ına aktarılıyor. Alt menüde
+  silinen **Keşfet** butonu geri getirildi ve keşif haritasına bağlandı.
+  Doğrulama: yeni domain testleri, plan motoru regresyonları ve iki dar mobil
+  widget senaryosu geçti; değişen dosya analizi temiz, iPhone 15 Pro web
+  önizlemesinde Keşfet görünümü doğrulandı.
+
+- ✅ **2026-08-10** Deneyim rehberi ve Keşfet menüsü son kullanıcı odaklı
+  yenilendi. Rehberdeki “Tümü / Tema parkları / teamLab” filtreleri kaldırıldı;
+  oyuncak/deneyim stratejileri bir sonraki kartı görünür bırakan yatay kaydırma
+  akışına alındı. USJ ve Tokyo Disney için ücretsiz resmî YouTube tanıtım
+  bağlantıları eklendi. Her rehber, ziyaret tarihinden satış gününü hesaplayan
+  Rotori hatırlatıcısına bağlandı. Hatırlatmalar ekranı artık Shinkansen
+  (30 gün), Tokyo Disney ve USJ (60 gün), üç teamLab planlama hedefi için
+  çoklu hazır seçim; her seçim için ayrı ziyaret tarihi; bildirim saatinin
+  açık anlatımı ve serbest başlık/tarih/saatli özel hatırlatıcı sunuyor.
+  Keşfet'te Premium **Fiyat etiketi tara** tam genişlik vitrin kartına çıktı,
+  Rotori Eats dört sakin küçük karta taşındı; küçük kartlar düşük doygunluklu
+  ortak yüzey diliyle yenilendi. Rota algoritması değiştirilmedi. Doğrulama:
+  ilgili domain/widget/viewer testleri **42/42**, hedefli analyze temiz ve
+  iPhone 15 Pro web ön izlemesinde etkileşim + yeni hata kaydı kontrolü temiz.
+
+- ✅ **2026-08-11** Hatırlatıcı ürün sınırı Premium olarak netleştirildi:
+  mevcut kayıtlar görülüp silinebilir, yeni hazır veya özel hatırlatıcı
+  ekleme `premiumProvider` kapısından geçer. Hazır seçimlerde fotoğraf,
+  emoji ve marka taklidi kullanılmıyor; altı ürün ayırt edici Material
+  ikonları, kontrollü koyu gradyanlar ve ortak seçim diliyle nihai kart
+  sunumuna sahip. Tokyo Disney ve USJ resmî site şartları
+  ticari yeniden kullanıma izin vermediği, teamLab ticari kullanım için ön
+  onay istediği için resmî fotoğraflar uygulamaya kopyalanmadı; resmî
+  sayfalar bilgi/doğrulama bağlantısı olarak korunuyor. Rota algoritmasına
+  dokunulmadı. Hatırlatıcı, deneyim rehberi, rezervasyon penceresi ve rota
+  regresyonlarını kapsayan testler **46/46** geçti; hedefli analiz temiz ve
+  iPhone 15 Pro web ön izlemesinde ücretsiz/Premium akışları ile taşma ve
+  yeni hata kaydı kontrolü temiz.
+
+- ✅ **2026-08-10** İlk kez gidecek kullanıcılar için iki dilli
+  **“Bilet Hazır, Macera Başlasın!”** deneyim rehberi eklendi. Viewer keşfet
+  menüsünden açılan enerjik sayfa; USJ, Tokyo Disneyland, Tokyo DisneySea,
+  teamLab Planets, Borderless ve Botanical Garden Osaka için bilet alma
+  adımlarını, giriş tamponunu, önerilen süreyi, saat saat akışı, içerideki
+  öne çıkan deneyimleri ve kritik ipuçlarını tek yerde topluyor. Telifli
+  park karakteri/logo içermeyen özgün hero görseli uygulama asset'i olarak
+  üretildi; lisansı belirsiz üçüncü taraf tanıtım videosu gömülmeyip USJ'nin
+  resmî video kanalına güvenli dış bağlantı verildi. Yeni domain/widget
+  testleri **5/5**, viewer regresyonları **34/34** geçti; hedefli analiz temiz
+  ve iPhone 15 Pro web ön izlemesinde görsel QA tamamlandı.
+
+- ✅ **2026-08-10** Şehir geçişinden açılan bilet editörünün ESC ile
+  kapatılmasında oluşan Flutter lifecycle assertion'ı giderildi. Editörün
+  `TextEditingController` nesneleri dialog widget'ının gerçek yaşam döngüsüne
+  taşındı; bilet dialog'u geçiş sheet'inin üzerinde açılıyor ve ESC yalnız üst
+  dialog'u kapatıyor. Yeni ESC regresyonu dahil viewer testleri **26/26**,
+  değişen dosya analizi temiz; web ön izlemesinde gerçek ESC ile doğrulandı.
 
 - ✅ **2026-08-10** Rota deneyimi refactor Faz 2–4 ve Faz 5'in diyet güvenliği
   tamamlandı. Ön izleme ile kaydedilmiş plan timeline'ı artık çıkış/varış,
@@ -707,18 +778,42 @@ iade edilmiş abone `false`; metadata'sını elle `premium: true` yapan kullanı
 
 ## Şu An Değişen Dosyalar
 
-Çalışma dizininde **kullanıcıya ait, commit'lenmemiş 3 dosya** var —
-kasıtlı olarak dokunulmuyor, commit'lenmiyor:
+Çalışma dizini aktiftir ve birden fazla iş paketi commit'lenmeden birlikte
+durmaktadır: rota/biletli aktivite geliştirmeleri, deneyim rehberi +
+hatırlatıcılar + Keşfet tasarımı ve `rotori-social/` otomasyon değişiklikleri.
+`.claude/launch.json` ile `rotori-social/data/*` çalışma-zamanı/yerel durum
+dosyaları kullanıcıya aittir; mobil özellik işi bu dosyaları değiştirmez veya
+geri almaz. Checkpoint alınırken kapsam dosya bazında açıkça ayrılmalıdır.
 
-- `.claude/launch.json` — `flutter-preview-map` girdisi silinmiş (yerel config)
-- `rotori-social/data/automation_config.json` — `topic.enabled: false`,
-  `news.days`'ten 6 kaldırılmış (**panelden bilinçli mi değiştirildi
-  belirsiz, kullanıcıya soruldu, cevap alınmadı**)
-- `rotori-social/data/scheduler_queue.json` — servisin kendi yazdığı kuyruk
-  durumu (391 satır)
+## 2026-08-11 — Premium Japonca çevrimdışı metin çevirisi
 
-Bunlar servis çalışma-zamanı durumu; git geçmişine girmesi ileride çakışma
-üretir. Faz 1 kodu yazılırken bu dosyalara dokunulmaz.
+- [x] Japonca sekmesine TR/EN ↔ JA cihaz-üstü metin çeviri kartı eklendi.
+- [x] İlk kullanımda iki ML Kit dil paketini indiren, sonrasında çevrimdışı
+      çalışan model yönetimi eklendi.
+- [x] Mikrofonlu konuşma modu, konuşma izinleri ve runtime ses bağımlılıkları
+      App Store sürümünden kaldırıldı; aşağıdaki hazır ifade sesleri yerel MP3
+      asset'leriyle çalışmaya devam ediyor.
+- [x] Çevirmen `premiumProvider` kaynağına bağlandı. Ücretsiz kullanıcıda en
+      üstte kilitli premium kartı görünür; premium açılınca metin alanı ve model
+      indirme akışı otomatik açılır.
+- [x] Google Translate sonuç atfı ve otomatik çeviri doğruluk uyarısı eklendi.
+- [x] TR/EN gizlilik politikası yalnız cihaz-üstü metin çevirisini anlatacak
+      şekilde güncellendi; App Store inceleme notu ve QA matrisi sadeleştirildi.
+- [x] Web conditional stub ile derleme korunuyor; mobil-only aksiyonlar ön
+      izlemede açıklamalı olarak pasif.
+- [x] Eksik `/price-tag-scanner` ve `/live-currency-scanner` preview rotaları
+      eklendi; fiyat etiketi tarama sayfası görsel QA'da açıldı.
+- [x] Premium kilitte model kontrolünün başlamadığı ve premium metin çevirisinin
+      çalıştığı widget testleri eklendi.
+- [ ] Gerçek iPhone'da dil paketlerini indirip uçak modunda iki yönlü metin
+      çevirisi tamamlanacak. 11 Ağustos denemesinde debug build ve Apple
+      imzalama tamamlandı; iOS 27 cihazına yükleme Xcode 26.6'nın developer disk
+      image'ı bağlayamaması nedeniyle durdu. Uyumlu Xcode/device support ile
+      yeniden denenmeli.
+- [ ] Android debug APK kontrolü CameraX/Gradle hattındaki mevcut
+      `CallbackToFutureAdapter` compile-classpath hatasında durdu; ses katmanı
+      öncesindeki bu bağımlılık uyumsuzluğu ayrı Android build işi olarak
+      çözülmeli.
 
 ## Son Commit'ler (referans)
 

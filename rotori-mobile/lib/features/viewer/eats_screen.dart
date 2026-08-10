@@ -48,7 +48,10 @@ class _EatsScreenState extends ConsumerState<EatsScreen> {
   DishCategory? _category;
   String _search = '';
 
-  /// Açıkken diyetine uymayan yemekler listeden çıkar. Varsayılan KAPALI:
+  /// Açıkken yalnız doğrudan güvenli hükmü verilen yemekler kalır. “Sor”
+  /// gerektiren veya yalnızca uygun bir alt türü bulunan yemekler de elenir;
+  /// aksi halde kartın görünen hükmü anahtarın vaadiyle çelişir.
+  /// Varsayılan KAPALI:
   /// "yiyemediğini bilmek" de bir bilgi — okonomiyaki'nin neden uygun
   /// olmadığını görmek, listede hiç görmemekten iyidir.
   bool _onlyEdible = false;
@@ -80,11 +83,7 @@ class _EatsScreenState extends ConsumerState<EatsScreen> {
         if (!hay.contains(needle)) return false;
       }
       if (_onlyEdible && diet.isNotEmpty) {
-        final a = assessDish(d, diet: diet);
-        if (a.verdict == DishVerdict.avoid) {
-          // Uygun bir alt türü varsa yemek yine de listede kalsın.
-          return safeVariantFor(d, diet) != null;
-        }
+        return assessDish(d, diet: diet).verdict == DishVerdict.safe;
       }
       return true;
     }).toList(growable: false);
@@ -536,9 +535,8 @@ class _DishCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = palette;
     final a = assessDish(dish, diet: diet);
-    final alt = a.verdict == DishVerdict.avoid
-        ? safeVariantFor(dish, diet)
-        : null;
+    final alt =
+        a.verdict == DishVerdict.avoid ? safeVariantFor(dish, diet) : null;
 
     return Material(
       color: p.card,
@@ -720,7 +718,8 @@ class _EmptyState extends StatelessWidget {
           const Text('🍱', style: TextStyle(fontSize: 30)),
           const SizedBox(height: 8),
           Text(
-            const LText('Bu filtreyle yemek yok.', 'No dish matches this filter.')
+            const LText(
+                    'Bu filtreyle yemek yok.', 'No dish matches this filter.')
                 .of(lang),
             style: TextStyle(
               color: p.textPrimary,
@@ -741,7 +740,8 @@ class _EmptyState extends StatelessWidget {
             ),
             child: Text(
               const LText('Filtreleri temizle', 'Clear filters').of(lang),
-              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+              style:
+                  const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -794,7 +794,8 @@ class _MenuWordsCard extends StatelessWidget {
               'Recognise these and you can look after yourself anywhere in '
                   'Japan — no restaurant list travels this well.',
             ).of(lang),
-            style: TextStyle(color: p.textSecondary, fontSize: 12, height: 1.35),
+            style:
+                TextStyle(color: p.textSecondary, fontSize: 12, height: 1.35),
           ),
           const SizedBox(height: 12),
           for (final w in kMenuWordsToKnow)
@@ -898,8 +899,7 @@ class _DishDetailSheetState extends State<_DishDetailSheet> {
   @override
   Widget build(BuildContext context) {
     final maxH = MediaQuery.sizeOf(context).height * 0.92;
-    final assessment =
-        assessDish(dish, diet: widget.diet, variant: _variant);
+    final assessment = assessDish(dish, diet: widget.diet, variant: _variant);
     final ingredients = dish.effectiveIngredients(_variant);
 
     return ConstrainedBox(

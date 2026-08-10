@@ -42,6 +42,8 @@ import '../../domain/place_coords.dart';
 import '../../domain/place_image_resolver.dart';
 import '../../domain/plan_generation.dart' show tripHasFlightInfo;
 import '../../domain/plan_schedule_engine.dart';
+import '../../domain/ticketed_activity.dart';
+import '../../domain/trip_factory.dart' show newTicketId;
 import '../../domain/plan_warnings.dart';
 import '../../domain/route_execution.dart';
 import '../../domain/route_time_bounds.dart';
@@ -56,8 +58,11 @@ import '../shared/place_detail_sheet.dart';
 import '../shared/ticket_support.dart';
 import '../viewer/budget_screen.dart';
 import '../viewer/eats_screen.dart';
+import '../viewer/experience_guide_screen.dart';
 import '../viewer/home_widget_hook.dart';
+import '../viewer/offline_translator_card.dart';
 import '../viewer/pre_departure_checklist_screen.dart';
+import '../viewer/reward_map_screen.dart';
 import '../viewer/route_map_sheet.dart';
 import '../viewer/viewer_theme.dart';
 import '../viewer/weather_screen.dart';
@@ -456,6 +461,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
         onOpenPrep: _openPrep,
         onOpenWeather: _openWeather,
         onOpenFoodGuide: _openEats,
+        onOpenExperienceGuide: _openExperienceGuide,
         onReportBug: () => _openBugReport(trip),
       ),
       body: SafeArea(
@@ -583,7 +589,10 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                   ),
                   // Tab 2 — Japonca.
                   _TabPhrasesView(
-                      palette: palette, lang: ref.watch(appLangProvider)),
+                    palette: palette,
+                    lang: ref.watch(appLangProvider),
+                    isPremium: ref.watch(premiumProvider),
+                  ),
                   // Tab 3 — Rehber.
                   _TabMustKnowView(
                     palette: palette,
@@ -600,6 +609,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
         palette: palette,
         activeTab: _activeTab,
         onTabChanged: (tab) => setState(() => _activeTab = tab),
+        onOpenExplore: _openExplore,
       ),
     );
   }
@@ -608,7 +618,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
   /// callback'lerini stateful gövdeden geçirir (persistence burada kalır).
   void _openItem(TimelineItem item, TripDestination? dest) {
     final existing = _trip.tickets
-        .where((t) => t.label == item.title)
+        .where((t) => t.linkedActivityId == item.id || t.label == item.title)
         .cast<Ticket?>()
         .firstWhere((_) => true, orElse: () => null);
     showPlaceDetailSheet(
@@ -617,16 +627,37 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
       city: dest?.city ?? '',
       countryCode: dest?.countryCode,
       existingTicket: existing,
-      onAddTicket: (t) {
-        _trip.tickets.removeWhere((x) => x.label == t.label);
-        _trip.tickets.add(t);
-        ref.read(plansRepositoryProvider)?.save(_trip);
-        if (mounted) setState(() {});
+      onAddTicket: (ticket) async {
+        final defaults = ticketedActivityDefaultsForTitle(item.title);
+        final enriched = Ticket.fromJson({
+          ...ticket.toJson(),
+          'linkedActivityId': item.id,
+          'visitDate': ticket.visitDate ?? _dayContaining(item.id)?.date,
+          'entryTime': ticket.entryTime ?? item.time ?? item.scheduledTime,
+          'durationMin': ticket.durationMin ??
+              item.durationMin ??
+              defaults.durationMinutes,
+          'arrivalBufferMin': ticket.arrivalBufferMin ??
+              item.arrivalBufferMin ??
+              defaults.arrivalBufferMinutes,
+        });
+        return _applyEdit(
+          AttachTicketToActivity(activityId: item.id, ticket: enriched),
+          successMessage:
+              LanguageScope.of(context).s('viewer.edit.ticketAttachedSnack'),
+        );
       },
     );
   }
 
-  Future<void> _openTicketEditor({
+  DayPlan? _dayContaining(String activityId) {
+    for (final day in _trip.days) {
+      if (day.items.any((item) => item.id == activityId)) return day;
+    }
+    return null;
+  }
+
+  Future<bool> _openTicketEditor({
     Ticket? existing,
     DayPlan? transitionDay,
     String? fromCity,
@@ -636,85 +667,45 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
     final s = LanguageScope.of(context);
     final palette = ViewerPalette.of(context);
     final isTransition = transitionDay != null;
-    final labelController = TextEditingController(
-      text: existing?.label ??
-          (isTransition ? '${fromCity ?? ''} → ${toCity ?? ''}' : ''),
-    );
-    final urlController = TextEditingController(text: existing?.url ?? '');
-    var purchased = existing?.purchased ?? false;
-    final shouldSave = await showDialog<bool>(
+    final draft = await showDialog<_TicketEditorDraft>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: palette.card,
-          title: Text(
-            existing == null
-                ? s.s('viewer.ticketEditor.addTitle')
-                : s.s('viewer.ticketEditor.editTitle'),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: labelController,
-                autofocus: true,
-                decoration: InputDecoration(
-                  labelText: s.s('viewer.ticketEditor.label'),
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: urlController,
-                keyboardType: TextInputType.url,
-                decoration: InputDecoration(
-                  labelText: s.s('viewer.ticketEditor.url'),
-                ),
-              ),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: Text(s.s('viewer.ticketEditor.purchased')),
-                value: purchased,
-                onChanged: (value) => setDialogState(() => purchased = value),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(s.s('routeOptimization.cancel')),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (labelController.text.trim().isEmpty) return;
-                Navigator.pop(dialogContext, true);
-              },
-              child: Text(s.s('viewer.ticketEditor.save')),
-            ),
-          ],
-        ),
+      builder: (_) => _TicketEditorDialog(
+        palette: palette,
+        title: existing == null
+            ? s.s('viewer.ticketEditor.addTitle')
+            : s.s('viewer.ticketEditor.editTitle'),
+        labelText: s.s('viewer.ticketEditor.label'),
+        urlText: s.s('viewer.ticketEditor.url'),
+        purchasedText: s.s('viewer.ticketEditor.purchased'),
+        cancelText: s.s('routeOptimization.cancel'),
+        saveText: s.s('viewer.ticketEditor.save'),
+        initialLabel: existing?.label ??
+            (isTransition ? '${fromCity ?? ''} → ${toCity ?? ''}' : ''),
+        initialUrl: existing?.url ?? '',
+        initialPurchased: existing?.purchased ?? false,
       ),
     );
-    final label = labelController.text.trim();
-    final url = urlController.text.trim();
-    labelController.dispose();
-    urlController.dispose();
-    if (shouldSave != true || label.isEmpty || !mounted) return;
+    if (draft == null || !mounted) return false;
 
     final ticketMode = mode ?? transitionDay?.cityTransition?.mode;
     final ticket = Ticket(
       id: existing?.id ??
           'ticket-${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}',
       kind: existing?.kind ?? _ticketKindForTransitionMode(ticketMode),
-      label: label,
-      purchased: purchased,
+      label: draft.label,
+      purchased: draft.purchased,
       visitDate: existing?.visitDate ?? transitionDay?.date,
       bookingOpens: existing?.bookingOpens,
-      url: url.isEmpty ? null : url,
+      url: draft.url.isEmpty ? null : draft.url,
       emoji: existing?.emoji ?? _cityTransitionEmoji(ticketMode ?? 'train'),
       imageDataUrl: existing?.imageDataUrl,
       scannedText: existing?.scannedText,
       linkedTransitionDayNumber:
           existing?.linkedTransitionDayNumber ?? transitionDay?.dayNumber,
+      linkedActivityId: existing?.linkedActivityId,
+      entryTime: existing?.entryTime,
+      durationMin: existing?.durationMin,
+      arrivalBufferMin: existing?.arrivalBufferMin,
     );
     final result = await _editSession.execute(
       UpsertTicket(
@@ -727,6 +718,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
         SnackBar(content: Text(s.s('viewer.ticketEditor.saveFailed'))),
       );
     }
+    return result.isSuccess;
   }
 
   Future<void> _openBugReport(Trip trip) async {
@@ -1091,16 +1083,45 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
       kind: result.kind,
       lat: result.lat,
       lng: result.lng,
-      durationMin: 90,
+      durationMin: result.durationMin,
+      arrivalBufferMin: result.hasTicket ? result.arrivalBufferMin : null,
     );
     if (!mounted) return;
-    final addedMessage = LanguageScope.of(context)
-        .p('viewer.edit.addedSnack', {'title': item.title});
+    final s = LanguageScope.of(context);
+    final addedMessage = result.hasTicket
+        ? s.s('viewer.edit.ticketAddedSnack')
+        : s.p('viewer.edit.addedSnack', {'title': item.title});
+    final command = result.hasTicket
+        ? AddTicketedActivity(
+            dayNumber: day.dayNumber,
+            activity: item,
+            ticket: Ticket(
+              id: newTicketId(),
+              kind: TicketKind.attraction.name,
+              label: item.title,
+              purchased: true,
+              visitDate: day.date,
+              entryTime: result.time,
+              durationMin: result.durationMin,
+              arrivalBufferMin: result.arrivalBufferMin,
+              linkedActivityId: item.id,
+              emoji: '🎫',
+            ),
+          )
+        : AddActivity(dayNumber: day.dayNumber, activity: item);
     final added = await _applyEdit(
-      AddActivity(dayNumber: day.dayNumber, activity: item),
+      command,
       successMessage: addedMessage,
     );
     if (!added) return;
+    if (result.hasTicket && ref.read(premiumProvider) && mounted) {
+      final updatedDay = _trip.days.firstWhere(
+        (candidate) => candidate.dayNumber == day.dayNumber,
+      );
+      if (updatedDay.items.length >= 2) {
+        await _openRouteOptimization(updatedDay, dest);
+      }
+    }
   }
 
   /// Bir destinasyonun şehrini küratörlü [CityData]'ya eşler (autocomplete için).
@@ -1427,6 +1448,38 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
           child: ViewerPaletteScope(
             palette: palette,
             child: EatsScreen(trip: _trip),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// İlk kez gidenler için USJ, Tokyo Disney ve teamLab bilet/gün rehberi.
+  void _openExperienceGuide() {
+    final palette = ref.read(viewerPaletteProvider);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => Theme(
+          data: palette.toThemeData(),
+          child: ViewerPaletteScope(
+            palette: palette,
+            child: const ExperienceGuideScreen(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Planın şehirlerini, yakın yerleri ve kazanılan keşifleri haritada açar.
+  void _openExplore() {
+    final palette = ref.read(viewerPaletteProvider);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => Theme(
+          data: palette.toThemeData(),
+          child: ViewerPaletteScope(
+            palette: palette,
+            child: RewardMapScreen(trip: _trip),
           ),
         ),
       ),
@@ -1813,9 +1866,8 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
                     key: const ValueKey('city-transition-ticket-action'),
-                    onPressed: () {
-                      Navigator.pop(sheetContext);
-                      _openTicketEditor(
+                    onPressed: () async {
+                      final saved = await _openTicketEditor(
                         existing: existingTicket,
                         transitionDay: _editSession.current.days.firstWhere(
                           (day) => day.dayNumber == toDay.dayNumber,
@@ -1824,6 +1876,9 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                         toCity: toCity,
                         mode: selectedMode,
                       );
+                      if (saved && sheetContext.mounted) {
+                        Navigator.pop(sheetContext);
+                      }
                     },
                     icon: Icon(existingTicket == null
                         ? Icons.add_rounded
@@ -2198,11 +2253,13 @@ class _ViewerQuickNav extends StatelessWidget {
     required this.palette,
     required this.activeTab,
     required this.onTabChanged,
+    required this.onOpenExplore,
   });
 
   final ViewerPalette palette;
   final int activeTab;
   final ValueChanged<int> onTabChanged;
+  final VoidCallback onOpenExplore;
 
   @override
   Widget build(BuildContext context) {
@@ -2214,6 +2271,10 @@ class _ViewerQuickNav extends StatelessWidget {
       (emoji: '🎫', label: 'Biletler'),
       (emoji: '🇯🇵', label: 'Japonca'),
       (emoji: '📖', label: 'Rehber'),
+      (
+        emoji: '🗺️',
+        label: LanguageScope.of(context).s('viewer.quick.explore')
+      ),
     ];
 
     return Material(
@@ -2232,7 +2293,13 @@ class _ViewerQuickNav extends StatelessWidget {
                 Expanded(
                   child: InkWell(
                     borderRadius: BorderRadius.circular(14),
-                    onTap: () => onTabChanged(i),
+                    onTap: () {
+                      if (i == tabs.length - 1) {
+                        onOpenExplore();
+                      } else {
+                        onTabChanged(i);
+                      }
+                    },
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -2270,6 +2337,121 @@ class _ViewerQuickNav extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 /// Tab 1 — Biletler: kullanıcının girdiği biletleri listeler.
+class _TicketEditorDraft {
+  const _TicketEditorDraft({
+    required this.label,
+    required this.url,
+    required this.purchased,
+  });
+
+  final String label;
+  final String url;
+  final bool purchased;
+}
+
+class _TicketEditorDialog extends StatefulWidget {
+  const _TicketEditorDialog({
+    required this.palette,
+    required this.title,
+    required this.labelText,
+    required this.urlText,
+    required this.purchasedText,
+    required this.cancelText,
+    required this.saveText,
+    required this.initialLabel,
+    required this.initialUrl,
+    required this.initialPurchased,
+  });
+
+  final ViewerPalette palette;
+  final String title;
+  final String labelText;
+  final String urlText;
+  final String purchasedText;
+  final String cancelText;
+  final String saveText;
+  final String initialLabel;
+  final String initialUrl;
+  final bool initialPurchased;
+
+  @override
+  State<_TicketEditorDialog> createState() => _TicketEditorDialogState();
+}
+
+class _TicketEditorDialogState extends State<_TicketEditorDialog> {
+  late final TextEditingController _labelController;
+  late final TextEditingController _urlController;
+  late bool _purchased;
+
+  @override
+  void initState() {
+    super.initState();
+    _labelController = TextEditingController(text: widget.initialLabel);
+    _urlController = TextEditingController(text: widget.initialUrl);
+    _purchased = widget.initialPurchased;
+  }
+
+  @override
+  void dispose() {
+    _labelController.dispose();
+    _urlController.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final label = _labelController.text.trim();
+    if (label.isEmpty) return;
+    Navigator.pop(
+      context,
+      _TicketEditorDraft(
+        label: label,
+        url: _urlController.text.trim(),
+        purchased: _purchased,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: widget.palette.card,
+      title: Text(widget.title),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _labelController,
+            autofocus: true,
+            decoration: InputDecoration(labelText: widget.labelText),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _urlController,
+            keyboardType: TextInputType.url,
+            decoration: InputDecoration(labelText: widget.urlText),
+          ),
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: Text(widget.purchasedText),
+            value: _purchased,
+            onChanged: (value) => setState(() => _purchased = value),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(widget.cancelText),
+        ),
+        FilledButton(
+          onPressed: _save,
+          child: Text(widget.saveText),
+        ),
+      ],
+    );
+  }
+}
+
 class _TabTicketsView extends StatelessWidget {
   const _TabTicketsView({
     required this.trip,
@@ -2386,9 +2568,14 @@ class _TabTicketsView extends StatelessWidget {
 
 /// Tab 2 — Japonca: pratik kelimeler & cümleler (AppBar'sız, tab içi).
 class _TabPhrasesView extends StatefulWidget {
-  const _TabPhrasesView({required this.palette, required this.lang});
+  const _TabPhrasesView({
+    required this.palette,
+    required this.lang,
+    required this.isPremium,
+  });
   final ViewerPalette palette;
   final AppLang lang;
+  final bool isPremium;
   @override
   State<_TabPhrasesView> createState() => _TabPhrasesViewState();
 }
@@ -2415,6 +2602,21 @@ class _TabPhrasesViewState extends State<_TabPhrasesView> {
                 color: p.textPrimary,
                 fontSize: 20,
                 fontWeight: FontWeight.w800)),
+        const SizedBox(height: 12),
+        OfflineTranslatorCard(
+          palette: p,
+          lang: lang,
+          isPremium: widget.isPremium,
+        ),
+        const SizedBox(height: 20),
+        Text(
+          const LText('Hazır ifadeler', 'Ready-to-use phrases').of(lang),
+          style: TextStyle(
+            color: p.textPrimary,
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
         const SizedBox(height: 8),
         // Kategori sekmeleri — emoji yerine anlamlı ikon + kısa metin
         SizedBox(
@@ -5467,12 +5669,18 @@ class _AddPlaceResult {
     required this.title,
     required this.time,
     required this.kind,
+    required this.durationMin,
+    required this.hasTicket,
+    required this.arrivalBufferMin,
     this.lat,
     this.lng,
   });
   final String title;
   final String time;
   final TimelineItemKind kind;
+  final int durationMin;
+  final bool hasTicket;
+  final int arrivalBufferMin;
   final double? lat;
   final double? lng;
 }
@@ -5888,6 +6096,9 @@ class _AddPlaceSheetState extends State<_AddPlaceSheet> {
   final _controller = TextEditingController();
   late String _time = widget.defaultTime;
   CityPlace? _selected;
+  bool _hasTicket = false;
+  int _durationMin = 90;
+  int _arrivalBufferMin = 30;
 
   @override
   void dispose() {
@@ -5924,6 +6135,21 @@ class _AddPlaceSheetState extends State<_AddPlaceSheet> {
     setState(() => _time = _minutesToTime(picked.hour * 60 + picked.minute));
   }
 
+  void _applyTicketDefaults(String title) {
+    final defaults = ticketedActivityDefaultsForTitle(title);
+    _durationMin = defaults.durationMinutes;
+    _arrivalBufferMin = defaults.arrivalBufferMinutes;
+    if (defaults.fullDay) _time = '09:00';
+  }
+
+  String _durationLabel(LanguageScope s, int minutes) {
+    final hours = minutes ~/ 60;
+    final remainder = minutes % 60;
+    if (hours == 0) return s.p('plan.durMin', {'n': '$minutes'});
+    if (remainder == 0) return s.p('plan.durHour', {'n': '$hours'});
+    return s.p('plan.durHourMin', {'h': '$hours', 'm': '$remainder'});
+  }
+
   void _submit() {
     final q = _controller.text.trim();
     if (_selected == null && q.isEmpty) return;
@@ -5932,6 +6158,9 @@ class _AddPlaceSheetState extends State<_AddPlaceSheet> {
             title: _selected!.name,
             time: _time,
             kind: _kindForCategory(_selected!.category.en),
+            durationMin: _durationMin,
+            hasTicket: _hasTicket,
+            arrivalBufferMin: _arrivalBufferMin,
             lat: _selected!.lat,
             lng: _selected!.lng,
           )
@@ -5939,6 +6168,9 @@ class _AddPlaceSheetState extends State<_AddPlaceSheet> {
             title: q,
             time: _time,
             kind: TimelineItemKind.activity,
+            durationMin: _durationMin,
+            hasTicket: _hasTicket,
+            arrivalBufferMin: _arrivalBufferMin,
           );
     Navigator.of(context).pop(result);
   }
@@ -5963,201 +6195,309 @@ class _AddPlaceSheetState extends State<_AddPlaceSheet> {
       child: Material(
         type: MaterialType.transparency,
         child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * .9,
+          ),
           decoration: BoxDecoration(
             color: p.card,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             border: Border.all(color: p.border),
           ),
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 14),
-                  decoration: BoxDecoration(
-                    color: p.textMuted.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Row(
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    s.s('viewer.edit.addSheetTitle'),
-                    style: TextStyle(
-                      color: p.textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 14),
+                      decoration: BoxDecoration(
+                        color: p.textMuted.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                  const Spacer(),
-                  if (widget.cityLabel.isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: p.accent.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        '${widget.city?.emoji ?? '📍'} ${widget.cityLabel}',
+                  Row(
+                    children: [
+                      Text(
+                        s.s('viewer.edit.addSheetTitle'),
                         style: TextStyle(
-                          color: p.accent,
-                          fontSize: 12,
+                          color: p.textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (widget.cityLabel.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: p.accent.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            '${widget.city?.emoji ?? '📍'} ${widget.cityLabel}',
+                            style: TextStyle(
+                              color: p.accent,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  // Arama alanı.
+                  TextField(
+                    controller: _controller,
+                    autofocus: true,
+                    onChanged: (value) => setState(() {
+                      _selected = null;
+                      if (_hasTicket) _applyTicketDefaults(value);
+                    }),
+                    style: TextStyle(color: p.textPrimary),
+                    decoration: InputDecoration(
+                      hintText: s.s('viewer.edit.searchPlace'),
+                      hintStyle: TextStyle(color: p.textMuted),
+                      prefixIcon: Icon(Icons.search, color: p.textMuted),
+                      filled: true,
+                      fillColor: p.elevated,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: p.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: p.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide(color: p.accent),
+                      ),
+                    ),
+                    onSubmitted: (_) => _submit(),
+                  ),
+                  const SizedBox(height: 10),
+                  // Öneri listesi (yükseklik sınırlı).
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 240),
+                    child: suggestions.isEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            child: Text(
+                              q.isEmpty
+                                  ? s.s('viewer.edit.searchPlace')
+                                  : s.s('viewer.edit.noResults'),
+                              style:
+                                  TextStyle(color: p.textMuted, fontSize: 13),
+                            ),
+                          )
+                        : ListView.separated(
+                            shrinkWrap: true,
+                            itemCount: suggestions.length,
+                            separatorBuilder: (_, __) => Divider(
+                              height: 1,
+                              color: p.border.withValues(alpha: 0.5),
+                            ),
+                            itemBuilder: (_, i) {
+                              final place = suggestions[i];
+                              final sel = identical(_selected, place);
+                              return ListTile(
+                                dense: true,
+                                contentPadding:
+                                    const EdgeInsets.symmetric(horizontal: 6),
+                                leading: Text(place.emoji,
+                                    style: const TextStyle(fontSize: 20)),
+                                title: Text(
+                                  place.name,
+                                  style: TextStyle(
+                                    color: p.textPrimary,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  place.category.of(lang),
+                                  style: TextStyle(
+                                      color: p.textSecondary, fontSize: 12),
+                                ),
+                                trailing: sel
+                                    ? Icon(Icons.check_circle,
+                                        color: p.accent, size: 20)
+                                    : null,
+                                onTap: () {
+                                  setState(() {
+                                    _selected = place;
+                                    _controller.text = place.name;
+                                    if (_hasTicket) {
+                                      _applyTicketDefaults(place.name);
+                                    }
+                                  });
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                  const SizedBox(height: 12),
+                  Material(
+                    color: Colors.transparent,
+                    child: SwitchListTile.adaptive(
+                      key: const ValueKey('add-place-has-ticket'),
+                      value: _hasTicket,
+                      contentPadding: EdgeInsets.zero,
+                      activeTrackColor: p.accent.withValues(alpha: .45),
+                      activeThumbColor: p.accent,
+                      title: Text(
+                        s.s('viewer.edit.hasTicket'),
+                        style: TextStyle(
+                          color: p.textPrimary,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              // Arama alanı.
-              TextField(
-                controller: _controller,
-                autofocus: true,
-                onChanged: (_) => setState(() => _selected = null),
-                style: TextStyle(color: p.textPrimary),
-                decoration: InputDecoration(
-                  hintText: s.s('viewer.edit.searchPlace'),
-                  hintStyle: TextStyle(color: p.textMuted),
-                  prefixIcon: Icon(Icons.search, color: p.textMuted),
-                  filled: true,
-                  fillColor: p.elevated,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: p.border),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: p.border),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: p.accent),
-                  ),
-                ),
-                onSubmitted: (_) => _submit(),
-              ),
-              const SizedBox(height: 10),
-              // Öneri listesi (yükseklik sınırlı).
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 240),
-                child: suggestions.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        child: Text(
-                          q.isEmpty
-                              ? s.s('viewer.edit.searchPlace')
-                              : s.s('viewer.edit.noResults'),
-                          style: TextStyle(color: p.textMuted, fontSize: 13),
-                        ),
-                      )
-                    : ListView.separated(
-                        shrinkWrap: true,
-                        itemCount: suggestions.length,
-                        separatorBuilder: (_, __) => Divider(
-                          height: 1,
-                          color: p.border.withValues(alpha: 0.5),
-                        ),
-                        itemBuilder: (_, i) {
-                          final place = suggestions[i];
-                          final sel = identical(_selected, place);
-                          return ListTile(
-                            dense: true,
-                            contentPadding:
-                                const EdgeInsets.symmetric(horizontal: 6),
-                            leading: Text(place.emoji,
-                                style: const TextStyle(fontSize: 20)),
-                            title: Text(
-                              place.name,
-                              style: TextStyle(
-                                color: p.textPrimary,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
-                            ),
-                            subtitle: Text(
-                              place.category.of(lang),
-                              style: TextStyle(
-                                  color: p.textSecondary, fontSize: 12),
-                            ),
-                            trailing: sel
-                                ? Icon(Icons.check_circle,
-                                    color: p.accent, size: 20)
-                                : null,
-                            onTap: () {
-                              setState(() {
-                                _selected = place;
-                                _controller.text = place.name;
-                              });
-                            },
-                          );
-                        },
+                      subtitle: Text(
+                        s.s('viewer.edit.hasTicketHint'),
+                        style: TextStyle(color: p.textSecondary, fontSize: 12),
                       ),
-              ),
-              const SizedBox(height: 12),
-              // Saat + Ekle.
-              Row(
-                children: [
-                  InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: _pickTime,
-                    child: Container(
+                      onChanged: (value) => setState(() {
+                        _hasTicket = value;
+                        if (value) {
+                          _applyTicketDefaults(
+                            _selected?.name ?? _controller.text.trim(),
+                          );
+                        } else {
+                          _durationMin = 90;
+                        }
+                      }),
+                    ),
+                  ),
+                  if (_hasTicket) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      s.s('viewer.edit.ticketDuration'),
+                      style: TextStyle(
+                        color: p.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      key: const ValueKey('ticket-duration-options'),
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final minutes in const [90, 120, 180, 240, 720])
+                          ChoiceChip(
+                            label: Text(_durationLabel(s, minutes)),
+                            selected: _durationMin == minutes,
+                            onSelected: (_) =>
+                                setState(() => _durationMin = minutes),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      key: const ValueKey('ticket-fixed-summary'),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 12),
+                          horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
-                        color: p.elevated,
+                        color: p.accent.withValues(alpha: .1),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: p.border),
+                        border:
+                            Border.all(color: p.accent.withValues(alpha: .25)),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.schedule, size: 18, color: p.accent),
+                          Icon(Icons.lock_clock_outlined,
+                              size: 18, color: p.accent),
                           const SizedBox(width: 8),
-                          Text(
-                            _time,
-                            style: TextStyle(
-                              color: p.textPrimary,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 15,
+                          Expanded(
+                            child: Text(
+                              s.p('viewer.edit.ticketFixedSummary', {
+                                'time': _time,
+                                'buffer': '$_arrivalBufferMin',
+                              }),
+                              style: TextStyle(
+                                color: p.textPrimary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed:
-                          (_selected != null || q.isNotEmpty) ? _submit : null,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: p.accent,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    const SizedBox(height: 12),
+                  ],
+                  // Saat + Ekle.
+                  Row(
+                    children: [
+                      InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: _pickTime,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: p.elevated,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: p.border),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.schedule, size: 18, color: p.accent),
+                              const SizedBox(width: 8),
+                              Text(
+                                _time,
+                                style: TextStyle(
+                                  color: p.textPrimary,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      child: Text(
-                        q.isNotEmpty && _selected == null
-                            ? s.p('viewer.edit.customPlace', {'q': q})
-                            : s.s('viewer.edit.add'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 15,
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: (_selected != null || q.isNotEmpty)
+                              ? _submit
+                              : null,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: p.accent,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            _hasTicket
+                                ? s.s('viewer.edit.addTicketed')
+                                : q.isNotEmpty && _selected == null
+                                    ? s.p('viewer.edit.customPlace', {'q': q})
+                                    : s.s('viewer.edit.add'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),

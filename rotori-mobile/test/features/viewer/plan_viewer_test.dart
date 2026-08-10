@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rotori/data/plans_repository.dart';
 import 'package:rotori/core/supabase_client.dart';
@@ -557,6 +558,34 @@ void main() {
     );
   });
 
+  testWidgets('şehir geçişi bilet editörü ESC ile güvenli kapanır',
+      (tester) async {
+    await tester.pumpWidget(harness(_cityTransitionTrip()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    final transition = find.text('Tokyo → Kyoto');
+    await tester.scrollUntilVisible(
+      transition,
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(transition);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('city-transition-ticket-action')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(tr('viewer.ticketEditor.addTitle')), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text(tr('viewer.ticketEditor.addTitle')), findsNothing);
+    expect(find.text('Tokyo → Kyoto ulaşımı'), findsOneWidget);
+  });
+
   testWidgets('boş bilet sekmesi açıklama ve birincil ekleme aksiyonu gösterir',
       (tester) async {
     await tester.pumpWidget(harness(_sampleTrip()));
@@ -572,6 +601,18 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('add-first-ticket')));
     await tester.pumpAndSettle();
     expect(find.text(tr('viewer.ticketEditor.addTitle')), findsOneWidget);
+  });
+
+  testWidgets('Keşfet alt menü butonu keşif haritasını açar', (tester) async {
+    await tester.pumpWidget(harness(_sampleTrip()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.text(tr('viewer.quick.explore')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text(tr('reward.title')), findsOneWidget);
   });
 
   testWidgets('tema seçici açılır ve 3 tema listelenir', (tester) async {
@@ -609,6 +650,10 @@ void main() {
     expect(find.byType(SingleChildScrollView), findsWidgets);
     expect(find.byIcon(Icons.map_outlined), findsWidgets);
     expect(find.byIcon(Icons.palette_outlined), findsOneWidget);
+    expect(find.byKey(const ValueKey('drawer-scanner-hero')), findsOneWidget);
+    expect(find.text('Premium'), findsWidgets);
+    expect(find.byKey(const ValueKey('drawer-action-Rotori Eats')),
+        findsOneWidget);
   });
 
   testWidgets('uçuş satırı boş şehir+havaalanı ile "—" gösterir',
@@ -669,6 +714,35 @@ void main() {
   });
 
   group('Düzenleme modu', () {
+    testWidgets('durak eklerken bilet sabitleme seçenekleri açılır',
+        (tester) async {
+      tester.view.physicalSize = const Size(430, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(harness(_sampleTrip()));
+      await tester.pump();
+      await tester.tap(find.byIcon(Icons.edit_outlined));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final addStop = find.text(tr('viewer.edit.addPlace')).first;
+      await tester.scrollUntilVisible(
+        addStop,
+        180,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(addStop);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).last, 'teamLab Planets');
+      await tester.tap(find.byKey(const ValueKey('add-place-has-ticket')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('ticket-duration-options')),
+          findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('ticket-fixed-summary')), findsOneWidget);
+      expect(find.text(tr('viewer.edit.addTicketed')), findsOneWidget);
+    });
+
     testWidgets('✎ ikonuna basınca edit modu açılır, günler auto-expand olur',
         (tester) async {
       await tester.pumpWidget(harness(_sampleTrip()));

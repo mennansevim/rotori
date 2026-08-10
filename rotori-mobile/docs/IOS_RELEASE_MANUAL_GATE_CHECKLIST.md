@@ -2,6 +2,11 @@
 
 Bu checklist, `mobile/docs/RELEASE_QA_ANALYSIS_2026-07-26.md` bulgularına göre iOS release öncesi manuel kapı (gate) olarak kullanılır.
 
+> Son cihaz denemesi (11 Ağustos 2026): iPhone 14 / iOS 27 eşleşti, debug build
+> ve imzalama tamamlandı; Xcode 26.6 developer disk image'ı cihaza bağlayamadığı
+> için yükleme yapılamadı. Bu altyapı engeli çözülmeden aşağıdaki gerçek-cihaz
+> maddeleri PASS sayılmaz.
+
 ## P0 — Release Blocker
 
 - [ ] **Release build smoke**: Uygulama gerçek cihazda açılıyor; crash/blank screen yok.
@@ -12,6 +17,13 @@ Bu checklist, `mobile/docs/RELEASE_QA_ANALYSIS_2026-07-26.md` bulgularına göre
   - [ ] Apple Developer / Supabase credential eşleşmesi doğrulandı.
 - [ ] **Plan veri bütünlüğü**: Plan kaydet/aç sonrası veri kaybı yok.
 - [ ] **Permission açıklamaları**: `Info.plist` usage description metinleri doğru ve anlamlı.
+- [ ] **Cepte Çevirmen gizlilik kapısı**:
+  - [ ] Ücretsiz kullanıcıda çevirmen kilitli; dil modeli kontrolü/indirmesi başlamıyor.
+  - [ ] Premium aktif olduğunda çevirmen aynı ekranda açılıyor.
+  - [ ] İlk çevrimiçi kullanımda TR/EN + JA çeviri modelleri indiriliyor ve Google atfı görünür.
+  - [ ] Uçak modunda Türkçe → Japonca ve Japonca → Türkçe metin çevirisi çalışıyor.
+  - [ ] Ağ incelemesinde çevrilecek metin ve sonuç için giden istek yok.
+  - [ ] Mikrofon/konuşma izni istenmiyor; App Store Connect beyanı mevcut uygulamayla eşleşiyor.
 
 ## P1 — Önemli (yüksek öncelik)
 

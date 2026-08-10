@@ -60,6 +60,91 @@ TimelineItem findItem(Trip trip, String id) => trip.days
 void main() {
   const engine = PlanScheduleEngine();
 
+  group('biletli etkinlik planlama', () {
+    test('etkinlik ve bilet atomik eklenir; gün sabit saatin çevresine dizilir',
+        () {
+      final original = tripWith([
+        day(1, [
+          item('a', '09:00', duration: 120),
+          item('b', '11:15', duration: 120),
+          item('c', '13:30', duration: 120),
+        ]),
+      ]);
+      final result = engine.apply(
+        original,
+        AddTicketedActivity(
+          dayNumber: 1,
+          activity: item('teamlab', '12:00', duration: 180),
+          ticket: Ticket(
+            id: 'ticket-teamlab',
+            kind: TicketKind.attraction.name,
+            label: 'teamlab',
+            purchased: true,
+            entryTime: '12:00',
+            durationMin: 180,
+            arrivalBufferMin: 30,
+          ),
+        ),
+      );
+
+      expect(result.isSuccess, isTrue);
+      final updated = result.trip!;
+      expect(updated.days.single.items.map((e) => e.id),
+          ['a', 'teamlab', 'b', 'c']);
+      expect(findItem(updated, 'teamlab').fixedStartTime, '12:00');
+      expect(findItem(updated, 'teamlab').lockType,
+          ActivityLockType.ticketedEvent);
+      expect(findItem(updated, 'teamlab').canChangeDay, isFalse);
+      expect(findItem(updated, 'teamlab').arrivalBufferMin, 30);
+      expect(findItem(updated, 'b').time, '15:15');
+      expect(updated.tickets, hasLength(1));
+      expect(updated.tickets.single.linkedActivityId, 'teamlab');
+      expect(updated.tickets.single.visitDate, '2026-08-01');
+      expect(original.tickets, isEmpty, reason: 'girdi değişmemeli');
+      expect(original.days.single.items.map((e) => e.id), ['a', 'b', 'c']);
+    });
+
+    test('bilet tarihi etkinliği doğru güne taşır ve JSON alanları korunur',
+        () {
+      final result = engine.apply(
+        tripWith([
+          day(1, [item('teamlab', '10:00', duration: 90)]),
+          day(2, [item('breakfast', '09:00', duration: 60)]),
+        ]),
+        AttachTicketToActivity(
+          activityId: 'teamlab',
+          ticket: Ticket(
+            id: 'ticket-2',
+            kind: TicketKind.attraction.name,
+            label: 'teamLab Planets',
+            purchased: true,
+            visitDate: '2026-08-02',
+            entryTime: '14:30',
+            durationMin: 180,
+            arrivalBufferMin: 45,
+          ),
+        ),
+      );
+
+      expect(result.isSuccess, isTrue);
+      expect(result.trip!.days.first.items, isEmpty);
+      final moved = findItem(result.trip!, 'teamlab');
+      expect(moved.time, '14:30');
+      expect(moved.fixedStartTime, '14:30');
+      expect(moved.durationMin, 180);
+      expect(moved.arrivalBufferMin, 45);
+      expect(result.trip!.days[1].items.map((e) => e.id),
+          ['breakfast', 'teamlab']);
+
+      final restored = Trip.fromJson(result.trip!.toJson());
+      final ticket = restored.tickets.single;
+      expect(ticket.linkedActivityId, 'teamlab');
+      expect(ticket.entryTime, '14:30');
+      expect(ticket.durationMin, 180);
+      expect(ticket.arrivalBufferMin, 45);
+    });
+  });
+
   group('aynı gün sıralama ve saatleme', () {
     test('aktivite yukarı taşınır; süre korunur ve sonrası yeniden saatlenir',
         () {

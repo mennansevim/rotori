@@ -241,6 +241,10 @@ class Ticket {
     this.imageDataUrl,
     this.scannedText,
     this.linkedTransitionDayNumber,
+    this.linkedActivityId,
+    this.entryTime,
+    this.durationMin,
+    this.arrivalBufferMin,
   });
   final String id;
   String kind; // TicketKind veya string
@@ -253,6 +257,10 @@ class Ticket {
   String? imageDataUrl;
   String? scannedText;
   int? linkedTransitionDayNumber;
+  String? linkedActivityId;
+  String? entryTime;
+  int? durationMin;
+  int? arrivalBufferMin;
 
   factory Ticket.fromJson(Map<String, dynamic> j) => Ticket(
         id: j['id'] as String,
@@ -267,6 +275,10 @@ class Ticket {
         scannedText: j['scannedText'] as String?,
         linkedTransitionDayNumber:
             (j['linkedTransitionDayNumber'] as num?)?.toInt(),
+        linkedActivityId: j['linkedActivityId'] as String?,
+        entryTime: j['entryTime'] as String?,
+        durationMin: (j['durationMin'] as num?)?.toInt(),
+        arrivalBufferMin: (j['arrivalBufferMin'] as num?)?.toInt(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -282,6 +294,10 @@ class Ticket {
         if (scannedText != null) 'scannedText': scannedText,
         if (linkedTransitionDayNumber != null)
           'linkedTransitionDayNumber': linkedTransitionDayNumber,
+        if (linkedActivityId != null) 'linkedActivityId': linkedActivityId,
+        if (entryTime != null) 'entryTime': entryTime,
+        if (durationMin != null) 'durationMin': durationMin,
+        if (arrivalBufferMin != null) 'arrivalBufferMin': arrivalBufferMin,
       };
 }
 
@@ -791,6 +807,7 @@ class TimelineItem {
     this.lng,
     this.scheduledTime,
     this.durationMin,
+    this.arrivalBufferMin,
     this.cost,
     this.costCurrency,
     this.cityId,
@@ -816,6 +833,7 @@ class TimelineItem {
   double? lng;
   String? scheduledTime;
   int? durationMin;
+  int? arrivalBufferMin;
   int? cost;
   String? costCurrency;
   String? cityId;
@@ -842,6 +860,7 @@ class TimelineItem {
     String? tips,
     TimelineItemKind? kind,
     int? durationMin,
+    int? arrivalBufferMin,
     int? movedFromDay,
     ActivityLockType? lockType,
     String? fixedStartTime,
@@ -865,6 +884,7 @@ class TimelineItem {
         lng: lng,
         scheduledTime: scheduledTime ?? this.scheduledTime,
         durationMin: durationMin ?? this.durationMin,
+        arrivalBufferMin: arrivalBufferMin ?? this.arrivalBufferMin,
         cost: cost,
         costCurrency: costCurrency,
         cityId: cityId,
@@ -891,6 +911,7 @@ class TimelineItem {
         lng: (j['lng'] as num?)?.toDouble(),
         scheduledTime: j['scheduledTime'] as String?,
         durationMin: (j['durationMin'] as num?)?.toInt(),
+        arrivalBufferMin: (j['arrivalBufferMin'] as num?)?.toInt(),
         cost: (j['cost'] as num?)?.toInt(),
         costCurrency: j['costCurrency'] as String?,
         cityId: j['cityId'] as String?,
@@ -917,6 +938,7 @@ class TimelineItem {
         if (lng != null) 'lng': lng,
         if (scheduledTime != null) 'scheduledTime': scheduledTime,
         if (durationMin != null) 'durationMin': durationMin,
+        if (arrivalBufferMin != null) 'arrivalBufferMin': arrivalBufferMin,
         if (cost != null) 'cost': cost,
         if (costCurrency != null) 'costCurrency': costCurrency,
         if (cityId != null) 'cityId': cityId,
