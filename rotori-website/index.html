@@ -227,14 +227,25 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
   -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 92%,rgba(0,0,0,.72) 97%,rgba(0,0,0,0) 100%);
   mask-image:linear-gradient(180deg,#000 0%,#000 92%,rgba(0,0,0,.72) 97%,rgba(0,0,0,0) 100%)}
 
-/* --gutter: telefonun iki yanındaki serbest alan. Kartlar bu alanın içinde kalır;
-   aksi halde metinleri telefon mockup'ının (z-index:5) altında kayboluyor. */
+/* Kart yerleşimi telefonun bounding box'ına değil, hero görselindeki elin GERÇEK
+   siluetine göre kurulur — kartlar telefona yakın durur ama metinleri mockup'ın
+   (z-index:5) altında kaybolmaz.
+     --pw     : hero görselinin render genişliği
+     --gutter : telefonun iki yanında kalan serbest alan
+     --cw     : kart genişliği (bu alana göre sınırlanır)
+     --fx     : her kartın hizasındaki opak piksel kenarının görsel merkezinden
+                uzaklığı (görselin alfa profili ölçülerek bulundu; el aşağı doğru
+                genişlediği için her kartta farklı)
+   DİKKAT: hero görseli değişirse --fx değerleri yeniden ölçülmeli. */
 .hero-nots{position:absolute;inset:3% 0 7%;pointer-events:none;z-index:2;
-  --gutter:calc((min(1120px,84vw) - min(460px,70vw)) / 2)}
+  --pw:min(460px,70vw);
+  --gutter:calc((min(1120px,84vw) - var(--pw)) / 2);
+  --cw:min(318px,calc(var(--gutter) - 12px));
+  --gap:26px}
 
 /* Notification card — Flighty-style: 3 opacity tiers, colored circular icons,
    two-line bold title / gray subtitle, generous internal spacing. */
-.hn{position:absolute;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px 20px 15px 15px;display:flex;gap:14px;align-items:center;width:min(318px,calc(var(--gutter) - 12px));transition:opacity 1s var(--ease),transform .6s var(--ease);will-change:transform;box-shadow:0 22px 44px -22px rgba(15,10,30,.22),0 2px 4px rgba(15,10,30,.03)}
+.hn{position:absolute;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px 20px 15px 15px;display:flex;gap:14px;align-items:center;width:var(--cw);transition:opacity 1s var(--ease),transform .6s var(--ease);will-change:transform;box-shadow:0 22px 44px -22px rgba(15,10,30,.22),0 2px 4px rgba(15,10,30,.03)}
 .hn .hn-ic{width:44px;height:44px;border-radius:50%;background:var(--card-2);display:grid;place-items:center;font-size:22px;flex:none;color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
 .hn .hn-ic.matcha{background:linear-gradient(135deg,#5EB56E,#4A9F5A)}
 .hn .hn-ic.sakura{background:linear-gradient(135deg,#DB6A8E,#C74A72)}
@@ -254,14 +265,16 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 .hn.t3{opacity:.20;box-shadow:none}
 
 /* Positions — featured cards flank the phone; ambient/ghost stack further out */
-.hn-1{left:0;top:25%}       /* t1 — Discovery success */
-.hn-2{right:0;top:5%}       /* t1 — Transit clarity */
-.hn-3{right:0;top:52%}      /* t1 — Weather intel */
-.hn-4{left:0;top:4%}        /* t2 — Badge earned */
-.hn-5{left:0;top:48%}       /* t2 — Luggage */
-.hn-6{right:0;top:28%}      /* t2 — Reminder */
-.hn-7{left:0;top:71%}       /* t3 — Widget ghost */
-.hn-8{right:0;top:74%}      /* t3 — Fitness ghost */
+.hn-1,.hn-4,.hn-5,.hn-7{left:max(0px,calc(50% - var(--fx)*var(--pw) - var(--gap) - var(--cw)))}
+.hn-2,.hn-3,.hn-6,.hn-8{right:max(0px,calc(50% - var(--fx)*var(--pw) - var(--gap) - var(--cw)))}
+.hn-1{--fx:.456;top:25%}    /* t1 — Discovery success */
+.hn-2{--fx:.095;top:5%}     /* t1 — Transit clarity */
+.hn-3{--fx:.279;top:52%}    /* t1 — Weather intel */
+.hn-4{--fx:.387;top:4%}     /* t2 — Badge earned */
+.hn-5{--fx:.494;top:48%}    /* t2 — Luggage */
+.hn-6{--fx:.210;top:28%}    /* t2 — Reminder */
+.hn-7{--fx:.388;top:71%}    /* t3 — Widget ghost */
+.hn-8{--fx:.359;top:74%}    /* t3 — Fitness ghost */
 
 /* Very subtle drift — cards feel alive but never distract */
 .hn.d-a{animation:hn-drift-a 12s ease-in-out infinite}
@@ -273,12 +286,11 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 @media(max-width:1180px){
   .hero-stage{transform:translateX(3.5%)}
   .hand-mobile-wrap{--hw:min(440px,66vw)}
-  .hero-nots{--gutter:calc((min(1120px,84vw) - min(440px,66vw)) / 2)}
-  .hn{width:min(300px,calc(var(--gutter) - 10px));padding:14px 17px 14px 14px}
+  .hero-nots{--pw:min(440px,66vw);--cw:min(300px,calc(var(--gutter) - 10px));--gap:20px}
+  .hn{width:var(--cw);padding:14px 17px 14px 14px}
   .hn .hn-ic{width:40px;height:40px;font-size:20px}
   .hn .hn-t{font-size:13px}.hn .hn-s{font-size:11.5px}
-  .hn-1{left:0;top:25%}.hn-2{right:0;top:6%}.hn-3{right:0;top:53%}
-  .hn-4{left:0;top:5%}.hn-5{left:0;top:49%}.hn-6{right:0;top:29%}
+  .hn-2{top:6%}.hn-3{top:53%}.hn-4{top:5%}.hn-5{top:49%}.hn-6{top:29%}
   .hn-7,.hn-8{display:none}
 }
 /* 1100px altında kartlar telefonun yanına okunur genişlikte sığmıyor — tamamen gizle */
