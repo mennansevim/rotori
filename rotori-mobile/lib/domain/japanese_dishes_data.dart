@@ -31,7 +31,14 @@ const List<JapaneseDish> kJapaneseDishes = [
     priceMaxJpy: 2000,
     ingredients: {
       DishIngredient.gluten: IngredientChance.always,
-      DishIngredient.pork: IngredientChance.usually,
+      // Genel/işaretsiz ramen için "genelde domuz" fazla kesindi. Dört ana
+      // tür var (tonkotsu/shoyu/shio/miso) ve tonkotsu DIŞINDA hiçbiri
+      // domuzla tanımlı değil: shoyu — Japonya'da en yaygın yayılan tür —
+      // tavuk KEMİĞİ bazlı da yapılır; shio da tavuk/balık kemiği bazlıdır,
+      // domuz yalnızca "bazen eklenir". Tür seçilmemişken domuz belirsiz —
+      // "sor" demek doğru, "yiyemezsin" demek değil. Tonkotsu alt türü zaten
+      // ayrıca `always` ile işaretli, oradaki kesinlik bozulmuyor.
+      DishIngredient.pork: IngredientChance.sometimes,
       DishIngredient.soy: IngredientChance.usually,
       DishIngredient.egg: IngredientChance.usually,
       DishIngredient.cookingAlcohol: IngredientChance.sometimes,
