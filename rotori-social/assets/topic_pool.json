@@ -24,6 +24,42 @@
     { "title": "Balık Pazarı", "query": "tsukiji fish market" },
     { "title": "Hiroshima Anıtı", "query": "hiroshima peace memorial" },
     { "title": "Kyoto Bambu Ormanı", "query": "arashiyama bamboo forest" },
-    { "title": "Kar Mevsimi", "query": "hokkaido winter snow" }
+    { "title": "Kar Mevsimi", "query": "hokkaido winter snow" },
+
+    { "title": "JR Pass Ne Zaman Kâr Ettirir", "query": "shinkansen station platform" },
+    { "title": "Suica ve IC Kart Kullanımı", "query": "japan train ticket gate" },
+    { "title": "Gece Otobüsüyle Şehirler Arası Yolculuk", "query": "night highway bus japan" },
+    { "title": "Havalimanından Şehir Merkezine Ulaşım", "query": "airport express train japan" },
+    { "title": "Tokyo Metrosunda Aktarma Taktiği", "query": "tokyo subway station crowd" },
+    { "title": "Shinkansen'de Fuji Manzaralı Koltuk", "query": "shinkansen interior seats window" },
+    { "title": "İstasyonda Bavul Dolabı Kullanımı", "query": "coin lockers train station japan" },
+    { "title": "Bavulu Otele Kargoyla Gönderme", "query": "luggage suitcase japan station" },
+    { "title": "Feribotla Ada Geçişi", "query": "japan ferry island sea" },
+    { "title": "Bisikletle Şehir Turu", "query": "bicycle street japan town" },
+
+    { "title": "Kapsül Otel Deneyimi", "query": "capsule hotel japan" },
+    { "title": "Business Hotel Konaklaması", "query": "compact hotel room japan" },
+    { "title": "Minshuku Ev Pansiyonu", "query": "japanese guesthouse tatami room" },
+    { "title": "Tapınakta Konaklama (Shukubo)", "query": "temple lodging japan garden" },
+    { "title": "Onsen Girişi Kuralları", "query": "japan onsen hot spring stone" },
+    { "title": "Ryokan Akşam Yemeği Düzeni", "query": "japanese dinner tray tatami" },
+
+    { "title": "Universal Studios Japan Günü", "query": "theme park roller coaster" },
+    { "title": "Tokyo Disneyland Planlaması", "query": "amusement park castle night" },
+    { "title": "Tokyo DisneySea Gezisi", "query": "theme park harbor night lights" },
+    { "title": "teamLab Dijital Sanat Müzesi", "query": "immersive digital art installation" },
+    { "title": "Tema Parkında Sıra Bekleme Taktiği", "query": "theme park queue crowd" },
+    { "title": "Tokyo Skytree Manzara Katı", "query": "tokyo skyline observation deck" },
+
+    { "title": "Cep Wifi ve eSIM Seçimi", "query": "traveler smartphone tokyo street" },
+    { "title": "Tax-Free Alışveriş Kuralı", "query": "shopping district tokyo" },
+    { "title": "Konbini ATM ve Nakit İhtiyacı", "query": "japan convenience store night" },
+    { "title": "Sokakta Çöp Kutusu Olmaması", "query": "japan clean street sidewalk" },
+    { "title": "Tapınak Ziyaret Adabı", "query": "shrine purification water basin japan" },
+    { "title": "Otomatlı Menüden Sipariş", "query": "ramen restaurant vending machine" },
+    { "title": "Ödeme ve Bahşiş Adabı", "query": "japan cashier counter tray" },
+    { "title": "Yürüyen Merdivende Taraf Kuralı", "query": "japan escalator station people" },
+    { "title": "Trende Sessizlik Kuralı", "query": "japan train interior quiet" },
+    { "title": "Ayakkabı Çıkarma Kuralı", "query": "japanese entrance genkan shoes" }
   ]
 }

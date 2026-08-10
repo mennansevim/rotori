@@ -172,6 +172,9 @@ class NewsCfg:
     evergreen_enabled: bool = True   # evergreen konu havuzu yarışa katılsın mı
     evergreen_tries: int = 6    # kaç evergreen konu puanlanıp yarışa girsin
     gate_timeout_sec: int = 180  # karma yarışma için toplam süre limiti (sn)
+    # Havuz tükendiğinde bir konu ancak bu kadar gün geçtikten sonra tekrar
+    # kullanılabilir. 0 = bekleme yok (eski davranış: anında tekrar).
+    topic_cooldown_days: int = 45
 
 
 @dataclass
@@ -300,6 +303,7 @@ def load_config(config_path: str | None = None) -> Config:
         evergreen_enabled=bool(news_raw.get("evergreen_enabled", True)),
         evergreen_tries=int(news_raw.get("evergreen_tries", 6)),
         gate_timeout_sec=int(news_raw.get("gate_timeout_sec", 180)),
+        topic_cooldown_days=int(news_raw.get("topic_cooldown_days", 45)),
     )
 
     return Config(paths=paths, ollama=ollama, dify=dify, reels=reels, pilot=pilot,
