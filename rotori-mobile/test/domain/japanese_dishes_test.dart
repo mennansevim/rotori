@@ -179,14 +179,17 @@ void main() {
       }
     });
 
-    test('her kategoride en az bir yemek var', () {
+    // "Tencere yemeği 1 tane mi gerçekten?" — evet öyleydi. Sayfa gurme
+    // rehberi olacaksa hiçbir kategori tek örnekle geçilemez; eşik 5.
+    test('her kategoride en az 5 farklı yemek var', () {
       for (final c in DishCategory.values) {
-        expect(
-          kJapaneseDishes.where((d) => d.category == c),
-          isNotEmpty,
-          reason: c.name,
-        );
+        final list = kJapaneseDishes.where((d) => d.category == c).toList();
+        expect(list.length, greaterThanOrEqualTo(5), reason: c.name);
       }
+    });
+
+    test('en az 60 yemek var — dar bir liste değil', () {
+      expect(kJapaneseDishes.length, greaterThanOrEqualTo(60));
     });
 
     test('her diyet için en az birkaç yiyecek şey kalıyor', () {
