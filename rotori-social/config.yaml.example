@@ -119,6 +119,11 @@ news_automation:
   evergreen_enabled: true   # evergreen konu havuzu da yarışsın mı
   evergreen_tries: 6        # kaç evergreen konu puanlanıp yarışa girsin
   gate_timeout_sec: 180     # karma yarışma için toplam süre limiti (sn)
+  # Havuzdaki bir konu, kullanıldıktan sonra bu kadar gün geçmeden TEKRAR
+  # üretilmez. Havuz tükenirse otomasyon evergreen fazını atlar (eskiden havuzu
+  # sessizce sıfırlıyordu → aynı konu üst üste üretiliyordu).
+  # 0 = bekleme yok. Env: NEWS_TOPIC_COOLDOWN_DAYS
+  topic_cooldown_days: 45
   feeds:                    # boş bırakılırsa varsayılan 4 feed kullanılır
     - "https://soranews24.com/feed/"       # kültür/yaşam/seyahat (on-brand)
     - "https://www.nippon.com/en/feed/"    # kültür/toplum

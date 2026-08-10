@@ -38,7 +38,9 @@ log = get_logger("news")
 
 _UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
 _STATE_SUBDIR = "data/news_automation"
-_USED_CAP = 200   # state'te tutulacak maks. kullanılmış haber id sayısı
+_USED_CAP = 800   # state'te tutulacak maks. dedup anahtarı sayısı
+# NOT: her kayıt 4 anahtar üretir (bkz. _dedup_keys), bu yüzden cap kayıt
+# sayısının ~4 katı olmalı — 800 ≈ son 200 içerik.
 _TOPIC_POOL_PATH = "assets/topic_pool.json"   # evergreen fallback konu havuzu
 
 
@@ -68,6 +70,84 @@ def _save_state(cfg: Config, state: dict[str, Any]) -> None:
 def _news_id(entry: dict[str, Any]) -> str:
     seed = (entry.get("link") or entry.get("title") or "").strip().lower()
     return hashlib.sha1(seed.encode("utf-8")).hexdigest()[:16]
+
+
+# Aynı konu iki farklı kaynaktan (RSS linki + evergreen başlığı, ya da iki ayrı
+# feed) gelebilir; link tabanlı id bunu yakalamaz. Bu yüzden her kayıt İKİ
+# anahtarla işaretlenir: link id + normalize edilmiş başlık id.
+# Türkçe'de "I" küçük harfi "ı"dır; ama başlıklardaki ödünç kelimeler ("Konbini",
+# "Disneyland") noktalı i ile yazılır. Bu yüzden dedup anahtarında dört i
+# varyantı TEK harfe indirilir — "KONBINI" ile "Konbini" aynı konu sayılır.
+_I_FOLD = str.maketrans({"İ": "i", "I": "i", "ı": "i"})
+
+
+def _norm_title(title: str) -> str:
+    """Başlığı dedup için sadeleştir: i-varyantları tek harf, küçük harf,
+    noktalama yok, tek boşluk."""
+    s = (title or "").translate(_I_FOLD).lower()
+    s = re.sub(r"[^0-9a-zçğöşü]+", " ", s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def _title_id(title: str) -> str:
+    norm = _norm_title(title)
+    if not norm:
+        return ""
+    return "t:" + hashlib.sha1(norm.encode("utf-8")).hexdigest()[:16]
+
+
+def _legacy_topic_id(title: str) -> str:
+    """topic_automation._topic_id ile birebir aynı şema (strip/lower YOK).
+
+    İki modülün state'i tarihsel olarak farklı hash'liyor; mevcut state
+    dosyalarındaki kayıtlar geçersiz sayılmasın diye bu anahtar da üretilir.
+    """
+    if not title:
+        return ""
+    return hashlib.sha1(title.encode("utf-8")).hexdigest()[:16]
+
+
+def _dedup_keys(entry: dict[str, Any]) -> set[str]:
+    """Bir adayın tüm dedup anahtarları.
+
+    Dört anahtar üretilir; herhangi biri state'te varsa aday kullanılmış sayılır:
+      1. link id — aynı haber linki
+      2. başlık-link şeması — link'i olmayan kayıtların (evergreen) eski anahtarı;
+         link'i OLAN adaylar için de üretilir, böylece aynı başlık farklı
+         kaynaktan gelse de yakalanır
+      3. normalize başlık — noktalama/büyük-küçük harf farkına dayanıklı
+      4. eski topic_automation şeması — mevcut state dosyaları geçersiz olmasın
+    """
+    title = entry.get("title", "")
+    keys = {
+        _news_id(entry),
+        _news_id({"title": title}),
+        _title_id(title),
+        _legacy_topic_id(title),
+    }
+    return {k for k in keys if k}
+
+
+def _is_used(entry: dict[str, Any], used: set[str]) -> bool:
+    return bool(_dedup_keys(entry) & used)
+
+
+def _remember(used: set[str], entry: dict[str, Any]) -> None:
+    used.update(_dedup_keys(entry))
+
+
+def _ordered_used(previous: list[str], used: set[str]) -> list[str]:
+    """used_ids'i SIRA KORUYARAK sakla — eski kayıtlar önce, yeniler sonda.
+
+    Eskiden `list(set)[-CAP:]` yazılıyordu; set sırası rastgele olduğu için cap
+    dolduğunda hangi kaydın düştüğü belirsizdi ve "en yenisini tut" garantisi
+    yoktu. Böylece eski bir konu erken düşüp tekrar üretilebiliyordu.
+    """
+    out = [k for k in previous if k in used]
+    seen = set(out)
+    for key in sorted(used - seen):   # yeni anahtarlar deterministik sırayla
+        out.append(key)
+    return out[-_USED_CAP:]
 
 
 # ---------------- RSS fetch ----------------
@@ -189,8 +269,18 @@ def _select_prompt(cands: list[dict[str, Any]]) -> str:
         "çiçeği, sonbahar yaprakları, kar/kış manzaraları), hava durumu ve gidiş "
         "zamanı, festivaller ve etkinlikler, gezilecek yerler/açılan yeni "
         "mekanlar (otel, park, sergi, müze), yemek/mutfak deneyimi, turizm "
-        "haberleri ve rekorları, ulaşım (Shinkansen, JR Pass, turist kartları), "
-        "kültürel deneyim, geleneksel mekanlar.\n"
+        "haberleri ve rekorları, kültürel deneyim, geleneksel mekanlar.\n"
+        "AYRICA ÖNCELİKLİ — gezi planına doğrudan dokunan PRATİK haberler:\n"
+        "- ULAŞIM/YOLCULUK: Shinkansen, JR Pass ve bölgesel pass'ler, Suica/IC "
+        "kart, metro hatları, havalimanı transferi, gece otobüsü, feribot, "
+        "bilet fiyatı/kural değişiklikleri.\n"
+        "- KONAKLAMA: yeni açılan otel/ryokan/kapsül otel, konaklama vergisi, "
+        "rezervasyon kuralları, tapınakta konaklama.\n"
+        "- TEMA PARKI ve BÜYÜK ATRAKSİYON: Universal Studios Japan, Tokyo "
+        "Disneyland/DisneySea, teamLab, Skytree — yeni alan/bilet sistemi/"
+        "rezervasyon kuralı/sezon geçişi haberleri.\n"
+        "- ZİYARETÇİ KURALLARI ve ÜCRETLER: giriş kotası/rezervasyon zorunluluğu, "
+        "turist vergisi, tax-free değişikliği, tırmanış/ziyaret sınırlamaları.\n"
         "ELE (SEÇME): Japonya'da yaşayanları ilgilendiren iç politika/seçim, "
         "ekonomi/borsa, iş dünyası, suç/cinayet, savaş, ölüm/felaket/deprem/kaza, "
         "spor skoru, skandal, hassas/trajik veya turistle alakasız yerel konular.\n\n"
@@ -219,7 +309,7 @@ def _select_prompt(cands: list[dict[str, Any]]) -> str:
 
 def pick_news(cfg: Config, oai, items: list[dict[str, Any]],
               used_ids: set[str]) -> dict[str, Any] | None:
-    fresh = [it for it in items if _news_id(it) not in used_ids]
+    fresh = [it for it in items if not _is_used(it, used_ids)]
     if not fresh:
         log.info("  Taze (kullanılmamış) haber yok.")
         return None
@@ -298,6 +388,64 @@ def _load_topic_pool(cfg: Config) -> list[dict[str, Any]]:
         return json.loads(p.read_text(encoding="utf-8")).get("topics", [])
     except (OSError, ValueError):
         return []
+
+
+def _last_used_at(state: dict[str, Any]) -> dict[str, float]:
+    """history'den normalize başlık → en son kullanım zamanı (epoch) haritası."""
+    out: dict[str, float] = {}
+    for rec in state.get("history", []) or []:
+        # news_automation history'si "title", topic_automation "topic" yazar.
+        norm = _norm_title(rec.get("title") or rec.get("topic") or "")
+        if not norm:
+            continue
+        raw = rec.get("at") or ""
+        try:
+            ts = time.mktime(time.strptime(raw[:19], "%Y-%m-%dT%H:%M:%S"))
+        except (ValueError, TypeError):
+            continue
+        if ts > out.get(norm, 0.0):
+            out[norm] = ts
+    return out
+
+
+def eligible_topics(pool: list[dict[str, Any]], used: set[str],
+                    state: dict[str, Any], cooldown_days: int,
+                    now: float | None = None) -> tuple[list[dict[str, Any]], str]:
+    """Yarışa girebilecek evergreen konuları sırala.
+
+    1) Hiç kullanılmamış konular — rastgele sırayla (çeşitlilik için).
+    2) Hepsi kullanıldıysa: yalnızca cooldown süresi DOLMUŞ konular, en eski
+       kullanılan önce. Böylece havuz tükendiğinde aynı konu hemen tekrar
+       üretilmez.
+    3) Cooldown'ı dolmuş konu da yoksa boş liste + neden döner.
+
+    (İkinci değer log/rapor için kısa bir açıklamadır.)
+    """
+    if not pool:
+        return [], "havuz boş"
+    now = time.time() if now is None else now
+    fresh = [t for t in pool if not _is_used({"title": t.get("title", "")}, used)]
+    if fresh:
+        random.shuffle(fresh)
+        return fresh, f"{len(fresh)} taze konu"
+
+    if cooldown_days <= 0:
+        recycled = list(pool)
+        random.shuffle(recycled)
+        return recycled, "havuz tükendi, cooldown kapalı — tümü yeniden açıldı"
+
+    seen_at = _last_used_at(state)
+    cutoff = now - cooldown_days * 86400
+    aged = [(seen_at.get(_norm_title(t.get("title", "")), 0.0), t) for t in pool]
+    ready = sorted((pair for pair in aged if pair[0] <= cutoff),
+                   key=lambda pair: pair[0])
+    if not ready:
+        newest = max((ts for ts, _ in aged), default=0.0)
+        kalan = max(0, int((newest - cutoff) / 86400) + 1) if newest else cooldown_days
+        return [], (f"havuz tükendi, {cooldown_days} günlük bekleme sürüyor "
+                    f"(~{kalan} gün sonra yeniden uygun)")
+    return [t for _ts, t in ready], (f"havuz tükendi — bekleme süresi dolan "
+                                     f"{len(ready)} konu yeniden uygun")
 
 
 def generate_text_topic(cfg: Config, oai, cand: dict[str, Any]) -> tuple[str, str]:
@@ -527,7 +675,7 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
             gf = cand.get("_gate_fail")
             if gf:
                 fails.append(gf)
-        tried_ids.add(_news_id(cand))
+        _remember(tried_ids, cand)
 
     # Faz 2 — Evergreen konuları puanla (RSS'e bağımlı DEĞİL, her tur yarışır).
     ev_env = os.environ.get("NEWS_EVERGREEN_FALLBACK")
@@ -538,15 +686,21 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
     if ev_on and time.monotonic() < deadline:
         pool = _load_topic_pool(cfg)
         if pool:
-            fresh_topics = [t for t in pool
-                            if _news_id({"title": t.get("title", "")}) not in used]
-            if not fresh_topics:   # havuz tükendiyse baştan (dedup sıfırla)
-                fresh_topics = list(pool)
-            random.shuffle(fresh_topics)
+            cooldown = _int_pref("NEWS_TOPIC_COOLDOWN_DAYS",
+                                 getattr(ncfg, "topic_cooldown_days", 45))
+            fresh_topics, ev_note = eligible_topics(pool, used, state, cooldown)
             ev_tries = max(1, _int_pref("NEWS_EVERGREEN_TRIES",
                                         getattr(ncfg, "evergreen_tries", 6)))
-            log.info(f"  🌿 Evergreen konular yarışa katılıyor "
-                     f"({len(fresh_topics)} taze konu, en fazla {ev_tries} deneme).")
+            if not fresh_topics:
+                # Sessizce tüm havuzu geri açmak, aynı konunun tekrar tekrar
+                # üretilmesinin kök nedeniydi. Artık açıkça atlanır.
+                log.warning(f"  🌿 Evergreen atlandı: {ev_note}. "
+                            f"Yeni konu eklemek için assets/topic_pool.json.")
+                fails.append({"baslik": f"Evergreen havuzu ({ev_note})",
+                              "toplam": None, "hata": "cooldown"})
+            else:
+                log.info(f"  🌿 Evergreen konular yarışa katılıyor "
+                         f"({ev_note}, en fazla {ev_tries} deneme).")
             for t in fresh_topics[:ev_tries]:
                 if time.monotonic() >= deadline:
                     break
@@ -622,7 +776,12 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
     used_bg = set(state.get("used_bg_ids", []))
     bg = _pick_image(cfg, oai, news["unsplash_query"], news["title"], used_bg)
     if bg is None:
-        raise RuntimeError("Uygun görsel bulunamadı (Unsplash boş).")
+        # Unsplash boş/erişilemez (ör. saatlik istek limiti). Bu turu ATLA —
+        # exception atmak toplu üretimin tamamını çökertiyordu.
+        log.warning("  Uygun görsel bulunamadı (Unsplash boş veya limit aşıldı).")
+        return {"ok": False, "reason": "no_image",
+                "detail": "Unsplash görsel döndürmedi (sorgu boş sonuç verdi "
+                          "veya saatlik istek limiti aşıldı)."}
 
     out_path = story_generator.render_from_url(
         cfg, bg_url=bg["download_url"], bg_id=bg["id"],
@@ -660,11 +819,13 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
 
     copied = _copy_to_drive(cfg, out_path)
 
-    # state güncelle (haber + görsel dedup)
-    used.add(_news_id(news))
-    state["used_ids"] = list(used)[-_USED_CAP:]
+    # state güncelle (haber + görsel dedup) — sıra korunur, en yeniler sonda
+    previous_used = list(state.get("used_ids", []))
+    _remember(used, news)
+    state["used_ids"] = _ordered_used(previous_used, used)
+    previous_bg = list(state.get("used_bg_ids", []))
     used_bg.add(bg["id"])
-    state["used_bg_ids"] = list(used_bg)[-_USED_CAP:]
+    state["used_bg_ids"] = _ordered_used(previous_bg, used_bg)
     state["last_run"] = time.strftime("%Y-%m-%dT%H:%M:%S")
     state.setdefault("history", []).append({
         "at": state["last_run"], "title": news["title"], "link": news["link"],

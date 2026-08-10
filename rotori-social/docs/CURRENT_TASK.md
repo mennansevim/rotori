@@ -1,9 +1,59 @@
 # CURRENT_TASK.md — Aktif İş
 
 > Görev tamamlanır tamamlanmaz güncellenir. Sadece **bugünkü** işi tutar; geçmiş `DECISIONS.md`'e taşınır.
-> Son güncelleme: 2026-08-10 (Otomasyon ekranı: düzen akış kartına taşındı)
+> Son güncelleme: 2026-08-10 (otomasyon algoritması: bulk dayanıklılığı + konu tekrarı)
 
-## 2026-08-10 — Otomasyon ekranı tek görünüme indirildi
+## 2026-08-10 — Otomasyon algoritması: üç arıza giderildi
+
+### 1. Toplu üretim kısmi hatada çöküyordu
+- Belirti: "10 haber üret" hata veriyor ama arkada 6-7 kart oluşmuş.
+- Kök neden: `_run_now_bulk` turları exception yakalamadan çalıştırıyordu;
+  `run_once` görsel bulamayınca `RuntimeError` atıyor (Unsplash free tier
+  saatlik 50 istek limiti 10 turda dolabiliyor) → iş "hata" olarak kapanıyor.
+- Çözüm: her tur ayrı sarıldı; hata "atlandı" satırı olur ve üretim devam eder.
+  Üst üste 3 hata → devre kesici. Kısmi başarı artık hata değil:
+  `📦 Bulk tamamlandı: 9/10 kart üretildi · 1 hata`.
+- Görsel bulunamaması exception değil, `reason="no_image"` sonucu oldu.
+
+### 2. Aynı konular tekrar tekrar üretiliyordu
+- Kök neden: havuz tükendiğinde `fresh_topics = list(pool)` ile TÜM havuz
+  sessizce geri açılıyordu. Kanıt: 25 konuluk havuzda taze konu **0**; Pi
+  history'sinde 56 kayıttan 16'sı tekrar (Kar Mevsimi 4x, Sakura 4x,
+  Sonbahar Yaprakları 4x, Fushimi Inari 3x). Aynı satır
+  `topic_automation._pick_topic` içinde de vardı.
+- Çözüm: **cooldown** — bir konu `topic_cooldown_days` (45) geçmeden dönmez;
+  süresi dolanlar **en eski kullanılan önce** yarışır. Havuz tükenip cooldown da
+  dolmadıysa evergreen fazı açık uyarıyla atlanır (sessiz tekrar yok).
+- Dedup güçlendirildi: kayıt başına 4 anahtar (link, başlık-link, normalize
+  başlık, eski şema) → aynı konu **farklı kaynaktan** gelse de yakalanır.
+  Normalizasyon Türkçe i/I/İ/ı varyantlarını tek harfe indiriyor.
+- `used_ids` artık sıra koruyarak saklanıyor (`list(set)[-CAP:]` hatası giderildi),
+  `_USED_CAP` 200 → 800.
+
+### 3. İpucu niteliğinde konular havuzda yoktu
+- `assets/topic_pool.json` 25 → **57 konu**: ulaşım (JR Pass, Suica/IC kart,
+  gece otobüsü, havalimanı transferi, metro aktarma, bavul dolabı/kargo, feribot),
+  konaklama (kapsül otel, business hotel, minshuku, shukubo, onsen kuralları),
+  tema parkı (Universal Studios Japan, Tokyo Disneyland, DisneySea, teamLab,
+  Skytree, sıra taktiği) ve pratik kurallar (eSIM, tax-free, konbini ATM, çöp,
+  tapınak adabı, otomat menü, ödeme adabı, yürüyen merdiven, tren sessizliği,
+  ayakkabı).
+- Unsplash sorguları marka adı içermiyor (mevcut "stok fotoğrafta bulunmalı"
+  kuralı) — testle kilitli.
+- RSS seçim prompt'una da ulaşım/konaklama/tema parkı/ziyaretçi kuralı
+  öncelikleri eklendi.
+- Bonus: `topic` ve `downloader` logger'ları canlı süreç paneline bağlandı;
+  konu otomasyonu ve Unsplash limit hataları artık UI'da görünüyor.
+
+### Doğrulama
+- `pytest -q tests/` → **135 passed** (yeni:
+  `tests/test_automation_dedup_and_bulk.py`, 15 test).
+- Pi'nin gerçek state'i üzerinde simülasyon: eski havuzla 0 taze konu
+  (eski kod 25'ini geri açıyordu) → yeni havuzla **32 uygun konu**, hepsi
+  yeni pratik ipucu başlıkları.
+- Hiçbir gerçek OpenAI/Unsplash/Instagram çağrısı yapılmadı; testler stub kullanır.
+
+## 2026-08-10 — Otomasyon ekranı tek görünüme indirildi (önceki iş)
 
 - `Yayın Akışı` / `Yayın Düzeni` sekmeleri kaldırıldı; ekran tek görünüm.
 - Her akışın yayın düzeni (gün seçici + saat + "saati gelince otomatik yayınla")

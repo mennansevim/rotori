@@ -29,6 +29,10 @@ _BRIDGE_LOGGER_NAMES = (
     # Haber üretimi de aynı JobManager üzerinden çalışır. Bu logger'lar
     # bağlanmadığında RSS/GPT/render aşamaları UI'da sessiz kalıyordu.
     "news", "openai", "story",
+    # "topic": konu otomasyonu ("Konudan kart üret") kendi logger'ını kullanır;
+    # bağlı olmadığı için havuz/cooldown/atlama nedenleri panelde görünmüyordu.
+    # "downloader": Unsplash arama hataları (saatlik limit dâhil) buradan gelir.
+    "topic", "downloader",
 )
 
 

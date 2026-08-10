@@ -1688,10 +1688,21 @@ def _run_now_bulk(
     emit: Callable[..., None],
     cancel_ev: Event,
 ) -> None:
-    """News/Topic run_now için tek iş içinde ardışık bulk üretim akışı."""
+    """News/Topic run_now için tek iş içinde ardışık bulk üretim akışı.
+
+    Tek bir turun patlaması TÜM bulk'u çökertmez: her tur ayrı ayrı sarılır,
+    hata bir "atlandı" satırına dönüşür ve üretim devam eder. Eskiden 7. turda
+    Unsplash limiti gibi bir hata exception atıyor, iş "hata" olarak bitiyor
+    ama o ana kadar üretilen 6 kart sessizce kalıyordu.
+    """
     label = "Haber" if kind == "news" else "Konu"
     ok_count = 0
     attempted = 0
+    skipped = 0
+    errored = 0
+    consecutive_errors = 0
+    MAX_CONSECUTIVE_ERRORS = 3
+    files: list[str] = []
 
     emit(f"{label} otomasyonu başladı (adet={count}, auto_publish={forced_auto_publish})", "info")
 
@@ -1703,37 +1714,55 @@ def _run_now_bulk(
         emit(f"▶ [{idx}/{count}] {label} üretimi başlıyor", "info")
         attempted += 1
 
-        if kind == "news":
-            from src import news_automation
+        try:
+            if kind == "news":
+                from src import news_automation
 
-            emit("① RSS kaynaklarına bağlanılıyor — son 48 saat taranacak.", "info")
-            emit("② Haber adayları toplanıyor; erişilemeyen akışlar atlanabilir.", "log")
-            res = news_automation.run_once_with_publish(
-                cfg, auto_publish=forced_auto_publish
-            )
-        else:
-            from src import topic_automation
+                emit("① RSS kaynaklarına bağlanılıyor — son 48 saat taranacak.", "info")
+                emit("② Haber adayları toplanıyor; erişilemeyen akışlar atlanabilir.", "log")
+                res = news_automation.run_once_with_publish(
+                    cfg, auto_publish=forced_auto_publish
+                )
+            else:
+                from src import topic_automation
 
-            override = None
-            if topic.strip():
-                override = {"title": topic.strip(), "query": query.strip() or topic.strip()}
-                emit(f"  Özel konu: {topic.strip()}", "log")
-            res = topic_automation.run_once(
-                cfg,
-                auto_publish=forced_auto_publish,
-                topic_override=override,
-            )
+                override = None
+                if topic.strip():
+                    override = {"title": topic.strip(), "query": query.strip() or topic.strip()}
+                    emit(f"  Özel konu: {topic.strip()}", "log")
+                res = topic_automation.run_once(
+                    cfg,
+                    auto_publish=forced_auto_publish,
+                    topic_override=override,
+                )
+        except Exception as exc:  # noqa: BLE001 — tek tur tüm bulk'u durdurmasın
+            errored += 1
+            consecutive_errors += 1
+            log.warning(f"bulk tur {idx}/{count} hata: {exc}", exc_info=True)
+            emit(f"✖ [{idx}/{count}] {label} turu hata verdi, sonrakine geçiliyor: {exc}",
+                 "warn")
+            if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
+                emit(f"⏹ Üst üste {consecutive_errors} tur hata verdi "
+                     f"(dış servis düşmüş olabilir); bulk durduruldu.", "warn")
+                break
+            continue
+
+        consecutive_errors = 0
 
         if res.get("ok"):
             ok_count += 1
+            fname = res.get("file", "")
+            if fname:
+                files.append(fname)
             mid = res.get("published_media_id")
             emit(
-                f"✅ [{idx}/{count}] {label}: {res.get('file', '?')}"
+                f"✅ [{idx}/{count}] {label}: {fname or '?'}"
                 + (f" · yayınlandı (media_id={mid})" if mid else ""),
                 "info",
             )
             continue
 
+        skipped += 1
         emit(
             f"⚠ [{idx}/{count}] {label} atlandı: {res.get('reason', 'bilinmiyor')}"
             + (f" — {res.get('detail')}" if res.get('detail') else ""),
@@ -1742,16 +1771,29 @@ def _run_now_bulk(
         for satir in res.get("fails", []):
             emit(f"   {satir}", "warn")
 
-        # Aday kalmadıysa gereksiz tekrar deneme yapma.
-        if res.get("reason") in {"no_news", "no_text"}:
+        # Aday kalmadıysa gereksiz tekrar deneme yapma. 'no_image' BURADA YOK:
+        # görsel servisi geçici olarak boş dönebilir, sonraki tur başarılı olabilir.
+        if res.get("reason") in {"no_news", "no_text", "no_topic", "disabled"}:
             emit("⏭ Uygun aday kalmadı; bulk erken sonlandırıldı.", "warn")
             break
 
-    emit(
-        f"📦 Bulk tamamlandı: {ok_count}/{attempted} başarılı"
-        + (f" (hedef {count})" if attempted != count else ""),
-        "info",
-    )
+    # Özet — kısmi başarı HATA DEĞİLDİR: kaç kart üretildiği net söylenir.
+    parcalar = [f"{ok_count}/{attempted} kart üretildi"]
+    if skipped:
+        parcalar.append(f"{skipped} atlandı")
+    if errored:
+        parcalar.append(f"{errored} hata")
+    if attempted != count:
+        parcalar.append(f"hedef {count}")
+    emit("📦 Bulk tamamlandı: " + " · ".join(parcalar), "info")
+    if ok_count:
+        if files:
+            emit(f"   Üretilenler: {', '.join(files)}", "log")
+    elif errored:
+        # Hiç kart üretilemedi ve sebep hataysa job'ı başarısız işaretle.
+        raise RuntimeError(
+            f"{label} üretimi başarısız: {errored} tur hata verdi, hiç kart üretilemedi."
+        )
 
 
 @app.post("/api/automation/run_now")

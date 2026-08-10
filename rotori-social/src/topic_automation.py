@@ -69,15 +69,21 @@ def _load_pool(cfg: Config) -> list[dict[str, Any]]:
         return []
 
 
-def _pick_topic(pool: list[dict[str, Any]], used: set[str]) -> dict[str, Any] | None:
-    fresh = [t for t in pool if _topic_id(t) not in used]
-    if not fresh:
-        # havuz tükendi → sıfırla, tekrar başla
-        log.info("  Havuz tükendi, sıfırlanıp başa dönülüyor.")
-        fresh = pool
-    if not fresh:
+def _pick_topic(pool: list[dict[str, Any]], used: set[str],
+                state: dict[str, Any] | None = None,
+                cooldown_days: int = 45) -> dict[str, Any] | None:
+    """Havuzdan konu seç. Havuz tükendiyse SIFIRLAMAZ — cooldown'ı dolan en eski
+    konuya döner. Eskiden burada havuz sıfırlanıyordu ve aynı konu üst üste
+    üretilebiliyordu (bkz. news_automation.eligible_topics)."""
+    from src.news_automation import eligible_topics
+
+    ordered, note = eligible_topics(pool, used, state or {}, cooldown_days)
+    if not ordered:
+        log.warning(f"  Konu seçilemedi: {note}. "
+                    f"Yeni konu eklemek için {_POOL_PATH}.")
         return None
-    return random.choice(fresh)
+    log.info(f"  konu havuzu: {note}")
+    return ordered[0]
 
 
 # NOT: Kart üst metni + caption üretimi artık src/editorial.py'daki PAYLAŞIMLI
@@ -107,6 +113,7 @@ def run_once(cfg: Config, auto_publish: bool = False,
     state = _load_state(cfg)
     used = set(state.get("used_ids", []))
     used_bg = set(state.get("used_bg_ids", []))
+    cooldown = int(getattr(cfg.news, "topic_cooldown_days", 45)) if cfg.news else 45
     # Kullanıcı özel konu verdiyse onu kullan (dedup atlanır), yoksa havuzdan seç
     if topic_override and topic_override.get("title"):
         topic = {
@@ -115,9 +122,11 @@ def run_once(cfg: Config, auto_publish: bool = False,
         }
         log.info(f"  ÖZEL konu (kullanıcı): {topic['title']}")
     else:
-        topic = _pick_topic(pool, used)
+        topic = _pick_topic(pool, used, state, cooldown)
     if topic is None:
-        return {"ok": False, "reason": "no_topic"}
+        return {"ok": False, "reason": "no_topic",
+                "detail": f"Havuzdaki tüm konular kullanıldı ve {cooldown} günlük "
+                          f"bekleme süresi dolmadı. {_POOL_PATH}'a yeni konu ekleyin."}
     log.info(f"  seçilen konu: {topic['title']}  | görsel: {topic['query']}")
 
     # metin + caption — PAYLAŞIMLI 'Japonya Rüyası' editöryel prompt (konu modu).
@@ -150,7 +159,11 @@ def run_once(cfg: Config, auto_publish: bool = False,
     from src.news_automation import _pick_image
     bg = _pick_image(cfg, oai, topic["query"], topic["title"], used_bg)
     if bg is None:
-        raise RuntimeError("Uygun görsel bulunamadı.")
+        # Toplu üretimi çökertmemek için exception değil, atlanabilir sonuç.
+        log.warning("  Uygun görsel bulunamadı (Unsplash boş veya limit aşıldı).")
+        return {"ok": False, "reason": "no_image", "topic": topic,
+                "detail": "Unsplash görsel döndürmedi (sorgu boş sonuç verdi "
+                          "veya saatlik istek limiti aşıldı)."}
 
     from src import story_generator
     out_path = story_generator.render_from_url(
@@ -184,11 +197,14 @@ def run_once(cfg: Config, auto_publish: bool = False,
     except OSError as exc:
         log.warning(f"  sidecar yazılamadı: {exc}")
 
-    # state güncelle
-    used.add(_topic_id(topic))
-    state["used_ids"] = list(used)[-_USED_CAP:]
+    # state güncelle — sıra korunur; dedup anahtarları news_automation ile ortak
+    from src.news_automation import _ordered_used, _remember
+    previous_used = list(state.get("used_ids", []))
+    _remember(used, topic)
+    state["used_ids"] = _ordered_used(previous_used, used)
+    previous_bg = list(state.get("used_bg_ids", []))
     used_bg.add(bg["id"])
-    state["used_bg_ids"] = list(used_bg)[-_USED_CAP:]
+    state["used_bg_ids"] = _ordered_used(previous_bg, used_bg)
     state["last_run"] = time.strftime("%Y-%m-%dT%H:%M:%S")
     state.setdefault("history", []).append({
         "at": state["last_run"], "topic": topic["title"], "file": out_path.name,

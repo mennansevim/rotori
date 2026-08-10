@@ -5,6 +5,67 @@
 
 ---
 
+## Karar 16 — 2026-08-10
+### Karar
+Toplu üretimde tek turun hatası bulk'u çökertmez; konu havuzu tükendiğinde
+konular **sessizce yeniden açılmaz** (cooldown, varsayılan 45 gün); dedup aynı
+konuyu farklı kaynaktan da yakalar. Konu havuzu ulaşım / konaklama / tema parkı
+/ pratik kural başlıklarıyla 25'ten 57'ye çıkarıldı.
+
+### Neden
+Kullanıcı iki somut arıza bildirdi ve ikisi de kanıtlandı:
+
+1. **"10 haber üret hata veriyor ama arkada 6-7 tane oluşturmuş."**
+   `_run_now_bulk` her turu `run_once` çağrısıyla çalıştırıyor ama exception
+   yakalamıyordu. `run_once` görsel bulamayınca `RuntimeError` atıyor (Unsplash
+   free tier saatlik 50 istek limiti 10 turluk bulk'ta rahatça dolar) →
+   `JobManager._run_callable` işi "hata" olarak kapatıyor, o ana kadar üretilmiş
+   kartlar sessizce kalıyordu.
+2. **"Daha önce oluşturduğu konuları tekrar tekrar oluşturuyor."**
+   `news_automation.run_once` içinde `if not fresh_topics: fresh_topics = list(pool)`
+   satırı, havuz tükendiğinde TÜM havuzu geri açıyordu. Canlı state kanıtı:
+   25 konuluk havuzda taze konu **0**; Pi history'sinde 56 kayıttan 16'sı tekrar
+   (Kar Mevsimi 4x, Sakura Zamanı 4x, Sonbahar Yaprakları 4x, Fushimi Inari 3x).
+   `topic_automation._pick_topic` içinde de aynı satır vardı.
+
+Ek olarak dedup yalnız RSS linkine bakıyordu; aynı başlık başka bir feed'den
+gelirse yeni sayılıyordu. `used_ids` de `list(set)[-CAP:]` ile yazıldığı için
+"en yeniyi tut" garantisi yoktu.
+
+### Değerlendirilen alternatifler
+1. **Havuzu sıfırlamaya devam et, sadece havuzu büyüt** — reddedildi: tekrar
+   ertelenir, çözülmez; havuz yine tükenir.
+2. **Bir konu bir kez üretilir, asla tekrar etmez** — reddedildi: evergreen
+   konular kalıcı olarak yanar, havuz uzun vadede kuruyup slot boş kalır.
+3. **Cooldown: N gün geçmeden tekrar yok, sonra en eski önce** — kabul: hem
+   yakın tekrar biter hem havuz uzun vadede yaşar. Havuz tükenip cooldown da
+   dolmadıysa evergreen fazı açık uyarıyla atlanır — sessiz tekrar yerine
+   görünür bir "yeni konu ekle" sinyali. (**Kabul**)
+
+### Ödünler
+- **Yararı**: tekrar biter; bulk kısmi hatada 6 kartı kaybetmez; atlama nedenleri
+  panelde okunur (`topic` ve `downloader` logger'ları da canlı akışa bağlandı).
+- **Maliyet**: kayıt başına 4 dedup anahtarı → state dosyası büyür (`_USED_CAP`
+  200→800). Cooldown, havuz küçükken üretimi durdurabilir; bu bilinçli bir
+  ödün — sessiz tekrar yerine görünür duruş.
+
+### Sonuçları
+- `news_automation`: `_dedup_keys` / `_is_used` / `_remember` / `_ordered_used` /
+  `_norm_title` / `eligible_topics` eklendi. Görsel bulunamaması artık
+  `reason="no_image"` sonucudur, exception değil.
+- `topic_automation._pick_topic` ortak `eligible_topics`'i kullanır; state yazımı
+  ortak anahtar şemasına geçti. Eski state dosyaları geçersiz olmadı (iki eski
+  hash şeması da anahtar setinde).
+- `config.yaml.example` → `news_automation.topic_cooldown_days: 45`
+  (env: `NEWS_TOPIC_COOLDOWN_DAYS`).
+- `assets/topic_pool.json` 57 konu. Marka adı içeren Unsplash sorgusu testle
+  yasak — mevcut "stok fotoğrafta bulunmalı" kuralıyla tutarlı.
+- RSS seçim prompt'una ulaşım/konaklama/tema parkı/ziyaretçi kuralları öncelikleri
+  eklendi.
+- `tests/test_automation_dedup_and_bulk.py` — 15 test bu üç davranışı kilitler.
+
+---
+
 ## Karar 15 — 2026-08-10
 ### Karar
 Otomasyon ekranındaki `Yayın Akışı` / `Yayın Düzeni` sekme ayrımı kaldırıldı.

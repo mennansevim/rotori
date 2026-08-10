@@ -338,6 +338,39 @@ scheduler_queue.json (kalıcı)
 - **Ancak in-process cron yok**: bu iş şu an harici bir tetikleyiciye bağlı (crontab, launchd, Pi'de systemd timer veya UI'daki "▶ Şimdi çalıştır" butonu).
 - **UI tetiği**: `POST /api/automation/run_now` (kind=news|topic) veya `POST /api/news/run_now`.
 
+### 11.1 Toplu üretim dayanıklılığı (`_run_now_bulk`)
+
+- Her tur **ayrı ayrı** `try/except` ile sarılır: bir turun exception atması
+  bulk'u durdurmaz, "atlandı" satırına dönüşür ve üretim devam eder.
+- Üst üste **3** hata → devre kesici (dış servis düşmüş olabilir). Hiç kart
+  üretilemediyse ve sebep hataysa iş başarısız işaretlenir; aksi hâlde kısmi
+  başarı **başarıdır** ve özet "`9/10 kart üretildi · 1 hata`" biçiminde raporlanır.
+- `no_news` / `no_text` / `no_topic` / `disabled` → aday yok, erken sonlan.
+  `no_image` bilinçli olarak bu listede **değildir**: Unsplash geçici boş
+  dönebilir, sonraki tur başarılı olabilir.
+- Görsel bulunamaması artık exception değil, `{"ok": False, "reason": "no_image"}`
+  sonucudur (hem `news_automation` hem `topic_automation` içinde).
+
+### 11.2 Konu tekrarını engelleyen dedup
+
+- **Dört anahtar/kayıt** (`news_automation._dedup_keys`): link id, başlık-link
+  şeması, normalize başlık (`t:` önekli), eski `topic_automation` şeması.
+  Herhangi biri state'te varsa aday kullanılmış sayılır → aynı konu farklı
+  kaynaktan gelse de yakalanır. Normalizasyon Türkçe i/I/İ/ı varyantlarını tek
+  harfe indirir ("KONBINI" = "Konbini").
+- `used_ids` **sıra korunarak** saklanır (`_ordered_used`); eskiden `list(set)[-CAP:]`
+  yazıldığı için cap dolduğunda hangi kaydın düştüğü belirsizdi. `_USED_CAP=800`
+  (≈ son 200 içerik, kayıt başına 4 anahtar).
+- **Cooldown** (`news_automation.eligible_topics`): havuz tükendiğinde konular
+  sessizce yeniden açılmaz. Yalnız `topic_cooldown_days` (varsayılan 45) süresi
+  dolan konular, **en eski kullanılan önce** yarışa döner; hiçbiri uygun değilse
+  evergreen fazı açık bir uyarıyla atlanır. `topic_automation._pick_topic` aynı
+  fonksiyonu kullanır.
+- `assets/topic_pool.json` — 57 konu; manzara konularının yanında ulaşım,
+  konaklama, tema parkı (USJ / Disneyland / DisneySea / teamLab) ve pratik
+  ziyaretçi kuralları başlıkları vardır. Görsel sorguları **marka adı içermez**
+  (stok fotoğrafta bulunmaz); testle kilitlidir.
+
 ## 12. Kimlik doğrulama
 - **Şu an**: yok. Cloudflare Tunnel'a public erişim. LAN + tunnel yeterli sayılıyor (tek kullanıcı).
 - **Instagram**: kanal token'ları `config.yaml`'da; Graph API `graph_token` + `ig_user_id`, instagrapi için `username/password/totp_secret/sessionid`.
