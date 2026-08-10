@@ -74,24 +74,20 @@ void main() {
     expect(find.text(tr('drawer.discover.scanner.sub')), findsOneWidget);
   });
 
-  testWidgets('Eats kartı ücretsiz katmanda "Ücretsiz" rozeti gösterir',
+  // Rotori Eats artık ücretsiz: rozet premium bayrağından bağımsız olarak
+  // hep "Ücretsiz" der. Eskiden Pass/Ücretsiz arasında geçiyordu.
+  testWidgets('Eats kartı premium durumundan bağımsız "Ücretsiz" gösterir',
       (tester) async {
-    SharedPreferences.setMockInitialValues({kPremiumPrefsKey: false});
-    await openDrawer(tester, weekTrip());
+    for (final premium in [false, true]) {
+      SharedPreferences.setMockInitialValues({kPremiumPrefsKey: premium});
+      await openDrawer(tester, weekTrip());
+      await tester.pump(const Duration(milliseconds: 200));
 
-    expect(find.text(tr('drawer.eats.free')), findsOneWidget);
-    expect(find.text(tr('drawer.eats.pass')), findsNothing);
-  });
-
-  testWidgets('Eats kartı premium açıkken "Pass" rozetine döner',
-      (tester) async {
-    SharedPreferences.setMockInitialValues({kPremiumPrefsKey: true});
-    await openDrawer(tester, weekTrip());
-    // premiumProvider prefs'i asenkron okur; rozet bir sonraki frame'de döner.
-    await tester.pump(const Duration(milliseconds: 200));
-
-    expect(find.text(tr('drawer.eats.pass')), findsOneWidget);
-    expect(find.text(tr('drawer.eats.free')), findsNothing);
+      expect(find.text(tr('drawer.eats.free')), findsOneWidget,
+          reason: 'premium=$premium');
+      expect(find.text(tr('drawer.eats.pass')), findsNothing,
+          reason: 'premium=$premium');
+    }
   });
 
   testWidgets('Eats kartına dokununca drawer kapanır ve Eats ekranı açılır',
@@ -102,7 +98,8 @@ void main() {
     await tester.tap(find.text(tr('drawer.discover.eats.sub')));
     await tester.pumpAndSettle();
 
-    // Eats ekranının kendi arama çubuğu ve filtre butonu geldi.
-    expect(find.text('Filtre'), findsOneWidget);
+    // Yemek rehberi açıldı: kategori çipleri ve yemek sayacı geliyor.
+    expect(find.text('Neyi yiyebilirsin?'), findsOneWidget);
+    expect(find.textContaining('yemek'), findsWidgets);
   });
 }

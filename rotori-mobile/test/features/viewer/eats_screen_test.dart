@@ -1,22 +1,21 @@
-// Rotori Eats ekranı widget testleri.
+// Rotori Eats — Japon yemekleri rehberi widget testleri.
 //
-// Kapsam: ücretsiz katman sınırı, detaylı filtre popup'ı ve içindeki kilitler,
-// premium açıkken açılan yetenekler ve "güvenlik bilgisi asla kilitlenmez"
-// kuralı.
+// Ekran tamamen ücretsiz: paywall, katman rozeti ve kilit YOKTUR. Bu
+// testler hem işlevi hem de "diyet bilgisi paywall'a konmaz" kararını korur.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:japan_trip/data/plans_repository.dart';
-import 'package:japan_trip/domain/eats.dart';
-import 'package:japan_trip/domain/eats_query.dart';
+import 'package:japan_trip/domain/japanese_dishes.dart';
+import 'package:japan_trip/domain/japanese_dishes_data.dart';
 import 'package:japan_trip/domain/types.dart';
 import 'package:japan_trip/features/viewer/eats_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Trip _sampleTrip({List<String> dietaryTags = const []}) => Trip(
+Trip _trip({List<String> diet = const []}) => Trip(
       id: 'trip-eats',
-      slug: 'eats-trip',
+      slug: 'eats',
       title: 'Eats Test',
       timezone: 'Asia/Tokyo',
       tripStart: '2026-07-01',
@@ -25,301 +24,203 @@ Trip _sampleTrip({List<String> dietaryTags = const []}) => Trip(
       preferences: TripPreferences(
         travelDates: TravelDates(start: '2026-07-01', end: '2026-07-02'),
         pace: Pace.moderate,
-        dietaryTags: dietaryTags,
+        dietaryTags: diet,
       ),
     );
 
-/// Ekran "şu anki öğün"ü Japonya yerel saatinden türetir; test de aynı
-/// hesabı yapmalı ki beklenen öneriler tutsun.
-int japanHourForTest() =>
-    DateTime.now().toUtc().add(const Duration(hours: 9)).hour;
-
 void main() {
-  void useTallViewport(WidgetTester tester) {
-    tester.view.physicalSize = const Size(1200, 9000);
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
+  void tall(WidgetTester tester) {
+    tester.view.physicalSize = const Size(1200, 14000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
   }
 
-  Widget harness(Trip trip) {
-    return ProviderScope(
-      overrides: [
-        sharedPrefsProvider.overrideWith(
-          (ref) async => SharedPreferences.getInstance(),
-        ),
-      ],
-      child: MaterialApp(
-        home: Builder(
-          builder: (context) => MediaQuery(
-            data: MediaQuery.of(context).copyWith(disableAnimations: true),
-            child: EatsScreen(trip: trip),
+  Widget harness(Trip trip) => ProviderScope(
+        overrides: [
+          sharedPrefsProvider.overrideWith(
+            (ref) async => SharedPreferences.getInstance(),
+          ),
+        ],
+        child: MaterialApp(
+          home: Builder(
+            builder: (context) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(disableAnimations: true),
+              child: EatsScreen(trip: trip),
+            ),
           ),
         ),
-      ),
-    );
-  }
+      );
 
   Future<void> settle(WidgetTester tester) async {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 120));
   }
 
-  group('ücretsiz katman', () {
-    setUp(() => SharedPreferences.setMockInitialValues({}));
-
-    testWidgets('arama + filtre çubuğu ve ücretsiz rozeti görünür',
+  group('liste', () {
+    testWidgets('yemekler adı, Japoncası ve sayısıyla listelenir',
         (tester) async {
-      useTallViewport(tester);
-      await tester.pumpWidget(harness(_sampleTrip()));
+      tall(tester);
+      await tester.pumpWidget(harness(_trip()));
       await settle(tester);
 
-      expect(find.text('Filtre'), findsOneWidget);
-      expect(find.text('Ücretsiz'), findsOneWidget);
-      expect(find.text('Şimdi ne yesem?'), findsOneWidget);
+      expect(find.text('${kJapaneseDishes.length} yemek'), findsOneWidget);
+      expect(find.text('Ramen'), findsOneWidget);
+      expect(find.textContaining('ラーメン'), findsWidgets);
     });
 
-    testWidgets('sonuç sayısı ücretsiz limitle sınırlanır ve bu söylenir',
-        (tester) async {
-      useTallViewport(tester);
-      await tester.pumpWidget(harness(_sampleTrip()));
+    testWidgets('kategori seçimi listeyi daraltır', (tester) async {
+      tall(tester);
+      await tester.pumpWidget(harness(_trip()));
       await settle(tester);
 
-      final all = runEatsQuery(kEatsPlaces, tier: EatsTier.free);
-      expect(all.length, greaterThan(kEatsFreeVisibleLimit));
+      // Aynı metin hem kategori çipinde hem kartların alt satırında geçiyor;
+      // çip listenin en üstünde olduğu için ilk eşleşme odur.
+      await tester.tap(find.textContaining('Erişteler').first);
+      await tester.pump();
 
-      // Başlık "N sonuçtan M tanesi" biçiminde kırpmayı açıkça söyler.
+      final noodles =
+          kJapaneseDishes.where((d) => d.category == DishCategory.noodles);
+      expect(find.text('${noodles.length} yemek'), findsOneWidget);
+      expect(find.text('Ramen'), findsOneWidget);
+      expect(find.text('Takoyaki'), findsNothing);
+    });
+
+    testWidgets('arama Japonca ada göre de çalışır', (tester) async {
+      tall(tester);
+      await tester.pumpWidget(harness(_trip()));
+      await settle(tester);
+
+      await tester.enterText(find.byType(TextField), 'たこ焼き');
+      await tester.pump();
+
+      expect(find.text('1 yemek'), findsOneWidget);
+      expect(find.text('Takoyaki'), findsOneWidget);
+    });
+  });
+
+  group('diyet hükmü', () {
+    testWidgets('tercih yokken hüküm verilmez, çağrı gösterilir',
+        (tester) async {
+      tall(tester);
+      await tester.pumpWidget(harness(_trip()));
+      await settle(tester);
+
+      expect(find.text('Neyi yiyebilirsin?'), findsOneWidget);
+      // Hiçbir kartta rozet olmamalı — uydurma "uygun" yok.
+      expect(find.textContaining('Yiyebilirsin'), findsNothing);
+    });
+
+    testWidgets('helal seçiliyken rozetler ve gerekçeler çıkar',
+        (tester) async {
+      tall(tester);
+      await tester.pumpWidget(harness(_trip(diet: ['halal'])));
+      await settle(tester);
+
+      expect(find.text('Sana göre işaretleniyor'), findsOneWidget);
+      expect(find.textContaining('Uygun değil'), findsWidgets);
+    });
+
+    testWidgets('uygun olmayan yemekte alternatif tür önerilir',
+        (tester) async {
+      tall(tester);
+      await tester.pumpWidget(harness(_trip(diet: ['no_pork'])));
+      await settle(tester);
+
+      // Ramen domuz bazlıdır ama tori paitan/vegan türü var.
       expect(
-        find.text('${all.length} sonuçtan $kEatsFreeVisibleLimit tanesi'),
-        findsOneWidget,
+        find.textContaining('türünü yiyebilirsin'),
+        findsWidgets,
       );
-
-      // İlk kEatsFreeVisibleLimit mekan görünür, sonraki görünmez.
-      for (final r in all.take(kEatsFreeVisibleLimit)) {
-        expect(find.text(r.place.name), findsOneWidget, reason: r.place.id);
-      }
-      expect(find.text(all[kEatsFreeVisibleLimit].place.name), findsNothing);
     });
 
-    testWidgets('premium tanıtım kartı ve paywall açılır', (tester) async {
-      useTallViewport(tester);
-      await tester.pumpWidget(harness(_sampleTrip()));
-      await settle(tester);
-
-      expect(find.text('Rotori Eats Pass'), findsOneWidget);
-      await tester.ensureVisible(find.text('Hepsini aç'));
-      await tester.tap(find.text('Hepsini aç'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Premium ile açılanlar'), findsOneWidget);
-      expect(find.text('Beni haberdar et'), findsOneWidget);
-      // Paywall ücretsiz katmanın ne verdiğini de dürüstçe söyler.
-      expect(find.text('Ücretsiz katmanda ne var?'), findsOneWidget);
-    });
-
-    testWidgets('"Şimdi ne yesem?" kilitli — dokununca paywall açar',
+    testWidgets('"sadece yiyebileceklerim" anahtarı listeyi kısaltır',
         (tester) async {
-      useTallViewport(tester);
-      await tester.pumpWidget(harness(_sampleTrip()));
+      tall(tester);
+      await tester.pumpWidget(harness(_trip(diet: ['vegan'])));
       await settle(tester);
 
-      await tester.tap(find.text('Şimdi ne yesem?'));
-      await tester.pumpAndSettle();
-      expect(find.text('Premium ile açılanlar'), findsOneWidget);
+      final before = kJapaneseDishes.length;
+      expect(find.text('$before yemek'), findsOneWidget);
+
+      await tester.tap(find.byType(Switch));
+      await tester.pump();
+
+      expect(find.text('$before yemek'), findsNothing);
     });
   });
 
-  group('detaylı filtre popup', () {
-    setUp(() => SharedPreferences.setMockInitialValues({}));
-
-    testWidgets('açılır, ücretsiz eksenler açık, premium eksenler kilitli',
+  group('yemek detayı', () {
+    testWidgets('malzemeler, nasıl yenir ve Japonca ad gösterilir',
         (tester) async {
-      useTallViewport(tester);
-      await tester.pumpWidget(harness(_sampleTrip()));
+      tall(tester);
+      await tester.pumpWidget(harness(_trip()));
       await settle(tester);
 
-      await tester.tap(find.text('Filtre'));
+      await tester.tap(find.text('Ramen'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Detaylı filtre'), findsOneWidget);
-      // Ücretsiz eksenler
-      expect(find.text('Helal güveni'), findsOneWidget);
-      expect(find.text('Vejetaryen / vegan'), findsOneWidget);
-      expect(find.text('Şehir'), findsOneWidget);
-      // Premium eksenler kilit rozetiyle görünür (gizlenmez).
-      expect(find.text('Mutfak'), findsOneWidget);
-      expect(find.text('Kişi başı fiyat'), findsOneWidget);
-      expect(find.widgetWithText(Container, 'Pass'), findsWidgets);
+      expect(find.text('Nedir'), findsOneWidget);
+      expect(find.text('İçinde ne var'), findsOneWidget);
+      expect(find.text('Nasıl yenir'), findsOneWidget);
+      expect(find.text('Türleri'), findsOneWidget);
+      expect(find.textContaining('Personele göstermek için'), findsOneWidget);
     });
 
-    testWidgets('ücretsiz eksende seçim listeyi daraltır', (tester) async {
-      useTallViewport(tester);
-      await tester.pumpWidget(harness(_sampleTrip()));
+    testWidgets('alt tür seçmek hükmü değiştirir', (tester) async {
+      tall(tester);
+      await tester.pumpWidget(harness(_trip(diet: ['no_pork'])));
       await settle(tester);
 
-      await tester.tap(find.text('Filtre'));
+      await tester.tap(find.text('Ramen'));
       await tester.pumpAndSettle();
 
-      // Şehir = Kyoto
-      await tester.tap(find.text('Kyoto'));
-      await tester.pumpAndSettle();
+      // Genel ramen domuz bazlı → uygun değil.
+      expect(find.textContaining('⛔'), findsWidgets);
 
-      final expected = runEatsQuery(
-        kEatsPlaces,
-        query: const EatsQuery(cities: {'Kyoto'}),
-        tier: EatsTier.free,
-      );
-      await tester.tap(find.text('${expected.length} sonucu göster'));
+      // Vegan ramen türüne geç → artık "sor".
+      await tester.tap(find.text('Vegan ramen'));
       await tester.pumpAndSettle();
-
-      // Filtre butonu aktif sayacı gösterir ve liste Kyoto'ya daralır.
-      expect(find.text('1'), findsWidgets);
-      expect(find.text(expected.first.place.name), findsOneWidget);
+      expect(find.textContaining('⚠️'), findsWidgets);
     });
 
-    testWidgets('kilitli eksene dokunmak paywall açar', (tester) async {
-      useTallViewport(tester);
-      await tester.pumpWidget(harness(_sampleTrip()));
+    testWidgets('gizli risk uyarısı gösterilir', (tester) async {
+      tall(tester);
+      await tester.pumpWidget(harness(_trip()));
       await settle(tester);
 
-      await tester.tap(find.text('Filtre'));
+      await tester.tap(find.text('Miso çorbası'));
       await tester.pumpAndSettle();
 
-      // Kilitli bölümün gövdesi IgnorePointer içindedir; dokunuşu yakalayan
-      // sarmalayıcı GestureDetector'dır — testin de onu hedeflemesi gerekir.
-      final lockedSection = find
-          .ancestor(
-            of: find.text('Mutfak'),
-            matching: find.byType(GestureDetector),
-          )
-          .first;
-      await tester.ensureVisible(lockedSection);
-      await tester.pumpAndSettle();
-      await tester.tap(lockedSection);
-      await tester.pumpAndSettle();
-
-      expect(find.text('Premium ile açılanlar'), findsOneWidget);
+      expect(find.text('Dikkat'), findsOneWidget);
+      expect(find.textContaining('dashi'), findsWidgets);
     });
   });
 
-  group('premium katman', () {
-    setUp(() => SharedPreferences.setMockInitialValues({'debug_premium': true}));
-
-    testWidgets('kırpma kalkar, Pass rozeti ve Rotori Seçkisi görünür',
+  group('ücretsizlik', () {
+    testWidgets('hiçbir yerde paywall, kilit ya da Pass rozeti yok',
         (tester) async {
-      useTallViewport(tester);
-      await tester.pumpWidget(harness(_sampleTrip()));
+      tall(tester);
+      await tester.pumpWidget(harness(_trip(diet: ['halal'])));
       await settle(tester);
 
-      expect(find.text('Pass aktif'), findsOneWidget);
-
-      final all = runEatsQuery(kEatsPlaces, tier: EatsTier.premium);
-      expect(find.text('${all.length} sonuç'), findsOneWidget);
-
-      // Yalnızca premium'da görünen küratörlü kayıt listeye girer.
-      final curated = kEatsPlaces.firstWhere((p) => p.premiumOnly);
-      expect(find.text(curated.name), findsOneWidget);
-
-      // Upsell kartı premium'da gösterilmez.
+      expect(find.text('Rotori Eats Pass'), findsNothing);
       expect(find.text('Hepsini aç'), findsNothing);
-    });
-
-    testWidgets('"Şimdi ne yesem?" 3 gerekçeli öneri sheet\'i açar',
-        (tester) async {
-      useTallViewport(tester);
-      await tester.pumpWidget(harness(_sampleTrip()));
-      await settle(tester);
-
-      await tester.tap(find.text('Şimdi ne yesem?'));
-      await tester.pumpAndSettle();
-
-      // Başlıkta emoji ile metin birleşik render edilir.
-      expect(find.textContaining('Şimdi buraya git'), findsOneWidget);
-
-      final picks = pickEatsNow(
-        kEatsPlaces,
-        context: EatsContext(nowSlot: MealSlotX.forHour(japanHourForTest())),
-      );
-      expect(picks.length, kEatsPickCount);
-      for (final r in picks) {
-        expect(find.textContaining(r.place.name), findsWidgets,
-            reason: r.place.id);
-      }
-    });
-
-    testWidgets('premium eksen filtre popup\'ında kilitsiz açılır',
-        (tester) async {
-      useTallViewport(tester);
-      await tester.pumpWidget(harness(_sampleTrip()));
-      await settle(tester);
-
-      await tester.tap(find.text('Filtre'));
-      await tester.pumpAndSettle();
-
-      // Kilit rozeti hiç yok.
-      expect(find.widgetWithText(Container, 'Pass'), findsNothing);
-
-      // Mutfak seçimi gerçekten uygulanır.
-      await tester.tap(find.text('🍣 Suşi'));
-      await tester.pumpAndSettle();
-
-      final expected = runEatsQuery(
-        kEatsPlaces,
-        query: const EatsQuery(cuisines: {EatsCuisine.sushi}),
-        tier: EatsTier.premium,
-      );
-      expect(find.text('${expected.length} sonucu göster'), findsOneWidget);
+      expect(find.text('Pass aktif'), findsNothing);
+      expect(find.byIcon(Icons.lock_rounded), findsNothing);
     });
   });
 
-  group('kişiselleştirme ve güvenlik', () {
-    setUp(() => SharedPreferences.setMockInitialValues({}));
-
-    testWidgets('helal tercihi seçiliyse filtre otomatik kurulur',
-        (tester) async {
-      useTallViewport(tester);
-      await tester.pumpWidget(harness(_sampleTrip(dietaryTags: ['halal'])));
+  group('menü kelimeleri', () {
+    testWidgets('menüde tanınacak kelimeler listelenir', (tester) async {
+      tall(tester);
+      await tester.pumpWidget(harness(_trip()));
       await settle(tester);
 
-      // Aktif filtre rozeti görünür ve listede helal olmayan mekan yok.
-      expect(find.textContaining('Müslüman dostu'), findsWidgets);
-
-      final expected = runEatsQuery(
-        kEatsPlaces,
-        query: const EatsQuery(minHalal: HalalTrust.muslimFriendly),
-        tier: EatsTier.free,
-      );
-      expect(find.text(expected.first.place.name), findsOneWidget);
-    });
-
-    testWidgets('detay sheet\'inde güvenlik bilgisi ücretsiz katmanda da açık',
-        (tester) async {
-      useTallViewport(tester);
-      await tester.pumpWidget(harness(_sampleTrip(dietaryTags: ['halal'])));
-      await settle(tester);
-
-      final first = runEatsQuery(
-        kEatsPlaces,
-        query: const EatsQuery(minHalal: HalalTrust.muslimFriendly),
-        tier: EatsTier.free,
-      ).first;
-
-      await tester.tap(find.text(first.place.name));
-      await tester.pumpAndSettle();
-
-      // Helal seviyesi açıklaması + sipariş frazları kilitli DEĞİL.
-      expect(find.text('Kapıda göster / sor'), findsOneWidget);
-      expect(find.text('これに豚肉は入っていますか？'), findsOneWidget);
-      // Veri küratörlü ve canlı DEĞİL; sorumluluk reddi bunu açıkça söyler
-      // ("son kontrol" gibi doğrulama iması taşımaz).
-      expect(
-        find.textContaining('doğrudan teyit ALINMAMIŞTIR'),
-        findsOneWidget,
-      );
-
-      // Karar zekası ise kilitli.
-      expect(find.text('Rotori uyum skoru'), findsOneWidget);
-      expect(find.text('Eats Pass ile aç'), findsWidgets);
+      expect(find.text('Menüde tanıman gereken kelimeler'), findsOneWidget);
+      expect(find.text('だし / 出汁'), findsOneWidget);
     });
   });
 }

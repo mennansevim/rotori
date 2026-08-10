@@ -1,5 +1,13 @@
 # Rotori Eats — Veri Sözleşmesi (v1)
 
+> **⚠️ BEKLEMEDE — 2026-08-10.** Rotori Eats restoran dizininden **Japon
+> yemekleri rehberine** dönüştürüldü (`lib/domain/japanese_dishes.dart`).
+> Mekan verisi artık uygulamada kullanılmıyor, dolayısıyla bu sözleşmeye göre
+> toplayıcı yazmaya **şu an gerek yok**. Belge, ileride mekan katmanı geri
+> getirilirse hazır dursun diye korunuyor. Yeni yönde neyin doğrulanması
+> gerektiği için bkz. `EATS_CONTENT_QA_CHECKLIST.md`.
+
+
 Toplayıcı uygulama ile Rotori arasındaki sözleşme. Toplayıcı **Katman A**'yı
 üretir; **Katman B** Rotori'de elle kalır.
 
