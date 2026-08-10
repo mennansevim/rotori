@@ -554,13 +554,6 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 @media(max-width:760px){.trust-strip{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.trust-strip{grid-template-columns:1fr}}
 
-/* Pricing */
-.pricebox{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:clamp(32px,5vw,56px);text-align:center;max-width:640px;margin:32px auto 0;box-shadow:0 24px 60px -30px rgba(107,90,227,.14)}
-.pricebox .big{font-size:clamp(48px,7vw,80px);font-weight:300;letter-spacing:-.04em;background:var(--grad-brand);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
-.pricebox .sm{font-size:15px;color:var(--ink-2);margin-top:8px}
-.price-list{display:grid;grid-template-columns:1fr;gap:10px;margin-top:26px;text-align:left;max-width:360px;margin-left:auto;margin-right:auto}
-.price-list li{list-style:none;display:flex;gap:10px;align-items:center;font-size:14.5px;color:var(--ink-2)}
-.price-list li .m{color:var(--matcha);font-weight:700}
 
 /* Bridge scroll-scrub set piece */
 #bridge{height:340svh;position:relative}
@@ -690,8 +683,6 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
 
     <div class="microline" style="justify-content:center;margin-top:22px">
       <span data-i18n="hero.m1">iPhone için</span>
-      <span>·</span>
-      <span data-i18n="hero.m2">Ücretsiz</span>
       <span>·</span>
       <span data-i18n="hero.m3">Uçak modunda çalışır</span>
     </div>
@@ -1204,6 +1195,21 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
   <p class="muted reveal" style="text-align:center;margin-top:24px;font-size:13.5px" data-i18n="mem.legend">Her seviye 100 XP · plan rozeti +50 XP · keşif rozeti +25 XP</p>
 </div></section>
 
+<!-- 14. TICKETS — popular tickets sell out; Rotori reminds you to buy in time -->
+<section class="sec" id="tickets"><div class="wrap">
+  <div style="text-align:center;max-width:720px;margin:0 auto">
+    <span class="eyebrow reveal" style="justify-content:center" data-i18n="tix.eyebrow">14 · Biletler</span>
+    <h2 class="h-1 reveal d1" style="margin-top:16px" data-i18n-html="tix.h">Popüler biletler tükenir.<br>Rotori zamanında hatırlatır.</h2>
+    <p class="lead reveal d2" style="margin:22px auto 0" data-i18n="tix.lead">Shinkansen koltukları, Disneyland ve USJ girişleri günler öncesinden tükenebilir. Rotori satışın açıldığı ve son alım gününü takip eder; tek dokunuşla resmî satış sayfasına götürür.</p>
+  </div>
+  <div class="rail-side reveal d2" style="max-width:760px;margin:36px auto 0">
+    <div class="rail-tile"><div class="rt-ic">🚄</div><div><div class="rt-t" data-i18n="tix.t1t">Shinkansen koltuğu</div><div class="rt-s" data-i18n="tix.t1s">Rezerveli vagonlar tatil dönemlerinde dolar. Rotori kalkıştan önce yer ayırmanı hatırlatır.</div></div></div>
+    <div class="rail-tile"><div class="rt-ic">🏰</div><div><div class="rt-t" data-i18n="tix.t2t">Tokyo Disneyland</div><div class="rt-s" data-i18n="tix.t2s">Günlük bilet kotası önceden biter. Satış açıldığında haber verir, tarihini kaçırmazsın.</div></div></div>
+    <div class="rail-tile"><div class="rt-ic">🎢</div><div><div class="rt-t" data-i18n="tix.t3t">Universal Studios (USJ)</div><div class="rt-s" data-i18n="tix.t3s">Express Pass hızla tükenir. Rotori uygun tarihte alım hatırlatıcısını planına ekler.</div></div></div>
+    <div class="rail-tile"><div class="rt-ic">🎫</div><div><div class="rt-t" data-i18n="tix.t4t">Tek dokunuşla al</div><div class="rt-s" data-i18n="tix.t4s">Her hatırlatıcı seni doğrudan resmî satış sayfasına götürür — arama yok, kaçan bilet yok.</div></div></div>
+  </div>
+</div></section>
+
 <!-- 16. TRUST STRIP -->
 <section class="sec tight" id="trust"><div class="wrap">
   <div style="text-align:center;max-width:600px;margin:0 auto">
@@ -1218,26 +1224,6 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
     <div class="trust-cell"><div class="tc-ic">🗑️</div><div><div class="tc-t" data-i18n="trust.c4t">Anlık hesap silme</div><div class="tc-d" data-i18n="trust.c4d">App Store GL 5.1.1(v) uyumlu · uygulama içinden</div></div></div>
     <div class="trust-cell"><div class="tc-ic">⚖️</div><div><div class="tc-t" data-i18n="trust.c5t">Veri hakları</div><div class="tc-d" data-i18n="trust.c5d">Gizlilik, veri erişimi ve silme seçenekleri uygulama içinde</div></div></div>
     <div class="trust-cell"><div class="tc-ic">🇯🇵</div><div><div class="tc-t" data-i18n="trust.c6t">Sınırlı dış servis</div><div class="tc-d" data-i18n="trust.c6d">Hava için Open-Meteo · rota açıldığında Apple veya Google Maps</div></div></div>
-  </div>
-</div></section>
-
-<!-- 17. PRICING -->
-<section class="sec" id="pricing"><div class="wrap">
-  <div style="text-align:center;max-width:640px;margin:0 auto">
-    <span class="eyebrow reveal" style="justify-content:center" data-i18n="price.eyebrow">14 · Fiyat</span>
-    <h2 class="h-1 reveal d1" style="margin-top:16px" data-i18n="price.h">Ücretsiz. Aboneliksiz. Reklamsız.</h2>
-    <p class="lead reveal d2" style="margin:22px auto 0" data-i18n="price.lead">MVP sürümünde tüm özellikler ücretsiz. Reklam, abonelik ve uygulama içi satın alım yok.</p>
-  </div>
-  <div class="pricebox reveal d2">
-    <div class="big" data-i18n="price.big">Ücretsiz</div>
-    <div class="sm" data-i18n="price.sm">iPhone için · Türkçe &amp; İngilizce</div>
-    <ul class="price-list">
-      <li><span class="m">✓</span><span data-i18n="price.l1">Reklam yok</span></li>
-      <li><span class="m">✓</span><span data-i18n="price.l2">Uygulama içi satın alım yok</span></li>
-      <li><span class="m">✓</span><span data-i18n="price.l3">Abonelik yok</span></li>
-      <li><span class="m">✓</span><span data-i18n="price.l4">Ücretsiz deneme tuzağı yok</span></li>
-      <li><span class="m">✓</span><span data-i18n="price.l5">Tüm özellikler açık</span></li>
-    </ul>
   </div>
 </div></section>
 
@@ -1256,7 +1242,7 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
         <svg width="20" height="22" viewBox="0 0 20 22" aria-hidden="true"><path d="M1 1.5v19l11-9.5z" fill="#b3a6ff"/><path d="M1 1.5l11 9.5 4-3.5z" fill="#FF8FAB"/><path d="M1 20.5l11-9.5 4 3.5z" fill="#7C6AEF"/><path d="M16 7.5l3 2.6c.8.7.8 1.9 0 2.6l-3 2.6-4-4z" fill="#FFD54F"/></svg>
         <div style="text-align:left"><div class="sm" data-i18n="final.soon">Yakında</div><div class="big">Google Play</div></div></span>
     </div>
-    <p class="muted" style="margin-top:28px;font-size:14px" data-i18n="final.micro">iPhone için · Ücretsiz · Türkçe &amp; İngilizce</p>
+    <p class="muted" style="margin-top:28px;font-size:14px" data-i18n="final.micro">iPhone için · Türkçe &amp; İngilizce</p>
     <p class="muted" style="margin-top:14px;font-size:13.5px" data-i18n-html="final.help">Sorun mu? <a href="mailto:destek@rotori.app" style="color:var(--accent);font-weight:600">destek@rotori.app</a></p>
   </div>
 </section>
@@ -1294,7 +1280,6 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
     'hero.cta1':{tr:'App Store\'da indir',en:'Download on the App Store'},
     'hero.cta2':{tr:'Nasıl çalışıyor ↓',en:'How it works ↓'},
     'hero.m1':{tr:'iPhone için',en:'For iPhone'},
-    'hero.m2':{tr:'Ücretsiz',en:'Free'},
     'hero.m3':{tr:'Uçak modunda çalışır',en:'Works in airplane mode'},
     // Hero — awards, notifications, tab-bar
     'hero.aw1t':{tr:'Sign in with Apple',en:'Sign in with Apple'},
@@ -1570,23 +1555,24 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
     'trust.c6d':{tr:'Hava için Open-Meteo · rota açıldığında Apple veya Google Maps',en:'Open-Meteo for weather · Apple or Google Maps when you open directions'},
 
     // PRICING
-    'price.eyebrow':{tr:'14 · Fiyat',en:'14 · Price'},
-    'price.h':{tr:'Ücretsiz. Aboneliksiz. Reklamsız.',en:'Free. No subscription. No ads.'},
-    'price.lead':{tr:'MVP sürümünde tüm özellikler ücretsiz. Reklam, abonelik ve uygulama içi satın alım yok.',en:'Every feature in the MVP is free, with no ads, subscriptions, or in-app purchases.'},
-    'price.big':{tr:'Ücretsiz',en:'Free'},
-    'price.sm':{tr:'iPhone için · Türkçe & İngilizce',en:'For iPhone · Turkish & English'},
-    'price.l1':{tr:'Reklam yok',en:'No ads'},
-    'price.l2':{tr:'Uygulama içi satın alım yok',en:'No in-app purchases'},
-    'price.l3':{tr:'Abonelik yok',en:'No subscription'},
-    'price.l4':{tr:'Süre sınırı yok',en:'No time limit'},
-    'price.l5':{tr:'Tüm özellikler açık',en:'All features unlocked'},
+    'tix.eyebrow':{tr:'14 · Biletler',en:'14 · Tickets'},
+    'tix.h':{tr:'Popüler biletler tükenir.<br>Rotori zamanında hatırlatır.',en:'Popular tickets sell out.<br>Rotori reminds you in time.'},
+    'tix.lead':{tr:'Shinkansen koltukları, Disneyland ve USJ girişleri günler öncesinden tükenebilir. Rotori satışın açıldığı ve son alım gününü takip eder; tek dokunuşla resmî satış sayfasına götürür.',en:'Shinkansen seats and Disneyland or USJ entries can sell out days ahead. Rotori tracks when sales open and the last day to buy, then takes you to the official page in one tap.'},
+    'tix.t1t':{tr:'Shinkansen koltuğu',en:'Shinkansen seat'},
+    'tix.t1s':{tr:'Rezerveli vagonlar tatil dönemlerinde dolar. Rotori kalkıştan önce yer ayırmanı hatırlatır.',en:'Reserved cars fill up over holidays. Rotori reminds you to book a seat before departure.'},
+    'tix.t2t':{tr:'Tokyo Disneyland',en:'Tokyo Disneyland'},
+    'tix.t2s':{tr:'Günlük bilet kotası önceden biter. Satış açıldığında haber verir, tarihini kaçırmazsın.',en:'Daily ticket quotas run out early. Rotori pings you when sales open so you don’t miss your date.'},
+    'tix.t3t':{tr:'Universal Studios (USJ)',en:'Universal Studios (USJ)'},
+    'tix.t3s':{tr:'Express Pass hızla tükenir. Rotori uygun tarihte alım hatırlatıcısını planına ekler.',en:'Express Passes sell out fast. Rotori adds a buy-now reminder to your plan on the right date.'},
+    'tix.t4t':{tr:'Tek dokunuşla al',en:'Buy in one tap'},
+    'tix.t4s':{tr:'Her hatırlatıcı seni doğrudan resmî satış sayfasına götürür — arama yok, kaçan bilet yok.',en:'Every reminder takes you straight to the official sales page — no searching, no sold-out surprises.'},
 
     // FINAL
     'final.h':{tr:'Japonya rotanı bugün kur.',en:'Build your Japan route today.'},
     'final.lead':{tr:'Planın hazır olsun; yolculukta sıradaki adımı Rotori göstersin.',en:'Prepare your plan, then let Rotori show the next step during your trip.'},
     'final.get':{tr:'İndir',en:'Download'},
     'final.soon':{tr:'Yakında',en:'Coming soon'},
-    'final.micro':{tr:'iPhone için · Ücretsiz · Türkçe & İngilizce',en:'For iPhone · Free · Turkish & English'},
+    'final.micro':{tr:'iPhone için · Türkçe & İngilizce',en:'For iPhone · Turkish & English'},
     'final.help':{tr:'Sorun mu? <a href="mailto:destek@rotori.app" style="color:var(--accent);font-weight:600">destek@rotori.app</a>',en:'Need help? <a href="mailto:destek@rotori.app" style="color:var(--accent);font-weight:600">destek@rotori.app</a>'},
 
     // FOOTER
