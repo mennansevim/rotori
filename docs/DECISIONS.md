@@ -887,3 +887,25 @@ kartın içinde açılır. Aşağıdaki hazır ifade kategorileri ücretsiz kal�
 **Neden:** İlk App Store sürümünde mikrofon izin ve gerçek-cihaz konuşma paketi
 matrisini kapsamdan çıkarmak inceleme riskini azaltır. Metin çevirisi seyahatte
 çevrimdışı faydayı korur ve premium değer önerisini netleştirir.
+
+---
+
+## 2026-08-11e — Günlük geçişler her zaman kompakt görünür
+
+**Karar:** Günlük timeline'daki yürüyüş ve ulaşım ayakları çok satırlı kart
+yerine ikon, başlangıç→varış, süre ve veri güvenini taşıyan tek satırlık
+kompakt yüzey olarak gösterilir. Onaylanmış `RouteExecutionSnapshot` varsa
+aynı gerçek/tahmini ayaklar kullanılır. Snapshot yoksa viewer mevcut aktivite
+sırasını değiştirmeden yer koordinatlarından geçici tahmini ayaklar türetir;
+bu ayaklar kaydedilmez ve `TAHMİNİ` olarak kalır.
+
+**Algoritma sınırı:** İlk planın kural tabanlı hızlı üretimi ile tam rota
+optimizasyonu birbirinden ayrıdır. Koordinat tahmini yalnız sunum boşluğunu
+doldurur; mevcut sırayı/saatleri değiştirmez ve gösterdiği yaklaşık ulaşım
+türünü nihai rota kararı olarak kaydetmez. Kullanıcı “Rotayı optimize et”
+dediğinde yönlü matris, beam width 6, hard constraint'ler ve bağımsız validator
+çalışır; sonuç yalnız açık onayla kalıcılaşır.
+
+**Neden:** Kullanıcı her durak arasında nasıl geçeceğini ilk açılıştan itibaren
+görmek istiyor; büyük kartlar aktivite akışını bastırıyor. Kompakt satır bilgi
+sürekliliğini korurken timeline'ın asıl odağını etkinliklerde tutar.

@@ -504,6 +504,37 @@ void main() {
     expect(find.text(tr('routeOptimization.legs.estimatedHelp')), findsWidgets);
   });
 
+  testWidgets('optimizasyon öncesinde tüm geçişler kompakt tahmin olarak görünür',
+      (tester) async {
+    await tester.pumpWidget(harness(_routeUiTrip()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    final departure = find.byKey(
+      const ValueKey('saved-route-leg-1-day-1-base-b'),
+    );
+    final betweenStops = find.byKey(
+      const ValueKey('saved-route-leg-1-b-a'),
+    );
+    await tester.scrollUntilVisible(
+      departure,
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(departure, findsOneWidget);
+    expect(betweenStops, findsOneWidget);
+    expect(tester.getSize(departure).height, lessThan(44));
+    expect(
+      find.descendant(
+        of: departure,
+        matching: find.text(tr('routeOptimization.legs.estimated')),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets(
       'onaylanmış rota snapshotı plan yeniden açılınca günlük akışta görünür',
       (tester) async {
@@ -521,8 +552,11 @@ void main() {
     );
 
     expect(savedLeg, findsOneWidget);
-    expect(find.text(tr('routeOptimization.legs.departure')), findsOneWidget);
-    expect(find.textContaining('Hat: Ginza Line'), findsOneWidget);
+    expect(find.text('Tokyo  →  Tokyo Skytree'), findsOneWidget);
+    expect(find.text('Metro · 18 dk'), findsOneWidget);
+    expect(tester.getSize(savedLeg).height, lessThan(44));
+    expect(find.text(tr('routeOptimization.legs.departure')), findsNothing);
+    expect(find.textContaining('Hat: Ginza Line'), findsNothing);
   });
 
   testWidgets(

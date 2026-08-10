@@ -815,6 +815,23 @@ geri almaz. Checkpoint alınırken kapsam dosya bazında açıkça ayrılmalıd�
       öncesindeki bu bağımlılık uyumsuzluğu ayrı Android build işi olarak
       çözülmeli.
 
+## 2026-08-11 — Günlük geçişleri kompaktlaştırma
+
+- [x] Günlük akıştaki büyük yürüyüş/ulaşım kartları ikon, duraklar, tür ve
+      süreyi taşıyan tek satırlık kompakt satırlara çevrildi.
+- [x] Kullanıcı optimizasyon çalıştırmadan önce de başlangıç, duraklar arası ve
+      güne dönüş geçişleri mevcut sıra üzerinde `TAHMİNİ` olarak gösteriliyor.
+- [x] Onaylanmış rota snapshot'ı varsa tahmini satırlar yerine kaydedilmiş
+      gerçek/tahmini ayaklar aynı kompakt sunumla kullanılıyor.
+- [x] İlk plan üretiminin yerel kural/katalog tabanlı, tam rota
+      optimizasyonunun ise ayrı beam-search + validator hattı olduğu ürün
+      sözleşmesinde açıkça ayrıldı.
+- [ ] Flutter SDK önbelleği proje yazma alanının dışında kaldığı ve bu oturumun
+      dış izin kotası dolduğu için son iki dosyanın analyze/widget test tekrarı
+      bir sonraki izinli çalıştırmada yapılacak. Bu değişiklikten önceki hedefli
+      rota/hatırlatıcı testleri 46/46, Eats/diyet testleri 45/45 ve çevirmen
+      testleri 5/5 geçmiştir.
+
 ## Son Commit'ler (referans)
 
 ```
