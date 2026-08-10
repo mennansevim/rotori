@@ -331,13 +331,19 @@ def backgrounds_preview(req: BackgroundPreviewRequest) -> dict[str, Any]:
         raise HTTPException(status_code=400, detail="Unsplash config yok.")
     from src import downloader
     try:
-        results = downloader.search_only(cfg, req.query, count=req.count, page=req.page)
+        # Ham sorgu doğrudan Unsplash'e gitmez: marka adı genel sahneye çevrilir,
+        # Türkçe kelimeler İngilizceye, Japonya çıpası eklenir ve boş sonuçta
+        # daha genel sahnelere düşülür (bkz. downloader.enrich_query).
+        found = downloader.search_with_fallback(cfg, req.query, count=req.count,
+                                                page=req.page)
     except requests.HTTPError as exc:
         raise HTTPException(status_code=exc.response.status_code,
                             detail=f"Unsplash hatası: {exc.response.text[:200]}") from exc
     except requests.RequestException as exc:
         raise HTTPException(status_code=502, detail=f"Unsplash erişim hatası: {exc}") from exc
-    return {"query": req.query, "results": results}
+    return {"query": req.query, "results": found["results"],
+            "effective_query": found["effective_query"],
+            "tried": found["tried"]}
 
 
 @app.post("/api/backgrounds/save")

@@ -2,9 +2,9 @@
 // pages/library.js — İçerik yaşam döngüsü: Taslak → Onaylandı → Yayınlandı
 // =========================================================================
 import { api, el, icons, typeBadge, fmtDate, fmtTime,
-         emptyState, errorState, loadingState, toast, confirmModal } from '../lib.js?v=20260810-7';
-import { openContentModal, regenerate } from '../modals.js?v=20260810-7';
-import { openCreateModal } from './create.js?v=20260810-7';
+         emptyState, errorState, loadingState, toast, confirmModal } from '../lib.js?v=20260810-8';
+import { openContentModal, regenerate } from '../modals.js?v=20260810-8';
+import { openCreateModal } from './create.js?v=20260810-8';
 
 const STAGES = {
   draft: {

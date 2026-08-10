@@ -1,7 +1,7 @@
 // =========================================================================
 // pages/settings.js — Hesap ve güvenli sistem ayarları
 // =========================================================================
-import { api, el, icons, errorState, loadingState, toast, confirmModal } from '../lib.js?v=20260810-7';
+import { api, el, icons, errorState, loadingState, toast, confirmModal } from '../lib.js?v=20260810-8';
 
 export async function renderSettings(root, ctx) {
   root.innerHTML = '';

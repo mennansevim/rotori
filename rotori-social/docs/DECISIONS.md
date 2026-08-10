@@ -5,6 +5,55 @@
 
 ---
 
+## Karar 17 — 2026-08-11
+### Karar
+Hiçbir görsel arama sorgusu ham hâlde Unsplash'e gitmez. Sorgu üç adımdan geçer
+(marka → çekilebilir sahne, Türkçe → İngilizce, Japonya çıpası) ve az sonuçta
+daha genel sahnelerle **biriktirerek** tamamlanır. Kural tek yerde
+(`downloader.enrich_query`) yaşar; hem manuel arama hem otomasyon onu kullanır.
+
+### Neden
+Kullanıcı "teamlabs yazınca saçmalıyor" dedi; gerçek ölçüm doğruladı:
+`teamlabs` → 3 alakasız sonuç (saat kulesi, portre), `immersive digital art
+installation japan` → 2068 ilgili sonuç. Sebep: stok fotoğraf arşivinde
+marka/tesis adı yoktur. Ayrıca arayüz Türkçe olduğu için kullanıcı "tapınak
+bahçesi" yazıyor, Unsplash İngilizce arıyor.
+
+Bu bir regresyon DEĞİLDİ: eski `studio.html` da aynı endpoint'e ham sorgu
+gönderiyordu ve `downloader.py` geçmişinde zenginleştirme hiç olmamıştı.
+"Eskiden iyiydi" hissi otomasyon yolundan geliyordu — orada editöryel model
+zaten marka adı yasaklı bir `gorsel_konsepti` üretiyor. Yani zekâ vardı ama
+yalnızca LLM'in geçtiği yolda; kullanıcının elle yazdığı yolda yoktu.
+
+### Değerlendirilen alternatifler
+1. **Her aramada LLM'e sorgu çevirtmek** — reddedildi: her tuşa basışta gecikme
+   ve OpenAI maliyeti; arama anlık olmalı. (LLM zaten otomasyon yolunda var.)
+2. **Kullanıcıyı eğitmek (placeholder'da "İngilizce genel sahne yaz")** — reddedildi:
+   arayüz Türkçe, kullanıcı Türkçe yazacak; sorunu kullanıcıya devretmek olur.
+3. **Deterministik eşleme + çıpa + kademeli fallback** — kabul: anlık, ücretsiz,
+   test edilebilir, davranışı öngörülebilir. Eksik marka olursa fallback yine
+   makul sonuç verir. (**Kabul**)
+
+### Ödünler
+- **Yararı**: manuel arama otomasyon kadar isabetli; Türkçe yazan kullanıcı
+  İngilizce arşivden sonuç alır; boş/az sonuçlu grid biter.
+- **Maliyet**: marka listesi elle bakım gerektirir (eksik marka fallback'e düşer,
+  sessiz başarısızlık değil). Az sonuçlu sorgularda 1 yerine en fazla 3 Unsplash
+  isteği — 50/saat kotası için kasıtlı üst sınır.
+
+### Sonuçları
+- `downloader.py`: `enrich_query`, `build_search_queries`, `search_with_fallback`
+  + `_BRAND_SCENES` / `_TR_EN` / `_JP_ANCHORS` tabloları.
+- `POST /api/backgrounds/preview` yanıtı `effective_query` + `tried` ile genişledi
+  (additive — mevcut alanlar korundu).
+- Dashboard `picker-query-note` şeridi çeviriyi kullanıcıya gösterir; sorgu
+  gizli bir sihir değil, denetlenebilir bir adım.
+- `news_automation._pick_image` ad-hoc kademesini bıraktı, ortak yardımcıya geçti.
+- `tests/test_image_search_enrichment.py` — 36 test (marka eşlemesi, Türkçe ek
+  çevirisi, çıpa, kademe, kota sınırı, ağ hatası davranışı).
+
+---
+
 ## Karar 16 — 2026-08-10
 ### Karar
 Toplu üretimde tek turun hatası bulk'u çökertmez; konu havuzu tükendiğinde

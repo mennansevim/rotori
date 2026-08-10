@@ -209,7 +209,7 @@ def test_dashboard_cachebuster_is_consistent():
     overview_js = (DASHBOARD_STATIC / "pages" / "overview.js").read_text(encoding="utf-8")
     settings_js = (DASHBOARD_STATIC / "pages" / "settings.js").read_text(encoding="utf-8")
     logs_js = (DASHBOARD_STATIC / "pages" / "logs.js").read_text(encoding="utf-8")
-    version = "20260810-7"
+    version = "20260810-8"
     assert f"styles.css?v={version}" in index_html
     assert f"app.js?v={version}" in index_html
     assert f"pages/automation.js?v={version}" in app_js
@@ -222,7 +222,7 @@ def test_dashboard_cachebuster_is_consistent():
     assert f"lib.js?v={version}" in overview_js
     assert f"lib.js?v={version}" in settings_js
     assert f"lib.js?v={version}" in logs_js
-    assert "20260810-6" not in index_html + app_js + automation_js + library_js + overview_js + settings_js + logs_js
+    assert "20260810-7" not in index_html + app_js + automation_js + library_js + overview_js + settings_js + logs_js
 
 
 def test_library_uses_three_stage_content_lifecycle():
