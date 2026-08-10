@@ -4,10 +4,14 @@
 > Karar özeti `DECISIONS.md`'e, günlük iş `CURRENT_TASK.md`'ye işlenir.
 >
 > **Oluşturulma:** 2026-08-10 · **Branch:** `feat/premium-iap-foundation`
-> **Durum:** Karar verildi, uygulanmaya hazır.
+> **Durum:** **Lansmanda test edilecek hipotez** — doğrulanmış nihai model değil.
+>
+> Rotori lansmanda ₺499/yıl + ₺99/ay abonelik modelini test edecektir. İlk
+> **100–200 nitelikli kullanıcının** satın alma ve kullanım verisinden sonra
+> trip-pass, abonelik veya hibrit model arasında yeniden değerlendirilecektir.
 >
 > Model kararı bu belgenin yazımı sırasında dört kez değişti. Gerekçe zinciri
-> §9'da kayıtlı — **yeniden tartışmadan önce §9 okunmalı.**
+> ve kanıtın **sınırları** §9'da kayıtlı — **yeniden tartışmadan önce §9 okunmalı.**
 
 ---
 
@@ -48,10 +52,27 @@ Kota da maliyet kaynaklı değil (100 taramanın maliyeti ₺2) — bir dönüş
 | Tripsy Pro | Abonelik + lifetime | $59.99/yıl, $9.99/ay, lifetime **$299** | Lifetime yıllığın **5 katı** — ana ürün değil, çıpa |
 | Japan Travel (NAVITIME) | Freemium abonelik | ~¥330/ay | Japonya nişinin en güçlü oyuncusu; offline harita + AI itinerary analizi |
 
-**Hiçbiri gezi başına satmıyor.** Bu kadar denenmiş bir kategoride "trip pass"
-boşluğunun olması, o modelin çalışmadığının işareti.
+**Hiçbiri gezi başına satmıyor.** Bu, trip-pass modelinin çalışmadığını
+**kanıtlamaz** — kanıtın yokluğu yokluğun kanıtı değildir. Gösterdiği şey şu:
+trip-pass'i *ana model* olarak seçmek için elimizde pazar kanıtı yok, oysa
+aboneliğin bu kategoride çalıştığına dair bol kanıt var. Bu yüzden abonelikle
+başlanır; trip-pass hipotez olarak açık kalır (§9).
 
 ### 2.2 Kategori kıyaslamaları (RevenueCat 2026, 115.000+ uygulama)
+
+> **⚠ Bu verinin sınırları — okumadan sonuç çıkarma:**
+>
+> 1. **Seçim yanlılığı.** RevenueCat bir abonelik altyapısı şirketidir; veri
+>    yalnızca **abonelik kullanan** uygulamalardan gelir. Tek seferlik satan
+>    uygulamalar veri kümesinde yoktur. Dolayısıyla bu veri *"seyahatte
+>    aboneliği nasıl iyi yaparsın"* sorusunu cevaplar,
+>    **"abonelik gezi-başına modelden iyi midir" sorusunu cevaplayamaz.**
+> 2. **%66 yıllık içsel (endojen) bir sayıdır.** Uygulamaların *sattığını*
+>    ölçer; çoğu seyahat uygulaması yıllığı varsayılan + "en avantajlı" olarak
+>    sunduğu için bu sayı kullanıcı tercihi ile paywall tasarımını ayrıştırmaz.
+> 3. **%43,5 hunideki son adımdır** — indirenlerin değil, *denemeyi
+>    başlatanların* ödemeye dönüşme oranı. Öncesinde indirme → plan
+>    tamamlama → paywall görme → deneme başlatma adımları var ve kayıp orada.
 
 Seyahat kategorisi:
 
@@ -64,6 +85,16 @@ Seyahat kategorisi:
 - **$1K aylık gelire ulaşma süresi medyan 238 gün**
 - **Yeni seyahat uygulamalarının yalnızca %9,8'i 2 yılda $10K MRR'a ulaşıyor**
 - **Seyahat en ucuz kategori**: yıllık medyan fiyat $20
+
+Kategoriden bağımsız iki sayı, tasarımı doğrudan etkiliyor:
+
+- **Denemelerin %82'si kurulumla aynı gün başlıyor** → ön izleme hunisi
+  **ilk oturumda** değeri göstermek zorunda. Sonraki oturuma bırakılan
+  değer gösterimi çoğu kullanıcıya hiç ulaşmaz.
+- **Yıllık aboneliklerin ~%30'u ilk ay içinde iptal ediliyor.** Not: iptal
+  ≠ iade — otomatik yenileme kapanır, 1. yıl geliri durur. Yani "yıllık =
+  peşin tahsilat" avantajı 1. yıl için geçerli, ama **2. yıl LTV'si kırılgan**
+  ve sürekli değer üretmeyi gerektiriyor.
 
 ### 2.3 Wanderlog nasıl 3,6–5 milyon indirmeye çıktı
 
@@ -79,14 +110,23 @@ Bu, Rotori için doğrudan uygulanabilir — atıl duran web planner'ı var (§6
 
 ### 3.1 SKU'lar
 
-Abonelik grubu `rotori_pro`, **her ikisinde 7 gün ücretsiz deneme**:
+Abonelik grubu `rotori_pro`, **ikisi de v1.0'da**:
 
-| Ürün ID | Tip | TR | Global | Yayın |
-|---|---|---|---|---|
-| `...japanTrip.pro.yearly` | Auto-renewable, 1 yıl | **₺499** | **$29.99** | **v1.0** — varsayılan seçili, "en avantajlı" |
-| `...japanTrip.pro.monthly` | Auto-renewable, 1 ay | ₺99 | $4.99 | **v1.1'e ertelendi** (§4.2) |
+| Ürün ID | Tip | TR | Global | Deneme | Paywall'daki rol |
+|---|---|---|---|---|---|
+| `...japanTrip.pro.yearly` | Auto-renewable, 1 yıl | **₺499** | **$29.99** | **7 gün ücretsiz** | Varsayılan seçili, "en avantajlı" |
+| `...japanTrip.pro.monthly` | Auto-renewable, 1 ay | **₺99** | **$4.99** | Yok | Görünür, gizlenmez |
 
 Komisyon: Small Business Program ile **%15 sabit**.
+
+**Deneme neden yalnızca yıllıkta:** Deneme almak isteyen kullanıcıyı yüksek
+LTV'li yıllığa yönlendirir; aylık, denemesiz bir "düşük taahhüt" seçeneği
+olarak kalır.
+
+**Aylık neden v1.0'da (gizlenmiyor):** Aylık/yıllık dağılımı, kullanıcının
+Rotori'yi **tek-gezi aracı mı sürekli hizmet mi** gördüğünü söyleyen tek
+gerçek veri. Bu, §9'da açık bırakılan trip-pass hipotezini besleyen ölçümdür —
+aylık payı yüksek çıkarsa gezi-başına model yeniden değerlendirilir.
 
 Fiyat gerekçesi: seyahat en ucuz kategori ($20/yıl medyan) → ₺599 yerine ₺499.
 Global $29.99 Wanderlog bandında, medyanın hafif üstünde; Japonya'ya özel
@@ -130,18 +170,18 @@ tamamen bedava yayınlayıp sonra paywall eklemek de yanlış (grandfathering).
 
 | Faz | İş | Gün |
 |---|---|---|
-| 0 | App Store Connect + SBP | 0.5 |
-| 1 | IAP + receipt doğrulama + S2S — **yalnızca yıllık** | 4–5 |
+| 0 | App Store Connect (yıllık + aylık) + SBP | 0.5 |
+| 0.5 | **Hedef kullanıcı görüşmeleri** (10–20, kod gerektirmez) | paralel |
+| 1 | IAP + receipt doğrulama + S2S — iki SKU | 4.5–5.5 |
 | 2 | Paywall + Apple uyumu + gate'in sunucuya taşınması | 2–3 |
 | 3 | Ön izleme hunisi + "kazandırdığı saat" + gezi limiti | 2.5 |
 | 4 | Release gate + sandbox testi | 3–5 |
-| | **Toplam** | **12–14** |
+| | **Toplam** | **12.5–15** |
 
 ### 4.2 v1.0'dan çıkarılanlar
 
 Hiçbiri şu an ücretsiz değil → sonra eklemek "geri alma" yaratmaz:
 
-- Aylık SKU (yıllık tek başına yeter; %66 yıllık verisi bunu destekliyor)
 - Offline tüm gezi harita paketi
 - Planlama fazı retention araçları (kur takibi, harcama girişi, zamanlı hatırlatma)
 - Bilet/evrak kasası
@@ -212,8 +252,12 @@ release build'de debug override okunmuyor (test ile kanıtlı).
 ### Faz 2 — Paywall ve mağaza uyumu (2–3 gün)
 
 - [ ] `paywall_screen.dart`
+  - **İki SKU yan yana**: yıllık varsayılan seçili + "en avantajlı",
+    aylık görünür (gizlenmez). "%58 tasarruf" karşılaştırması
+    (₺99 × 12 = ₺1.188 vs ₺499)
   - **fiyat mağazadan okunur**, koda gömülmez
-  - "7 gün ücretsiz dene" CTA, deneme uygunluğuna göre değişen kopya
+  - "7 gün ücretsiz dene" CTA **yalnızca yıllıkta**; aylıkta doğrudan satın alma
+  - deneme uygunluğuna göre değişen kopya
   - **Apple'ın zorunlu abonelik açıklaması** (sık red sebebi): abonelik
     uzunluğu, dönem fiyatı, otomatik yenileme dili, denemeden sonra
     ücretlendirileceği, iptalin nasıl yapılacağı
@@ -258,12 +302,27 @@ Yıllık aboneliğe dönüşüm
       sonucunu görür
 - [ ] Kalan günler kilitli ama **görünür** (kaç durak, hangi şehir) — boş
       kilit değil, dolu kilit
+- [ ] **İlk oturumda tamamlanmalı.** Denemelerin %82'si kurulumla aynı gün
+      başlıyor; ikinci oturuma bırakılan değer gösterimi çoğu kullanıcıya
+      hiç ulaşmaz
+- [ ] **Deneme kısıtlanmaz.** Deneme sırasında kullanıcı planın tamamını
+      görür, düzenler, bütçe ve rota araçlarını kullanır. Denemeyi
+      işlevsizleştiren kısıtlama dönüşümü değil güveni öldürür
 
 **3.2 "Kazandırdığı saat" göstergesi (0.5 gün)**
 - [ ] `totalTravelMinutes` öncesi/sonrası farkı
       (`plan_optimization_controller.dart:44` — veri hazır)
 - [ ] Ön izlemede ve paywall'da değer ifadesi olarak gösterilir
 - [ ] "Optimize rota" soyut; "6 sa 40 dk kazandırıyor" satın alma gerekçesi
+- [ ] **Dürüstlük şartı — pazarlama için şişirilmez.** Sayı yalnızca
+      güvenilir bir önce/sonra hesabından gelir. Somut kural:
+      `PlanOptimizationController` infeasible durumlarda
+      (`noFeasibleRoute` / `routeDataMissing` / `fixedConflict` /
+      `protectedInfeasible`) **yerel kural tabanlı fallback preview**
+      üretiyor (bkz. CURRENT_TASK 2026-08-06). O yoldan gelen sonuçta
+      kazanç sayısı **gösterilmez** — fallback'te matris verisi güvenilir
+      değil. Uydurma bir sayı, `uyum skoru artık bilmediğini uydurmuyor`
+      (af6f721) ve ramen düzeltmesi (d0a661f) ile kurulan ürün ilkesini bozar
 
 **3.3 Gezi limiti (0.5 gün) — ertelenemez**
 - [ ] 1 aktif gezi ücretsiz, 2.+ Pro
@@ -289,9 +348,16 @@ Yıllık aboneliğe dönüşüm
 
 ---
 
-### Faz 4.5 — Kapalı lansman (yayından hemen sonra)
+### Faz 0.5 / 4.5 — Kullanıcı görüşmeleri (iki dalga)
 
-20 kullanıcı elle bulunur, birebir konuşulur. Ölçülecek beş soru:
+**Dalga 1 — yayından ÖNCE (Faz 1 ile paralel, kod gerektirmez).**
+10–20 hedef kullanıcı (Japonya'ya gitmeyi planlayan kişi) bulunur; ücretsiz
+katmanın TestFlight build'i ya da ekran akışı gösterilir. Amaç **dil ve
+itirazları çıkarmak**: hangi kelimeyi anlamıyorlar, neyi gereksiz buluyorlar,
+"neden ödeyeyim" itirazı nereden geliyor. Çıktısı doğrudan paywall kopyasına
+ve ön izleme tasarımına girer.
+
+**Dalga 2 — yayından sonra, gerçek ödeyen kohortu.** Ölçülecek beş soru:
 
 1. Planı nerede anlamadılar?
 2. Neyi gereksiz buldular?
@@ -299,8 +365,9 @@ Yıllık aboneliğe dönüşüm
 4. ₺499'u pahalı mı makul mu buldular?
 5. Planı **Japonya'da gerçekten kullandılar mı?**
 
-Bu 20 görüşme, planlama-fazı-tutunması sorusunu hiçbir kıyaslama verisinin
-cevaplayamadığı şekilde cevaplar. Açık lansman öncesi zorunlu kapı.
+**Görüşmelerin sınırı — fazla yüklenmeyin:** Görüşme **fiyatı doğrulamaz**;
+yalnızca dili, itirazları ve kullanım gerçekliğini ortaya çıkarır. Fiyatı
+doğrulayan tek veri **gerçek ödeme ekranındaki davranıştır** (§7).
 
 ---
 
@@ -330,16 +397,12 @@ Gelirin fiyattan değil buradan geleceğini kabul eden bölüm.
 Wanderlog'un 5M indirmeye çıkma yolu (§2.3). Videonun tersine **birikimli**:
 bir video 48 saatte ölür, indekslenmiş sayfa yıllarca trafik getirir.
 
-- [ ] Atıl legacy web planner (`rotori-website/legacy/apps/planner/`) herkese
-      açık, indekslenebilir rota sayfalarına çevrilir
-- [ ] Hedef long-tail sorgular: "10 günlük Japonya rotası", "Tokyo Kyoto Osaka
-      kaç gün", "Japonya 2 hafta bütçesi"
-- [ ] Ürünün **kendi çıktısı** indekslenir — elle içerik üretilmez
-- [ ] Her sayfada uygulamaya CTA
+Bu, monetizasyon planının alt maddesi olamayacak kadar büyük ve ayrı bir
+yürütme mantığı var → **`docs/GROWTH_SEO_STRATEGY.md`**.
 
-**Uyarı:** Bu bir checkbox değil, proje büyüklüğünde iş (legacy React, bakım
-modunda, statik hosting). Kararı şimdi verilir, yayından sonra yapılır — ama
-**plan veri modeli bugünden dışa aktarılabilir tutulursa** sonra ucuza gelir.
+Buradan bilinmesi gereken tek bağlantı: **plan veri modeli bugünden dışa
+aktarılabilir tutulursa** SEO hattı sonra ucuza gelir. Faz 3'te ön izleme
+hunisi yazılırken plan çıktısının serileştirilebilir kalmasına dikkat edilir.
 
 ### 6.3 Affiliate katmanı — ikincil gelir
 
@@ -362,10 +425,16 @@ getirebilir ve build maliyeti neredeyse sıfır.
 | **Plan oluşturma → ön izleme tamamlama** | Hunideki ilk gerçek adım | Kendi log'u |
 | **Ön izleme → deneme başlatma** | Üst huni | Kendi log'u + Connect |
 | **Deneme → ödemeye dönüşüm** | Aboneliğin en kritik tek sayısı (kategori medyanı %43,5) | Connect |
+| **İlk 24 saatte deneme iptali** | Denemenin içeriği hayal kırıklığı yarattıysa burada görünür | Connect |
+| **Aylık / yıllık paket dağılımı** | Kullanıcı Rotori'yi tek-gezi aracı mı sürekli hizmet mi görüyor → trip-pass hipotezinin testi (§9) | Connect |
+| **Gezi sırasında uygulamayı kullananlar** | Ürünün gerçek değer testi; abonelik yenilemesinin ön koşulu | Kendi log'u |
 | Hangi özellikten paywall'a gelindi | Hangi Pro özelliği satıyor | Kendi log'u |
 | Aylık churn / ortalama abone ömrü | ARPU'yu belirler | Connect |
-| İade oranı | %3'ü aşarsa fiyat/vaat uyumsuz | Connect |
+| İade ve destek talepleri | %3'ü aşarsa fiyat/vaat uyumsuz | Connect |
 | Tarama başına LLM maliyeti | Marj takibi | OpenAI + `daily_scans` |
+
+**Toplam indirme birincil metrik DEĞİL.** Başlangıçta yukarıdaki zincir
+ölçülür; indirme yalnızca zincirin denominatörüdür.
 
 **Beklenti — dürüst:** 1. yılda anlamlı gelir beklenmemeli. Kategori medyanı
 $1K MRR için 238 gün, indirme→ödeme %2, yeni seyahat uygulamalarının %9,8'i
@@ -404,17 +473,42 @@ Model kararı bu belgenin yazımı sırasında dört kez değişti. Zincir:
    ücretsiz deneme yalnızca aboneliklerde mümkün.**
 3. **Tek seferlik ₺499** — ChatGPT önerisi: kişiselleştirilmiş ön izleme
    hunisi. Varsayım: ön izleme, denemeyi gereksiz kılar. *Bu varsayım yanlıştı.*
-4. **Yıllık ₺499 abonelik + ön izleme hunisi** ← **geçerli karar.**
+4. **Yıllık ₺499 + aylık ₺99 abonelik + ön izleme hunisi** ←
+   **lansmanda test edilecek hipotez.**
    Pazar verisi: seyahat aboneliklerinin %66'sı yıllık (en yıllık-ağırlıklı
    kategori), deneme→ödeme %43,5, kategorinin %51,2'si ön izleme *ve* denemeyi
-   **birlikte** kullanıyor. Ön izleme denemenin alternatifi değil, aynı hunide
-   üst üste iki adım. Ayrıca hiçbir başarılı benzer uygulama gezi başına
-   satmıyor; lifetime sunanlar onu yıllığın 5 katı fiyatla çıpa olarak
-   konumluyor.
+   **birlikte** kullanıyor — ön izleme denemenin alternatifi değil, aynı
+   hunide üst üste iki adım (3. turdaki varsayım bu veriyle çürüdü).
 
-**Bu kararı tekrar açmak için gereken:** §2.2'deki kıyaslamaları çürüten yeni
-veri, ya da Faz 4.5 görüşmelerinden gelen aksi yönde gerçek kullanıcı sinyali.
-Sezgi yeterli değil — dört turun gösterdiği şey bu.
+### 9.1 Kanıtın sınırları — bu bir "kanıtlandı" değil
+
+4. turdaki gerekçe **aboneliğin trip-pass'ten iyi olduğunu kanıtlamıyor:**
+
+- **RevenueCat verisi seçim yanlılığı taşır.** Veri yalnızca abonelik
+  kullanan uygulamalardan gelir; tek seferlik satanlar kümede yoktur.
+  Dolayısıyla iki modeli karşılaştıramaz (§2.2 uyarısı).
+- **%66 yıllık endojendir** — uygulamaların sattığını ölçer, kullanıcı
+  tercihini paywall tasarımından ayrıştırmaz.
+- **Rakiplerde trip-pass olmaması** modeli çürütmez; yalnızca ana model
+  olarak seçmek için pazar kanıtı olmadığını gösterir.
+
+**Doğru ifade:** "Abonelik kanıtlandı" değil — **"abonelik şu anda test
+edilmesi en güçlü hipotez."**
+
+### 9.2 Yeniden değerlendirme kapısı
+
+İlk **100–200 nitelikli kullanıcının** satın alma ve kullanım verisi
+toplandığında model yeniden değerlendirilir. Karar girdileri:
+
+| Sinyal | Nereye işaret eder |
+|---|---|
+| Aylık payı yüksek, yıllık düşük | Kullanıcı tek-gezi aracı görüyor → **trip-pass / hibrit** yeniden masaya gelir |
+| Yıllık payı yüksek, 2. ay tutunma iyi | Abonelik doğru → mevcut modelde derinleş |
+| Deneme→ödeme düşük | Sorun fiyat değil ön izleme/değer anlatımı → önce onu düzelt, **fiyatı düşürme** |
+| Gezi sırasında kullanım düşük | Ürün vaadi tutmuyor → özellik işi, fiyat işi değil |
+
+Sezgiyle yeniden açmak yeterli değil — dört turun gösterdiği şey bu. Ama
+**yukarıdaki sinyallerden biri gelirse açmak zorunlu.**
 
 ---
 

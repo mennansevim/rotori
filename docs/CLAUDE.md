@@ -18,9 +18,13 @@ ve rehber. Marka önce "Tabi" (旅) olarak öneriliydi, 2026-07 civarında
   planı ekiple paylaşmak isteyen deneyimli gezginler (ikincil).
 - **İş hedefi:** App Store'da reklamsız, freemium bir seyahat yardımcısı
   yayınlamak. Satış modeli **yıllık abonelik** (Rotori Pro — TR ₺499 /
-  global $29.99, 7 gün ücretsiz deneme); ücretsiz taraf plan oluşturma +
-  ilk günün ön izlemesi + rehber içerikleridir. Detay ve gerekçe:
-  `docs/MONETIZATION_PLAN.md`, karar kaydı `DECISIONS.md` (2026-08-10).
+  global $29.99, 7 gün ücretsiz deneme) + aylık (₺99 / $4.99, denemesiz);
+  ücretsiz taraf plan oluşturma + ilk günün ön izlemesi + rehber
+  içerikleridir. **Bu model doğrulanmış değil, lansmanda test edilecek
+  hipotezdir** — ilk 100–200 nitelikli kullanıcı verisinden sonra trip-pass /
+  abonelik / hibrit arasında yeniden değerlendirilir. Detay ve gerekçe:
+  `docs/MONETIZATION_PLAN.md`, dağıtım stratejisi
+  `docs/GROWTH_SEO_STRATEGY.md`, karar kaydı `DECISIONS.md` (2026-08-10 ve b).
   İlerideki fazlarda çoklu ülke desteği + sosyal katman.
 
 ## 2. Yüzeyler (Product Surfaces)

@@ -7,6 +7,75 @@
 
 ---
 
+## 2026-08-10 (b) — Monetizasyon kararı "kanıt"tan "hipotez"e indirildi; aylık SKU v1.0'a alındı
+
+**Supersedes:** Aynı gün alınan monetizasyon kararının (aşağıdaki 2026-08-10
+kaydı) kesinlik derecesi ve aylık SKU'yu v1.1'e erteleme kısmı. Model
+(yıllık-öncelikli abonelik) **değişmedi**; gerekçenin gücü ve kapsam düzeltildi.
+
+**Neden:** Dış inceleme, önceki kaydın dayandığı pazar verisinde üç metodolojik
+zayıflık buldu. Üçü de haklı:
+
+1. **Seçim yanlılığı.** RevenueCat bir abonelik altyapısı şirketidir; verisi
+   yalnızca **abonelik kullanan** uygulamalardan gelir. Tek seferlik satan
+   uygulamalar veri kümesinde yoktur. Dolayısıyla bu veri "seyahatte aboneliği
+   nasıl iyi yaparsın" sorusunu cevaplar, **"abonelik gezi-başına modelden iyi
+   midir" sorusunu cevaplayamaz.** Önceki kayıt bu veriyi SKU tartışmasını
+   kapatan kanıt gibi sundu — hatalıydı.
+2. **%66 yıllık endojen bir sayıdır.** Uygulamaların *sattığını* ölçer; çoğu
+   seyahat uygulaması yıllığı varsayılan + "en avantajlı" olarak sunduğu için
+   kullanıcı tercihi ile paywall tasarımı ayrışmıyor.
+3. **Rakiplerde trip-pass olmaması modeli çürütmez.** Kanıtın yokluğu,
+   yokluğun kanıtı değildir. Doğru ifade: trip-pass'i *ana model* olarak
+   seçmek için pazar kanıtı yok.
+
+**Düzeltilen ifade:** "Abonelik kanıtlandı" → **"abonelik şu anda test
+edilmesi en güçlü hipotez."** Rotori lansmanda ₺499/yıl + ₺99/ay modelini
+test eder; ilk **100–200 nitelikli kullanıcının** satın alma ve kullanım
+verisinden sonra trip-pass, abonelik veya hibrit arasında yeniden
+değerlendirilir (yeniden değerlendirme kapısı ve sinyal tablosu:
+`MONETIZATION_PLAN.md` §9.2).
+
+**Kapsam değişiklikleri:**
+
+- **Aylık ₺99 v1.0'a alındı** (önceki kayıtta v1.1'e ertelenmişti). Gerekçe
+  kapsam değil bilgi: aylık/yıllık dağılımı, kullanıcının Rotori'yi tek-gezi
+  aracı mı sürekli hizmet mi gördüğünü söyleyen tek gerçek veri — yani
+  trip-pass hipotezini besleyen ölçüm. Deneme **yalnızca yıllıkta**; aylık
+  denemesiz düşük-taahhüt seçeneği olarak görünür kalır. Yayın kapsamı
+  12–14 → 12.5–15 gün.
+- **Kullanıcı görüşmeleri iki dalgaya bölündü.** Dalga 1 yayından önce
+  (Faz 1 ile paralel, kod gerektirmez) — amaç dil ve itirazları çıkarmak.
+  Dalga 2 yayından sonra gerçek ödeyen kohortu. Görüşmeler **fiyatı
+  doğrulamaz**; fiyatı doğrulayan tek veri ödeme ekranındaki davranıştır.
+- **"Kazandırdığı saat" göstergesine dürüstlük şartı eklendi.**
+  `PlanOptimizationController` infeasible durumlarda yerel kural tabanlı
+  fallback preview üretiyor; o yoldan gelen sonuçta kazanç sayısı
+  **gösterilmez** (fallback'te matris verisi güvenilir değil). Şişirilmiş bir
+  sayı, `af6f721` ve `d0a661f` ile kurulan "bilmediğini uydurmama" ilkesini bozar.
+- **SEO stratejisi ayrı belgeye alındı** → `docs/GROWTH_SEO_STRATEGY.md`.
+  Ayrıca önceki plandaki **"kullanıcı planlarını otomatik yayımla"** yaklaşımı
+  **iptal edildi**: plan verisi tarih/otel/uçuş/kişisel not içeriyor, rıza
+  olmadan yayımlanamaz; ayrıca ince-kopya içerik domain'i zayıflatır. Yerine
+  editoryal olarak doğrulanmış 20–30 rota sayfası, sonra açık rızayla kullanıcı
+  planı yayımlama. Legacy React planner canlandırılmaz; mevcut plan modelinden
+  statik sayfa üreten temiz bir hat kurulur.
+
+**Doğrulanamayan ve kullanılmayan iddia:** İncelemede "RevenueCat seyahatte en
+büyük iptal nedeninin yetersiz kullanım olduğunu söylüyor" denildi. Kaynakta bu
+atıf **bu şekilde yok** — RevenueCat "not using it enough"u gönüllü churn
+nedenlerinden biri olarak sayıyor, seyahate özel "en büyük" ataması yapmıyor
+(ayrı bir tüketici anketinde genel #1 neden %43 ile maliyet). Bu iddia plana
+yazılmadı. Bunun yerine doğrulanan iki sayı eklendi: denemelerin **%82'si
+kurulumla aynı gün** başlıyor (→ ön izleme ilk oturumda tamamlanmalı) ve yıllık
+aboneliklerin **~%30'u ilk ay içinde iptal ediliyor** (iptal ≠ iade; 1. yıl
+geliri korunur ama 2. yıl LTV'si kırılgan).
+
+**Detay:** `docs/MONETIZATION_PLAN.md` (§2.2 uyarı bloğu, §9.1 kanıtın
+sınırları, §9.2 yeniden değerlendirme kapısı), `docs/GROWTH_SEO_STRATEGY.md`.
+
+---
+
 ## 2026-08-10 — Monetizasyon: yıllık-öncelikli abonelik + kişiselleştirilmiş ön izleme hunisi
 
 **Supersedes:** `docs/CLAUDE.md` §1'deki "ücretsiz reklamsız MVP" yayın hedefi.
