@@ -35,6 +35,9 @@ const List<JapaneseDish> kJapaneseDishes = [
       DishIngredient.soy: IngredientChance.usually,
       DishIngredient.egg: IngredientChance.usually,
       DishIngredient.cookingAlcohol: IngredientChance.sometimes,
+      // Shoyu tarzı (özellikle Tokyo chūka soba) sık sık niboshi/katsuobushi
+      // dashi'yi et suyuyla harmanlar; sadece tonkotsu gerçekten dashi'siz.
+      DishIngredient.dashi: IngredientChance.sometimes,
     },
     variants: [
       DishVariant(
@@ -138,7 +141,9 @@ const List<JapaneseDish> kJapaneseDishes = [
       DishIngredient.gluten: IngredientChance.always,
       DishIngredient.dashi: IngredientChance.always,
       DishIngredient.soy: IngredientChance.usually,
-      DishIngredient.cookingAlcohol: IngredientChance.sometimes,
+      // Kakejiru (su) tarifi dashi + soya + mirin'in standart üçlüsüdür;
+      // mirinsiz versiyon istisna, kural değil.
+      DishIngredient.cookingAlcohol: IngredientChance.usually,
     },
     howToEat: LText(
       'Sesli çekilir. Ayaküstü udon dükkanlarında (tachigui) ayakta yenir, '
@@ -183,7 +188,9 @@ const List<JapaneseDish> kJapaneseDishes = [
       DishIngredient.gluten: IngredientChance.usually,
       DishIngredient.dashi: IngredientChance.always,
       DishIngredient.soy: IngredientChance.always,
-      DishIngredient.cookingAlcohol: IngredientChance.sometimes,
+      // Kaeshi (soya:mirin:şeker, klasik 3:1:1) sos/su tabanının tanımlayıcı
+      // üçlüsü — mirin istisna değil, standart tarif.
+      DishIngredient.cookingAlcohol: IngredientChance.usually,
     },
     howToEat: LText(
       'Soğuk sobayı azar azar sosa batır, hepsini birden daldırma. Sonunda '
@@ -223,7 +230,10 @@ const List<JapaneseDish> kJapaneseDishes = [
     ingredients: {
       DishIngredient.gluten: IngredientChance.always,
       DishIngredient.pork: IngredientChance.usually,
-      DishIngredient.soy: IngredientChance.usually,
+      // Sos tarifi soyayı tanımlayıcı kılıyor; istiridye özü de aşağıdaki
+      // watchOut'ta zaten söylendiği gibi standart, istisna değil.
+      DishIngredient.soy: IngredientChance.always,
+      DishIngredient.shellfish: IngredientChance.usually,
       DishIngredient.egg: IngredientChance.sometimes,
     },
     howToEat: LText(
@@ -265,6 +275,9 @@ const List<JapaneseDish> kJapaneseDishes = [
       DishIngredient.gluten: IngredientChance.always,
       DishIngredient.egg: IngredientChance.usually,
       DishIngredient.pork: IngredientChance.usually,
+      // Jambon yerine surimi (balık bazlı) kullanılan versiyon da yaygın —
+      // watchOut zaten bunu söylüyor, malzeme haritası da yansıtmalı.
+      DishIngredient.fish: IngredientChance.sometimes,
       DishIngredient.soy: IngredientChance.always,
       DishIngredient.sesame: IngredientChance.usually,
     },
@@ -309,6 +322,7 @@ const List<JapaneseDish> kJapaneseDishes = [
       DishIngredient.fish: IngredientChance.usually,
       DishIngredient.dairy: IngredientChance.usually,
       DishIngredient.soy: IngredientChance.usually,
+      DishIngredient.cookingAlcohol: IngredientChance.sometimes,
     },
     howToEat: LText(
       'Kaşıkla suyu, çubukla eriştesi yenir; ikisi birlikte servis edilen '
@@ -350,6 +364,9 @@ const List<JapaneseDish> kJapaneseDishes = [
       DishIngredient.gluten: IngredientChance.always,
       DishIngredient.dashi: IngredientChance.always,
       DishIngredient.soy: IngredientChance.always,
+      // Mentsuyu (soya + dashi + mirin + şeker) soba/udon sosuyla aynı
+      // yapıda — mirin standart, istisna değil.
+      DishIngredient.cookingAlcohol: IngredientChance.usually,
     },
     howToEat: LText(
       'Küçük bir tutam alıp sosa batırılır; büyük lokma yapıp uzun süre '
@@ -498,7 +515,11 @@ const List<JapaneseDish> kJapaneseDishes = [
 
   JapaneseDish(
     id: 'curry-rice',
-    name: 'Japon körisi',
+    // Diğer tüm yemeklerde `name` Latin harfli, uluslararası ortak addır
+    // (Ramen, Udon, Gyudon…) ve LText DEĞİLDİR — İngilizce arayüzde de
+    // aynen gösterilir. "Japon körisi" burada bir çeviri gibi kalmıştı;
+    // düzeltildi.
+    name: 'Curry rice',
     nameJa: 'カレーライス',
     romaji: 'Karē raisu',
     emoji: '🍛',
@@ -513,9 +534,14 @@ const List<JapaneseDish> kJapaneseDishes = [
     priceMaxJpy: 1600,
     ingredients: {
       DishIngredient.gluten: IngredientChance.always,
-      DishIngredient.beef: IngredientChance.sometimes,
-      DishIngredient.pork: IngredientChance.sometimes,
-      DishIngredient.chicken: IngredientChance.sometimes,
+      // Standart köri sosu bloğu (S&B, House Vermont, Glico gibi) varsayılan
+      // olarak sığır/domuz/tavuk yağı ya da özütü içerir — üstüne konan et
+      // seçiminden BAĞIMSIZ. "Bazen" demek bunu "sor"a indiriyordu; oysa
+      // watchOut zaten "üstünde et olmaması sosun etsiz olduğu anlamına
+      // gelmez" diyor. Sos ayrıca ısmarlanmadıkça varsayılan budur.
+      DishIngredient.beef: IngredientChance.usually,
+      DishIngredient.pork: IngredientChance.usually,
+      DishIngredient.chicken: IngredientChance.usually,
       DishIngredient.dairy: IngredientChance.sometimes,
       DishIngredient.soy: IngredientChance.usually,
     },
@@ -598,6 +624,11 @@ const List<JapaneseDish> kJapaneseDishes = [
         ingredients: {
           DishIngredient.fish: IngredientChance.sometimes,
           DishIngredient.dashi: IngredientChance.sometimes,
+          // "Soya sosunda pişmiş" (tsukudani) demek; standart tarif soya +
+          // mirin + sake + şeker kaynatmasıdır — soya burada temel malzeme,
+          // ana yemekten kalıtılan "bazen" seviyesi bunu düşük gösteriyordu.
+          DishIngredient.soy: IngredientChance.always,
+          DishIngredient.cookingAlcohol: IngredientChance.usually,
         },
       ),
       DishVariant(
@@ -646,12 +677,15 @@ const List<JapaneseDish> kJapaneseDishes = [
       'Grilled eel fillet basted with a sweet soy glaze (kabayaki), over '
           'rice. Traditionally eaten in summer for stamina.',
     ),
-    priceMinJpy: 1500,
+    // Zincir/ucuz unadon (¥500–990) da yaygın; alt sınır bunu dışlıyordu.
+    priceMinJpy: 700,
     priceMaxJpy: 5000,
     ingredients: {
       DishIngredient.fish: IngredientChance.always,
-      DishIngredient.soy: IngredientChance.usually,
-      DishIngredient.cookingAlcohol: IngredientChance.usually,
+      // Kabayaki tam olarak "soya+mirin+sake+şeker sosuyla glazelenmiş"
+      // demek — bu dişin ADI bu sosla tanımlanıyor, "genelde" değil.
+      DishIngredient.soy: IngredientChance.always,
+      DishIngredient.cookingAlcohol: IngredientChance.always,
       DishIngredient.gluten: IngredientChance.usually,
     },
     howToEat: LText(
@@ -777,8 +811,12 @@ const List<JapaneseDish> kJapaneseDishes = [
         name: 'Ume ochazuke',
         nameJa: '梅茶漬け',
         note: LText(
-          'Tuzlu erikle; balıksız versiyonların en yaygını.',
-          'With salted plum; the most common fish-free version.',
+          'Tuzlu erikle — ama hazır paket sosunda (ör. Nagatanien) genelde '
+              'katsuobushi/balık özü vardır; "balıksız" sanma, ambalajı '
+              'kontrol et.',
+          'With salted plum — but the packaged seasoning (e.g. Nagatanien) '
+              'usually still contains bonito/fish extract; don\'t assume '
+              '"fish-free", check the packet.',
         ),
         ingredients: {DishIngredient.fish: IngredientChance.sometimes},
       ),
@@ -853,14 +891,18 @@ const List<JapaneseDish> kJapaneseDishes = [
         name: 'Inari',
         nameJa: 'いなり',
         note: LText(
-          'Tatlı tofu kesesinde pirinç. Tamamen bitkisel — vejetaryenler için '
-              'en güvenli suşi.',
-          'Rice in a sweet tofu pouch. Fully plant-based — the safest sushi '
-              'for vegetarians.',
+          'Tatlı tofu kesesinde pirinç. Kese genelde balık bazlı (katsuobushi) '
+              'dashi\'de haşlanır — "tamamen bitkisel" sanma, kombu-dashi '
+              '(deniz yosunu, balıksız) ile yapılıp yapılmadığını sor.',
+          'Rice in a sweet tofu pouch. The pouch is usually simmered in a '
+              'bonito-based dashi broth — don\'t assume "fully plant-based"; '
+              'ask if it was made with kombu-only (seaweed, no fish) dashi.',
         ),
         ingredients: {
           DishIngredient.fish: IngredientChance.sometimes,
           DishIngredient.soy: IngredientChance.always,
+          DishIngredient.dashi: IngredientChance.usually,
+          DishIngredient.cookingAlcohol: IngredientChance.sometimes,
         },
       ),
       DishVariant(
@@ -930,6 +972,9 @@ const List<JapaneseDish> kJapaneseDishes = [
     priceMaxJpy: 5000,
     ingredients: {
       DishIngredient.fish: IngredientChance.always,
+      // Bir moriawase (karışık tabak) genelde amaebi/hotate/uni/ika gibi
+      // kabuklu/yumuşakça deniz ürünü de içerir, sadece balık değil.
+      DishIngredient.shellfish: IngredientChance.sometimes,
       DishIngredient.soy: IngredientChance.always,
     },
     howToEat: LText(
@@ -1001,6 +1046,8 @@ const List<JapaneseDish> kJapaneseDishes = [
       DishIngredient.fish: IngredientChance.usually,
       DishIngredient.soy: IngredientChance.always,
       DishIngredient.shellfish: IngredientChance.sometimes,
+      // Tamago (dashimaki/tamagoyaki) somon/ton kadar yaygın bir dolgu.
+      DishIngredient.egg: IngredientChance.sometimes,
     },
     howToEat: LText(
       'Yapıldığı anda, yosun çıtırlığını kaybetmeden hemen elle yenir; '
@@ -1033,8 +1080,13 @@ const List<JapaneseDish> kJapaneseDishes = [
     ingredients: {
       DishIngredient.fish: IngredientChance.usually,
       DishIngredient.soy: IngredientChance.always,
-      DishIngredient.egg: IngredientChance.sometimes,
+      // watchOut zaten "çoğu zaman" diyor — bu "genelde" seviyesidir,
+      // "bazen"in "sor" düzeyinden daha kesin bir uyarı gerektiriyor.
+      DishIngredient.egg: IngredientChance.usually,
       DishIngredient.dairy: IngredientChance.sometimes,
+      // Klasik aburi sosu (nitsume) soya+mirin+sake redüksiyonudur; mayonez
+      // bazlı sos daha yeni bir füzyon alternatifi.
+      DishIngredient.cookingAlcohol: IngredientChance.usually,
     },
     watchOut: LText(
       'Fırçalanan sos çoğu zaman mayonez bazlıdır (yumurta) — "çıplak" nigiri '
@@ -1073,6 +1125,9 @@ const List<JapaneseDish> kJapaneseDishes = [
     ingredients: {
       DishIngredient.fish: IngredientChance.always,
       DishIngredient.soy: IngredientChance.always,
+      // Ponzu, tanımı gereği soya sosu + turunçgil + mirindir; mirin
+      // istisna değil, sosun standart bileşeni.
+      DishIngredient.cookingAlcohol: IngredientChance.usually,
     },
     howToEat: LText(
       'İnce dilimlenmiş üstüne sarımsak, taze zencefil ve myoga (Japon '
@@ -1190,7 +1245,9 @@ const List<JapaneseDish> kJapaneseDishes = [
       DishIngredient.beef: IngredientChance.usually,
       DishIngredient.pork: IngredientChance.sometimes,
       DishIngredient.soy: IngredientChance.usually,
-      DishIngredient.cookingAlcohol: IngredientChance.sometimes,
+      // Standart tare, sake+mirin kaynatılıp soya/sarımsak/susamla
+      // birleştirilerek yapılır — varsayılan sos, istisna değil.
+      DishIngredient.cookingAlcohol: IngredientChance.usually,
       DishIngredient.sesame: IngredientChance.usually,
     },
     howToEat: LText(
@@ -1272,7 +1329,10 @@ const List<JapaneseDish> kJapaneseDishes = [
       DishIngredient.beef: IngredientChance.usually,
       DishIngredient.shellfish: IngredientChance.sometimes,
       DishIngredient.soy: IngredientChance.usually,
-      DishIngredient.dairy: IngredientChance.sometimes,
+      // Sarımsaklı tereyağı, kendi metnimizin de dediği gibi "genelde"
+      // ikram edilen bir garnitür — nadir bir seçenek değil.
+      DishIngredient.dairy: IngredientChance.usually,
+      DishIngredient.cookingAlcohol: IngredientChance.usually,
       DishIngredient.gluten: IngredientChance.sometimes,
     },
     howToEat: LText(
@@ -1312,8 +1372,10 @@ const List<JapaneseDish> kJapaneseDishes = [
     priceMaxJpy: 6000,
     ingredients: {
       DishIngredient.fish: IngredientChance.always,
-      DishIngredient.soy: IngredientChance.usually,
-      DishIngredient.cookingAlcohol: IngredientChance.usually,
+      // "Kabayaki" tam olarak bu soya+mirin+sake+şeker sosuyla glazelenmiş
+      // olmak demek — dişin adının kendisi bu sosla tanımlanıyor.
+      DishIngredient.soy: IngredientChance.always,
+      DishIngredient.cookingAlcohol: IngredientChance.always,
       DishIngredient.gluten: IngredientChance.usually,
     },
     howToEat: LText(
@@ -1380,6 +1442,10 @@ const List<JapaneseDish> kJapaneseDishes = [
       DishIngredient.shellfish: IngredientChance.sometimes,
       DishIngredient.beef: IngredientChance.sometimes,
       DishIngredient.soy: IngredientChance.usually,
+      // Yakitori ile aynı tare (sake+mirin+soya+şeker) birçok şişte
+      // kullanılır; menü geniş olduğu için "her şişte" değil ama "bazı
+      // şişlerde" seviyesinden fazlası.
+      DishIngredient.cookingAlcohol: IngredientChance.sometimes,
     },
     howToEat: LText(
       'Geleneksel robatayaki\'de şişler uzun bir kürekle tezgahtan sana '
@@ -1413,7 +1479,9 @@ const List<JapaneseDish> kJapaneseDishes = [
       DishIngredient.pork: IngredientChance.usually,
       DishIngredient.beef: IngredientChance.sometimes,
       DishIngredient.soy: IngredientChance.usually,
-      DishIngredient.cookingAlcohol: IngredientChance.sometimes,
+      // Kendi metni "yakitori gibi shio/tare" diyor; yakitori'nin tare'si
+      // aynı sake+mirin sosu — aynı seviyede olmalı.
+      DishIngredient.cookingAlcohol: IngredientChance.usually,
     },
     howToEat: LText(
       'Tuzlu (shio) veya soslu (tare) seçilir; yakitori gibi şişten doğrudan '
@@ -1577,8 +1645,11 @@ const List<JapaneseDish> kJapaneseDishes = [
     ingredients: {
       DishIngredient.gluten: IngredientChance.always,
       DishIngredient.egg: IngredientChance.usually,
-      DishIngredient.beef: IngredientChance.sometimes,
-      DishIngredient.pork: IngredientChance.sometimes,
+      // "Genelde kıymalı" (summary) ve watchOut'un "varsayılan kıymalıdır"
+      // demesiyle tutarlı olmak için: klasik/en bilinen korokke patates+kıyma
+      // karışımıdır, saf sebzeli olan (kabocha) bilinçli istisnadır.
+      DishIngredient.beef: IngredientChance.usually,
+      DishIngredient.pork: IngredientChance.usually,
       DishIngredient.dairy: IngredientChance.sometimes,
     },
     variants: [
@@ -1905,11 +1976,18 @@ const List<JapaneseDish> kJapaneseDishes = [
     priceMinJpy: 1500,
     priceMaxJpy: 4000,
     ingredients: {
-      DishIngredient.chicken: IngredientChance.always,
+      // Geleneksel olarak tavuk (iki bacak = ayakta durmak/kazanmak) baskın
+      // ama tek başına evrensel değil — bazı chanko fasılları balık-ağırlıklı
+      // ya da modern/ticari yerlerde tamamen farklı kurulabiliyor.
+      DishIngredient.chicken: IngredientChance.usually,
       DishIngredient.fish: IngredientChance.sometimes,
       DishIngredient.dashi: IngredientChance.sometimes,
       DishIngredient.soy: IngredientChance.usually,
       DishIngredient.cookingAlcohol: IngredientChance.sometimes,
+      // watchOut zaten bunu söylüyor ama malzeme haritasında hiç yoktu —
+      // motor bu riski hiçbir zaman helal/vejetaryen kullanıcıya göstermezdi.
+      DishIngredient.pork: IngredientChance.sometimes,
+      DishIngredient.beef: IngredientChance.sometimes,
     },
     watchOut: LText(
       'Geleneksel tarif sığır/domuz kullanmaz ama her sumo ahırının kendi '
@@ -1953,8 +2031,14 @@ const List<JapaneseDish> kJapaneseDishes = [
       DishIngredient.beef: IngredientChance.usually,
       DishIngredient.pork: IngredientChance.sometimes,
       DishIngredient.soy: IngredientChance.usually,
-      DishIngredient.dashi: IngredientChance.sometimes,
-      DishIngredient.cookingAlcohol: IngredientChance.sometimes,
+      // Otantik Hakata usulü tarifler (Just One Cookbook, Sudachi vb.)
+      // dashi'yi (genelde tavuk suyuyla birlikte) suyun tabanı olarak
+      // kullanır — istisna değil.
+      DishIngredient.dashi: IngredientChance.usually,
+      DishIngredient.cookingAlcohol: IngredientChance.usually,
+      // Kendi howToEat'imiz "çampon eriştesiyle bitirme yerel gelenek"
+      // diyor — bu gluten demek, nadir bir olasılık değil.
+      DishIngredient.gluten: IngredientChance.usually,
     },
     howToEat: LText(
       'Sakatat uzun kaynatılır, hemen yenmez — birkaç dakika beklenir. '
@@ -1995,6 +2079,10 @@ const List<JapaneseDish> kJapaneseDishes = [
       DishIngredient.fish: IngredientChance.usually,
       DishIngredient.shellfish: IngredientChance.usually,
       DishIngredient.soy: IngredientChance.usually,
+      // Standart yosenabe suyu dashi+sake+mirin+soyadır; sake "seafood/etli
+      // nabe'de neredeyse her zaman kullanılır" diye belgeleniyor.
+      DishIngredient.cookingAlcohol: IngredientChance.usually,
+      DishIngredient.gluten: IngredientChance.sometimes,
     },
     howToEat: LText(
       'Herkes ortak kazandan kendi kasesine alır; malzeme bitene kadar '
@@ -2027,7 +2115,10 @@ const List<JapaneseDish> kJapaneseDishes = [
     ingredients: {
       DishIngredient.dashi: IngredientChance.always,
       DishIngredient.soy: IngredientChance.always,
-      DishIngredient.fish: IngredientChance.usually,
+      // dashi:always zaten balık suyu riskini kapsıyor; standart wakame+tofu
+      // misoshiru'da et olarak balık PARÇASI istisna, kural değil (bölgesel/
+      // deniz-ürünlü versiyonlar ayrı).
+      DishIngredient.fish: IngredientChance.sometimes,
     },
     howToEat: LText(
       'Kaşık verilmez. Kaseyi kaldırıp içilir, katıları çubukla alınır.',
@@ -2141,6 +2232,9 @@ const List<JapaneseDish> kJapaneseDishes = [
     ingredients: {
       DishIngredient.shellfish: IngredientChance.always,
       DishIngredient.soy: IngredientChance.always,
+      // Fırçalanan standart soya sosu (koikuchi shoyu) tamari değilse
+      // buğday içerir — soya fırçalama zaten tanımlayıcı hazırlık.
+      DishIngredient.gluten: IngredientChance.usually,
     },
     howToEat: LText(
       'Kağıda sarılı verilir, şişten ya da doğrudan elle koparıp yenir; '
@@ -2162,17 +2256,24 @@ const List<JapaneseDish> kJapaneseDishes = [
     emoji: '🍘',
     category: DishCategory.street,
     summary: LText(
-      'Pirinç unundan yapılıp fırınlanmış/ızgara edilmiş, soya sosuyla '
-          'glazelenmiş çıtır kraker. Çoğu bitkisel ama bazı çeşitleri '
-          'karides tozu içerir.',
-      'Crisp rice crackers, baked or grilled and glazed with soy sauce. Most '
-          'are plant-based, but some varieties contain shrimp powder.',
+      'Pirinç unundan yapılıp fırınlanmış/ızgara edilmiş çıtır kraker; en '
+          'bilineni soya sosuyla glazelenir, ama tuzlu (shio) ya da şekerli '
+          '(zarame) soyasız çeşitler de yaygın. Bazı çeşitleri karides tozu '
+          'içerir.',
+      'Crisp rice crackers, baked or grilled; the best-known kind is glazed '
+          'with soy sauce, but plain salted (shio) or sugar-glazed (zarame) '
+          'soy-free versions are also common. Some varieties contain shrimp '
+          'powder.',
     ),
     priceMinJpy: 100,
     priceMaxJpy: 500,
     ingredients: {
-      DishIngredient.soy: IngredientChance.always,
-      DishIngredient.gluten: IngredientChance.sometimes,
+      // Senbei geniş bir kategori: shio (tuzlu) ve zarame (şekerli) gibi
+      // soyasız çeşitler de yaygın satılıyor — "her zaman" soya yanlış.
+      DishIngredient.soy: IngredientChance.usually,
+      // Soya glazesi varsa (en bilinen shoyu senbei) standart soya sosu
+      // buğday içerir; gluten riski soyayla birlikte gider.
+      DishIngredient.gluten: IngredientChance.usually,
       DishIngredient.shellfish: IngredientChance.sometimes,
     },
     watchOut: LText(
@@ -2215,7 +2316,9 @@ const List<JapaneseDish> kJapaneseDishes = [
     priceMaxJpy: 400,
     ingredients: {
       DishIngredient.soy: IngredientChance.always,
-      DishIngredient.gluten: IngredientChance.sometimes,
+      // Mitarashi glazesi soyayla gelir; standart shoyu buğday içerir —
+      // gluten riski soya glazesine bağlı, nadir bir istisna değil.
+      DishIngredient.gluten: IngredientChance.usually,
     },
     variants: [
       DishVariant(
@@ -2223,11 +2326,21 @@ const List<JapaneseDish> kJapaneseDishes = [
         nameJa: 'あんこ団子',
         note: LText(
           'Soya sosu yerine tatlı fasulye ezmesiyle kaplı — tamamen '
-              'bitkisel.',
+              'bitkisel. Hamurun kendisi pirinç unundan (mochiko), buğday '
+              'içermez.',
           'Coated in sweet bean paste instead of soy glaze — fully '
-              'plant-based.',
+              'plant-based. The dough itself is rice flour (mochiko), no '
+              'wheat.',
         ),
-        ingredients: {},
+        // Bu türde soya glazesi YOK, dolayısıyla ondan gelen gluten de yok.
+        // IngredientChance.none, ana yemekten kalıtılan malzemeyi açıkça
+        // KALDIRIR — boş harita ({}) burada işe yaramazdı, çünkü
+        // effectiveIngredients boş override'ı "hiç override yok" sayıp
+        // ana yemeğin soya/gluten değerlerini olduğu gibi bırakırdı.
+        ingredients: {
+          DishIngredient.soy: IngredientChance.none,
+          DishIngredient.gluten: IngredientChance.none,
+        },
       ),
     ],
     howToEat: LText(
@@ -2291,7 +2404,8 @@ const List<JapaneseDish> kJapaneseDishes = [
     priceMaxJpy: 600,
     ingredients: {
       DishIngredient.soy: IngredientChance.always,
-      DishIngredient.gluten: IngredientChance.sometimes,
+      // Standart soya kaplaması buğday içerir; dango'daki aynı mantık.
+      DishIngredient.gluten: IngredientChance.usually,
     },
     howToEat: LText(
       'Kürdanla ya da elle, sıcakken; içi çok yapışkan olduğu için küçük '
@@ -2456,8 +2570,10 @@ const List<JapaneseDish> kJapaneseDishes = [
       'Finely shaved ice topped with syrup (matcha, strawberry, melon). The '
           'coldest dessert of summer; some places add condensed milk.',
     ),
+    // Butik/gurme kakigori dalgası fiyatı ¥1500–3000+'a taşıdı; festival
+    // usulü sade kakigori hâlâ alt sınırda kalıyor.
     priceMinJpy: 500,
-    priceMaxJpy: 1500,
+    priceMaxJpy: 2800,
     ingredients: {
       DishIngredient.dairy: IngredientChance.sometimes,
     },
@@ -2559,6 +2675,12 @@ const List<JapaneseDish> kJapaneseDishes = [
       DishIngredient.soy: IngredientChance.usually,
       DishIngredient.fish: IngredientChance.sometimes,
       DishIngredient.gluten: IngredientChance.sometimes,
+      // Ana yemek genelde et: tonkatsu/shogayaki (domuz), karaage (tavuk)
+      // en yaygın teishoku anaları — sadece balık değil.
+      DishIngredient.pork: IngredientChance.sometimes,
+      DishIngredient.chicken: IngredientChance.sometimes,
+      DishIngredient.beef: IngredientChance.sometimes,
+      DishIngredient.cookingAlcohol: IngredientChance.sometimes,
     },
     howToEat: LText(
       'Kaseleri sırayla değil dönüşümlü tüket — biraz pirinç, biraz ana yemek, '
@@ -2632,7 +2754,12 @@ const List<JapaneseDish> kJapaneseDishes = [
       DishIngredient.gluten: IngredientChance.sometimes,
       DishIngredient.egg: IngredientChance.sometimes,
       DishIngredient.pork: IngredientChance.sometimes,
+      // Karaage-kun, tavuklu sandviç/bento kadar yaygın; sadece domuz/balık
+      // değil.
+      DishIngredient.chicken: IngredientChance.sometimes,
+      DishIngredient.beef: IngredientChance.sometimes,
       DishIngredient.fish: IngredientChance.sometimes,
+      DishIngredient.shellfish: IngredientChance.sometimes,
       DishIngredient.dairy: IngredientChance.sometimes,
     },
     howToEat: LText(

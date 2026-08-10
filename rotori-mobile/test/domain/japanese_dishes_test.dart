@@ -227,5 +227,112 @@ void main() {
       }
     });
   });
+
+  // 6 paralel araştırma ajanının web aramasıyla doğruladığı düzeltmeler.
+  // En sık tekrar eden hata kalıbı: standart sosta (tare/ponzu/kabayaki/
+  // kaeshi) mirin veya sake "bazen" işaretlenmişti, oysa gerçek tarifte
+  // istisnasız/neredeyse istisnasız bulunuyor. Bunlar geri dönmesin.
+  group('denetim düzeltmeleri — regresyon koruması', () {
+    bool avoidsAlcohol(String id) {
+      final dish = kJapaneseDishes.firstWhere((d) => d.id == id);
+      return assessDish(dish, diet: {'halal'}).verdict == DishVerdict.avoid;
+    }
+
+    test(
+      'standart sosu mirin/sake bazlı yemekler helal kullanıcıya '
+      'UYGUN DEĞİL der, "sor" demez',
+      () {
+        // udon/soba (kaeshi), unadon/unagi-kabayaki (kabayaki sosu),
+        // katsuo-tataki (ponzu), motsunabe/yosenabe (nabe suyu), sukiyaki
+        // ve oden zaten "always/usually" olarak doğru kurulmuştu — hepsi
+        // burada birlikte kilitleniyor.
+        for (final id in [
+          'udon',
+          'soba',
+          'somen',
+          'unadon',
+          'unagi-kabayaki',
+          'katsuo-tataki',
+          'yakiniku',
+          'motsuyaki',
+          'teppanyaki',
+          'aburi-sushi',
+          'motsunabe',
+          'yosenabe',
+          'sukiyaki',
+        ]) {
+          expect(avoidsAlcohol(id), isTrue, reason: id);
+        }
+      },
+    );
+
+    test('chanko-nabe malzeme haritasında domuz/sığır artık VAR', () {
+      // Kayıttaki watchOut metni "modern yerlerde dört bacaklı et de
+      // eklenebilir" diyordu ama ingredients haritasında hiç yoktu —
+      // motor bu riski asla göstermiyordu.
+      final dish = kJapaneseDishes.firstWhere((d) => d.id == 'chanko-nabe');
+      expect(dish.ingredients.containsKey(DishIngredient.pork), isTrue);
+      expect(dish.ingredients.containsKey(DishIngredient.beef), isTrue);
+    });
+
+    test('korokke artık domuzsuz kullanıcıya "sor" değil "uygun değil" der',
+        () {
+      final dish = kJapaneseDishes.firstWhere((d) => d.id == 'korokke');
+      expect(
+        assessDish(dish, diet: {'no_pork'}).verdict,
+        DishVerdict.avoid,
+      );
+      // Kabocha (sebzeli) alt türü hâlâ daha düşük risk taşıyor — "sor".
+      final kabocha =
+          dish.variants.firstWhere((v) => v.name == 'Kabocha korokke');
+      expect(
+        assessDish(dish, diet: {'no_pork'}, variant: kabocha).verdict,
+        DishVerdict.ask,
+      );
+    });
+
+    test(
+      'IngredientChance.none bir alt türden kalıtılan malzemeyi GERÇEKTEN '
+      'kaldırır (dango → Anko dango)',
+      () {
+        final dango = kJapaneseDishes.firstWhere((d) => d.id == 'dango');
+        final anko =
+            dango.variants.firstWhere((v) => v.name == 'Anko dango');
+        final effective = dango.effectiveIngredients(anko);
+
+        // Ana yemekte soya/gluten var; Anko dango'da YOK olmalı — boş bir
+        // override haritası bu yüzden yetersizdi, none sentinel'i gerekti.
+        expect(effective.containsKey(DishIngredient.soy), isFalse);
+        expect(effective.containsKey(DishIngredient.gluten), isFalse);
+
+        // none hiçbir zaman kullanıcıya "her zaman/genelde/bazen" olarak
+        // görünmemeli — assessDish'e bile girmemeli.
+        final assessment =
+            assessDish(dango, diet: {'gluten_free'}, variant: anko);
+        expect(assessment.verdict, DishVerdict.safe);
+      },
+    );
+
+    test('curry-rice adı artık Türkçeye kilitli değil (İngilizce arayüzde '
+        'de doğru görünür)', () {
+      final dish = kJapaneseDishes.firstWhere((d) => d.id == 'curry-rice');
+      expect(dish.name, 'Curry rice');
+    });
+
+    test('curry-rice sosu artık domuz/tavuk/sığıra "sor" değil "uygun değil" '
+        'der — roux varsayılan olarak et yağı/özütü içerir', () {
+      final dish = kJapaneseDishes.firstWhere((d) => d.id == 'curry-rice');
+      for (final diet in [
+        {'no_pork'},
+        {'vegetarian'},
+      ]) {
+        expect(
+          assessDish(dish, diet: diet).verdict,
+          DishVerdict.avoid,
+          reason: diet.toString(),
+        );
+      }
+    });
+  });
 }
 

@@ -116,6 +116,15 @@ enum IngredientChance {
 
   /// Mekana/tarife göre değişir — SORULMALI.
   sometimes,
+
+  /// Bu ALT TÜRDE bilinçli olarak YOK — ana yemekten kalıtılan malzemeyi
+  /// siler. Sadece [DishVariant.ingredients] içinde kullanılır;
+  /// [JapaneseDish.effectiveIngredients] bu değeri gördüğü anda ilgili
+  /// malzemeyi sonuçtan tamamen çıkarır. Kalıtımı EKLEME/ÜZERİNE YAZMA
+  /// mantığıyla kurduğumuz için "kaldırma" için ayrı bir sinyal gerekiyordu;
+  /// boş bir ingredients haritası (`{}`) "override yok" ile "hiçbir şey
+  /// yok" arasında ayrım yapamıyordu (bkz. dango → Anko dango).
+  none,
 }
 
 extension IngredientChanceX on IngredientChance {
@@ -123,6 +132,8 @@ extension IngredientChanceX on IngredientChance {
         IngredientChance.always => const LText('her zaman', 'always'),
         IngredientChance.usually => const LText('genelde', 'usually'),
         IngredientChance.sometimes => const LText('bazen', 'sometimes'),
+        // effectiveIngredients bunu her zaman filtreler; UI'ya asla ulaşmaz.
+        IngredientChance.none => const LText('yok', 'none'),
       };
 }
 
@@ -256,11 +267,17 @@ class JapaneseDish {
   String get priceBand => '¥${_group(priceMinJpy)}–${_group(priceMaxJpy)}';
 
   /// Yemeğin (alt tür seçildiyse onun) etkin malzeme haritası.
+  ///
+  /// [IngredientChance.none] işaretli girişler ana yemekten kalıtılmış
+  /// olsa bile sonuçtan ÇIKARILIR — bu, bir alt türün "bu malzeme bende
+  /// yok" diyebilmesinin tek yolu (bkz. [IngredientChance.none] dokümanı).
   Map<DishIngredient, IngredientChance> effectiveIngredients([
     DishVariant? variant,
   ]) {
     if (variant == null || variant.ingredients.isEmpty) return ingredients;
-    return {...ingredients, ...variant.ingredients};
+    final merged = {...ingredients, ...variant.ingredients};
+    merged.removeWhere((_, chance) => chance == IngredientChance.none);
+    return merged;
   }
 }
 
