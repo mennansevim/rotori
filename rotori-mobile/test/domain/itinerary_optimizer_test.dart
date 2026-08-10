@@ -306,6 +306,53 @@ void main() {
       );
     });
 
+    test('etkinliğe özel erken varış payını sabit rezervasyonda korur',
+        () async {
+      const hotel = TripLocation(
+        id: 'hotel-buffer',
+        name: 'Hotel',
+        latitude: 35,
+        longitude: 139,
+      );
+      const venue = TripLocation(
+        id: 'venue-buffer',
+        name: 'teamLab',
+        latitude: 35.1,
+        longitude: 139.1,
+      );
+      final result = await const BeamSearchItineraryOptimizer().optimize(
+        OptimizationRequest(
+          activities: [
+            _activity(
+              venue,
+              duration: 60,
+              fixedStart: DateTime(2026, 10, 12, 10),
+              fixedEnd: DateTime(2026, 10, 12, 11),
+              reservation: true,
+              arrivalBuffer: 45,
+            ),
+          ],
+          routeMatrix: _completeMatrix(
+            const [hotel, venue],
+            (_, __) => _train(20),
+          ),
+          constraints: DayRouteConstraints(
+            startLocation: hotel,
+            endLocation: hotel,
+            availableStartTime: DateTime(2026, 10, 12, 8),
+            availableEndTime: DateTime(2026, 10, 12, 12),
+          ),
+        ),
+      );
+
+      expect(result.isSuccess, isTrue, reason: result.failure?.message);
+      expect(
+        result.activities.single.arrivalTime
+            .isAfter(DateTime(2026, 10, 12, 9, 15)),
+        isFalse,
+      );
+    });
+
     test('Balanced kısa farkta yürür; diğer profiller hedefe göre ayrışır',
         () async {
       const hotel = TripLocation(
@@ -908,6 +955,7 @@ OptimizationActivity _activity(
   DateTime? fixedStart,
   DateTime? fixedEnd,
   bool reservation = false,
+  int arrivalBuffer = 0,
   ActivityPriority priority = ActivityPriority.normal,
   String? category,
 }) =>
@@ -924,6 +972,7 @@ OptimizationActivity _activity(
       fixedEndTime: fixedEnd,
       isFixed: fixedStart != null,
       hasReservation: reservation,
+      requiredArrivalBufferMinutes: arrivalBuffer,
       priority: priority,
       category: category,
     );

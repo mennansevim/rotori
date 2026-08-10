@@ -67,10 +67,11 @@ rotori-mobile/lib/features/
 │  ├─ plan_edit_session.dart # optimistic edit, seri kayıt, rollback + undo
 │  ├─ plans_list_screen.dart # kaydedilmiş planlar
 │  └─ plan_viewer_screen.dart# aktif plan görüntüleyici (viewer entry)
-├─ reminders/                # bilet hatırlatmaları
+├─ reminders/                # Premium bilet hatırlatmaları + hazır/özel çoklu ekleme paneli
 ├─ viewer/
 │  ├─ budget_screen.dart, checklist_screen.dart, compass_screen.dart,
-│  │  day_map_screen.dart, japanese_phrases_screen.dart,
+│  │  day_map_screen.dart, experience_guide_screen.dart,
+│  │  japanese_phrases_screen.dart,
 │  │  must_know_screen.dart, pre_departure_checklist_screen.dart,
 │  │  reward_map_screen.dart, weather_screen.dart, gps_sim_screen.dart
 │  ├─ geofence_service.dart  # GPS akışı → geofence + XP
@@ -136,10 +137,20 @@ rotori-mobile/lib/features/
 - Şehirlerarası geçiş modu ve ona bağlı bilet, sırasıyla
   `UpdateCityTransition` ve `UpsertTicket` komutlarıyla aynı
   `PlanScheduleEngine` mutasyon hattından geçer.
+- Kullanıcı gün içinden etkinlik eklerken “biletim var” seçerse etkinlik ve
+  bilet `AddTicketedActivity` ile atomik eklenir. Mevcut yere taranmış bilet
+  `AttachTicketToActivity` ile kimlik üzerinden bağlanır; bilet tarihi gerekirse
+  etkinliği doğru güne taşır, giriş saati hard constraint olur ve esnek duraklar
+  rezervasyonun çevresine yeniden dizilir. Süre ile erken-varış payı hem bilette
+  hem timeline öğesinde saklanır; rota optimizer'ı etkinlik bazlı erken-varış
+  payını sabit aktivite tamponunun alt sınırı olarak uygular.
 - Viewer hamburger menüsü `FittedBox` ile küçültülmez. Sabit marka/gezi başlığı
   altında kaydırılabilir **Yolculuk → Keşfet → Araçlar → Hesap** hiyerarşisi
-  kullanır; uçuş ve otel detayları açılabilir, sık aksiyonlar iki sütunlu,
-  ayarlar ise gruplanmış en az 48 px dokunma alanlı satırlardır.
+  kullanır. Keşfet'te Premium fiyat etiketi tarayıcı ve macera rehberi tam
+  genişlik vitrin kartlarıdır; hava, bütçe, checklist ve ücretsiz Rotori Eats
+  düşük doygunluklu ortak yüzey dilinde iki sütunlu kartlardır. Uçuş/otel
+  ayrıntıları açılabilir; ayarlar gruplanmış en az 48 px dokunma alanlı
+  satırlardır.
 
 ## 6. Domain Katmanı (özet)
 
@@ -154,9 +165,12 @@ Pure Dart dosyaları — `flutter test` altında hızlı çalışır.
 | `city_places.dart` | Şehir başına yer katalogu (LText'li). |
 | `place_coords.dart` | Yer adı → lat/lng çözümü (geofence + harita için). |
 | `place_guide.dart` | Uzun-form yer rehberi metinleri (LText). |
+| `experience_guides.dart` | USJ, Tokyo Disney parkları ve teamLab mekânları için iki dilli bilet, süre, gün akışı, deneyim ve ipucu içeriği. |
+| `booking_windows.dart` | Shinkansen, Disney, USJ ve teamLab için resmî kural/planlama hedefi ayrımlı satış pencereleri; plan taraması ve manuel hatırlatıcı preset kataloğu. |
+| `ticketed_activity.dart` | USJ/Disney/teamLab ve genel biletli etkinlikler için süre, erken-varış ve tam-gün başlangıç varsayılanları. |
 | `place_image_resolver.dart` | *(yeni)* Yer adı → asset görsel çözümleyicisi. |
 | `day_schedule.dart` | *(yeni)* Gün içi zaman-çizelgesi hesaplaması. |
-| `plan_schedule_engine.dart` | Immutable plan düzenleme komutları, sabit aktivite politikası, 15 dakikalık tampon/slot uygunluğu, çakışma/gün sınırı validasyonu, şehir geçişi/bağlı bilet ve etkilenen günlerin yeniden zamanlanması. |
+| `plan_schedule_engine.dart` | Immutable plan düzenleme komutları, sabit aktivite politikası, 15 dakikalık tampon/slot uygunluğu, çakışma/gün sınırı validasyonu, şehir geçişi/bağlı bilet, biletli etkinlik kimlik bağlantısı ve etkilenen günlerin yeniden zamanlanması. |
 | `day_optimizer.dart` | Aynı gün içi yerlerin en verimli sırasını arar. |
 | `route_matrix.dart` | Yönlü kapıdan kapıya rota matrisi, yedi ulaşım modu, profil/tercih ve repository abstraction'ı. |
 | `itinerary_optimizer.dart` | Beam search (varsayılan width 6), artımlı rota state'i, hard feasibility pruning, local swap/move ve dört profil için maliyet fonksiyonu. |
@@ -367,6 +381,10 @@ aboneliği ise ayrıca iptal edilmedikçe **devam eder**. Silme akışı:
   `kIsWeb` kapısı; `NetworkImage`'e düşer.
 - **Home widget (iOS)** — App Group üzerinden `UserDefaults`'a yazar; web/Android'de no-op.
 - **Bildirim programı** — yerel `timezone` verisi ile `flutter_local_notifications`.
+- **Hatırlatıcı erişimi** — var olan hatırlatmalar görülebilir ve
+  silinebilir; yeni hazır/özel hatırlatıcı oluşturma UI seviyesinde
+  `premiumProvider` ile kapılıdır. Gerçek satın alma entegrasyonunda aynı
+  provider sunucu entitlement kaynağına taşınır.
 
 Kural: uçakta çalışmalı. Bir feature yeni bir *zorunlu* ağ bağımlılığı
 getirecekse mimari karar `DECISIONS.md`'ye yazılır.
@@ -505,3 +523,19 @@ sağlayıcının opsiyonel hat/yön bilgilerini kayıpsız taşır. Kalıcı
 JSON'ları bozulmaz. Ön izleme ve viewer aynı `RouteExecutionLeg` sunum
 sözleşmesini tüketir. Ayrıntılı fazlar ve kalite kapıları:
 `docs/ROUTE_EXPERIENCE_REFACTOR_PLAN.md`.
+
+## 18. Premium Çevrimdışı Japonca Metin Çevirisi
+
+Japonca yüzeyindeki `OfflineTranslatorCard`, platform paketlerini doğrudan UI'a
+bağlamaz. `OfflineTranslationGateway` metin çevirisini soyutlar. Kart
+`premiumProvider` değerini tüketir: ücretsiz kullanıcıda kilitli tanıtım
+görünür ve model kontrolü başlamaz; premium aktif olduğunda çeviri alanı aynı
+ekranda açılır. Mobil uygulamada ML Kit dil modelleri ilk kullanımda Wi-Fi ile
+indirilir; sonraki TR/EN ↔ JA metin çevirileri cihazda çalışır ve metin sunucuya
+gönderilmez. Mikrofon, konuşma tanıma ve dinamik sistem sesi kullanılmaz.
+
+Mobil-only çeviri implementasyonu conditional export ile web grafiğinden
+ayrılır. Web ön izlemesi premium kilidini gösterir; premium açıkken ML Kit
+aksiyonlarını destek-dışı bilgiyle pasif tutar. Çeviri sonuçlarında zorunlu Google Translate atfı
+yerel asset olarak gösterilir. Android alt sınırı ML Kit gereği API 23, iOS alt
+sınırı mevcut ML Kit hattıyla 15.5'tir.

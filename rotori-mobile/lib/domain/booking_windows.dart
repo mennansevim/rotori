@@ -2,8 +2,8 @@
 //
 // USJ Express Pass ~2 ay, Tokyo Disney Premier Access / DPA ~2 ay,
 // Shinkansen (Smart-EX) 1 ay (30 gün) öncesinden satışa açılır.
-// Bu bilgi kullanıcıya "Planı yeniden oluştur" sonrasında popup ile duyurulur;
-// kabul ederse ilgili tarih için yerel bildirim kurulur.
+// Aynı katalog hem plan taramasında hem Hatırlatmalar ekranındaki sonradan
+// ekleme panelinde kullanılır; kabul edilen tarihler yerel bildirime çevrilir.
 
 import 'types.dart';
 
@@ -17,6 +17,8 @@ class BookingWindow {
     required this.icon,
     required this.tip,
     required this.reminderNoonHour,
+    required this.sourceUrl,
+    this.isExactRule = false,
   });
 
   final String id;
@@ -38,6 +40,18 @@ class BookingWindow {
 
   /// Bildirimin gün içinde tetikleneceği saat (24h). 09:00 default.
   final int reminderNoonHour;
+
+  /// Satış zamanının doğrulanacağı resmî kaynak.
+  final String sourceUrl;
+
+  /// true: yayımlanmış sabit kural, false: güvenli planlama hedefi.
+  final bool isExactRule;
+
+  DateTime saleDateFor(DateTime eventOn) => DateTime(
+        eventOn.year,
+        eventOn.month,
+        eventOn.day,
+      ).subtract(Duration(days: opensBeforeDays));
 }
 
 const _kUsj = BookingWindow(
@@ -48,6 +62,7 @@ const _kUsj = BookingWindow(
   icon: '🎢',
   tip: 'bw.usj.tip',
   reminderNoonHour: 9,
+  sourceUrl: 'https://www.usj.co.jp/web/en/us/tickets',
 );
 
 const _kDisney = BookingWindow(
@@ -58,6 +73,9 @@ const _kDisney = BookingWindow(
   icon: '🏰',
   tip: 'bw.disney.tip',
   reminderNoonHour: 9,
+  sourceUrl:
+      'https://faq.tokyodisneyresort.jp/tdr/en/faq_detail.html?body_flg=1&id=21199',
+  isExactRule: true,
 );
 
 const _kShinkansen = BookingWindow(
@@ -68,7 +86,59 @@ const _kShinkansen = BookingWindow(
   icon: '🚄',
   tip: 'bw.shinkansen.tip',
   reminderNoonHour: 9,
+  sourceUrl: 'https://smart-ex.jp/en/faq/category/detail/?id=459',
+  isExactRule: true,
 );
+
+const _kTeamLabPlanets = BookingWindow(
+  id: 'teamlab-planets',
+  title: 'bw.teamlabPlanets.title',
+  subtitle: 'bw.teamlabPlanets.subtitle',
+  opensBeforeDays: 28,
+  icon: '💧',
+  tip: 'bw.teamlabPlanets.tip',
+  reminderNoonHour: 9,
+  sourceUrl: 'https://teamlabplanets.dmm.com/en',
+);
+
+const _kTeamLabBorderless = BookingWindow(
+  id: 'teamlab-borderless',
+  title: 'bw.teamlabBorderless.title',
+  subtitle: 'bw.teamlabBorderless.subtitle',
+  opensBeforeDays: 28,
+  icon: '✨',
+  tip: 'bw.teamlabBorderless.tip',
+  reminderNoonHour: 9,
+  sourceUrl: 'https://www.teamlab.art/e/tokyo/',
+);
+
+const _kTeamLabBotanical = BookingWindow(
+  id: 'teamlab-botanical',
+  title: 'bw.teamlabBotanical.title',
+  subtitle: 'bw.teamlabBotanical.subtitle',
+  opensBeforeDays: 14,
+  icon: '🌿',
+  tip: 'bw.teamlabBotanical.tip',
+  reminderNoonHour: 9,
+  sourceUrl: 'https://www.teamlab.art/e/botanicalgarden/',
+);
+
+/// Hatırlatıcı ekranında sunulan hazır seçimler.
+const List<BookingWindow> kBookingWindows = [
+  _kShinkansen,
+  _kDisney,
+  _kUsj,
+  _kTeamLabPlanets,
+  _kTeamLabBorderless,
+  _kTeamLabBotanical,
+];
+
+BookingWindow? bookingWindowById(String id) {
+  for (final window in kBookingWindows) {
+    if (window.id == id) return window;
+  }
+  return null;
+}
 
 /// Tespit edilen uyarı — hangi pencere, hangi gerçek tarihte açılıyor.
 class BookingAlert {
@@ -110,7 +180,7 @@ List<BookingAlert> detectBookingAlerts(Trip trip, {DateTime? now}) {
   void addIfNeeded(BookingWindow w, DateTime eventOn, String reason) {
     if (seen.contains(w.id)) return;
     seen.add(w.id);
-    final opens = eventOn.subtract(Duration(days: w.opensBeforeDays));
+    final opens = w.saleDateFor(eventOn);
     // Etkinlik geçmişte kaldıysa uyarma.
     if (eventOn.isBefore(today)) return;
     out.add(BookingAlert(
@@ -134,7 +204,9 @@ List<BookingAlert> detectBookingAlerts(Trip trip, {DateTime? now}) {
       if (t.contains('disney')) {
         addIfNeeded(_kDisney, ref, item.title);
       }
-      if (t.contains('shinkansen') || t.contains('nozomi') || t.contains('sakura')) {
+      if (t.contains('shinkansen') ||
+          t.contains('nozomi') ||
+          t.contains('sakura')) {
         addIfNeeded(_kShinkansen, ref, item.title);
       }
     }
@@ -142,15 +214,15 @@ List<BookingAlert> detectBookingAlerts(Trip trip, {DateTime? now}) {
 
   // Trip destinations üzerinden Shinkansen: Tokyo↔Kyoto/Osaka geçişi varsa.
   if (!seen.contains(_kShinkansen.id)) {
-    final cities = trip.preferences.destinations
-        .map((d) => d.city.toLowerCase())
-        .toList();
+    final cities =
+        trip.preferences.destinations.map((d) => d.city.toLowerCase()).toList();
     final hasTokyo = cities.any((c) => c.contains('tokyo'));
-    final hasKansai = cities.any((c) => c.contains('kyoto') || c.contains('osaka'));
+    final hasKansai =
+        cities.any((c) => c.contains('kyoto') || c.contains('osaka'));
     if (hasTokyo && hasKansai) {
-      final tokyo = trip.preferences.destinations
-          .firstWhere((d) => d.city.toLowerCase().contains('tokyo'),
-              orElse: () => trip.preferences.destinations.first);
+      final tokyo = trip.preferences.destinations.firstWhere(
+          (d) => d.city.toLowerCase().contains('tokyo'),
+          orElse: () => trip.preferences.destinations.first);
       final ref = parseDay(tokyo.departureDate) ??
           parseDay(trip.preferences.travelDates.start) ??
           today;

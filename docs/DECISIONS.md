@@ -717,3 +717,173 @@ açtığında “nasıl gidileceği” bilgisini kaybettiriyordu. Snapshot optim
 doğru kaynağı değildir; yalnız doğrulanmış kararın kullanıcıya dönük,
 geçersizleştirilebilir sunum kaydıdır. Bu ayrım çekirdek algoritmayı
 değiştirmeden saha uygulanabilirliğini artırır.
+
+---
+
+## 2026-08-10c — Erken rezervasyon hatırlatıcıları sonradan ve çoklu eklenebilir
+
+**Karar:** Bilet açılış hatırlatıcıları yalnız plan üretimi sırasındaki otomatik
+tespite bağlı değildir. Hatırlatmalar ekranı ve deneyim rehberi aynı ekleme
+panelini kullanır. Kullanıcı Shinkansen, Tokyo Disney, USJ ve teamLab hazır
+seçimlerinden birden fazlasını seçebilir, her biri için ayrı ziyaret tarihi
+belirleyebilir ve serbest başlık/tarih/saatli özel hatırlatıcı ekleyebilir.
+
+Hazır seçimlerde bildirim hesaplanan satış gününde **09:00 cihaz saatinde**
+tetiklenir ve bu saat kaydetmeden önce kullanıcıya açıkça gösterilir. Tokyo
+Disney ve Shinkansen yayımlanmış kurallar; USJ ve teamLab ise değişebilen satış
+takvimleri nedeniyle güvenli planlama hedefleri olarak modellenir. Her preset
+resmî doğrulama URL'si taşır; uygulama değişken takvimi kesin tarih gibi sunmaz.
+
+**Sunum:** Deneyim rehberindeki kategori filtreleri kaldırıldı; rehber seçimi
+tek yatay şeritte, oyuncak/deneyim ayrıntıları yatay kaydırmalı kartlarda
+gösterilir. Yalnız doğrulanmış resmî ve ücretsiz YouTube kanallarına dış
+bağlantı verilir. Keşfet menüsünde fiyat etiketi tarayıcı Premium vitrin
+kartıdır; mevcut ürün kararındaki ücretsiz 10 tarama/gün ön izlemesi korunur,
+Premium değer 100 tarama/gün ve gelişmiş karşılaştırmadır. Rotori Eats küçük
+kartlara taşınır ve ücretsiz kalır.
+
+**Algoritma sınırı:** Bu karar yalnız içerik, bildirim ve navigasyon yüzeylerini
+değiştirir; yönlü rota matrisi, beam search, hard constraint ve rota snapshot
+sözleşmelerine dokunmaz.
+
+---
+
+## 2026-08-10d — Satın alınmış bilet etkinliğe kimlikle bağlanır ve hard constraint olur
+
+**Karar:** Gün içi etkinlik ekleme sırasında kullanıcı “biletim var” dediğinde
+bilet ve etkinlik ayrı widget mutasyonlarıyla değil, tek
+`AddTicketedActivity` komutuyla eklenir. Mevcut etkinliğe taranan bilet
+`AttachTicketToActivity` ile `linkedActivityId` üzerinden bağlanır. Başlık
+eşleştirmesi yalnız eski planlar için geriye uyumlu fallback olarak kalır.
+
+Biletin ziyaret tarihi, giriş saati, içeride geçirilecek süre ve erken-varış
+payı kalıcıdır. Giriş saati `ticketedEvent` hard constraint'ine dönüşür;
+etkinliğin günü/saati/sırası/silinmesi kilitlenir. Bilet tarihi plan içindeki
+başka güne denk gelirse etkinlik o güne taşınır ve esnek duraklar sabit
+rezervasyonun çevresine yeniden zamanlanır. Rota optimizer'ı etkinlik bazlı
+erken-varış payını kendi sabit aktivite tamponuyla `max` alarak uygular.
+
+**Neden:** USJ, Disney ve teamLab gibi tarih/saat bağlı deneyimler rotanın
+sonradan eklenen notları değildir; günün geri kalanını belirleyen kısıtlardır.
+Yalnız başlığa göre kilitlemek aynı isimli etkinliklerde yanlış bileti
+bağlayabilir, bilet ekleme ile plan mutasyonunu ayırmak ise yarım kayıt
+üretebilir.
+
+**Sunum:** Gün bazlı “durak ekle” sheet'i bilet anahtarı, süre seçimi ve sabit
+saat/erken-varış özetini gösterir. Alt navigasyondaki Keşfet girişi kalıcı bir
+ürün yüzeyi olarak korunur ve keşif haritasını açar.
+
+---
+
+## 2026-08-10e — Yeni hatırlatıcı oluşturma Premium'dur; resmî görseller izinsiz kopyalanmaz
+
+**Karar:** Yeni hazır veya özel Rotori hatırlatıcısı oluşturmak Premium
+yetkisidir. Kapı tek kaynaktan `premiumProvider` ile uygulanır. Üyeliği sona
+eren kullanıcının daha önce oluşturduğu kayıtlar gizlenmez; kullanıcı bunları
+görebilir ve silebilir, ancak yeni kayıt oluşturamaz. Gerçek StoreKit/sunucu
+entitlement entegrasyonu geldiğinde UI kapıları değişmeden provider kaynağı
+yenilenir.
+
+**Görsel kullanımı:** Tokyo Disney Resort ve Universal Studios Japan resmî
+site şartları, site materyallerinin ticari uygulamada kopyalanmasına açık izin
+vermiyor. teamLab da ticari görsel kullanımı için önceden onay istiyor. Bu
+nedenle resmî fotoğraf, karakter, logo veya belirli sanat eseri uygulama asset'i
+olarak alınmaz. Hazır seçim kartları Rotori için üretilmiş özgün ve yerel
+görseller kullanır; resmî kaynaklar yalnız doğrulama ve dış bağlantıdır.
+
+**Algoritma sınırı:** Değişiklik yalnız entitlement sunumu, hatırlatıcı UI'ı
+ve görsel asset'leri kapsar. Rota matrisi, beam search, hard constraint,
+validator ve route snapshot davranışı değişmez.
+
+---
+
+## 2026-08-11 — Seyahat çevirisi cihaz-üstü ve iki yönlü konuşma odaklıdır
+
+**Karar:** Japonca sayfası serbest metinde TR/EN ↔ JA çeviriyi Google ML Kit
+on-device Translation ile yapar. İki dil modeli yalnız ilk kullanımda açık
+kullanıcı aksiyonuyla indirilir; sonrasında çeviri metni cihazdan çıkmaz.
+`google_mlkit_translation` mevcut OCR altyapısıyla uyum için 0.13.1 hattında
+sabitlenir. Android minimum API 23, iOS minimum 15.5'tir.
+
+Konuşma modu iki düğmeli sırayla çalışan kısa-cümle deneyimidir: Türkçe/İngilizce
+konuşma Japoncaya çevrilip Japonca okunur; yön değişince Japonca konuşma yerel
+dile çevrilip okunur. Konuşma tanımada `onDevice=true` zorunludur. Telefonda
+ilgili offline konuşma paketi yoksa ağ tabanlı fallback yapılmaz; kullanıcıya
+paket/izin uyarısı verilir. Sesli çıktı cihazın kurulu sistem sesini kullanır.
+Hedef dil sesi dinleme başlamadan doğrulanır. Android'de ağ gerektiren veya
+kurulu olmayan TTS sesleri seçilemez; iOS'ta cihazın sunduğu sistem seslerinden
+uygun dil seçilir. Hiçbiri yoksa özellik açıkça durur ve bulut sesine düşmez.
+
+**Neden:** Seyahatte en kritik anlar kasada, istasyonda ve restoranda kısa,
+karşılıklı cümlelerdir. Sunucu çevirisi ağın zayıf olduğu anda bozulur ve konuşma
+metnini dışarı taşır. Cihaz-üstü akış daha öngörülebilir ve gizlidir.
+
+**Sınırlar:** Bu bir insan tercüman değildir; TR ↔ JA çevirisi İngilizceyi ara
+dil olarak kullanabildiğinden özellikle sağlık/acil durum cümleleri doğrulanır.
+Konuşma modu sürekli dinleme yapmaz ve telefonda kurulu olmayan offline dil
+paketini kendisi sağlayamaz. Android 12 (API 31) altındaki yalnız “offline'ı
+tercih et” sinyali gizlilik garantisi sayılmaz; bu cihazlarda sesli mod yerine
+metin çevirisi sunulur. Web yalnız tasarım ön izlemesidir. Google'ın
+zorunlu “Translate with Google”/sonuç atfı korunur.
+
+---
+
+## 2026-08-11b — Hatırlatıcı kart fotoğrafları kullanıcı tarafından seçilecek
+
+**Supersedes:** `2026-08-10e` kaydındaki hazır seçim kartlarının Rotori için
+üretilmiş görselleri kullanacağı ayrıntısı. Premium entitlement ve telif
+kuralları değişmez.
+
+**Karar:** Otomatik üretilen ilk kart görselleri ürün tonuna uygun bulunmadı
+ve nihai asset olarak kullanılmayacak. Kullanıcı Shinkansen, Tokyo Disney,
+USJ ve üç teamLab deneyimi için kaynak dosya veya kaynak URL sağlayacak.
+Rotori bu dosyaları ancak kendi çekimi, ticari lisanslı stok veya uygulama
+kullanımına açıkça izin veren resmî basın kiti olduğu doğrulandığında
+yerel WebP asset'e dönüştürecek.
+
+**Geçici sunum:** Kartlar fotoğraf gelene kadar emoji veya taklit marka
+görseli yerine düşük doygunluklu gradyan, tutarlı ikon ve sabit okunabilirlik
+katmanı kullanır. Fotoğraf takılması entitlement, tarih hesabı veya bildirim
+planlama davranışını değiştirmez.
+
+---
+
+## 2026-08-11c — Hatırlatıcı kartları fotoğrafsız, ikon-temelli kalır
+
+**Supersedes:** `2026-08-11b` kaydındaki kullanıcının daha sonra kart
+fotoğrafları sağlayacağı ve mevcut sunumun geçici olduğu kararı.
+
+**Karar:** Hazır hatırlatıcı kartlarına fotoğraf eklenmeyecek. Shinkansen,
+Tokyo Disney, USJ Express Pass, teamLab Planets, Borderless ve Botanical
+Garden seçenekleri birbirinden farklı Material ikonlarıyla temsil edilir.
+Sınırlı koyu gradyan paleti, belirgin ikon rozeti ve ortak seçim göstergesi
+nihai görsel dil olarak korunur; marka logosu, karakter, emoji veya haricî
+görsel asset kullanılmaz.
+
+**Neden:** Küçük kartlarda fotoğraf hem metin okunabilirliğini hem de ürünün
+sakin görsel bütünlüğünü zayıflatıyor. İkon-temelli sunum daha hızlı,
+çevrimdışı, telif açısından temiz ve altı seçeneği yeterince ayırt edebilir.
+
+**Sınır:** Bu karar yalnız hatırlatıcı kart sunumunu değiştirir. Premium
+erişim, satış tarihi hesabı, bildirim planlama ve rota algoritması değişmez.
+
+---
+
+## 2026-08-11d — Cepte Çevirmen premium ve yalnız metindir
+
+**Supersedes:** `2026-08-11` kaydındaki iki yönlü mikrofonlu konuşma ve dinamik
+sistem sesi ayrıntıları. Cihaz-üstü metin çevirisi ve Google atfı korunur.
+
+**Karar:** Cepte Çevirmen yalnız TR/EN ↔ JA metin çevirisi sunar. Mikrofon,
+konuşma tanıma, sonuç seslendirmesi ve bunların platform izinleri/runtime
+bağımlılıkları kaldırılır. Japonca sayfasındaki hazır ifadelerin önceden
+paketlenmiş yerel MP3 telaffuzları bu karardan etkilenmez.
+
+Çevirmen `premiumProvider` değerini izler. Ücretsiz kullanıcı en üstte kilitli
+premium tanıtımını görür ve dil modeli kontrolü/indirmesi başlamaz. Premium
+aktif olduğunda metin alanı, yön değiştirme, model indirme ve çeviri aynı
+kartın içinde açılır. Aşağıdaki hazır ifade kategorileri ücretsiz kalır.
+
+**Neden:** İlk App Store sürümünde mikrofon izin ve gerçek-cihaz konuşma paketi
+matrisini kapsamdan çıkarmak inceleme riskini azaltır. Metin çevirisi seyahatte
+çevrimdışı faydayı korur ve premium değer önerisini netleştirir.

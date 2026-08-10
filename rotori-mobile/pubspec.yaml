@@ -32,6 +32,11 @@ dependencies:
   # Cihaz üstü (on-device) OCR — bilet metnini çıkarır (yalnızca mobil).
   # Web derlemesine sızmaması için ticket_ocr.dart koşullu import ile izole edilir.
   google_mlkit_text_recognition: ^0.15.0
+  # Cihaz üstü metin çevirisi — dil modelleri ilk kullanımda indirilir;
+  # sonraki çeviriler internetsiz ve sunucuya metin göndermeden çalışır.
+  # Yalnız iOS/Android; web conditional import ile destek-dışı görünür.
+  # 0.13.1 mevcut OCR paketinin google_mlkit_commons 0.11.x hattıyla uyumlu.
+  google_mlkit_translation: ^0.13.1
   # Canlı kamera akışı — gerçek zamanlı para birimi tarayıcı (yalnızca mobil).
   # Live currency scanner image stream'i buradan gelir; web'de conditional
   # import ile no-op recognizer'a düşer, camera plugin web grafiğine girmez.
@@ -90,6 +95,10 @@ flutter:
     - assets/tts/ja/
     # Hamburger menüsünün Japonya hero görseli.
     - assets/images/hamb-menu-top-bg.png
+    # Tema parkı + teamLab deneyim rehberinin özgün, çevrimdışı hero görseli.
+    - assets/images/experience-guide-hero.webp
+    # ML Kit çeviri sonuçlarının yanında zorunlu Google Translate atfı.
+    - assets/images/powered-by-google-translate.png
     # Yıl bazlı birim maliyet tablosu (bütçe tahmini; elle düzenlenebilir).
     - assets/data/unit_costs.ini
 

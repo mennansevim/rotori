@@ -21,6 +21,7 @@ import '../../domain/japan_suggestions.dart';
 import '../../domain/place_guide.dart';
 import '../../domain/place_image_resolver.dart';
 import '../../domain/trip_factory.dart';
+import '../../domain/ticketed_activity.dart';
 import '../../domain/types.dart';
 import 'ticket_ocr.dart';
 import 'ticket_support.dart';
@@ -36,7 +37,7 @@ Future<void> showPlaceDetailSheet({
   String? countryCode,
   VoidCallback? onEdit,
   Ticket? existingTicket,
-  void Function(Ticket)? onAddTicket,
+  Future<bool> Function(Ticket)? onAddTicket,
 }) {
   final profile =
       countryCode != null ? getDestinationProfile(countryCode) : null;
@@ -166,7 +167,7 @@ class _PlaceDetailSheet extends StatefulWidget {
   final DestinationProfile? profile;
   final VoidCallback? onEdit;
   final Ticket? existingTicket;
-  final void Function(Ticket)? onAddTicket;
+  final Future<bool> Function(Ticket)? onAddTicket;
   final ScrollController? scrollController;
 
   @override
@@ -392,6 +393,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
         text = await extractTicketText(picked.path);
       }
       final info = parseTicketInfo(text);
+      final defaults = ticketedActivityDefaultsForTitle(item.title);
 
       final normalized = _normalize(item.title);
       final ticket = Ticket(
@@ -400,11 +402,15 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
         label: normalized.isEmpty ? item.title : item.title,
         purchased: true,
         visitDate: info['date'],
+        entryTime: info['time'],
+        durationMin: defaults.durationMinutes,
+        arrivalBufferMin: defaults.arrivalBufferMinutes,
         imageDataUrl: dataUrl,
         scannedText: text.isEmpty ? null : text,
         emoji: '🎫',
       );
-      widget.onAddTicket!(ticket);
+      final saved = await widget.onAddTicket!(ticket);
+      if (!saved) throw StateError('ticket could not be linked');
       if (!mounted) return;
       setState(() {
         _added = ticket;
@@ -468,9 +474,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
         children: [
           Text(s.s('placeDetail.ticketCardTitle'),
               style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: onSurface)),
+                  fontSize: 14, fontWeight: FontWeight.w700, color: onSurface)),
           const SizedBox(height: 10),
           if (image != null) ...[
             image,
@@ -502,8 +506,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
                     color: onSurface.withValues(alpha: 0.5))),
             const SizedBox(height: 2),
             Text(preview,
-                style: TextStyle(
-                    fontSize: 12, color: secondary, height: 1.4)),
+                style: TextStyle(fontSize: 12, color: secondary, height: 1.4)),
           ],
         ],
       ),
@@ -552,15 +555,16 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
         if (categoryLabel != null) categoryLabel,
         if (city.isNotEmpty) city,
       ];
-      intro =
-          parts.isNotEmpty ? parts.join(' · ') : s.s('placeDetail.defaultIntro');
+      intro = parts.isNotEmpty
+          ? parts.join(' · ')
+          : s.s('placeDetail.defaultIntro');
     }
 
     final recs = _recommendations();
     final nearbyRestaurants = _nearbyRestaurants();
     final userTip = item.tips?.trim();
-    final rating = guide?.averageRating ??
-        (match != null ? placeRating(match) : null);
+    final rating =
+        guide?.averageRating ?? (match != null ? placeRating(match) : null);
 
     final ticket = _ticket;
     final needsTicket = requiresTicket(item, category: match?.category);
@@ -765,8 +769,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
                     const SizedBox(width: 7),
                     Expanded(
                       child: Text(r.$2,
-                          style:
-                              TextStyle(fontSize: 13, color: onSurface)),
+                          style: TextStyle(fontSize: 13, color: onSurface)),
                     ),
                   ],
                 ),
@@ -812,8 +815,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
                               ),
                             ),
                           ),
-                          Icon(Icons.map_outlined,
-                              size: 16, color: cs.primary),
+                          Icon(Icons.map_outlined, size: 16, color: cs.primary),
                         ],
                       ),
                     ),
@@ -906,7 +908,9 @@ class _StatBar extends StatelessWidget {
             for (var i = 0; i < cells.length; i++) ...[
               if (i > 0)
                 VerticalDivider(
-                    width: 1, thickness: 1, color: onSurface.withValues(alpha: 0.08)),
+                    width: 1,
+                    thickness: 1,
+                    color: onSurface.withValues(alpha: 0.08)),
               Expanded(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -970,7 +974,9 @@ String _formatRatingLabel(double rating, int? reviewCount, LanguageScope s) {
       ? rating.toStringAsFixed(1)
       : rating.toStringAsFixed(1).replaceAll('.', ',');
   if (reviewCount == null) return '★ $r';
-  return '★ $r ${s.p('placeDetail.reviewCount', {'n': _formatReviewCount(reviewCount, s)})}';
+  return '★ $r ${s.p('placeDetail.reviewCount', {
+        'n': _formatReviewCount(reviewCount, s)
+      })}';
 }
 
 /// Yerin görsellerini kaydırılabilir bir carousel'de gösterir.
@@ -1045,65 +1051,66 @@ class _PlaceCarouselState extends State<_PlaceCarousel> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
-      children: [
-        SizedBox(
-          height: 150,
-          child: PageView.builder(
-            controller: _ctrl,
-            itemCount: _urls.length,
-            onPageChanged: (i) => setState(() => _idx = i),
-            itemBuilder: (_, i) => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: Image.network(
-                  _urls[i],
-                  fit: BoxFit.cover,
-                  loadingBuilder: (_, child, progress) {
-                    if (progress == null) return child;
-                    return Container(
+        children: [
+          SizedBox(
+            height: 150,
+            child: PageView.builder(
+              controller: _ctrl,
+              itemCount: _urls.length,
+              onPageChanged: (i) => setState(() => _idx = i),
+              itemBuilder: (_, i) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Image.network(
+                    _urls[i],
+                    fit: BoxFit.cover,
+                    loadingBuilder: (_, child, progress) {
+                      if (progress == null) return child;
+                      return Container(
+                        color: widget.subtleBg,
+                        alignment: Alignment.center,
+                        child: const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2)),
+                      );
+                    },
+                    errorBuilder: (_, __, ___) => Container(
                       color: widget.subtleBg,
                       alignment: Alignment.center,
-                      child: const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2)),
-                    );
-                  },
-                  errorBuilder: (_, __, ___) => Container(
-                    color: widget.subtleBg,
-                    alignment: Alignment.center,
-                    child: const Text('🗺️',
-                        style: TextStyle(fontSize: 36)),
+                      child: const Text('🗺️', style: TextStyle(fontSize: 36)),
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-        if (_urls.length > 1) ...[
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              for (var i = 0; i < _urls.length; i++)
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                  width: i == _idx ? 18 : 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: i == _idx
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.onSurface.withValues(
-                            alpha: 0.25),
-                    borderRadius: BorderRadius.circular(3),
+          if (_urls.length > 1) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (var i = 0; i < _urls.length; i++)
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    width: i == _idx ? 18 : 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: i == _idx
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
                   ),
-                ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ],
-      ],
       ),
     );
   }

@@ -8,6 +8,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../core/l10n.dart';
 import '../../data/reminders_store.dart';
 import '../notifications/notifications_service.dart';
+import '../plans/premium_provider.dart';
+import 'reminder_composer_sheet.dart';
 
 class RemindersScreen extends ConsumerWidget {
   const RemindersScreen({super.key});
@@ -16,6 +18,7 @@ class RemindersScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = LanguageScope.of(context);
     final reminders = ref.watch(remindersProvider);
+    final isPremium = ref.watch(premiumProvider);
     final sorted = [...reminders]..sort((a, b) => a.fireAt.compareTo(b.fireAt));
 
     return Scaffold(
@@ -24,8 +27,26 @@ class RemindersScreen extends ConsumerWidget {
           icon: const Icon(LucideIcons.arrowLeft),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: Text(s.s('reminders.title')),
+        title: Row(
+          children: [
+            Flexible(
+              child: Text(
+                s.s('reminders.title'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            _ProBadge(active: isPremium),
+          ],
+        ),
         actions: [
+          IconButton(
+            key: const ValueKey('add-reminder'),
+            tooltip: s.s('reminders.add'),
+            icon: const Icon(LucideIcons.plus),
+            onPressed: () => _openComposer(context, ref),
+          ),
           if (sorted.isNotEmpty)
             IconButton(
               tooltip: s.s('reminders.clearAll'),
@@ -35,13 +56,43 @@ class RemindersScreen extends ConsumerWidget {
         ],
       ),
       body: sorted.isEmpty
-          ? const _EmptyState()
+          ? _EmptyState(
+              isPremium: isPremium,
+              onAdd: () => _openComposer(context, ref),
+            )
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
               itemCount: sorted.length,
               separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (_, i) => _ReminderTile(reminder: sorted[i]),
             ),
+      floatingActionButton: sorted.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => _openComposer(context, ref),
+              icon: Icon(isPremium ? LucideIcons.plus : Icons.lock_rounded),
+              label: Text(
+                isPremium ? s.s('reminders.add') : s.s('reminders.premiumCta'),
+              ),
+            ),
+    );
+  }
+
+  Future<void> _openComposer(BuildContext context, WidgetRef ref) async {
+    final count = await showReminderComposerSheet(
+      context,
+      isPremium: ref.read(premiumProvider),
+    );
+    if (count == null || count == 0 || !context.mounted) return;
+    final lang = LanguageScope.of(context).lang;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          lang == AppLang.tr
+              ? '$count hatırlatıcı eklendi'
+              : '$count reminder${count == 1 ? '' : 's'} added',
+        ),
+      ),
     );
   }
 
@@ -96,7 +147,19 @@ class _ReminderTile extends ConsumerWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(reminder.icon, style: const TextStyle(fontSize: 26)),
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: .1),
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(
+              _reminderIcon(reminder.windowId),
+              size: 21,
+              color: theme.colorScheme.primary,
+            ),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -115,7 +178,9 @@ class _ReminderTile extends ConsumerWidget {
                     _Pill(
                       icon: LucideIcons.calendarClock,
                       text: _formatDate(reminder.fireAt, s),
-                      color: passed ? Colors.deepOrange : theme.colorScheme.primary,
+                      color: passed
+                          ? Colors.deepOrange
+                          : theme.colorScheme.primary,
                     ),
                     _Pill(
                       icon: LucideIcons.timer,
@@ -177,7 +242,10 @@ class _Pill extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({required this.isPremium, required this.onAdd});
+
+  final bool isPremium;
+  final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -189,23 +257,97 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(LucideIcons.bellOff,
-                size: 42, color: theme.colorScheme.outline),
+            Icon(
+              isPremium ? LucideIcons.bellOff : Icons.lock_rounded,
+              size: 42,
+              color: isPremium
+                  ? theme.colorScheme.outline
+                  : theme.colorScheme.primary,
+            ),
             const SizedBox(height: 12),
-            Text(s.s('reminders.emptyTitle'),
+            Text(
+                isPremium
+                    ? s.s('reminders.emptyTitle')
+                    : s.s('reminders.premiumTitle'),
                 style: theme.textTheme.titleMedium
                     ?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
             Text(
-              s.s('reminders.emptyBody'),
+              isPremium
+                  ? s.s('reminders.emptyBody')
+                  : s.s('reminders.premiumBody'),
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 18),
+            FilledButton.icon(
+              onPressed: onAdd,
+              icon: Icon(
+                isPremium ? LucideIcons.plus : Icons.lock_rounded,
+              ),
+              label: Text(
+                isPremium ? s.s('reminders.add') : s.s('reminders.premiumCta'),
+              ),
             ),
           ],
         ),
       ),
     );
   }
+}
+
+class _ProBadge extends StatelessWidget {
+  const _ProBadge({required this.active});
+
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
+    const gold = Color(0xFFFFC857);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: active
+            ? gold.withValues(alpha: .2)
+            : Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: active
+              ? gold.withValues(alpha: .55)
+              : Theme.of(context).colorScheme.outlineVariant,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            active ? Icons.workspace_premium_rounded : Icons.lock_rounded,
+            size: 11,
+            color: active ? const Color(0xFF9A6500) : null,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            s.s('reminders.premiumBadge'),
+            style: TextStyle(
+              color: active ? const Color(0xFF815500) : null,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              letterSpacing: .5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+IconData _reminderIcon(String windowId) {
+  if (windowId == 'shinkansen-smartex') return Icons.train_rounded;
+  if (windowId == 'tokyo-disney') return Icons.castle_rounded;
+  if (windowId == 'usj-express') return Icons.attractions_rounded;
+  if (windowId.startsWith('teamlab-')) return Icons.auto_awesome_rounded;
+  return Icons.notifications_rounded;
 }
 
 String _formatDate(DateTime d, LanguageScope s) {

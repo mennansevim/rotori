@@ -11,7 +11,8 @@ Trip _tripWithItems({List<String>? titles, DateTime? travelStart}) {
         '${travelStart.month.toString().padLeft(2, '0')}-'
         '${travelStart.day.toString().padLeft(2, '0')}';
   }
-  final day = DayPlan(dayNumber: 1, date: t.preferences.travelDates.start, theme: 'Tokyo');
+  final day = DayPlan(
+      dayNumber: 1, date: t.preferences.travelDates.start, theme: 'Tokyo');
   for (var i = 0; i < (titles?.length ?? 0); i++) {
     day.items.add(TimelineItem(
       id: 'it-$i',
@@ -26,6 +27,25 @@ Trip _tripWithItems({List<String>? titles, DateTime? travelStart}) {
 
 void main() {
   final future = DateTime.now().add(const Duration(days: 200));
+
+  test('hazır seçimler Shinkansen, Disney, USJ ve teamLab içerir', () {
+    expect(
+      kBookingWindows.map((window) => window.id),
+      containsAll(<String>[
+        'shinkansen-smartex',
+        'tokyo-disney',
+        'usj-express',
+        'teamlab-planets',
+        'teamlab-borderless',
+        'teamlab-botanical',
+      ]),
+    );
+    expect(
+      bookingWindowById('shinkansen-smartex')!.opensBeforeDays,
+      30,
+    );
+    expect(bookingWindowById('tokyo-disney')!.opensBeforeDays, 60);
+  });
 
   test('boş plan → uyarı yok', () {
     expect(detectBookingAlerts(_tripWithItems()), isEmpty);
@@ -42,15 +62,15 @@ void main() {
   });
 
   test('Disney → Tokyo Disney uyarısı', () {
-    final t = _tripWithItems(
-        titles: ['Tokyo Disneyland günü'], travelStart: future);
+    final t =
+        _tripWithItems(titles: ['Tokyo Disneyland günü'], travelStart: future);
     expect(detectBookingAlerts(t).map((a) => a.window.id),
         contains('tokyo-disney'));
   });
 
   test('Shinkansen anahtar kelime tetikler (30 gün önce)', () {
-    final t = _tripWithItems(
-        titles: ['Shinkansen Nozomi'], travelStart: future);
+    final t =
+        _tripWithItems(titles: ['Shinkansen Nozomi'], travelStart: future);
     final alerts = detectBookingAlerts(t);
     final sh = alerts.firstWhere((a) => a.window.id == 'shinkansen-smartex');
     expect(sh.eventOn.difference(sh.opensOn).inDays, 30);

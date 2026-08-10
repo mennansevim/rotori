@@ -8,6 +8,7 @@ class PlanSchedulePolicy {
     this.minimumTransitionMinutes = 15,
     this.minimumMealGapMinutes = 15,
     this.maximumDayMinutes = 24 * 60,
+    this.defaultReservationArrivalBufferMinutes = 30,
   });
 
   final int dayStartMinutes;
@@ -15,6 +16,7 @@ class PlanSchedulePolicy {
   final int minimumTransitionMinutes;
   final int minimumMealGapMinutes;
   final int maximumDayMinutes;
+  final int defaultReservationArrivalBufferMinutes;
 }
 
 enum PlanEditFailureCode {
@@ -181,6 +183,32 @@ class AddActivity extends PlanEditCommand {
   final int dayNumber;
   final TimelineItem activity;
   final int? targetIndex;
+}
+
+/// Bir etkinliği ve ona ait satın alınmış bileti tek atomik işlemle ekler.
+class AddTicketedActivity extends PlanEditCommand {
+  const AddTicketedActivity({
+    required this.dayNumber,
+    required this.activity,
+    required this.ticket,
+    this.targetIndex,
+  });
+
+  final int dayNumber;
+  final TimelineItem activity;
+  final Ticket ticket;
+  final int? targetIndex;
+}
+
+/// Mevcut bir etkinliği satın alınmış bilete bağlayıp sabit rezervasyona çevirir.
+class AttachTicketToActivity extends PlanEditCommand {
+  const AttachTicketToActivity({
+    required this.activityId,
+    required this.ticket,
+  });
+
+  final String activityId;
+  final Ticket ticket;
 }
 
 class ReorderDays extends PlanEditCommand {
@@ -391,6 +419,8 @@ class PlanScheduleEngine {
       UpdateActivitySchedule command => _updateSchedule(trip, command),
       DeleteActivity command => _deleteActivity(trip, command),
       AddActivity command => _addActivity(trip, command),
+      AddTicketedActivity command => _addTicketedActivity(trip, command),
+      AttachTicketToActivity command => _attachTicketToActivity(trip, command),
       ReorderDays command => _reorderDays(trip, command),
       UpdateDayDetails command => _updateDayDetails(trip, command),
       UpdateCityTransition command => _updateCityTransition(trip, command),
@@ -721,6 +751,98 @@ class PlanScheduleEngine {
     return _reschedule(day, index);
   }
 
+  PlanEditFailure? _addTicketedActivity(
+    Trip trip,
+    AddTicketedActivity command,
+  ) {
+    final day = _day(trip, command.dayNumber);
+    if (day == null) return _missingDay(command.dayNumber);
+    if (_activity(trip, command.activity.id) != null) {
+      return PlanEditFailure(
+        PlanEditFailureCode.duplicateActivity,
+        message: 'Aynı aktivite plan içinde iki kez bulunamaz.',
+        activityId: command.activity.id,
+      );
+    }
+
+    final activity = _cloneItem(command.activity);
+    final failure = _lockActivityWithTicket(activity, command.ticket);
+    if (failure != null) return failure;
+    final index = command.targetIndex ?? _suggestedIndex(day.items, activity);
+    if (index < 0 || index > day.items.length) return _invalidIndex();
+    day.items.insert(index, activity);
+    _arrangeAroundFixedActivities(day);
+
+    final ticket = _linkedTicket(
+      command.ticket,
+      activity: activity,
+      visitDate: day.date,
+    );
+    _putTicket(trip, ticket);
+    return _reschedule(day, 0);
+  }
+
+  PlanEditFailure? _attachTicketToActivity(
+    Trip trip,
+    AttachTicketToActivity command,
+  ) {
+    DayPlan? sourceDay;
+    TimelineItem? activity;
+    for (final day in trip.days) {
+      final index =
+          day.items.indexWhere((item) => item.id == command.activityId);
+      if (index >= 0) {
+        sourceDay = day;
+        activity = day.items[index];
+        break;
+      }
+    }
+    if (sourceDay == null || activity == null) {
+      return _missingActivity(command.activityId);
+    }
+
+    var targetDay = sourceDay;
+    final visitDate = command.ticket.visitDate;
+    if (visitDate != null && visitDate.isNotEmpty) {
+      final parsed = DateTime.tryParse(visitDate);
+      if (parsed == null) {
+        return const PlanEditFailure(
+          PlanEditFailureCode.invalidDate,
+          message: 'Biletteki ziyaret tarihi geçerli değil.',
+        );
+      }
+      final normalized = _dateOnly(parsed);
+      final matchingDays = trip.days.where((day) {
+        final dayDate = DateTime.tryParse(day.date);
+        return dayDate != null && _dateOnly(dayDate) == normalized;
+      }).toList(growable: false);
+      if (matchingDays.isNotEmpty) targetDay = matchingDays.first;
+    }
+
+    sourceDay.items.removeWhere((item) => item.id == activity!.id);
+    final failure = _lockActivityWithTicket(activity, command.ticket);
+    if (failure != null) return failure;
+    targetDay.items.add(activity);
+    _arrangeAroundFixedActivities(targetDay);
+
+    if (sourceDay != targetDay) {
+      final sourceFailure = _reschedule(sourceDay, 0);
+      if (sourceFailure != null) return sourceFailure;
+    }
+    final targetFailure = _reschedule(targetDay, 0);
+    if (targetFailure != null) return targetFailure;
+
+    _putTicket(
+      trip,
+      _linkedTicket(
+        command.ticket,
+        activity: activity,
+        visitDate: targetDay.date,
+      ),
+    );
+    return null;
+  }
+
   PlanEditFailure? _reorderDays(Trip trip, ReorderDays command) {
     if (command.oldIndex < 0 ||
         command.oldIndex >= trip.days.length ||
@@ -784,11 +906,22 @@ class PlanScheduleEngine {
       ticketJson['linkedTransitionDayNumber'] = command.transitionDayNumber;
     }
     final ticket = Ticket.fromJson(ticketJson);
-    final index = trip.tickets.indexWhere((item) => item.id == ticket.id);
-    if (index < 0) {
-      trip.tickets.add(ticket);
-    } else {
-      trip.tickets[index] = ticket;
+    _putTicket(trip, ticket);
+
+    if (ticket.purchased && ticket.linkedActivityId != null) {
+      for (final candidateDay in trip.days) {
+        final activityIndex = candidateDay.items.indexWhere(
+          (item) => item.id == ticket.linkedActivityId,
+        );
+        if (activityIndex < 0) continue;
+        final activity = candidateDay.items[activityIndex];
+        final lockFailure = _lockActivityWithTicket(activity, ticket);
+        if (lockFailure != null) return lockFailure;
+        _arrangeAroundFixedActivities(candidateDay);
+        final scheduleFailure = _reschedule(candidateDay, 0);
+        if (scheduleFailure != null) return scheduleFailure;
+        break;
+      }
     }
 
     final transitionDayNumber = command.transitionDayNumber;
@@ -914,6 +1047,111 @@ class PlanScheduleEngine {
         .indexWhere((candidate) => (_start(candidate) ?? 1 << 20) > wanted);
     return index < 0 ? items.length : index;
   }
+
+  PlanEditFailure? _lockActivityWithTicket(
+    TimelineItem activity,
+    Ticket ticket,
+  ) {
+    final start = _parseTime(
+      ticket.entryTime ??
+          activity.fixedStartTime ??
+          activity.time ??
+          activity.scheduledTime,
+    );
+    if (start == null) {
+      return PlanEditFailure(
+        PlanEditFailureCode.invalidTime,
+        message: '${activity.title} için geçerli bir bilet saati gerekli.',
+        activityId: activity.id,
+      );
+    }
+    final duration = ticket.durationMin ??
+        activity.durationMin ??
+        policy.defaultDurationMinutes;
+    if (duration <= 0) {
+      return PlanEditFailure(
+        PlanEditFailureCode.invalidDuration,
+        message: '${activity.title} için süre sıfırdan büyük olmalı.',
+        activityId: activity.id,
+      );
+    }
+
+    _setStart(activity, start);
+    activity.fixedStartTime = _formatTime(start);
+    activity.durationMin = duration;
+    activity.arrivalBufferMin = ticket.arrivalBufferMin ??
+        activity.arrivalBufferMin ??
+        policy.defaultReservationArrivalBufferMinutes;
+    activity.lockType = ActivityLockType.ticketedEvent;
+    activity.canChangeDay = false;
+    activity.canChangeTime = false;
+    activity.canReorder = false;
+    activity.canDelete = false;
+    activity.lockReason = 'Satın alınmış bilete bağlı sabit rezervasyon.';
+    return null;
+  }
+
+  Ticket _linkedTicket(
+    Ticket source, {
+    required TimelineItem activity,
+    required String visitDate,
+  }) {
+    final json = source.toJson();
+    json['purchased'] = true;
+    json['linkedActivityId'] = activity.id;
+    json['visitDate'] = source.visitDate ?? visitDate;
+    json['entryTime'] = source.entryTime ?? activity.fixedStartTime;
+    json['durationMin'] = source.durationMin ?? activity.durationMin;
+    json['arrivalBufferMin'] =
+        source.arrivalBufferMin ?? activity.arrivalBufferMin;
+    return Ticket.fromJson(json);
+  }
+
+  void _putTicket(Trip trip, Ticket ticket) {
+    final index = trip.tickets.indexWhere((item) => item.id == ticket.id);
+    if (index < 0) {
+      trip.tickets.add(ticket);
+    } else {
+      trip.tickets[index] = ticket;
+    }
+  }
+
+  /// Esnek etkinlikleri sabit rezervasyonların çevresine yerleştirir.
+  /// Rezervasyondan önce sığmayan bir durak, rezervasyondan sonraya taşınır.
+  void _arrangeAroundFixedActivities(DayPlan day) {
+    if (day.items.length < 2) return;
+    final fixed = day.items.where((item) => item.isFixed).toList()
+      ..sort((a, b) => (_start(a) ?? 1 << 20).compareTo(_start(b) ?? 1 << 20));
+    if (fixed.isEmpty) return;
+
+    final flexible = day.items.where((item) => !item.isFixed).toList()
+      ..sort((a, b) => (_start(a) ?? 1 << 20).compareTo(_start(b) ?? 1 << 20));
+    final arranged = <TimelineItem>[];
+    var cursor = policy.dayStartMinutes;
+
+    for (final anchor in fixed) {
+      final anchorStart = _start(anchor) ?? policy.maximumDayMinutes;
+      while (flexible.isNotEmpty) {
+        final candidate = flexible.first;
+        final candidateStart = _start(candidate) ?? cursor;
+        if (candidateStart > anchorStart) break;
+        final candidateEnd =
+            cursor + _duration(candidate) + _gapAfter(candidate);
+        if (candidateEnd > anchorStart) break;
+        arranged.add(flexible.removeAt(0));
+        cursor = candidateEnd;
+      }
+      arranged.add(anchor);
+      cursor = anchorStart + _duration(anchor) + _gapAfter(anchor);
+    }
+    arranged.addAll(flexible);
+    day.items
+      ..clear()
+      ..addAll(arranged);
+  }
+
+  String _dateOnly(DateTime value) =>
+      '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
 
   int _earliestStart(List<TimelineItem> items) {
     final starts = items.map(_start).whereType<int>().toList();
@@ -1052,6 +1290,11 @@ class PlanScheduleEngine {
   }
 
   void _applyKnownReservationLocks(Trip trip) {
+    final ticketsByActivityId = {
+      for (final ticket in trip.tickets)
+        if (ticket.purchased && ticket.linkedActivityId != null)
+          ticket.linkedActivityId!: ticket,
+    };
     final purchasedTickets = {
       for (final ticket in trip.tickets)
         if (ticket.purchased) ticket.label: ticket,
@@ -1060,7 +1303,8 @@ class PlanScheduleEngine {
       for (final item in day.items) {
         if (item.isFixed) continue;
         final title = item.title.toLowerCase();
-        final ticket = purchasedTickets[item.title];
+        final ticket =
+            ticketsByActivityId[item.id] ?? purchasedTickets[item.title];
         final isArrivalOrDeparture = title.contains('arrival') ||
             title.contains('departure') ||
             title.contains('varış') ||
@@ -1093,7 +1337,16 @@ class PlanScheduleEngine {
                     : ticket?.kind == TicketKind.train.name
                         ? ActivityLockType.trainReservation
                         : ActivityLockType.ticketedEvent;
-        item.fixedStartTime ??= item.time ?? item.scheduledTime;
+        if (ticket?.entryTime != null) {
+          item.time = ticket!.entryTime;
+          item.scheduledTime = ticket.entryTime;
+          item.fixedStartTime = ticket.entryTime;
+        } else {
+          item.fixedStartTime ??= item.time ?? item.scheduledTime;
+        }
+        item.durationMin = ticket?.durationMin ?? item.durationMin;
+        item.arrivalBufferMin =
+            ticket?.arrivalBufferMin ?? item.arrivalBufferMin;
         item.canChangeDay = false;
         item.canChangeTime = false;
         item.canReorder = false;

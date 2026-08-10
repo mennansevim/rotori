@@ -660,6 +660,35 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Eklendi: {title}',
     AppLang.en: 'Added: {title}'
   },
+  'viewer.edit.hasTicket': {
+    AppLang.tr: 'Biletim / rezervasyonum var',
+    AppLang.en: 'I have a ticket / reservation',
+  },
+  'viewer.edit.hasTicketHint': {
+    AppLang.tr:
+        'Giriş saatini sabitler, günü bu etkinliğin çevresinde düzenler.',
+    AppLang.en: 'Locks the entry time and arranges the day around it.',
+  },
+  'viewer.edit.ticketDuration': {
+    AppLang.tr: 'İçeride ayıracağın süre',
+    AppLang.en: 'Time you will spend inside',
+  },
+  'viewer.edit.ticketFixedSummary': {
+    AppLang.tr: '{time} sabit · {buffer} dk erken varış',
+    AppLang.en: '{time} fixed · arrive {buffer} min early',
+  },
+  'viewer.edit.addTicketed': {
+    AppLang.tr: 'Bileti sabitle ve ekle',
+    AppLang.en: 'Lock ticket and add',
+  },
+  'viewer.edit.ticketAddedSnack': {
+    AppLang.tr: 'Bilet sabitlendi; gün bu saate göre düzenlendi.',
+    AppLang.en: 'Ticket locked; the day was arranged around this time.',
+  },
+  'viewer.edit.ticketAttachedSnack': {
+    AppLang.tr: 'Bilet etkinliğe bağlandı; gün yeniden düzenlendi.',
+    AppLang.en: 'Ticket linked to the activity; the day was rearranged.',
+  },
   'viewer.edit.saved': {
     AppLang.tr: 'Değişiklik kaydedildi',
     AppLang.en: 'Change saved',
@@ -2982,6 +3011,35 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'It\'s a cash-heavy country — coins pile up fast'
   },
   'reminders.title': {AppLang.tr: 'Hatırlatmalar', AppLang.en: 'Reminders'},
+  'reminders.add': {AppLang.tr: 'Hatırlatıcı ekle', AppLang.en: 'Add reminder'},
+  'reminders.premiumBadge': {AppLang.tr: 'PRO', AppLang.en: 'PRO'},
+  'reminders.premiumTitle': {
+    AppLang.tr: 'Rotori Pro özelliği',
+    AppLang.en: 'A Rotori Pro feature'
+  },
+  'reminders.premiumBody': {
+    AppLang.tr:
+        'Biletlerin satışa çıktığı anı kaçırmamak için hazır veya özel hatırlatıcıları Rotori Pro ile oluşturabilirsin.',
+    AppLang.en:
+        'Create ready-made or custom reminders with Rotori Pro so you do not miss the moment tickets go on sale.'
+  },
+  'reminders.premiumBenefitDates': {
+    AppLang.tr: 'Satış tarihini ziyaret gününden otomatik hesaplar',
+    AppLang.en: 'Calculates the sale date from your visit date'
+  },
+  'reminders.premiumBenefitMultiple': {
+    AppLang.tr: 'Birden fazla bilet için tek seferde planlama yapar',
+    AppLang.en: 'Plans several ticket alerts at once'
+  },
+  'reminders.premiumBenefitCustom': {
+    AppLang.tr: 'Özel tarih ve saatli hatırlatıcı ekler',
+    AppLang.en: 'Adds reminders with a custom date and time'
+  },
+  'reminders.premiumClose': {AppLang.tr: 'Anladım', AppLang.en: 'Got it'},
+  'reminders.premiumCta': {
+    AppLang.tr: 'Rotori Pro ile aç',
+    AppLang.en: 'Unlock with Rotori Pro'
+  },
   'reminders.clearAll': {AppLang.tr: 'Tümünü temizle', AppLang.en: 'Clear all'},
   'reminders.clearAllTitle': {
     AppLang.tr: 'Tümünü sil',
@@ -3010,9 +3068,9 @@ const Map<String, Map<AppLang, String>> _strings = {
   },
   'reminders.emptyBody': {
     AppLang.tr:
-        'Planına USJ, Tokyo Disney veya Shinkansen eklediğinde "Planı yeniden oluştur" adımında sana bilet açılış tarihi için hatırlatma teklif edeceğim.',
+        'Shinkansen, Disney, USJ ve teamLab için hazır seçimlerden yararlanabilir veya kendi tarihini ekleyebilirsin.',
     AppLang.en:
-        'When you add USJ, Tokyo Disney or the Shinkansen to your plan, I\'ll offer a reminder for the ticket sale date in the "Rebuild plan" step.'
+        'Use ready-made choices for Shinkansen, Disney, USJ and teamLab, or add your own date.'
   },
   'reminders.mon.1': {AppLang.tr: 'Oca', AppLang.en: 'Jan'},
   'reminders.mon.2': {AppLang.tr: 'Şub', AppLang.en: 'Feb'},
@@ -3107,6 +3165,18 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Helal, vejetaryen ve bütçene göre restoranlar',
     AppLang.en: 'Restaurants by halal, vegetarian and your budget',
   },
+  'drawer.discover.eats.short': {
+    AppLang.tr: 'Yemek rehberi',
+    AppLang.en: 'Food guide',
+  },
+  'viewer.tt.experienceGuide': {
+    AppLang.tr: 'Macera rehberi',
+    AppLang.en: 'Adventure guide',
+  },
+  'drawer.discover.experienceGuide.sub': {
+    AppLang.tr: 'USJ, Disney ve teamLab: bilet, süre, tam gün',
+    AppLang.en: 'USJ, Disney and teamLab: tickets, timing, full day',
+  },
   'drawer.discover.weather.sub': {
     AppLang.tr: 'Günlük tahmin',
     AppLang.en: 'Daily forecast',
@@ -3122,6 +3192,18 @@ const Map<String, Map<AppLang, String>> _strings = {
   'drawer.discover.scanner.sub': {
     AppLang.tr: 'Etiketi çevir',
     AppLang.en: 'Translate a tag',
+  },
+  'drawer.discover.scanner.heroSub': {
+    AppLang.tr: 'Etiketi tara, ürünü çevir ve fiyatı anında karşılaştır',
+    AppLang.en: 'Scan a label, translate the product and compare its price',
+  },
+  'drawer.premium.label': {
+    AppLang.tr: 'Premium',
+    AppLang.en: 'Premium',
+  },
+  'drawer.premium.active': {
+    AppLang.tr: 'Premium aktif',
+    AppLang.en: 'Premium active',
   },
   'drawer.eats.pass': {AppLang.tr: 'Pass', AppLang.en: 'Pass'},
   'drawer.eats.free': {AppLang.tr: 'Ücretsiz', AppLang.en: 'Free'},
@@ -3999,9 +4081,9 @@ const Map<String, Map<AppLang, String>> _strings = {
   },
   'bw.usj.tip': {
     AppLang.tr:
-        'Express Pass ~2 ay öncesinden satışa açılır ve sezonda hızla tükenir. Resmî USJ sitesinden ya da klook üzerinden ayır.',
+        'Studio Pass ve Express Pass takvimi değişebilir. Yaklaşık 2 ay önce resmî USJ satış takvimini kontrol et; Express ürünleri yoğun dönemde hızlı tükenebilir.',
     AppLang.en:
-        'Express Passes go on sale ~2 months ahead and sell out fast in peak season. Book via the official USJ site or Klook.'
+        'Studio Pass and Express Pass schedules can change. Check the official USJ sales calendar about 2 months ahead; Express products can sell quickly in peak season.'
   },
   'bw.disney.title': {
     AppLang.tr: 'Tokyo Disney passport + Premier Access',
@@ -4027,9 +4109,51 @@ const Map<String, Map<AppLang, String>> _strings = {
   },
   'bw.shinkansen.tip': {
     AppLang.tr:
-        'Smart-EX üzerinden 1 ay öncesinden koltuk seçerek ayır. Nozomi için JR Pass geçmez. Sabah erken seferler oturmayı kolaylaştırır.',
+        'SmartEX standart rezervasyonu 1 ay önce 10:00 JST’de açılır. Daha erken talepler alınabilse de tren ve koltuk 1 ay kala kesinleşebilir; resmî koşulları kontrol et.',
     AppLang.en:
-        'Reserve a seat via Smart-EX up to 1 month ahead. The JR Pass is not valid on Nozomi trains. Early-morning departures make it easier to get a seat.'
+        'Standard SmartEX booking opens at 10:00 JST one month ahead. Earlier requests may be accepted, but train and seat details can be confirmed one month out; check the official terms.'
+  },
+  'bw.teamlabPlanets.title': {
+    AppLang.tr: 'teamLab Planets',
+    AppLang.en: 'teamLab Planets'
+  },
+  'bw.teamlabPlanets.subtitle': {
+    AppLang.tr: 'Toyosu saatli giriş bileti',
+    AppLang.en: 'Timed admission in Toyosu'
+  },
+  'bw.teamlabPlanets.tip': {
+    AppLang.tr:
+        'Sabit bir satış açılış günü ilan edilmiyor. Popüler saatlerin tükenme riskine karşı 4 hafta önce resmî takvimi kontrol et.',
+    AppLang.en:
+        'There is no fixed published release day. Check the official calendar 4 weeks ahead because popular time slots can sell out.'
+  },
+  'bw.teamlabBorderless.title': {
+    AppLang.tr: 'teamLab Borderless',
+    AppLang.en: 'teamLab Borderless'
+  },
+  'bw.teamlabBorderless.subtitle': {
+    AppLang.tr: 'Azabudai Hills saatli giriş bileti',
+    AppLang.en: 'Timed admission at Azabudai Hills'
+  },
+  'bw.teamlabBorderless.tip': {
+    AppLang.tr:
+        'Sabit bir açılış günü yerine güvenli planlama hedefi kullanılır. İstediğin saat için 4 hafta önce resmî takvimi kontrol et.',
+    AppLang.en:
+        'This uses a planning target rather than a fixed release rule. Check the official calendar 4 weeks ahead for your preferred time.'
+  },
+  'bw.teamlabBotanical.title': {
+    AppLang.tr: 'teamLab Botanical Garden',
+    AppLang.en: 'teamLab Botanical Garden'
+  },
+  'bw.teamlabBotanical.subtitle': {
+    AppLang.tr: 'Osaka gece bahçesi tarihli bileti',
+    AppLang.en: 'Dated Osaka night garden ticket'
+  },
+  'bw.teamlabBotanical.tip': {
+    AppLang.tr:
+        'Saatler mevsim ve hava koşullarıyla değişir. İki hafta önce bilet ve son giriş saatini resmî sayfadan kontrol et.',
+    AppLang.en:
+        'Hours vary with season and weather. Check tickets and final entry on the official page two weeks ahead.'
   },
   'bw.reason.tokyoKansai': {
     AppLang.tr: 'Tokyo → Kansai geçişi',

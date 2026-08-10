@@ -136,19 +136,29 @@ void main() {
       );
     });
 
-    testWidgets('"sadece yiyebileceklerim" anahtarı listeyi kısaltır',
+    testWidgets('"sadece yiyebileceklerim" yalnız güvenli yemekleri gösterir',
         (tester) async {
       tall(tester);
       await tester.pumpWidget(harness(_trip(diet: ['vegan'])));
       await settle(tester);
 
       final before = kJapaneseDishes.length;
+      final safeCount = kJapaneseDishes
+          .where(
+            (dish) =>
+                assessDish(dish, diet: {'vegan'}).verdict == DishVerdict.safe,
+          )
+          .length;
       expect(find.text('$before yemek'), findsOneWidget);
 
       await tester.tap(find.byType(Switch));
       await tester.pump();
 
       expect(find.text('$before yemek'), findsNothing);
+      expect(find.text('$safeCount yemek'), findsOneWidget);
+      expect(find.textContaining('Uygun değil'), findsNothing);
+      expect(find.textContaining('Sorman gerek'), findsNothing);
+      expect(find.textContaining('Yiyebilirsin'), findsWidgets);
     });
   });
 

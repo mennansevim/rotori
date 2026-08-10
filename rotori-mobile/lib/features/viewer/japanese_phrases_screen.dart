@@ -17,6 +17,8 @@ import '../../data/tts_service.dart';
 import '../../domain/japanese_phrases_data.dart';
 import '../../domain/localized_text.dart';
 import '../../domain/types.dart';
+import '../plans/premium_provider.dart';
+import 'offline_translator_card.dart';
 import 'viewer_theme.dart';
 
 class JapanesePhrasesScreen extends ConsumerWidget {
@@ -128,6 +130,12 @@ class _PhrasesViewState extends ConsumerState<_PhrasesView> {
               'Tap a phrase to hear the Japanese pronunciation. Use the copy icon to copy it.',
             ).of(lang),
             style: TextStyle(color: palette.textSecondary, fontSize: 14),
+          ),
+          const SizedBox(height: 16),
+          OfflineTranslatorCard(
+            palette: palette,
+            lang: lang,
+            isPremium: ref.watch(premiumProvider),
           ),
           const SizedBox(height: 16),
           _PhraseCard(

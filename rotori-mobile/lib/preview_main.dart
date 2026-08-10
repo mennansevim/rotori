@@ -35,7 +35,9 @@ import 'features/plans/plan_providers.dart';
 import 'features/plans/plan_viewer_screen.dart';
 import 'features/plans/plan_optimization_controller.dart';
 import 'features/plans/plans_list_screen.dart';
+import 'features/price_tag_scanner/view/scanner_screen.dart';
 import 'features/reminders/reminders_screen.dart';
+import 'features/live_currency_scanner/presentation/pages/live_currency_scanner_page.dart';
 import 'features/viewer/budget_screen.dart';
 import 'features/viewer/checklist_screen.dart';
 import 'features/viewer/compass_screen.dart';
@@ -310,8 +312,7 @@ class _PreviewApp extends ConsumerWidget {
         ),
         GoRoute(
           path: '/plans/:id/flights',
-          builder: (_, s) =>
-              FlightDetailsPage(planId: s.pathParameters['id']!),
+          builder: (_, s) => FlightDetailsPage(planId: s.pathParameters['id']!),
         ),
         GoRoute(
           path: '/plans/:id/hotels/new',
@@ -363,6 +364,14 @@ class _PreviewApp extends ConsumerWidget {
         GoRoute(
           path: '/reminders',
           builder: (_, __) => const RemindersScreen(),
+        ),
+        GoRoute(
+          path: '/live-currency-scanner',
+          builder: (_, __) => const LiveCurrencyScannerPage(),
+        ),
+        GoRoute(
+          path: '/price-tag-scanner',
+          builder: (_, __) => const ScannerScreen(),
         ),
       ],
     );

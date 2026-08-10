@@ -51,6 +51,7 @@ class OptimizationActivity {
     this.hasReservation = false,
     this.priority = ActivityPriority.normal,
     this.estimatedQueueMinutes = 0,
+    this.requiredArrivalBufferMinutes = 0,
     this.preferredTime,
     this.category,
   });
@@ -70,6 +71,7 @@ class OptimizationActivity {
   final bool hasReservation;
   final ActivityPriority priority;
   final int estimatedQueueMinutes;
+  final int requiredArrivalBufferMinutes;
   final TimeOfDayPreference? preferredTime;
   final String? category;
 
@@ -1022,7 +1024,10 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
     TransportOption option,
   ) {
     if (activity.hasFixedSchedule || activity.hasReservation) {
-      return config.fixedActivityBufferMinutes;
+      return max(
+        config.fixedActivityBufferMinutes,
+        activity.requiredArrivalBufferMinutes,
+      );
     }
     if (option.transferCount > 0 ||
         option.mode == TransportMode.shinkansen ||

@@ -230,6 +230,7 @@ class PlanOptimizationController
         ),
         durationMinutes: duration,
         minimumDurationMinutes: duration,
+        requiredArrivalBufferMinutes: item.arrivalBufferMin ?? 0,
         openingTime: mealWindow?.open,
         closingTime: mealWindow?.close,
         preferredTime: mealWindow?.preferred,

@@ -20,6 +20,7 @@ class _ViewerDrawer extends ConsumerWidget {
     required this.onOpenPrep,
     required this.onOpenWeather,
     required this.onOpenFoodGuide,
+    required this.onOpenExperienceGuide,
     required this.onReportBug,
   });
   final ViewerPalette palette;
@@ -30,6 +31,7 @@ class _ViewerDrawer extends ConsumerWidget {
   final VoidCallback onOpenPrep;
   final VoidCallback onOpenWeather;
   final VoidCallback onOpenFoodGuide;
+  final VoidCallback onOpenExperienceGuide;
   final VoidCallback onReportBug;
 
   @override
@@ -48,7 +50,7 @@ class _ViewerDrawer extends ConsumerWidget {
     final avatarInitial =
         isGuest ? '?' : email.trim().substring(0, 1).toUpperCase();
 
-    // KEŞFET — Eats vitrin kartı + kalan araçlar 2x2 etiketli ızgara.
+    // KEŞFET — Premium fiyat tarayıcı vitrin kartı + sakin 2x2 araç ızgarası.
     //
     // **Why:** Beş araç eşit boyutta, ETİKETSİZ ikon kareleriydi. Sonuç: hiçbiri
     // kendini anlatmıyordu (etiket yalnızca tooltip'teydi, dokunmatikte tooltip
@@ -78,11 +80,11 @@ class _ViewerDrawer extends ConsumerWidget {
         onTap: onOpenPrep,
       ),
       _DrawerActionSpec(
-        icon: Icons.sell_outlined,
-        label: s.s('scanner.price_tag'),
-        hint: s.s('drawer.discover.scanner.sub'),
-        tone: p.sunset,
-        onTap: () => context.push('/price-tag-scanner'),
+        icon: Icons.ramen_dining_rounded,
+        label: s.s('viewer.tt.eats'),
+        hint: s.s('drawer.discover.eats.short'),
+        tone: p.sakura,
+        onTap: onOpenFoodGuide,
       ),
     ];
 
@@ -127,9 +129,15 @@ class _ViewerDrawer extends ConsumerWidget {
                     palette: p,
                   ),
                   const SizedBox(height: 8),
-                  _DrawerEatsCard(
+                  _DrawerScannerCard(
                     palette: p,
-                    onTap: onOpenFoodGuide,
+                    isPremium: ref.watch(premiumProvider),
+                    onTap: () => context.push('/price-tag-scanner'),
+                  ),
+                  const SizedBox(height: 10),
+                  _DrawerExperienceGuideCard(
+                    palette: p,
+                    onTap: onOpenExperienceGuide,
                   ),
                   const SizedBox(height: 10),
                   _DrawerActionGrid(
@@ -199,8 +207,7 @@ class _ViewerDrawer extends ConsumerWidget {
                           onReportBug();
                         },
                       ),
-                      if (kDebugMode)
-                        _DebugPremiumTile(palette: p),
+                      if (kDebugMode) _DebugPremiumTile(palette: p),
                       _DrawerNavTile(
                         palette: p,
                         icon: Icons.logout_rounded,
@@ -352,9 +359,8 @@ class _DrawerStaySummary extends StatelessWidget {
                                   'total': '$_tripNights',
                                 }),
                           style: TextStyle(
-                            color: booked == 0
-                                ? p.textSecondary
-                                : p.textPrimary,
+                            color:
+                                booked == 0 ? p.textSecondary : p.textPrimary,
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
@@ -573,8 +579,7 @@ class _DrawerHero extends StatelessWidget {
                 const Spacer(),
                 _DrawerHeroCloseButton(
                   onTap: () => Navigator.of(context).pop(),
-                  tooltip:
-                      MaterialLocalizations.of(context).closeButtonTooltip,
+                  tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
                 ),
               ],
             ),
@@ -1538,14 +1543,15 @@ class _DrawerAddCard extends StatelessWidget {
   }
 }
 
-/// Rotori Eats vitrin kartı — KEŞFET bölümünün başındaki tam genişlik kartı.
-///
-/// Eats, drawer'daki en derin özellik (filtreli restoran keşfi, konum, bütçe
-/// uyumu) ama eşit boyutlu ikon karelerinden biri olduğunda görünmüyordu.
-/// Marka gradyanı + katman rozeti onu bölümün girişi yapar.
-class _DrawerEatsCard extends StatelessWidget {
-  const _DrawerEatsCard({required this.palette, required this.onTap});
+/// Premium fiyat etiketi tarayıcısının tam genişlik vitrin kartı.
+class _DrawerScannerCard extends StatelessWidget {
+  const _DrawerScannerCard({
+    required this.palette,
+    required this.isPremium,
+    required this.onTap,
+  });
   final ViewerPalette palette;
+  final bool isPremium;
   final VoidCallback onTap;
 
   @override
@@ -1558,6 +1564,7 @@ class _DrawerEatsCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(18),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
+        key: const ValueKey('drawer-scanner-hero'),
         onTap: () {
           Navigator.of(context).pop();
           onTap();
@@ -1568,11 +1575,11 @@ class _DrawerEatsCard extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: p.brandGradient,
+              colors: [p.fuji, p.accentStrong],
             ),
             boxShadow: [
               BoxShadow(
-                color: p.accent.withValues(alpha: 0.26),
+                color: p.fuji.withValues(alpha: 0.22),
                 blurRadius: 14,
                 offset: const Offset(0, 6),
               ),
@@ -1594,7 +1601,7 @@ class _DrawerEatsCard extends StatelessWidget {
                   ),
                   alignment: Alignment.center,
                   child: const Icon(
-                    Icons.ramen_dining_rounded,
+                    Icons.document_scanner_outlined,
                     size: 22,
                     color: Colors.white,
                   ),
@@ -1609,7 +1616,7 @@ class _DrawerEatsCard extends StatelessWidget {
                         children: [
                           Flexible(
                             child: Text(
-                              s.s('viewer.tt.eats'),
+                              s.s('scanner.price_tag'),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -1621,12 +1628,12 @@ class _DrawerEatsCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 6),
-                          const _DrawerEatsFreeChip(),
+                          _DrawerPremiumChip(active: isPremium),
                         ],
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        s.s('drawer.discover.eats.sub'),
+                        s.s('drawer.discover.scanner.heroSub'),
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.92),
                           fontSize: 11.5,
@@ -1652,13 +1659,109 @@ class _DrawerEatsCard extends StatelessWidget {
   }
 }
 
-/// Eats kartındaki "Ücretsiz" rozeti.
-///
-/// Eskiden premium durumunu (Pass / Ücretsiz) gösteriyordu. Rotori Eats
-/// restoran dizininden Japon yemekleri rehberine dönüşünce paywall tamamen
-/// kaldırıldı: diyet bilgisi ödeme duvarının arkasına konmaz.
-class _DrawerEatsFreeChip extends StatelessWidget {
-  const _DrawerEatsFreeChip();
+/// USJ, Tokyo Disney ve teamLab için bilet-süre-gün akışına açılan vitrin.
+class _DrawerExperienceGuideCard extends StatelessWidget {
+  const _DrawerExperienceGuideCard({
+    required this.palette,
+    required this.onTap,
+  });
+
+  final ViewerPalette palette;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    final s = LanguageScope.of(context);
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(18),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: const ValueKey('drawer-experience-guide'),
+        onTap: () {
+          Navigator.of(context).pop();
+          onTap();
+        },
+        child: Ink(
+          padding: const EdgeInsets.fromLTRB(14, 13, 12, 13),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [p.sunset, p.sakura, p.fuji],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: p.sakura.withValues(alpha: .22),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .2),
+                  borderRadius: BorderRadius.circular(13),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: .32),
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.attractions_rounded,
+                  size: 22,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      s.s('viewer.tt.experienceGuide'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      s.s('drawer.discover.experienceGuide.sub'),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .92),
+                        fontSize: 11.5,
+                        height: 1.3,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.white,
+                size: 22,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DrawerPremiumChip extends StatelessWidget {
+  const _DrawerPremiumChip({required this.active});
+
+  final bool active;
 
   @override
   Widget build(BuildContext context) {
@@ -1670,7 +1773,7 @@ class _DrawerEatsFreeChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        s.s('drawer.eats.free'),
+        active ? s.s('drawer.premium.active') : s.s('drawer.premium.label'),
         style: const TextStyle(
           color: Colors.white,
           fontSize: 9.5,
@@ -1738,34 +1841,66 @@ class _DrawerActionTile extends StatelessWidget {
       button: true,
       label: '${spec.label}. ${spec.hint}',
       child: Material(
-        color: p.card,
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
+          key: ValueKey('drawer-action-${spec.label}'),
           onTap: () {
             Navigator.of(context).pop();
             spec.onTap();
           },
-          child: DecoratedBox(
+          child: Ink(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: p.border),
+              borderRadius: BorderRadius.circular(18),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  spec.tone.withValues(alpha: .075),
+                  p.card,
+                  p.card,
+                ],
+              ),
+              border: Border.all(color: p.borderStrong),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(
+                    alpha: p.brightness == Brightness.dark ? .12 : .035,
+                  ),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
+              padding: const EdgeInsets.fromLTRB(13, 13, 11, 13),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: spec.tone.withValues(alpha: 0.16),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    alignment: Alignment.center,
-                    child: Icon(spec.icon, size: 18, color: spec.tone),
+                  Row(
+                    children: [
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: spec.tone.withValues(alpha: 0.11),
+                          borderRadius: BorderRadius.circular(11),
+                          border: Border.all(
+                            color: spec.tone.withValues(alpha: .12),
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(spec.icon, size: 18, color: spec.tone),
+                      ),
+                      const Spacer(),
+                      Icon(
+                        Icons.north_east_rounded,
+                        size: 14,
+                        color: p.textMuted,
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 9),
                   Text(
