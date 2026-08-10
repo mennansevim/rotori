@@ -333,6 +333,33 @@ void main() {
         );
       }
     });
+
+    // Kullanıcı geri bildirimi: "ramen domuz eti ya da suyu kullanılmadan da
+    // yapılıyor, onu yiyemezsin demeyelim." Doğru — dört ana türden (tonkotsu
+    // /shoyu/shio/miso) sadece tonkotsu domuzla TANIMLI; shoyu (Japonya'da en
+    // yaygın yayılan tür) tavuk kemiği bazlı da olabiliyor, shio da tavuk/
+    // balık bazlı ve domuz "bazen eklenir". Tür seçilmemişken domuz belirsiz.
+    test(
+      'genel/işaretsiz ramen domuzsuz kullanıcıya "sor" der, "yiyemezsin" '
+      'demez — ama tonkotsu türü hâlâ kesin uygun değildir',
+      () {
+        final ramen = kJapaneseDishes.firstWhere((d) => d.id == 'ramen');
+
+        expect(
+          assessDish(ramen, diet: {'no_pork'}).verdict,
+          DishVerdict.ask,
+          reason: 'tür seçilmemişken domuz kesin değil, sorulmalı',
+        );
+
+        final tonkotsu =
+            ramen.variants.firstWhere((v) => v.name == 'Tonkotsu');
+        expect(
+          assessDish(ramen, diet: {'no_pork'}, variant: tonkotsu).verdict,
+          DishVerdict.avoid,
+          reason: '"ton" tam olarak domuz demek — bu türde kesinlik kaybolmaz',
+        );
+      },
+    );
   });
 }
 
