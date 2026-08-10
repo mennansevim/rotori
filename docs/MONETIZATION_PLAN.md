@@ -138,6 +138,10 @@ bile 5x fiyatla çıpa rolünde).
 
 ### 3.2 Ücretsiz / Pro sınırı
 
+> **Özellik fikir havuzu:** Premium/ücretsiz özellik adaylarının tam listesi,
+> rakip paywall haritası ve reddedilen fikirler `docs/FEATURE_PLANS.md`'de.
+> Bu bölüm yalnızca **yayına alınmaya karar verilmiş** sınırı tanımlar.
+
 Ücretsiz kalır — mağaza puanı ve ağızdan ağıza yayılma motoru:
 
 - 66 yemeklik Japon mutfağı rehberi (`eats_screen.dart` — **paywall'a asla geri
