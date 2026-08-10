@@ -7,6 +7,58 @@
 
 ---
 
+## 2026-08-10 — Monetizasyon: yıllık-öncelikli abonelik + kişiselleştirilmiş ön izleme hunisi
+
+**Supersedes:** `docs/CLAUDE.md` §1'deki "ücretsiz reklamsız MVP" yayın hedefi.
+
+**Karar:** Rotori, Pro kapıları takılı olarak yayınlanır. Satış modeli
+**yıllık abonelik** (`...japanTrip.pro.yearly`, TR ₺499 / global $29.99,
+7 gün ücretsiz deneme). Aylık SKU v1.1'e ertelendi. Tek seferlik satın alma
+ve "gezi başına paket" modelleri **reddedildi**.
+
+Ücretsiz taraf: plan oluşturma, ilk günün ön izlemesi + "kazandırdığı saat"
+göstergesi, 66 yemeklik rehber, Japonca ifadeler, acil durum bilgileri,
+1 aktif gezi, 10 tarama/gün. Dil yardımı ve acil durum bilgisi paywall
+arkasına konmaz.
+
+**Neden:** Karar sezgiyle dört kez değişti, sonunda pazar verisine bağlandı
+(RevenueCat 2026, 115.000+ uygulama):
+
+- Seyahat aboneliklerinin **%66'sı yıllık** satılıyor — pazar ortalaması %34;
+  seyahat tüm kategoriler arasında en yıllık-ağırlıklı kategori. "Gezi tek
+  seferlik bir olaydır, abonelik uymaz" sezgisinin pazardaki cevabı bu.
+- **Deneme→ödeme dönüşümü %43,5 medyan** (kategoriler arasında en yüksekler).
+  Apple'da ücretsiz deneme **yalnızca aboneliklerde** mümkün; tek seferlik
+  satın alma bu kolu tamamen kaybediyor.
+- Kategorinin **%51,2'si ön izleme *ve* denemeyi birlikte** kullanıyor
+  ("mixed trial"). Ön izleme denemenin alternatifi değil, aynı hunide üst
+  üste iki adım — 3. turdaki "ön izleme denemeyi gereksiz kılar" varsayımı
+  bu veriyle çürüdü.
+- Hiçbir başarılı benzer uygulama (TripIt $49/yıl, Wanderlog $29.99–49.99/yıl,
+  Tripsy $59.99/yıl, NAVITIME ~¥330/ay) gezi başına satmıyor. Lifetime sunan
+  tek örnek (Tripsy $299) onu yıllığın **5 katı** fiyatla çıpa olarak
+  konumluyor, ana ürün olarak değil.
+
+**Fiyat:** Seyahat en ucuz kategori (yıllık medyan $20) → TR ₺599 yerine
+₺499. Global $29.99 Wanderlog bandında. Fiyat deneyi TR'de değil global $
+tarafında yapılır.
+
+**Kayıp / kabul edilen maliyet:** Abonelik, tek seferliğe göre süre yönetimi,
+Apple S2S V2 yenileme bildirimleri ve daha katı mağaza uyumu getiriyor
+(~3 gün ek iş + sürekli churn yönetimi). Karşılığında ücretsiz deneme hakkı
+ve çoklu dönem tahsilatı alınıyor.
+
+**Ayrıca kararlaştırıldı:** Gelirin belirleyicisi fiyat değil dağıtım.
+İndirme→ödeme medyanı %2, $1K MRR'a medyan 238 gün, yeni seyahat
+uygulamalarının %9,8'i 2 yılda $10K MRR görüyor. Bu yüzden yayın kapsamı
+26 günden 12–14 güne indirildi (offline harita paketi, planlama fazı
+araçları, bilet kasası, paylaşım, aylık SKU yayın sonrasına ertelendi) ve
+dağıtım (video hattı + SEO motoru + affiliate) Faz 1 ile paralel başlatıldı.
+
+**Detay:** `docs/MONETIZATION_PLAN.md` — karar zincirinin tamamı §9'da.
+
+---
+
 ## 2026-08-06 — rotori-social deploy kaynağı tek monorepo origin'a birleştirildi
 
 **Supersedes:** rotori-social için ayrı `rotori-social` repository/remote ile

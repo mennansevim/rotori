@@ -16,8 +16,12 @@ ve rehber. Marka önce "Tabi" (旅) olarak öneriliydi, 2026-07 civarında
   planlanmış, indikten sonra da GPS ile keşif yapan bir seyahat ekibi hissi.
 - **Hedef kullanıcı:** İlk kez Japonya'ya giden Türk gezginler (birincil);
   planı ekiple paylaşmak isteyen deneyimli gezginler (ikincil).
-- **İş hedefi:** App Store'da premium (ancak ücretsiz reklamsız MVP) bir seyahat
-  yardımcısı yayınlamak; ilerideki fazlarda çoklu ülke desteği + sosyal katman.
+- **İş hedefi:** App Store'da reklamsız, freemium bir seyahat yardımcısı
+  yayınlamak. Satış modeli **yıllık abonelik** (Rotori Pro — TR ₺499 /
+  global $29.99, 7 gün ücretsiz deneme); ücretsiz taraf plan oluşturma +
+  ilk günün ön izlemesi + rehber içerikleridir. Detay ve gerekçe:
+  `docs/MONETIZATION_PLAN.md`, karar kaydı `DECISIONS.md` (2026-08-10).
+  İlerideki fazlarda çoklu ülke desteği + sosyal katman.
 
 ## 2. Yüzeyler (Product Surfaces)
 
