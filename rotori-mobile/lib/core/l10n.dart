@@ -526,6 +526,16 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Henüz bilet eklenmedi.',
     AppLang.en: 'No tickets added yet.',
   },
+  'viewer.quick.noTicketsHelp': {
+    AppLang.tr:
+        'Tren, etkinlik veya uçuş biletini ekleyerek rezervasyonunu planla birlikte tut.',
+    AppLang.en:
+        'Keep train, attraction, or flight reservations together with your plan.',
+  },
+  'viewer.quick.addTicket': {
+    AppLang.tr: 'İlk bileti ekle',
+    AppLang.en: 'Add first ticket',
+  },
   'viewer.quick.ticketPurchased': {
     AppLang.tr: 'Satın alındı',
     AppLang.en: 'Purchased',
@@ -943,8 +953,7 @@ const Map<String, Map<AppLang, String>> _strings = {
   'budget.expert.currencyWarning': {
     AppLang.tr:
         '{n} kalemde JPY/TRY dışı para birimi var; toplamlar yaklaşık gösterilir.',
-    AppLang.en:
-        '{n} items use non-JPY/TRY currencies; totals are approximate.',
+    AppLang.en: '{n} items use non-JPY/TRY currencies; totals are approximate.',
   },
   // ----- Tahmini gider dökümü (yıl bazlı birim tablo, AI'sız) -----
   'budget.estimate.title': {
@@ -2546,6 +2555,78 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Yapılacak değişiklikler',
     AppLang.en: 'Proposed changes'
   },
+  'routeOptimization.legs.title': {
+    AppLang.tr: 'Nasıl gidilecek?',
+    AppLang.en: 'How will you get there?'
+  },
+  'routeOptimization.legs.subtitle': {
+    AppLang.tr:
+        'Çıkış saati, ulaşım türü ve yol ayrıntılarını uygulamadan önce kontrol et.',
+    AppLang.en:
+        'Review departure times, transport modes, and journey details before applying.'
+  },
+  'routeOptimization.legs.departure': {
+    AppLang.tr: 'Güne başlangıç',
+    AppLang.en: 'Start the day'
+  },
+  'routeOptimization.legs.betweenStops': {
+    AppLang.tr: 'Sonraki durağa geçiş',
+    AppLang.en: 'Continue to the next stop'
+  },
+  'routeOptimization.legs.returnToBase': {
+    AppLang.tr: 'Konaklamaya dönüş',
+    AppLang.en: 'Return to your stay'
+  },
+  'routeOptimization.legs.estimated': {
+    AppLang.tr: 'TAHMİNİ',
+    AppLang.en: 'ESTIMATED'
+  },
+  'routeOptimization.legs.estimatedHelp': {
+    AppLang.tr:
+        'Bu süre koordinatlara dayalı tahmindir. Kesin hat ve peronu çıkıştan önce haritada doğrula.',
+    AppLang.en:
+        'This duration is coordinate-based. Confirm the exact line and platform in maps before departure.'
+  },
+  'routeOptimization.legs.line': {
+    AppLang.tr: 'Hat: {line}',
+    AppLang.en: 'Line: {line}'
+  },
+  'routeOptimization.legs.direction': {
+    AppLang.tr: 'Yön: {direction}',
+    AppLang.en: 'Direction: {direction}'
+  },
+  'routeOptimization.legs.walk': {
+    AppLang.tr: '{minutes} dk yürü',
+    AppLang.en: 'Walk {minutes} min'
+  },
+  'routeOptimization.legs.wait': {
+    AppLang.tr: '{minutes} dk bekle',
+    AppLang.en: 'Wait {minutes} min'
+  },
+  'routeOptimization.legs.transfer': {
+    AppLang.tr: '{count} aktarma',
+    AppLang.en: '{count} transfer'
+  },
+  'routeOptimization.legs.semantics': {
+    AppLang.tr: '{from} noktasından {to} noktasına, {mode}, {minutes} dakika',
+    AppLang.en: '{from} to {to}, {mode}, {minutes} minutes'
+  },
+  'routeOptimization.mode.walking': {
+    AppLang.tr: 'Yürüyerek',
+    AppLang.en: 'Walk'
+  },
+  'routeOptimization.mode.train': {AppLang.tr: 'Tren', AppLang.en: 'Train'},
+  'routeOptimization.mode.metro': {AppLang.tr: 'Metro', AppLang.en: 'Metro'},
+  'routeOptimization.mode.bus': {AppLang.tr: 'Otobüs', AppLang.en: 'Bus'},
+  'routeOptimization.mode.taxi': {AppLang.tr: 'Taksi', AppLang.en: 'Taxi'},
+  'routeOptimization.mode.shinkansen': {
+    AppLang.tr: 'Shinkansen',
+    AppLang.en: 'Shinkansen'
+  },
+  'routeOptimization.mode.regionalTrain': {
+    AppLang.tr: 'Bölgesel tren',
+    AppLang.en: 'Regional train'
+  },
   'routeOptimization.apply': {
     AppLang.tr: 'Rotayı uygula',
     AppLang.en: 'Apply route'
@@ -2644,11 +2725,9 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: '🔒 Premium Feature'
   },
   'routeOptimization.premium.body': {
-    AppLang.tr:
-        'Rota optimizasyonu premium üyeler için sunulacak. '
+    AppLang.tr: 'Rota optimizasyonu premium üyeler için sunulacak. '
         'Şimdilik rotanı "Haritada gör" butonuyla Google Maps üzerinden takip edebilirsin.',
-    AppLang.en:
-        'Route optimization will be available for premium members. '
+    AppLang.en: 'Route optimization will be available for premium members. '
         'For now, you can follow your route on Google Maps using the "View on map" button.'
   },
   'home.appTitle': {
@@ -3089,7 +3168,10 @@ const Map<String, Map<AppLang, String>> _strings = {
   },
   'drawer.role.guest': {AppLang.tr: 'Misafir', AppLang.en: 'Guest'},
   'drawer.role.traveler': {AppLang.tr: 'Gezgin', AppLang.en: 'Traveler'},
-  'drawer.nav.travelEssentials': {AppLang.tr: 'Seyahat öncesi hallet 📦', AppLang.en: 'Book before you go 📦'},
+  'drawer.nav.travelEssentials': {
+    AppLang.tr: 'Seyahat öncesi hallet 📦',
+    AppLang.en: 'Book before you go 📦'
+  },
   'drawer.nav.plans': {AppLang.tr: 'Planlarım', AppLang.en: 'My plans'},
   'drawer.nav.viewer': {AppLang.tr: 'Rehber', AppLang.en: 'Guide'},
   'drawer.nav.reminders': {
@@ -3225,7 +3307,10 @@ const Map<String, Map<AppLang, String>> _strings = {
   'create.rangeCancel': {AppLang.tr: 'Vazgeç', AppLang.en: 'Cancel'},
   'create.continue': {AppLang.tr: 'Devam', AppLang.en: 'Continue'},
   'create.back': {AppLang.tr: 'Geri', AppLang.en: 'Back'},
-  'create.generate': {AppLang.tr: 'Planımı oluştur', AppLang.en: 'Create my plan'},
+  'create.generate': {
+    AppLang.tr: 'Planımı oluştur',
+    AppLang.en: 'Create my plan'
+  },
   'create.dates.continue': {AppLang.tr: 'Devam', AppLang.en: 'Continue'},
   // 3. adım — beslenme tercihi + öğün bütçesi. İkisi de isteğe bağlı; boş
   // bırakılırsa Rotori uyum skoru o bileşeni "eksik" sayar (uydurmaz).
@@ -3237,13 +3322,44 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'İsteğe bağlı — restoran önerilerini sana göre ayarlar.',
     AppLang.en: 'Optional — tunes restaurant picks to you.',
   },
+  'create.assumptions.title': {
+    AppLang.tr: 'Bu varsayımlarla hazırlıyorum',
+    AppLang.en: 'I’ll build with these assumptions'
+  },
+  'create.assumptions.help': {
+    AppLang.tr:
+        'Planı oluşturmadan önce kontrol et. Uçuş ve otel bilgisi eklenene kadar taslak kalır.',
+    AppLang.en:
+        'Review before creating the plan. Flights and stays remain drafts until you add them.'
+  },
+  'create.assumptions.route': {AppLang.tr: 'ROTA', AppLang.en: 'ROUTE'},
+  'create.assumptions.dates': {AppLang.tr: 'TARİHLER', AppLang.en: 'DATES'},
+  'create.assumptions.flight': {AppLang.tr: 'UÇUŞ', AppLang.en: 'FLIGHT'},
+  'create.assumptions.hotel': {AppLang.tr: 'OTEL', AppLang.en: 'STAY'},
+  'create.assumptions.draft': {
+    AppLang.tr: 'Eklenmedi · taslak',
+    AppLang.en: 'Not added · draft'
+  },
+  'create.assumptions.estimatedBadge': {
+    AppLang.tr: 'TAHMİNİ',
+    AppLang.en: 'ESTIMATED'
+  },
+  'create.assumptions.estimatedReason': {
+    AppLang.tr:
+        'Yıl ve tarih aralığı, sezon havası ile yoğunluk dengesi gözetilerek önerildi; değiştirilebilir.',
+    AppLang.en:
+        'The year and dates were suggested to balance seasonal weather and crowds; you can change them.'
+  },
+  'create.assumptions.edit': {AppLang.tr: 'Düzelt', AppLang.en: 'Edit'},
   'create.prefs.diet': {
     AppLang.tr: 'Beslenme tercihlerin',
     AppLang.en: 'Your dietary needs',
   },
   'create.prefs.dietHint': {
-    AppLang.tr: 'Birden fazla seçebilirsin. Rotori Eats listeyi buna göre daraltır.',
-    AppLang.en: 'Pick as many as you need. Rotori Eats narrows the list to match.',
+    AppLang.tr:
+        'Birden fazla seçebilirsin. Rotori Eats listeyi buna göre daraltır.',
+    AppLang.en:
+        'Pick as many as you need. Rotori Eats narrows the list to match.',
   },
   'create.prefs.budget': {
     AppLang.tr: 'Kişi başı öğün bütçen',
@@ -3278,10 +3394,10 @@ const Map<String, Map<AppLang, String>> _strings = {
   'flights.intro': {
     AppLang.tr:
         'Uçuşun girmesen de plan çalışır — varış saati varsayılan olarak 13:00 kabul edilir. '
-        'Gerçek saatlerini girersen varış ve dönüş günü buna göre yeniden düzenlenir.',
+            'Gerçek saatlerini girersen varış ve dönüş günü buna göre yeniden düzenlenir.',
     AppLang.en:
         'Your plan works even without flight details — arrival defaults to 13:00. '
-        'Enter your real times and the arrival/departure days adjust to match.',
+            'Enter your real times and the arrival/departure days adjust to match.',
   },
   'flights.regenHint': {
     AppLang.tr:
@@ -3328,6 +3444,61 @@ const Map<String, Map<AppLang, String>> _strings = {
   'viewer.transition.official': {
     AppLang.tr: 'Resmî bilet',
     AppLang.en: 'Official',
+  },
+  'viewer.transition.pickerTitle': {
+    AppLang.tr: '{from} → {to} ulaşımı',
+    AppLang.en: '{from} → {to} transport'
+  },
+  'viewer.transition.pickerHelp': {
+    AppLang.tr:
+        'Tercihin plana kaydedilir. Süre ve ücret kesin bilet bilgisi değildir.',
+    AppLang.en:
+        'Your choice is saved to the plan. Duration and fare are not confirmed ticket details.'
+  },
+  'viewer.transition.mode.shinkansen': {
+    AppLang.tr: 'Shinkansen',
+    AppLang.en: 'Shinkansen'
+  },
+  'viewer.transition.mode.train': {AppLang.tr: 'Tren', AppLang.en: 'Train'},
+  'viewer.transition.mode.bus': {AppLang.tr: 'Otobüs', AppLang.en: 'Bus'},
+  'viewer.transition.mode.taxi': {AppLang.tr: 'Taksi', AppLang.en: 'Taxi'},
+  'viewer.transition.mode.flight': {AppLang.tr: 'Uçak', AppLang.en: 'Flight'},
+  'viewer.transition.addTicket': {
+    AppLang.tr: 'Bu geçişe bilet ekle',
+    AppLang.en: 'Add a ticket to this transfer'
+  },
+  'viewer.transition.editTicket': {
+    AppLang.tr: 'Bağlı bileti görüntüle veya düzenle',
+    AppLang.en: 'View or edit the linked ticket'
+  },
+  'viewer.transition.openOfficial': {
+    AppLang.tr: 'Resmî Shinkansen rezervasyonunu aç',
+    AppLang.en: 'Open official Shinkansen booking'
+  },
+  'viewer.ticketEditor.addTitle': {
+    AppLang.tr: 'Bilet ekle',
+    AppLang.en: 'Add ticket'
+  },
+  'viewer.ticketEditor.editTitle': {
+    AppLang.tr: 'Bileti düzenle',
+    AppLang.en: 'Edit ticket'
+  },
+  'viewer.ticketEditor.label': {
+    AppLang.tr: 'Bilet adı',
+    AppLang.en: 'Ticket name'
+  },
+  'viewer.ticketEditor.url': {
+    AppLang.tr: 'Bilet veya rezervasyon bağlantısı (isteğe bağlı)',
+    AppLang.en: 'Ticket or booking link (optional)'
+  },
+  'viewer.ticketEditor.purchased': {
+    AppLang.tr: 'Bilet satın alındı',
+    AppLang.en: 'Ticket purchased'
+  },
+  'viewer.ticketEditor.save': {AppLang.tr: 'Kaydet', AppLang.en: 'Save'},
+  'viewer.ticketEditor.saveFailed': {
+    AppLang.tr: 'Bilet kaydedilemedi. Lütfen tekrar dene.',
+    AppLang.en: 'The ticket could not be saved. Please try again.'
   },
   'viewer.mustSee.title': {
     AppLang.tr: 'Bunları da gör',

@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rotori/domain/plan_schedule_engine.dart';
+import 'package:rotori/domain/route_execution.dart';
+import 'package:rotori/domain/route_matrix.dart';
 import 'package:rotori/domain/types.dart';
 
 TimelineItem item(
@@ -748,6 +750,66 @@ void main() {
   });
 
   group('gün ve bütünlük kuralları', () {
+    test('şehir geçiş modu ve bağlı bilet atomik olarak kalıcılaşır', () {
+      final selected = engine.apply(
+        tripWith([day(1, []), day(2, [])]),
+        const UpdateCityTransition(
+          toDayNumber: 2,
+          fromCity: 'Tokyo',
+          toCity: 'Kyoto',
+          mode: 'shinkansen',
+        ),
+      );
+      expect(selected.isSuccess, isTrue);
+      expect(selected.trip!.days[1].cityTransition?.mode, 'shinkansen');
+
+      final ticketed = engine.apply(
+        selected.trip!,
+        UpsertTicket(
+          transitionDayNumber: 2,
+          ticket: Ticket(
+            id: 'ticket-1',
+            kind: 'train',
+            label: 'Tokyo → Kyoto',
+            purchased: true,
+          ),
+        ),
+      );
+      expect(ticketed.isSuccess, isTrue);
+      expect(ticketed.trip!.tickets.single.linkedTransitionDayNumber, 2);
+      expect(ticketed.trip!.days[1].cityTransition?.linkedTicketId, 'ticket-1');
+
+      final restored = Trip.fromJson(ticketed.trip!.toJson());
+      expect(restored.days[1].cityTransition?.mode, 'shinkansen');
+      expect(restored.days[1].cityTransition?.linkedTicketId, 'ticket-1');
+    });
+
+    test('aktivite değişikliği eski rota snapshotını geçersizleştirir', () {
+      final plannedDay = day(1, [item('a', '09:00')])
+        ..routeExecutionSnapshot = RouteExecutionSnapshot(
+          planId: 'trip',
+          dayNumber: 1,
+          planVersion: 1,
+          activityHash: 'old',
+          matrixVersion: 'matrix-v1',
+          generatedAt: DateTime.utc(2026, 8, 10),
+          profile: RouteOptimizationProfile.balanced,
+          legs: const [],
+        );
+
+      final result = engine.apply(
+        tripWith([plannedDay]),
+        const UpdateActivityTime(
+          dayNumber: 1,
+          activityId: 'a',
+          startMinutes: 10 * 60,
+        ),
+      );
+
+      expect(result.isSuccess, isTrue);
+      expect(result.trip!.days.single.routeExecutionSnapshot, isNull);
+    });
+
     test('günler yeniden sıralanır ve numaralanır', () {
       final result = engine.apply(
         tripWith([day(1, []), day(2, []), day(3, [])]),

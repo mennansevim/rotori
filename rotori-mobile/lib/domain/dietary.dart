@@ -166,3 +166,46 @@ List<String> dietaryTagsFromSensitivities(
   }
   return out.toList();
 }
+
+class DietarySelectionUpdate {
+  const DietarySelectionUpdate({
+    required this.selected,
+    this.removed = const [],
+  });
+
+  final List<String> selected;
+  final List<String> removed;
+}
+
+/// Beslenme seçimlerinde birbirini anlamsızlaştıran etiketleri tek domain
+/// kuralında çözer. UI yalnız bu sonucu uygular; farklı ekranlar ayrı davranmaz.
+DietarySelectionUpdate toggleDietaryTag(
+  Iterable<String> current,
+  String toggled,
+) {
+  final selected = current.toSet();
+  if (selected.remove(toggled)) {
+    return DietarySelectionUpdate(selected: selected.toList(growable: false));
+  }
+
+  const animalProductChoices = {'meat_ok', 'seafood_ok', 'chicken_only'};
+  final conflicts = <String>{};
+  if (toggled == 'vegan') {
+    conflicts.addAll({...animalProductChoices, 'vegetarian'});
+  } else if (toggled == 'vegetarian') {
+    conflicts.addAll({...animalProductChoices, 'vegan'});
+  } else if (toggled == 'meat_ok') {
+    conflicts.addAll({'vegan', 'vegetarian', 'chicken_only'});
+  } else if (toggled == 'seafood_ok') {
+    conflicts.addAll({'vegan', 'vegetarian'});
+  } else if (toggled == 'chicken_only') {
+    conflicts.addAll({'vegan', 'vegetarian', 'meat_ok'});
+  }
+  final removed = selected.where(conflicts.contains).toList(growable: false);
+  selected.removeAll(conflicts);
+  selected.add(toggled);
+  return DietarySelectionUpdate(
+    selected: selected.toList(growable: false),
+    removed: removed,
+  );
+}

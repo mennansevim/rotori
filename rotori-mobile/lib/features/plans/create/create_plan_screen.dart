@@ -18,7 +18,9 @@ import '../../../data/language_store.dart';
 import '../../../data/plans_repository.dart';
 import '../../../domain/city_places.dart';
 import '../../../domain/plan_generation.dart';
+import '../../../domain/dietary.dart';
 import '../../../domain/route_sanity.dart';
+import '../../../domain/types.dart';
 import '../../viewer/viewer_theme.dart';
 import '../plan_providers.dart';
 import 'city_select_page.dart';
@@ -57,6 +59,15 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
 
   /// 3. adım — kişi başı öğün bütçesi (JPY). null = belirtilmedi.
   int? _mealBudgetJpy;
+
+  void _toggleDietTag(String id) {
+    final update = toggleDietaryTag(_dietTags, id);
+    setState(() {
+      _dietTags
+        ..clear()
+        ..addAll(update.selected);
+    });
+  }
 
   @override
   void dispose() {
@@ -240,6 +251,12 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
     if (_mealBudgetJpy != null) {
       trip.preferences.mealBudgetJpyPerPerson = _mealBudgetJpy;
     }
+    trip.preferences.planAssumptions = PlanAssumptions(
+      dateSource: _datesEstimated ? 'seasonalSuggestion' : 'userSelected',
+      dateRationale: _datesEstimated ? 'seasonalWeatherAndCrowdBalance' : null,
+      flightStatus: 'draft',
+      hotelStatus: 'draft',
+    );
 
     // Repo yokken (önizleme/oturumsuz) viewer planı buradan okur.
     ref.read(draftTripProvider.notifier).state = trip;
@@ -322,8 +339,7 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                       palette: palette,
                       selectedKeys: _selected,
                       onToggle: _toggleCity,
-                      onContinue:
-                          _selected.isEmpty ? null : () => _goToPage(1),
+                      onContinue: _selected.isEmpty ? null : () => _goToPage(1),
                     ),
                     DateSelectPage(
                       palette: palette,
@@ -355,11 +371,12 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                       palette: palette,
                       dietTags: _dietTags,
                       mealBudgetJpy: _mealBudgetJpy,
-                      onToggleTag: (id) => setState(() {
-                        _dietTags.contains(id)
-                            ? _dietTags.remove(id)
-                            : _dietTags.add(id);
-                      }),
+                      routeSummary: _routeSummary(),
+                      dateSummary: '$_start → $_end',
+                      datesEstimated: _datesEstimated,
+                      onEditCities: () => _goToPage(0),
+                      onEditDates: () => _goToPage(1),
+                      onToggleTag: _toggleDietTag,
                       onPickBudget: (jpy) =>
                           setState(() => _mealBudgetJpy = jpy),
                       generating: _generating,

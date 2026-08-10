@@ -1,10 +1,10 @@
 # Rotori Rota Optimizasyonu — Teknik Not
 
-Son güncelleme: **2026-07-30**
+Son güncelleme: **2026-08-10**
 
 ## Amaç ve mevcut sistem analizi
 
-Eski `mobile/lib/domain/day_optimizer.dart`, koordinatı bulunan esnek
+Eski `rotori-mobile/lib/domain/day_optimizer.dart`, koordinatı bulunan esnek
 aktiviteleri nearest-neighbor ile sıralıyor ve geçişleri sabit 30 dakika
 varsayıyordu. Bu yaklaşım gerçek kapıdan kapıya süreyi, yönlü rota farkını,
 aktarma sayısını, büyük istasyon karmaşıklığını ve ulaşım maliyetini bilmiyor.
@@ -36,7 +36,7 @@ PlansRepository.save
 
 ### Rota matrisi
 
-`mobile/lib/domain/route_matrix.dart`:
+`rotori-mobile/lib/domain/route_matrix.dart`:
 
 - `walking`, `train`, `metro`, `bus`, `taxi`, `shinkansen`,
   `regionalTrain`
@@ -52,7 +52,7 @@ kullanılmaz.
 
 ### Deterministik optimizasyon
 
-`mobile/lib/domain/itinerary_optimizer.dart`:
+`rotori-mobile/lib/domain/itinerary_optimizer.dart`:
 
 - varsayılan beam width: 6
 - artımlı route state; her genişlemede tüm rota yeniden hesaplanmaz
@@ -117,6 +117,27 @@ değiştirmez; “Rotayı uygula” repository, edit session ve home widget
 snapshot'ını birlikte yeniler. Konum veya güvenilir rota verisi eksikse plan
 korunur. Web QA girişinde yalnız tasarım doğrulaması için açıkça tahmini olarak
 işaretlenmiş deterministik fake matrix bulunur; üretim provider'ına sızmaz.
+
+### Rota yürütme adaptörü (2026-08-10)
+
+Optimizer'ın karar mantığı değiştirilmeden `RouteLeg` çıktısı genişletildi:
+matristen gelen opsiyonel `lineId`, `directionId` ve `complexityPenalty`
+bilgileri artık sonuçta kaybolmaz.
+
+`rotori-mobile/lib/domain/route_execution.dart`, başarılı sonuçtaki bacakları
+saf `RouteExecutionLeg` modeline çevirir. Başlangıç→durak, durak→durak ve son
+durak→gün sonu dönüş ayrımı; süre, yürüyüş, gerçek transit beklemesi, aktarma,
+maliyet, güvenilirlik ve reliable/estimated veri kalitesi burada taşınır.
+Adapter skor hesaplamaz, sıra veya mod seçmez.
+
+`PlanOptimizationPreview.executionLegs` ön izlemede durakların arasına ulaşım
+kartları olarak yerleşir. Onayda aynı veri `RouteExecutionSnapshot` schema v1
+ile gün planına yazılır ve viewer yeniden açıldığında timeline içinde kalır.
+Snapshot plan kimliği/sürümü, gün, aktivite hash'i, matris sürümü, profil ve
+sağlayıcı kimliklerini taşır; aktivite veya zaman çizelgesi değişince
+`PlanScheduleEngine` tarafından geçersizleştirilir. Eski JSON'da alanın
+olmaması ve bilinmeyen schema sürümü güvenli biçimde snapshot yokmuş gibi
+ele alınır.
 
 ## AI kullanım ve maliyet politikası
 

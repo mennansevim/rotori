@@ -50,12 +50,13 @@ ve rehber. Marka önce "Tabi" (旅) olarak öneriliydi, 2026-07 civarında
 
 ## 3. Tech Stack
 
-### Mobil (`mobile/`)
+### Mobil (`rotori-mobile/`)
 
 - **Flutter** ≥ 3.24, Dart SDK 3.4+
 - **State:** `flutter_riverpod` ^2.5 (providers · `..._store.dart` konvansiyonu)
 - **Routing:** `go_router` ^14
-- **Backend:** `supabase_flutter` ^2.5 — env `mobile/env.json` (**gitignore**).
+- **Backend:** `supabase_flutter` ^2.5 — env `rotori-mobile/env.json`
+  (**gitignore**).
 - **i18n:** Manuel `lib/core/l10n.dart` — `AppLang.tr | .en`, ~800+ anahtar +
   büyük içerik için `LText(tr, en)` (bkz. `domain/localized_text.dart`).
 - **Harita:** `flutter_map` + OSM raster tile (API key yok) + offline tile
@@ -97,12 +98,13 @@ ve rehber. Marka önce "Tabi" (旅) olarak öneriliydi, 2026-07 civarında
   - Domain: pure Dart, Flutter import etmez.
 - **Yorumlar:** Yalnızca *neden* açık değilse yazılır; *ne* yaptığını isim söyler.
 - **String edebiyatı:** UI'da hardcoded metin yasak — l10n anahtarı veya `LText`.
-- **Test:** `mobile/test/` altında, `flutter test` sürer. Yeşil bar zorunlu.
+- **Test:** `rotori-mobile/test/` altında, `flutter test` sürer. Yeşil bar
+  zorunlu.
 
 ## 5. Klasör Sorumlulukları (mobil)
 
 ```
-mobile/lib/
+rotori-mobile/lib/
 ├─ main.dart               # gerçek app entry (Supabase init, DevicePreview)
 ├─ preview_main.dart       # QA/tasarım preview entry (auth-less)
 ├─ env.dart                # --dart-define-from-file=env.json köprüsü
@@ -113,8 +115,8 @@ mobile/lib/
 │                          # + deterministic itinerary optimizer burada
 ├─ features/
 │  ├─ auth/                # login / signup / apple / google
-│  ├─ planner/steps/       # 8 adımlı planner (welcome→publish)
-│  ├─ plans/               # plan listesi + viewer
+│  ├─ planner/             # uçuş/havalimanı verisi + ortak seçiciler
+│  ├─ plans/               # 3 adımlı plan oluşturma + plan listesi + viewer
 │  ├─ viewer/              # gün haritası, geofence, sakura, bileşenler
 │  ├─ notifications/       # bildirim izin + planlama
 │  ├─ reminders/           # bilet hatırlatma
@@ -124,7 +126,7 @@ mobile/lib/
 
 ## 6. Mimari İlkeler
 
-1. **Domain saf tutulur.** `mobile/lib/domain/` içindeki dosyalar `flutter/*`
+1. **Domain saf tutulur.** `rotori-mobile/lib/domain/` içindeki dosyalar `flutter/*`
    veya `supabase_flutter` import etmez — böylece unit-test'lenebilir.
 2. **Çevrimdışı-öncelikli.** Uçakta / dolaşımda çalışmalı: OSM tile cache,
    `shared_preferences` yerel plan, `LText` gömülü içerik.
@@ -153,7 +155,7 @@ mobile/lib/
 
 ## 9. Güvenlik Kuralları
 
-- `mobile/env.json`, `.env`, Supabase servis-role anahtarları **repoya girmez**.
+- `rotori-mobile/env.json`, `.env`, Supabase servis-role anahtarları **repoya girmez**.
 - Supabase RLS her tabloda zorunlu (istisna yok).
 - Kullanıcı verisinin sunucuda tutulduğu tek yer Supabase. Yerelde sadece plan
   + tercihler; kart/bilet OCR görselleri cihazda kalır, yüklenmez.
@@ -168,12 +170,12 @@ mobile/lib/
 - Sistem yazı boyutu (`textScaler`) test edilmelidir.
 - Bildirim ve konum izinleri **kullanım anında** istenir, başlatmada değil.
 - App Store meta zorunluluğu: `App-Store-Meta/`, Privacy Policy sayfası
-  (`website/privacy.html`), hesap silme akışı (F1'de eklendi · `11f3541`).
+  (`rotori-website/privacy.html`), hesap silme akışı (F1'de eklendi · `11f3541`).
 
-## 11. Tanıtım Sitesi Kuralları (`website/`)
+## 11. Tanıtım Sitesi Kuralları (`rotori-website/`)
 
-- HTML, CSS ve JavaScript `website/index.html` içinde kalır. Büyük medya
-  dosyaları (`website/img/`, `website/audio/`) ayrı, yerel ve
+- HTML, CSS ve JavaScript `rotori-website/index.html` içinde kalır. Büyük medya
+  dosyaları (`rotori-website/img/`, `rotori-website/audio/`) ayrı, yerel ve
   versiyonlanmış asset olarak yayınlanabilir; üçüncü taraf çalışma zamanı
   bağımlılığı eklenmez.
 - TR/EN, `data-i18n` anahtar sistemi; `window.__i18nAudit()` eksiklik denetimi.
@@ -182,7 +184,7 @@ mobile/lib/
 
 ## 12. `run` Kısayolu
 
-- Kullanıcı yalnızca **“run”** dediğinde birincil ürün olan `mobile/` altındaki
+- Kullanıcı yalnızca **“run”** dediğinde birincil ürün olan `rotori-mobile/` altındaki
   Rotori Flutter uygulaması beklemeden başlatılır.
 - Mevcut ve uygun cihaz/simülatör tercih edilir; gerekli gizli değerler yalnızca
   yerel yapılandırmadan okunur ve çıktıda gösterilmez.

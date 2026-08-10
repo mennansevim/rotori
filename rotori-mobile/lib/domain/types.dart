@@ -2,6 +2,8 @@
 // Plain Dart sınıfları; JSON'a serileştirilir (Supabase plans.doc jsonb).
 // Not: MVP freezed'siz — Faz 3b'de freezed'e geçilecek (data class + copyWith + eşitlik).
 
+import 'route_execution.dart';
+
 // ---------------------------------------------------------------------------
 // Enum'lar (TS union type'larının Dart karşılığı — string ↔ enum eşleşmesi)
 // ---------------------------------------------------------------------------
@@ -238,6 +240,7 @@ class Ticket {
     this.emoji,
     this.imageDataUrl,
     this.scannedText,
+    this.linkedTransitionDayNumber,
   });
   final String id;
   String kind; // TicketKind veya string
@@ -249,6 +252,7 @@ class Ticket {
   String? emoji;
   String? imageDataUrl;
   String? scannedText;
+  int? linkedTransitionDayNumber;
 
   factory Ticket.fromJson(Map<String, dynamic> j) => Ticket(
         id: j['id'] as String,
@@ -261,6 +265,8 @@ class Ticket {
         emoji: j['emoji'] as String?,
         imageDataUrl: j['imageDataUrl'] as String?,
         scannedText: j['scannedText'] as String?,
+        linkedTransitionDayNumber:
+            (j['linkedTransitionDayNumber'] as num?)?.toInt(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -274,6 +280,49 @@ class Ticket {
         if (emoji != null) 'emoji': emoji,
         if (imageDataUrl != null) 'imageDataUrl': imageDataUrl,
         if (scannedText != null) 'scannedText': scannedText,
+        if (linkedTransitionDayNumber != null)
+          'linkedTransitionDayNumber': linkedTransitionDayNumber,
+      };
+}
+
+/// Bir şehre varılan günün kullanıcı tarafından seçilmiş ulaşım tercihi.
+/// Opsiyoneldir; eski planlar bu alan olmadan açılır.
+class CityTransitionPlan {
+  const CityTransitionPlan({
+    required this.fromCity,
+    required this.toCity,
+    required this.mode,
+    this.linkedTicketId,
+  });
+
+  final String fromCity;
+  final String toCity;
+  final String mode;
+  final String? linkedTicketId;
+
+  CityTransitionPlan copyWith({String? mode, String? linkedTicketId}) {
+    return CityTransitionPlan(
+      fromCity: fromCity,
+      toCity: toCity,
+      mode: mode ?? this.mode,
+      linkedTicketId: linkedTicketId ?? this.linkedTicketId,
+    );
+  }
+
+  factory CityTransitionPlan.fromJson(Map<String, dynamic> json) {
+    return CityTransitionPlan(
+      fromCity: (json['fromCity'] as String?) ?? '',
+      toCity: (json['toCity'] as String?) ?? '',
+      mode: (json['mode'] as String?) ?? 'train',
+      linkedTicketId: json['linkedTicketId'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'fromCity': fromCity,
+        'toCity': toCity,
+        'mode': mode,
+        if (linkedTicketId != null) 'linkedTicketId': linkedTicketId,
       };
 }
 
@@ -397,6 +446,44 @@ class TravelDates {
   Map<String, dynamic> toJson() => {'start': start, 'end': end};
 }
 
+class PlanAssumptions {
+  const PlanAssumptions({
+    required this.dateSource,
+    required this.flightStatus,
+    required this.hotelStatus,
+    this.dateRationale,
+    this.schemaVersion = currentSchemaVersion,
+  });
+
+  static const int currentSchemaVersion = 1;
+
+  final int schemaVersion;
+  final String dateSource;
+  final String? dateRationale;
+  final String flightStatus;
+  final String hotelStatus;
+
+  static PlanAssumptions? tryFromJson(Map<String, dynamic> json) {
+    final version = (json['schemaVersion'] as num?)?.toInt() ?? 0;
+    if (version != currentSchemaVersion) return null;
+    return PlanAssumptions(
+      schemaVersion: version,
+      dateSource: (json['dateSource'] as String?) ?? 'userSelected',
+      dateRationale: json['dateRationale'] as String?,
+      flightStatus: (json['flightStatus'] as String?) ?? 'draft',
+      hotelStatus: (json['hotelStatus'] as String?) ?? 'draft',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'schemaVersion': schemaVersion,
+        'dateSource': dateSource,
+        if (dateRationale != null) 'dateRationale': dateRationale,
+        'flightStatus': flightStatus,
+        'hotelStatus': hotelStatus,
+      };
+}
+
 class TripPreferences {
   TripPreferences({
     required this.travelDates,
@@ -441,6 +528,7 @@ class TripPreferences {
     this.hasTicket,
     this.stayArea,
     this.datesEstimated,
+    this.planAssumptions,
   })  : mustSee = mustSee ?? [],
         foodLikes = foodLikes ?? [],
         foodDislikes = foodDislikes ?? [],
@@ -511,6 +599,7 @@ class TripPreferences {
   /// Tarihler kullanıcı tarafından değil, "tarih henüz belli değil" akışında
   /// sezona göre ÖNERİLDİYSE true. UI bunu "tahmini tarih" rozetiyle gösterir.
   bool? datesEstimated;
+  PlanAssumptions? planAssumptions;
 
   factory TripPreferences.fromJson(Map<String, dynamic> j) => TripPreferences(
         travelDates: TravelDates.fromJson(
@@ -599,6 +688,11 @@ class TripPreferences {
         hasTicket: j['hasTicket'] as bool?,
         stayArea: j['stayArea'] as String?,
         datesEstimated: j['datesEstimated'] as bool?,
+        planAssumptions: j['planAssumptions'] is Map
+            ? PlanAssumptions.tryFromJson(
+                (j['planAssumptions'] as Map).cast<String, dynamic>(),
+              )
+            : null,
       );
 
   Map<String, dynamic> toJson() => {
@@ -678,6 +772,8 @@ class TripPreferences {
         if (hasTicket != null) 'hasTicket': hasTicket,
         if (stayArea != null) 'stayArea': stayArea,
         if (datesEstimated != null) 'datesEstimated': datesEstimated,
+        if (planAssumptions != null)
+          'planAssumptions': planAssumptions!.toJson(),
       };
 }
 
@@ -860,6 +956,8 @@ class DayPlan {
     this.stepsEstimateMax,
     this.taxiRecommended,
     this.routeMapsUrl,
+    this.routeExecutionSnapshot,
+    this.cityTransition,
   })  : tags = tags ?? [],
         items = items ?? [],
         highlights = highlights ?? [];
@@ -873,6 +971,8 @@ class DayPlan {
   int? stepsEstimateMax;
   bool? taxiRecommended;
   String? routeMapsUrl;
+  RouteExecutionSnapshot? routeExecutionSnapshot;
+  CityTransitionPlan? cityTransition;
   List<TimelineItem> items;
   List<DayHighlight> highlights;
 
@@ -886,6 +986,8 @@ class DayPlan {
     int? stepsEstimate,
     int? stepsEstimateMax,
     bool? taxiRecommended,
+    RouteExecutionSnapshot? routeExecutionSnapshot,
+    CityTransitionPlan? cityTransition,
   }) =>
       DayPlan(
         dayNumber: dayNumber,
@@ -897,6 +999,11 @@ class DayPlan {
         stepsEstimateMax: stepsEstimateMax ?? this.stepsEstimateMax,
         taxiRecommended: taxiRecommended ?? this.taxiRecommended,
         routeMapsUrl: routeMapsUrl,
+        // Aktivite listesi değiştiğinde eski bacaklar artık güvenilir değildir.
+        // Yeni snapshot yalnız optimizasyon onay akışı tarafından açıkça verilir.
+        routeExecutionSnapshot: routeExecutionSnapshot ??
+            (items == null ? this.routeExecutionSnapshot : null),
+        cityTransition: cityTransition ?? this.cityTransition,
         items: items ?? this.items,
         highlights: highlights ?? this.highlights,
       );
@@ -911,6 +1018,16 @@ class DayPlan {
         stepsEstimateMax: (j['stepsEstimateMax'] as num?)?.toInt(),
         taxiRecommended: j['taxiRecommended'] as bool?,
         routeMapsUrl: ((j['route'] as Map?)?['mapsUrl'] as String?),
+        routeExecutionSnapshot: j['routeExecution'] is Map
+            ? RouteExecutionSnapshot.tryFromJson(
+                (j['routeExecution'] as Map).cast<String, dynamic>(),
+              )
+            : null,
+        cityTransition: j['cityTransition'] is Map
+            ? CityTransitionPlan.fromJson(
+                (j['cityTransition'] as Map).cast<String, dynamic>(),
+              )
+            : null,
         items: (j['items'] as List? ?? const [])
             .map((e) => TimelineItem.fromJson((e as Map).cast()))
             .toList(),
@@ -930,6 +1047,9 @@ class DayPlan {
         if (stepsEstimateMax != null) 'stepsEstimateMax': stepsEstimateMax,
         if (taxiRecommended != null) 'taxiRecommended': taxiRecommended,
         if (routeMapsUrl != null) 'route': {'mapsUrl': routeMapsUrl},
+        if (routeExecutionSnapshot != null)
+          'routeExecution': routeExecutionSnapshot!.toJson(),
+        if (cityTransition != null) 'cityTransition': cityTransition!.toJson(),
         if (highlights.isNotEmpty)
           'highlights': highlights.map((h) => h.toJson()).toList(),
       };

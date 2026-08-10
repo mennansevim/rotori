@@ -5,20 +5,46 @@
 
 **Bugünün tarihi:** 2026-08-10
 **Aktif branch:** `feat/premium-iap-foundation`
-**Sprint hedefi:** Monetizasyon Faz 1 — abonelik altyapısı (IAP + sunucu
-doğrulama + süreli yetkilendirme). Model kararı verildi ve belgelendi;
-mimari sözleşme `ARCHITECTURE.md` §8b'de yazıldı; sıra kodda.
-**Faz 1 tahmini 6–9 gün** (dış inceleme sonrası 4–5'ten revize),
-toplam lansman 15–20 gün.
+**Sprint hedefi:** Kullanıcı tarafından yeniden önceliklendirilen rota
+deneyimi refactor'u. Mevcut deterministik rota algoritması korunacak; önce
+çıktı sözleşmesi ve kullanıcıya gösterilen ulaşım ayakları iyileştirilecek.
+Ana plan: `ROUTE_EXPERIENCE_REFACTOR_PLAN.md`.
+
+> Branch adı önceki premium işini yansıtıyor. Bu refactor sırasında branch
+> değiştirilmedi; kullanıcıya ait yerel değişiklikler korunuyor. Premium Faz 1
+> işi iptal edilmedi, rota deneyimi başlangıç teslimatından sonra devam edecek.
 
 ---
 
 ## 🚦 SIRADAKİ OTURUM BURADAN BAŞLAR
 
-> Bu blok, sıfırdan başlayan bir oturumun ilk okuyacağı yerdir.
-> Önce `docs/MONETIZATION_PLAN.md` okunur (özellikle §3 SKU'lar, §4 yayın
-> kapsamı, §5 Faz 1, §9 karar günlüğü). **Model kararını yeniden tartışma** —
-> §9.1'de kanıtın sınırları ve §9.2'de yeniden değerlendirme kapısı yazılı.
+### 2026-08-10 — Rota deneyimi refactor'u Faz 0–4 tamamlandı
+
+**Kırmızı çizgi:** Beam search, beam width 6, yönlü matris, hard constraint,
+must-do/fixed koruması, dört profil ve bağımsız validator ölçüm olmadan
+değiştirilmeyecek.
+
+**Şu anki sıra:**
+
+1. ✅ Algoritma davranış sözleşmesini tek regresyon testiyle kilitle.
+2. ✅ `RouteLeg` hat/yön/karmaşıklık bilgisini kayıpsız taşısın.
+3. ✅ Saf `RouteExecutionLeg` adaptörünü ekle.
+4. ✅ Ulaşım ayaklarını ön izleme ve kaydedilmiş günlük timeline'a bağla.
+5. ✅ Versioned route snapshot, varsayım özeti, şehir geçişi ve bağlı bilet
+   akışını tamamla.
+6. ✅ Hedefli test + rota harness + analiz + dar ekran web QA çalıştır.
+7. **Sıradaki:** Gerçek route sağlayıcısını seçip Edge Function ve kalıcı
+   matrix cache'i uygulamak; ardından saha modu ve kalan kişiselleştirme.
+
+Detay: `docs/ROUTE_EXPERIENCE_REFACTOR_PLAN.md`.
+
+---
+
+> Aşağıdaki monetizasyon işi rota deneyimi başlangıç teslimatından sonra devam
+> edecek ikinci aktif iş paketidir. Devam ederken önce
+> `docs/MONETIZATION_PLAN.md` okunur (özellikle §3 SKU'lar, §4 yayın kapsamı,
+> §5 Faz 1, §9 karar günlüğü). **Model kararını yeniden tartışma** — §9.1'de
+> kanıtın sınırları ve §9.2'de yeniden değerlendirme kapısı yazılı.
 
 **Durum:** Faz 0 (App Store Connect ürün tanımları) **kullanıcıda**, henüz
 yapılmadı. Faz 1 kodu başlamadı.
@@ -59,6 +85,32 @@ maliyeti, transfer timeline, paired profil suite. 100 base × 4 profil kalite
 kapısı geçti, analyze temiz.
 
 ## Tamamlananlar (bu ve önceki oturumlardan)
+
+- ✅ **2026-08-10** Rota deneyimi refactor Faz 2–4 ve Faz 5'in diyet güvenliği
+  tamamlandı. Ön izleme ile kaydedilmiş plan timeline'ı artık çıkış/varış,
+  ulaşım modu, süre, yürüyüş, gerçek transit beklemesi, aktarma ve grup
+  ücretini gösteriyor. Tahmini sonuç hat/yön uydurmadan açık rozetle; güvenilir
+  sonuç sağlayıcı hat/yön bilgisiyle gösteriliyor. `RouteExecutionSnapshot`
+  schema v1 plan/gün/sürüm/aktivite hash'i/matris sürümü/profil/sağlayıcı
+  kimliğiyle saklanıyor ve plan değişince geçersizleşiyor. Şehir geçişi modu
+  ile bağlı bilet tek engine hattında düzenleniyor; bilet boş durumu CTA aldı.
+  Oluşturma öncesi rota/tarih/uçuş/otel varsayımları görünür ve düzenlenebilir;
+  eski JSON geriye uyumlu. Çelişen diyet seçimleri domain seviyesinde
+  çözülüyor. Doğrulama: ilgili paket **94/94**, rota harness **15/15**,
+  değişen dosya analizi temiz. Proje genel analyze yalnız refactor dışındaki
+  mevcut **17** uyarı/bilgiyi raporluyor. Dar ekran web QA tamamlandı.
+
+- ✅ **2026-08-10** Rota deneyimi refactor Faz 0/1 temeli tamamlandı.
+  Algoritmanın beam 6, determinizm, sabit rezervasyon, gün sonu dönüşü ve
+  bağımsız validator sözleşmesi `route_algorithm_contract_test.dart` ile
+  kilitlendi. `RouteLeg`, matristen gelen `lineId`, `directionId` ve
+  `complexityPenalty` bilgisini artık kaybetmiyor. Saf Dart
+  `RouteExecutionBuilder`, optimizer bacaklarını başlangıç / duraklar arası /
+  otele dönüş türleriyle ve reliable/estimated veri kalitesiyle sunum modeline
+  çeviriyor; sonuç `PlanOptimizationPreview.executionLegs` üzerinden UI'a
+  hazır. Hedefli rota testleri + harness **27/27**, daha geniş ilk rota paketi
+  **29/29** başarılı; değişen 6 dosyanın analizi temiz. Proje genel analyze'da
+  refactor dışı mevcut 18 uyarı/bilgi devam ediyor.
 
 - ✅ **2026-08-10** Monetizasyon modeli pazar araştırmasıyla kararlaştırıldı ve
   belgelendi. Kod envanteri çıkarıldı: uygulama **hiç yayınlanmamış**
@@ -465,19 +517,6 @@ kapısı geçti, analyze temiz.
     kart içeriğine daha fazla alan aç.
   - Kabul kriteri: küçük ekranlarda (özellikle iPhone dar genişlik) satır taşması azalmalı,
     görsel denge korunmalı.
-
-- [ ] **Şehir geçişleri için transport picker popup (Shinkansen/Taksi/Tren/Otobüs)**
-  - Gün/şehir geçiş satırına basıldığında popup açılsın.
-  - Popup içinde ulaşım modu seçimi sunulsun: `Shinkansen`, `Taksi`, `Tren`, `Otobüs`.
-  - Seçime göre satır ikonu/etiketi güncellensin; seçim plan kaydına işlensin.
-  - Kabul kriteri: kullanıcı geçiş modunu değiştirdiğinde UI anında güncellenmeli,
-    plan tekrar açıldığında seçim kalıcı olmalı.
-
-- [ ] **Geçiş satırından bilet ekleme akışı**
-  - Transport picker veya geçiş detayından "Bilet ekle" eylemi sun.
-  - Var olan bilet varsa görüntüle/düzenle; yoksa hızlı ekleme başlat.
-  - Kabul kriteri: ilgili geçişe bağlı bilet tek akışta eklenebilmeli ve
-    tekrar açıldığında görülebilmeli.
 
 - [ ] **GPS akıllı takip (pil dostu, kullanıcıyı yormayan model)**
   - Hedef: Kullanıcının bazı bölgelerde ~10 dakika kaldığını tespit etmek,

@@ -243,6 +243,9 @@ class RouteLeg {
     this.partyTotalCostYen = 0,
     this.vehicleCount = 0,
     this.fareBasis = FareBasis.perPerson,
+    this.lineId,
+    this.directionId,
+    this.complexityPenalty = 0,
     this.providerId,
   });
 
@@ -267,6 +270,9 @@ class RouteLeg {
   final int partyTotalCostYen;
   final int vehicleCount;
   final FareBasis fareBasis;
+  final String? lineId;
+  final String? directionId;
+  final double complexityPenalty;
   final String? providerId;
 }
 
@@ -1530,6 +1536,9 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
       partyTotalCostYen: cost.partyTotalCostYen,
       vehicleCount: cost.vehicleCount,
       fareBasis: cost.fareBasis,
+      lineId: option.lineId,
+      directionId: option.directionId,
+      complexityPenalty: option.complexityPenalty,
       providerId: option.providerId,
     );
   }

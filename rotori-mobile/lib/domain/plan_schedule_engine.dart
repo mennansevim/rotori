@@ -202,6 +202,27 @@ class UpdateDayDetails extends PlanEditCommand {
   final String? date;
 }
 
+class UpdateCityTransition extends PlanEditCommand {
+  const UpdateCityTransition({
+    required this.toDayNumber,
+    required this.fromCity,
+    required this.toCity,
+    required this.mode,
+  });
+
+  final int toDayNumber;
+  final String fromCity;
+  final String toCity;
+  final String mode;
+}
+
+class UpsertTicket extends PlanEditCommand {
+  const UpsertTicket({required this.ticket, this.transitionDayNumber});
+
+  final Ticket ticket;
+  final int? transitionDayNumber;
+}
+
 /// UI, drag-and-drop ve persistence katmanlarının tamamı bu motoru kullanır.
 ///
 /// Motor girdiyi değiştirmez. Başarılı sonuç yeni bir [Trip], başarısız sonuç
@@ -372,8 +393,11 @@ class PlanScheduleEngine {
       AddActivity command => _addActivity(trip, command),
       ReorderDays command => _reorderDays(trip, command),
       UpdateDayDetails command => _updateDayDetails(trip, command),
+      UpdateCityTransition command => _updateCityTransition(trip, command),
+      UpsertTicket command => _upsertTicket(trip, command),
     };
     if (failure != null) return PlanEditResult.failure(failure);
+    _invalidateChangedRouteSnapshots(baseline, trip);
 
     final structuralFailure = _validateStructure(trip);
     if (structuralFailure != null) {
@@ -731,6 +755,70 @@ class PlanScheduleEngine {
     if (command.title != null) day.theme = command.title!.trim();
     return null;
   }
+
+  PlanEditFailure? _updateCityTransition(
+    Trip trip,
+    UpdateCityTransition command,
+  ) {
+    final day = _day(trip, command.toDayNumber);
+    if (day == null) return _missingDay(command.toDayNumber);
+    final mode = command.mode.trim();
+    if (mode.isEmpty) {
+      return const PlanEditFailure(
+        PlanEditFailureCode.invalidIndex,
+        message: 'Geçerli bir ulaşım türü seçilmeli.',
+      );
+    }
+    day.cityTransition = CityTransitionPlan(
+      fromCity: command.fromCity.trim(),
+      toCity: command.toCity.trim(),
+      mode: mode,
+      linkedTicketId: day.cityTransition?.linkedTicketId,
+    );
+    return null;
+  }
+
+  PlanEditFailure? _upsertTicket(Trip trip, UpsertTicket command) {
+    final ticketJson = command.ticket.toJson();
+    if (command.transitionDayNumber != null) {
+      ticketJson['linkedTransitionDayNumber'] = command.transitionDayNumber;
+    }
+    final ticket = Ticket.fromJson(ticketJson);
+    final index = trip.tickets.indexWhere((item) => item.id == ticket.id);
+    if (index < 0) {
+      trip.tickets.add(ticket);
+    } else {
+      trip.tickets[index] = ticket;
+    }
+
+    final transitionDayNumber = command.transitionDayNumber;
+    if (transitionDayNumber == null) return null;
+    final day = _day(trip, transitionDayNumber);
+    if (day == null) return _missingDay(transitionDayNumber);
+    final transition = day.cityTransition;
+    if (transition == null) {
+      return const PlanEditFailure(
+        PlanEditFailureCode.activityNotFound,
+        message: 'Biletin bağlanacağı şehir geçişi bulunamadı.',
+      );
+    }
+    day.cityTransition = transition.copyWith(linkedTicketId: ticket.id);
+    return null;
+  }
+
+  void _invalidateChangedRouteSnapshots(Trip before, Trip after) {
+    final beforeByDay = {for (final day in before.days) day.dayNumber: day};
+    for (final day in after.days) {
+      final previous = beforeByDay[day.dayNumber];
+      if (previous == null ||
+          _itemSignature(previous.items) != _itemSignature(day.items)) {
+        day.routeExecutionSnapshot = null;
+      }
+    }
+  }
+
+  String _itemSignature(List<TimelineItem> items) =>
+      items.map((item) => item.toJson().toString()).join('\u0000');
 
   PlanEditFailure? _reschedule(DayPlan day, int fromIndex) {
     if (day.items.isEmpty || fromIndex >= day.items.length) return null;

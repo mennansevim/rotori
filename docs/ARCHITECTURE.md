@@ -4,8 +4,8 @@
 > Kalıcı kurallar için `CLAUDE.md`, günlük iş için `CURRENT_TASK.md`.
 > Rota motorunun ayrıntılı akış ve maliyet notu: `ROUTE_OPTIMIZATION.md`.
 
-Son güncelleme: **2026-08-10** (§8b abonelik/entitlement mimarisi eklendi —
-koddan önce tasarım; Faz 1 buna uyar).
+Son güncelleme: **2026-08-10** (§8b abonelik/entitlement mimarisi ve §17 rota
+deneyimi refactor sınırı eklendi).
 
 ---
 
@@ -55,14 +55,14 @@ features → data → domain
 ## 3. Feature Klasörleri
 
 ```
-mobile/lib/features/
+rotori-mobile/lib/features/
 ├─ auth/                     # login, signup, apple, google, delete-account
 ├─ notifications/            # local notifications permission + scheduler
 ├─ planner/
-│  ├─ planner_screen.dart    # 8 adımlı stepper shell
-│  └─ steps/                 # welcome → journey → explore → title
-│                            # → hotels → food → plan → publish
+│  ├─ data/                  # havayolu ve havalimanı katalogları
+│  └─ widgets/               # plan yüzeylerinin ortak seçicileri
 ├─ plans/
+│  ├─ create/                # 3 adım: şehir → tarih → yemek/bütçe
 │  ├─ plan_providers.dart    # planları çeken/senkronlayan Riverpod
 │  ├─ plan_edit_session.dart # optimistic edit, seri kayıt, rollback + undo
 │  ├─ plans_list_screen.dart # kaydedilmiş planlar
@@ -128,6 +128,14 @@ mobile/lib/features/
   tüketir. Dört tercih profili yeniden hesaplama tetikler; eski/yeni
   ulaşım-yürüyüş-aktarma-maliyet özeti gösterilir. Yalnız açık kullanıcı
   onayı repository, edit session ve home widget snapshot'ını yeniler.
+- Onaylanan sonuç, `DayPlan.routeExecutionSnapshot` içinde schema v1 olarak
+  saklanır ve günlük timeline durakların arasına ulaşım kartları yerleştirir.
+  Plan sürümü, aktivite hash'i veya matris sürümü uyuşmazsa snapshot
+  kullanılmaz. Tahmini ayaklar hat/yön uydurmaz; reliable ayaklar sağlayıcının
+  opsiyonel hat/yön bilgisini gösterebilir.
+- Şehirlerarası geçiş modu ve ona bağlı bilet, sırasıyla
+  `UpdateCityTransition` ve `UpsertTicket` komutlarıyla aynı
+  `PlanScheduleEngine` mutasyon hattından geçer.
 - Viewer hamburger menüsü `FittedBox` ile küçültülmez. Sabit marka/gezi başlığı
   altında kaydırılabilir **Yolculuk → Keşfet → Araçlar → Hesap** hiyerarşisi
   kullanır; uçuş ve otel detayları açılabilir, sık aksiyonlar iki sütunlu,
@@ -148,10 +156,11 @@ Pure Dart dosyaları — `flutter test` altında hızlı çalışır.
 | `place_guide.dart` | Uzun-form yer rehberi metinleri (LText). |
 | `place_image_resolver.dart` | *(yeni)* Yer adı → asset görsel çözümleyicisi. |
 | `day_schedule.dart` | *(yeni)* Gün içi zaman-çizelgesi hesaplaması. |
-| `plan_schedule_engine.dart` | Immutable plan düzenleme komutları, sabit aktivite politikası, 15 dakikalık tampon/slot uygunluğu, çakışma/gün sınırı validasyonu ve etkilenen günlerin yeniden zamanlanması. |
+| `plan_schedule_engine.dart` | Immutable plan düzenleme komutları, sabit aktivite politikası, 15 dakikalık tampon/slot uygunluğu, çakışma/gün sınırı validasyonu, şehir geçişi/bağlı bilet ve etkilenen günlerin yeniden zamanlanması. |
 | `day_optimizer.dart` | Aynı gün içi yerlerin en verimli sırasını arar. |
 | `route_matrix.dart` | Yönlü kapıdan kapıya rota matrisi, yedi ulaşım modu, profil/tercih ve repository abstraction'ı. |
 | `itinerary_optimizer.dart` | Beam search (varsayılan width 6), artımlı rota state'i, hard feasibility pruning, local swap/move ve dört profil için maliyet fonksiyonu. |
+| `route_execution.dart` | Optimizer bacaklarını kullanıcıya dönük modele çevirir; schema v1 kalıcı route snapshot serileştirmesi ve eşleşme/geçersizleştirme sözleşmesini taşır. |
 | `ai_route_review.dart` | AI'ın rotayı değiştirmeden yalnızca yapılandırılmış açıklama/denetim yapabileceği politika, bütçe ve çıktı sözleşmeleri. |
 | `geofence.dart` | Konum akışı üzerine geofence matematiği. |
 | `japan_suggestions.dart` | Ülke düzeyi öneriler (mevsim / bölge). |
@@ -350,6 +359,10 @@ aboneliği ise ayrıca iptal edilmedikçe **devam eder**. Silme akışı:
   tutulur. Eski planlar varsayılan olarak düzenlenebilir; generator sabit
   uçuş/varış, otel check-in/out ve satın alınmış biletleri açık kilit
   metadatasıyla üretir.
+- **Rota yürütme snapshot'ı** — `DayPlan` içinde opsiyonel schema v1 JSON'dur.
+  Eski planlarda bulunmayabilir; aktivite veya zaman çizelgesi değişikliğinde
+  otomatik temizlenir. `TripPreferences.planAssumptions` da aynı geriye
+  uyumluluk ilkesiyle opsiyoneldir.
 - **`flutter_cache_manager`** — OSM harita karoları (iOS/Android). Web'de
   `kIsWeb` kapısı; `NetworkImage`'e düşer.
 - **Home widget (iOS)** — App Group üzerinden `UserDefaults`'a yazar; web/Android'de no-op.
@@ -376,13 +389,14 @@ getirecekse mimari karar `DECISIONS.md`'ye yazılır.
 
 ## 12. Test Mimarisi
 
-- **Konum:** `mobile/test/` — Flutter test paketi.
+- **Konum:** `rotori-mobile/test/` — Flutter test paketi.
 - **Odak:** domain katmanı (saf Dart) + kritik core sınıfları + kritik viewer
   widget davranışları.
-- **Yeni test dosyaları:** `mobile/test/domain/day_schedule_test.dart`,
-  `mobile/test/domain/place_image_resolver_test.dart`, `mobile/test/core/*`
+- **Yeni test dosyaları:** `rotori-mobile/test/domain/day_schedule_test.dart`,
+  `rotori-mobile/test/domain/place_image_resolver_test.dart`,
+  `rotori-mobile/test/core/*`
   (çalışan diff'te). Bunlar F2.0 test regresyonlarını karşılıyor (`70c82d2`).
-- **Komut:** `cd mobile && flutter test`.
+- **Komut:** `cd rotori-mobile && flutter test`.
 - **Plan düzenleme kapsamı:** `plan_schedule_engine_test.dart` komut,
   çakışma, 15 dakikalık slot uygunluğu, çift gün optimizasyonu, sabit aktivite
   ve gün sınırı matrisini;
@@ -418,7 +432,8 @@ packages/
 
 - **Web:** `npm run build` → `dist/` → nginx/pi rsync (bkz. `README.md`).
 - **Mobil:** Xcode → App Store Connect (F1 hazırlığı `11f3541`).
-- **Site:** `website/index.html` + `website/img/` + `website/audio/` birlikte
+- **Site:** `rotori-website/index.html` + `rotori-website/img/` +
+  `rotori-website/audio/` birlikte
   versiyonlanır ve statik host'a kopyalanır.
 - **Sosyal servis (`rotori-social/`):** tek kaynak `origin`
   (`mennansevim/japan-trip`, monorepo). Pi5 deploy dizini
@@ -466,3 +481,27 @@ packages/
   üretmez.
 - Harness schema v2 aynı base senaryoyu dört profile genişletir; generatedAt ve
   elapsed dışındaki semantik çıktı aynı seed'de birebirdir.
+
+## 17. Rota Deneyimi Refactor Sınırı
+
+Rota refactor'u optimizer'ı yeniden yazmaz. `TripActivityAssignmentEngine`,
+`BeamSearchItineraryOptimizer` (beam 6), hard constraint'ler ve bağımsız
+`RouteOptimizationValidator` karar katmanı olarak korunur.
+
+Yeni sınır optimizer sonucunun kullanıcıya taşınmasıdır:
+
+```text
+OptimizationResult.legs
+        ↓ saf Dart adapter
+RouteExecutionLeg
+        ↓
+ön izleme / günlük timeline / şehir geçişi / bilet bağlantısı
+```
+
+Adapter skor hesaplamaz, sıra veya ulaşım modu seçmez. `RouteLeg` içindeki
+süre, yürüyüş, bekleme, aktarma, maliyet, güvenilirlik, tahmin durumu ve
+sağlayıcının opsiyonel hat/yön bilgilerini kayıpsız taşır. Kalıcı
+`RouteExecutionSnapshot` schema v1 versioned ve opsiyoneldir; eski plan
+JSON'ları bozulmaz. Ön izleme ve viewer aynı `RouteExecutionLeg` sunum
+sözleşmesini tüketir. Ayrıntılı fazlar ve kalite kapıları:
+`docs/ROUTE_EXPERIENCE_REFACTOR_PLAN.md`.
