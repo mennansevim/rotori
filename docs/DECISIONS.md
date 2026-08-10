@@ -670,3 +670,50 @@ time ayrımını ve `costPerPersonYen`, `partyTotalCostYen`, `vehicleCount`,
 **Ölçüm:** Seed 20260803 product suite, 100 base × 4 profile: hard ihlal 0,
 duplicate 0, must-do drop 0, return eksik 0, dropping %3 altı. Beam 10 kaliteyi
 bir miktar artırsa da yaklaşık %17 yavaş olduğundan 6 korunmuştur.
+
+---
+
+## 2026-08-10 — Rota deneyimi refactor'u algoritma-korumalı ilerler
+
+**Karar:** Rota deneyimi refactor'u mevcut yönlü matris, cross-day assignment,
+beam search ve hard validator hattını yeniden yazmaz. Varsayılan beam width 6,
+hard constraint'ler, must-do/fixed koruması, dört profil ve açık kullanıcı
+onayı korunur.
+
+İlk yeni katman, optimizer'ın ürettiği `RouteLeg` verisini skor veya sıra
+kararı vermeden kullanıcıya uygun `RouteExecutionLeg` modeline dönüştüren saf
+Dart adaptörüdür. Hat/yön ve karmaşıklık gibi matris verileri optimizer
+çıktısında kaybedilmeyecek. Kalıcı rota snapshot'ı daha sonra versioned ve
+opsiyonel eklenir.
+
+**Neden:** Ürün incelemesinde sorun rota çekirdeğinin kalite kapılarından çok,
+üretilen ulaşım bilgisinin viewer'a taşınmaması olarak belirlendi. Çekirdeği
+yeniden yazmak mevcut 100 × 4 benchmark güvencesini riske atarken kullanıcı
+sorununu doğrudan çözmez.
+
+**Kalite kapısı:** Algoritma davranış sözleşmesi, hedefli domain/controller
+testleri ve aynı-seed harness karşılaştırması refactor boyunca zorunludur.
+Detay: `docs/ROUTE_EXPERIENCE_REFACTOR_PLAN.md`.
+
+---
+
+## 2026-08-10b — Rota çıktısı versioned snapshot ve dürüst veri güveniyle saklanır
+
+**Karar:** Kullanıcının onayladığı ulaşım ayakları, `DayPlan` içinde opsiyonel
+`RouteExecutionSnapshot` schema v1 olarak saklanır. Snapshot plan sürümü,
+aktivite hash'i, matris sürümü, profil ve sağlayıcı kimliğini taşır; aktivite
+veya zaman çizelgesi değiştiğinde temizlenir. Ön izleme ve viewer aynı
+`RouteExecutionLeg` sözleşmesini kullanır.
+
+Tahmini ayaklar `TAHMİNİ` olarak görünür ve hat/yön bilgisi göstermez. Yalnız
+reliable sağlayıcı sonucu varsa hat/yön gösterilebilir. UI bekleme alanında
+program içi boşluğu değil gerçek transit beklemesini kullanır.
+
+Şehir geçişi modu ve bağlı bilet de ayrı widget mutasyonlarıyla değil,
+`PlanScheduleEngine` komutlarıyla atomik biçimde kalıcılaştırılır.
+
+**Neden:** Yalnız aktivite sırası/saatini kaydetmek, kullanıcı planı yeniden
+açtığında “nasıl gidileceği” bilgisini kaybettiriyordu. Snapshot optimizer'ın
+doğru kaynağı değildir; yalnız doğrulanmış kararın kullanıcıya dönük,
+geçersizleştirilebilir sunum kaydıdır. Bu ayrım çekirdek algoritmayı
+değiştirmeden saha uygulanabilirliğini artırır.

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rotori/data/route_matrix_remote.dart';
 import 'package:rotori/domain/itinerary_optimizer.dart';
+import 'package:rotori/domain/route_execution.dart';
 import 'package:rotori/domain/route_matrix.dart';
 import 'package:rotori/domain/types.dart';
 import 'package:rotori/features/plans/plan_optimization_controller.dart';
@@ -50,6 +51,9 @@ void main() {
     expect(persisted, isNull);
     expect(preview.before.totalTravelMinutes, 110);
     expect(preview.after.totalTravelMinutes, 30);
+    expect(preview.executionLegs, hasLength(3));
+    expect(preview.executionLegs.first.kind, RouteExecutionLegKind.departure);
+    expect(preview.executionLegs.last.kind, RouteExecutionLegKind.returnToBase);
 
     final confirmed = await container
         .read(planOptimizationControllerProvider.notifier)
@@ -57,6 +61,15 @@ void main() {
 
     expect(confirmed, isTrue);
     expect(persisted?.days.single.items.map((item) => item.id), ['a', 'b']);
+    expect(persisted?.days.single.routeExecutionSnapshot, isNotNull);
+    expect(
+      persisted?.days.single.routeExecutionSnapshot?.matrixVersion,
+      'matrix-v1',
+    );
+    expect(
+      persisted?.days.single.routeExecutionSnapshot?.legs,
+      hasLength(3),
+    );
     expect(
       container
           .read(planOptimizationControllerProvider)
@@ -110,7 +123,8 @@ void main() {
     final preview = state.valueOrNull;
     expect(preview, isNotNull);
     expect(preview!.result.isSuccess, isFalse);
-    expect(preview.result.failure?.code, OptimizationFailureCode.noFeasibleRoute);
+    expect(
+        preview.result.failure?.code, OptimizationFailureCode.noFeasibleRoute);
     expect(preview.optimizedTrip.days.single.items.length, 2,
         reason: 'fallback tüm aktiviteleri korumalı');
   });

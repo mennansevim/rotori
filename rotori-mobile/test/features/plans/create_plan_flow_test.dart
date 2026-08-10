@@ -68,7 +68,8 @@ void main() {
       await tester.tap(find.text('Tokyo'));
       await tester.pumpAndSettle();
 
-      expect(find.text(L10n.parametrize(tr('create.cities.selected'), {'n': '1'})),
+      expect(
+          find.text(L10n.parametrize(tr('create.cities.selected'), {'n': '1'})),
           findsOneWidget);
       final btn = tester.widget<BrandButton>(find.byType(BrandButton).first);
       expect(btn.onPressed, isNotNull);
@@ -83,9 +84,11 @@ void main() {
       await tester.tap(find.text('Kyoto'));
       await tester.pumpAndSettle();
 
-      CityTile tileFor(String label) => tester.widgetList<CityTile>(
+      CityTile tileFor(String label) => tester
+          .widgetList<CityTile>(
             find.byType(CityTile),
-          ).firstWhere((t) => t.label == label);
+          )
+          .firstWhere((t) => t.label == label);
 
       expect(tileFor('Tokyo').orderIndex, 1);
       expect(tileFor('Kyoto').orderIndex, 2);
@@ -194,8 +197,7 @@ void main() {
 
       // Kyoto'yu 1 güne indir (birden fazla basış gerekebilir).
       for (var i = 0; i < 6; i++) {
-        final page =
-            tester.widget<DateSelectPage>(find.byType(DateSelectPage));
+        final page = tester.widget<DateSelectPage>(find.byType(DateSelectPage));
         final kyoto = page.distribution.firstWhere((c) => c.label == 'Kyoto');
         if (kyoto.days <= 1) break;
         await tester.tap(find.byIcon(Icons.remove_rounded).last);
@@ -215,6 +217,30 @@ void main() {
 
       expect(find.text(tr('create.cities.title')), findsOneWidget);
       expect(find.byType(CitySelectPage), findsOneWidget);
+    });
+  });
+
+  group('3. ekran — varsayımlar ve tercihler', () {
+    testWidgets('üretimden önce rota, tarih, uçuş ve otel varsayımları görünür',
+        (tester) async {
+      await pumpFlow(tester);
+      await tester.tap(find.text('Tokyo'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr('create.continue')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr('create.dates.unknown')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr('create.dates.continue')));
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr('create.assumptions.title')), findsOneWidget);
+      expect(find.textContaining('Tokyo'), findsWidgets);
+      expect(find.text(tr('create.assumptions.draft')), findsNWidgets(2));
+      expect(
+          find.text(tr('create.assumptions.estimatedBadge')), findsOneWidget);
+      expect(
+          find.text(tr('create.assumptions.estimatedReason')), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
   });
 

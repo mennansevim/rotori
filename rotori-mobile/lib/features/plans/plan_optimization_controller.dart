@@ -10,8 +10,10 @@ import '../../domain/itinerary_optimizer.dart';
 import '../../domain/plan_warnings.dart';
 import '../../domain/route_time_bounds.dart';
 import '../../domain/route_matrix.dart';
+import '../../domain/route_execution.dart';
 import '../../domain/route_optimization_validator.dart';
-import '../../domain/japan_suggestions.dart' show isTimeLocked, isTimedEntryTitle;
+import '../../domain/japan_suggestions.dart'
+    show isTimeLocked, isTimedEntryTitle;
 import '../../domain/types.dart';
 
 typedef OptimizedPlanPersist = Future<void> Function(Trip trip);
@@ -57,6 +59,7 @@ class PlanOptimizationPreview {
     required this.after,
     required this.result,
     required this.cacheKey,
+    this.executionLegs = const [],
     this.fromCache = false,
     this.isConfirmed = false,
   });
@@ -68,6 +71,7 @@ class PlanOptimizationPreview {
   final RouteSummary after;
   final OptimizationResult result;
   final String cacheKey;
+  final List<RouteExecutionLeg> executionLegs;
   final bool fromCache;
   final bool isConfirmed;
 
@@ -83,6 +87,7 @@ class PlanOptimizationPreview {
       after: after,
       result: result,
       cacheKey: cacheKey,
+      executionLegs: executionLegs,
       fromCache: fromCache ?? this.fromCache,
       isConfirmed: isConfirmed ?? this.isConfirmed,
     );
@@ -205,9 +210,8 @@ class PlanOptimizationController
       // isFixed alanı eski planlarda boş olabildiği için başlıktan türetmeyi
       // de kapsayan isTimeLocked kullanılır.
       final locked = isTimeLocked(item);
-      final fixedStart = locked
-          ? _onDay(dayDate, item.fixedStartTime ?? item.time)
-          : null;
+      final fixedStart =
+          locked ? _onDay(dayDate, item.fixedStartTime ?? item.time) : null;
       // Öğün kalemleri sabit değilse makul bir zaman penceresine bağlanır;
       // böylece optimizasyon öğle yemeğini sabahın köründe (ör. 06:13)
       // planlayamaz. Sabit öğünler kendi saatlerini korur.
@@ -305,7 +309,39 @@ class PlanOptimizationController
       throw PlanOptimizationException(failure);
     }
 
-    final optimizedTrip = _applyResult(input.trip, dayIndex, result);
+    final executionLegs = const RouteExecutionBuilder().build(
+      result: result,
+      startLocationId: input.constraints.startLocation.id,
+      endLocationId: input.constraints.endLocation.id,
+      locationNames: {
+        input.constraints.startLocation.id:
+            input.constraints.startLocation.name,
+        input.constraints.endLocation.id: input.constraints.endLocation.name,
+        for (final activity in activities)
+          activity.location.id: activity.location.name,
+      },
+    );
+    final snapshot = RouteExecutionSnapshot(
+      planId: input.trip.id,
+      dayNumber: input.dayNumber,
+      planVersion: input.planVersion,
+      activityHash: _activityHash(day),
+      matrixVersion: matrix.version,
+      generatedAt: DateTime.now().toUtc(),
+      profile: input.preferences.profile,
+      providerIds: executionLegs
+          .map((leg) => leg.providerId)
+          .whereType<String>()
+          .toSet()
+          .toList(growable: false),
+      legs: executionLegs,
+    );
+    final optimizedTrip = _applyResult(
+      input.trip,
+      dayIndex,
+      result,
+      routeExecutionSnapshot: snapshot,
+    );
     final preview = PlanOptimizationPreview(
       originalTrip: _cloneTrip(input.trip),
       optimizedTrip: optimizedTrip,
@@ -320,16 +356,14 @@ class PlanOptimizationController
       ),
       result: result,
       cacheKey: cacheKey,
+      executionLegs: executionLegs,
     );
     previewCache.put(cacheKey, preview);
     return preview;
   }
 
-  Trip _applyResult(
-    Trip original,
-    int dayIndex,
-    OptimizationResult result,
-  ) {
+  Trip _applyResult(Trip original, int dayIndex, OptimizationResult result,
+      {required RouteExecutionSnapshot routeExecutionSnapshot}) {
     final trip = _cloneTrip(original);
     final day = trip.days[dayIndex];
     final byId = {for (final item in day.items) item.id: item};
@@ -349,7 +383,10 @@ class PlanOptimizationController
               scheduledTime: _formatMinuteOfDay(normalizedStarts[i]),
             ),
     ];
-    trip.days[dayIndex] = day.copyWith(items: optimizedItems);
+    trip.days[dayIndex] = day.copyWith(
+      items: optimizedItems,
+      routeExecutionSnapshot: routeExecutionSnapshot,
+    );
     return trip;
   }
 
@@ -440,8 +477,7 @@ class PlanOptimizationController
       items: normalizedItems,
     );
 
-    final fallbackFailure =
-        failure ??
+    final fallbackFailure = failure ??
         const OptimizationFailure(
           code: OptimizationFailureCode.noFeasibleRoute,
           message: 'Kural tabanlı yerel rota önerisi kullanıldı.',
@@ -466,7 +502,8 @@ class PlanOptimizationController
       OptimizationFailureCode.noFeasibleRoute ||
       OptimizationFailureCode.routeDataMissing ||
       OptimizationFailureCode.fixedTimeConflict ||
-      OptimizationFailureCode.protectedActivityInfeasible => true,
+      OptimizationFailureCode.protectedActivityInfeasible =>
+        true,
       _ => false,
     };
   }
@@ -654,6 +691,16 @@ String _cacheKey(
   DayPlan day,
   String matrixVersion,
 ) {
+  return [
+    input.trip.id,
+    input.planVersion,
+    _activityHash(day),
+    input.preferences.profile.name,
+    matrixVersion,
+  ].join(':');
+}
+
+String _activityHash(DayPlan day) {
   final activitySource = day.items
       .map((item) => [
             item.id,
@@ -666,13 +713,7 @@ String _cacheKey(
             item.time,
           ].join('|'))
       .join('\u0000');
-  return [
-    input.trip.id,
-    input.planVersion,
-    _stableHash(activitySource),
-    input.preferences.profile.name,
-    matrixVersion,
-  ].join(':');
+  return _stableHash(activitySource);
 }
 
 String _stableHash(String value) {

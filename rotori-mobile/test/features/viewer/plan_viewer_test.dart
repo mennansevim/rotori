@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rotori/data/plans_repository.dart';
 import 'package:rotori/core/supabase_client.dart';
 import 'package:rotori/domain/route_matrix.dart';
+import 'package:rotori/domain/route_execution.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:rotori/core/l10n.dart';
@@ -53,6 +54,219 @@ Trip _sampleTrip() {
       mk(1, -2, 'Geçmiş Gün Teması', 'Gecmis Aktivite'),
       mk(2, 0, 'Aktif Gün Teması', 'Aktif Aktivite'),
       mk(3, 2, 'Gelecek Gün Teması', 'Gelecek Aktivite'),
+    ],
+  );
+}
+
+Trip _routeUiTrip() {
+  final now = DateTime.now();
+  final date = '${now.year.toString().padLeft(4, '0')}-'
+      '${now.month.toString().padLeft(2, '0')}-'
+      '${now.day.toString().padLeft(2, '0')}';
+  return Trip(
+    id: 'route-ui-trip',
+    slug: 'route-ui-trip',
+    title: 'Tokyo Rota Testi',
+    timezone: 'Asia/Tokyo',
+    tripStart: date,
+    tripEnd: date,
+    flights: TripFlights(),
+    preferences: TripPreferences(
+      travelDates: TravelDates(start: date, end: date),
+      pace: Pace.moderate,
+      destinations: [
+        TripDestination(
+          id: 'tokyo',
+          countryCode: 'JP',
+          countryName: 'Japonya',
+          city: 'Tokyo',
+          arrivalDate: date,
+          departureDate: date,
+          order: 0,
+          lat: 35.6812,
+          lng: 139.7671,
+        ),
+      ],
+    ),
+    days: [
+      DayPlan(
+        dayNumber: 1,
+        date: date,
+        theme: 'Tokyo klasiği',
+        items: [
+          TimelineItem(
+            id: 'b',
+            title: 'Tokyo Skytree',
+            lat: 35.7101,
+            lng: 139.8107,
+            durationMin: 60,
+          ),
+          TimelineItem(
+            id: 'a',
+            title: 'Senso-ji',
+            lat: 35.7148,
+            lng: 139.7967,
+            durationMin: 60,
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+Trip _cityTransitionTrip() {
+  final now = DateTime.now();
+  String date(int offset) {
+    final value = now.add(Duration(days: offset));
+    return '${value.year.toString().padLeft(4, '0')}-'
+        '${value.month.toString().padLeft(2, '0')}-'
+        '${value.day.toString().padLeft(2, '0')}';
+  }
+
+  return Trip(
+    id: 'city-transition-trip',
+    slug: 'city-transition-trip',
+    title: 'Tokyo Kyoto',
+    timezone: 'Asia/Tokyo',
+    tripStart: date(0),
+    tripEnd: date(1),
+    flights: TripFlights(),
+    preferences: TripPreferences(
+      travelDates: TravelDates(start: date(0), end: date(1)),
+      pace: Pace.moderate,
+      destinations: [
+        TripDestination(
+          id: 'tokyo',
+          countryCode: 'JP',
+          countryName: 'Japonya',
+          city: 'Tokyo',
+          arrivalDate: date(0),
+          departureDate: date(0),
+          order: 0,
+        ),
+        TripDestination(
+          id: 'kyoto',
+          countryCode: 'JP',
+          countryName: 'Japonya',
+          city: 'Kyoto',
+          arrivalDate: date(1),
+          departureDate: date(1),
+          order: 1,
+        ),
+      ],
+    ),
+    days: [
+      DayPlan(
+        dayNumber: 1,
+        date: date(0),
+        theme: 'Tokyo',
+        items: [
+          TimelineItem(
+            id: 'tokyo-stop',
+            title: 'Tokyo İstasyonu',
+            time: '09:00',
+          ),
+        ],
+      ),
+      DayPlan(
+        dayNumber: 2,
+        date: date(1),
+        theme: 'Kyoto',
+        items: [
+          TimelineItem(
+            id: 'kyoto-stop',
+            title: 'Kyoto İstasyonu',
+            time: '10:00',
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+RouteMatrix _routeUiMatrix({bool estimated = false}) {
+  return RouteMatrix(
+    version: estimated ? 'estimated-v1' : 'provider-v1',
+    entries: [
+      _routeUiEntry('day-1-base', 'a', 12, estimated: estimated),
+      _routeUiEntry('day-1-base', 'b', 32, estimated: estimated),
+      _routeUiEntry('a', 'b', 9, estimated: estimated),
+      _routeUiEntry('b', 'a', 28, estimated: estimated),
+      _routeUiEntry('a', 'day-1-base', 18, estimated: estimated),
+      _routeUiEntry('b', 'day-1-base', 15, estimated: estimated),
+    ],
+  );
+}
+
+Trip _savedRouteTrip() {
+  final trip = _routeUiTrip();
+  final day = DateTime.parse(trip.days.single.date);
+  trip.days.single.routeExecutionSnapshot = RouteExecutionSnapshot(
+    planId: trip.id,
+    dayNumber: 1,
+    planVersion: 1,
+    activityHash: 'saved-hash',
+    matrixVersion: 'provider-v1',
+    generatedAt: DateTime.utc(2026, 8, 10),
+    profile: RouteOptimizationProfile.balanced,
+    providerIds: const ['route-provider'],
+    legs: [
+      RouteExecutionLeg(
+        kind: RouteExecutionLegKind.departure,
+        fromLocationId: 'day-1-base',
+        fromName: 'Tokyo',
+        toLocationId: 'b',
+        toName: 'Tokyo Skytree',
+        mode: TransportMode.metro,
+        departureTime: DateTime(day.year, day.month, day.day, 8, 30),
+        arrivalTime: DateTime(day.year, day.month, day.day, 8, 48),
+        travelDurationMinutes: 18,
+        rideMinutes: 11,
+        accessMinutes: 4,
+        walkingDurationMinutes: 4,
+        waitingDurationMinutes: 3,
+        transitWaitMinutes: 3,
+        scheduleIdleMinutes: 0,
+        transferCount: 0,
+        costPerPersonYen: 180,
+        partyTotalCostYen: 180,
+        vehicleCount: 0,
+        fareBasis: FareBasis.perPerson,
+        reliabilityScore: .96,
+        dataQuality: RouteExecutionDataQuality.reliable,
+        complexityPenalty: 0,
+        lineId: 'Ginza Line',
+        directionId: 'Asakusa',
+        providerId: 'route-provider',
+      ),
+    ],
+  );
+  return trip;
+}
+
+RouteMatrixEntry _routeUiEntry(
+  String from,
+  String to,
+  int minutes, {
+  required bool estimated,
+}) {
+  return RouteMatrixEntry(
+    fromLocationId: from,
+    toLocationId: to,
+    options: [
+      TransportOption(
+        mode: TransportMode.metro,
+        doorToDoorMinutes: minutes,
+        walkingMinutes: 3,
+        waitingMinutes: 2,
+        transferCount: 0,
+        estimatedCostYen: 180,
+        reliabilityScore: estimated ? .5 : .96,
+        isEstimated: estimated,
+        lineId: 'Ginza Line',
+        directionId: 'Asakusa',
+        providerId: estimated ? 'coordinate-fallback' : 'route-provider',
+      ),
     ],
   );
 }
@@ -229,6 +443,135 @@ void main() {
 
     expect(find.text(tr('routeOptimization.premium.title')), findsNothing,
         reason: 'premium açıkken paywall açılmamalı');
+  });
+
+  testWidgets('optimizasyon ön izlemesi ulaşım türü, hat ve yönü gösterir',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({kPremiumPrefsKey: true});
+    await tester.pumpWidget(
+      harness(
+        _routeUiTrip(),
+        routeRepository: FakeRouteMatrixRepository(_routeUiMatrix()),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+
+    final optimize = find.byKey(const ValueKey('optimize-route-1'));
+    await tester.scrollUntilVisible(
+      optimize,
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(optimize);
+    await tester.pumpAndSettle();
+
+    expect(find.text(tr('routeOptimization.legs.title')), findsOneWidget);
+    expect(find.text('Metro'), findsWidgets);
+    expect(find.textContaining('Hat: Ginza Line'), findsWidgets);
+    expect(find.textContaining('Yön: Asakusa'), findsWidgets);
+    expect(find.byKey(const ValueKey('route-execution-leg-0')), findsOneWidget);
+  });
+
+  testWidgets('tahmini rota kesin hat ve yön göstermeden açıkça işaretlenir',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({kPremiumPrefsKey: true});
+    await tester.pumpWidget(
+      harness(
+        _routeUiTrip(),
+        routeRepository:
+            FakeRouteMatrixRepository(_routeUiMatrix(estimated: true)),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+
+    final optimize = find.byKey(const ValueKey('optimize-route-1'));
+    await tester.scrollUntilVisible(
+      optimize,
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(optimize);
+    await tester.pumpAndSettle();
+
+    expect(find.text(tr('routeOptimization.legs.estimated')), findsWidgets);
+    expect(find.textContaining('Hat: Ginza Line'), findsNothing);
+    expect(find.textContaining('Yön: Asakusa'), findsNothing);
+    expect(find.text(tr('routeOptimization.legs.estimatedHelp')), findsWidgets);
+  });
+
+  testWidgets(
+      'onaylanmış rota snapshotı plan yeniden açılınca günlük akışta görünür',
+      (tester) async {
+    await tester.pumpWidget(harness(_savedRouteTrip()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    final savedLeg = find.byKey(
+      const ValueKey('saved-route-leg-1-day-1-base-b'),
+    );
+    await tester.scrollUntilVisible(
+      savedLeg,
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+
+    expect(savedLeg, findsOneWidget);
+    expect(find.text(tr('routeOptimization.legs.departure')), findsOneWidget);
+    expect(find.textContaining('Hat: Ginza Line'), findsOneWidget);
+  });
+
+  testWidgets(
+      'şehir geçiş modu picker üzerinden değişir ve bilet aksiyonu sunar',
+      (tester) async {
+    await tester.pumpWidget(harness(_cityTransitionTrip()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    final transition = find.text('Tokyo → Kyoto');
+    await tester.scrollUntilVisible(
+      transition,
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(transition);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tokyo → Kyoto ulaşımı'), findsOneWidget);
+    expect(find.byKey(const ValueKey('city-transition-ticket-action')),
+        findsOneWidget);
+    await tester.tap(find.text('Otobüs'));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('city-transition-mode-bus-true')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byIcon(Icons.close_rounded).last);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('city-transition-Tokyo-Kyoto-bus')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('boş bilet sekmesi açıklama ve birincil ekleme aksiyonu gösterir',
+      (tester) async {
+    await tester.pumpWidget(harness(_sampleTrip()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.text('Biletler').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text(tr('viewer.quick.noTickets')), findsOneWidget);
+    expect(find.text(tr('viewer.quick.noTicketsHelp')), findsOneWidget);
+    expect(find.byKey(const ValueKey('add-first-ticket')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('add-first-ticket')));
+    await tester.pumpAndSettle();
+    expect(find.text(tr('viewer.ticketEditor.addTitle')), findsOneWidget);
   });
 
   testWidgets('tema seçici açılır ve 3 tema listelenir', (tester) async {
@@ -634,9 +977,7 @@ void main() {
 
       final sheet = find.byType(BottomSheet);
       await tester.tap(
-        find
-            .descendant(of: sheet, matching: find.text('Gün 3'))
-            .first,
+        find.descendant(of: sheet, matching: find.text('Gün 3')).first,
       );
       await tester.pumpAndSettle();
 
