@@ -7,7 +7,9 @@
 **Aktif branch:** `feat/premium-iap-foundation`
 **Sprint hedefi:** Monetizasyon Faz 1 — abonelik altyapısı (IAP + sunucu
 doğrulama + süreli yetkilendirme). Model kararı verildi ve belgelendi;
-sıra kodda.
+mimari sözleşme `ARCHITECTURE.md` §8b'de yazıldı; sıra kodda.
+**Faz 1 tahmini 6–9 gün** (dış inceleme sonrası 4–5'ten revize),
+toplam lansman 15–20 gün.
 
 ---
 
@@ -511,88 +513,144 @@ kapısı geçti, analyze temiz.
   değiştirilirse cihaz içi sıra ve dirty-cache korumasına rağmen son yazan
   kazanabilir.
 
-## Sıradaki Uygulama Adımı — Faz 1 iş emri
+## Sıradaki Uygulama Adımı — Faz 1 iş emri (v2, düzeltilmiş)
 
-> Sıra bağımlılığa göre. Her madde kendi kabul kriteriyle birlikte;
-> tam ayrıntı `docs/MONETIZATION_PLAN.md` §5 Faz 1'de.
+> **Mimari sözleşme: `docs/ARCHITECTURE.md` §8b.** Ürün/fiyat kararı:
+> `MONETIZATION_PLAN.md`. Bu liste sıralı yürütülür; §8b'den sapma olursa
+> önce §8b güncellenir (proje kuralı: koddan önce doküman).
+>
+> **Bu listenin v1'i iki ciddi hata içeriyordu** (dış inceleme yakaladı,
+> 2026-08-10): (a) `original_transaction_id` unique + `transactionId`
+> idempotency'si tutarsızdı — ikisi farklı kimlik, ilki abonelik ömrü boyunca
+> sabit, ikincisi her yenilemede değişir; tek tabloda birleştirmek
+> yenilemeleri kırar. (b) Yetki kaynağı olarak `raw_user_meta_data`
+> öneriliyordu — **bu alan kullanıcı tarafından yazılabilir**, yetkilendirmede
+> kullanılamaz. İkisi de aşağıda düzeltildi.
 
-### 1. Veri katmanı — `supabase/migrations/0009_subscriptions.sql`
+### 1. Üç tablolu şema — `supabase/migrations/0009_subscriptions.sql`
 
-- [ ] `public.subscriptions` tablosu: `user_id`, `original_transaction_id`
-      (**unique** — replay koruması), `product_id`, `status`, `expires_at`,
-      `is_trial`, `platform`, `raw_payload jsonb`, `created_at`, `updated_at`
-- [ ] RLS: kullanıcı kendi kaydını okur; INSERT/UPDATE **yalnız service_role**
-      (istemci DML politikası tanımlanmaz → default deny;
-      `0008_daily_scans.sql` aynı deseni kullanıyor, ona bak)
-- [ ] **`is_premium()` güncellenir** — şu an yalnız
-      `raw_user_meta_data->>'premium'` bayrağına bakıyor
-      (`0008_daily_scans.sql`). Artık `expires_at > now()` koşulu da gerekli,
-      grace period toleransı dahil. **Bu fonksiyonu `parse-price-tag`
-      Edge Function'ı çağırıyor — kırılmamalı.**
+- [ ] `subscription_entitlements` — güncel durum,
+      `original_transaction_id` **UNIQUE**; alanlar §8b.2'de
+- [ ] `app_store_transactions` — değişmez geçmiş, `transaction_id` **UNIQUE**
+      (gerçek replay koruması burada; her yenileme yeni satır)
+- [ ] `app_store_notifications` — `notification_uuid` **UNIQUE**
+      (bildirim idempotency'si)
+- [ ] RLS: self-read; INSERT/UPDATE yalnız service_role
+      (`0008_daily_scans.sql` deseni)
+- [ ] Tüm `SECURITY DEFINER` fonksiyonlarda `set search_path = public`,
+      açık `REVOKE`/`GRANT`
+- [ ] `subscription_entitlements.user_id` için cascade delete **dikkatli** —
+      §8b.9 (yasal saklama vs hesap silme)
 
-**Kabul:** Migration lokal Supabase'de temiz uygulanıyor; `is_premium()` süresi
-geçmiş abone için `false`, geçerli abone için `true` dönüyor; tarama kotası
-regresyona girmiyor.
+### 2. `is_premium()` tabloya bağlanır — **mevcut güvenlik açığını kapatır**
 
-### 2. Sunucu doğrulama — `supabase/functions/verify-purchase/index.ts`
+- [ ] `is_premium()` yeniden yazılır: **yalnız `subscription_entitlements`**
+      okur (§8b.3 sorgusu). `raw_user_meta_data` yetkilendirmede **hiç
+      kullanılmaz** — kullanıcı o alanı `auth.updateUser` ile kendisi
+      yazabiliyor, yani şu an tarama kotası (10/100) aşılabilir durumda
+- [ ] `expires_at` **veya** `grace_period_expires_at` geçerliyse aktif;
+      `refunded`/`revoked` her durumda kapalı
+- [ ] **`parse-price-tag/index.ts:178` bu fonksiyonu çağırıyor** —
+      imza korunur, tarama kotası regresyona girmez
 
-- [ ] App Store Server API ile JWS `signedTransactionInfo` doğrulaması
-      (legacy `/verifyReceipt` **kullanılmaz**, deprecated)
-- [ ] `bundleId` (`com.mennansevim.japanTrip`) + `productId` + `transactionId`
-      + `expiresDate` kontrolü
-- [ ] Doğrulanırsa `subscriptions`'a upsert + `auth.admin.updateUserById` ile
-      `raw_user_meta_data.premium` ve `premium_expires_at` yazımı
-- [ ] Idempotent: aynı `transactionId` ikinci kez gelirse yeni kayıt açmaz
-- [ ] Mevcut Edge Function desenini takip et: `parse-price-tag/index.ts`
-      service_role client + `_shared/` yardımcıları
+**Kabul:** Süresi geçmiş abone `false`; grace period içindeki abone `true`;
+iade edilmiş abone `false`; metadata'sını elle `premium: true` yapan kullanıcı
+`false`; tarama kotası testleri yeşil.
 
-**Kabul:** Sandbox makbuzu → kayıt oluşuyor → `is_premium()` true; aynı makbuz
-iki kez gönderildiğinde ikinci istek yeni kayıt açmıyor.
+### 3. JWS doğrulama + hesap sahipliği — `supabase/functions/verify-purchase/`
 
-### 3. Apple S2S V2 bildirim endpoint'i — **atlanamaz**
+- [ ] App Store Server API ile `signedTransactionInfo` **JWS imza**
+      doğrulaması (legacy `/verifyReceipt` kullanılmaz)
+- [ ] `bundleId` (`com.mennansevim.japanTrip`) + `productId` + `environment`
+      + `expiresDate` doğrulanır
+- [ ] **`appAccountToken` sahiplik kontrolü** (§8b.4): JWS içindeki değer
+      oturumdaki Supabase `user_id` ile eşleşmezse yetki **açılmaz**
+- [ ] `app_store_transactions`'a `transaction_id` ile idempotent insert;
+      `subscription_entitlements`'a `original_transaction_id` ile upsert
+- [ ] Yetki **yalnız tabloya** yazılır; metadata'ya yazılmaz (§8b.1)
 
-- [ ] `supabase/functions/apple-notifications/index.ts`
-- [ ] İşlenecek olaylar: `DID_RENEW`, `EXPIRED`, `DID_FAIL_TO_RENEW`,
-      `GRACE_PERIOD_EXPIRED`, `REFUND`, `REVOKE`,
-      `DID_CHANGE_RENEWAL_STATUS`
-- [ ] App Store Connect'te endpoint URL'i tanımlanır
+### 4. S2S V2 endpoint + reconciliation — `supabase/functions/apple-notifications/`
 
-**Neden atlanamaz:** Bu olmadan iptal/iade sonrası erişim **süresiz açık
-kalır** — doğrudan gelir sızıntısı.
+- [ ] `signedPayload` imza doğrulaması
+- [ ] `notification_uuid` ile idempotent kayıt (tekrar gelen bildirim iki kez
+      işlenmez)
+- [ ] Olaylar: `SUBSCRIBED`, `DID_RENEW`, `DID_FAIL_TO_RENEW`,
+      `GRACE_PERIOD_EXPIRED`, `EXPIRED`, `DID_CHANGE_RENEWAL_STATUS`,
+      `DID_CHANGE_RENEWAL_PREF`, `REFUND`, `REVOKE` — **durum makinesi
+      §8b.5'e göre**, olay adına göre düz `switch` değil
+- [ ] **Eski bildirim yeni durumu ezmez** (sıra dışı teslim korumalı)
+- [ ] Şüpheli/eksik durumda `Get All Subscription Statuses` ile uzlaştırma
+- [ ] Production ve sandbox endpoint'leri **ayrı**; Notification History
+      kurtarma yolu tanımlı
+- [ ] `grace_period_expires_at` Apple'ın verdiği değerden yazılır — elle
+      "tolerans" hesaplanmaz
 
-**Kabul:** Sandbox'ta iptal + süre bitimi erişimi kapatıyor; iade erişimi
-anında kapatıyor.
+**Neden atlanamaz:** Bu olmadan iptal/iade sonrası erişim süresiz açık kalır.
 
-### 4. İstemci — `rotori-mobile/lib/features/premium/purchase_service.dart`
+### 5. İstemci — `rotori-mobile/lib/features/premium/purchase_service.dart`
 
-- [ ] `in_app_purchase: ^3.2.0` → `pubspec.yaml`
-- [ ] Ürün sorgulama (iki SKU birlikte), satın alma, `purchaseStream`
-      dinleyicisi (pending / purchased / error / canceled), `restorePurchases()`
-- [ ] Her başarılı/geri yüklenen işlemde `verificationData` → `verify-purchase`
-- [ ] Hata durumları ayrı ayrı: mağaza erişilemez, ürün bulunamaz, ödeme
-      reddedildi, pending (Ask to Buy / SCA), ağ yok
-- [ ] **Deneme uygunluğu** — kullanıcı denemeyi kullandıysa paywall
-      "7 gün ücretsiz" **demez** (yanlış vaat = App Store red riski)
+- [ ] `in_app_purchase: ^3.3.0` + **`in_app_purchase_storekit: ^0.4.11`**
+      (JWS `serverVerificationData` 0.4.2'de, deneme uygunluğu 0.4.3'te geldi;
+      3.3.0 iOS'ta StoreKit 2'yi varsayılan kullanıyor). **v1'deki `^3.2.0`
+      JWS planıyla uyumsuzdu**
+- [ ] `purchaseStream` dinleyicisi **uygulama açılışında en erken** kurulur
+- [ ] Satın alırken Supabase UUID `appAccountToken` olarak verilir (§8b.4)
+- [ ] Sunucu doğrulaması → yetki → **`completePurchase()`** (3 gün içinde
+      tamamlanmayan işlem iadeye yol açabilir)
+- [ ] **Kalıcı "bekleyen doğrulamalar" kuyruğu** — doğrulama sırasında ağ
+      koparsa işlem kaybolmaz, bağlantı gelince tekrar denenir
+- [ ] `restorePurchases()`
+- [ ] Hata durumları: mağaza erişilemez, ürün yok, ödeme reddedildi,
+      pending (Ask to Buy / SCA), ağ yok
+- [ ] **Deneme uygunluğu StoreKit 2 intro eligibility API'sinden** okunur —
+      yerel `trial_used` anahtarı **kullanılmaz** (reinstall/çoklu cihazda bozulur)
 
-### 5. `premiumProvider` sunucuya taşınır
+### 6. `premiumProvider` — cache yalnız UI (§8b.6)
 
-- [ ] Tek doğru kaynak sunucu: Supabase metadata + `expires_at`
-- [ ] Prefs yalnızca **offline cache**; süre de yazılır, **süresi geçmiş cache
-      Pro açmaz** (uçuşta/çevrimdışı Pro erişimi korunur)
-- [ ] `kPremiumPrefsKey` `'debug_premium'` → `'premium_entitlement_cache'`
-- [ ] Debug override **ayrı** anahtara: `'debug_premium_override'`, yalnız
-      `kDebugMode` altında okunur
-- [ ] **`rotori-mobile/test/features/premium_gates_test.dart` kırılacak** —
-      satır 67–71 `expect(kPremiumPrefsKey, 'debug_premium')` ile eski
-      sözleşmeyi kilitliyor. **Bu kasıtlı**, regresyon değil; yeni sözleşmeye
-      göre yeniden yazılır. Eats ücretsizliği testleri (satır 80–99) **aynen
-      korunur** — o sözleşme değişmiyor.
-- [ ] `price_tag_scanner/controller/scanner_controller.dart:268` de aynı prefs
-      anahtarını okuyor (`_debugPremium`) — birlikte güncellenir
+- [ ] Tek doğru kaynak sunucu; cache **yalnız arayüz kolaylığı**
+- [ ] Ücretli sunucu işlemleri (AI rota keşfi, tarama kotası) her zaman
+      backend'de korunur — cache'e güvenilmez, kırılması gelir sızıntısı değil
+- [ ] Cache'e son güvenilir **sunucu zamanı** yazılır (cihaz saati geri
+      alınabilir)
+- [ ] `kPremiumPrefsKey` → `'premium_entitlement_cache'`; debug override ayrı
+      anahtara (`'debug_premium_override'`), yalnız `kDebugMode`
+- [ ] `price_tag_scanner/controller/scanner_controller.dart:268` aynı anahtarı
+      okuyor — birlikte güncellenir
 
-**Kabul:** Release build'de debug override hiçbir şekilde okunmuyor (test ile
-kanıtlanır); çevrimdışı geçerli abone kilit görmüyor; süresi geçmiş cache Pro
-açmıyor; `flutter analyze` temiz; `flutter test` yeşil.
+### 7. Testler
+
+- [ ] `premium_gates_test.dart` yeniden yazılır — satır 67–71 eski prefs
+      sözleşmesini kilitliyor, **kasıtlı kırılacak**. Eats ücretsizliği
+      testleri (80–99) **aynen korunur**
+- [ ] Sunucu tarafı senaryo matrisi: yanlış JWS imzası · yanlış
+      bundle/product/environment · başka kullanıcıya ait `appAccountToken` ·
+      aynı `transaction_id` tekrarı · aynı `notification_uuid` tekrarı · eski
+      bildirimin yeni yenilemeyi ezmemesi · grace period başı/sonu ·
+      aylık↔yıllık geçiş · refund/revoke · hesap silinmişken S2S bildirimi ·
+      ağ kesikken satın alma + yeniden doğrulama · restore + yeniden kurulum ·
+      tarama kotası regresyonu
+- [ ] **"Release build'de debug override okunmuyor" unit testle
+      kanıtlanamaz** — Flutter unit testleri debug modda koşar, `kDebugMode`
+      true. Bunun için **release-mode cihaz smoke testi** gerekir
+
+### 8. Hukuki metinler ve destek sayfası — App Store blokeri
+
+- [ ] **Kullanım Şartları sayfası YOK** — `rotori-website/`'da yalnız
+      `privacy-tr/en`, `destek-tr`, `support-en` var. Abonelik için
+      oluşturulmalı (TR + EN)
+- [ ] `rotori-website/destek-tr.html:63` hâlâ *"Rotori şu an tamamen
+      ücretsizdir. Reklam yok, abonelik yok, uygulama içi satın alma yok"*
+      diyor → güncellenir (`support-en.html` de)
+- [ ] Privacy Policy'ye eklenir: satın alma işlem kimlikleri, abonelik
+      statüsü, saklama süresi, Apple ↔ Supabase veri akışı
+- [ ] Hesap silme ekranına §8b.9 uyarısı + "Aboneliği yönet" bağlantısı
+
+### 9. App Store Connect yapılandırması (kullanıcı)
+
+- [ ] Production **ve** sandbox S2S bildirim URL'leri
+- [ ] App Store Server API: anahtar, issuer ID, key ID + rotasyon görevi
+- [ ] Subscription group içinde aylık/yıllık **seviye sırası** ve
+      upgrade/downgrade davranışı tanımlanır
 
 ### Faz 1 sonrası (aynı branch'te devam)
 

@@ -4,8 +4,8 @@
 > Kalıcı kurallar için `CLAUDE.md`, günlük iş için `CURRENT_TASK.md`.
 > Rota motorunun ayrıntılı akış ve maliyet notu: `ROUTE_OPTIMIZATION.md`.
 
-Son güncelleme: **2026-08-06** (rotori-social deploy kaynağı tek monorepo
-akışına taşındı).
+Son güncelleme: **2026-08-10** (§8b abonelik/entitlement mimarisi eklendi —
+koddan önce tasarım; Faz 1 buna uyar).
 
 ---
 
@@ -194,6 +194,154 @@ Katmanlar:
 2. `authProvider` (Riverpod) — oturum state'ini dinler.
 3. Router guard: oturum yoksa `/auth`.
 4. Preview entry (`preview_main.dart`) auth-less — QA/tasarım için.
+
+## 8b. Abonelik ve Yetkilendirme (Entitlement) — TASARIM
+
+> **Durum: tasarım.** Kod henüz yazılmadı (Faz 1 —
+> `CURRENT_TASK.md`). Ürün/fiyat kararı: `MONETIZATION_PLAN.md`.
+> Bu bölüm koddan **önce** yazıldı; uygulama buna uyar, sapma olursa
+> önce burası güncellenir.
+
+### 8b.1 Mevcut durumdaki güvenlik açığı — Faz 1'de kapatılacak
+
+`0008_daily_scans.sql` içindeki `is_premium()`, yetkiyi
+`auth.users.raw_user_meta_data->>'premium'` alanından okuyor. **Bu alan
+kullanıcının kendisi tarafından yazılabilir** (`auth.updateUser({data: ...})`),
+dolayısıyla yetkilendirme kararı için kullanılamaz. Şu an tarama kotasını
+(free 10 / premium 100) herhangi bir kullanıcı kendi metadata'sını
+güncelleyerek aşabilir.
+
+Yayınlanmış kullanıcı olmadığı için fiili istismar riski yok, ama
+**Faz 1'in ilk işi bu fonksiyonu tablo tabanlı hale getirmektir.**
+`raw_user_meta_data` yetkilendirmede hiç kullanılmaz; gerekirse yalnızca
+UI hızlandırması için `raw_app_meta_data` (kullanıcı yazamaz) kullanılabilir,
+ama **karar her zaman tablodan** verilir. İki kaynağa yazmak drift üretir.
+
+### 8b.2 Üç tablolu şema
+
+Tek tablo yetmiyor çünkü Apple'ın üç ayrı kimliği ve üç ayrı yaşam döngüsü var:
+
+| Tablo | Birincil kimlik | Rolü |
+|---|---|---|
+| `subscription_entitlements` | `original_transaction_id` **UNIQUE** | **Güncel durum.** Abonelik yaşam döngüsü boyunca tek satır; yenilemede güncellenir |
+| `app_store_transactions` | `transaction_id` **UNIQUE** | **Değişmez işlem geçmişi.** Her satın alma ve her yenileme yeni satır; gerçek replay koruması burada |
+| `app_store_notifications` | `notification_uuid` **UNIQUE** | **Bildirim idempotency'si.** Aynı bildirim tekrar gelirse iki kez işlenmez |
+
+**Neden karıştırılmamalı:** `original_transaction_id` abonelik ömrü boyunca
+sabittir; `transaction_id` ilk satın almada ve **her yenilemede farklıdır**.
+İkisini tek alanda birleştirmek ya yenilemeleri unique ihlaliyle reddeder ya
+da geçmişi ezer.
+
+`subscription_entitlements` alanları (en az): `user_id`,
+`original_transaction_id` (unique), `product_id`, `status`, `expires_at`,
+`grace_period_expires_at`, `is_trial`, `auto_renew_status`, `environment`,
+`platform`, `last_notification_uuid`, `updated_at`.
+
+### 8b.3 Yetki kaynağı
+
+```sql
+-- Tek doğru kaynak: entitlement tablosu. Metadata YOK.
+select exists (
+  select 1 from public.subscription_entitlements
+  where user_id = _user_id
+    and (
+      expires_at > now()
+      or grace_period_expires_at > now()   -- Apple'ın verdiği süre, "tolerans" değil
+    )
+    and status not in ('refunded', 'revoked')
+);
+```
+
+Tüm yeni `SECURITY DEFINER` fonksiyonlarında: `set search_path = public`,
+açık `REVOKE ALL ... FROM public/anon/authenticated`, yalnız gereken role
+`GRANT`. RLS: kullanıcı kendi entitlement'ını **okur**; INSERT/UPDATE yalnız
+service_role (`0008_daily_scans.sql` deseni).
+
+### 8b.4 Hesap bağlama — `appAccountToken`
+
+Bir Apple aboneliğinin hangi Rotori hesabına ait olduğu, **istemcinin o anda
+gönderdiği `user_id`'ye bırakılamaz.**
+
+Sözleşme: satın alma başlatılırken Supabase kullanıcı UUID'si Apple'a
+`appAccountToken` olarak verilir. Sunucu, JWS içindeki `appAccountToken`
+değerinin **oturumdaki kullanıcıyla eşleştiğini doğrular**; eşleşmezse
+yetki açılmaz. Apple bu alanı yenilemelere de taşır.
+
+Tanımlanması gereken senaryolar: başka Rotori hesabında restore, aynı Apple
+hesabı + farklı Supabase hesabı, ilk işlemi başka hesabın sahiplenmesi, hesap
+silip yeniden açma, Family Sharing.
+
+### 8b.5 Entitlement durum makinesi
+
+Olay adına göre `switch` yetmez — bildirimler tekrarlanabilir, gecikebilir,
+kaçabilir. Kurallar:
+
+| Olay | Etki |
+|---|---|
+| `SUBSCRIBED`, `DID_RENEW` | `expires_at` ileri alınır, status aktif |
+| `DID_FAIL_TO_RENEW` + `GRACE_PERIOD` | Erişim **devam eder**; `grace_period_expires_at` yazılır |
+| `DID_FAIL_TO_RENEW` (grace yok) | Erişim sonlandırılabilir |
+| `GRACE_PERIOD_EXPIRED` | Erişim kapanır |
+| `DID_CHANGE_RENEWAL_STATUS` | **Yalnız otomatik yenilemeyi** değiştirir; mevcut dönemi kapatmaz |
+| `DID_CHANGE_RENEWAL_PREF` | Aylık ↔ yıllık geçişi; `product_id` güncellenir |
+| `REFUND`, `REVOKE` | **Derhal** kapatır |
+| Normal iptal | `expires_at` tarihine kadar erişim sürer |
+
+Ek zorunluluklar:
+- `signedPayload` imzası doğrulanır
+- `notification_uuid` ile idempotent kayıt
+- `environment` + `bundleId` + `appAppleId` + `productId` doğrulanır
+- **Eski bildirim yeni durumu ezmez** (sıra dışı teslim korumalı)
+- Şüpheli/eksik durumda Apple `Get All Subscription Statuses` çağrılıp
+  durum **uzlaştırılır** (reconciliation)
+- Production ve sandbox endpoint'leri **ayrı**
+- Kaçırılan bildirimler için Notification History kurtarma yolu
+
+### 8b.6 Çevrimdışı yetki modeli
+
+**Seçilen model: cache yalnızca UI kolaylığıdır.** `SharedPreferences` güvenli
+bir yetki deposu değildir, o yüzden:
+
+- Ücretli **sunucu** işlemleri (AI rota keşfi, tarama kotası) her zaman
+  backend'de `is_premium()` ile korunur — cache'e güvenilmez
+- Cache yalnız arayüzün kilitli/açık görünmesini sağlar (uçakta Pro
+  kullanıcının kilit ekranı görmemesi için)
+- Cache'e son güvenilir **sunucu zamanı** da yazılır; cihaz saati geri
+  alınırsa yerel expiry kontrolü kandırılabileceği için karar sunucu
+  zamanına göre verilir
+- Bu modelde cache'in kırılması bir gelir sızıntısı değildir, çünkü değerli
+  yüzeyler sunucuda korunur
+
+### 8b.7 Deneme uygunluğu
+
+"Daha önce denemeyi kullandıysa 7 gün ücretsiz **yazmaz**" kuralının veri
+kaynağı **StoreKit 2'nin subscription-group intro eligibility API'sidir**
+(`in_app_purchase_storekit` ≥ 0.4.3). Yerel bir `trial_used` anahtarı
+yeterli değildir — yeniden kurulumda ve başka cihazda bozulur.
+
+### 8b.8 İstemci satın alma akışı
+
+1. `purchaseStream` dinleyicisi uygulama açılışında **mümkün olan en erken**
+   kurulur (arka planda tamamlanan işlemler kaçmasın)
+2. İşlem **sunucuda** doğrulanır (`verify-purchase`)
+3. Yetki açılır
+4. `pendingCompletePurchase` ise **`completePurchase()` çağrılır** — Flutter
+   dokümanına göre işlem 3 gün içinde tamamlanmazsa Apple iade edebilir
+5. Doğrulama sırasında ağ koparsa işlem **kaybolmaz**: cihazda kalıcı
+   "bekleyen doğrulamalar" kuyruğu tutulur, bağlantı gelince tekrar denenir
+
+### 8b.9 Hesap silme ile çakışma
+
+`0004_delete_current_user_rpc.sql` kullanıcıyı tamamen siliyor; Apple
+aboneliği ise ayrıca iptal edilmedikçe **devam eder**. Silme akışı:
+
+- Kullanıcıya "hesabı silmek Apple aboneliğini iptal etmez" açıkça söylenir
+- Önce "Aboneliği yönet" (sistem sayfası) sunulur
+- Silinen kullanıcıya ait sonraki S2S bildirimlerinin nasıl eşleştirileceği
+  tanımlanır (orphan işlem kaydı)
+- İşlem kaydı finansal/yasal saklama kapsamındaysa kişisel hesaptan
+  **ayrıştırılır** → bu yüzden `subscription_entitlements.user_id` için
+  doğrudan `cascade delete` dikkatli kullanılır
 
 ## 9. Yerel Depolama & Çevrimdışı Destek
 
