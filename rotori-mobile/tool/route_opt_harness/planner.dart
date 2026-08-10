@@ -1,9 +1,9 @@
 import 'dart:math';
 
-import 'package:japan_trip/domain/itinerary_optimizer.dart';
-import 'package:japan_trip/domain/route_matrix.dart';
-import 'package:japan_trip/domain/route_optimization_validator.dart';
-import 'package:japan_trip/domain/trip_activity_assignment.dart' as assignment;
+import 'package:rotori/domain/itinerary_optimizer.dart';
+import 'package:rotori/domain/route_matrix.dart';
+import 'package:rotori/domain/route_optimization_validator.dart';
+import 'package:rotori/domain/trip_activity_assignment.dart' as assignment;
 
 import 'matrix_builder.dart';
 import 'poi_data.dart';

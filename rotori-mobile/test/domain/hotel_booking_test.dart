@@ -4,9 +4,9 @@
 // taşındı; UI'dan bağımsız oldukları için korunuyor).
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/hotel_booking.dart';
-import 'package:japan_trip/domain/trip_factory.dart';
-import 'package:japan_trip/domain/types.dart';
+import 'package:rotori/domain/hotel_booking.dart';
+import 'package:rotori/domain/trip_factory.dart';
+import 'package:rotori/domain/types.dart';
 
 
 Trip _tripWithDest() {

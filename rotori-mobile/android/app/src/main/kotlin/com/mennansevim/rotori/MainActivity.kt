@@ -1,4 +1,4 @@
-package com.mennansevim.japan_trip
+package com.mennansevim.rotori
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -2,8 +2,8 @@
 // duraklarının sıralı/koordinatlı listeye dönüşümü.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/place_coords.dart';
-import 'package:japan_trip/domain/types.dart';
+import 'package:rotori/domain/place_coords.dart';
+import 'package:rotori/domain/types.dart';
 
 void main() {
   group('resolvePlaceCoords', () {

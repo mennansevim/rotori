@@ -1,8 +1,8 @@
 // packages/shared/src/__tests__/fillEmptyDays.test.ts'in birebir Dart eşdeğeri.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/fill_empty_days.dart';
-import 'package:japan_trip/domain/types.dart';
+import 'package:rotori/domain/fill_empty_days.dart';
+import 'package:rotori/domain/types.dart';
 
 DayPlan _day({List<TimelineItem>? items}) => DayPlan(
       dayNumber: 1,

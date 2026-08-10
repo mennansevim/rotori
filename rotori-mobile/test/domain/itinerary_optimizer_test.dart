@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/itinerary_optimizer.dart';
-import 'package:japan_trip/domain/route_matrix.dart';
+import 'package:rotori/domain/itinerary_optimizer.dart';
+import 'package:rotori/domain/route_matrix.dart';
 
 final _day = DateTime(2026, 10, 12);
 

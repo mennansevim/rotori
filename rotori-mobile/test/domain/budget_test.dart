@@ -3,8 +3,8 @@
 // boş-maliyet trip'i).
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/budget.dart';
-import 'package:japan_trip/domain/types.dart';
+import 'package:rotori/domain/budget.dart';
+import 'package:rotori/domain/types.dart';
 
 TimelineItem _item({
   required String id,

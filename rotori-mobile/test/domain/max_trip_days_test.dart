@@ -1,7 +1,7 @@
 // packages/shared/src/__tests__/maxTripDays.test.ts'in birebir Dart eşdeğeri.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/types.dart';
+import 'package:rotori/domain/types.dart';
 
 void main() {
   group('kMaxTripDays', () {

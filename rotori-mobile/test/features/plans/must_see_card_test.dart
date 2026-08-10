@@ -3,14 +3,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:japan_trip/core/l10n.dart';
-import 'package:japan_trip/domain/japan_suggestions.dart';
-import 'package:japan_trip/domain/must_see_suggestions.dart';
-import 'package:japan_trip/domain/plan_generation.dart';
-import 'package:japan_trip/domain/trip_factory.dart';
-import 'package:japan_trip/domain/types.dart';
-import 'package:japan_trip/features/plans/widgets/must_see_card.dart';
-import 'package:japan_trip/features/viewer/viewer_theme.dart';
+import 'package:rotori/core/l10n.dart';
+import 'package:rotori/domain/japan_suggestions.dart';
+import 'package:rotori/domain/must_see_suggestions.dart';
+import 'package:rotori/domain/plan_generation.dart';
+import 'package:rotori/domain/trip_factory.dart';
+import 'package:rotori/domain/types.dart';
+import 'package:rotori/features/plans/widgets/must_see_card.dart';
+import 'package:rotori/features/viewer/viewer_theme.dart';
 
 String tr(String key) => L10n.resolve(key, AppLang.tr);
 

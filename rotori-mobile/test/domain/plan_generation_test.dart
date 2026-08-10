@@ -3,14 +3,14 @@
 // Widget yok, hızlı. Yeni oluşturma akışının doğruluğu buraya yaslanıyor.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/city_places.dart';
-import 'package:japan_trip/domain/destination_profiles.dart';
-import 'package:japan_trip/domain/itinerary_generator.dart'
+import 'package:rotori/domain/city_places.dart';
+import 'package:rotori/domain/destination_profiles.dart';
+import 'package:rotori/domain/itinerary_generator.dart'
     show kDayEndMinutes, kDayStartMinutes;
-import 'package:japan_trip/domain/japan_suggestions.dart';
-import 'package:japan_trip/domain/plan_generation.dart';
-import 'package:japan_trip/domain/trip_factory.dart';
-import 'package:japan_trip/domain/types.dart';
+import 'package:rotori/domain/japan_suggestions.dart';
+import 'package:rotori/domain/plan_generation.dart';
+import 'package:rotori/domain/trip_factory.dart';
+import 'package:rotori/domain/types.dart';
 
 void main() {
   const start = '2026-10-01';

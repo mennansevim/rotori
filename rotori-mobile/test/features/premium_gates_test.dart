@@ -9,11 +9,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:japan_trip/domain/japanese_dishes_data.dart';
-import 'package:japan_trip/features/plans/premium_provider.dart';
-import 'package:japan_trip/features/viewer/eats_screen.dart';
-import 'package:japan_trip/domain/plan_generation.dart';
-import 'package:japan_trip/domain/types.dart';
+import 'package:rotori/domain/japanese_dishes_data.dart';
+import 'package:rotori/features/plans/premium_provider.dart';
+import 'package:rotori/features/viewer/eats_screen.dart';
+import 'package:rotori/domain/plan_generation.dart';
+import 'package:rotori/domain/types.dart';
 
 Trip _trip() => buildTripFromCities(
       cityKeys: const ['tokyo'],

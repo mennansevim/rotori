@@ -4,10 +4,10 @@
 // taşındı; UI'dan bağımsız oldukları için korunuyor).
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/core/l10n.dart';
-import 'package:japan_trip/domain/city_transfers.dart';
-import 'package:japan_trip/domain/day_optimizer.dart';
-import 'package:japan_trip/domain/types.dart';
+import 'package:rotori/core/l10n.dart';
+import 'package:rotori/domain/city_transfers.dart';
+import 'package:rotori/domain/day_optimizer.dart';
+import 'package:rotori/domain/types.dart';
 
 void main() {
   test('Bug 3 — suggestionForMode her mod için geçerli transfer üretir', () {

@@ -1,7 +1,7 @@
 // iOS Home Screen widget'ına "Sıradaki Aktivite" verisi gönderir.
 //
 // Kurulum: docs/IOS_WIDGET_SETUP.md — Xcode Widget Extension target'ı ve
-// App Group (`group.com.japantrip`) manuel olarak eklenir. Bu Dart tarafı
+// App Group (`group.com.mennansevim.rotori`) manuel olarak eklenir. Bu Dart tarafı
 // bugün derler ve çalışır; native target eksikse `updateWidget` çağrısı
 // sessizce başarısız olur (try/catch), akış bozulmaz.
 //
@@ -15,8 +15,8 @@ import '../../domain/types.dart';
 
 // Xcode Widget Extension'daki UserDefaults(suiteName:) ile eşleşen App Group.
 // Bu sabiti IOS_WIDGET_SETUP.md dokümanı da referans alır.
-const String kJapanTripAppGroupId = 'group.com.japantrip';
-const String kJapanTripWidgetName = 'JapanTripWidget';
+const String kRotoriAppGroupId = 'group.com.mennansevim.rotori';
+const String kRotoriWidgetName = 'RotoriWidget';
 
 /// Widget'a yazılacak "sıradaki aktivite" verisi — pure hesaplamanın çıktısı.
 class NextActivity {
@@ -156,7 +156,7 @@ class HomeWidgetHook {
     if (kIsWeb) return;
     try {
       final next = computeNextActivity(trip, DateTime.now());
-      await HomeWidget.setAppGroupId(kJapanTripAppGroupId);
+      await HomeWidget.setAppGroupId(kRotoriAppGroupId);
       await HomeWidget.saveWidgetData<String>('nextTitle', next?.title ?? '');
       await HomeWidget.saveWidgetData<String>('nextTime', next?.time ?? '');
       await HomeWidget.saveWidgetData<String>('nextEmoji', next?.emoji ?? '');
@@ -170,8 +170,8 @@ class HomeWidgetHook {
         '${next?.daysUntilTripStart ?? 0}',
       );
       await HomeWidget.updateWidget(
-        name: kJapanTripWidgetName,
-        iOSName: kJapanTripWidgetName,
+        name: kRotoriWidgetName,
+        iOSName: kRotoriWidgetName,
       );
     } catch (_) {
       // Native widget target'ı yoksa (veya başka bir platform hatası) — sessiz.

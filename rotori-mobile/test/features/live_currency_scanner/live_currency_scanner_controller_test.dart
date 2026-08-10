@@ -4,12 +4,12 @@ import 'dart:ui' show Rect;
 import 'package:decimal/decimal.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:japan_trip/features/live_currency_scanner/application/live_currency_scanner_controller.dart';
-import 'package:japan_trip/features/live_currency_scanner/application/live_currency_scanner_state.dart';
-import 'package:japan_trip/features/live_currency_scanner/application/providers.dart';
-import 'package:japan_trip/features/live_currency_scanner/domain/exchange_rate.dart';
-import 'package:japan_trip/features/live_currency_scanner/domain/product_price_query.dart';
-import 'package:japan_trip/features/live_currency_scanner/domain/repositories/product_price_query_repository.dart';
+import 'package:rotori/features/live_currency_scanner/application/live_currency_scanner_controller.dart';
+import 'package:rotori/features/live_currency_scanner/application/live_currency_scanner_state.dart';
+import 'package:rotori/features/live_currency_scanner/application/providers.dart';
+import 'package:rotori/features/live_currency_scanner/domain/exchange_rate.dart';
+import 'package:rotori/features/live_currency_scanner/domain/product_price_query.dart';
+import 'package:rotori/features/live_currency_scanner/domain/repositories/product_price_query_repository.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -2,8 +2,8 @@
 // TS packages/shared/src/dayOptimizer.ts portunun doğrulaması.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/day_optimizer.dart';
-import 'package:japan_trip/domain/types.dart';
+import 'package:rotori/domain/day_optimizer.dart';
+import 'package:rotori/domain/types.dart';
 
 TimelineItem _item(
   String id, {

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/place_image_resolver.dart';
+import 'package:rotori/domain/place_image_resolver.dart';
 
 void main() {
   group('PlaceImageResolver', () {

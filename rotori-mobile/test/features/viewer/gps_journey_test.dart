@@ -6,12 +6,12 @@
 // keşif kaydı → rozet değerlendirmesi zinciri deterministik test edilir.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/data/user_stats_store.dart';
-import 'package:japan_trip/data/visit_store.dart';
-import 'package:japan_trip/domain/city_places.dart';
-import 'package:japan_trip/domain/geofence.dart';
-import 'package:japan_trip/domain/types.dart';
-import 'package:japan_trip/features/viewer/geofence_service.dart';
+import 'package:rotori/data/user_stats_store.dart';
+import 'package:rotori/data/visit_store.dart';
+import 'package:rotori/domain/city_places.dart';
+import 'package:rotori/domain/geofence.dart';
+import 'package:rotori/domain/types.dart';
+import 'package:rotori/features/viewer/geofence_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // --- Test yardımcıları ---------------------------------------------------

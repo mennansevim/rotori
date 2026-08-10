@@ -5,14 +5,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/core/l10n.dart';
-import 'package:japan_trip/domain/city_places.dart';
-import 'package:japan_trip/domain/plan_generation.dart' show CityNights;
-import 'package:japan_trip/features/plans/create/city_select_page.dart';
-import 'package:japan_trip/features/plans/create/create_plan_screen.dart';
-import 'package:japan_trip/features/plans/create/create_plan_widgets.dart';
-import 'package:japan_trip/features/plans/create/date_select_page.dart';
-import 'package:japan_trip/features/viewer/viewer_theme.dart';
+import 'package:rotori/core/l10n.dart';
+import 'package:rotori/domain/city_places.dart';
+import 'package:rotori/domain/plan_generation.dart' show CityNights;
+import 'package:rotori/features/plans/create/city_select_page.dart';
+import 'package:rotori/features/plans/create/create_plan_screen.dart';
+import 'package:rotori/features/plans/create/create_plan_widgets.dart';
+import 'package:rotori/features/plans/create/date_select_page.dart';
+import 'package:rotori/features/viewer/viewer_theme.dart';
 
 String tr(String key) => L10n.resolve(key, AppLang.tr);
 

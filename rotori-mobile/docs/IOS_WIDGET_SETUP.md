@@ -24,8 +24,8 @@ uygulama kırılmaz, sadece widget güncellenmez.
 2. **File → New → Target…**
 3. Sol panelde **Widget Extension** seç → **Next**.
 4. Ayarlar:
-   - **Product Name:** `JapanTripWidget` (Dart tarafı bu ismi bekliyor;
-     `home_widget_hook.dart` içindeki `kJapanTripWidgetName` sabiti).
+   - **Product Name:** `RotoriWidget` (Dart tarafı bu ismi bekliyor;
+     `home_widget_hook.dart` içindeki `kRotoriWidgetName` sabiti).
    - **Include Configuration Intent:** **KAPALI**.
    - Team + Bundle Identifier default'ta bırak (Xcode otomatik ayarlar).
 5. **Finish** → "Activate scheme?" penceresinde **Cancel** (Runner scheme'i
@@ -36,17 +36,17 @@ uygulama kırılmaz, sadece widget güncellenmez.
 1. Sol panelde **Runner** target'ını seç → **Signing & Capabilities**.
 2. Geçerli bir **Team** seçili olduğundan emin ol.
 3. **+ Capability** → **App Groups** ekle → **+** ile grubu oluştur:
-   `group.com.japantrip`
-4. Aynı adımı **JapanTripWidget** target'ında da uygula (App Groups → aynı
-   grubu seç). Dart tarafı bu ID'yi bekliyor (`kJapanTripAppGroupId`).
+   `group.com.mennansevim.rotori`
+4. Aynı adımı **RotoriWidget** target'ında da uygula (App Groups → aynı
+   grubu seç). Dart tarafı bu ID'yi bekliyor (`kRotoriAppGroupId`).
 
 > Not: App Group ID'sini değiştirmek isterseniz, hem Xcode'da hem
-> `lib/features/viewer/home_widget_hook.dart` içindeki `kJapanTripAppGroupId`
+> `lib/features/viewer/home_widget_hook.dart` içindeki `kRotoriAppGroupId`
 > sabitinde eş zamanlı güncelleyin.
 
 ## 3. SwiftUI widget kodunu yapıştır
 
-Xcode `JapanTripWidget/JapanTripWidget.swift` dosyasını sizin için oluşturdu.
+Xcode `RotoriWidget/RotoriWidget.swift` dosyasını sizin için oluşturdu.
 İçeriğini aşağıdaki örnekle değiştirin — `UserDefaults(suiteName:)` ile Dart
 tarafından yazılan altı anahtarı okur ve küçük/orta boyutta gösterir.
 
@@ -55,7 +55,7 @@ import WidgetKit
 import SwiftUI
 
 // Dart tarafındaki `home_widget_hook.dart` ile eşleşen anahtarlar.
-private let appGroupId = "group.com.japantrip"
+private let appGroupId = "group.com.mennansevim.rotori"
 
 struct NextActivityEntry: TimelineEntry {
     let date: Date
@@ -107,7 +107,7 @@ struct Provider: TimelineProvider {
     }
 }
 
-struct JapanTripWidgetEntryView: View {
+struct RotoriWidgetEntryView: View {
     var entry: Provider.Entry
 
     var body: some View {
@@ -142,12 +142,12 @@ struct JapanTripWidgetEntryView: View {
 }
 
 @main
-struct JapanTripWidget: Widget {
-    let kind: String = "JapanTripWidget"
+struct RotoriWidget: Widget {
+    let kind: String = "RotoriWidget"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
-            JapanTripWidgetEntryView(entry: entry)
+            RotoriWidgetEntryView(entry: entry)
         }
         .configurationDisplayName("Sıradaki Aktivite")
         .description("Japonya rehberindeki bir sonraki plan öğesi.")
@@ -166,7 +166,7 @@ struct JapanTripWidget: Widget {
 
 ## 5. Veri sözleşmesi — anahtarlar
 
-Widget `UserDefaults(suiteName: "group.com.japantrip")` üzerinden okur;
+Widget `UserDefaults(suiteName: "group.com.mennansevim.rotori")` üzerinden okur;
 Dart tarafı `home_widget_hook.dart` içinde birebir aynı anahtarları
 `String` olarak yazar:
 

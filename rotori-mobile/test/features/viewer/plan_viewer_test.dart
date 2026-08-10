@@ -4,17 +4,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/data/plans_repository.dart';
-import 'package:japan_trip/core/supabase_client.dart';
-import 'package:japan_trip/domain/route_matrix.dart';
+import 'package:rotori/data/plans_repository.dart';
+import 'package:rotori/core/supabase_client.dart';
+import 'package:rotori/domain/route_matrix.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:japan_trip/core/l10n.dart';
-import 'package:japan_trip/features/plans/premium_provider.dart';
-import 'package:japan_trip/domain/types.dart';
-import 'package:japan_trip/features/plans/plan_providers.dart';
-import 'package:japan_trip/features/plans/plan_optimization_controller.dart';
-import 'package:japan_trip/features/plans/plan_viewer_screen.dart';
+import 'package:rotori/core/l10n.dart';
+import 'package:rotori/features/plans/premium_provider.dart';
+import 'package:rotori/domain/types.dart';
+import 'package:rotori/features/plans/plan_providers.dart';
+import 'package:rotori/features/plans/plan_optimization_controller.dart';
+import 'package:rotori/features/plans/plan_viewer_screen.dart';
 
 /// Bugüne göre birkaç geçmiş + bir aktif gün içeren örnek Trip.
 Trip _sampleTrip() {

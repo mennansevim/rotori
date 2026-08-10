@@ -5,7 +5,7 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/features/viewer/offline_tile_provider.dart';
+import 'package:rotori/features/viewer/offline_tile_provider.dart';
 
 void main() {
   group('tileRange (Web Mercator)', () {

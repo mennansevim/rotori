@@ -4,8 +4,8 @@
 // kararı çağıran taraftadır (heuristik: hepsi start == arrival).
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/trip_factory.dart';
-import 'package:japan_trip/domain/types.dart';
+import 'package:rotori/domain/trip_factory.dart';
+import 'package:rotori/domain/types.dart';
 
 TripDestination _d(String city, int order, {String arrival = '', String dep = ''}) =>
     TripDestination(

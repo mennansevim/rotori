@@ -40,7 +40,7 @@ otomatik yapılamaz; aşağıdaki adımları bir kez uygulayın.
 2. **Identifiers** → App ID'ni (bundle id: `Info.plist`'teki değer) seç →
    **Sign in with Apple** capability'sini işaretle.
 3. **Services ID** oluştur (Supabase için gerekir; web/redirect akışı):
-   - Identifiers → **+** → **Services IDs** → tanımla (örn. `app.japantrip.signin`).
+   - Identifiers → **+** → **Services IDs** → tanımla (örn. `com.mennansevim.rotori.signin`).
    - "Sign in with Apple" → **Configure** → Primary App ID'yi ve
      **Return URLs** olarak Supabase callback'ini ekle (Adım 4'teki URL).
 4. **Key** oluştur: Keys → **+** → "Sign in with Apple" işaretle → indir

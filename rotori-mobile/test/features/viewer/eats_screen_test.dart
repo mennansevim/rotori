@@ -6,11 +6,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/data/plans_repository.dart';
-import 'package:japan_trip/domain/japanese_dishes.dart';
-import 'package:japan_trip/domain/japanese_dishes_data.dart';
-import 'package:japan_trip/domain/types.dart';
-import 'package:japan_trip/features/viewer/eats_screen.dart';
+import 'package:rotori/data/plans_repository.dart';
+import 'package:rotori/domain/japanese_dishes.dart';
+import 'package:rotori/domain/japanese_dishes_data.dart';
+import 'package:rotori/domain/types.dart';
+import 'package:rotori/features/viewer/eats_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Trip _trip({List<String> diet = const []}) => Trip(

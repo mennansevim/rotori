@@ -1,4 +1,4 @@
-name: japan_trip
+name: rotori
 description: Japan-Trip mobil ve web istemcisi (Flutter + Supabase).
 publish_to: 'none'
 version: 1.0.0+1

@@ -22,11 +22,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:japan_trip/core/l10n.dart';
-import 'package:japan_trip/data/reminders_store.dart';
-import 'package:japan_trip/features/auth/auth_screen.dart';
-import 'package:japan_trip/features/notifications/notifications_service.dart';
-import 'package:japan_trip/features/reminders/reminders_screen.dart';
+import 'package:rotori/core/l10n.dart';
+import 'package:rotori/data/reminders_store.dart';
+import 'package:rotori/features/auth/auth_screen.dart';
+import 'package:rotori/features/notifications/notifications_service.dart';
+import 'package:rotori/features/reminders/reminders_screen.dart';
 
 // ---------------------------------------------------------------------------
 // Fake bildirim servisi — RemindersScreen içindeki cancel/cancelAll çağrıları
@@ -92,7 +92,7 @@ void main() {
       await _settle(tester);
 
       // AuthScreen alanları dev kolaylığı için önden dolu geliyor
-      // (demo@japantrip.app / Demo1234!). Kullanıcı simülasyonu için ikisini
+      // (demo@rotori.app / Demo1234!). Kullanıcı simülasyonu için ikisini
       // de geçersiz değerlerle ez.
       final emailField = find.widgetWithText(TextFormField, 'E-posta');
       final passField = find.widgetWithText(TextFormField, 'Şifre');

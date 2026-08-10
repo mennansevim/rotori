@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/plan_schedule_engine.dart';
-import 'package:japan_trip/domain/types.dart';
-import 'package:japan_trip/features/plans/plan_edit_session.dart';
+import 'package:rotori/domain/plan_schedule_engine.dart';
+import 'package:rotori/domain/types.dart';
+import 'package:rotori/features/plans/plan_edit_session.dart';
 
 Trip _trip() => Trip(
       id: 'trip',

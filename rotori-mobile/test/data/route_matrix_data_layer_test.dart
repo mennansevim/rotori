@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/data/route_matrix_cache.dart';
-import 'package:japan_trip/data/route_matrix_remote.dart';
-import 'package:japan_trip/data/route_matrix_resolution.dart';
-import 'package:japan_trip/domain/route_matrix.dart';
+import 'package:rotori/data/route_matrix_cache.dart';
+import 'package:rotori/data/route_matrix_remote.dart';
+import 'package:rotori/data/route_matrix_resolution.dart';
+import 'package:rotori/domain/route_matrix.dart';
 
 void main() {
   const a = TripLocation(

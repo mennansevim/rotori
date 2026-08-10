@@ -1,11 +1,11 @@
 import 'dart:ui' show Rect, Size;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/features/live_currency_scanner/domain/detected_price.dart';
-import 'package:japan_trip/features/live_currency_scanner/domain/japanese_price_tax_type.dart';
-import 'package:japan_trip/features/live_currency_scanner/domain/tracked_price.dart';
-import 'package:japan_trip/features/live_currency_scanner/infrastructure/ocr/on_device_text_recognizer.dart';
-import 'package:japan_trip/features/live_currency_scanner/infrastructure/parsing/product_query_candidate_resolver.dart';
+import 'package:rotori/features/live_currency_scanner/domain/detected_price.dart';
+import 'package:rotori/features/live_currency_scanner/domain/japanese_price_tax_type.dart';
+import 'package:rotori/features/live_currency_scanner/domain/tracked_price.dart';
+import 'package:rotori/features/live_currency_scanner/infrastructure/ocr/on_device_text_recognizer.dart';
+import 'package:rotori/features/live_currency_scanner/infrastructure/parsing/product_query_candidate_resolver.dart';
 
 void main() {
   const resolver = ProductQueryCandidateResolver();

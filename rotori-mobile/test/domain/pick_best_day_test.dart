@@ -1,8 +1,8 @@
 // packages/shared/src/__tests__/pickBestDay.test.ts'in birebir Dart eşdeğeri.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/trip_factory.dart';
-import 'package:japan_trip/domain/types.dart';
+import 'package:rotori/domain/trip_factory.dart';
+import 'package:rotori/domain/types.dart';
 
 DayPlan _makeDay(int n, [int activities = 0, int steps = 0]) => DayPlan(
       dayNumber: n,

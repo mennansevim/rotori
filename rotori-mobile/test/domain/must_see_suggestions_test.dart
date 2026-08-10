@@ -1,14 +1,14 @@
 // "Bunları da gör" — öneri listesi + BOZMADAN yerleştirme sözleşmesi.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/itinerary_generator.dart'
+import 'package:rotori/domain/itinerary_generator.dart'
     show kDayEndMinutes, kDayStartMinutes;
-import 'package:japan_trip/domain/destination_profiles.dart'
+import 'package:rotori/domain/destination_profiles.dart'
     show getDestinationForDate;
-import 'package:japan_trip/domain/must_see_suggestions.dart';
-import 'package:japan_trip/domain/plan_generation.dart';
-import 'package:japan_trip/domain/trip_factory.dart';
-import 'package:japan_trip/domain/types.dart';
+import 'package:rotori/domain/must_see_suggestions.dart';
+import 'package:rotori/domain/plan_generation.dart';
+import 'package:rotori/domain/trip_factory.dart';
+import 'package:rotori/domain/types.dart';
 
 Trip _tokyoKyotoTrip() => buildTripFromCities(
       cityKeys: const ['tokyo', 'kyoto'],

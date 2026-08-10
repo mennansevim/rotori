@@ -8,9 +8,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/data/plans_repository.dart';
-import 'package:japan_trip/domain/types.dart';
-import 'package:japan_trip/features/viewer/day_map_screen.dart';
+import 'package:rotori/data/plans_repository.dart';
+import 'package:rotori/domain/types.dart';
+import 'package:rotori/features/viewer/day_map_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Ağ isteği yapmadan 1x1 saydam PNG döndüren test tile sağlayıcısı.

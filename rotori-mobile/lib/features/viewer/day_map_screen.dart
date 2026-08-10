@@ -318,7 +318,7 @@ class _DayMapViewState extends State<_DayMapView> {
           urlTemplate:
               'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&hl=ja&gl=JP',
           subdomains: const ['0', '1', '2', '3'],
-          userAgentPackageName: 'com.japantrip.app',
+          userAgentPackageName: 'com.mennansevim.rotori',
           maxZoom: 20,
           tileProvider: effectiveProvider,
         ),

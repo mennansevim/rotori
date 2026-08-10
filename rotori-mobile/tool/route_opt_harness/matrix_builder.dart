@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:japan_trip/domain/route_matrix.dart';
+import 'package:rotori/domain/route_matrix.dart';
 
 /// Bir günün lokasyon kümesi için sentetik ama gerçekçi bir yönlü RouteMatrix
 /// üretir. Üretim optimizer'ı koordinattan süre türetmez; burada SADECE test

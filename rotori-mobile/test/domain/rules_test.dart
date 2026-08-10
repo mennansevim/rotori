@@ -2,8 +2,8 @@
 // collectTripWarnings + tekil kontroller + moveItemBetweenDays.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/rules.dart';
-import 'package:japan_trip/domain/types.dart';
+import 'package:rotori/domain/rules.dart';
+import 'package:rotori/domain/types.dart';
 
 Trip _trip({
   String title = 'Japonya Turu',

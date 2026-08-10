@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/features/live_currency_scanner/domain/japanese_price_tax_type.dart';
-import 'package:japan_trip/features/live_currency_scanner/infrastructure/parsing/japanese_price_parser.dart';
+import 'package:rotori/features/live_currency_scanner/domain/japanese_price_tax_type.dart';
+import 'package:rotori/features/live_currency_scanner/infrastructure/parsing/japanese_price_parser.dart';
 
 void main() {
   const parser = JapanesePriceParser();

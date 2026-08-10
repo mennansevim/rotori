@@ -3,13 +3,13 @@ import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:japan_trip/core/l10n.dart';
-import 'package:japan_trip/features/live_currency_scanner/application/live_currency_scanner_controller.dart';
-import 'package:japan_trip/features/live_currency_scanner/application/live_currency_scanner_state.dart';
-import 'package:japan_trip/features/live_currency_scanner/presentation/pages/live_currency_scanner_page.dart';
-import 'package:japan_trip/features/live_currency_scanner/domain/exchange_rate.dart';
-import 'package:japan_trip/features/live_currency_scanner/domain/product_price_query.dart';
-import 'package:japan_trip/features/viewer/viewer_theme.dart';
+import 'package:rotori/core/l10n.dart';
+import 'package:rotori/features/live_currency_scanner/application/live_currency_scanner_controller.dart';
+import 'package:rotori/features/live_currency_scanner/application/live_currency_scanner_state.dart';
+import 'package:rotori/features/live_currency_scanner/presentation/pages/live_currency_scanner_page.dart';
+import 'package:rotori/features/live_currency_scanner/domain/exchange_rate.dart';
+import 'package:rotori/features/live_currency_scanner/domain/product_price_query.dart';
+import 'package:rotori/features/viewer/viewer_theme.dart';
 
 void main() {
   testWidgets('sorgulanabilir ürün varsa CTA görünür', (tester) async {

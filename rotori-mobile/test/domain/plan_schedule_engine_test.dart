@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/plan_schedule_engine.dart';
-import 'package:japan_trip/domain/types.dart';
+import 'package:rotori/domain/plan_schedule_engine.dart';
+import 'package:rotori/domain/types.dart';
 
 TimelineItem item(
   String id,

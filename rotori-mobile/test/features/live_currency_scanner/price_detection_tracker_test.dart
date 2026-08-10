@@ -1,9 +1,9 @@
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/features/live_currency_scanner/domain/detected_price.dart';
-import 'package:japan_trip/features/live_currency_scanner/domain/japanese_price_tax_type.dart';
-import 'package:japan_trip/features/live_currency_scanner/infrastructure/tracking/price_detection_tracker.dart';
+import 'package:rotori/features/live_currency_scanner/domain/detected_price.dart';
+import 'package:rotori/features/live_currency_scanner/domain/japanese_price_tax_type.dart';
+import 'package:rotori/features/live_currency_scanner/infrastructure/tracking/price_detection_tracker.dart';
 
 DetectedPrice _price(int amount, Rect box, {double conf = 0.9}) =>
     DetectedPrice(

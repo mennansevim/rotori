@@ -7,8 +7,8 @@
 //   4) daysUntilTripStart — gezi başladıysa 0, aksi hâlde farkın gün sayısı.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/types.dart';
-import 'package:japan_trip/features/viewer/home_widget_hook.dart';
+import 'package:rotori/domain/types.dart';
+import 'package:rotori/features/viewer/home_widget_hook.dart';
 
 TimelineItem _item(String id, {String? time, TimelineItemKind? kind}) =>
     TimelineItem(id: id, title: id, time: time, kind: kind);

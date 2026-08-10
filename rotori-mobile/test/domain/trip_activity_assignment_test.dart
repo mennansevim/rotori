@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/itinerary_optimizer.dart';
-import 'package:japan_trip/domain/route_matrix.dart';
-import 'package:japan_trip/domain/trip_activity_assignment.dart';
+import 'package:rotori/domain/itinerary_optimizer.dart';
+import 'package:rotori/domain/route_matrix.dart';
+import 'package:rotori/domain/trip_activity_assignment.dart';
 
 void main() {
   const engine = TripActivityAssignmentEngine();

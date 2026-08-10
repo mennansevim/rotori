@@ -3,8 +3,8 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/data/checklist_store.dart';
-import 'package:japan_trip/data/plans_repository.dart';
+import 'package:rotori/data/checklist_store.dart';
+import 'package:rotori/data/plans_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _tripId = 'trip-checklist';

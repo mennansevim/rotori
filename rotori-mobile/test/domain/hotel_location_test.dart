@@ -5,8 +5,8 @@
 // yürümeye kalkar.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/hotel_location.dart';
-import 'package:japan_trip/domain/types.dart';
+import 'package:rotori/domain/hotel_location.dart';
+import 'package:rotori/domain/types.dart';
 
 HotelStay _hotel({
   required String id,

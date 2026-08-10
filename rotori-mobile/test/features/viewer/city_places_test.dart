@@ -1,9 +1,9 @@
 // Şehir verisi + trip'ten şehir tespiti testleri (React cityPlaces.ts portu).
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/city_places.dart';
-import 'package:japan_trip/domain/geofence.dart';
-import 'package:japan_trip/domain/types.dart';
+import 'package:rotori/domain/city_places.dart';
+import 'package:rotori/domain/geofence.dart';
+import 'package:rotori/domain/types.dart';
 
 Trip _trip({
   String title = 'Japonya',

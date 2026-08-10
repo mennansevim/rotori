@@ -3,7 +3,7 @@
 //   2) parseForecast: örnek Open-Meteo JSON fixture → List<DayForecast>.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/data/weather_service.dart';
+import 'package:rotori/data/weather_service.dart';
 
 void main() {
   group('weatherInfo', () {

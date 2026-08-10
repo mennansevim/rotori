@@ -6,9 +6,9 @@
 //   2. Malzeme "bazen" ise "uygun değil" değil "sor" denir.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:japan_trip/domain/japanese_dishes.dart';
-import 'package:japan_trip/domain/localized_text.dart';
-import 'package:japan_trip/domain/japanese_dishes_data.dart';
+import 'package:rotori/domain/japanese_dishes.dart';
+import 'package:rotori/domain/localized_text.dart';
+import 'package:rotori/domain/japanese_dishes_data.dart';
 
 JapaneseDish _dish(Map<DishIngredient, IngredientChance> ingredients) =>
     JapaneseDish(
