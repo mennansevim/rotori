@@ -6,7 +6,8 @@
   <meta name="theme-color" content="#f4f1e8">
   <title>Japonya Rüyası — İçerik Stüdyosu</title>
   <link rel="manifest" href="/static/manifest.json">
-  <link rel="apple-touch-icon" href="/static/widget-icon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/icons/rotori-icon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/icons/rotori-icon-180.png">
   <style>
     /* ── Command Center · Japon editoryal (washi · sumi · shu) ── */
     :root{
@@ -29,7 +30,7 @@
     .shell{min-height:100vh;display:grid;grid-template-columns:220px 1fr}
     .sidebar{position:fixed;inset:0 auto 0 0;width:220px;padding:20px 14px 14px;background:#20241f;color:#fff;display:flex;flex-direction:column;z-index:20}
     .brand{display:flex;align-items:center;gap:10px;padding:0 6px 22px}
-    .brand-mark{width:32px;height:32px;border-radius:50%;background:var(--red);display:grid;place-items:center;font:700 11px var(--display);box-shadow:inset 0 0 0 6px rgba(255,255,255,.12)}
+    .brand-mark{width:32px;height:32px;border-radius:9px;display:block;object-fit:cover;background:#fff;box-shadow:0 5px 18px rgba(176,40,28,.2)}
     .brand b{display:block;font:700 14px/1.1 var(--display)}
     .brand small{color:#adb3a8;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase}
     .nav-label{color:#7d8078;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;padding:14px 8px 6px}
@@ -449,9 +450,7 @@
     /* ── Sidebar → sumi kolonu, hairline ── */
     .sidebar{background:var(--ink);color:var(--paper);padding:26px 18px 18px;border-right:1px solid var(--ink)}
     .brand{padding:0 4px 26px;border-bottom:1px solid #2a2a27;margin-bottom:18px}
-    .brand-mark{background:transparent;color:var(--shu);font:400 26px/1 var(--serif);width:auto;height:auto;box-shadow:none!important}
-    .brand-mark::before{content:"日"}
-    .brand-mark>*{display:none}
+    .brand-mark{width:32px;height:32px;border-radius:9px;object-fit:cover;background:#fff;box-shadow:none!important}
     .brand b{font:400 15px/1.1 var(--serif);letter-spacing:.02em}
     .brand small{color:#8a8a82;font-size:9px;letter-spacing:.22em}
     .nav-label{color:#5f625b;font-size:9px;letter-spacing:.24em;font-weight:600;padding:12px 4px 8px}
@@ -792,7 +791,7 @@
   <div class="shell">
     <aside class="sidebar" aria-label="Ana navigasyon">
       <div class="brand">
-        <div class="brand-mark" aria-hidden="true">日</div>
+        <img class="brand-mark" src="/static/icons/rotori-icon-192.png" width="32" height="32" alt="">
         <div><b>Japonya Rüyası</b><small>İçerik Stüdyosu</small></div>
       </div>
       <button class="btn primary side-cta" data-go="studio">＋ Yeni içerik</button>

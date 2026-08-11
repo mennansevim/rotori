@@ -89,15 +89,10 @@ h1, h2, h3 { margin: 0; }
   padding: var(--sp-5) var(--sp-4) var(--sp-4);
 }
 .brand__mark {
-  font-family: var(--serif);
-  font-weight: 700;
-  font-size: 22px;
-  line-height: .82;
-  color: var(--accent);
-  border: 2px solid var(--accent);
-  border-radius: 6px;
-  padding: 3px 6px;
-  letter-spacing: -2px;
+  width: 32px; height: 32px; flex: none;
+  display: block; object-fit: cover;
+  border: 0; border-radius: 9px;
+  box-shadow: 0 6px 22px rgba(216, 11, 9, .24);
 }
 .brand__text .brand__title { font-family: var(--serif); font-size: 16px; color: #fff; line-height: 1.1; }
 .brand__text .brand__sub {
@@ -1173,7 +1168,7 @@ h1, h2, h3 { margin: 0; }
   .sidebar.is-open { transform: none; }
   .main { margin-left: 0; }
   .topbar-mobile { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--bg-sidebar); color: #fff; position: sticky; top: 0; z-index: 30; }
-  .topbar-mobile .brand__mark { font-size: 20px; padding: 2px 5px; }
+  .topbar-mobile .brand__mark { width: 32px; height: 32px; padding: 0; }
   .hamburger { background: none; border: 0; color: #fff; width: 34px; height: 34px; display: grid; place-items: center; }
   .content-grid { grid-template-columns: 1fr; }
   .stat-grid { grid-template-columns: 1fr; }
@@ -1262,7 +1257,7 @@ body { font-size: 13px; }
 .main { background: var(--bg-app); }
 .sidebar { width: var(--sidebar-w); background: linear-gradient(180deg, #0b1220 0%, #0f172a 100%); border-right: 1px solid rgba(71, 85, 105, .35); }
 .sidebar__brand { padding: 16px 14px 14px; }
-.brand__mark { background: linear-gradient(135deg, #6366f1, #a855f7); color: white; border: 0; border-radius: 9px; padding: 7px 8px; font-family: var(--sans); font-size: 15px; letter-spacing: -.8px; box-shadow: 0 6px 22px rgba(99, 102, 241, .35); }
+.brand__mark { width: 32px; height: 32px; padding: 0; object-fit: cover; background: #fff; border: 0; border-radius: 9px; box-shadow: 0 6px 22px rgba(216, 11, 9, .24); }
 .brand__text .brand__title { color: #f8fafc; font-family: var(--sans); font-weight: 700; font-size: 14px; }
 .brand__text .brand__sub { color: #64748b; letter-spacing: 1.4px; }
 .nav { padding: 10px 9px; gap: 4px; }

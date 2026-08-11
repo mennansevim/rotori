@@ -91,6 +91,14 @@ kapısı geçti, analyze temiz.
 
 ## Tamamlananlar (bu ve önceki oturumlardan)
 
+- ✅ **2026-08-11** Yeni Rotori uygulama ikonu tüm ürün yüzeylerine uygulandı.
+  iOS AppIcon seti paketteki özgün boyutlarla yenilendi; Android launcher ve
+  Flutter web/PWA ikonları aynı 1024 px kaynaktan üretildi. Tanıtım sitesinin
+  ana, gizlilik, destek, App Store ön izleme ve legacy yüzeyleri ile Rotori
+  Social dashboard/stüdyo favicon, ana ekran ve görünür marka işaretleri ortak
+  ikon ailesine bağlandı. Dosya boyutu/format, manifest JSON ve görsel yükleme
+  kontrolleri tamamlandı.
+
 - ✅ **2026-08-11** `feat/premium-iap-foundation`, `social-deploy-tmp` ve
   `social-deploy-fix` geçmişleri `main` üzerinde birleştirildi. Bağımsız eski
   sosyal repo branch'leri güncel `rotori-social/` ağacını geriye götürmeden

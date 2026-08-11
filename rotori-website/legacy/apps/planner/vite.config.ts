@@ -196,7 +196,7 @@ export default defineConfig(({ mode }) => {
         background_color: '#f5f5f7',
         display: 'standalone',
         start_url: '/planner/',
-        icons: [{ src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml' }],
+        icons: [{ src: 'favicon.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }],
       },
     }),
   ],

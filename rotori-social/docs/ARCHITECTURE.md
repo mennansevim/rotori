@@ -23,7 +23,7 @@ onayı olmadan API çağrısı yapmaz.
 │  Raspberry Pi 5 — docker-compose service: rotori-social                 │
 │  ┌──────────────────────────────────────────────────────────────────┐  │
 │  │  uvicorn / FastAPI  (src/web/app.py, 8420 → host 3090)           │  │
-│  │  ├─ StaticFiles: /static (index.html, manifest, widget-icon)     │  │
+│  │  ├─ StaticFiles: /static (index.html, manifest, Rotori icons)    │  │
 │  │  ├─ StaticFiles: /media/backgrounds (Unsplash cache)             │  │
 │  │  ├─ 66 REST route (bkz. §7)                                      │  │
 │  │  ├─ JobManager (in-process job + canlı log bridge)               │  │
@@ -409,7 +409,7 @@ zenginleştirilmiş sorgu 2068 sonuç ve gerçek ışık enstalasyonu fotoğrafl
 
 ## 13. Yerel depolama & offline destek
 - **Uygulama data'sı**: tümü disk. Docker volume ile Pi restart'ında kaybolmaz.
-- **Frontend**: PWA manifest + apple-touch-icon. Ancak service worker YOK — offline kullanım tasarlanmamış (kanal içeriği yayın için internet zaten şart).
+- **Frontend**: PWA manifest + ortak Rotori favicon/apple-touch-icon ailesi. Ancak service worker YOK — offline kullanım tasarlanmamış (kanal içeriği yayın için internet zaten şart).
 
 ## 14. Deploy mimarisi
 

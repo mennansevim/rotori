@@ -20,7 +20,7 @@ export function notifyVisit(title: string, body: string): void {
   if (!notificationsSupported()) return;
   if (Notification.permission !== 'granted') return;
   try {
-    new Notification(title, { body, icon: '/viewer/favicon.svg', tag: 'visit' });
+    new Notification(title, { body, icon: '/viewer/favicon.png', tag: 'visit' });
   } catch {
     /* bazı tarayıcılar SW olmadan engelleyebilir */
   }
