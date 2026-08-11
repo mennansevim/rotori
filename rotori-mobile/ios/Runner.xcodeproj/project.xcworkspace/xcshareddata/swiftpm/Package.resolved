@@ -1,12 +1,12 @@
 {
   "pins" : [
     {
-      "identity" : "cwlcatchexception",
+      "identity" : "sentry-cocoa",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/mattgallagher/CwlCatchException.git",
+      "location" : "https://github.com/getsentry/sentry-cocoa",
       "state" : {
-        "revision" : "07b2ba21d361c223e25e3c1e924288742923f08c",
-        "version" : "2.2.1"
+        "revision" : "f196cbb98e0388381d57908f2f5a9bdc385cde68",
+        "version" : "8.58.4"
       }
     }
   ],

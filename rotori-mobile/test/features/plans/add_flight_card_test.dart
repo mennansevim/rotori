@@ -31,7 +31,7 @@ void main() {
         ),
         GoRoute(
           path: '/plans/:id/flights',
-          builder: (_, __) => const Scaffold(body: Text('Uçuş sayfası')),
+          builder: (_, __) => _FlightStub(trip: trip),
         ),
       ],
     );
@@ -91,10 +91,12 @@ void main() {
     // Viewer'da başka kapatılabilir kartlar da var ("Bunları da gör") —
     // ✕ ikonunu UÇUŞ kartının içinde ara, yoksa finder belirsiz kalıyor.
     await tester.tap(find.descendant(
-      of: find.ancestor(
-        of: find.text(tr('viewer.addFlight.title')),
-        matching: find.byType(Container),
-      ).first,
+      of: find
+          .ancestor(
+            of: find.text(tr('viewer.addFlight.title')),
+            matching: find.byType(Container),
+          )
+          .first,
       matching: find.byIcon(Icons.close_rounded),
     ));
     await tester.pumpAndSettle();
@@ -116,4 +118,78 @@ void main() {
 
     expect(find.text('Uçuş sayfası'), findsOneWidget);
   });
+
+  testWidgets('kayıttan sonra drawer açılır ve Uçuşlar akordiyonu açıktır',
+      (tester) async {
+    final trip = buildTripFromCities(
+      cityKeys: const ['tokyo'],
+      startYmd: '2026-10-15',
+      endYmd: '2026-10-21',
+    );
+    await tester.pumpWidget(harness(trip));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr('drawer.flights.add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Test uçuşunu kaydet'));
+    await tester.pumpAndSettle();
+
+    expect(
+        find.text(tr('viewer.flights').replaceAll('✈️ ', '')), findsOneWidget);
+    expect(find.text('14:30'), findsOneWidget);
+    expect(find.text('09:15'), findsOneWidget);
+  });
+}
+
+class _FlightStub extends StatelessWidget {
+  const _FlightStub({required this.trip});
+
+  final Trip trip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text('Uçuş sayfası'),
+          ElevatedButton(
+            onPressed: () {
+              final saved = Trip.fromJson(trip.toJson())
+                ..flights = TripFlights(
+                  outbound: [
+                    FlightLeg(
+                      city: 'İstanbul',
+                      airport: 'IST',
+                      dateTime: '2026-10-15T08:00:00',
+                    ),
+                    FlightLeg(
+                      city: 'Tokyo',
+                      airport: 'HND',
+                      dateTime: '2026-10-15T14:30:00',
+                    ),
+                  ],
+                  returnLegs: [
+                    FlightLeg(
+                      city: 'Tokyo',
+                      airport: 'HND',
+                      dateTime: '2026-10-21T09:15:00',
+                    ),
+                    FlightLeg(
+                      city: 'İstanbul',
+                      airport: 'IST',
+                      dateTime: '2026-10-21T18:00:00',
+                    ),
+                  ],
+                );
+              context.pop(saved);
+            },
+            child: const Text('Test uçuşunu kaydet'),
+          ),
+        ],
+      ),
+    );
+  }
 }

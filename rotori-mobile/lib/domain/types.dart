@@ -2,6 +2,7 @@
 // Plain Dart sınıfları; JSON'a serileştirilir (Supabase plans.doc jsonb).
 // Not: MVP freezed'siz — Faz 3b'de freezed'e geçilecek (data class + copyWith + eşitlik).
 
+import 'plan_field_signals.dart';
 import 'route_execution.dart';
 
 // ---------------------------------------------------------------------------
@@ -309,19 +310,66 @@ class CityTransitionPlan {
     required this.toCity,
     required this.mode,
     this.linkedTicketId,
+    this.railPass,
+    this.durationMinutes,
+    this.serviceLabel,
+    this.options = const [],
+    this.luggageStrategy,
   });
 
   final String fromCity;
   final String toCity;
+
+  /// Seçili mod — `kTransportModes` değerlerinden biri. Timeline satırının,
+  /// gün başlığının ve rozetin **tek doğruluk kaynağı**dır.
   final String mode;
+
   final String? linkedTicketId;
 
-  CityTransitionPlan copyWith({String? mode, String? linkedTicketId}) {
+  /// JSON v3 — kullanıcının bileti (`RailPassType.name`). Motor bu satırdan
+  /// okur ve Nozomi/Mizuho kısıtını buna göre uygular.
+  final String? railPass;
+
+  /// JSON v3 — pass düzeltmesi uygulandıktan sonraki geçiş süresi.
+  final int? durationMinutes;
+
+  /// JSON v3 — fiilen kullanılan Shinkansen servisi ("Hikari").
+  final String? serviceLabel;
+
+  /// JSON v3 — picker'a sunulan tüm mod seçenekleri. Motor üretir, UI seçer;
+  /// böylece seçim ile timeline projeksiyonu ayrışamaz.
+  final List<CityTransitionOption> options;
+
+  /// JSON v3 — geçiş günü bagaj stratejisi (`LuggageHandlingStrategy.name`).
+  final String? luggageStrategy;
+
+  /// Seçili moda karşılık gelen seçenek; liste boşsa `null`.
+  CityTransitionOption? get selectedOption {
+    for (final option in options) {
+      if (option.mode == mode) return option;
+    }
+    return null;
+  }
+
+  CityTransitionPlan copyWith({
+    String? mode,
+    String? linkedTicketId,
+    String? railPass,
+    int? durationMinutes,
+    String? serviceLabel,
+    List<CityTransitionOption>? options,
+    String? luggageStrategy,
+  }) {
     return CityTransitionPlan(
       fromCity: fromCity,
       toCity: toCity,
       mode: mode ?? this.mode,
       linkedTicketId: linkedTicketId ?? this.linkedTicketId,
+      railPass: railPass ?? this.railPass,
+      durationMinutes: durationMinutes ?? this.durationMinutes,
+      serviceLabel: serviceLabel ?? this.serviceLabel,
+      options: options ?? this.options,
+      luggageStrategy: luggageStrategy ?? this.luggageStrategy,
     );
   }
 
@@ -331,6 +379,15 @@ class CityTransitionPlan {
       toCity: (json['toCity'] as String?) ?? '',
       mode: (json['mode'] as String?) ?? 'train',
       linkedTicketId: json['linkedTicketId'] as String?,
+      railPass: json['railPass'] as String?,
+      durationMinutes: (json['durationMinutes'] as num?)?.toInt(),
+      serviceLabel: json['serviceLabel'] as String?,
+      options: json['options'] is List
+          ? List.unmodifiable((json['options'] as List)
+              .map(CityTransitionOption.tryFromJson)
+              .whereType<CityTransitionOption>())
+          : const [],
+      luggageStrategy: json['luggageStrategy'] as String?,
     );
   }
 
@@ -339,6 +396,12 @@ class CityTransitionPlan {
         'toCity': toCity,
         'mode': mode,
         if (linkedTicketId != null) 'linkedTicketId': linkedTicketId,
+        if (railPass != null) 'railPass': railPass,
+        if (durationMinutes != null) 'durationMinutes': durationMinutes,
+        if (serviceLabel != null) 'serviceLabel': serviceLabel,
+        if (options.isNotEmpty)
+          'options': options.map((o) => o.toJson()).toList(),
+        if (luggageStrategy != null) 'luggageStrategy': luggageStrategy,
       };
 }
 
@@ -797,6 +860,12 @@ class TimelineItem {
   TimelineItem({
     required this.id,
     required this.title,
+    this.placeId,
+    this.canonicalPlaceHash,
+    this.isCityTransition = false,
+    this.transit,
+    this.repeat,
+    this.closure,
     this.time,
     this.description,
     this.mapUrl,
@@ -824,6 +893,24 @@ class TimelineItem {
   });
 
   final String id;
+  final String? placeId;
+
+  /// JSON v3 — `PlaceIdentityResolver` tarafından üretilen kararlı kanonik
+  /// hash. Kanji/Kana/Romaji varyantları aynı değeri verir. Opsiyoneldir;
+  /// yoksa kimlik başlıktan yeniden türetilir.
+  final String? canonicalPlaceHash;
+
+  final bool isCityTransition;
+
+  /// JSON v3 — ulaşım satırının saha riski ve pass düzeltmeleri.
+  final TransitSignals? transit;
+
+  /// JSON v3 — tekrar politikası (bölge / zaman kotası / kullanıcı iradesi).
+  final RepeatSignals? repeat;
+
+  /// JSON v3 — teishukubi kapanış bilgisi ve Holiday Shift izi.
+  final ClosureSignals? closure;
+
   String? time;
   String title;
   String? description;
@@ -856,7 +943,21 @@ class TimelineItem {
       !canChangeTime ||
       !canReorder;
 
+  /// Tekrar politikası çözümü — v3 alanı yoksa varsayılan `hardZero`.
+  bool get allowsRepeat =>
+      repeat?.userExplicitSelection == true ||
+      repeat?.isRepeatableZone == true ||
+      repeat?.policy == 'repeatableZone' ||
+      repeat?.policy == 'userOverride' ||
+      repeat?.policy == 'timeQuota';
+
   TimelineItem copyWith({
+    String? placeId,
+    String? canonicalPlaceHash,
+    bool? isCityTransition,
+    TransitSignals? transit,
+    RepeatSignals? repeat,
+    ClosureSignals? closure,
     String? time,
     String? scheduledTime,
     String? title,
@@ -879,6 +980,12 @@ class TimelineItem {
   }) =>
       TimelineItem(
         id: id,
+        placeId: placeId ?? this.placeId,
+        canonicalPlaceHash: canonicalPlaceHash ?? this.canonicalPlaceHash,
+        isCityTransition: isCityTransition ?? this.isCityTransition,
+        transit: transit ?? this.transit,
+        repeat: repeat ?? this.repeat,
+        closure: closure ?? this.closure,
         title: title ?? this.title,
         time: time ?? this.time,
         description: description ?? this.description,
@@ -908,6 +1015,12 @@ class TimelineItem {
 
   factory TimelineItem.fromJson(Map<String, dynamic> j) => TimelineItem(
         id: j['id'] as String,
+        placeId: j['placeId'] as String?,
+        canonicalPlaceHash: j['canonicalPlaceHash'] as String?,
+        isCityTransition: (j['isCityTransition'] as bool?) ?? false,
+        transit: TransitSignals.tryFromJson(j['transit']),
+        repeat: _repeatSignalsFromJson(j),
+        closure: ClosureSignals.tryFromJson(j['closure']),
         title: (j['title'] as String?) ?? '',
         time: j['time'] as String?,
         description: j['description'] as String?,
@@ -937,6 +1050,15 @@ class TimelineItem {
 
   Map<String, dynamic> toJson() => {
         'id': id,
+        if (placeId != null) 'placeId': placeId,
+        if (canonicalPlaceHash != null)
+          'canonicalPlaceHash': canonicalPlaceHash,
+        if (isCityTransition) 'isCityTransition': true,
+        if (transit != null && !transit!.isDefault)
+          'transit': transit!.toJson(),
+        if (repeat != null && !repeat!.isDefault) 'repeat': repeat!.toJson(),
+        if (closure != null && !closure!.isDefault)
+          'closure': closure!.toJson(),
         'title': title,
         if (time != null) 'time': time,
         if (description != null) 'description': description,
@@ -966,6 +1088,22 @@ class TimelineItem {
       };
 }
 
+/// v2 dokümanları tekrar iznini düz `repeatAllowed` bayrağıyla taşıyordu.
+/// v3 iç nesnesi yoksa bu bayrak `userOverride` politikasına yükseltilir —
+/// eski planlarda tema parkı / çok günlü bilet davranışı korunur.
+RepeatSignals? _repeatSignalsFromJson(Map<String, dynamic> j) {
+  final nested = RepeatSignals.tryFromJson(j['repeat']);
+  if (nested != null && !nested.isDefault) return nested;
+  final legacy = j['repeatAllowed'] as bool?;
+  if (legacy == true) {
+    return const RepeatSignals(
+      policy: 'userOverride',
+      userExplicitSelection: true,
+    );
+  }
+  return nested;
+}
+
 class DayHighlight {
   DayHighlight({required this.title, required this.body});
   final String title;
@@ -992,6 +1130,8 @@ class DayPlan {
     this.routeMapsUrl,
     this.routeExecutionSnapshot,
     this.cityTransition,
+    this.luggage,
+    this.crowd,
   })  : tags = tags ?? [],
         items = items ?? [],
         highlights = highlights ?? [];
@@ -1007,6 +1147,13 @@ class DayPlan {
   String? routeMapsUrl;
   RouteExecutionSnapshot? routeExecutionSnapshot;
   CityTransitionPlan? cityTransition;
+
+  /// JSON v3 — o günün bagaj stratejisi (Coin Locker / Hotel Drop / Yamato).
+  LuggageSignals? luggage;
+
+  /// JSON v3 — sezonluk yoğunluk çarpanları (Golden Week, Sakura…).
+  CrowdSignals? crowd;
+
   List<TimelineItem> items;
   List<DayHighlight> highlights;
 
@@ -1022,6 +1169,8 @@ class DayPlan {
     bool? taxiRecommended,
     RouteExecutionSnapshot? routeExecutionSnapshot,
     CityTransitionPlan? cityTransition,
+    LuggageSignals? luggage,
+    CrowdSignals? crowd,
   }) =>
       DayPlan(
         dayNumber: dayNumber,
@@ -1038,6 +1187,8 @@ class DayPlan {
         routeExecutionSnapshot: routeExecutionSnapshot ??
             (items == null ? this.routeExecutionSnapshot : null),
         cityTransition: cityTransition ?? this.cityTransition,
+        luggage: luggage ?? this.luggage,
+        crowd: crowd ?? this.crowd,
         items: items ?? this.items,
         highlights: highlights ?? this.highlights,
       );
@@ -1062,6 +1213,8 @@ class DayPlan {
                 (j['cityTransition'] as Map).cast<String, dynamic>(),
               )
             : null,
+        luggage: LuggageSignals.tryFromJson(j['luggage']),
+        crowd: CrowdSignals.tryFromJson(j['crowd']),
         items: (j['items'] as List? ?? const [])
             .map((e) => TimelineItem.fromJson((e as Map).cast()))
             .toList(),
@@ -1084,6 +1237,8 @@ class DayPlan {
         if (routeExecutionSnapshot != null)
           'routeExecution': routeExecutionSnapshot!.toJson(),
         if (cityTransition != null) 'cityTransition': cityTransition!.toJson(),
+        if (luggage != null) 'luggage': luggage!.toJson(),
+        if (crowd != null && !crowd!.isDefault) 'crowd': crowd!.toJson(),
         if (highlights.isNotEmpty)
           'highlights': highlights.map((h) => h.toJson()).toList(),
       };

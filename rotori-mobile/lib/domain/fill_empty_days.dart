@@ -5,6 +5,7 @@
 import 'dart:math';
 
 import '../core/l10n.dart';
+import 'activity_identity.dart';
 import 'city_places.dart';
 import 'destination_profiles.dart';
 import 'itinerary_generator.dart' show kDayEndMinutes, kDayStartMinutes;
@@ -130,12 +131,14 @@ CityData? _fillCityData(String city) {
 
 class _FillPlace {
   const _FillPlace({
+    required this.id,
     required this.name,
     this.emoji,
     this.typicalSteps,
     this.openHour,
     this.closeHour,
   });
+  final String id;
   final String name;
   final String? emoji;
   final int? typicalSteps;
@@ -180,6 +183,7 @@ TimelineItem _buildItem(
   final emoji = place?.emoji ?? '🚶';
   return TimelineItem(
     id: id,
+    placeId: place?.id,
     title: '$emoji $name',
     description: place != null
         ? L10n.parametrize(L10n.resolve('gen.fill.popularStop', lang),
@@ -216,16 +220,20 @@ List<DayPlan> fillEmptyDays(
     final keyLower = key.toLowerCase();
     final list = <_FillPlace>[];
     final seen = <String>{};
-    final seenIds = <String>{};
     // 1) Profil popularPlaces'ından YALNIZCA bu şehre ait olanlar.
     for (final p in profile.popularPlaces) {
       if (_cleanCity(p.city).toLowerCase() != keyLower) continue;
       // Tam/yarım gün isteyen Disney, USJ ve teamLab gibi çapalar boşluk
       // doldurmak için kullanılamaz; kendi gün şablonlarıyla planlanırlar.
       if (coverageOfTitle(p.name) != PlaceCoverage.normal) continue;
-      seenIds.add(p.id.toLowerCase());
-      if (!seen.add(p.name.toLowerCase())) continue;
+      final identity = canonicalCatalogPlaceIdentity(
+        city: cityName,
+        id: p.id,
+        name: p.name,
+      );
+      if (!seen.add(identity)) continue;
       list.add(_FillPlace(
+        id: p.id,
         name: p.name,
         emoji: p.emoji,
         typicalSteps: p.typicalSteps,
@@ -239,15 +247,21 @@ List<DayPlan> fillEmptyDays(
     if (cd != null) {
       for (final cp in cd.places) {
         if (coverageOfTitle(cp.name) != PlaceCoverage.normal) continue;
-        final separator = cp.id.indexOf('-');
-        final localId = separator < 0 ? cp.id : cp.id.substring(separator + 1);
         // Aynı yerin İngilizce/Türkçe katalog adlarını iki farklı durak gibi
         // ekleme (örn. "Kuromon Market" / "Kuromon Pazarı"). Saat bilgisi
         // taşıyan popularPlaces kaydı önceliklidir.
-        if (seenIds.contains(localId.toLowerCase())) continue;
-        if (!seen.add(cp.name.toLowerCase())) continue;
-        list.add(
-            _FillPlace(name: cp.name, emoji: cp.emoji, typicalSteps: 9000));
+        final identity = canonicalCatalogPlaceIdentity(
+          city: cityName,
+          id: cp.id,
+          name: cp.name,
+        );
+        if (!seen.add(identity)) continue;
+        list.add(_FillPlace(
+          id: cp.id,
+          name: cp.name,
+          emoji: cp.emoji,
+          typicalSteps: 9000,
+        ));
       }
     }
     cityPlaces[key] = list;

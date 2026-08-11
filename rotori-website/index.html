@@ -206,7 +206,7 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 .hero-lead{margin-left:auto;margin-right:auto}
 .hero-cta{display:inline-flex;gap:14px;margin-top:32px;flex-wrap:wrap;justify-content:center;align-items:center}
 
-/* Award badges — Rotori honest equivalents (Sign in w/ Apple, Zero analytics) */
+/* Award badges — Rotori honest equivalents (Sign in w/ Apple, privacy-first metrics) */
 .hero-awards{display:flex;justify-content:center;gap:clamp(28px,5vw,64px);margin-top:48px;flex-wrap:wrap}
 .hero-award{display:flex;gap:12px;align-items:center;text-align:left}
 .hero-award .aw-ic{width:42px;height:42px;border-radius:11px;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;font-size:22px;flex:none;box-shadow:0 6px 16px -8px rgba(15,10,30,.12)}
@@ -658,7 +658,7 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
       </div>
       <div class="hero-award">
         <div class="aw-ic">🔇</div>
-        <div><div class="aw-t" data-i18n="hero.aw2t">Sıfır analitik</div><div class="aw-s" data-i18n="hero.aw2s">Konum cihazda</div></div>
+        <div><div class="aw-t" data-i18n="hero.aw2t">Gizlilik odaklı ölçüm</div><div class="aw-s" data-i18n="hero.aw2s">Konum cihazda</div></div>
       </div>
     </div>
 
@@ -1235,7 +1235,7 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
   </div>
   <div class="trust-strip reveal d2">
     <div class="trust-cell"><div class="tc-ic" aria-hidden="true"><svg class="apple-logo" viewBox="0 0 22 26" role="img" aria-label="Apple logo"><path d="M18.3 19.8c-.3.8-.7 1.5-1.2 2.2-.7 1-1.2 1.6-1.7 2-.7.6-1.4.9-2.2.9-.6 0-1.2-.2-2-.5s-1.5-.5-2.1-.5c-.7 0-1.4.2-2.2.5s-1.4.5-1.9.5c-.8 0-1.6-.4-2.3-1.1-.5-.5-1.1-1.2-1.8-2.2-.7-1.1-1.3-2.3-1.8-3.8C.4 16.7 0 15.2 0 13.8c0-1.7.4-3.1 1.1-4.3.6-1 1.3-1.7 2.3-2.3s2-.9 3-.9c.6 0 1.4.2 2.4.6.9.4 1.5.6 1.8.6.2 0 .9-.2 2-.7 1-.4 1.9-.6 2.6-.5 1.9.2 3.4.9 4.3 2.3-1.7 1-2.6 2.5-2.5 4.4 0 1.5.5 2.7 1.6 3.7.5.5 1 .8 1.6 1-.1.4-.3.8-.5 1.1zM14.9.5c0 1.2-.5 2.4-1.4 3.5-1.1 1.3-2.4 2-3.8 1.9 0-.2 0-.3 0-.4 0-1.2.5-2.5 1.4-3.5.5-.5 1-.9 1.7-1.3.7-.3 1.3-.5 1.9-.5 0 .3 0 .5 0 .8z"/></svg></div><div><div class="tc-t" data-i18n="trust.c1t">Sign in with Apple</div><div class="tc-d" data-i18n="trust.c1d">Hide My Email destekli · e-postan senin</div></div></div>
-    <div class="trust-cell"><div class="tc-ic">🔇</div><div><div class="tc-t" data-i18n="trust.c2t">Sıfır analitik</div><div class="tc-d" data-i18n="trust.c2d">Google Analytics, Meta Pixel ve çökme kaydı yok</div></div></div>
+    <div class="trust-cell"><div class="tc-ic">🛡️</div><div><div class="tc-t" data-i18n="trust.c2t">Gizlilik odaklı analitik</div><div class="tc-d" data-i18n="trust.c2d">Crash ve ürün sinyalleri · reklam profili yok</div></div></div>
     <div class="trust-cell"><div class="tc-ic">📍</div><div><div class="tc-t" data-i18n="trust.c3t">Konum cihazda kalır</div><div class="tc-d" data-i18n="trust.c3d">GPS keşif motoru sunucuya hiçbir şey göndermez</div></div></div>
     <div class="trust-cell"><div class="tc-ic">🗑️</div><div><div class="tc-t" data-i18n="trust.c4t">Anlık hesap silme</div><div class="tc-d" data-i18n="trust.c4d">App Store GL 5.1.1(v) uyumlu · uygulama içinden</div></div></div>
     <div class="trust-cell"><div class="tc-ic">⚖️</div><div><div class="tc-t" data-i18n="trust.c5t">Veri hakları</div><div class="tc-d" data-i18n="trust.c5d">Gizlilik, veri erişimi ve silme seçenekleri uygulama içinde</div></div></div>
@@ -1300,7 +1300,7 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
     // Hero — awards, notifications, tab-bar
     'hero.aw1t':{tr:'Sign in with Apple',en:'Sign in with Apple'},
     'hero.aw1s':{tr:'Hide My Email',en:'Hide My Email'},
-    'hero.aw2t':{tr:'Sıfır analitik',en:'Zero analytics'},
+    'hero.aw2t':{tr:'Gizlilik odaklı ölçüm',en:'Privacy-first metrics'},
     'hero.aw2s':{tr:'Konum cihazda',en:'Location on device'},
     'hero.hn1t':{tr:'Fushimi Inari keşfedildi',en:'Fushimi Inari discovered'},
     'hero.hn1s':{tr:'+25 XP · Lv 4',en:'+25 XP · Lv 4'},
@@ -1559,8 +1559,8 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
     'trust.lead':{tr:'Konum tabanlı keşifler cihazında işlenir. Hesabını ve kayıtlı verilerini uygulama içinden silebilirsin.',en:'Location-based discoveries are processed on your device. You can delete your account and saved data from the app.'},
     'trust.c1t':{tr:'Sign in with Apple',en:'Sign in with Apple'},
     'trust.c1d':{tr:'Hide My Email destekli · e-postan senin',en:'Hide My Email supported · your email stays yours'},
-    'trust.c2t':{tr:'Sıfır analitik',en:'Zero analytics'},
-    'trust.c2d':{tr:'Google Analytics, Meta Pixel ve çökme kaydı yok',en:'No Google Analytics, Meta Pixel, or crash logs'},
+    'trust.c2t':{tr:'Gizlilik odaklı analitik',en:'Privacy-first analytics'},
+    'trust.c2d':{tr:'Crash ve ürün sinyalleri · reklam profili yok',en:'Crash and product signals · no ad profiling'},
     'trust.c3t':{tr:'Konum cihazda kalır',en:'Location stays on device'},
     'trust.c3d':{tr:'GPS keşif motoru sunucuya hiçbir şey göndermez',en:'The GPS discovery engine sends nothing to any server'},
     'trust.c4t':{tr:'Anlık hesap silme',en:'Instant account deletion'},

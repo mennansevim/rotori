@@ -3,6 +3,7 @@
 // Widget yok, hızlı. Yeni oluşturma akışının doğruluğu buraya yaslanıyor.
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rotori/domain/activity_identity.dart';
 import 'package:rotori/domain/city_places.dart';
 import 'package:rotori/domain/destination_profiles.dart';
 import 'package:rotori/domain/itinerary_generator.dart'
@@ -150,6 +151,44 @@ void main() {
       final restored = TimelineItem.fromJson(activity.toJson());
       expect(restored.openingTime, activity.openingTime);
       expect(restored.closingTime, activity.closingTime);
+    });
+
+    test('aynı mekan alias adı ve katalog kimliğiyle ardışık güne gelemez', () {
+      expect(
+        canonicalPlaceIdentity(
+          title: '🎢 Universal Studios Japan',
+          placeId: 'usj',
+          cityId: 'Osaka',
+        ),
+        canonicalPlaceIdentity(
+          title: '🎢 Universal Studios',
+          placeId: 'os-usj',
+          cityId: 'Osaka',
+        ),
+      );
+
+      final trip = buildTripFromCities(
+        cityKeys: const ['osaka'],
+        startYmd: '2026-10-01',
+        endYmd: '2026-10-14',
+      );
+      expect(
+        findConsecutiveActivityDuplicates(trip.days),
+        isEmpty,
+        reason: 'Gerçek üretim hattı ardışık gün mekan tekrarı üretemez.',
+      );
+      final usj = trip.days
+          .expand((day) => day.items)
+          .where((item) =>
+              canonicalPlaceIdentity(
+                title: item.title,
+                placeId: item.placeId,
+                cityId: item.cityId,
+              ) ==
+              'osaka:usj')
+          .toList();
+      expect(usj, hasLength(1));
+      expect(TimelineItem.fromJson(usj.single.toJson()).placeId, isNotNull);
     });
   });
 

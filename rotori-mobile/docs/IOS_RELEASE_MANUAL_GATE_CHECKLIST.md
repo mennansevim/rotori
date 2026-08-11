@@ -16,6 +16,14 @@ Bu checklist, `mobile/docs/RELEASE_QA_ANALYSIS_2026-07-26.md` bulgularına göre
   - [ ] Xcode Signing & Capabilities altında **Sign in with Apple** açık.
   - [ ] Apple Developer / Supabase credential eşleşmesi doğrulandı.
 - [ ] **Plan veri bütünlüğü**: Plan kaydet/aç sonrası veri kaybı yok.
+- [ ] **Gözlemlenebilirlik**:
+  - [ ] `0009_analytics_observability.sql` production Supabase'e uygulandı.
+  - [ ] Release build `SENTRY_DSN` ve `SENTRY_ENVIRONMENT=production` ile alındı.
+  - [ ] Kontrollü test hatası Sentry'de doğru release/environment ile göründü.
+  - [ ] Bir rota üretiminde `started` + `succeeded` satırları ve sadeleştirilmiş
+        JSON görüldü; uçuş/otel/bilet/not/e-posta/GPS bulunmadı.
+  - [ ] App Store Connect Privacy beyanında User ID, Product Interaction,
+        Crash Data ve Performance Data mevcut kullanımla eşleşiyor.
 - [ ] **Permission açıklamaları**: `Info.plist` usage description metinleri doğru ve anlamlı.
 - [ ] **Cepte Çevirmen gizlilik kapısı**:
   - [ ] Ücretsiz kullanıcıda çevirmen kilitli; dil modeli kontrolü/indirmesi başlamıyor.

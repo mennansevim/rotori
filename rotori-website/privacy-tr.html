@@ -95,12 +95,20 @@
     <p>Premium Cepte Çevirmen'e yazdığın metin ve çeviri sonucu cihazında işlenir. Bunları Rotori sunucularına veya reklam sistemlerine göndermeyiz; saklamayız ve log'lamayız. Gerekli dil modelleri ilk kurulumda senin isteğinle Google ML Kit tarafından indirilebilir; sonrasında metin çevirisi cihazda çalışır. Bu özellik mikrofon veya konuşma tanıma kullanmaz.</p>
   </div>
 
+  <div class="card">
+    <h3>Ürün analitiği ve teknik tanılama</h3>
+    <p>Rotori'nin güvenilirliğini ve rota kalitesini geliştirmek için oturum açan hesabınla bağlantılı sınırlı ürün olayları tutarız: uygulama/ekran açılışları, rota üretiminin başarı veya hata durumu, seçilen şehirler ve tarihler, oluşturulan durak sırası, saatler, ulaşım türleri ve toplu süre/sayı metrikleri.</p>
+    <p>Analitik rota kaydı; uçuş, otel, bilet, serbest not, iletişim bilgisi, fotoğraf, harita bağlantısı, gerçek GPS konumu veya beslenme tercihinin içeriğini içermez. Beslenme ve bütçe alanlarında yalnız tercih bulunup bulunmadığı/sayısı tutulur.</p>
+    <p>Çökme ve teknik hatalarda Sentry'ye hata yığını, uygulama sürümü, cihaz/işletim sistemi bilgisi, güvenli ekran adı ve takma adlı hesap kimliği gönderilebilir. E-posta, ekran görüntüsü, arayüz ağacı ve rota JSON'u Sentry'ye gönderilmez.</p>
+  </div>
+
   <h2>3. Bilgileri nasıl kullanıyoruz?</h2>
   <ul>
     <li>Sana seyahat planını sunmak</li>
     <li>Rezervasyon zamanı geldiğinde yerel hatırlatma göndermek (bildirim izni isteyeceğiz — sen ver ya da verme)</li>
     <li>Rotayı Google Maps'te açmak — bu tıklandığında Google Maps'e sadece koordinatlar gider, ne kim olduğun ne de hesap bilgin</li>
     <li>Gezinin ne zamanına yakın olduğuna göre hazırlık checklist'in tetiklemek</li>
+    <li>Çökmeleri ve teknik hataları gidermek; rota üretiminin başarı, süre ve çıktı kalitesini ölçerek ürünü iyileştirmek</li>
   </ul>
   <p>Bilgilerini <strong>reklam için asla kullanmayız</strong>. Rotori bir reklam ağı çalıştırmıyor.</p>
 
@@ -111,11 +119,13 @@
     <li><strong>Open-Meteo</strong> — hava tahmini için sadece şehir koordinatlarını gönderir (kim olduğun gitmez). Ücretsiz açık kaynak servis, hesap gerekmez.</li>
     <li><strong>Google Maps</strong> — sen "haritada aç" dediğinde koordinatın Google'a gider. Uygulama arka planda Google'a hiç istek atmaz.</li>
     <li><strong>Google ML Kit Translation</strong> — çevrimdışı çeviri dil modellerini yalnızca sen indirme düğmesine dokunduğunda sağlar. Çevrilecek metin ve sonuç cihazda işlenir; Rotori tarafından Google'a gönderilmez.</li>
+    <li><strong>Sentry</strong> — çökme, hata ve performans tanılaması. Rota JSON'u, gerçek GPS konumu, e-posta, ekran görüntüsü veya arayüz ağacı gönderilmez. Sentry kendi <a href="https://sentry.io/privacy/">gizlilik politikasına</a> tabidir.</li>
   </ul>
-  <p>Sana özel reklam profili çıkaran veya davranış izleyen bir hizmet <strong>kullanmıyoruz</strong>: Google Analytics yok, Facebook Pixel yok, Firebase Analytics yok, crash reporting bile yok. Rotori sessiz bir uygulama.</p>
+  <p>Sana özel reklam profili çıkaran hizmet kullanmıyoruz: Google Analytics, Meta Pixel ve Firebase Analytics yoktur. Ürün olayları kendi Supabase projemizde; teknik hata kayıtları Sentry'de tutulur ve reklam amacıyla kullanılmaz veya satılmaz.</p>
 
   <h2>5. Ne kadar süre tutuyoruz?</h2>
-  <p>Sen hesabını silene kadar verilerin saklanır. Uygulamanın içinden <strong>"Hesabı Sil"</strong> düğmesine dokunduğun an her şey silinir — planların, otel kayıtların, biletler, hatırlatmalar, hazırlık listen ve hesap kaydın. Bu işlem geri alınamaz.</p>
+  <p>Sen hesabını silene kadar hesap ve uygulama verilerin saklanır. Uygulamanın içinden <strong>"Hesabı Sil"</strong> düğmesine dokunduğunda planların, otel kayıtların, biletlerin, hatırlatmaların, hazırlık listen, hesabın ve ona bağlı Supabase analitik kayıtların silinir. Bu işlem geri alınamaz.</p>
+  <p>Sentry'deki teknik olaylar proje saklama süresi sonunda silinir. Bunların daha erken silinmesini istersen <a href="mailto:destek@rotori.app">destek@rotori.app</a>'e yazabilirsin.</p>
   <p>Hesap silme akışı Apple App Store Guideline 5.1.1(v)'e uygundur: kayıt açabildiğin yerden silme de yapabilirsin, e-posta göndermene gerek yok.</p>
 
   <h2>6. Sizin haklarınız (KVKK / GDPR)</h2>

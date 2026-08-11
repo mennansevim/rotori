@@ -15,6 +15,8 @@ class _ViewerDrawer extends ConsumerWidget {
     required this.palette,
     required this.trip,
     required this.dayCount,
+    required this.flightExpansionRequest,
+    required this.onOpenFlights,
     required this.onOpenThemePicker,
     required this.onOpenBudget,
     required this.onOpenPrep,
@@ -26,6 +28,8 @@ class _ViewerDrawer extends ConsumerWidget {
   final ViewerPalette palette;
   final Trip trip;
   final int dayCount;
+  final int flightExpansionRequest;
+  final VoidCallback onOpenFlights;
   final VoidCallback onOpenThemePicker;
   final VoidCallback onOpenBudget;
   final VoidCallback onOpenPrep;
@@ -120,7 +124,12 @@ class _ViewerDrawer extends ConsumerWidget {
                     dayCount: dayCount,
                   ),
                   const SizedBox(height: 10),
-                  _DrawerFlightsMini(trip: trip, palette: p),
+                  _DrawerFlightsMini(
+                    trip: trip,
+                    palette: p,
+                    expansionRequest: flightExpansionRequest,
+                    onAddFlight: onOpenFlights,
+                  ),
                   const SizedBox(height: 8),
                   _DrawerHotelsMini(trip: trip, palette: p),
                   const SizedBox(height: 22),
@@ -790,9 +799,16 @@ class _DrawerNavTile extends StatelessWidget {
 /// Kompakt uçuş özeti — drawer içi. Gidiş/Dönüş yönlerini tek satırda
 /// IATA + saat olarak gösterir.
 class _DrawerFlightsMini extends StatefulWidget {
-  const _DrawerFlightsMini({required this.trip, required this.palette});
+  const _DrawerFlightsMini({
+    required this.trip,
+    required this.palette,
+    required this.expansionRequest,
+    required this.onAddFlight,
+  });
   final Trip trip;
   final ViewerPalette palette;
+  final int expansionRequest;
+  final VoidCallback onAddFlight;
 
   @override
   State<_DrawerFlightsMini> createState() => _DrawerFlightsMiniState();
@@ -800,6 +816,23 @@ class _DrawerFlightsMini extends StatefulWidget {
 
 class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
   bool _expanded = false;
+  late int _handledExpansionRequest;
+
+  @override
+  void initState() {
+    super.initState();
+    _handledExpansionRequest = widget.expansionRequest;
+    _expanded = widget.expansionRequest > 0;
+  }
+
+  @override
+  void didUpdateWidget(covariant _DrawerFlightsMini oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.expansionRequest != _handledExpansionRequest) {
+      _handledExpansionRequest = widget.expansionRequest;
+      _expanded = true;
+    }
+  }
 
   static String _iata(FlightLeg l) {
     final ap = l.airport.trim();
@@ -1054,6 +1087,7 @@ class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
         title: s.s('drawer.flights.add'),
         planId: widget.trip.id,
         route: '/plans/${widget.trip.id}/flights',
+        onTap: widget.onAddFlight,
       );
     }
     return _DrawerCollapsible(
@@ -1464,6 +1498,7 @@ class _DrawerAddCard extends StatelessWidget {
     required this.title,
     required this.planId,
     this.route,
+    this.onTap,
   });
 
   final ViewerPalette palette;
@@ -1476,6 +1511,7 @@ class _DrawerAddCard extends StatelessWidget {
   /// bu, wizard sökülene kadar hâlâ bağlı olan kartlar için geçici bir
   /// güvenlik ağıdır.
   final String? route;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1486,10 +1522,11 @@ class _DrawerAddCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () {
-          Navigator.of(context).pop();
-          context.push(route ?? '/plans/$planId/edit');
-        },
+        onTap: onTap ??
+            () {
+              Navigator.of(context).pop();
+              context.push(route ?? '/plans/$planId/edit');
+            },
         child: DecoratedBox(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),

@@ -5,6 +5,150 @@
 
 ---
 
+## 2026-08-11l — Saha gerçekliği motorun içine değil, çevresine eklenir (v3)
+
+**Karar:** Japonya'ya özgü lojistik/ulaşım/takvim gerçekleri
+`BeamSearchItineraryOptimizer`'ın gövdesine gömülmez. Bunun yerine:
+
+1. **İkili kapılar** `HardConstraintChecker`, **sürekli maliyet**
+   `CostFunction` sınıflarına çıkarıldı. Motor artık yalnız arama stratejisini
+   (beam 6 + 3 local-improvement turu) yönetir. v2'de bu iki mantık `_append`
+   içinde iç içeydi; yeni bir saha kuralı eklemek skorlamayı sessizce
+   bozabiliyordu.
+2. Saha bilgisi tek bir **opsiyonel** `FieldRealityContext` ile taşınır.
+   `field == null` iken motor v2 davranışını **birebir** korur.
+
+**Kanıt:** 4132 optimizer günü / 17.700 aktivite üzerinde koşan üretim
+harness'ının tam JSON zarfı refactor öncesi ve sonrası **byte-identical**
+(strict 3818 · dropping ile kurtarılan 314 · infeasible 0 · hardViolation 0 ·
+duplicateActivity 0 · mustDoDropped 0 · missingReturnLeg 0).
+
+**Katmanlar (hepsi saf, `DateTime.now()` ve ağ yok):**
+
+- `japan_calendar.dart` — resmî tatiller (Happy Monday, equinox formülü,
+  振替休日, 国民の休日), teishukubi kapanış çözümleyicisi ve sezonluk kalabalık.
+- `japan_transit_realism.dart` — JR Pass kapsamı, istasyon karmaşıklığı,
+  karayolu trafik risk matrisi.
+- `luggage_logistics.dart` — Coin Locker / Hotel Drop / Yamato karar ağacı ve
+  otel check-in penceresi.
+- `place_identity_resolver.dart` — Kanji/Kana/Romaji kanonikleştirme.
+- `route_field_context.dart` — tekrar politikası + saha bağlamı toplayıcısı.
+- `minute_math.dart` — çarpan zincirlerinde tek dakikalık kayan nokta kaymasını
+  engelleyen ortak yuvarlama sözleşmesi.
+
+**Pass kapsamı dışı servis iki farklı yerde iki farklı biçimde ele alınır.**
+Rota matrisi somut bir Nozomi seferi verdiyse seçenek **reject** edilir —
+onu "aslında Hikari'ydi" diye yeniden etiketlemek sahada var olmayan bir tren
+uydurmaktır. Şehirlerarası geçiş satırı ise **tahmindir**; orada servis adı
+Hikari/Sakura'ya yazılır ve süre %20/%10 uzatılır
+(`PassExclusionBehaviour`).
+
+**Ulusal JR Pass ve Nozomi:** Ekim 2023'ten beri ek ücretle Nozomi/Mizuho'ya
+biniş mümkündür. Rotori **varsayılan olarak** bunu geçersiz sayar — kullanıcıya
+"pass'in yeter" deyip istasyonda sürpriz ücret çıkarmamak ürün kararıdır.
+Gerçek davranış `RailPassPolicy.allowNozomiWithSurcharge` ile temsil edilebilir.
+
+**Freezed:** Proje hâlâ freezed'siz (bkz. `types.dart` başlığındaki Faz 3b
+notu). v3 modelleri freezed'e taşınmaya hazır biçimde el yazımı immutable
+sınıflar olarak yazıldı: `const` constructor, `final` alanlar, `copyWith`,
+`toJson`/`tryFromJson`. Tek bir katman için codegen altyapısı kurulmadı.
+
+**Bilinen sınır:** Tüm süreler ve ücretler tahmindir. Canlı tren gecikmesi ve
+gerçek zamanlı trafik verisi kapsam dışıdır; bu yüzden risk taşıyan her
+düzeltme UI'a `TransitDisclaimer` olarak taşınır ve kullanıcıya kesinlik vaadi
+verilmez. Kanji→okuma dönüşümü **kapalı bir sözlükle** yapılır; sözlükte
+olmayan kanji romaji üretmez ve kimlik kanji'nin kendisine düşer — sessiz
+yanlış eşleşme yerine eşleşmeme tercih edilir.
+
+---
+
+## 2026-08-11k — Mobil eSIM önerisinin sağlayıcısı eSIM.io'dur
+
+**Karar:** Hazırlık ve plan ekranlarındaki Japonya eSIM kartı eSIM.io markasını
+açıkça gösterir ve eSIM.io'nun kanonik Japonya ürün sayfasına gider:
+`https://esim.io/destinations/esim-japan`.
+
+**Supersedes:** `2026-08-11j` kararının dış-link güvenliği politikası aynen
+korunur; yalnız o bakım sırasında geçici olarak seçilen Airalo kanonik hedefi
+ürün tercihi gereği eSIM.io ile değiştirilmiştir.
+
+---
+
+## 2026-08-11j — Dış önerilerde tahmini affiliate kimliği kullanılmaz
+
+**Karar:** Mobil öneri kataloğunda yalnız sağlayıcının gerçekten üretip
+Rotori'ye verdiği takip bağlantıları kullanılabilir. Aktif ve doğrulanmış bir
+partner hedefi yoksa kart, takip parametresi olmadan sağlayıcının kanonik ürün
+veya ülke sayfasına gider. Marka adına bakarak `aid=rotori`, `aff=rotori`,
+`/affiliate/rotori` veya vanity `pxf.io/rotori-*` adresi türetilmez.
+
+Katalog testleri HTTPS, host, user-info/fragment yokluğu ve tahmini takip
+işaretlerini statik kalite kapısı olarak denetler. Canlı ağ kontrolü release
+bakımının parçasıdır; bot koruması HTTP istemcisini reddetse bile hedef,
+sağlayıcının tarayıcıda açılan ve arama dizininde görülen kanonik sayfası
+olmalıdır.
+
+**Neden:** Affiliate ağlarında okunabilir slug veya sorgu parametresi geçerli
+ortaklık kaydı anlamına gelmez. Bu varsayım Airalo ve Klook'ta doğrudan 404,
+Booking'de ise takip parametresi atılarak ilgisiz ana sayfaya düşme üretti.
+Kullanıcı güveni ve çalışan satın alma akışı, doğrulanmamış komisyon
+atfından önce gelir.
+
+---
+
+## 2026-08-11i — Sonradan uçuş ekleme tek açık kayıttır ve yalnız sınır günlerini yeniler
+
+**Karar:** Plan oluşturulduktan sonra açılan uçuş formu alan değişikliklerini
+arka planda kalıcılaştırmaz. Kullanıcı yerel bir taslak düzenler ve sayfanın
+altındaki tek “Kaydet” aksiyonu uçuş bacaklarını, uçuş tercihlerini ve uçuşa
+bağlı varış/dönüş günlerini tek plan snapshot'ı olarak kaydeder. Ayrı
+“Günleri yeniden düzenle” aksiyonu kaldırılmıştır.
+
+Kaydet işlemi bütün geziyi yeniden üretmez; yalnız ilk varış ve son dönüş
+gününü uçuş saatlerine göre kurar. Aradaki günlerdeki manuel rota düzenlemeleri
+aynen korunur. Başarı bilgisi kapatılınca uçuş sayfası güncel planı viewer'a
+döndürür; viewer edit session'ı yeniler, sandviç panelini açar ve “Uçuşlar”
+akordiyonunu genişletir.
+
+**Neden:** Alan-bazlı debounce kaydı kullanıcının hangi anda değişikliği
+tamamladığını belirsizleştiriyor; ayrıca ikinci yenileme butonu kayıt ve rota
+güncellemesini iki ayrı görev gibi gösteriyordu. Bütün günleri yeniden üretmek
+ise uçuşla ilgisiz manuel plan düzenlemelerini silebilirdi. Tek açık kayıt ve
+sınır-günü yenilemesi işlemi anlaşılır ve veri kaybına karşı güvenli tutar.
+
+---
+
+## 2026-08-11h — Geçiş seçimi tek kaynak, mekan tekrarı kanonik kimlikle engellenir
+
+**Karar:** `DayPlan.cityTransition`, şehirlerarası ulaşım seçiminin tek doğru
+kaynağıdır. Kullanıcı modu değiştirdiğinde `PlanScheduleEngine`, yalnız seçim
+alanını değil `isCityTransition` işaretli timeline satırını, süre/ücret
+özetini, moda bağlı gün başlığını ve rota snapshot'ını aynı immutable komutta
+yeniler. Yeni planlarda geçiş satırı açık metadata taşır; eski planlarda şehir
+çiftiyle birebir eşleşen transport satırı geriye uyumlu olarak tanınır.
+
+Aktivitenin plan içi örnek kimliği (`TimelineItem.id`) ile katalog mekan
+kimliği (`TimelineItem.placeId`) ayrılır. Üretici `PlaceSuggestion` ve
+`CityPlace` kaynaklarını şehir + kanonik mekan kimliğiyle birleştirir. Kontrollü
+alias'lar (`usj`, `os-usj`, “Universal Studios”, “Universal Studios Japan”)
+aynı mekanı gösterir. Ardışık iki günde aynı kanonik mekanın önerilmesi üretim
+çıktısı için hard ihlaldir; farklı yemek/ulaşım satırları bu kurala dahil
+değildir.
+
+**Neden:** Yalnız `cityTransition.mode` alanını güncellemek üst rozeti doğru
+gösterirken eski JR/Shinkansen timeline satırını bırakıyordu. Benzer biçimde
+görünür ada göre birleştirme, aynı USJ kaydını iki katalog kimliğiyle iki güne
+yerleştirebiliyordu. Her iki hata da kullanıcıya tek plan içinde çelişkili
+talimat veriyor.
+
+**Kalite kapısı:** Sentetik 100×4 profil optimizer harness'ı korunur. Buna ek
+olarak gerçek `buildTripFromCities` üretim hattı 100'den fazla şehir sırası,
+gezi uzunluğu ve dil kombinasyonunda çalıştırılır; ardışık kanonik tekrar,
+geçiş modu/timeline uyumu ve eski mod metni sızıntısı sıfır olmalıdır. Sonuç
+versioned JSON inceleme paketi olarak dışarı verilir.
+
+---
+
 ## 2026-08-11g — İlk sürüm rota matrisi ücretli API yerine cihazdaki Japonya paketiyle çalışır
 
 **Supersedes:** `2026-08-11f` kaydındaki Supabase `route-matrix` Edge Function
@@ -983,3 +1127,29 @@ aramamalıdır. Güçlü motorun yalnız isteğe bağlı düğmenin arkasında k
 gösterilen rotayı gereksiz biçimde zayıflatıyordu. Rota sağlayıcısını sunucu
 sınırında bağlamak motorun gerçek kapıdan kapıya sürelerle çalışmasını sağlarken
 anahtar güvenliğini ve çevrimdışı fallback'i korur.
+
+---
+
+## 2026-08-11g — Crash tanısı ve rota analitiği ayrılır
+
+**Karar:** Teknik crash/hata/performance gözlemi Sentry ile; ürün olayları ve
+rota üretim request/result JSON'u Rotori'nin kendi Supabase projesiyle tutulur.
+Sentry public DSN ortamdan gelir ve yoksa entegrasyon no-op'tur. Genel olaylar
+ile rota fazları cihazdaki kullanıcıya özel outbox üzerinden append-only
+gönderilir; ağ/telemetri hatası plan üretimini durdurmaz.
+
+**Veri minimizasyonu:** Analitik rota sözleşmesi tam `Trip.toJson` değildir.
+Uçuş, otel, bilet, serbest not, iletişim alanları, fotoğraf, harita URL'si,
+gerçek GPS, beslenme tercihi içeriği ve bütçe tutarı dışarıda kalır. Sentry'ye
+rota JSON'u, e-posta, ekran görüntüsü veya UI ağacı gönderilmez; yalnız takma
+adlı kullanıcı ID'si ve düşük kardinaliteli teknik bağlam eklenir.
+
+**Yetki/silme:** Analitik tablolarda RLS zorunludur; mobil istemci yalnız kendi
+satırını ekler ve okuyamaz. Analiz Dashboard/service-role sınırındadır. Hesap
+silme Supabase analitik kayıtlarını FK cascade ile temizler. Sentry olayları
+proje saklama politikası ve destek üzerinden erken silme talebi kapsamındadır.
+
+**Neden:** Crash tanısı ile ürün optimizasyonunun sorgu ve veri ihtiyaçları
+farklıdır. Ayrım, rota verisini üçüncü tarafa taşımadan başarı oranı, süre ve
+çıktı kalitesini ölçmeyi; Sentry'nin crash gruplama ve stack trace gücünden de
+yararlanmayı sağlar.

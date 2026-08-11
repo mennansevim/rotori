@@ -10,3 +10,7 @@ rotori-website/legacy/tools/review-commit/.env
 
 # Flutter
 rotori-mobile/env.json
+
+# Yerel QA/ikon artefaktları ve indirilen araç binary'leri — repoya girmez.
+output/
+rotori-mobile/sentry-wizard

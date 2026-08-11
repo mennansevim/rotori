@@ -3,7 +3,10 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
+import '../data/telemetry_service.dart';
+import '../env.dart';
 import '../features/auth/auth_screen.dart';
 import '../features/live_currency_scanner/presentation/pages/live_currency_scanner_page.dart';
 import '../features/price_tag_scanner/view/scanner_screen.dart';
@@ -36,14 +39,17 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     initialLocation: '/',
+    observers: [
+      TelemetryNavigatorObserver(),
+      if (Env.isSentryConfigured) SentryNavigatorObserver(),
+    ],
     refreshListenable: refresh,
     redirect: (context, state) {
       // Session'ı doğrudan SDK'dan oku (cache'li currentSessionProvider değil):
       // onAuthStateChange emit etmeden önce auth.currentSession senkron güncellenir.
       // Aksi halde refresh listenable, StreamProvider cache'inden önce ateşlenip
       // eski (null) session okunur ve ilk login denemesi başarısız görünür.
-      final loggedIn =
-          ref.read(supabaseProvider).auth.currentSession != null;
+      final loggedIn = ref.read(supabaseProvider).auth.currentSession != null;
       return resolveAuthRedirect(
         loggedIn: loggedIn,
         matchedLocation: state.matchedLocation,
@@ -56,11 +62,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/plans',
+        name: 'plans',
         builder: (context, state) => const PlansListScreen(),
       ),
       // '/plans/:id/...' desenlerinden ÖNCE gelmeli.
       GoRoute(
         path: '/plans/new',
+        name: 'create_plan',
         builder: (context, state) => const CreatePlanScreen(),
       ),
       // Eski 6 adımlı wizard kaldırıldı — düzenleme artık planın kendi
@@ -73,38 +81,46 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/plans/:id/view',
+        name: 'plan_viewer',
         builder: (context, state) =>
             PlanViewerScreen(planId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/plans/:id/flights',
+        name: 'flight_details',
         builder: (context, state) =>
             FlightDetailsPage(planId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/plans/:id/hotels/new',
+        name: 'add_hotel',
         builder: (context, state) =>
             AddHotelPage(planId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/plans/:id/prep',
+        name: 'pre_departure',
         builder: (context, state) =>
             _PreDepartureRoute(planId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/reminders',
+        name: 'reminders',
         builder: (context, state) => const RemindersScreen(),
       ),
       GoRoute(
         path: '/live-currency-scanner',
+        name: 'live_currency_scanner',
         builder: (context, state) => const LiveCurrencyScannerPage(),
       ),
       GoRoute(
         path: '/price-tag-scanner',
+        name: 'price_tag_scanner',
         builder: (context, state) => const ScannerScreen(),
       ),
       GoRoute(
         path: '/auth',
+        name: 'auth',
         builder: (context, state) => const AuthScreen(),
       ),
     ],

@@ -8,6 +8,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/supabase_client.dart';
+import '../../data/telemetry_service.dart';
 
 /// Ham (raw) nonce için kullanılan güvenli karakter kümesi (URL-safe).
 const _nonceCharset =
@@ -68,10 +69,14 @@ class AuthRepository {
   /// Başarılı silme sonrası local session temizlenir — router auth ekranına
   /// yönlendirir. Hata durumunda [Exception] fırlatılır (UI SnackBar).
   Future<void> deleteAccount() async {
+    final userId = _client.auth.currentUser?.id;
     try {
       await _client.rpc<void>('delete_current_user');
     } catch (e) {
       throw Exception('Hesap silinemedi. Lütfen tekrar deneyin: $e');
+    }
+    if (userId != null) {
+      await TelemetryService.instance.clearUser(userId);
     }
     // Auth user zaten silindi; local session'ı da temizle ki router yönlendirsin.
     try {
@@ -104,7 +109,8 @@ class AuthRepository {
       );
       final idToken = cred.identityToken;
       if (idToken == null) {
-        throw Exception('Apple kimlik jetonu alınamadı. Lütfen tekrar deneyin.');
+        throw Exception(
+            'Apple kimlik jetonu alınamadı. Lütfen tekrar deneyin.');
       }
       await _client.auth.signInWithIdToken(
         provider: OAuthProvider.apple,

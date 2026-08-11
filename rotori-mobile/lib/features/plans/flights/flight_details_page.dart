@@ -8,10 +8,9 @@
 // Alanlar journey_step._flightLeg / _returnLeg portudur; PT teması korunmuştur
 // (pickers.dart modalleri de PT'ye bağlı — tek tema, sıçrama yok).
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/l10n.dart';
 import '../../../data/language_store.dart';
@@ -34,23 +33,51 @@ class FlightDetailsPage extends ConsumerStatefulWidget {
 
 class _FlightDetailsPageState extends ConsumerState<FlightDetailsPage> {
   Trip? _trip;
-  Timer? _saveDebounce;
-
-  @override
-  void dispose() {
-    _saveDebounce?.cancel();
-    super.dispose();
-  }
+  bool _saving = false;
 
   void _edit(void Function(Trip) mutate) {
     final trip = _trip;
     if (trip == null) return;
     setState(() => mutate(trip));
-    _saveDebounce?.cancel();
-    _saveDebounce = Timer(const Duration(milliseconds: 600), () {
-      ref.read(plansRepositoryProvider)?.save(trip);
-      ref.read(draftTripProvider.notifier).state = trip;
-    });
+  }
+
+  Future<void> _save(LanguageScope s) async {
+    final draft = _trip;
+    if (draft == null || _saving) return;
+
+    setState(() => _saving = true);
+    try {
+      final savedTrip = Trip.fromJson(draft.toJson());
+      final lang = ref.read(appLangProvider);
+      _syncFlightLegs(savedTrip);
+      _refreshFlightDays(savedTrip, lang);
+
+      await ref.read(plansRepositoryProvider)?.save(savedTrip);
+      ref.read(draftTripProvider.notifier).state = savedTrip;
+      if (!mounted) return;
+
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(s.s('flights.saved.title')),
+          content: Text(s.s('flights.saved.body')),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(s.s('common.done')),
+            ),
+          ],
+        ),
+      );
+      if (mounted) context.pop(savedTrip);
+    } on Object {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(s.s('flights.saveFailed'))),
+      );
+      setState(() => _saving = false);
+    }
   }
 
   /// Gidiş bacağı = ilk destinasyon (uçağın indiği şehir).
@@ -60,13 +87,22 @@ class _FlightDetailsPageState extends ConsumerState<FlightDetailsPage> {
     return d.isEmpty ? null : d.first;
   }
 
+  /// Dönüş bacağı = gezi sırasındaki son destinasyon.
+  TripDestination? get _departure {
+    final d = [..._trip?.preferences.destinations ?? <TripDestination>[]]
+      ..sort((a, b) => a.order.compareTo(b.order));
+    return d.isEmpty ? null : d.last;
+  }
+
   String get _originCity => _trip?.preferences.originCity ?? '';
   String get _originAirport => _trip?.preferences.originAirport ?? '';
 
   @override
   Widget build(BuildContext context) {
     final planAsync = ref.watch(planByIdProvider(widget.planId));
-    planAsync.whenData((t) => _trip ??= t);
+    planAsync.whenData(
+      (t) => _trip ??= Trip.fromJson(t.toJson()),
+    );
     final s = LanguageScope.of(context);
     final trip = _trip;
 
@@ -104,6 +140,21 @@ class _FlightDetailsPageState extends ConsumerState<FlightDetailsPage> {
                   const SizedBox(height: 18),
                   _outboundLeg(s),
                   _returnLeg(s),
+                  const SizedBox(height: 6),
+                  PButton(
+                    label: s.s('common.save'),
+                    block: true,
+                    onPressed: _saving ? null : () => _save(s),
+                    leading: _saving
+                        ? const SizedBox.square(
+                            dimension: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : null,
+                  ),
                 ],
               ),
       ),
@@ -177,8 +228,7 @@ class _FlightDetailsPageState extends ConsumerState<FlightDetailsPage> {
           label: s.s('journey.field.arrivalTime'),
           child: _TimeBox(
             value: _trip?.preferences.outboundArrivalTime ?? '',
-            onPick: (v) =>
-                _edit((t) => t.preferences.outboundArrivalTime = v),
+            onPick: (v) => _edit((t) => t.preferences.outboundArrivalTime = v),
           ),
         ),
       ],
@@ -189,7 +239,7 @@ class _FlightDetailsPageState extends ConsumerState<FlightDetailsPage> {
 
   Widget _returnLeg(LanguageScope s) {
     final prefs = _trip!.preferences;
-    final defaultDep = _arrival?.airport ?? '';
+    final defaultDep = _departure?.airport ?? '';
     final depIata = (prefs.returnDepartAirport ?? '').isNotEmpty
         ? prefs.returnDepartAirport!
         : defaultDep;
@@ -231,18 +281,112 @@ class _FlightDetailsPageState extends ConsumerState<FlightDetailsPage> {
                 _edit((t) => t.preferences.returnArrivalAirport = a.iata),
           ),
         ),
-        const SizedBox(height: 4),
-        _RegenerateHint(
-          onRegenerate: () {
-            final lang = ref.read(appLangProvider);
-            _edit((t) => fillTripDays(t, lang: lang));
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(s.s('flights.regenerated'))),
-            );
-          },
-        ),
       ],
     );
+  }
+
+  void _syncFlightLegs(Trip trip) {
+    final destinations = [...trip.preferences.destinations]
+      ..sort((a, b) => a.order.compareTo(b.order));
+    if (destinations.isEmpty) return;
+
+    final prefs = trip.preferences;
+    final first = destinations.first;
+    final last = destinations.last;
+    final travelStart = prefs.travelDates.start;
+    final travelEnd = prefs.travelDates.end;
+
+    String existingTime(List<FlightLeg> legs, int index, String fallback) {
+      if (index < 0 || index >= legs.length) return fallback;
+      final parsed = DateTime.tryParse(legs[index].dateTime);
+      if (parsed == null) return fallback;
+      return '${parsed.hour.toString().padLeft(2, '0')}:'
+          '${parsed.minute.toString().padLeft(2, '0')}';
+    }
+
+    String at(String date, String time, String fallbackDate) {
+      final safeDate = date.isNotEmpty ? date : fallbackDate;
+      final safeTime = time.isNotEmpty ? time : '10:00';
+      return '${safeDate}T$safeTime:00';
+    }
+
+    final outbound = <FlightLeg>[
+      FlightLeg(
+        city: prefs.originCity ?? '',
+        airport: prefs.originAirport ?? '',
+        dateTime: at(
+          travelStart,
+          existingTime(trip.flights.outbound, 0, '10:00'),
+          travelStart,
+        ),
+      ),
+      FlightLeg(
+        city: first.city,
+        airport: first.airport ?? '',
+        dateTime: at(
+          first.arrivalDate,
+          prefs.outboundArrivalTime ?? '',
+          travelStart,
+        ),
+      ),
+    ];
+
+    final returnAirport = (prefs.returnDepartAirport ?? '').isNotEmpty
+        ? prefs.returnDepartAirport!
+        : (last.airport ?? '');
+    final returnArrivalAirport = (prefs.returnArrivalAirport ?? '').isNotEmpty
+        ? prefs.returnArrivalAirport!
+        : (prefs.originAirport ?? '');
+    final returnLegs = <FlightLeg>[
+      FlightLeg(
+        city: last.city,
+        airport: returnAirport,
+        dateTime: at(
+          last.departureDate,
+          prefs.returnDepartTime ?? '',
+          travelEnd,
+        ),
+      ),
+      FlightLeg(
+        city: prefs.originCity ?? '',
+        airport: returnArrivalAirport,
+        dateTime: at(
+          travelEnd,
+          existingTime(trip.flights.returnLegs, 1, '20:00'),
+          travelEnd,
+        ),
+      ),
+    ];
+
+    trip.flights = TripFlights(
+      outbound: outbound,
+      returnLegs: returnLegs,
+      legs: [...outbound, ...returnLegs],
+    );
+  }
+
+  /// Uçuş saatleri yalnız varış ve dönüş gününü yeniden kurar. Kullanıcının
+  /// aradaki günlerde yaptığı manuel rota düzenlemeleri kaybolmaz.
+  void _refreshFlightDays(Trip trip, AppLang lang) {
+    final originalByDayNumber = <int, DayPlan>{
+      for (final day in trip.days)
+        day.dayNumber: DayPlan.fromJson(day.toJson()),
+    };
+    if (originalByDayNumber.isEmpty) {
+      fillTripDays(trip, lang: lang);
+      return;
+    }
+
+    final dayNumbers = originalByDayNumber.keys.toList()..sort();
+    final firstDay = dayNumbers.first;
+    final lastDay = dayNumbers.last;
+    fillTripDays(trip, lang: lang);
+    if (firstDay == lastDay) return;
+
+    trip.days = trip.days.map((day) {
+      if (day.dayNumber == firstDay || day.dayNumber == lastDay) return day;
+      return originalByDayNumber[day.dayNumber] ?? day;
+    }).toList();
   }
 }
 
@@ -413,45 +557,6 @@ class _TimeBox extends StatelessWidget {
             color: value.isEmpty ? PT.textTertiary : PT.text,
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// "Saatleri girdim, planı bunlara göre yenile" aksiyonu.
-class _RegenerateHint extends StatelessWidget {
-  const _RegenerateHint({required this.onRegenerate});
-  final VoidCallback onRegenerate;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = LanguageScope.of(context);
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: PT.accentSoft,
-        borderRadius: BorderRadius.circular(PT.radius),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            s.s('flights.regenHint'),
-            style: const TextStyle(
-              fontSize: 13,
-              color: PT.text,
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: PButton(
-              label: s.s('flights.regenAction'),
-              onPressed: onRegenerate,
-            ),
-          ),
-        ],
       ),
     );
   }

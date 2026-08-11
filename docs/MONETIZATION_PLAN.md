@@ -420,6 +420,11 @@ hunisi yazılırken plan çıktısının serileştirilebilir kalmasına dikkat e
 Wanderlog'un abonelik yanında yaptığı şey; kullanıcı başına IAP'den hızlı
 getirebilir ve build maliyeti neredeyse sıfır.
 
+> **Uygulama notu (2026-08-11):** Mobil öneri kartları şimdilik takip
+> parametresiz kanonik sağlayıcı hedeflerine gider. Komisyon atfı ancak partner
+> tarafından üretilmiş gerçek Rotori URL'leri alındıktan ve canlı doğrulandıktan
+> sonra açılır; tahmini `rotori` affiliate kimliği kullanılmaz.
+
 - [ ] eSIM (her Japonya gezgini alıyor, komisyon %15–20 bandında)
 - [ ] JR Pass / bölgesel paslar
 - [ ] Otel rezervasyonu

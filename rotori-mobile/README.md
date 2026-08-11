@@ -44,7 +44,7 @@ flutter create --org com.mennansevim --project-name rotori \
 flutter pub get
 ```
 
-### 3) Supabase env
+### 3) Ortam ayarları
 
 Supabase Dashboard → **Project Settings → API**'den değerleri al ve
 `flutter run` komutuna `--dart-define` ile geçir:
@@ -52,13 +52,20 @@ Supabase Dashboard → **Project Settings → API**'den değerleri al ve
 ```bash
 flutter run -d chrome \
   --dart-define=SUPABASE_URL=https://YOUR_REF.supabase.co \
-  --dart-define=SUPABASE_ANON_KEY=eyJ...
+  --dart-define=SUPABASE_ANON_KEY=eyJ... \
+  --dart-define=SENTRY_DSN=https://PUBLIC_KEY@o0.ingest.sentry.io/0 \
+  --dart-define=SENTRY_ENVIRONMENT=development
 ```
 
 Değerleri tekrar tekrar yazmamak için VSCode `launch.json` veya
 `.vscode/settings.json` içinde saklayabilirsin. Ya da `mobile/.env.example`
 kopyalayıp `.env` yap, kendi shell'ine `export` ederek `$SUPABASE_URL`
 şeklinde referans ver.
+
+`SENTRY_DSN` isteğe bağlıdır; boşsa crash/performance takibi tamamen no-op
+çalışır. Rota üretim analitiği için kök dizindeki
+`supabase/migrations/0009_analytics_observability.sql` uygulanmalıdır. Ayrıntılı
+kurulum ve örnek sorgular `docs/OBSERVABILITY_SETUP.md` içindedir.
 
 ## Doğrulama (Faz 2)
 

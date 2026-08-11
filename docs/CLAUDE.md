@@ -85,7 +85,10 @@ ve rehber. Marka önce "Tabi" (旅) olarak öneriliydi, 2026-07 civarında
 
 - **Supabase** ap-northeast-1 (Tokyo), owner `mennansevim@gmail.com`.
   Migrasyonlar `supabase/migrations/` altında: init, social, pre_departure_checklist,
-  delete_current_user_rpc.
+  delete_current_user_rpc, analytics_observability.
+- **Gözlemlenebilirlik:** Crash/hata/performance Sentry; ürün olayları ve
+  gizlilikten arındırılmış rota request/result JSON'u Supabase. `SENTRY_DSN`
+  yoksa Sentry no-op çalışır.
 - **RLS** her tabloda açık.
 
 ## 4. Kod Konvansiyonları
@@ -157,8 +160,11 @@ rotori-mobile/lib/
 
 - `rotori-mobile/env.json`, `.env`, Supabase servis-role anahtarları **repoya girmez**.
 - Supabase RLS her tabloda zorunlu (istisna yok).
-- Kullanıcı verisinin sunucuda tutulduğu tek yer Supabase. Yerelde sadece plan
-  + tercihler; kart/bilet OCR görselleri cihazda kalır, yüklenmez.
+- Kullanıcı tarafından oluşturulan plan verisi ve ürün analitiği yalnız
+  Supabase'te tutulur. Sentry'ye yalnız teknik crash/hata/performance tanısı ve
+  takma adlı kullanıcı kimliği gider; rota JSON'u, e-posta, ekran görüntüsü ve
+  UI ağacı gönderilmez. Yerelde plan + tercihler; kart/bilet OCR görselleri
+  cihazda kalır, yüklenmez.
 - Prod'a çıkmadan önce Supabase Auth "Confirm email" **açılmalı** (şu an test
   için kapalı).
 
