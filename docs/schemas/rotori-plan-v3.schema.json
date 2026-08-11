@@ -1,0 +1,418 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rotori.app/schemas/rotori-plan-v3.schema.json",
+  "title": "Rotori Plan Document v3",
+  "description": "Rotori mobil rota üretim hattının plan sözleşmesi. v3, saha gerçekliğinden doğan meta veriyi (bagaj lojistiği, JR Pass kısıtı, teishukubi kapanışı, sezonluk yoğunluk, intent-aware tekrar politikası) isteğe bağlı iç nesnelere taşır. GERİYE UYUMLULUK: tüm v3 alanları opsiyoneldir ve varsayılan değerdeyken serileştirilmez; v2 dokümanı v3 okuyucuda kayıpsız açılır, v3 dokümanı v2 okuyucuda bilinmeyen anahtarları yok sayarak açılır.",
+  "type": "object",
+  "required": ["schemaVersion", "days"],
+  "properties": {
+    "schemaVersion": { "const": 3 },
+    "days": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/DayPlan" }
+    }
+  },
+
+  "$defs": {
+
+    "HhMm": {
+      "type": "string",
+      "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+      "description": "Yerel saat, 24 saat biçimi."
+    },
+
+    "IsoDate": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+
+    "Weekday": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 7,
+      "description": "DateTime.monday=1 … DateTime.sunday=7."
+    },
+
+    "TransportMode": {
+      "enum": ["shinkansen", "train", "bus", "taxi", "flight", "car"]
+    },
+
+    "RailPassType": {
+      "enum": ["none", "nationalJrPass", "regionalJrPass", "nonJrPass"],
+      "description": "Kullanıcının elindeki demiryolu bileti. coversJrLines olan tiplerde Nozomi/Mizuho varsayılan olarak geçersizdir."
+    },
+
+    "ShinkansenService": {
+      "enum": ["nozomi", "mizuho", "hikari", "sakura", "kodama", "tsubame", "otherLine"]
+    },
+
+    "StationComplexity": {
+      "enum": ["simple", "normal", "labyrinth"],
+      "description": "labyrinth → yürüme süresine +15 dk stationNavigationBuffer eklenir."
+    },
+
+    "LuggageSize": {
+      "enum": ["none", "cabin", "medium", "large"]
+    },
+
+    "LuggageHandlingStrategy": {
+      "enum": ["none", "carry", "coinLocker", "hotelEarlyDrop", "hotelCheckIn", "yamatoForward"],
+      "description": "yamatoForward ve none, geçiş günü istasyon/otel bagaj tamponunu BYPASS eder."
+    },
+
+    "LuggageAdvisory": {
+      "enum": [
+        "arrivedBeforeCheckIn",
+        "arrivedAfterCheckInWindow",
+        "oversizedForCoinLocker",
+        "coinLockerUnlikelyAtStation",
+        "yamatoOvernightBagRequired",
+        "yamatoCutoffMissed",
+        "yamatoDistanceTooShort",
+        "yamatoStayTooShort",
+        "hotelDetourExpensive"
+      ]
+    },
+
+    "TransitDisclaimer": {
+      "enum": [
+        "trafficRisk",
+        "stationNavigationBuffer",
+        "railPassDowngrade",
+        "railPassSurcharge",
+        "railPassNotCovered",
+        "seasonalCrowding"
+      ],
+      "description": "UI metni değil, l10n anahtar kimliği. Sunum katmanı çözer."
+    },
+
+    "CrowdSeason": {
+      "enum": ["normal", "sakura", "goldenWeek", "obon", "newYear", "autumnFoliage"]
+    },
+
+    "RepeatPolicy": {
+      "enum": ["hardZero", "repeatableZone", "timeQuota", "userOverride"],
+      "description": "hardZero (varsayılan) ardışık iki güne aynı mekanı koymaz. repeatableZone bölge/tematik park içindir. timeQuota, kotası dolmamış büyük mekanı tekrar önerir. userOverride tüm deduplication kurallarını ezer."
+    },
+
+    "ClosureCause": {
+      "enum": ["weeklyClosure", "shiftedClosure", "yearEndClosure", "exceptionalClosure"]
+    },
+
+    "TransitSignals": {
+      "type": "object",
+      "description": "Bir ulaşım satırının saha riski ve pass düzeltmeleri. Varsayılan değerler serileştirilmez.",
+      "additionalProperties": false,
+      "properties": {
+        "hasTrafficRiskDisclaimer": {
+          "type": "boolean",
+          "description": "true ise UI varış saatinin trafiğe bağlı olduğunu göstermek ZORUNDADIR. bus/taxi modlarında set edilir."
+        },
+        "trafficRiskMultiplier": {
+          "type": "number",
+          "minimum": 1,
+          "description": "Uygulanan trafik çarpanı. Peak (hafta içi 07:00-09:30 / 17:00-19:30) 1.3; diğer 1.1."
+        },
+        "stationNavigationBufferMin": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Dev istasyon (Shinjuku, Tokyo, Umeda, Osaka…) navigasyon tamponu. Kalkış ve varış ayrı ayrı labyrinth ise toplanır."
+        },
+        "requestedService": { "$ref": "#/$defs/ShinkansenService" },
+        "effectiveService": {
+          "$ref": "#/$defs/ShinkansenService",
+          "description": "Pass kısıtından sonra fiilen kullanılan servis. requestedService'ten farklıysa downgrade uygulanmıştır."
+        },
+        "railPass": { "$ref": "#/$defs/RailPassType" },
+        "surchargeYen": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Pass kapsamı dışı biniş için tahmini ek ücret (kişi başı)."
+        },
+        "disclaimers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/TransitDisclaimer" },
+          "uniqueItems": true
+        }
+      }
+    },
+
+    "RepeatSignals": {
+      "type": "object",
+      "description": "Intent-aware tekrar politikası. Yoksa hardZero uygulanır.",
+      "additionalProperties": false,
+      "properties": {
+        "policy": { "$ref": "#/$defs/RepeatPolicy" },
+        "isRepeatableZone": {
+          "type": "boolean",
+          "description": "Bölge (Akihabara, Shibuya) veya tematik park (USJ, Disney) — ardışık günlere atanabilir."
+        },
+        "userExplicitSelection": {
+          "type": "boolean",
+          "description": "Kullanıcı bu mekanı elle seçti; tüm hard-zero deduplication kuralları ezilir."
+        },
+        "recommendedTotalMinutes": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Mekanın tam gezilmesi için önerilen toplam süre (zaman kotası)."
+        },
+        "completedMinutes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Önceki günlerde bu mekanda geçirilmiş toplam süre. recommendedTotalMinutes'ten küçükse mekan 'incomplete' sayılır ve tekrar önerilebilir."
+        },
+        "maximumConsecutiveDays": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Bölge/kota politikasında ardışık kaç güne atanabileceği. Varsayılan 2."
+        }
+      }
+    },
+
+    "ClosureSignals": {
+      "type": "object",
+      "description": "Teishukubi (定休日) kapanış sözleşmesi ve Holiday Shift izi.",
+      "additionalProperties": false,
+      "properties": {
+        "weeklyClosedWeekdays": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Weekday" },
+          "uniqueItems": true,
+          "description": "Haftalık düzenli kapanış günleri. Japon müzelerinin çoğunda [1] (Pazartesi)."
+        },
+        "holidayShiftApplied": {
+          "type": "boolean",
+          "description": "Kapanış günü resmî tatile denk geldiği için mekan AÇIK kalmış ve kapanış tatil olmayan ilk güne kaymış."
+        },
+        "closureCause": { "$ref": "#/$defs/ClosureCause" },
+        "shiftedFromDate": {
+          "$ref": "#/$defs/IsoDate",
+          "description": "shiftedClosure durumunda kapanışı doğuran asıl düzenli kapanış günü."
+        }
+      }
+    },
+
+    "LuggageSignals": {
+      "type": "object",
+      "description": "Gün seviyesi bagaj stratejisi. Şehir geçişi + otel değişimi olan günlerde yazılır.",
+      "required": ["strategy"],
+      "additionalProperties": false,
+      "properties": {
+        "strategy": { "$ref": "#/$defs/LuggageHandlingStrategy" },
+        "size": { "$ref": "#/$defs/LuggageSize" },
+        "bagCount": { "type": "integer", "minimum": 0 },
+        "originHandoverMin": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Kaynak otelde kargo teslimi (Yamato) için ayrılan süre."
+        },
+        "arrivalHandlingMin": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Varışta bagajı yerleştirme süresi. coinLocker → 20 dk; hotelEarlyDrop → 2×sapma + resepsiyon. yamatoForward → 0."
+        },
+        "retrievalMin": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Gün sonunda coin locker'dan bagajı geri alma süresi."
+        },
+        "estimatedCostYen": { "type": "integer", "minimum": 0 },
+        "baggageAvailableAfterDays": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "yamatoForward için 1 — bagaj ERTESİ GÜN ulaşır; UI gecelik çanta uyarısı göstermelidir."
+        },
+        "advisories": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/LuggageAdvisory" },
+          "uniqueItems": true
+        },
+        "reasonCode": {
+          "type": "string",
+          "description": "Deterministik karar kimliği (yamato-forward, early-arrival-coin-locker, hotel-check-in-window …). Loglama ve regresyon içindir."
+        }
+      }
+    },
+
+    "CrowdSignals": {
+      "type": "object",
+      "description": "Sezonluk yoğunluk. Golden Week / Sakura + Tokyo|Kyoto + popüler tapınak/park → durationMultiplier 1.25.",
+      "required": ["season"],
+      "additionalProperties": false,
+      "properties": {
+        "season": { "$ref": "#/$defs/CrowdSeason" },
+        "durationMultiplier": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 2,
+          "description": "Etkinlik süresine uygulanan çarpan. Kategori duyarlılığına göre ölçeklenir."
+        },
+        "walkingMultiplier": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 2,
+          "description": "Erişim/aktarma yürüyüşüne uygulanan çarpan. Tren süresi ETKİLENMEZ."
+        },
+        "isPublicHoliday": { "type": "boolean" }
+      }
+    },
+
+    "CityTransitionOption": {
+      "type": "object",
+      "description": "Picker'a sunulan tek bir mod seçeneği. MOTOR üretir, UI yalnız gösterir ve seçer — böylece 'üst rozet Otobüs ama timeline JR Special Rapid' sınıfı projeksiyon kayması yapısal olarak imkânsızdır.",
+      "required": ["mode", "durationMinutes"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "$ref": "#/$defs/TransportMode" },
+        "durationMinutes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Pass downgrade ve trafik çarpanı UYGULANMIŞ süre."
+        },
+        "serviceLabel": {
+          "type": "string",
+          "description": "Shinkansen servis adı (\"Hikari\"). Özel isimdir, çevrilmez."
+        },
+        "estimatedFareYen": { "type": "integer", "minimum": 0 },
+        "fareLabel": { "type": "string" },
+        "isRecommended": { "type": "boolean" },
+        "isPassCovered": { "type": "boolean" },
+        "isBlockedByPass": {
+          "type": "boolean",
+          "description": "JR Pass + Nozomi/Mizuho. Seçenek GÖSTERİLİR ama seçilemez; 'pass'im var, Nozomi neden yok?' sorusu sessiz bırakılmaz."
+        },
+        "hasTrafficRiskDisclaimer": { "type": "boolean" },
+        "disclaimers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/TransitDisclaimer" },
+          "uniqueItems": true
+        },
+        "emoji": { "type": "string" }
+      }
+    },
+
+    "CityTransitionPlan": {
+      "type": "object",
+      "description": "Şehre varış gününün ulaşım sözleşmesi. mode alanı timeline satırının, gün başlığının ve rozetin TEK doğruluk kaynağıdır.",
+      "required": ["fromCity", "toCity", "mode"],
+      "additionalProperties": false,
+      "properties": {
+        "fromCity": { "type": "string" },
+        "toCity": { "type": "string" },
+        "mode": { "$ref": "#/$defs/TransportMode" },
+        "linkedTicketId": { "type": "string" },
+        "railPass": {
+          "$ref": "#/$defs/RailPassType",
+          "description": "v3 — motor bilet tipini BU satırdan okur ve Nozomi/Mizuho kısıtını buna göre uygular."
+        },
+        "durationMinutes": { "type": "integer", "minimum": 0 },
+        "serviceLabel": { "type": "string" },
+        "options": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/CityTransitionOption" }
+        },
+        "luggageStrategy": { "$ref": "#/$defs/LuggageHandlingStrategy" }
+      }
+    },
+
+    "TimelineItem": {
+      "type": "object",
+      "required": ["id", "title"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Aktivite ÖRNEĞİ kimliği. Katalog mekan kimliğinden (placeId) ayrıdır."
+        },
+        "title": { "type": "string" },
+        "placeId": {
+          "type": "string",
+          "description": "Katalog mekan kimliği. Kanonik kimliğin en güvenilir kaynağıdır."
+        },
+        "canonicalPlaceHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}$",
+          "description": "v3 — PlaceIdentityResolver'ın ürettiği kararlı 32-bit FNV-1a hash (hex). 清水寺 · きよみずでら · Kiyomizu-dera · Kiyomizudera hepsi AYNI değeri verir. Yalnız depolama/telemetri içindir; kimlik kararı her zaman kaynak alanlardan yeniden türetilir."
+        },
+        "isCityTransition": {
+          "type": "boolean",
+          "description": "Bu satır şehir geçişini temsil eder. Bir günde EN FAZLA BİR tane bulunur."
+        },
+        "kind": { "enum": ["activity", "transport", "meal", "hotel"] },
+        "time": { "$ref": "#/$defs/HhMm" },
+        "scheduledTime": { "$ref": "#/$defs/HhMm" },
+        "durationMin": { "type": "integer", "minimum": 0 },
+        "arrivalBufferMin": { "type": "integer", "minimum": 0 },
+        "openingTime": { "$ref": "#/$defs/HhMm" },
+        "closingTime": { "$ref": "#/$defs/HhMm" },
+        "fixedStartTime": { "$ref": "#/$defs/HhMm" },
+        "fixedEndTime": { "$ref": "#/$defs/HhMm" },
+        "lockType": { "enum": ["none", "reservation", "timedEntry", "userPinned"] },
+        "cityId": { "type": "string" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "cost": { "type": "integer" },
+        "costCurrency": { "type": "string" },
+        "description": { "type": "string" },
+        "tips": { "type": "string" },
+        "mapUrl": { "type": "string" },
+        "movedFromDay": { "type": "integer" },
+        "canChangeDay": { "type": "boolean" },
+        "canChangeTime": { "type": "boolean" },
+        "canReorder": { "type": "boolean" },
+        "canDelete": { "type": "boolean" },
+        "lockReason": { "type": "string" },
+
+        "transit": { "$ref": "#/$defs/TransitSignals" },
+        "repeat": { "$ref": "#/$defs/RepeatSignals" },
+        "closure": { "$ref": "#/$defs/ClosureSignals" },
+
+        "repeatAllowed": {
+          "type": "boolean",
+          "deprecated": true,
+          "description": "v2 mirası. v3 okuyucu bunu repeat.policy=userOverride'a yükseltir. Yeni dokümanlar repeat nesnesini kullanmalıdır."
+        }
+      }
+    },
+
+    "DayPlan": {
+      "type": "object",
+      "required": ["dayNumber", "date", "theme", "items"],
+      "properties": {
+        "dayNumber": { "type": "integer", "minimum": 1 },
+        "date": { "$ref": "#/$defs/IsoDate" },
+        "weekday": { "type": "string" },
+        "theme": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "stepsEstimate": { "type": "integer", "minimum": 0 },
+        "stepsEstimateMax": { "type": "integer", "minimum": 0 },
+        "taxiRecommended": { "type": "boolean" },
+        "route": {
+          "type": "object",
+          "properties": { "mapsUrl": { "type": "string" } }
+        },
+        "routeExecution": {
+          "type": "object",
+          "description": "Onaylanmış optimizasyon anlık görüntüsü. Timeline değişince GEÇERSİZLEŞİR."
+        },
+        "cityTransition": { "$ref": "#/$defs/CityTransitionPlan" },
+        "luggage": { "$ref": "#/$defs/LuggageSignals" },
+        "crowd": { "$ref": "#/$defs/CrowdSignals" },
+        "items": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/TimelineItem" }
+        },
+        "highlights": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["title", "body"],
+            "properties": {
+              "title": { "type": "string" },
+              "body": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

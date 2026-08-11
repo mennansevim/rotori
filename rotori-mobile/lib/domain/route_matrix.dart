@@ -124,6 +124,45 @@ class TransportOption {
   final int vehicleCapacity;
   final String? providerId;
 
+  /// Saha gerçekliği düzeltmeleri (pass downgrade, trafik çarpanı, istasyon
+  /// tamponu) uygulanmış bir kopya üretir. Matris kaydı değişmez; yalnız o
+  /// yolculuk için değerlenmiş seçenek türetilir.
+  TransportOption copyWith({
+    int? doorToDoorMinutes,
+    int? walkingMinutes,
+    int? waitingMinutes,
+    int? transferCount,
+    int? estimatedCostYen,
+    double? reliabilityScore,
+    double? complexityPenalty,
+    bool? isEstimated,
+    int? rideMinutes,
+    int? accessMinutes,
+    int? transitWaitMinutes,
+    String? lineId,
+    String? providerId,
+  }) =>
+      TransportOption(
+        mode: mode,
+        doorToDoorMinutes: doorToDoorMinutes ?? this.doorToDoorMinutes,
+        walkingMinutes: walkingMinutes ?? this.walkingMinutes,
+        waitingMinutes: waitingMinutes ?? this.waitingMinutes,
+        transferCount: transferCount ?? this.transferCount,
+        estimatedCostYen: estimatedCostYen ?? this.estimatedCostYen,
+        reliabilityScore: reliabilityScore ?? this.reliabilityScore,
+        lineId: lineId ?? this.lineId,
+        directionId: directionId,
+        complexityPenalty: complexityPenalty ?? this.complexityPenalty,
+        isEstimated: isEstimated ?? this.isEstimated,
+        rideMinutes: rideMinutes ?? this.rideMinutes,
+        accessMinutes: accessMinutes ?? this.accessMinutes,
+        transitWaitMinutes: transitWaitMinutes ?? this.transitWaitMinutes,
+        bufferMinutes: bufferMinutes,
+        fareBasis: fareBasis,
+        vehicleCapacity: vehicleCapacity,
+        providerId: providerId ?? this.providerId,
+      );
+
   int get resolvedAccessMinutes => accessMinutes ?? walkingMinutes;
   int get resolvedTransitWaitMinutes => transitWaitMinutes ?? waitingMinutes;
   int get resolvedRideMinutes =>

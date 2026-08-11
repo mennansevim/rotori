@@ -4,6 +4,7 @@
 import 'dart:math';
 
 import '../core/l10n.dart';
+import 'activity_identity.dart';
 import 'city_places.dart';
 import 'destination_profiles.dart';
 import 'explore.dart';
@@ -173,6 +174,7 @@ TimelineItem _makeItem(
 }) =>
     TimelineItem(
       id: newItemId(dayNumber),
+      placeId: place.id,
       time: time,
       scheduledTime: time,
       title: '${place.emoji} ${place.name}',
@@ -521,12 +523,23 @@ List<PlaceSuggestion> _cityPool(DestinationProfile profile, String city) {
   final n = _normCity(city);
   final pool =
       profile.popularPlaces.where((p) => _normCity(p.city) == n).toList();
-  final seen = pool.map((p) => p.name.toLowerCase()).toSet();
+  final seen = <String>{
+    for (final place in pool)
+      canonicalCatalogPlaceIdentity(
+        city: city,
+        id: place.id,
+        name: place.name,
+      ),
+  };
   final cd = _cityDataForName(city);
   if (cd != null) {
     for (final cp in cd.places) {
-      if (seen.contains(cp.name.toLowerCase())) continue;
-      seen.add(cp.name.toLowerCase());
+      final identity = canonicalCatalogPlaceIdentity(
+        city: city,
+        id: cp.id,
+        name: cp.name,
+      );
+      if (!seen.add(identity)) continue;
       pool.add(PlaceSuggestion(
         id: cp.id,
         name: cp.name,
@@ -753,6 +766,7 @@ DayPlan _applyCoverage(DayPlan day, AppLang lang) {
   if (fullItem.id.isNotEmpty) {
     final f = TimelineItem(
       id: fullItem.id,
+      placeId: fullItem.placeId,
       title: fullItem.title,
       description: fullItem.description,
       tips: fullItem.tips,
@@ -803,6 +817,7 @@ DayPlan _applyCoverage(DayPlan day, AppLang lang) {
           coverageOfTitle(it.title) == PlaceCoverage.normal) {
         morning = TimelineItem(
           id: it.id,
+          placeId: it.placeId,
           title: it.title,
           description: it.description,
           tips: it.tips,
@@ -816,6 +831,7 @@ DayPlan _applyCoverage(DayPlan day, AppLang lang) {
     }
     final h = TimelineItem(
       id: halfItem.id,
+      placeId: halfItem.placeId,
       title: halfItem.title,
       description: halfItem.description,
       tips: halfItem.tips,

@@ -12,8 +12,7 @@ import 'package:rotori/domain/types.dart';
 void main() {
   test('Bug 3 — suggestionForMode her mod için geçerli transfer üretir', () {
     for (final mode in kTransportModes) {
-      final s =
-          suggestionForMode(mode, 'Tokyo', 'Osaka', 3, 4);
+      final s = suggestionForMode(mode, 'Tokyo', 'Osaka', 3, 4);
       expect(s.fromCity, 'Tokyo');
       expect(s.toCity, 'Osaka');
       expect(s.transfer.mode, isNotEmpty);
@@ -24,10 +23,15 @@ void main() {
     // shinkansen + bilinen çift → gerçek süre/ücret korunur (Tokyo→Osaka Nozomi).
     final sk = suggestionForMode('shinkansen', 'Tokyo', 'Osaka', 3, 4);
     expect(sk.transfer.duration, contains('2s'));
-    // bus modu → bus emojisi & Willer tip (tip artık i18n anahtarı; TR'ye çöz)
+    // Bilinen şehir çiftinde bus modu tek "8+ saat/Willer" sabitine düşmez;
+    // mevcut kalibre şehir çifti referansından muhafazakâr tahmin üretir.
     final sb = suggestionForMode('bus', 'Tokyo', 'Osaka', 3, 4);
     expect(sb.transfer.emoji, '🚌');
-    expect(L10n.resolve('${sb.transfer.tip}', AppLang.tr), contains('Willer'));
+    expect(sb.transfer.duration, isNot('8+ saat'));
+    expect(
+      L10n.resolve('${sb.transfer.tip}', AppLang.tr),
+      contains('operatörden doğrula'),
+    );
   });
 
   test('reorder resequenceTimes ile saatleri kronolojik dizer', () {

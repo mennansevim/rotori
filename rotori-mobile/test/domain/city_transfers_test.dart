@@ -1,6 +1,7 @@
 // packages/shared/src/__tests__/cityTransfers.test.ts'in birebir Dart eşdeğeri.
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rotori/core/l10n.dart';
 import 'package:rotori/domain/city_transfers.dart';
 import 'package:rotori/domain/day_optimizer.dart';
 import 'package:rotori/domain/types.dart';
@@ -134,11 +135,20 @@ void main() {
   });
 
   group('insertCityTransfer — saat dağıtımı', () {
-    test('transfer 09:00 kalkar, sonraki aktiviteler varış sonrasına dağıtılır', () {
+    test('transfer 09:00 kalkar, sonraki aktiviteler varış sonrasına dağıtılır',
+        () {
       final days = [
         _day(dayNumber: 2, date: '2026-10-04', items: [
-          TimelineItem(id: 'a', title: 'X', kind: TimelineItemKind.activity, time: '09:00'),
-          TimelineItem(id: 'b', title: 'Y', kind: TimelineItemKind.activity, time: '11:00'),
+          TimelineItem(
+              id: 'a',
+              title: 'X',
+              kind: TimelineItemKind.activity,
+              time: '09:00'),
+          TimelineItem(
+              id: 'b',
+              title: 'Y',
+              kind: TimelineItemKind.activity,
+              time: '11:00'),
         ]),
       ];
       final sug = suggestionForMode('shinkansen', 'Tokyo', 'Kyoto', 1, 2);
@@ -206,5 +216,36 @@ void main() {
       );
       expect(hasExistingTransferTo(day, 'Osaka'), isFalse);
     });
+  });
+
+  test('legacy geçiş projection uyuşmazlığı metadata sonrası kapanır', () {
+    final day = _day(
+      dayNumber: 2,
+      items: [
+        TimelineItem(
+          id: 'legacy',
+          title: '🚆 Kyoto → Osaka • JR Special Rapid',
+          description: '30dk · ~580 ¥',
+          kind: TimelineItemKind.transport,
+          time: '09:00',
+          durationMin: 30,
+        ),
+      ],
+    )..cityTransition = const CityTransitionPlan(
+        fromCity: 'Kyoto',
+        toCity: 'Osaka',
+        mode: 'bus',
+      );
+
+    expect(cityTransitionProjectionMatches(day, AppLang.tr), isFalse);
+    day.items[0] = cityTransitionTimelineItem(
+      id: 'legacy',
+      fromCity: 'Kyoto',
+      toCity: 'Osaka',
+      mode: 'bus',
+      time: '09:00',
+      lang: AppLang.tr,
+    );
+    expect(cityTransitionProjectionMatches(day, AppLang.tr), isTrue);
   });
 }

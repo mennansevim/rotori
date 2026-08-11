@@ -1,3 +1,5 @@
+import '../core/l10n.dart';
+import 'city_transfers.dart';
 import 'types.dart';
 
 /// Plan düzenleme kurallarının tek yapılandırma noktası.
@@ -236,12 +238,14 @@ class UpdateCityTransition extends PlanEditCommand {
     required this.fromCity,
     required this.toCity,
     required this.mode,
+    this.lang = AppLang.tr,
   });
 
   final int toDayNumber;
   final String fromCity;
   final String toCity;
   final String mode;
+  final AppLang lang;
 }
 
 class UpsertTicket extends PlanEditCommand {
@@ -891,13 +895,79 @@ class PlanScheduleEngine {
         message: 'Geçerli bir ulaşım türü seçilmeli.',
       );
     }
+    final fromCity = command.fromCity.trim();
+    final toCity = command.toCity.trim();
+    final transferIndex = day.items.indexWhere(
+      (item) => matchesCityTransitionItem(
+        item,
+        fromCity: fromCity,
+        toCity: toCity,
+      ),
+    );
+    final existingTime = transferIndex < 0
+        ? '09:00'
+        : (day.items[transferIndex].time ??
+            day.items[transferIndex].scheduledTime ??
+            '09:00');
+    final transitionItem = cityTransitionTimelineItem(
+      id: transferIndex < 0
+          ? 'city-transition-${day.dayNumber}'
+          : day.items[transferIndex].id,
+      fromCity: fromCity,
+      toCity: toCity,
+      mode: mode,
+      time: existingTime,
+      lang: command.lang,
+    );
+    if (transferIndex < 0) {
+      day.items.insert(0, transitionItem);
+    } else {
+      day.items[transferIndex] = transitionItem;
+    }
+    day.theme = _updatedTransitionTheme(
+      day.theme,
+      mode: mode,
+      lang: command.lang,
+    );
     day.cityTransition = CityTransitionPlan(
-      fromCity: command.fromCity.trim(),
-      toCity: command.toCity.trim(),
+      fromCity: fromCity,
+      toCity: toCity,
       mode: mode,
       linkedTicketId: day.cityTransition?.linkedTicketId,
     );
-    return null;
+    return _reschedule(day, 0);
+  }
+
+  String _updatedTransitionTheme(
+    String current, {
+    required String mode,
+    required AppLang lang,
+  }) {
+    final suffixIndex = current.indexOf('&');
+    final prefix =
+        (suffixIndex < 0 ? current : current.substring(0, suffixIndex))
+            .toLowerCase();
+    const transportThemeTokens = [
+      'shinkansen',
+      'jr special rapid',
+      'otobüs',
+      'bus',
+      'tren',
+      'train',
+      'taksi',
+      'taxi',
+      'uçak',
+      'flight',
+      'kiralık araç',
+      'rental car',
+    ];
+    if (!transportThemeTokens.any(prefix.contains)) {
+      return current;
+    }
+    final suffix = suffixIndex < 0 ? '' : current.substring(suffixIndex);
+    final suggestion = suggestionForMode(mode, '', '', 0, 0);
+    final label = L10n.resolve('viewer.transition.mode.$mode', lang);
+    return '${suggestion.transfer.emoji} $label${suffix.isEmpty ? '' : ' $suffix'}';
   }
 
   PlanEditFailure? _upsertTicket(Trip trip, UpsertTicket command) {

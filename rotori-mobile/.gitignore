@@ -38,3 +38,5 @@ qa/test-dashboard.json
 qa/.raw-run.json
 qa/*.bak
 qa/dashboard.qa-only.html.bak
+
+sentry.properties

@@ -4,19 +4,77 @@
 > hemen sonra güncellenir.
 
 **Bugünün tarihi:** 2026-08-11
-**Aktif branch:** `feat/premium-iap-foundation`
-**Sprint hedefi:** Kullanıcı tarafından yeniden önceliklendirilen rota
-deneyimi refactor'u. Mevcut deterministik rota algoritması korunacak; önce
-çıktı sözleşmesi ve kullanıcıya gösterilen ulaşım ayakları iyileştirilecek.
-Ana plan: `ROUTE_EXPERIENCE_REFACTOR_PLAN.md`.
-
-> Branch adı önceki premium işini yansıtıyor. Bu refactor sırasında branch
-> değiştirilmedi; kullanıcıya ait yerel değişiklikler korunuyor. Premium Faz 1
-> işi iptal edilmedi, rota deneyimi başlangıç teslimatından sonra devam edecek.
+**Aktif branch:** `main`
+**Sprint hedefi:** Mobil crash/hata takibi ile gizlilik odaklı rota ve ürün
+analitiğini production'a hazır hale getirmek; mevcut deterministik rota
+algoritmasını değiştirmeden ölçülebilir kılmak.
 
 ---
 
 ## 🚦 SIRADAKİ OTURUM BURADAN BAŞLAR
+
+### 2026-08-11 — Dış öneri bağlantıları güvenlik bakımı (tamamlandı)
+
+- [x] Mobil hazırlık kartlarındaki tüm eSIM, otel, aktivite, transfer ve tren
+      hedeflerini envanterle ve canlı yönlendirmelerle kontrol et.
+- [x] Sağlayıcı tarafından verilmemiş `rotori` vanity/affiliate kimliklerini
+      kaldır; çalıştığı doğrulanan kanonik sağlayıcı sayfalarına geç.
+- [x] Yeni sahte takip kimliği, `/affiliate/` yolu veya HTTPS dışı hedefin
+      yeniden eklenmesini engelleyen veri-katmanı regresyonu ekle.
+
+**Sonuç:** Airalo'nun 404 veren `pxf.io/rotori-japan` adresi kaldırıldı; eSIM
+önerisi eSIM.io'nun resmî Japonya ürün sayfasına taşındı. İki Klook 404'ü Japonya aktiviteleri ve havalimanı
+transferi sayfalarına; Booking'in geçersiz `aid` hedefleri Japonya ülke
+sayfasına; doğrulanmamış JR Pass reseller parametresi resmî JR Group sayfasına
+taşındı. SmartEX resmî hedefi korundu. Gerçek bir partner programı linki
+sağlanana kadar hiçbir kart komisyon/takip iddiası taşımaz.
+
+### 2026-08-11 — Sonradan uçuş ekleme dönüş akışı (tamamlandı)
+
+- [x] Uçuş formundaki alan-bazlı otomatik kaydı ve ayrı “Günleri yeniden
+      düzenle” aksiyonunu kaldır; sayfanın en altında tek “Kaydet” aksiyonu
+      bırak.
+- [x] Kaydet işlemi uçuş verisini ve uçuş saatlerine göre yenilenmiş
+      varış/dönüş günlerini tek plan snapshot'ı olarak kalıcılaştırsın.
+- [x] Başarı bilgisinden sonra viewer sandviç paneline dön ve “Uçuşlar”
+      akordiyonunu açık göster.
+- [x] Form, navigasyon sonucu ve drawer açılma durumunu widget regresyonlarıyla
+      doğrula; dar mobil ön izlemeyi kontrol et.
+
+**Sonuç:** Uçuş alanları artık kayda kadar yerel taslaktır. Tek “Kaydet”
+uçuş bacaklarını senkronlar, yalnız varış/dönüş gününü yeniden kurar ve aradaki
+manuel rota düzenlemelerini korur. Bilgi dialog'undan sonra viewer sonucu
+doğrudan alır, sandviç panelini açar ve “Uçuşlar” akordiyonunu genişletir.
+Yeni 2 widget dosyasındaki **6/6** regresyon, viewer ile birleşik **36/36**
+test ve tam Flutter paketi **848/848** başarılı; hedefli analiz temiz. iPhone
+dar web ön izlemesinde tek alt aksiyon ve bilgi popup'ı görsel doğrulandı.
+
+### 2026-08-11 — Rota üretim bakım turu (tamamlandı)
+
+- [x] Şehir geçişi modu değiştiğinde günün transfer satırı, süre/ücret özeti,
+      moda bağlı başlığı ve rota snapshot'ı aynı atomik komutta yenilensin.
+- [x] Timeline örnek kimliği ile kanonik mekan kimliğini ayır; `usj` /
+      `os-usj` ve “Universal Studios Japan” / “Universal Studios” alias'larını
+      tek mekan sayarak ardışık gün tekrarını hard çıktı invariant'ı yap.
+- [x] Mevcut 100×4 optimizer harness'ını yeniden çalıştır; ayrıca gerçek plan
+      üretim hattında 100'den fazla şehir/tarih/dil kombinasyonunu inceleyen QA
+      matrisi ekle.
+- [x] Algoritma sözleşmesi, kalite kapıları, ölçüm özeti ve örnek/failure
+      kayıtlarını başka modellerin inceleyebileceği versioned JSON paketine
+      çıkar.
+
+**Sonuç:** `DayPlan.cityTransition` tek doğru kaynak oldu; timeline geçiş
+satırı `isCityTransition` metadata'sı taşıyor ve mod değişiminde başlık,
+süre/ücret, gün teması, kalan saatler ve route snapshot atomik yenileniyor.
+`TimelineItem.placeId` ile örnek/katalog kimliği ayrıldı; USJ alias kaçağı
+kapatıldı ve ardışık gün kanonik tekrar güvenlik ağı eklendi. Gerçek mobil
+üretim QA'sında **160 plan / 1.600 gün / 2.776 aktivite / 800 geçiş-modu
+kontrolü**: 0 boş gün, 0 ardışık tekrar, 0 geçiş uyuşmazlığı. Mevcut optimizer
+harness'ında **100 base × 4 profil / 4.252 gün**: 0 hard ihlal, 0 tekrar,
+0 must-do düşürme, 0 eksik dönüş, 0 infeasible gün; düşürme %1,69. Hedefli
+domain testleri **83/83**, viewer testleri **30/30**, tam Flutter paketi
+**846/846** başarılı ve değişen rota dosyalarının analizi temiz. İnceleme paketi ile iki ham
+rapor `output/rotori-route-*.json` altında.
 
 ### 2026-08-10 — Rota deneyimi refactor'u Faz 0–4 tamamlandı
 
@@ -98,6 +156,18 @@ kapısı geçti, analyze temiz.
   Social dashboard/stüdyo favicon, ana ekran ve görünür marka işaretleri ortak
   ikon ailesine bağlandı. Dosya boyutu/format, manifest JSON ve görsel yükleme
   kontrolleri tamamlandı.
+
+- ✅ **2026-08-11** Mobil gözlemlenebilirlik temeli eklendi: Sentry crash/hata,
+  performance ve güvenli ekran breadcrumb'ları; Supabase'te append-only genel
+  ürün olayları ile her rota üretiminin `started/succeeded/failed` fazı,
+  sadeleştirilmiş request/result JSON'u ve süre/kalite metrikleri. Çevrimdışı
+  outbox, kullanıcı bazlı RLS, hesap silmede cascade ve hassas alanları dışlayan
+  JSON sözleşme testleri eklendi. Privacy/App Store metinleri yeni davranışla
+  uyumlandı. Flutter **842/842** test başarılı; değişen dosyaların analizi
+  temiz ve Sentry Cocoa bağımlılığıyla iOS Simulator debug build tamamlandı.
+  Proje genelindeki 17 mevcut uyarı/bilgi bu işten bağımsız kaldı. Canlı kullanım
+  için `0009_analytics_observability.sql` migration'ı ile Sentry public DSN
+  kurulumu gerekir.
 
 - ✅ **2026-08-11** `feat/premium-iap-foundation`, `social-deploy-tmp` ve
   `social-deploy-fix` geçmişleri `main` üzerinde birleştirildi. Bağımsız eski

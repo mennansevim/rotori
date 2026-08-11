@@ -26,9 +26,14 @@ Privacy:
   Rotori servers, stored, or logged.
 - Pocket Translator does not use the microphone or speech recognition.
 - The Google translation attribution appears next to every result.
+- Rotori uses privacy-first product analytics and Sentry technical diagnostics.
+  Route analytics never contains translator input/output, flights, hotels,
+  tickets, notes, email, photos, or precise GPS location.
 
 ## Türkçe ekip notu
 
 İncelemeye göndermeden önce ücretsiz/premium kilit geçişini ve iki yönlü metin
 çevirisini gerçek cihazda test edin. Dil modellerini indirdikten sonra uçak
 modu senaryosunu `IOS_RELEASE_MANUAL_GATE_CHECKLIST.md` ile kayda alın.
+App Store Privacy beyanının ürün analitiği ve Sentry tanı verileriyle eşleştiğini
+aynı checklist üzerinden doğrulayın.

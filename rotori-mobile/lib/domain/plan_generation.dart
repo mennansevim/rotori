@@ -8,6 +8,7 @@
 // Bu dosya SAF'tır: Flutter widget importu yoktur, yalnızca domain + AppLang.
 
 import '../core/l10n.dart' show AppLang;
+import 'activity_identity.dart';
 import 'city_places.dart';
 import 'city_transfers.dart';
 import 'destination_profiles.dart';
@@ -154,8 +155,8 @@ List<int> _weightedDaySplit(List<int> weights, int totalDays) {
   if (diff > 0) {
     // En büyük kesirli kalana sırayla ekle (klasik "largest remainder").
     final order = List<int>.generate(n, (i) => i)
-      ..sort((a, b) => (raw[b] - raw[b].floor())
-          .compareTo(raw[a] - raw[a].floor()));
+      ..sort((a, b) =>
+          (raw[b] - raw[b].floor()).compareTo(raw[a] - raw[a].floor()));
     var i = 0;
     while (diff > 0) {
       days[order[i % n]] += 1;
@@ -299,8 +300,15 @@ void assignDayBlocks(Trip t) {
 void fillTripDays(Trip t, {AppLang lang = AppLang.tr}) {
   final dests = [...t.preferences.destinations]
     ..sort((a, b) => a.order.compareTo(b.order));
-  final generated = generateItineraryFromTrip(t, lang: lang);
+  final generated = removeConsecutiveActivityDuplicates(
+    generateItineraryFromTrip(t, lang: lang),
+  );
   var days = fillEmptyDays(generated, dests, lang: lang);
+  days = removeConsecutiveActivityDuplicates(days);
+  // Alias güvenlik ağı bir günü seyrelttiyse aynı katalog kurallarıyla normal
+  // bir alternatif doldur; ikinci geçiş de önceki gün kimliğini gözetir.
+  days = fillEmptyDays(days, dests, lang: lang);
+  days = removeConsecutiveActivityDuplicates(days);
   days = applyCityTransitions(days, dests, lang: lang);
   lockTimedEntries(days);
   t.days = days;

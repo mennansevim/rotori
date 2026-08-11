@@ -137,6 +137,11 @@ bir yayın hattı.**
 Wanderlog aboneliğin yanında otel/uçuş komisyonu da alıyor. Indie seyahat
 uygulamaları için en pratik ilk gelir kalemi; build maliyeti neredeyse sıfır.
 
+> **Uygulama notu (2026-08-11):** Hazırlık ekranında sağlayıcı önerileri
+> bulunuyor, ancak Rotori adına verilmiş aktif takip linki yok. Partner
+> panelinden gerçek URL alınana kadar kanonik sağlayıcı sayfaları kullanılır;
+> marka adından affiliate parametresi veya vanity slug türetilmez.
+
 - [ ] eSIM — her Japonya gezgini alıyor, komisyonlar %15–20 bandında
 - [ ] JR Pass / bölgesel demiryolu pasları
 - [ ] Otel rezervasyonu

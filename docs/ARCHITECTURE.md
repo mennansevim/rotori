@@ -141,7 +141,12 @@ rotori-mobile/lib/features/
   opsiyonel hat/yön bilgisini gösterebilir.
 - Şehirlerarası geçiş modu ve ona bağlı bilet, sırasıyla
   `UpdateCityTransition` ve `UpsertTicket` komutlarıyla aynı
-  `PlanScheduleEngine` mutasyon hattından geçer.
+  `PlanScheduleEngine` mutasyon hattından geçer. `DayPlan.cityTransition`
+  seçimin tek doğru kaynağıdır; timeline'daki `isCityTransition` işaretli
+  ulaşım satırı ve moda bağlı gün başlığı bu kaynaktan yeniden türetilir.
+  Böylece mod değiştiğinde eski tren/otobüs metni, süre veya rota snapshot'ı
+  ekranda kalamaz. İşareti bulunmayan eski planlarda yalnız şehir çiftiyle
+  birebir eşleşen transport satırı bir kez geriye uyumlu olarak tanınır.
 - Kullanıcı gün içinden etkinlik eklerken “biletim var” seçerse etkinlik ve
   bilet `AddTicketedActivity` ile atomik eklenir. Mevcut yere taranmış bilet
   `AttachTicketToActivity` ile kimlik üzerinden bağlanır; bilet tarihi gerekirse
@@ -156,6 +161,12 @@ rotori-mobile/lib/features/
   düşük doygunluklu ortak yüzey dilinde iki sütunlu kartlardır. Uçuş/otel
   ayrıntıları açılabilir; ayarlar gruplanmış en az 48 px dokunma alanlı
   satırlardır.
+- Plan oluşturulduktan sonra eklenen uçuş bilgileri alan değişiminde otomatik
+  kaydedilmez. Form yerel bir plan taslağı düzenler; alttaki tek “Kaydet”
+  uçuş bacaklarını ve yalnız varış/dönüş günlerini atomik yeniler, aradaki
+  manuel gün düzenlemelerini korur. Başarı dialog'undan sonra viewer güncel
+  plan sonucunu doğrudan edit session'a alır, drawer'ı açar ve uçuş
+  akordiyonunu genişletir.
 
 ## 6. Domain Katmanı (özet)
 
@@ -399,12 +410,29 @@ aboneliği ise ayrıca iptal edilmedikçe **devam eder**. Silme akışı:
 Kural: uçakta çalışmalı. Bir feature yeni bir *zorunlu* ağ bağımlılığı
 getirecekse mimari karar `DECISIONS.md`'ye yazılır.
 
+### 9.1 Gözlemlenebilirlik ve analitik
+
+- `TelemetryService`, oturum açmış kullanıcı için `app_open`, yaşam döngüsü,
+  güvenli ekran adları ve rota üretim sonuçlarını append-only olarak Supabase'e
+  yazar. Ağ yoksa kayıtlar kullanıcıya özel `shared_preferences` outbox'ında
+  tutulur; ürün akışı telemetri başarısına bağlı değildir.
+- `analytics_events` genel ürün sinyallerini,
+  `route_generation_logs` ise aynı `attempt_id` altındaki
+  `started/succeeded/failed` fazlarını saklar. İstemci RLS ile yalnız kendi
+  satırını ekleyebilir; okuma/güncelleme/silme yetkisi yoktur.
+- Rota JSON sözleşmesi tam `Trip.toJson` değildir. Uçuş, otel, bilet, serbest
+  not, iletişim alanı, fotoğraf, harita URL'si, gerçek GPS ve beslenme tercihi
+  içeriği dışarıda kalır. Hesap silinince bu iki tablo FK cascade ile temizlenir.
+- Sentry crash, hata, performans trace'i ve güvenli navigation breadcrumb'ları
+  içindir. `sendDefaultPii=false`; e-posta, ekran görüntüsü, UI ağacı ve rota
+  JSON'u gönderilmez. DSN yoksa entegrasyon no-op'tur.
+
 ## 10. API Katmanı
 
 - Yalnızca **Supabase RPC** ve tablo erişimi (repo katmanı).
 - Faz 2 için `apps/api/` altında Express stub (`/api/trips/*`) — canlı değil.
-- Mevcut canlı third-party çağrıları: **Open-Meteo** (hava — anahtar yok) ve
-  **OSM tile** (harita — anahtar yok).
+- Mevcut canlı third-party çağrıları: **Open-Meteo** (hava — anahtar yok),
+  **OSM tile** (harita — anahtar yok) ve **Sentry** (teknik tanılama).
 - İlk sürümde ücretli rota sağlayıcısı çağrılmaz. Günlük planlama tamamen
   cihazdaki offline Japonya rota paketiyle çalışır. Dış navigasyon yalnız
   kullanıcının açık “Haritada aç” eylemiyle Apple/Google Maps'e devredilir.
@@ -438,7 +466,9 @@ getirecekse mimari karar `DECISIONS.md`'ye yazılır.
   `plan_viewer_test.dart` görünür aksiyon, güvenli ön koşul ve eski/yeni
   karşılaştırma/onay yüzeyini doğrular. Offline rota paketi ayrıca tüm
   küratörlü şehir/POI yön çiftlerini, zaman bandını ve bilinmeyen şehir
-  fallback'ini kapsar. Güncel tam paket **836/836** başarılıdır.
+  fallback'ini kapsar. Sonradan uçuş ekleme formu, tek açık kayıt, bilgi
+  dialog'u ve açık drawer akordiyonu ayrı widget regresyonlarıyla kapsanır.
+  Güncel tam paket **848/848** başarılıdır.
 - **CI:** Şu anda GitHub Actions henüz kurulu değil (aday karar — `DECISIONS.md`).
 - **Web QA:** `apps/planner` altında Playwright benzeri kurulum yok; F1'de QA
   dashboard'u eklendi (`888feb2`, `13969b9`) — 110 senaryo · 95 otomatik %100 pass.
@@ -510,6 +540,14 @@ packages/
   üretmez.
 - Harness schema v2 aynı base senaryoyu dört profile genişletir; generatedAt ve
   elapsed dışındaki semantik çıktı aynı seed'de birebirdir.
+- Timeline öğesinin düzenleme/persistence kimliği `id`, katalogdaki mekan
+  kimliği ise opsiyonel `placeId` alanıdır. Üretim hattı şehir + `placeId`
+  üzerinden kanonik kimlik oluşturur; eski kayıtlarda kontrollü başlık alias'ı
+  fallback'tir. Ardışık iki günde aynı kanonik mekanın önerilmesi çıktı
+  invariant'ını ihlal eder. Sentetik optimizer harness'ına ek olarak gerçek
+  `buildTripFromCities` hattını farklı şehir sıraları, gün uzunlukları ve iki
+  dilde çalıştıran üretim QA matrisi bu invariant'ı ve şehir geçişi
+  senkronunu ölçer.
 
 ## 17. Rota Deneyimi Refactor Sınırı
 
@@ -587,4 +625,115 @@ Konumu doğrulanmayan öğün/özel başlık şehir merkezine zorla bağlanmaz v
 düğümü olmaz; timeline'da görünmeye devam eder. İlk planın boşluk doldurma
 aşaması kısmen planlanmış bir güne yalnız öğün ekler. Tam/yarım günlük
 Disney/USJ/teamLab çapaları ve aynı yerin çift dilli katalog tekrarları dolgu
-havuzuna alınmaz. Böylece optimizer'a girmeden önce semt bütünlüğü bozulmaz.
+havuzuna alınmaz. `PlaceSuggestion` ile `CityPlace` kaynakları yalnız görünür
+ada göre değil şehir + kanonik katalog kimliğine göre birleştirilir; örneğin
+`usj`, `os-usj`, “Universal Studios” ve “Universal Studios Japan” tek mekandır.
+Böylece optimizer'a girmeden önce semt bütünlüğü ve günler arası benzersizlik
+bozulmaz.
+
+## 20. Saha Gerçekliği Katmanı (Rota v3)
+
+Japonya'ya özgü lojistik, ulaşım ve takvim gerçekleri **optimizer'ın içine
+değil, çevresine** eklenir. Motor (`BeamSearchItineraryOptimizer`) yalnız arama
+stratejisini yönetir; fizibilite ve maliyet iki ayrı sınıfa çıkarılmıştır.
+
+### 20.1 Sorumluluk ayrımı
+
+| Katman | Sorumluluk | Kural |
+| --- | --- | --- |
+| `BeamSearchItineraryOptimizer` | Arama stratejisi (beam 6, 3 local-improvement turu) | Kısıt veya skor tanımlamaz |
+| `HardConstraintChecker` | **İkili** kapılar → `HardConstraintViolation?` | Skor üretmez |
+| `CostFunction` | **Sürekli** maliyet | Fizibiliteyi asla değiştirmez |
+| `FieldRealityContext` | Saha bilgisinin tek taşıyıcısı | **Opsiyonel** |
+
+`field == null` iken motor v2 davranışını **birebir** korur. Bu, kalite
+kapılarının (0 hard violation, ~%1.77 drop) tek seferde bozulmamasını garanti
+eden geriye uyumluluk sözleşmesidir ve harness zarfı karşılaştırmasıyla
+doğrulanır.
+
+`_append` akışı **saha düzeltmesi → zamanlama → hard kapılar → maliyet**
+sırasındadır. Süre düzeltmesi uygulanmadan kısıt kontrol etmek (ör. Sakura'da
+uzayan ziyaret) yanlış "uygulanabilir" verdikti üretir. En pahalı kapı
+(sıradaki sabit aktiviteye erişilebilirlik, matris taraması gerektirir) tembel
+bir probe olarak en sonda çalışır.
+
+### 20.2 Saf modüller
+
+Hepsi `DateTime.now()` okumaz, ağa çıkmaz, rastgelelik içermez — optimizer
+determinizmi buna bağlıdır.
+
+- **`japan_calendar.dart`** — Resmî tatil takvimi (sabit tarihler, Happy Monday
+  sistemi, 1980–2099 için equinox yaklaşımı, 振替休日 zinciri, 国民の休日),
+  `ClosureResolver` (teishukubi + **Holiday Shift**: kapanış günü resmî tatilse
+  mekan açılır ve kapanış tatil olmayan ilk güne kayar; Golden Week zinciri
+  kapanışı birden fazla gün iter), `JapanCrowdModel` (şehir bazlı sakura/kōyō
+  pencereleri, Golden Week, Obon, yılbaşı).
+- **`japan_transit_realism.dart`** — `RailPassType`, `ShinkansenService`,
+  `StationComplexity` (labyrinth → +15 dk `stationNavigationBuffer`, kalkış ve
+  varış ayrı ayrı sayılır), `TrafficRiskPolicy` (peak 1.30 / off-peak 1.10,
+  yalnız `bus`/`taxi`).
+- **`luggage_logistics.dart`** — `LuggageHandlingStrategy` karar ağacı ve otel
+  check-in penceresi. Erken varışta coin locker ile otele erken bırakma **dakika
+  bazında yarışır**; sabit kural yerine karşılaştırma kullanılır.
+- **`place_identity_resolver.dart`** — Kana→Hepburn romaji tablosu (digraph,
+  促音, ん+b/m/p→m), kapalı kanji okuma sözlüğü, macron/Türkçe katlama,
+  Levenshtein, `CanonicalPlaceHash` (32-bit FNV-1a). ASCII girdide çıktı v2 ile
+  birebir aynıdır.
+- **`route_field_context.dart`** — `RepeatPolicy` değerlendiricisi +
+  `FieldRealityContext` toplayıcısı (kategori başına sezon çarpanı önbellekli).
+- **`minute_math.dart`** — Çarpan zincirinde (`100 * 1.10` → 110.00000000000001)
+  tek dakikalık kaymayı engelleyen ortak yukarı-yuvarlama sözleşmesi.
+
+### 20.3 Bagajın nereye gittiği
+
+Şehir geçişi olan günde istasyon çıkışı **doğrudan aktiviteye bağlanamaz**.
+
+| Strateji | Varış tamponu | Gün sonu | Not |
+| --- | --- | --- | --- |
+| `yamatoForward` | **0** | 0 | Bagaj ertesi gün varır; tampon **bypass** |
+| `coinLocker` | +20 dk | +10 dk | Büyük valizde doluluk uyarısı |
+| `hotelEarlyDrop` | 2×sapma + resepsiyon | 0 | Check-in öncesi |
+| `hotelCheckIn` | sapma + resepsiyon | 0 | Pencere açık |
+
+Yamato kapıları: bagaj boyutu uygun **ve** mesafe ≥120 dk **ve** varışta ≥2 gece
+**ve** kaynak otelden çıkış ≤10:00 (aynı gün kargo son teslim). Herhangi biri
+düşerse strateji erken-varış ağacına iner. Tampon yalnız günün **ilk**
+yerleşimine, gün sonu alma süresi ise **dönüş bacağına** eklenir.
+
+Otel `checkInEndTime` (varsayılan 22:00) sonrası varış **hard ihlaldir** —
+tampon değil, plan geçersizliğidir.
+
+### 20.4 Intent-aware tekrar kısıtı
+
+`hard-zero` tek kural değildir:
+
+- `hardZero` (varsayılan) — ardışık iki güne aynı kanonik mekan konmaz.
+- `repeatableZone` — bölge (Akihabara, Shibuya) ve tematik park (USJ, Disney)
+  ardışık 2 güne atanabilir.
+- `timeQuota` — büyük müze ilk gün kotasını doldurmadıysa kalan süre için tekrar
+  önerilir (`remainingQuotaMinutes`).
+- `userOverride` — kullanıcı açıkça seçtiyse tüm deduplication ezilir.
+
+**Bölge adları kasten alias almaz.** "Arashiyama Bambu" ile "Arashiyama Maymun
+Parkı" tek anahtara indirilirse yanlışlıkla aynı mekan sayılır; bölge tekrarı
+alias değil `RepeatPolicy` işidir.
+
+### 20.5 Geçiş satırı tek kaynaktır
+
+`CityTransitionPlan.mode` timeline satırının, gün başlığının ve rozetin tek
+doğruluk kaynağıdır. v3'te seçenek listesi (`options`) **motor** tarafından
+üretilir; UI yalnız gösterir ve seçer. Böylece "üst rozet Otobüs ama timeline
+JR Special Rapid" sınıfı projeksiyon kayması yapısal olarak imkânsızdır.
+JR Pass ile seçilemeyen servis listede `isBlockedByPass` ile **görünür** kalır —
+"pass'im var, Nozomi neden yok?" sorusu sessiz bırakılmaz.
+
+### 20.6 JSON v3 sözleşmesi
+
+Şema: `docs/schemas/rotori-plan-v3.schema.json`.
+
+Saha meta verisi opsiyonel iç nesnelere taşınır: `TimelineItem.transit` /
+`.repeat` / `.closure` / `.canonicalPlaceHash`, `DayPlan.luggage` / `.crowd`,
+`CityTransitionPlan.railPass` / `.options`. Tüm alanlar varsayılan değerdeyken
+**serileştirilmez**; v2 dokümanı v3 okuyucuda kayıpsız açılır (round-trip
+regresyona bağlı) ve v2'nin düz `repeatAllowed` bayrağı `userOverride`
+politikasına yükseltilir.

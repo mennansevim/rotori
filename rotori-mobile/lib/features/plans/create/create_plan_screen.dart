@@ -14,11 +14,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/l10n.dart';
+import '../../../data/crash_reporter.dart';
 import '../../../data/language_store.dart';
 import '../../../data/plans_repository.dart';
+import '../../../data/telemetry_service.dart';
 import '../../../domain/city_places.dart';
-import '../../../domain/plan_generation.dart';
 import '../../../domain/dietary.dart';
+import '../../../domain/plan_generation.dart';
+import '../../../domain/route_analytics.dart';
 import '../../../domain/route_sanity.dart';
 import '../../../domain/types.dart';
 import '../../viewer/viewer_theme.dart';
@@ -231,59 +234,121 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
     final lang = ref.read(appLangProvider);
     final s = LanguageScope.of(context);
     final messenger = ScaffoldMessenger.of(context);
-
-    setState(() => _generating = true);
-
-    // İlk taslak hızlı ve deterministik üretilir; kaydedilmeden önce aşağıda
-    // gerçek rota motoru ve doğrulayıcıdan geçirilir.
-    var trip = buildTripFromCities(
+    final telemetry = TelemetryService.instance;
+    final requestJson = RouteAnalyticsSnapshot.request(
       cityKeys: _selected,
       startYmd: _start,
       endYmd: _end,
-      lang: lang,
       datesEstimated: _datesEstimated,
-      dayOverrides: _dayOverrides.isEmpty ? null : _dayOverrides,
+      dayOverrides: _dayOverrides,
+      dietaryTags: _dietTags,
+      mealBudgetJpyPerPerson: _mealBudgetJpy,
+      language: lang.code,
     );
+    final stopwatch = Stopwatch()..start();
 
-    // 3. adımda toplanan tercihler. buildTripFromCities bunları parametre
-    // olarak almıyor; üretimden sonra yazmak hem imzayı büyütmemeyi hem de
-    // "boş bırakılırsa hiç yazma" davranışını korumayı sağlıyor.
-    if (_dietTags.isNotEmpty) {
-      trip.preferences.dietaryTags = List<String>.from(_dietTags);
-    }
-    if (_mealBudgetJpy != null) {
-      trip.preferences.mealBudgetJpyPerPerson = _mealBudgetJpy;
-    }
-    trip.preferences.planAssumptions = PlanAssumptions(
-      dateSource: _datesEstimated ? 'seasonalSuggestion' : 'userSelected',
-      dateRationale: _datesEstimated ? 'seasonalWeatherAndCrowdBalance' : null,
-      flightStatus: 'draft',
-      hotelStatus: 'draft',
+    setState(() => _generating = true);
+
+    final attemptId = await telemetry.routeGenerationStarted(
+      requestJson: requestJson,
     );
-
-    trip = await optimizeInitialTripRoutes(
-      trip: trip,
-      buildPreview: ref
-          .read(planOptimizationControllerProvider.notifier)
-          .buildInitialPreview,
-    );
-
-    // Repo yokken (önizleme/oturumsuz) viewer planı buradan okur.
-    ref.read(draftTripProvider.notifier).state = trip;
-
-    if (repo == null) {
-      if (!mounted) return;
-      setState(() => _generating = false);
-      context.pushReplacement('/plans/${trip.id}/view');
-      return;
-    }
+    var stage = 'build';
+    Trip? trip;
 
     try {
-      // Önce yerel cache: viewer anında açılabilsin. Sunucu push'u arkada.
-      await repo.saveLocal(trip);
-      unawaited(repo.save(trip).catchError((_) => null));
-      ref.invalidate(plansPullProvider);
-    } catch (_) {
+      // İlk taslak hızlı ve deterministik üretilir; kaydedilmeden önce aşağıda
+      // gerçek rota motoru ve doğrulayıcıdan geçirilir.
+      trip = buildTripFromCities(
+        cityKeys: _selected,
+        startYmd: _start,
+        endYmd: _end,
+        lang: lang,
+        datesEstimated: _datesEstimated,
+        dayOverrides: _dayOverrides.isEmpty ? null : _dayOverrides,
+      );
+
+      // 3. adımda toplanan tercihler. buildTripFromCities bunları parametre
+      // olarak almıyor; üretimden sonra yazmak hem imzayı büyütmemeyi hem de
+      // "boş bırakılırsa hiç yazma" davranışını korumayı sağlıyor.
+      if (_dietTags.isNotEmpty) {
+        trip.preferences.dietaryTags = List<String>.from(_dietTags);
+      }
+      if (_mealBudgetJpy != null) {
+        trip.preferences.mealBudgetJpyPerPerson = _mealBudgetJpy;
+      }
+      trip.preferences.planAssumptions = PlanAssumptions(
+        dateSource: _datesEstimated ? 'seasonalSuggestion' : 'userSelected',
+        dateRationale:
+            _datesEstimated ? 'seasonalWeatherAndCrowdBalance' : null,
+        flightStatus: 'draft',
+        hotelStatus: 'draft',
+      );
+
+      stage = 'optimize';
+      trip = await optimizeInitialTripRoutes(
+        trip: trip,
+        buildPreview: ref
+            .read(planOptimizationControllerProvider.notifier)
+            .buildInitialPreview,
+      );
+
+      // Repo yokken (önizleme/oturumsuz) viewer planı buradan okur.
+      ref.read(draftTripProvider.notifier).state = trip;
+
+      if (repo != null) {
+        stage = 'save_local';
+        // Önce yerel cache: viewer anında açılabilsin. Sunucu push'u arkada.
+        await repo.saveLocal(trip);
+        unawaited(repo.save(trip).catchError((_) => null));
+        ref.invalidate(plansPullProvider);
+      }
+
+      stopwatch.stop();
+      try {
+        final metrics = RouteAnalyticsSnapshot.metrics(
+          trip,
+          elapsedMs: stopwatch.elapsedMilliseconds,
+        );
+        await telemetry.routeGenerationSucceeded(
+          attemptId: attemptId,
+          requestJson: requestJson,
+          routeJson: RouteAnalyticsSnapshot.route(trip),
+          metrics: metrics,
+        );
+      } catch (telemetryError, telemetryStackTrace) {
+        await CrashReporter.capture(
+          telemetryError,
+          telemetryStackTrace,
+          operation: 'route_analytics_snapshot',
+        );
+      }
+    } catch (error, stackTrace) {
+      stopwatch.stop();
+      Map<String, dynamic>? failedRouteJson;
+      try {
+        failedRouteJson =
+            trip == null ? null : RouteAnalyticsSnapshot.route(trip);
+      } on Object {
+        // Tanılama snapshot'ı asıl hatanın raporlanmasını engellememeli.
+      }
+      try {
+        await telemetry.routeGenerationFailed(
+          attemptId: attemptId,
+          requestJson: requestJson,
+          stage: stage,
+          error: error,
+          stackTrace: stackTrace,
+          routeJson: failedRouteJson,
+          metrics: {'elapsedMs': stopwatch.elapsedMilliseconds},
+        );
+      } on Object {
+        await CrashReporter.capture(
+          error,
+          stackTrace,
+          operation: 'route_generation',
+          context: {'stage': stage},
+        );
+      }
       if (!mounted) return;
       setState(() => _generating = false);
       messenger.showSnackBar(
@@ -294,6 +359,10 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
 
     if (!mounted) return;
     setState(() => _generating = false);
+    if (repo == null) {
+      context.pushReplacement('/plans/${trip.id}/view');
+      return;
+    }
     messenger.showSnackBar(
       SnackBar(
         content: Text(s.s('create.ready')),

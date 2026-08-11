@@ -3495,6 +3495,18 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Varış ve dönüş günü güncellendi',
     AppLang.en: 'Arrival and departure days updated',
   },
+  'flights.saved.title': {
+    AppLang.tr: 'Uçuş kaydedildi',
+    AppLang.en: 'Flight saved',
+  },
+  'flights.saved.body': {
+    AppLang.tr: 'Rotanız uçuş saatlerinize göre güncellendi.',
+    AppLang.en: 'Your itinerary was updated around your flight times.',
+  },
+  'flights.saveFailed': {
+    AppLang.tr: 'Uçuş kaydedilemedi. Lütfen tekrar deneyin.',
+    AppLang.en: 'The flight could not be saved. Please try again.',
+  },
   'budget.rateAgeMin': {
     AppLang.tr: 'Kur {n} dk önce güncellendi',
     AppLang.en: 'Rate updated {n} min ago',
@@ -4206,6 +4218,10 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Gecelik/otobüs',
     AppLang.en: 'Overnight bus'
   },
+  'xfer.mode.regionalBus': {
+    AppLang.tr: 'Şehirlerarası otobüs',
+    AppLang.en: 'Intercity bus'
+  },
   'xfer.mode.rentalCar': {AppLang.tr: 'Kiralık araç', AppLang.en: 'Rental car'},
   'xfer.tip.tokyoOsaka': {
     AppLang.tr:
@@ -4236,6 +4252,50 @@ const Map<String, Map<AppLang, String>> _strings = {
   'xfer.tip.bus': {
     AppLang.tr: 'Ucuz ama 8+ saat sürer. Willer Express popüler.',
     AppLang.en: 'Cheap but takes 8+ hours. Willer Express is popular.'
+  },
+  // --- Bagaj lojistiği (v3): şehir geçişi günü bagaj adımları ---
+  'luggage.step.coinLocker': {
+    AppLang.tr: 'İstasyonda bagaj dolabına bırak',
+    AppLang.en: 'Store bags in a station coin locker'
+  },
+  'luggage.tip.coinLocker': {
+    AppLang.tr:
+        'Büyük göz bulmak için ~20 dk ayır; IC kart ya da bozuk para hazır olsun.',
+    AppLang.en:
+        'Allow ~20 min to find a large bay; have an IC card or coins ready.'
+  },
+  'luggage.step.hotelEarlyDrop': {
+    AppLang.tr: 'Otele erken bagaj bırak',
+    AppLang.en: 'Drop bags at the hotel early'
+  },
+  'luggage.tip.hotelEarlyDrop': {
+    AppLang.tr:
+        'Check-in saatinden önce resepsiyon bagajı alır; odaya çıkmak gerekmez.',
+    AppLang.en:
+        'Reception holds bags before check-in time; no need to access the room.'
+  },
+  'luggage.step.hotelCheckIn': {
+    AppLang.tr: 'Otele giriş yap',
+    AppLang.en: 'Check in at the hotel'
+  },
+  'luggage.tip.hotelCheckIn': {
+    AppLang.tr: 'Check-in penceresi açık — doğrudan odaya çıkabilirsin.',
+    AppLang.en: 'The check-in window is open — you can go straight to the room.'
+  },
+  'luggage.step.yamato': {
+    AppLang.tr: 'Bagajı kargoya ver (Yamato)',
+    AppLang.en: 'Forward bags by courier (Yamato)'
+  },
+  'luggage.tip.yamato': {
+    AppLang.tr:
+        'Bagaj ertesi gün otele ulaşır. Bir gecelik çantayı yanında tut.',
+    AppLang.en:
+        'Bags arrive at the hotel the next day. Keep an overnight bag with you.'
+  },
+  'xfer.tip.regionalBus': {
+    AppLang.tr: 'Doğrudan sefer ve bagaj koşullarını operatörden doğrula.',
+    AppLang.en:
+        'Confirm the direct service and luggage rules with the operator.'
   },
   'xfer.tip.car': {
     AppLang.tr: 'Uluslararası ehliyet gerekir. Kırsalda mantıklı.',
@@ -4313,8 +4373,8 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Osaka transfer'
   },
   'tmpl.osakaMove.theme': {
-    AppLang.tr: 'Shinkansen & Dotonbori',
-    AppLang.en: 'Shinkansen & Dotonbori'
+    AppLang.tr: 'Osaka & Dotonbori',
+    AppLang.en: 'Osaka & Dotonbori'
   },
   'tmpl.kyotoDay.label': {
     AppLang.tr: 'Kyoto günübirlik',

@@ -1,5 +1,9 @@
 import 'dart:math';
 
+import 'hard_constraint_checker.dart';
+import 'japan_calendar.dart';
+import 'japan_transit_realism.dart';
+import 'route_field_context.dart';
 import 'route_matrix.dart';
 
 enum TimeOfDayPreference { morning, afternoon, evening }
@@ -54,6 +58,10 @@ class OptimizationActivity {
     this.requiredArrivalBufferMinutes = 0,
     this.preferredTime,
     this.category,
+    this.cityId,
+    this.closureRule,
+    this.requiresHotelCheckIn = false,
+    this.repeatRule = const RepeatRule(),
   });
 
   final String id;
@@ -74,6 +82,21 @@ class OptimizationActivity {
   final int requiredArrivalBufferMinutes;
   final TimeOfDayPreference? preferredTime;
   final String? category;
+
+  /// v3 — sezonluk kalabalık penceresi ve şehir kapsamlı kimlik için.
+  final String? cityId;
+
+  /// v3 — teishukubi (定休日) kapanış sözleşmesi. `null` ise kapanış kuralı
+  /// yoktur (park, cadde, kavşak).
+  final ClosureRule? closureRule;
+
+  /// v3 — bu satır otele giriş anlamına geliyorsa check-in penceresi kesin
+  /// kısıt olarak uygulanır.
+  final bool requiresHotelCheckIn;
+
+  /// v3 — ardışık gün tekrar politikası. Gün içi optimizer kararını
+  /// etkilemez; plan seviyesindeki deduplication'a taşınır.
+  final RepeatRule repeatRule;
 
   bool get hasFixedSchedule =>
       isFixed || isLocked || fixedStartTime != null || fixedEndTime != null;
@@ -211,6 +234,7 @@ class OptimizationRequest {
     required this.constraints,
     this.preferences = const RoutePreferences(),
     OptimizationWeights? weights,
+    this.field,
   })  : activities = List.unmodifiable(activities),
         weights =
             weights ?? OptimizationWeights.forProfile(preferences.profile);
@@ -220,6 +244,10 @@ class OptimizationRequest {
   final DayRouteConstraints constraints;
   final RoutePreferences preferences;
   final OptimizationWeights weights;
+
+  /// v3 saha bağlamı. `null` iken motor v2 davranışını birebir korur —
+  /// mevcut üretim kalite kapıları tek seferde değişmez.
+  final FieldRealityContext? field;
 }
 
 class RouteLeg {
@@ -249,6 +277,10 @@ class RouteLeg {
     this.directionId,
     this.complexityPenalty = 0,
     this.providerId,
+    this.stationNavigationBufferMinutes = 0,
+    this.trafficRiskMultiplier = 1,
+    this.effectiveShinkansenService,
+    this.transitDisclaimers = const {},
   });
 
   final String fromLocationId;
@@ -276,6 +308,21 @@ class RouteLeg {
   final String? directionId;
   final double complexityPenalty;
   final String? providerId;
+
+  /// v3 — dev ("labyrinth") istasyon navigasyon tamponu.
+  final int stationNavigationBufferMinutes;
+
+  /// v3 — otobüs/taksi için uygulanan trafik çarpanı (1.0 = uygulanmadı).
+  final double trafficRiskMultiplier;
+
+  /// v3 — pass kısıtından sonra fiilen kullanılan Shinkansen servisi.
+  final ShinkansenService? effectiveShinkansenService;
+
+  /// v3 — UI'a taşınacak uyarı anahtarları.
+  final Set<TransitDisclaimer> transitDisclaimers;
+
+  bool get hasTrafficRiskDisclaimer =>
+      transitDisclaimers.contains(TransitDisclaimer.trafficRisk);
 }
 
 class ScheduledActivity {
@@ -605,12 +652,31 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
         weights: original.weights,
       );
 
+  /// İstek başına bir kez kurulan çekirdek. Hard kısıtlar ve maliyet modeli
+  /// artık motorun içinde değil; motor yalnız arama stratejisini yönetir.
+  _Kernel _kernelFor(OptimizationRequest request) => _Kernel(
+        request: request,
+        checker: HardConstraintChecker(
+          constraints: request.constraints,
+          preferences: request.preferences,
+          field: request.field,
+        ),
+        cost: CostFunction(
+          weights: request.weights,
+          config: config,
+          preferences: request.preferences,
+          field: request.field,
+        ),
+      );
+
   Future<OptimizationResult> _solve(OptimizationRequest request) async {
     final validation = _validate(request);
     if (validation != null) return OptimizationResult.failure(validation);
 
+    final kernel = _kernelFor(request);
+
     if (request.activities.isEmpty) {
-      return _emptyResult(request);
+      return _emptyResult(kernel);
     }
 
     var evaluatedStates = 0;
@@ -645,7 +711,7 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
           for (final option in options) {
             evaluatedStates++;
             final next = _append(
-              request,
+              kernel,
               state,
               candidate,
               option,
@@ -673,7 +739,7 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
       }
 
       expanded.sort((a, b) {
-        final scoreComparison = _rank(request, a).compareTo(_rank(request, b));
+        final scoreComparison = _rank(kernel, a).compareTo(_rank(kernel, b));
         if (scoreComparison != 0) return scoreComparison;
         return a.routeKey.compareTo(b.routeKey);
       });
@@ -685,7 +751,7 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
 
     final completed = <_RouteState>[];
     for (final state in beam) {
-      final withReturn = _appendReturn(request, state);
+      final withReturn = _appendReturn(kernel, state);
       if (withReturn == null) {
         prunedStates++;
       } else {
@@ -707,10 +773,10 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
       return a.routeKey.compareTo(b.routeKey);
     });
     var best = completed.first;
-    best = _improveLocally(request, best);
+    best = _improveLocally(kernel, best);
 
     return _toResult(
-      request,
+      kernel,
       best,
       evaluatedStates: evaluatedStates,
       prunedStates: prunedStates,
@@ -789,7 +855,8 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
     return null;
   }
 
-  OptimizationResult _emptyResult(OptimizationRequest request) {
+  OptimizationResult _emptyResult(_Kernel kernel) {
+    final request = kernel.request;
     final options = _validOptions(
       request.routeMatrix,
       request.constraints.startLocation.id,
@@ -805,7 +872,7 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
         ),
       );
     }
-    final option = _sortOptions(request, options).first;
+    final option = _sortOptions(kernel, options).first;
     final arrival = request.constraints.availableStartTime
         .add(Duration(minutes: option.doorToDoorMinutes));
     if (arrival.compareTo(request.constraints.availableEndTime) > 0) {
@@ -817,7 +884,7 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
       );
     }
     final leg = _leg(
-      request,
+      kernel,
       request.constraints.startLocation.id,
       request.constraints.endLocation.id,
       request.constraints.availableStartTime,
@@ -825,7 +892,7 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
       waitingMinutes: 0,
       bufferMinutes: 0,
     );
-    final score = _transportScore(request, option);
+    final score = kernel.cost.transportScore(option);
     return OptimizationResult.success(
       activities: const [],
       legs: [leg],
@@ -836,7 +903,8 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
         totalTransferCount: option.transferCount,
         estimatedTransportCostYen: option.estimatedCostYen,
         backtrackingMinutes: 0,
-        routeEfficiencyScore: _efficiency(score, option.doorToDoorMinutes),
+        routeEfficiencyScore:
+            kernel.cost.efficiency(score, option.doorToDoorMinutes),
         score: score,
         evaluatedStateCount: 1,
         prunedStateCount: 0,
@@ -873,93 +941,143 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
   ) =>
       matrix.options(from, to).where((option) => option.isValid).toList();
 
+  /// Bir aday aktiviteyi rotaya ekler.
+  ///
+  /// Akış: **saha düzeltmesi → zamanlama → hard kısıt kapıları → maliyet**.
+  /// Bu sıra bilinçlidir; süre düzeltmesi uygulanmadan kısıt kontrol etmek
+  /// (ör. Sakura'da uzayan ziyaret) yanlış "uygulanabilir" verdiktleri üretir.
   _RouteState? _append(
-    OptimizationRequest request,
+    _Kernel kernel,
     _RouteState state,
     OptimizationActivity activity,
     TransportOption option, {
     required List<OptimizationActivity> remainingAfter,
   }) {
+    final request = kernel.request;
+    final field = request.field;
     final departure = state.currentTime;
-    final arrival = departure.add(Duration(minutes: option.doorToDoorMinutes));
-    final buffer = _bufferFor(activity, option);
+
+    // --- 1) Saha gerçekliği: pass kısıtı, trafik riski, istasyon tamponu ---
+    final realised = kernel.checker.realiseTransit(
+      option: option,
+      departure: departure,
+      from: state.currentLocation,
+      to: activity.location,
+    );
+    if (realised == null) return null;
+    final effective = realised.option;
+
+    final arrival =
+        departure.add(Duration(minutes: effective.doorToDoorMinutes));
+    var buffer = kernel.cost.transitionBuffer(activity, effective);
+
+    // Bagaj tamponu yalnız günün ilk yerleşiminde ve strateji bypass
+    // etmiyorken uygulanır (Yamato ile gönderilen bagaj yolcuda değildir).
+    final luggagePlan = field?.luggagePlan;
+    var luggageBuffer = 0;
+    if (luggagePlan != null &&
+        state.scheduled.isEmpty &&
+        !luggagePlan.bypassesStationLuggageBuffer) {
+      luggageBuffer = luggagePlan.arrivalHandlingMinutes;
+      buffer += luggageBuffer;
+    }
+
     var start = arrival.add(Duration(minutes: buffer));
 
+    // --- 2) Zamanlama ------------------------------------------------------
     if (activity.hasFixedSchedule) {
-      final fixedStart = activity.fixedStartTime!;
-      if (start.compareTo(fixedStart) > 0) return null;
-      start = fixedStart;
+      if (kernel.checker.checkFixedArrival(
+            activity: activity,
+            earliestPossibleStart: start,
+          ) !=
+          null) {
+        return null;
+      }
+      start = activity.fixedStartTime!;
     } else if (activity.openingTime != null &&
         start.compareTo(activity.openingTime!) < 0) {
       start = activity.openingTime!;
     }
 
+    final plannedDuration = field == null
+        ? activity.durationMinutes
+        : field.inflateDuration(
+            activity.durationMinutes,
+            category: activity.category,
+          );
     final end = activity.fixedEndTime ??
         start.add(Duration(
-          minutes: activity.durationMinutes + activity.estimatedQueueMinutes,
+          minutes: plannedDuration + activity.estimatedQueueMinutes,
         ));
-    if (end.compareTo(start) <= 0 ||
-        end.difference(start).inMinutes < activity.minimumDurationMinutes ||
-        start.compareTo(request.constraints.availableStartTime) < 0 ||
-        end.compareTo(request.constraints.availableEndTime) > 0 ||
-        (activity.closingTime != null &&
-            end.compareTo(activity.closingTime!) > 0)) {
-      return null;
-    }
 
-    final totalWalking = state.totalWalking + option.walkingMinutes;
-    if (totalWalking > request.preferences.maximumWalkingMinutes) return null;
-
+    final totalWalking = state.totalWalking + effective.walkingMinutes;
     final nextFixed = _earliestFixed(remainingAfter);
-    if (nextFixed != null &&
-        !_canReachFixed(request, activity.location, end, nextFixed)) {
-      return null;
-    }
 
+    // --- 3) Hard kısıt kapıları -------------------------------------------
+    final violation = kernel.checker.check(PlacementCandidate(
+      activity: activity,
+      arrival: arrival,
+      start: start,
+      end: end,
+      bufferMinutes: buffer,
+      totalWalkingMinutes: totalWalking,
+      effectiveOpeningTime: activity.openingTime,
+      effectiveClosingTime: activity.closingTime,
+      nextFixedActivity: nextFixed,
+      reachabilityProbe: nextFixed == null
+          ? null
+          : () => _canReachFixed(kernel, activity.location, end, nextFixed),
+    ));
+    if (violation != null) return null;
+
+    // --- 4) Maliyet --------------------------------------------------------
     final idleWaiting = max(0, start.difference(arrival).inMinutes - buffer);
-    final scheduleRisk = _scheduleRisk(activity, arrival, buffer);
-    final backtracking = _backtrackingPenalty(
-      state,
-      activity,
-      option,
-    );
-    final clusterBreak = _clusterBreakPenalty(state, activity);
-    final fatigue = max(
-      0,
-      totalWalking - config.walkingFatigueThresholdMinutes,
-    ).toDouble();
-    final complexity =
-        option.complexityPenalty + max(0, option.transferCount - 1) * 3;
+    final progress = _progressOf(state);
+    final scheduleRisk =
+        kernel.cost.scheduleRisk(activity, arrival, buffer - luggageBuffer);
+    if (!scheduleRisk.isFinite) return null;
+    final backtracking =
+        kernel.cost.backtrackingPenalty(progress, activity, effective);
+    final clusterBreak = kernel.cost.clusterBreakPenalty(progress, activity);
+    final fatigue = kernel.cost.fatigue(totalWalking);
+    final complexity = kernel.cost.complexity(effective);
     final availableOptions = _validOptions(
       request.routeMatrix,
       state.currentLocation.id,
       activity.location.id,
     );
-    final increment = _transportScore(request, option) +
-        _modeChoiceAdjustment(request, option, availableOptions) +
+    final increment = kernel.cost.transportScore(effective) +
+        kernel.cost.modeChoiceAdjustment(effective, availableOptions) +
         idleWaiting * request.weights.waiting +
         backtracking * request.weights.backtracking +
         scheduleRisk * request.weights.scheduleRisk +
         (fatigue - state.fatigue) * request.weights.walking +
         clusterBreak * request.weights.clusterBreak +
         complexity * request.weights.complexity +
-        _preferredTimePenalty(activity, start);
+        kernel.cost.preferredTimePenalty(activity, start);
 
     final leg = _leg(
-      request,
+      kernel,
       state.currentLocation.id,
       activity.location.id,
       departure,
-      option,
-      waitingMinutes: idleWaiting + option.waitingMinutes,
+      effective,
+      waitingMinutes: idleWaiting + effective.waitingMinutes,
       bufferMinutes: buffer,
       scheduleIdleMinutes: idleWaiting,
+      realised: realised,
     );
     final warningList = <String>[
-      if (option.isEstimated)
+      if (effective.isEstimated)
         '${activity.name} geçişinde yaklaşık rota verisi kullanıldı.',
-      if (option.reliabilityScore < .75)
+      if (effective.reliabilityScore < .75)
         '${activity.name} geçişinin güvenilirliği düşük.',
+      if (realised.hasTrafficRiskDisclaimer)
+        '${activity.name} geçişinde varış saati trafiğe bağlı değişebilir.',
+      if (realised.disclaimers.contains(TransitDisclaimer.railPassDowngrade))
+        '${activity.name} geçişi pass kapsamındaki daha yavaş servise alındı.',
+      if (realised.stationNavigationBufferMinutes > 0)
+        '${activity.name} geçişine büyük istasyon aktarma payı eklendi.',
     ];
     final closedClusters = {...state.closedClusters};
     final previousCluster = state.currentCluster;
@@ -976,7 +1094,7 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
       startTime: start,
       endTime: end,
       inboundLeg: leg,
-      optimizationReason: _reason(state, activity, option, clusterBreak),
+      optimizationReason: _reason(state, activity, effective, clusterBreak),
       warnings: warningList,
     );
     return state.copyWith(
@@ -984,11 +1102,11 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
       visitedIds: {...state.visitedIds, activity.id},
       currentTime: end,
       currentLocation: activity.location,
-      totalTravel: state.totalTravel + option.doorToDoorMinutes,
+      totalTravel: state.totalTravel + effective.doorToDoorMinutes,
       totalWalking: totalWalking,
-      totalWaiting: state.totalWaiting + idleWaiting + option.waitingMinutes,
-      totalTransfers: state.totalTransfers + option.transferCount,
-      totalCost: state.totalCost + option.estimatedCostYen,
+      totalWaiting: state.totalWaiting + idleWaiting + effective.waitingMinutes,
+      totalTransfers: state.totalTransfers + effective.transferCount,
+      totalCost: state.totalCost + effective.estimatedCostYen,
       backtracking: state.backtracking + backtracking,
       clusterBreak: state.clusterBreak + clusterBreak,
       scheduleRisk: state.scheduleRisk + scheduleRisk,
@@ -998,182 +1116,42 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
       closedClusters: closedClusters,
       currentCluster: nextCluster,
       previousLocation: state.currentLocation,
-      previousOption: option,
+      previousOption: effective,
       warnings: [...state.warnings, ...warningList],
     );
   }
 
+  RouteProgress _progressOf(_RouteState state) => RouteProgress(
+        currentLocation: state.currentLocation,
+        closedClusters: state.closedClusters,
+        currentCluster: state.currentCluster,
+        fatigue: state.fatigue,
+        previousLocation: state.previousLocation,
+        previousOption: state.previousOption,
+      );
+
   bool _canReachFixed(
-    OptimizationRequest request,
+    _Kernel kernel,
     TripLocation from,
     DateTime departure,
     OptimizationActivity fixed,
   ) {
     final options =
-        _validOptions(request.routeMatrix, from.id, fixed.location.id);
+        _validOptions(kernel.request.routeMatrix, from.id, fixed.location.id);
     return options.any((option) {
-      final buffer = _bufferFor(fixed, option);
-      final arrival =
-          departure.add(Duration(minutes: option.doorToDoorMinutes + buffer));
+      final realised = kernel.checker.realiseTransit(
+        option: option,
+        departure: departure,
+        from: from,
+        to: fixed.location,
+      );
+      if (realised == null) return false;
+      final buffer = kernel.cost.transitionBuffer(fixed, realised.option);
+      final arrival = departure.add(
+        Duration(minutes: realised.option.doorToDoorMinutes + buffer),
+      );
       return arrival.compareTo(fixed.fixedStartTime!) <= 0;
     });
-  }
-
-  int _bufferFor(
-    OptimizationActivity activity,
-    TransportOption option,
-  ) {
-    if (activity.hasFixedSchedule || activity.hasReservation) {
-      return max(
-        config.fixedActivityBufferMinutes,
-        activity.requiredArrivalBufferMinutes,
-      );
-    }
-    if (option.transferCount > 0 ||
-        option.mode == TransportMode.shinkansen ||
-        option.mode == TransportMode.regionalTrain ||
-        option.complexityPenalty > 0) {
-      return config.complexTransitionBufferMinutes;
-    }
-    return config.simpleTransitionBufferMinutes;
-  }
-
-  double _transportScore(
-    OptimizationRequest request,
-    TransportOption option,
-  ) {
-    final weights = request.weights;
-    final partyCost = option.costForParty(request.preferences.partySize);
-    var score = option.doorToDoorMinutes * weights.travel +
-        option.waitingMinutes * weights.waiting +
-        option.transferCount * weights.transfer +
-        option.walkingMinutes * weights.walking +
-        (partyCost.partyTotalCostYen / 100) * weights.transportCost;
-    if (request.preferences.effectiveLuggageState == LuggageState.carried) {
-      score += option.walkingMinutes * 1.5 +
-          option.transferCount * 12 +
-          option.complexityPenalty * 2;
-      if (option.mode == TransportMode.taxi) score -= 10;
-    } else if (request.preferences.effectiveLuggageState ==
-        LuggageState.forwarded) {
-      score += option.transferCount * 2;
-    }
-    if (option.mode == TransportMode.taxi) {
-      score += switch (request.preferences.profile) {
-        RouteOptimizationProfile.fastest => 0,
-        RouteOptimizationProfile.leastWalking => 3,
-        RouteOptimizationProfile.balanced => 12,
-        RouteOptimizationProfile.cheapest => 30,
-      };
-    }
-    if (option.reliabilityScore < .9) {
-      score += (1 - option.reliabilityScore) * 20 * weights.scheduleRisk;
-    }
-    return score;
-  }
-
-  double _modeChoiceAdjustment(
-    OptimizationRequest request,
-    TransportOption option,
-    List<TransportOption> alternatives,
-  ) {
-    if (option.mode != TransportMode.walking ||
-        request.preferences.profile == RouteOptimizationProfile.leastWalking ||
-        request.preferences.profile == RouteOptimizationProfile.fastest) {
-      return 0;
-    }
-    final nonWalkingMinutes = alternatives
-        .where(
-          (candidate) =>
-              candidate.mode != TransportMode.walking &&
-              candidate.mode != TransportMode.taxi,
-        )
-        .map((candidate) => candidate.doorToDoorMinutes);
-    if (nonWalkingMinutes.isEmpty) return 0;
-    final fastest = nonWalkingMinutes.reduce(min);
-    if (option.doorToDoorMinutes - fastest >
-        config.walkingTimeToleranceMinutes) {
-      return 0;
-    }
-    return request.preferences.profile == RouteOptimizationProfile.cheapest
-        ? -35
-        : -25;
-  }
-
-  double _scheduleRisk(
-    OptimizationActivity activity,
-    DateTime arrival,
-    int requiredBuffer,
-  ) {
-    if (!activity.hasFixedSchedule) {
-      if (activity.closingTime == null) return 0;
-      final remaining = activity.closingTime!.difference(arrival).inMinutes;
-      return max(0, 30 - remaining).toDouble();
-    }
-    final actualBuffer = activity.fixedStartTime!.difference(arrival).inMinutes;
-    if (actualBuffer < requiredBuffer) return double.infinity;
-    return max(
-      0,
-      config.preferredFixedActivityBufferMinutes - actualBuffer,
-    ).toDouble();
-  }
-
-  double _preferredTimePenalty(
-    OptimizationActivity activity,
-    DateTime start,
-  ) {
-    final preferred = activity.preferredTime;
-    if (preferred == null) return 0;
-    final isPreferred = switch (preferred) {
-      TimeOfDayPreference.morning => start.hour < 12,
-      TimeOfDayPreference.afternoon => start.hour >= 12 && start.hour < 17,
-      TimeOfDayPreference.evening => start.hour >= 17,
-    };
-    return isPreferred ? 0 : 12;
-  }
-
-  double _clusterBreakPenalty(
-    _RouteState state,
-    OptimizationActivity activity,
-  ) {
-    final cluster = activity.clusterId;
-    if (cluster == null || !state.closedClusters.contains(cluster)) return 0;
-    return config.clusterReentryPenalty;
-  }
-
-  double _backtrackingPenalty(
-    _RouteState state,
-    OptimizationActivity next,
-    TransportOption option,
-  ) {
-    var penalty = 0.0;
-    final previous = state.previousLocation;
-    if (previous != null) {
-      final ax = state.currentLocation.longitude - previous.longitude;
-      final ay = state.currentLocation.latitude - previous.latitude;
-      final bx = next.location.longitude - state.currentLocation.longitude;
-      final by = next.location.latitude - state.currentLocation.latitude;
-      final aLength = sqrt(ax * ax + ay * ay);
-      final bLength = sqrt(bx * bx + by * by);
-      if (aLength > 0 && bLength > 0) {
-        final cosine = (ax * bx + ay * by) / (aLength * bLength);
-        if (cosine < -.25) {
-          penalty += option.doorToDoorMinutes * -cosine;
-        }
-      }
-    }
-    final previousOption = state.previousOption;
-    if (previousOption?.lineId != null &&
-        previousOption!.lineId == option.lineId &&
-        previousOption.directionId != null &&
-        option.directionId != null &&
-        previousOption.directionId != option.directionId) {
-      penalty += option.doorToDoorMinutes.toDouble();
-    }
-    if (next.hasFixedSchedule) {
-      penalty *= .35;
-    }
-    return penalty;
   }
 
   String _reason(
@@ -1198,7 +1176,8 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
     return 'Gerçek kapıdan kapıya süre ve günün genel akışına göre yerleştirildi.';
   }
 
-  double _rank(OptimizationRequest request, _RouteState state) {
+  double _rank(_Kernel kernel, _RouteState state) {
+    final request = kernel.request;
     if (state.visitedIds.length == request.activities.length) {
       return state.score;
     }
@@ -1213,8 +1192,9 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
         activity.location.id,
       );
       if (options.isEmpty) continue;
-      final optionScore =
-          options.map((option) => _transportScore(request, option)).reduce(min);
+      final optionScore = options
+          .map((option) => kernel.cost.transportScore(option))
+          .reduce(min);
       if (optionScore < bestNext) bestNext = optionScore;
     }
     var returnEstimate = 0.0;
@@ -1225,7 +1205,7 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
     );
     if (returnOptions.isNotEmpty) {
       returnEstimate = returnOptions
-          .map((option) => _transportScore(request, option))
+          .map((option) => kernel.cost.transportScore(option))
           .reduce(min);
     }
     return state.score +
@@ -1234,12 +1214,13 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
   }
 
   List<TransportOption> _sortOptions(
-    OptimizationRequest request,
+    _Kernel kernel,
     List<TransportOption> options,
   ) {
+    final profile = kernel.request.preferences.profile;
     final sorted = [...options]..sort((a, b) {
-        var aScore = _transportScore(request, a);
-        var bScore = _transportScore(request, b);
+        var aScore = kernel.cost.transportScore(a);
+        var bScore = kernel.cost.transportScore(b);
         final fastestTransit = options
             .where((option) => option.mode != TransportMode.walking)
             .map((option) => option.doorToDoorMinutes)
@@ -1249,18 +1230,16 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
             a.mode == TransportMode.walking &&
             a.doorToDoorMinutes - fastestTransit <=
                 config.walkingTimeToleranceMinutes &&
-            request.preferences.profile !=
-                RouteOptimizationProfile.leastWalking &&
-            request.preferences.profile != RouteOptimizationProfile.fastest) {
+            profile != RouteOptimizationProfile.leastWalking &&
+            profile != RouteOptimizationProfile.fastest) {
           aScore -= 8;
         }
         if (fastestTransit != null &&
             b.mode == TransportMode.walking &&
             b.doorToDoorMinutes - fastestTransit <=
                 config.walkingTimeToleranceMinutes &&
-            request.preferences.profile !=
-                RouteOptimizationProfile.leastWalking &&
-            request.preferences.profile != RouteOptimizationProfile.fastest) {
+            profile != RouteOptimizationProfile.leastWalking &&
+            profile != RouteOptimizationProfile.fastest) {
           bScore -= 8;
         }
         final comparison = aScore.compareTo(bScore);
@@ -1270,56 +1249,67 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
     return sorted;
   }
 
-  _RouteState? _appendReturn(
-    OptimizationRequest request,
-    _RouteState state,
-  ) {
+  _RouteState? _appendReturn(_Kernel kernel, _RouteState state) {
+    final request = kernel.request;
     final options = _validOptions(
       request.routeMatrix,
       state.currentLocation.id,
       request.constraints.endLocation.id,
     );
     if (options.isEmpty) return null;
-    for (final option in _sortOptions(request, options)) {
-      if (state.totalWalking + option.walkingMinutes >
+
+    // Coin locker kullanıldıysa gün sonunda bagajı almak için ek süre gerekir.
+    final luggagePlan = request.field?.luggagePlan;
+    final retrieval = luggagePlan == null ? 0 : luggagePlan.retrievalMinutes;
+
+    for (final option in _sortOptions(kernel, options)) {
+      final realised = kernel.checker.realiseTransit(
+        option: option,
+        departure: state.currentTime,
+        from: state.currentLocation,
+        to: request.constraints.endLocation,
+      );
+      if (realised == null) continue;
+      final effective = realised.option;
+
+      if (state.totalWalking + effective.walkingMinutes >
           request.preferences.maximumWalkingMinutes) {
         continue;
       }
-      final arrival =
-          state.currentTime.add(Duration(minutes: option.doorToDoorMinutes));
+      final arrival = state.currentTime.add(
+        Duration(minutes: effective.doorToDoorMinutes + retrieval),
+      );
       if (arrival.compareTo(request.constraints.availableEndTime) > 0) {
         continue;
       }
       final leg = _leg(
-        request,
+        kernel,
         state.currentLocation.id,
         request.constraints.endLocation.id,
         state.currentTime,
-        option,
-        waitingMinutes: option.waitingMinutes,
-        bufferMinutes: 0,
+        effective,
+        waitingMinutes: effective.waitingMinutes,
+        bufferMinutes: retrieval,
+        realised: realised,
       );
       return state.copyWith(
         returnLeg: leg,
-        totalTravel: state.totalTravel + option.doorToDoorMinutes,
-        totalWalking: state.totalWalking + option.walkingMinutes,
-        totalWaiting: state.totalWaiting + option.waitingMinutes,
-        totalTransfers: state.totalTransfers + option.transferCount,
-        totalCost: state.totalCost + option.estimatedCostYen,
-        score: state.score + _transportScore(request, option),
+        totalTravel: state.totalTravel + effective.doorToDoorMinutes,
+        totalWalking: state.totalWalking + effective.walkingMinutes,
+        totalWaiting: state.totalWaiting + effective.waitingMinutes,
+        totalTransfers: state.totalTransfers + effective.transferCount,
+        totalCost: state.totalCost + effective.estimatedCostYen,
+        score: state.score + kernel.cost.transportScore(effective),
         warnings: [
           ...state.warnings,
-          if (option.isEstimated) 'Gün sonu dönüş rota verisi yaklaşıktır.',
+          if (effective.isEstimated) 'Gün sonu dönüş rota verisi yaklaşıktır.',
         ],
       );
     }
     return null;
   }
 
-  _RouteState _improveLocally(
-    OptimizationRequest request,
-    _RouteState initial,
-  ) {
+  _RouteState _improveLocally(_Kernel kernel, _RouteState initial) {
     var best = initial;
     for (var pass = 0; pass < config.localImprovementPasses; pass++) {
       _RouteState? improvement;
@@ -1365,7 +1355,7 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
       }
 
       for (final candidate in candidates) {
-        final simulated = _simulateOrder(request, candidate);
+        final simulated = _simulateOrder(kernel, candidate);
         if (simulated == null || simulated.score >= best.score - .000001) {
           continue;
         }
@@ -1383,19 +1373,19 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
   }
 
   _RouteState? _simulateOrder(
-    OptimizationRequest request,
+    _Kernel kernel,
     List<OptimizationActivity> order,
   ) {
     var state = _RouteState.initial(
-      currentTime: request.constraints.availableStartTime,
-      currentLocation: request.constraints.startLocation,
+      currentTime: kernel.request.constraints.availableStartTime,
+      currentLocation: kernel.request.constraints.startLocation,
     );
     for (var index = 0; index < order.length; index++) {
       final activity = order[index];
       final options = _sortOptions(
-        request,
+        kernel,
         _validOptions(
-          request.routeMatrix,
+          kernel.request.routeMatrix,
           state.currentLocation.id,
           activity.location.id,
         ),
@@ -1403,7 +1393,7 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
       _RouteState? bestOption;
       for (final option in options) {
         final appended = _append(
-          request,
+          kernel,
           state,
           activity,
           option,
@@ -1417,21 +1407,22 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
       if (bestOption == null) return null;
       state = bestOption;
     }
-    return _appendReturn(request, state);
+    return _appendReturn(kernel, state);
   }
 
   OptimizationResult _toResult(
-    OptimizationRequest request,
+    _Kernel kernel,
     _RouteState state, {
     required int evaluatedStates,
     required int prunedStates,
   }) {
+    final request = kernel.request;
     final legs = [
       ...state.scheduled.map((item) => item.inboundLeg),
       if (state.returnLeg != null) state.returnLeg!,
     ];
     final routeChanges = <String>[];
-    final baseline = _simulateOrder(request, request.activities);
+    final baseline = _simulateOrder(kernel, request.activities);
     final baselineLegs = baseline == null
         ? const <RouteLeg>[]
         : [
@@ -1457,7 +1448,8 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
         totalTransferCount: state.totalTransfers,
         estimatedTransportCostYen: state.totalCost,
         backtrackingMinutes: state.backtracking,
-        routeEfficiencyScore: _efficiency(state.score, state.totalTravel),
+        routeEfficiencyScore:
+            kernel.cost.efficiency(state.score, state.totalTravel),
         score: state.score,
         evaluatedStateCount: evaluatedStates,
         prunedStateCount: prunedStates,
@@ -1509,7 +1501,7 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
   }
 
   RouteLeg _leg(
-    OptimizationRequest request,
+    _Kernel kernel,
     String from,
     String to,
     DateTime departure,
@@ -1517,8 +1509,9 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
     required int waitingMinutes,
     required int bufferMinutes,
     int scheduleIdleMinutes = 0,
+    RealisedTransit? realised,
   }) {
-    final cost = option.costForParty(request.preferences.partySize);
+    final cost = option.costForParty(kernel.request.preferences.partySize);
     return RouteLeg(
       fromLocationId: from,
       toLocationId: to,
@@ -1545,18 +1538,30 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
       directionId: option.directionId,
       complexityPenalty: option.complexityPenalty,
       providerId: option.providerId,
+      stationNavigationBufferMinutes:
+          realised?.stationNavigationBufferMinutes ?? 0,
+      trafficRiskMultiplier: realised?.trafficRiskMultiplier ?? 1,
+      effectiveShinkansenService: realised?.effectiveService,
+      transitDisclaimers: realised?.disclaimers ?? const {},
     );
-  }
-
-  double _efficiency(double score, int travelMinutes) {
-    if (!score.isFinite) return 0;
-    return (100 / (1 + max(0, score - travelMinutes) / 100))
-        .clamp(0, 100)
-        .toDouble();
   }
 
   bool _sameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
+}
+
+/// İstek başına kurulan çekirdek: arama stratejisi (motor), fizibilite
+/// (checker) ve maliyet (cost) tek yerde bağlanır.
+class _Kernel {
+  const _Kernel({
+    required this.request,
+    required this.checker,
+    required this.cost,
+  });
+
+  final OptimizationRequest request;
+  final HardConstraintChecker checker;
+  final CostFunction cost;
 }
 
 class _RouteState {

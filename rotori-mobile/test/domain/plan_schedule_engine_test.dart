@@ -835,6 +835,88 @@ void main() {
   });
 
   group('gün ve bütünlük kuralları', () {
+    test('geçiş modu timeline, tema ve snapshot ile atomik senkronlanır', () {
+      final transitionDay = day(2, [
+        TimelineItem(
+          id: 'legacy-transfer',
+          title: '🚆 Kyoto → Osaka • JR Special Rapid',
+          description: '30dk · ~580 ¥',
+          kind: TimelineItemKind.transport,
+          time: '09:00',
+          scheduledTime: '09:00',
+          durationMin: 30,
+          cityId: 'Osaka',
+        ),
+        TimelineItem(
+          id: 'dotonbori',
+          title: '🐙 Dotonbori',
+          kind: TimelineItemKind.activity,
+          time: '10:00',
+          scheduledTime: '10:00',
+          durationMin: 90,
+          cityId: 'Osaka',
+        ),
+      ])
+        ..theme = '🚄 Shinkansen & Dotonbori'
+        ..cityTransition = const CityTransitionPlan(
+          fromCity: 'Kyoto',
+          toCity: 'Osaka',
+          mode: 'train',
+        )
+        ..routeExecutionSnapshot = RouteExecutionSnapshot(
+          planId: 'trip',
+          dayNumber: 2,
+          planVersion: 1,
+          activityHash: 'old-transfer',
+          matrixVersion: 'matrix-v1',
+          generatedAt: DateTime.utc(2026, 8, 11),
+          profile: RouteOptimizationProfile.balanced,
+          legs: const [],
+        );
+
+      final result = engine.apply(
+        tripWith([day(1, []), transitionDay]),
+        const UpdateCityTransition(
+          toDayNumber: 2,
+          fromCity: 'Kyoto',
+          toCity: 'Osaka',
+          mode: 'bus',
+        ),
+      );
+
+      expect(result.isSuccess, isTrue);
+      final updated = result.trip!.days[1];
+      final transfer = updated.items.first;
+      expect(updated.cityTransition?.mode, 'bus');
+      expect(transfer.id, 'legacy-transfer');
+      expect(transfer.isCityTransition, isTrue);
+      expect(transfer.title, contains('Şehirlerarası otobüs'));
+      expect(transfer.title, isNot(contains('JR Special Rapid')));
+      expect(transfer.description, isNot(contains('580')));
+      expect(transfer.durationMin, 75);
+      expect(updated.theme, '🚌 Otobüs & Dotonbori');
+      expect(updated.routeExecutionSnapshot, isNull);
+
+      final restored = Trip.fromJson(result.trip!.toJson());
+      expect(restored.days[1].items.first.isCityTransition, isTrue);
+
+      final switchedAgain = engine.apply(
+        result.trip!,
+        const UpdateCityTransition(
+          toDayNumber: 2,
+          fromCity: 'Kyoto',
+          toCity: 'Osaka',
+          mode: 'flight',
+        ),
+      );
+      expect(switchedAgain.isSuccess, isTrue);
+      expect(switchedAgain.trip!.days[1].theme, '✈️ Uçak & Dotonbori');
+      expect(
+        switchedAgain.trip!.days[1].items.first.title,
+        isNot(contains('Şehirlerarası otobüs')),
+      );
+    });
+
     test('şehir geçiş modu ve bağlı bilet atomik olarak kalıcılaşır', () {
       final selected = engine.apply(
         tripWith([day(1, []), day(2, [])]),

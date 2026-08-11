@@ -94,12 +94,20 @@
     <p>Text entered in the Premium Pocket Translator and its translation result are processed on your device. We do not send them to Rotori servers or advertising systems, store them, or log them. Required language models may be downloaded by Google ML Kit when you request them during setup; text translation then runs on the device. This feature does not use the microphone or speech recognition.</p>
   </div>
 
+  <div class="card">
+    <h3>Product analytics and technical diagnostics</h3>
+    <p>To improve Rotori's reliability and route quality, we keep limited product events linked to your signed-in account: app/screen opens, route-generation success or failure, selected cities and dates, generated stop order, times, transport modes, and aggregate duration/count metrics.</p>
+    <p>The analytics route record excludes flights, hotels, tickets, free-form notes, contact details, photos, map links, precise GPS location, and the contents of dietary preferences. Dietary and budget fields record only whether a preference exists or its count.</p>
+    <p>For crashes and technical errors, Sentry may receive a stack trace, app version, device/OS information, safe screen name, and pseudonymous account ID. Email, screenshots, UI hierarchy, and route JSON are not sent to Sentry.</p>
+  </div>
+
   <h2>3. How we use it</h2>
   <ul>
     <li>To show you your travel plan</li>
     <li>To send you local reminders when a booking window opens (we'll ask permission first — you can decline)</li>
     <li>To open your route in Google Maps — only coordinates go to Google Maps, not your identity or account info</li>
     <li>To trigger your pre-departure checklist as your trip approaches</li>
+    <li>To fix crashes and technical errors, and improve route generation by measuring success, duration, and output quality</li>
   </ul>
   <p>We <strong>never use your data for advertising</strong>. Rotori doesn't run an ad network.</p>
 
@@ -110,11 +118,13 @@
     <li><strong>Open-Meteo</strong> — sends only city coordinates for weather forecasts (not who you are). Free open-source service, no account needed.</li>
     <li><strong>Google Maps</strong> — when you tap "open in maps", coordinates go to Google. The app never talks to Google in the background.</li>
     <li><strong>Google ML Kit Translation</strong> — provides offline language models only after you tap the download button. Translation input and output are processed on the device and are not sent to Google by Rotori.</li>
+    <li><strong>Sentry</strong> — crash, error, and performance diagnostics. Route JSON, precise GPS location, email, screenshots, and UI hierarchy are not sent. Governed by Sentry's <a href="https://sentry.io/privacy/">privacy policy</a>.</li>
   </ul>
-  <p>We <strong>don't use</strong> any service that profiles you for ads or tracks behavior: no Google Analytics, no Facebook Pixel, no Firebase Analytics, not even crash reporting. Rotori is a quiet app.</p>
+  <p>We don't use services to build advertising profiles: there is no Google Analytics, Meta Pixel, or Firebase Analytics. Product events stay in our Supabase project; technical error events are held in Sentry and are never used or sold for advertising.</p>
 
   <h2>5. How long we keep it</h2>
-  <p>Your data stays until you delete your account. When you tap <strong>"Delete Account"</strong> inside the app, everything is erased — your plans, hotels, tickets, reminders, checklist, and account record. This is irreversible.</p>
+  <p>Your account and app data stay until you delete your account. When you tap <strong>"Delete Account"</strong> inside the app, your plans, hotels, tickets, reminders, checklist, account, and linked Supabase analytics records are deleted. This is irreversible.</p>
+  <p>Technical events in Sentry are deleted at the end of the project's retention period. You may email <a href="mailto:destek@rotori.app">destek@rotori.app</a> to request earlier deletion.</p>
   <p>The account deletion flow complies with Apple App Store Guideline 5.1.1(v): you can delete where you sign up, no email required.</p>
 
   <h2>6. Your rights (KVKK / GDPR)</h2>

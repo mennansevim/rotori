@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:device_preview/device_preview.dart';
 
 import 'core/l10n.dart';
 import 'core/router.dart';
 import 'data/exchange_rate_store.dart';
+import 'data/crash_reporter.dart';
 import 'data/language_store.dart';
+import 'data/telemetry_service.dart';
 import 'env.dart';
 import 'theme.dart';
 
@@ -20,6 +24,34 @@ const bool _enableDevicePreviewInMain =
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Env.load();
+
+  if (Env.isSentryConfigured) {
+    await SentryFlutter.init(
+      (options) {
+        options
+          ..dsn = Env.sentryDsn
+          ..environment = Env.sentryEnvironment.isNotEmpty
+              ? Env.sentryEnvironment
+              : (kReleaseMode ? 'production' : 'development')
+          ..sendDefaultPii = false
+          ..attachScreenshot = false
+          // Sentry SDK alanı deneysel işaretli olsa da gizlilik için açıkça
+          // kapatıyoruz; UI ağacı crash olaylarına eklenmemeli.
+          // ignore: experimental_member_use
+          ..attachViewHierarchy = false
+          ..enableUserInteractionBreadcrumbs = false
+          ..tracesSampleRate = Env.sentryTracesSampleRate;
+      },
+      appRunner: _bootstrap,
+    );
+    return;
+  }
+
+  await _bootstrap();
+}
+
+Future<void> _bootstrap() async {
+  if (Env.isSentryConfigured) CrashReporter.enable();
 
   if (!Env.isConfigured) {
     runApp(
@@ -35,6 +67,7 @@ Future<void> main() async {
     url: Env.supabaseUrl,
     publishableKey: Env.supabaseAnonKey,
   );
+  await TelemetryService.instance.initialize(Supabase.instance.client);
 
   runApp(
     DevicePreview(

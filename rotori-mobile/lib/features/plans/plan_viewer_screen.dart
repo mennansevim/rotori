@@ -32,7 +32,10 @@ import '../../domain/city_palette.dart';
 import '../../data/google_maps_launcher.dart';
 import '../../domain/city_places.dart';
 import '../../domain/city_transfers.dart'
-    show kShinkansenOfficialUrl, lookupTransfer;
+    show
+        cityTransitionProjectionMatches,
+        kShinkansenOfficialUrl,
+        lookupTransfer;
 import '../../domain/bug_report.dart';
 import '../../domain/day_schedule.dart' as sched;
 import '../../domain/destination_profiles.dart';
@@ -218,6 +221,7 @@ class _ViewerBody extends ConsumerStatefulWidget {
 
 class _ViewerBodyState extends ConsumerState<_ViewerBody>
     with WidgetsBindingObserver {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _scrollController = ScrollController();
   final _activeDayKey = GlobalKey();
   bool _autoScrolled = false;
@@ -252,11 +256,13 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
   /// ile kalıcı, planId'ye özel (bkz. initState _loadFlightCardDismissed).
   bool _flightCardDismissed = false;
   bool _mustSeeCardDismissed = false;
+  int _flightDrawerExpansionRequest = 0;
 
   late final PlanEditSession _editSession;
   PlanEditState? _editState;
   Timer? _undoSnackTimer;
   int _planVersion = 0;
+  bool _transitionRepairScheduled = false;
 
   Trip get _trip => _editState?.trip ?? _editSession.current;
 
@@ -311,6 +317,35 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
     _loadMustSeeCardDismissed();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_transitionRepairScheduled) return;
+    _transitionRepairScheduled = true;
+    final lang = LanguageScope.of(context).lang;
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _repairLegacyCityTransitionProjections(lang),
+    );
+  }
+
+  Future<void> _repairLegacyCityTransitionProjections(AppLang lang) async {
+    for (final day in [..._editSession.current.days]) {
+      final transition = day.cityTransition;
+      if (transition == null ||
+          cityTransitionProjectionMatches(day, lang) ||
+          !mounted) {
+        continue;
+      }
+      await _editSession.execute(UpdateCityTransition(
+        toDayNumber: day.dayNumber,
+        fromCity: transition.fromCity,
+        toCity: transition.toCity,
+        mode: transition.mode,
+        lang: lang,
+      ));
+    }
+  }
+
   String get _flightCardPrefsKey =>
       'viewer:flightCardDismissed:${widget.planId}';
 
@@ -335,6 +370,25 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
     } catch (_) {
       // Depolama erişilemezse kart görünmeye devam eder — sorun değil.
     }
+  }
+
+  Future<void> _openFlightDetails({bool closeDrawer = false}) async {
+    if (closeDrawer) Navigator.of(context).pop();
+    final updatedTrip = await context.push<Trip>(
+      '/plans/${widget.planId}/flights',
+    );
+    if (!mounted || updatedTrip == null) return;
+
+    _editSession.replaceFromRemote(updatedTrip);
+    setState(() {
+      _editState = PlanEditState(trip: updatedTrip);
+      _flightCardDismissed = true;
+      _flightDrawerExpansionRequest += 1;
+    });
+    HomeWidgetHook.pushFromTrip(updatedTrip);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _scaffoldKey.currentState?.openDrawer();
+    });
   }
 
   /// "Bunları da gör" seçimini plana uygular ve kaydeder.
@@ -452,11 +506,14 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
     // Minimalize edilmiş viewer: sadece üst bar + doğrudan gün akışı. Uçuş
     // özeti, konaklama, metrikler ve tüm aksiyon butonları drawer içinde.
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: palette.bg,
       drawer: _ViewerDrawer(
         palette: palette,
         trip: trip,
         dayCount: days.length,
+        flightExpansionRequest: _flightDrawerExpansionRequest,
+        onOpenFlights: () => _openFlightDetails(closeDrawer: true),
         onOpenThemePicker: _openThemePicker,
         onOpenBudget: _openBudget,
         onOpenPrep: _openPrep,
@@ -489,7 +546,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                       if (!tripHasFlightInfo(trip) && !_flightCardDismissed)
                         _AddFlightCard(
                           palette: palette,
-                          planId: widget.planId,
+                          onOpen: _openFlightDetails,
                           onDismiss: () {
                             setState(() => _flightCardDismissed = true);
                             SharedPreferences.getInstance().then(
@@ -1857,6 +1914,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                             fromCity: fromCity,
                             toCity: toCity,
                             mode: mode,
+                            lang: s.lang,
                           ),
                         );
                         if (result.isSuccess && sheetContext.mounted) {
@@ -3196,11 +3254,11 @@ class _TicketChip extends StatelessWidget {
 class _AddFlightCard extends StatelessWidget {
   const _AddFlightCard({
     required this.palette,
-    required this.planId,
+    required this.onOpen,
     required this.onDismiss,
   });
   final ViewerPalette palette;
-  final String planId;
+  final VoidCallback onOpen;
   final VoidCallback onDismiss;
 
   @override
@@ -3218,7 +3276,7 @@ class _AddFlightCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         child: InkWell(
           borderRadius: BorderRadius.circular(18),
-          onTap: () => context.push('/plans/$planId/flights'),
+          onTap: onOpen,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
             child: Row(
