@@ -814,6 +814,8 @@ class TimelineItem {
     this.lockType = ActivityLockType.none,
     this.fixedStartTime,
     this.fixedEndTime,
+    this.openingTime,
+    this.closingTime,
     this.canChangeDay = true,
     this.canChangeTime = true,
     this.canReorder = true,
@@ -840,6 +842,8 @@ class TimelineItem {
   ActivityLockType lockType;
   String? fixedStartTime;
   String? fixedEndTime;
+  String? openingTime;
+  String? closingTime;
   bool canChangeDay;
   bool canChangeTime;
   bool canReorder;
@@ -865,6 +869,8 @@ class TimelineItem {
     ActivityLockType? lockType,
     String? fixedStartTime,
     String? fixedEndTime,
+    String? openingTime,
+    String? closingTime,
     bool? canChangeDay,
     bool? canChangeTime,
     bool? canReorder,
@@ -891,6 +897,8 @@ class TimelineItem {
         lockType: lockType ?? this.lockType,
         fixedStartTime: fixedStartTime ?? this.fixedStartTime,
         fixedEndTime: fixedEndTime ?? this.fixedEndTime,
+        openingTime: openingTime ?? this.openingTime,
+        closingTime: closingTime ?? this.closingTime,
         canChangeDay: canChangeDay ?? this.canChangeDay,
         canChangeTime: canChangeTime ?? this.canChangeTime,
         canReorder: canReorder ?? this.canReorder,
@@ -918,6 +926,8 @@ class TimelineItem {
         lockType: _activityLockTypeFromJson(j['lockType']),
         fixedStartTime: j['fixedStartTime'] as String?,
         fixedEndTime: j['fixedEndTime'] as String?,
+        openingTime: j['openingTime'] as String?,
+        closingTime: j['closingTime'] as String?,
         canChangeDay: (j['canChangeDay'] as bool?) ?? true,
         canChangeTime: (j['canChangeTime'] as bool?) ?? true,
         canReorder: (j['canReorder'] as bool?) ?? true,
@@ -946,6 +956,8 @@ class TimelineItem {
           'lockType': _activityLockTypeToJson(lockType),
         if (fixedStartTime != null) 'fixedStartTime': fixedStartTime,
         if (fixedEndTime != null) 'fixedEndTime': fixedEndTime,
+        if (openingTime != null) 'openingTime': openingTime,
+        if (closingTime != null) 'closingTime': closingTime,
         if (!canChangeDay) 'canChangeDay': false,
         if (!canChangeTime) 'canChangeTime': false,
         if (!canReorder) 'canReorder': false,

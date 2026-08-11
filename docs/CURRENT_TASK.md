@@ -33,8 +33,12 @@ değiştirilmeyecek.
 5. ✅ Versioned route snapshot, varsayım özeti, şehir geçişi ve bağlı bilet
    akışını tamamla.
 6. ✅ Hedefli test + rota harness + analiz + dar ekran web QA çalıştır.
-7. **Sıradaki:** Gerçek route sağlayıcısını seçip Edge Function ve kalıcı
-   matrix cache'i uygulamak; ardından saha modu ve kalan kişiselleştirme.
+7. ✅ Google Routes taşıyıcısı için Supabase Edge Function ve mobil gateway
+   eklendi; yeni planların normal gezi günleri kayıt öncesinde mevcut optimizer
+   ve validator hattından geçiriliyor.
+8. **Sıradaki:** `GOOGLE_MAPS_ROUTES_API_KEY` Supabase secret'ını tanımlayıp
+   Edge Function'ı yayınlamak; ardından kalıcı matrix cache'i, saha modu ve
+   kalan kişiselleştirme.
 
 Detay: `docs/ROUTE_EXPERIENCE_REFACTOR_PLAN.md`.
 
@@ -820,17 +824,35 @@ geri almaz. Checkpoint alınırken kapsam dosya bazında açıkça ayrılmalıd�
 - [x] Günlük akıştaki büyük yürüyüş/ulaşım kartları ikon, duraklar, tür ve
       süreyi taşıyan tek satırlık kompakt satırlara çevrildi.
 - [x] Kullanıcı optimizasyon çalıştırmadan önce de başlangıç, duraklar arası ve
-      güne dönüş geçişleri mevcut sıra üzerinde `TAHMİNİ` olarak gösteriliyor.
+      güne dönüş geçişleri mevcut sıra üzerinde kompakt olarak gösteriliyor;
+      veri kalitesi görünür bir `TAHMİNİ` etiketi yerine iç modelde korunuyor.
 - [x] Onaylanmış rota snapshot'ı varsa tahmini satırlar yerine kaydedilmiş
       gerçek/tahmini ayaklar aynı kompakt sunumla kullanılıyor.
 - [x] İlk plan üretiminin yerel kural/katalog tabanlı, tam rota
       optimizasyonunun ise ayrı beam-search + validator hattı olduğu ürün
       sözleşmesinde açıkça ayrıldı.
-- [ ] Flutter SDK önbelleği proje yazma alanının dışında kaldığı ve bu oturumun
-      dış izin kotası dolduğu için son iki dosyanın analyze/widget test tekrarı
-      bir sonraki izinli çalıştırmada yapılacak. Bu değişiklikten önceki hedefli
-      rota/hatırlatıcı testleri 46/46, Eats/diyet testleri 45/45 ve çevirmen
-      testleri 5/5 geçmiştir.
+- [x] Hedefli analiz temiz; proje genelindeki **826 Flutter testi** geçti.
+
+## 2026-08-11 — İlk rota üretimini gerçek optimizasyona bağlama
+
+- [x] Kompakt geçişlerde `TAHMİNİ` metnini ve pembe kart zeminini kaldır;
+      veri kalitesini model/semantics katmanında koru.
+- [x] Havaalanı→otel ve otel→havaalanı satırlarının genel açıklamasını kaldır;
+      hesaplanan varış saati, süre ve havalimanına uygun tren/metro/otobüs/
+      taksi seçenekleriyle değiştir.
+- [x] Timeline aktivitesine çalışma saati penceresini geriye uyumlu taşı ve
+      optimizer adapter'ında hard opening/closing constraint olarak kullan.
+- [x] Supabase `route-matrix` Edge Function + mobil gateway'i ekle; Google
+      Routes anahtarı yalnız sunucu secret'ında kalsın.
+- [x] Yeni planın normal günlerini kayıt öncesinde yönlü matris,
+      beam-search ve bağımsız validator ile optimize edip route snapshot'ını
+      başlangıçtan üret.
+- [x] Canlı sağlayıcı yoksa planı kaybetmeden koordinat fallback'i kullan;
+      uçuş/otel/şehir transferi gibi sabit özel günlerin sırasını değiştirme.
+- [x] Domain/controller/widget testleri, analyze ve iPhone dar ekran QA.
+- [ ] Supabase projesinde `GOOGLE_MAPS_ROUTES_API_KEY` secret'ını tanımla ve
+      `route-matrix` Edge Function'ını yayınla. Bu operasyon tamamlanana kadar
+      uygulama aynı optimizer'ı koordinat tahminiyle güvenli biçimde çalıştırır.
 
 ## Son Commit'ler (referans)
 

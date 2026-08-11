@@ -7,8 +7,8 @@
 //
 // Bu test iki şeyi korur:
 //   1) her keşif aracının adı ve tek satır açıklaması ekranda YAZILI,
-//   2) Eats ayrı bir vitrin kartı ve katman rozetini (Ücretsiz / Pass)
-//      premium durumuna göre gösteriyor.
+//   2) Premium fiyat etiketi tarayıcı ayrı bir vitrin kartı ve durum rozetiyle
+//      gösteriliyor; Eats sakin araç ızgarasında kalıyor.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -67,26 +67,36 @@ void main() {
     expect(find.text(tr('scanner.price_tag')), findsOneWidget);
 
     // Açıklamalar — eskiden hiçbiri yazılı değildi.
-    expect(find.text(tr('drawer.discover.eats.sub')), findsOneWidget);
+    expect(find.text(tr('drawer.discover.eats.short')), findsOneWidget);
     expect(find.text(tr('drawer.discover.weather.sub')), findsOneWidget);
     expect(find.text(tr('drawer.discover.budget.sub')), findsOneWidget);
     expect(find.text(tr('drawer.discover.checklist.sub')), findsOneWidget);
-    expect(find.text(tr('drawer.discover.scanner.sub')), findsOneWidget);
+    expect(find.text(tr('drawer.discover.scanner.heroSub')), findsOneWidget);
+    expect(find.text(tr('viewer.tt.experienceGuide')), findsOneWidget);
+    expect(
+        find.text(tr('drawer.discover.experienceGuide.sub')), findsOneWidget);
   });
 
-  // Rotori Eats artık ücretsiz: rozet premium bayrağından bağımsız olarak
-  // hep "Ücretsiz" der. Eskiden Pass/Ücretsiz arasında geçiyordu.
-  testWidgets('Eats kartı premium durumundan bağımsız "Ücretsiz" gösterir',
+  testWidgets('fiyat tarayıcı kartı premium durum rozetini gösterir',
       (tester) async {
     for (final premium in [false, true]) {
       SharedPreferences.setMockInitialValues({kPremiumPrefsKey: premium});
       await openDrawer(tester, weekTrip());
       await tester.pump(const Duration(milliseconds: 200));
 
-      expect(find.text(tr('drawer.eats.free')), findsOneWidget,
-          reason: 'premium=$premium');
-      expect(find.text(tr('drawer.eats.pass')), findsNothing,
-          reason: 'premium=$premium');
+      final scannerHero = find.byKey(const ValueKey('drawer-scanner-hero'));
+      expect(scannerHero, findsOneWidget);
+      expect(
+        find.descendant(
+          of: scannerHero,
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget is Text && (widget.data?.startsWith('Premium') ?? false),
+          ),
+        ),
+        findsOneWidget,
+        reason: 'premium=$premium',
+      );
     }
   });
 
@@ -95,7 +105,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await openDrawer(tester, weekTrip());
 
-    await tester.tap(find.text(tr('drawer.discover.eats.sub')));
+    await tester.tap(find.text(tr('drawer.discover.eats.short')));
     await tester.pumpAndSettle();
 
     // Yemek rehberi açıldı: kategori çipleri ve yemek sayacı geliyor.

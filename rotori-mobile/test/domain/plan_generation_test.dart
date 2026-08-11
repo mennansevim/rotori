@@ -114,6 +114,43 @@ void main() {
       // JSON round-trip'te de korunmalı.
       expect(trip.toJson()['preferences']['datesEstimated'], isTrue);
     });
+
+    test('otel transferi varış saati, süre ve ulaşım türlerini gösterir', () {
+      final trip = buildTripFromCities(
+        cityKeys: const ['tokyo'],
+        startYmd: start,
+        endYmd: end,
+      );
+      final transfer = trip.days.first.items.firstWhere(
+        (item) => item.title.contains('Otele transfer'),
+      );
+
+      expect(transfer.description, contains('varış'));
+      expect(transfer.description, contains('60 dk'));
+      expect(transfer.description, contains('Tren'));
+      expect(transfer.description, contains('Otobüs'));
+      expect(transfer.description, contains('Taksi'));
+      expect(transfer.description, isNot(contains('Airport Limousine')));
+      expect(transfer.description, isNot(contains('Narita Express')));
+    });
+
+    test('mekan süresi ve açılış saatleri rota verisine taşınır', () {
+      final trip = buildTripFromCities(
+        cityKeys: const ['tokyo'],
+        startYmd: start,
+        endYmd: end,
+      );
+      final activity = trip.days
+          .expand((day) => day.items)
+          .firstWhere((item) => item.title.contains('Tokyo Skytree'));
+
+      expect(activity.durationMin, isNotNull);
+      expect(activity.openingTime, '10:00');
+      expect(activity.closingTime, '21:00');
+      final restored = TimelineItem.fromJson(activity.toJson());
+      expect(restored.openingTime, activity.openingTime);
+      expect(restored.closingTime, activity.closingTime);
+    });
   });
 
   group('previewCityDistribution', () {
@@ -145,7 +182,8 @@ void main() {
 
       for (final c in preview) {
         expect(c.days, actual[c.label] ?? 0,
-            reason: '${c.label}: önizleme ${c.days}, gerçek ${actual[c.label]}');
+            reason:
+                '${c.label}: önizleme ${c.days}, gerçek ${actual[c.label]}');
       }
     });
 
@@ -225,7 +263,8 @@ void main() {
           reason: 'Tekrarlanan tema(lar) var: $themes');
     });
 
-    test('ikinci şehir (az şablonlu) gerçek bir gezi günü alır, '
+    test(
+        'ikinci şehir (az şablonlu) gerçek bir gezi günü alır, '
         'sadece ayrılış gününe sıkışmaz', () {
       final trip = buildTripFromCities(
         cityKeys: const ['tokyo', 'kyoto'],
@@ -240,7 +279,8 @@ void main() {
       expect(kyotoDays, greaterThanOrEqualTo(2));
     });
 
-    test('içerik zengin şehir (Tokyo, 4 şablon) daha çok gün alır ama '
+    test(
+        'içerik zengin şehir (Tokyo, 4 şablon) daha çok gün alır ama '
         'ağırlık ham şablon oranı kadar keskin değildir', () {
       final dist = previewCityDistribution(
         const ['tokyo', 'kyoto'],
@@ -258,8 +298,8 @@ void main() {
         () {
       // Sapporo ve Kanazawa'nın ikisi de şablonsuz, benzer yer sayısına
       // sahip → dağılım birbirine yakın olmalı (kör 50/50'den sapmamalı).
-      final dist =
-          previewCityDistribution(const ['sapporo', 'kanazawa'], '2026-10-01', '2026-10-07');
+      final dist = previewCityDistribution(
+          const ['sapporo', 'kanazawa'], '2026-10-01', '2026-10-07');
       final days = dist.map((c) => c.days).toList();
       expect((days[0] - days[1]).abs(), lessThanOrEqualTo(1));
     });
@@ -268,7 +308,8 @@ void main() {
   group('kullanıcı gün dağılımı (dayOverrides)', () {
     test('suggestedDaySplit toplamı gün sayısına eşit', () {
       final split = suggestedDaySplit(const ['tokyo', 'kyoto'], start, end);
-      expect(split.values.fold<int>(0, (a, b) => a + b), inclusiveDays(start, end));
+      expect(split.values.fold<int>(0, (a, b) => a + b),
+          inclusiveDays(start, end));
       expect(split.keys, containsAll(<String>['tokyo', 'kyoto']));
     });
 
@@ -364,15 +405,24 @@ void main() {
 
     test('visitWindow çalışma saatini gün penceresiyle kesiştirir', () {
       const market = PlaceSuggestion(
-        id: 'x', name: 'X', city: 'Osaka', emoji: '🍣',
-        category: 'food', openHour: 9, closeHour: 17,
+        id: 'x',
+        name: 'X',
+        city: 'Osaka',
+        emoji: '🍣',
+        category: 'food',
+        openHour: 9,
+        closeHour: 17,
       );
       final (s2, e2) = market.visitWindow(kDayStartMinutes, kDayEndMinutes);
       expect(s2, 9 * 60);
       expect(e2, 17 * 60); // kapanış 20:00'den önce → kapanış kazanır
 
       const allDay = PlaceSuggestion(
-        id: 'y', name: 'Y', city: 'Kyoto', emoji: '⛩️', category: 'culture',
+        id: 'y',
+        name: 'Y',
+        city: 'Kyoto',
+        emoji: '⛩️',
+        category: 'culture',
       );
       final (s3, e3) = allDay.visitWindow(kDayStartMinutes, kDayEndMinutes);
       expect(s3, kDayStartMinutes);

@@ -66,8 +66,7 @@ class RouteExecutionLeg {
 
   bool get isEstimated => dataQuality == RouteExecutionDataQuality.estimated;
 
-  bool get isTrivial =>
-      travelDurationMinutes == 0 && fromLocationId == toLocationId;
+  bool get isTrivial => travelDurationMinutes == 0;
 
   factory RouteExecutionLeg.fromJson(Map<String, dynamic> json) {
     return RouteExecutionLeg(

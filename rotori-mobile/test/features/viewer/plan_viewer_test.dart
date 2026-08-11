@@ -475,7 +475,7 @@ void main() {
     expect(find.byKey(const ValueKey('route-execution-leg-0')), findsOneWidget);
   });
 
-  testWidgets('tahmini rota kesin hat ve yön göstermeden açıkça işaretlenir',
+  testWidgets('tahmini rota kesin hat/yön ve görünür tahmin rozeti göstermez',
       (tester) async {
     SharedPreferences.setMockInitialValues({kPremiumPrefsKey: true});
     await tester.pumpWidget(
@@ -498,13 +498,14 @@ void main() {
     await tester.tap(optimize);
     await tester.pumpAndSettle();
 
-    expect(find.text(tr('routeOptimization.legs.estimated')), findsWidgets);
+    expect(find.text(tr('routeOptimization.legs.estimated')), findsNothing);
     expect(find.textContaining('Hat: Ginza Line'), findsNothing);
     expect(find.textContaining('Yön: Asakusa'), findsNothing);
-    expect(find.text(tr('routeOptimization.legs.estimatedHelp')), findsWidgets);
+    expect(find.text(tr('routeOptimization.legs.estimatedHelp')), findsNothing);
   });
 
-  testWidgets('optimizasyon öncesinde tüm geçişler kompakt tahmin olarak görünür',
+  testWidgets(
+      'optimizasyon öncesinde tüm geçişler kompakt tahmin olarak görünür',
       (tester) async {
     await tester.pumpWidget(harness(_routeUiTrip()));
     await tester.pump();
@@ -531,7 +532,7 @@ void main() {
         of: departure,
         matching: find.text(tr('routeOptimization.legs.estimated')),
       ),
-      findsOneWidget,
+      findsNothing,
     );
   });
 

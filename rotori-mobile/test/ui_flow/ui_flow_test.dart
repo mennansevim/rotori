@@ -26,6 +26,7 @@ import 'package:rotori/core/l10n.dart';
 import 'package:rotori/data/reminders_store.dart';
 import 'package:rotori/features/auth/auth_screen.dart';
 import 'package:rotori/features/notifications/notifications_service.dart';
+import 'package:rotori/features/plans/premium_provider.dart';
 import 'package:rotori/features/reminders/reminders_screen.dart';
 
 // ---------------------------------------------------------------------------
@@ -176,7 +177,9 @@ void main() {
   // REMINDERS EKRANI — end-to-end gesture akışı
   // ===========================================================================
   group('UI Otomasyon · Reminders akışı', () {
-    setUp(() => SharedPreferences.setMockInitialValues({}));
+    setUp(() => SharedPreferences.setMockInitialValues({
+          kPremiumPrefsKey: true,
+        }));
 
     testWidgets(
         'UI10 · Boş ekran → hatırlatma eklenir → listede görünür → X ile silinir → tekrar boş',
@@ -242,7 +245,8 @@ void main() {
       expect(fake.cancelledIds, contains('ui10-r1'));
     });
 
-    testWidgets('UI11 · 3 hatırlatma eklenir, çöp kutusu → onay → hepsi silinir',
+    testWidgets(
+        'UI11 · 3 hatırlatma eklenir, çöp kutusu → onay → hepsi silinir',
         (tester) async {
       tester.view.physicalSize = const Size(400, 1200);
       tester.view.devicePixelRatio = 1.0;
@@ -305,7 +309,9 @@ void main() {
   // DİL DEĞİŞİMİ — LanguageScope re-mount
   // ===========================================================================
   group('UI Otomasyon · Dil değişimi', () {
-    setUp(() => SharedPreferences.setMockInitialValues({}));
+    setUp(() => SharedPreferences.setMockInitialValues({
+          kPremiumPrefsKey: true,
+        }));
 
     testWidgets('UI20 · Reminders ekranı EN dilinde İngilizce metin gösterir',
         (tester) async {

@@ -160,6 +160,14 @@ class PlanOptimizationController
     state = await AsyncValue.guard(() => _buildPreview(input));
   }
 
+  /// Yeni plan oluşturulurken de aynı optimizasyon ve doğrulama hattını,
+  /// kullanıcıya ayrı bir onay ekranı açmadan çalıştırır.
+  Future<PlanOptimizationPreview> buildInitialPreview(
+    DayOptimizationInput input,
+  ) {
+    return _buildPreview(input);
+  }
+
   Future<bool> confirm(OptimizedPlanPersist persist) async {
     final preview = state.valueOrNull;
     if (preview == null || preview.isConfirmed) return false;
@@ -216,6 +224,8 @@ class PlanOptimizationController
       // böylece optimizasyon öğle yemeğini sabahın köründe (ör. 06:13)
       // planlayamaz. Sabit öğünler kendi saatlerini korur.
       final mealWindow = locked ? null : _mealWindow(dayDate, item);
+      final venueOpening = _onDay(dayDate, item.openingTime);
+      final venueClosing = _onDay(dayDate, item.closingTime);
       return OptimizationActivity(
         id: item.id,
         name: item.title,
@@ -231,8 +241,8 @@ class PlanOptimizationController
         durationMinutes: duration,
         minimumDurationMinutes: duration,
         requiredArrivalBufferMinutes: item.arrivalBufferMin ?? 0,
-        openingTime: mealWindow?.open,
-        closingTime: mealWindow?.close,
+        openingTime: venueOpening ?? mealWindow?.open,
+        closingTime: venueClosing ?? mealWindow?.close,
         preferredTime: mealWindow?.preferred,
         fixedStartTime: fixedStart,
         fixedEndTime: _onDay(dayDate, item.fixedEndTime),
@@ -710,6 +720,8 @@ String _activityHash(DayPlan day) {
             item.durationMin,
             item.fixedStartTime,
             item.fixedEndTime,
+            item.openingTime,
+            item.closingTime,
             item.lockType.name,
             item.time,
           ].join('|'))

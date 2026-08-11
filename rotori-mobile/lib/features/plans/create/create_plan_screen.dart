@@ -23,6 +23,8 @@ import '../../../domain/route_sanity.dart';
 import '../../../domain/types.dart';
 import '../../viewer/viewer_theme.dart';
 import '../plan_providers.dart';
+import '../initial_trip_route_planner.dart';
+import '../plan_optimization_controller.dart';
 import 'city_select_page.dart';
 import 'preferences_page.dart';
 import 'create_plan_widgets.dart';
@@ -232,8 +234,9 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
 
     setState(() => _generating = true);
 
-    // Üretim senkron ve hızlı (~10-50 ms) — YAPAY GECİKME YOK.
-    final trip = buildTripFromCities(
+    // İlk taslak hızlı ve deterministik üretilir; kaydedilmeden önce aşağıda
+    // gerçek rota motoru ve doğrulayıcıdan geçirilir.
+    var trip = buildTripFromCities(
       cityKeys: _selected,
       startYmd: _start,
       endYmd: _end,
@@ -256,6 +259,13 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
       dateRationale: _datesEstimated ? 'seasonalWeatherAndCrowdBalance' : null,
       flightStatus: 'draft',
       hotelStatus: 'draft',
+    );
+
+    trip = await optimizeInitialTripRoutes(
+      trip: trip,
+      buildPreview: ref
+          .read(planOptimizationControllerProvider.notifier)
+          .buildInitialPreview,
     );
 
     // Repo yokken (önizleme/oturumsuz) viewer planı buradan okur.

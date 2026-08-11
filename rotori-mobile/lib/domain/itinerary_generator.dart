@@ -184,6 +184,15 @@ TimelineItem _makeItem(
               : null,
       kind: TimelineItemKind.activity,
       cityId: cityId ?? place.city,
+      durationMin: place.durationMin ?? kDefaultActivityMinutes,
+      openingTime: place.openHour == null
+          ? null
+          : '${place.openHour!.toString().padLeft(2, '0')}:00',
+      closingTime: place.closeHour == null
+          ? null
+          : place.closeHour == 24
+              ? '23:59'
+              : '${place.closeHour!.clamp(0, 23).toString().padLeft(2, '0')}:00',
       // Saatli giriş (teamLab, Disney, USJ): bilet belirli bir saate kesilir.
       // Rota optimizasyonu bunları OYNATAMAZ — bkz. isTimeLocked.
       lockType: isTimedEntryTitle(place.name)
@@ -304,7 +313,8 @@ DayPlan _buildDepartureDay(
 }) {
   final flightMin = _parseHhmm(returnTime) ?? (14 * 60);
   final atAirportMin = flightMin - _kAirportPreDepartureBufferMin;
-  final transferMin = _hotelTransferMinutes(airportIata);
+  final transferProfile = _airportTransferProfile(airportIata);
+  final transferMin = transferProfile.minutes;
   final hotelDepartMin = atAirportMin - transferMin;
   final checkOutMin = hotelDepartMin - _kCheckoutBufferMin;
   int safe(int v) => v < 0 ? 0 : v;
@@ -333,7 +343,11 @@ DayPlan _buildDepartureDay(
         time: _fmtHhmm(safe(hotelDepartMin)),
         scheduledTime: _fmtHhmm(safe(hotelDepartMin)),
         title: '🚕 ${L10n.resolve('gen.departure.transferTitle', lang)}',
-        description: L10n.resolve('gen.departure.transferDesc', lang),
+        description: _transferSummary(
+          lang,
+          arrivalMinute: safe(atAirportMin),
+          profile: transferProfile,
+        ),
         kind: TimelineItemKind.transport,
         cityId: destName,
       ),
@@ -528,29 +542,54 @@ List<PlaceSuggestion> _cityPool(DestinationProfile profile, String city) {
 
 /// Gezinin ilk günü — şehre özel varış & yerleşme (şablondan bağımsız, böylece
 /// başka bir şehre "Tokyo'ya varış" yazılmaz).
-/// Japon havaalanından şehir merkezindeki otele ortalama transfer süresi (dk).
-/// Kullanıcının seçtiği JP havaalanı IATA'sına göre kaba tahmin.
-int _hotelTransferMinutes(String? iata) {
+class _AirportTransferProfile {
+  const _AirportTransferProfile(this.minutes, this.modeKeys);
+
+  final int minutes;
+  final List<String> modeKeys;
+}
+
+/// Japon havaalanından şehir merkezine kapıdan kapıya tipik transfer profili.
+/// Kesin hat adı bilinmiyorsa hat uydurulmaz; kullanıcıya güvenli ulaşım türleri
+/// ve yaklaşık varış saati gösterilir.
+_AirportTransferProfile _airportTransferProfile(String? iata) {
   switch ((iata ?? '').toUpperCase()) {
     case 'HND':
-      return 30; // Haneda → merkez Tokyo
+      return const _AirportTransferProfile(30, ['metro', 'bus', 'taxi']);
     case 'NRT':
-      return 60; // Narita → merkez Tokyo (N'EX)
+      return const _AirportTransferProfile(60, ['train', 'bus', 'taxi']);
     case 'KIX':
-      return 60; // Kansai → merkez Osaka (Haruka)
+      return const _AirportTransferProfile(60, ['train', 'bus', 'taxi']);
     case 'ITM':
-      return 25; // Itami → merkez Osaka
+      return const _AirportTransferProfile(
+          25, ['regionalTrain', 'bus', 'taxi']);
     case 'FUK':
-      return 15; // Fukuoka → merkez
+      return const _AirportTransferProfile(15, ['metro', 'bus', 'taxi']);
     case 'NGO':
-      return 45; // Chubu → merkez Nagoya
+      return const _AirportTransferProfile(45, ['train', 'bus', 'taxi']);
     case 'CTS':
-      return 45; // Sapporo (Chitose) → merkez
+      return const _AirportTransferProfile(45, ['train', 'bus', 'taxi']);
     case 'OKA':
-      return 20; // Naha → merkez
+      return const _AirportTransferProfile(
+          20, ['regionalTrain', 'bus', 'taxi']);
     default:
-      return 60;
+      return const _AirportTransferProfile(60, ['train', 'bus', 'taxi']);
   }
+}
+
+String _transferSummary(
+  AppLang lang, {
+  required int arrivalMinute,
+  required _AirportTransferProfile profile,
+}) {
+  final modes = profile.modeKeys
+      .map((key) => L10n.resolve('routeOptimization.mode.$key', lang))
+      .join(' · ');
+  return L10n.parametrize(L10n.resolve('gen.transfer.summary', lang), {
+    'arrival': _fmtHhmm(arrivalMinute),
+    'minutes': '${profile.minutes}',
+    'modes': modes,
+  });
 }
 
 /// Immigration + bagaj + SIM aktivasyonu vs. için havaalanı çıkışı buffer'ı.
@@ -582,7 +621,7 @@ String _fmtHhmm(int minutes) {
 
 /// Gezinin ilk günü — havaalanı → otele transfer → check-in → hafif akşam.
 /// Saatler [arrivalTime] verilmişse ona göre kurulur; havaalanına özel
-/// transfer süresi (_hotelTransferMinutes) hesaba katılır.
+/// transfer süresi (_airportTransferProfile) hesaba katılır.
 /// [arrivalTime] null ise varsayılan saatler kullanılır (13:00, 15:00, 17:00,
 /// 19:30). Çok geç iniş (>20:00) ise yalnız check-in + dinlenme.
 DayPlan _buildArrivalDay(
@@ -595,16 +634,26 @@ DayPlan _buildArrivalDay(
 }) {
   final landMin = _parseHhmm(arrivalTime) ?? (13 * 60);
   final exitMin = landMin + _kAirportExitBufferMin;
-  final transferMin = _hotelTransferMinutes(airportIata);
+  final transferProfile = _airportTransferProfile(airportIata);
+  final transferMin = transferProfile.minutes;
   final atHotelMin = exitMin + transferMin;
   final checkInMin = atHotelMin + 30;
-  final dinnerMin = (checkInMin + 3 * 60)
-      .clamp(19 * 60, kRouteEndMinuteOfDay)
-      .toInt();
+  final dinnerMin =
+      (checkInMin + 3 * 60).clamp(19 * 60, kRouteEndMinuteOfDay).toInt();
   final isLateArrival = landMin >= 20 * 60;
 
-  return _buildArrivalDayLegacy(day, city, flag, lang, landMin, atHotelMin,
-      checkInMin, dinnerMin, isLateArrival);
+  return _buildArrivalDayLegacy(
+    day,
+    city,
+    flag,
+    lang,
+    landMin,
+    atHotelMin,
+    checkInMin,
+    dinnerMin,
+    isLateArrival,
+    transferProfile,
+  );
 }
 
 DayPlan _buildArrivalDayLegacy(
@@ -617,6 +666,7 @@ DayPlan _buildArrivalDayLegacy(
   int checkInMin,
   int dinnerMin,
   bool isLateArrival,
+  _AirportTransferProfile transferProfile,
 ) =>
     day.copyWith(
       theme:
@@ -648,7 +698,11 @@ DayPlan _buildArrivalDayLegacy(
           time: _fmtHhmm(landMin + _kAirportExitBufferMin),
           scheduledTime: _fmtHhmm(landMin + _kAirportExitBufferMin),
           title: '🚕 ${L10n.resolve('gen.arrival.transferTitle', lang)}',
-          description: L10n.resolve('gen.arrival.transferDesc', lang),
+          description: _transferSummary(
+            lang,
+            arrivalMinute: atHotelMin,
+            profile: transferProfile,
+          ),
           kind: TimelineItemKind.transport,
           cityId: city,
         ),
@@ -864,8 +918,8 @@ List<DayPlan> generateItineraryFromTrip(Trip trip,
     if (isLastOfSeg && isLastDest && trip.days.length > 1) {
       final returnAirport =
           (trip.preferences.returnDepartAirport ?? '').isNotEmpty
-          ? trip.preferences.returnDepartAirport
-          : dest.airport;
+              ? trip.preferences.returnDepartAirport
+              : dest.airport;
       return _buildDepartureDay(
         day,
         city,
