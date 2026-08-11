@@ -91,6 +91,13 @@ kapısı geçti, analyze temiz.
 
 ## Tamamlananlar (bu ve önceki oturumlardan)
 
+- ✅ **2026-08-11** `feat/premium-iap-foundation`, `social-deploy-tmp` ve
+  `social-deploy-fix` geçmişleri `main` üzerinde birleştirildi. Bağımsız eski
+  sosyal repo branch'leri güncel `rotori-social/` ağacını geriye götürmeden
+  açıklamalı merge commitleriyle bağlandı. Tokyo kataloğunun 12'den 15 yere
+  çıkmasıyla eski kalan şehir sayısı regresyonu güncellendi. Doğrulama:
+  Flutter **839/839**, rotori-social **171/171** test başarılı.
+
 - ✅ **2026-08-11** Rotori Eats'teki **“Sadece yiyebileceklerimi göster”**
   filtresi katı güvenli moda alındı. Önceki davranış, uygun bir alt türü
   bulunan ana yemeği listede tutuyor ve kart üzerinde “Sorman gerek” veya
