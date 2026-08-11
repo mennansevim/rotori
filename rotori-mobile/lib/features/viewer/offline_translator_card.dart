@@ -543,8 +543,8 @@ class _PremiumTranslatorLock extends StatelessWidget {
               children: [
                 Text(
                   const LText(
-                    'Premium ile çevrimdışı çeviri',
-                    'Offline translation with Premium',
+                    'İnternet paketin tükenmesin',
+                    'Save your mobile data',
                   ).of(lang),
                   style: TextStyle(
                     color: palette.textPrimary,
@@ -555,8 +555,8 @@ class _PremiumTranslatorLock extends StatelessWidget {
                 const SizedBox(height: 5),
                 Text(
                   const LText(
-                    'Türkçe ve Japonca metinleri internetsiz çevir. Premium üyeliğin açıldığında çevirmen otomatik kullanıma hazır olur.',
-                    'Translate Japanese and English text without internet. The translator unlocks automatically when Premium is active.',
+                    'Dil paketlerini Wi-Fi ile bir kez indir; sonra Türkçe ve Japonca metinleri tamamen offline çevir. Premium açıldığında çevirmen otomatik kullanıma hazır olur.',
+                    'Download the language packs once over Wi-Fi, then translate Japanese and English completely offline. The translator unlocks automatically with Premium.',
                   ).of(lang),
                   style: TextStyle(
                     color: palette.textSecondary,
