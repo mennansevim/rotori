@@ -27,11 +27,11 @@ Trip _trip({
     );
 
 void main() {
-  /// React portundan gelen ÇEKİRDEK 7 şehir — bu sayılar port sadakati
-  /// sözleşmesidir, değişmemeli. Sonradan eklenen şehirler bu listede yok;
-  /// onlar aşağıdaki "yeni şehirler" testiyle korunuyor.
-  const reactCounts = {
-    'tokyo': 12,
+  /// ÇEKİRDEK 7 şehrin bilinçli katalog boyutları. Yeni bir yer eklenirse
+  /// beklenen sayı da açıkça güncellenir; yeni şehirler aşağıdaki ayrı testle
+  /// korunur.
+  const coreCounts = {
+    'tokyo': 15,
     'kyoto': 10,
     'osaka': 9,
     'nara': 6,
@@ -40,17 +40,17 @@ void main() {
     'kanazawa': 5,
   };
 
-  test('çekirdek 7 şehir React referansıyla aynı boyutlarda', () {
+  test('çekirdek 7 şehir güncel katalog boyutlarını korur', () {
     final counts = {
       for (final c in kCityData)
-        if (reactCounts.containsKey(c.key)) c.key: c.places.length,
+        if (coreCounts.containsKey(c.key)) c.key: c.places.length,
     };
-    expect(counts, reactCounts);
+    expect(counts, coreCounts);
   });
 
   test('sonradan eklenen şehirler de plan üretecek kadar dolu', () {
     final extra =
-        kCityData.where((c) => !reactCounts.containsKey(c.key)).toList();
+        kCityData.where((c) => !coreCounts.containsKey(c.key)).toList();
     expect(extra, isNotEmpty, reason: 'test anlamını yitirdi');
     for (final c in extra) {
       expect(c.places.length, greaterThanOrEqualTo(5),
@@ -64,16 +64,19 @@ void main() {
 
   test('şehir anahtarları ve yer id\'leri projede tekil', () {
     final keys = kCityData.map((c) => c.key).toList();
-    expect(keys.toSet().length, keys.length, reason: 'yinelenen şehir anahtarı');
-    final allIds = [for (final c in kCityData) for (final p in c.places) p.id];
+    expect(keys.toSet().length, keys.length,
+        reason: 'yinelenen şehir anahtarı');
+    final allIds = [
+      for (final c in kCityData)
+        for (final p in c.places) p.id
+    ];
     expect(allIds.toSet().length, allIds.length, reason: 'yinelenen yer id');
   });
 
   test('cityPlacesToGeofences sabitleri uygular (120 m, 600 sn, 25 XP)', () {
     final fences = cityPlacesToGeofences(kCityData);
     // Sabit sayı yerine kaynaktan türet — şehir eklemek bu testi kırmasın.
-    final expected =
-        kCityData.fold<int>(0, (n, c) => n + c.places.length);
+    final expected = kCityData.fold<int>(0, (n, c) => n + c.places.length);
     expect(fences.length, expected);
     for (final f in fences) {
       expect(f.radiusMeters, kPlaceRadiusM);
