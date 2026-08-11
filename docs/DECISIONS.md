@@ -5,6 +5,44 @@
 
 ---
 
+## 2026-08-11g — İlk sürüm rota matrisi ücretli API yerine cihazdaki Japonya paketiyle çalışır
+
+**Supersedes:** `2026-08-11f` kaydındaki Supabase `route-matrix` Edge Function
+ve Google Routes çalışma zamanı entegrasyonu ayrıntısı. İlk planın kayıt
+öncesinde mevcut beam-search + validator hattından geçmesi değişmez.
+
+**Karar:** Rotori ilk sürümde Google Routes veya başka ücretli rota API'sini
+çalışma zamanında çağırmaz. Varsayılan `RouteMatrixRepository`, uygulamayla
+paketlenen ve sürümlenen offline Japonya ulaşım modelidir. Tokyo, Kyoto, Osaka
+ve Hiroshima semt/istasyon kümeleriyle; diğer desteklenen şehirler kalibre
+şehir profiliyle çalışır. Bilinmeyen noktalar muhafazakâr genel profile düşer.
+
+Her yön için yürüyüş, şehrin baskın toplu taşıma modu ve taksi seçenekleri;
+ilk/son yürüyüş, ortalama bekleme, araç içi süre, aktarma, büyük istasyon
+tamponu, yol/sokak dolaşıklığı, hafta içi/sonu ve sabah/akşam yön etkisinden
+üretilir. Küratörlü zor bağlantılar genel formülü geçersiz kılabilir. Sonuç
+`estimated` ve `rotori-offline-jp` sağlayıcı kimliklidir; doğrulanmamış hat,
+peron veya yön adı üretilmez.
+
+**Neden:** Rotori'nin ana değeri canlı turn-by-turn navigasyon değil,
+uygulanabilir günlük sıra ve zaman planıdır. Mevcut deterministik optimizer bu
+kararı zaten verir; ücretli API yalnız matris girdisini iyileştiriyordu ve
+küçük bir planda bile eleman bazlı maliyet büyüyordu. Sürümlü offline paket
+maliyeti sıfırlar, uçakta çalışır, aynı girdide aynı sonucu verir ve kullanıcı
+konumlarını üçüncü tarafa göndermez.
+
+**Sınır:** Offline paket canlı tren gecikmesi, hat kesintisi, peron ve trafik
+garantisi vermez. Kullanıcı gerçek zamanlı yönlendirme istediğinde açıkça
+Apple/Google Maps'e geçebilir. Paket kalitesi saha senaryoları ve insan
+incelemesiyle periyodik kalibre edilir; canlı veri yokken kesinlik iddiası
+yapılmaz.
+
+**Başlangıç planı koruması:** Koordinatı doğrulanmayan mola/özel başlık rota
+düğümü sayılmaz. Kısmen dolu günlere rastgele yeni aktivite eklenmez; yalnız
+öğün molası eklenebilir. Tam/yarım gün isteyen Disney, USJ ve teamLab kendi gün
+şablonları dışında dolgu olarak kullanılamaz. Bu koruma beam-search ve hard
+validator davranışını değiştirmeden, optimizasyona gelen girdiyi temizler.
+
 ---
 
 ## 2026-08-10 (b) — Monetizasyon kararı "kanıt"tan "hipotez"e indirildi; aylık SKU v1.0'a alındı

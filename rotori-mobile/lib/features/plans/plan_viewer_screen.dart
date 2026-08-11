@@ -26,8 +26,7 @@ import '../../core/supabase_client.dart';
 import '../../data/language_store.dart';
 import '../../data/plans_repository.dart';
 import '../../data/reminders_store.dart';
-import '../../data/route_matrix_resolution.dart'
-    show buildCoordinateFallbackMatrix;
+import '../../data/offline_japan_route_matrix.dart';
 import '../../data/weather_service.dart';
 import '../../domain/city_palette.dart';
 import '../../data/google_maps_launcher.dart';
@@ -3894,29 +3893,41 @@ List<RouteExecutionLeg> _estimatedTimelineLegs(
   );
   final stops = <({TripLocation location, TimelineItem? item})>[
     (location: base, item: null),
-    for (final item in day.items)
-      (
-        location: _timelineLocation(
-          item,
-          destination: destination,
-          fallbackLat: centerLat,
-          fallbackLng: centerLng,
-        ),
-        item: item,
-      ),
-    (location: base, item: null),
   ];
-  final matrix = buildCoordinateFallbackMatrix(
+  for (final item in day.items) {
+    if (item.kind == TimelineItemKind.transport) continue;
+    final location = _timelineLocation(item, destination: destination);
+    if (location == null) continue;
+    stops.add((location: location, item: item));
+  }
+  stops.add((location: base, item: null));
+  final matrix = buildOfflineJapanRouteMatrix(
     stops.map((stop) => stop.location).toSet().toList(growable: false),
+    day: DateTime(date.year, date.month, date.day, kRouteStartHour),
   );
   final legs = <RouteExecutionLeg>[];
 
   for (var index = 0; index < stops.length - 1; index++) {
     final from = stops[index];
     final to = stops[index + 1];
+
     final options = matrix.options(from.location.id, to.location.id);
     if (options.isEmpty) continue;
-    final option = options.first;
+    TransportOption? comfortableWalk;
+    for (final candidate in options) {
+      if (candidate.mode == TransportMode.walking &&
+          candidate.doorToDoorMinutes <= 35) {
+        comfortableWalk = candidate;
+        break;
+      }
+    }
+    final option = comfortableWalk ??
+        options.reduce(
+          (best, candidate) =>
+              _displayOptionScore(candidate) < _displayOptionScore(best)
+                  ? candidate
+                  : best,
+        );
     if (option.doorToDoorMinutes <= 0) continue;
 
     final travel = Duration(minutes: option.doorToDoorMinutes);
@@ -3979,20 +3990,29 @@ List<RouteExecutionLeg> _estimatedTimelineLegs(
   return List.unmodifiable(legs);
 }
 
-TripLocation _timelineLocation(
+double _displayOptionScore(TransportOption option) {
+  return option.doorToDoorMinutes +
+      option.walkingMinutes * 0.35 +
+      option.transferCount * 8 +
+      option.estimatedCostYen / 180;
+}
+
+TripLocation? _timelineLocation(
   TimelineItem item, {
   required TripDestination? destination,
-  required double fallbackLat,
-  required double fallbackLng,
 }) {
   final coordinate = item.lat != null && item.lng != null
       ? (lat: item.lat!, lng: item.lng!)
       : resolvePlaceCoords(item.title, cityKey: destination?.city);
+  // Konumu bilinmeyen mola/özel başlığı şehir merkezindeymiş gibi varsaymak,
+  // iki gerçek durak arasında sahte kısa yürüyüşler üretir. Bu öğe timeline'da
+  // görünmeye devam eder; yalnız rota matrisinde düğüm olmaz.
+  if (coordinate == null) return null;
   return TripLocation(
     id: item.id,
     name: item.title,
-    latitude: coordinate?.lat ?? fallbackLat,
-    longitude: coordinate?.lng ?? fallbackLng,
+    latitude: coordinate.lat,
+    longitude: coordinate.lng,
     city: item.cityId ?? destination?.city,
     clusterId: item.cityId ?? destination?.city,
   );

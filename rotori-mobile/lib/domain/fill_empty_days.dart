@@ -35,7 +35,8 @@ const List<_SlotTemplate> _fillSlots = [
 ];
 
 class MealPreset {
-  const MealPreset({required this.emoji, required this.name, required this.tip});
+  const MealPreset(
+      {required this.emoji, required this.name, required this.tip});
   final String emoji;
 
   /// i18n anahtarı (prefix `gen.`) — `L10n.resolve(name, lang)` ile çözülür.
@@ -46,18 +47,13 @@ class MealPreset {
 }
 
 const List<MealPreset> kMealPresets = [
-  MealPreset(
-      emoji: '🍜',
-      name: 'gen.meal.ramen',
-      tip: 'gen.mealTip.ramen'),
+  MealPreset(emoji: '🍜', name: 'gen.meal.ramen', tip: 'gen.mealTip.ramen'),
   MealPreset(
       emoji: '🍣',
       name: 'gen.meal.conveyorSushi',
       tip: 'gen.mealTip.conveyorSushi'),
   MealPreset(
-      emoji: '🥩',
-      name: 'gen.meal.yakitori',
-      tip: 'gen.mealTip.yakitori'),
+      emoji: '🥩', name: 'gen.meal.yakitori', tip: 'gen.mealTip.yakitori'),
   MealPreset(
       emoji: '🍱',
       name: 'gen.meal.konbiniBento',
@@ -220,9 +216,14 @@ List<DayPlan> fillEmptyDays(
     final keyLower = key.toLowerCase();
     final list = <_FillPlace>[];
     final seen = <String>{};
+    final seenIds = <String>{};
     // 1) Profil popularPlaces'ından YALNIZCA bu şehre ait olanlar.
     for (final p in profile.popularPlaces) {
       if (_cleanCity(p.city).toLowerCase() != keyLower) continue;
+      // Tam/yarım gün isteyen Disney, USJ ve teamLab gibi çapalar boşluk
+      // doldurmak için kullanılamaz; kendi gün şablonlarıyla planlanırlar.
+      if (coverageOfTitle(p.name) != PlaceCoverage.normal) continue;
+      seenIds.add(p.id.toLowerCase());
       if (!seen.add(p.name.toLowerCase())) continue;
       list.add(_FillPlace(
         name: p.name,
@@ -237,8 +238,16 @@ List<DayPlan> fillEmptyDays(
     final cd = _fillCityData(cityName);
     if (cd != null) {
       for (final cp in cd.places) {
+        if (coverageOfTitle(cp.name) != PlaceCoverage.normal) continue;
+        final separator = cp.id.indexOf('-');
+        final localId = separator < 0 ? cp.id : cp.id.substring(separator + 1);
+        // Aynı yerin İngilizce/Türkçe katalog adlarını iki farklı durak gibi
+        // ekleme (örn. "Kuromon Market" / "Kuromon Pazarı"). Saat bilgisi
+        // taşıyan popularPlaces kaydı önceliklidir.
+        if (seenIds.contains(localId.toLowerCase())) continue;
         if (!seen.add(cp.name.toLowerCase())) continue;
-        list.add(_FillPlace(name: cp.name, emoji: cp.emoji, typicalSteps: 9000));
+        list.add(
+            _FillPlace(name: cp.name, emoji: cp.emoji, typicalSteps: 9000));
       }
     }
     cityPlaces[key] = list;
@@ -253,8 +262,8 @@ List<DayPlan> fillEmptyDays(
     if (day.items.length >= minItemsPerDay) return day;
     // Full/half-day mekan (Disney, USJ, teamLab) günü kaplar — ekstra doldurma
     // yok, kalıbı bozulmasın.
-    final anyCovered = day.items.any(
-        (it) => coverageOfTitle(it.title) != PlaceCoverage.normal);
+    final anyCovered = day.items
+        .any((it) => coverageOfTitle(it.title) != PlaceCoverage.normal);
     if (anyCovered) return day;
     final dest = getDestinationForDate(destinations, day.date);
     final destCity = dest == null
@@ -286,9 +295,18 @@ List<DayPlan> fillEmptyDays(
     final supplements = <TimelineItem>[];
     var stepsSum = day.stepsEstimate ?? 0;
     final tags = <String>{...day.tags};
+    final hasPlannedActivity = day.items.any(
+      (item) => item.kind != TimelineItemKind.meal,
+    );
 
     for (final slot in _fillSlots) {
       if (usedTimes.contains(slot.time)) continue;
+      // Kısmen planlanmış bir günü şehir genelinden rastgele yeni duraklarla
+      // şişirmek semt bütünlüğünü bozar. Mevcut plana yalnız öğün molaları
+      // eklenir; aktivite dolgusu sadece gerçekten boş gün içindir.
+      if (slot.kind == TimelineItemKind.activity && hasPlannedActivity) {
+        continue;
+      }
       // Planlama penceresi 09:00-20:00 — bu aralığa sığmayan slot atlanır.
       // (itinerary_generator ile tek doğru kaynak: kDayStart/EndMinutes.)
       final slotStart = _hhmmToMin(slot.time);

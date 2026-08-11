@@ -33,12 +33,13 @@ değiştirilmeyecek.
 5. ✅ Versioned route snapshot, varsayım özeti, şehir geçişi ve bağlı bilet
    akışını tamamla.
 6. ✅ Hedefli test + rota harness + analiz + dar ekran web QA çalıştır.
-7. ✅ Google Routes taşıyıcısı için Supabase Edge Function ve mobil gateway
-   eklendi; yeni planların normal gezi günleri kayıt öncesinde mevcut optimizer
-   ve validator hattından geçiriliyor.
-8. **Sıradaki:** `GOOGLE_MAPS_ROUTES_API_KEY` Supabase secret'ını tanımlayıp
-   Edge Function'ı yayınlamak; ardından kalıcı matrix cache'i, saha modu ve
-   kalan kişiselleştirme.
+7. ✅ Yeni planların normal gezi günleri kayıt öncesinde mevcut optimizer ve
+   validator hattından geçiriliyor.
+8. ✅ Google Routes çalışma zamanı entegrasyonunu kaldırıp şehir,
+   semt/istasyon, yön ve zaman bandı duyarlı offline Japonya rota paketini
+   varsayılan matris kaynağı yapmak.
+9. **Sıradaki:** Offline paket sürelerini gerçek saha örnekleriyle periyodik
+   kalibre etmek; canlı gecikme/peron bilgisini navigasyon uygulamasına bırakmak.
 
 Detay: `docs/ROUTE_EXPERIENCE_REFACTOR_PLAN.md`.
 
@@ -603,9 +604,8 @@ kapısı geçti, analyze temiz.
   - Kabul kriteri: 10 dk kalış tespiti false positive üretmeden çalışmalı,
     pil tüketimi "always-on GPS" seviyesine çıkmamalı.
 
-- [ ] Supabase Edge Function veya mevcut backend üzerinde gerçek route matrix
-  gateway'ini uygula; sağlayıcı seçimi ve gizli anahtarlar sunucuda kalsın.
-- [ ] Bellek içi rota/ön izleme cache'lerini cihazda kalıcı cache'e taşı.
+- [ ] Offline Japonya rota paketini gerçek saha örnekleriyle periyodik kalibre
+  et; paket sürümünü uygulama güncellemeleriyle yenile.
 - [ ] Planner içine görünür optimizasyon karşılaştırmasını ve günler arası
   taşımada iki-günlük atomik coğrafi ön izlemeyi bağla.
 - [ ] Büyük Japonya istasyonları için tek merkezli metadata/tampon kaynağını
@@ -842,17 +842,35 @@ geri almaz. Checkpoint alınırken kapsam dosya bazında açıkça ayrılmalıd�
       taksi seçenekleriyle değiştir.
 - [x] Timeline aktivitesine çalışma saati penceresini geriye uyumlu taşı ve
       optimizer adapter'ında hard opening/closing constraint olarak kullan.
-- [x] Supabase `route-matrix` Edge Function + mobil gateway'i ekle; Google
-      Routes anahtarı yalnız sunucu secret'ında kalsın.
+- [x] Sağlayıcıdan bağımsız gateway sınırı korunarak ilk entegrasyon hazırlandı;
+      sonraki offline kararı bu Google çalışma zamanı ayrıntısını supersede etti.
 - [x] Yeni planın normal günlerini kayıt öncesinde yönlü matris,
       beam-search ve bağımsız validator ile optimize edip route snapshot'ını
       başlangıçtan üret.
-- [x] Canlı sağlayıcı yoksa planı kaybetmeden koordinat fallback'i kullan;
+- [x] Matris üretilemezse planı kaybetmeden offline paket fallback'i kullan;
       uçuş/otel/şehir transferi gibi sabit özel günlerin sırasını değiştirme.
 - [x] Domain/controller/widget testleri, analyze ve iPhone dar ekran QA.
-- [ ] Supabase projesinde `GOOGLE_MAPS_ROUTES_API_KEY` secret'ını tanımla ve
-      `route-matrix` Edge Function'ını yayınla. Bu operasyon tamamlanana kadar
-      uygulama aynı optimizer'ı koordinat tahminiyle güvenli biçimde çalıştırır.
+
+## 2026-08-11 — Ücretsiz ve tamamen offline rota matrisi
+
+- [x] Google Routes'a özel mobil gateway ve Edge Function'ı kaldır.
+- [x] Tokyo, Kyoto, Osaka ve Hiroshima için semt/istasyon kümeleri, özel zor
+      bağlantılar ve şehir ulaşım profilleri ekle.
+- [x] Diğer desteklenen şehirler için kalibre genel profil; bilinmeyen noktalar
+      için muhafazakâr fallback ekle.
+- [x] Yürüyüş, toplu taşıma ve araç-başı taksi alternatiflerini ilk/son yürüme,
+      bekleme, aktarma ve istasyon tamponlarıyla üret.
+- [x] Matris sürümüne paket, gün türü ve zaman bandını kat; kesin hat/yön
+      uydurma, bütün sonuçları tahmini olarak işaretle.
+- [x] Üretim ve preview girişlerini aynı offline repository'ye bağla.
+- [x] Kısmen dolu günleri şehir genelinden rastgele aktiviteyle şişirme;
+      yalnız öğün molası ekle. Disney/USJ/teamLab gibi tam/yarım gün çapalarını
+      dolgu havuzundan çıkar; çift dilli katalog tekrarlarını kimlikle ele.
+- [x] Domain/data/controller/widget regresyonları, tam test ve analiz:
+      offline matris aşamasında **836/836** Flutter testi, nihai yerellik
+      düzeltmesinden sonra etkilenen **91/91** üretim/rota/viewer testi geçti.
+      Değişen dosyaların analizi temiz; proje genelinde yalnız önceden var olan
+      rota dışı 17 uyarı/bilgi kaldı.
 
 ## Son Commit'ler (referans)
 

@@ -60,7 +60,36 @@ CityData? cityDataForKey(String? cityKey) {
 bool _nameMatches(CityPlace p, String t) {
   final n = normalizeTitle(p.name);
   if (n.isEmpty || t.isEmpty) return false;
-  return t == n || t.contains(n) || n.contains(t);
+  if (t == n || t.contains(n) || n.contains(t)) return true;
+
+  // Üretilen gün başlıkları bazen iki deneyimi tek başlıkta birleştirir
+  // ("Shibuya Sky & Crossing", "Asakusa & Skytree"). Tam alt-dize eşleşmesi
+  // bu durumda gerçek POI'yi kaçırıp durağı şehir merkezine düşürüyordu.
+  // Yalnız anlamlı yer kelimelerinin tamamı başlıkta varsa eşleştir; tek bir
+  // genel şehir kelimesi üzerinden tahmin yapma.
+  final placeTokens = _meaningfulPlaceTokens(n);
+  if (placeTokens.isEmpty) return false;
+  final titleTokens = normalizeTitle(t).split(RegExp(r'\s+')).toSet();
+  return placeTokens.every(titleTokens.contains);
+}
+
+const _genericPlaceTokens = {
+  'tokyo',
+  'kyoto',
+  'osaka',
+  'hiroshima',
+  'parkı',
+  'park',
+  'bahçesi',
+  'garden',
+};
+
+Set<String> _meaningfulPlaceTokens(String value) {
+  return value
+      .split(RegExp(r'\s+'))
+      .where(
+          (token) => token.length >= 3 && !_genericPlaceTokens.contains(token))
+      .toSet();
 }
 
 /// Başlığı küratörlü şehir noktalarıyla eşleştirip eşleşen noktayı döndürür.

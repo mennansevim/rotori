@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rotori/data/route_matrix_resolution.dart';
+import 'package:rotori/data/offline_japan_route_matrix.dart';
 import 'package:rotori/domain/route_matrix.dart';
 
 void main() {
@@ -71,15 +71,24 @@ void main() {
         RouteOptimizationProfile.cheapest);
   });
 
-  test('koordinat fallback matrisi tüm yönleri tahmini olarak üretir', () {
-    final matrix = buildCoordinateFallbackMatrix(const [a, b]);
+  test('offline Japonya matrisi tüm yönleri ve modları tahmini üretir', () {
+    final matrix = buildOfflineJapanRouteMatrix(
+      const [a, b],
+      day: DateTime(2026, 8, 11, 8),
+    );
 
-    expect(matrix.version, 'coordinate-estimate-v1');
-    expect(matrix.options('a', 'b'), hasLength(1));
-    expect(matrix.options('b', 'a'), hasLength(1));
-    expect(matrix.options('a', 'b').single.isEstimated, isTrue);
-    expect(matrix.options('a', 'b').single.isValid, isTrue);
-    expect(matrix.options('a', 'b').single.doorToDoorMinutes, greaterThan(0));
+    expect(matrix.version, contains(kOfflineJapanRoutePackVersion));
+    expect(matrix.options('a', 'b'), isNotEmpty);
+    expect(matrix.options('b', 'a'), isNotEmpty);
+    expect(
+        matrix.options('a', 'b').every((option) => option.isEstimated), isTrue);
+    expect(matrix.options('a', 'b').every((option) => option.isValid), isTrue);
+    expect(
+      matrix.options('a', 'b').every(
+            (option) => option.providerId == kOfflineJapanRouteProviderId,
+          ),
+      isTrue,
+    );
   });
 
   test('6 kişilik taksi iki araç, toplu taşıma kişi başı ücretlenir', () {

@@ -2,9 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/route_matrix_cache.dart';
-import '../../data/route_matrix_remote.dart';
-import '../../data/route_matrix_resolution.dart';
+import '../../data/offline_japan_route_matrix.dart';
 import '../../domain/day_optimizer.dart';
 import '../../domain/itinerary_optimizer.dart';
 import '../../domain/plan_warnings.dart';
@@ -112,28 +110,8 @@ class InMemoryPlanOptimizationPreviewCache
   }
 }
 
-final routeMatrixBackendGatewayProvider =
-    Provider<RouteMatrixBackendGateway>((ref) {
-  return const UnavailableRouteMatrixBackendGateway();
-});
-
-final routeMatrixSnapshotCacheProvider =
-    Provider<RouteMatrixSnapshotCache>((ref) {
-  return InMemoryRouteMatrixSnapshotCache();
-});
-
 final routeMatrixRepositoryProvider = Provider<RouteMatrixRepository>((ref) {
-  final remote = RemoteRouteMatrixRepository(
-    gateway: ref.watch(routeMatrixBackendGatewayProvider),
-    providerId: 'rotori-route-backend',
-  );
-  return ResilientRouteMatrixRepository(
-    ResilientRouteMatrixResolver(
-      primary: remote,
-      primaryProviderId: remote.providerId,
-      cache: ref.watch(routeMatrixSnapshotCacheProvider),
-    ),
-  );
+  return const OfflineJapanRouteMatrixRepository();
 });
 
 final itineraryOptimizerProvider = Provider<ItineraryOptimizer>((ref) {
@@ -236,7 +214,11 @@ class PlanOptimizationController
           latitude: lat,
           longitude: lng,
           city: item.cityId,
-          clusterId: item.cityId,
+          clusterId: offlineJapanRouteClusterId(
+            city: item.cityId,
+            latitude: lat,
+            longitude: lng,
+          ),
         ),
         durationMinutes: duration,
         minimumDurationMinutes: duration,
@@ -273,14 +255,17 @@ class PlanOptimizationController
     try {
       matrix = await ref.read(routeMatrixRepositoryProvider).getRouteMatrix(
             locations: locations,
-            day: dayDate,
+            day: input.constraints.availableStartTime,
             preferences: input.preferences,
           );
     } on Object {
-      // Rota servisi kapalıyken kullanıcıya boş bir önizleme göstermek yerine
-      // mevcut koordinatlardan güvenli bir tahmin üret. Gerçek backend tekrar
-      // çalıştığında bir sonraki optimizasyonda otomatik olarak kullanılır.
-      matrix = buildCoordinateFallbackMatrix(locations);
+      // Enjekte edilmiş bir repository hata verse bile plan kaybolmaz; aynı
+      // sürümlü cihaz-içi paketle deterministik olarak yeniden kurulur.
+      matrix = buildOfflineJapanRouteMatrix(
+        locations,
+        day: input.constraints.availableStartTime,
+        preferences: input.preferences,
+      );
     }
     final cacheKey = _cacheKey(input, day, matrix.version);
     final previewCache = ref.read(planOptimizationPreviewCacheProvider);
