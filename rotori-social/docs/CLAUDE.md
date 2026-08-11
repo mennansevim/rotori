@@ -68,7 +68,7 @@ rotori-social/
 │   └── web/
 │       ├── app.py                # 2490 satır FastAPI; router'larla toplam 66 route
 │       ├── jobs.py               # subprocess/thread job manager + log bridge
-│       └── static/{index.html,manifest.json,widget-icon.svg}
+│       └── static/{index.html,manifest.json,icons/rotori-icon-*.png}
 ├── config.yaml                   # SECRET'lı, gitignored — plaintext token/pw
 ├── config.yaml.example           # şablon
 ├── data/                         # runtime state (çoğu gitignored)
@@ -161,7 +161,7 @@ rotori-social/
 - **Butonlar durum konuşur**: disabled + tooltip her zaman hangi config eksik açıklar (`title="config.yaml → instagram bölümünü doldur"`).
 - **Navigasyon iş akışını konuşur**: ana menü teknik modüller yerine `Bugün → Hazırlık → Yayına Hazır → Otomasyon` sırasını izler; ayrıntılar ilgili görünüm içinde kalır.
 - **Türkçe UI, İngilizce yalnız 3rd-party etiketlerinde** (Instagram, TikTok, Drive).
-- **PWA**: manifest + apple-touch-icon; iOS ana ekrandan "Japan Widget" olarak açılır.
+- **PWA**: manifest + ortak Rotori app icon ailesi; iOS ana ekrandan Rotori Social olarak açılır.
 
 ## 16. Definition of Done
 Bir özellik "bitti" sayılır ise:

@@ -77,7 +77,7 @@ export default defineConfig(({ mode }) => {
           background_color: '#f5f5f7',
           display: 'standalone',
           start_url: '/viewer/',
-          icons: [{ src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
+          icons: [{ src: 'favicon.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }],
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],

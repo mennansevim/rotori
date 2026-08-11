@@ -1,0 +1,24 @@
+{
+  "name": "Rotori",
+  "short_name": "Rotori",
+  "description": "Japonya yolculuğunu gün gün planlayan çevrimdışı seyahat yardımcısı.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FAFAFB",
+  "theme_color": "#D80B09",
+  "icons": [
+    {
+      "src": "/img/rotori-app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/img/rotori-app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
