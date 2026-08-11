@@ -909,3 +909,39 @@ dediğinde yönlü matris, beam width 6, hard constraint'ler ve bağımsız vali
 **Neden:** Kullanıcı her durak arasında nasıl geçeceğini ilk açılıştan itibaren
 görmek istiyor; büyük kartlar aktivite akışını bastırıyor. Kompakt satır bilgi
 sürekliliğini korurken timeline'ın asıl odağını etkinliklerde tutar.
+
+---
+
+## 2026-08-11f — İlk plan kayıt öncesinde gerçek rota motorundan geçer
+
+**Supersedes:** `2026-08-11e` kaydındaki tam beam-search hattının yalnız
+“Rotayı optimize et” eyleminde çalışacağı ve kompakt satırların görünür
+`TAHMİNİ` metni taşıyacağı ayrıntısı. `2026-08-10b` içindeki veri kalitesi
+modeli ve hat/yön uydurmama kuralı korunur.
+
+**Karar:** Kullanıcının “Planı oluştur” eylemi yeni planın ilk rota onayıdır.
+Katalog üretimi bittikten sonra normal gezi günlerinin koordinatları ve mekan
+çalışma saatleri hazırlanır; yönlü rota matrisi, mevcut beam width 6 optimizer
+ve bağımsız validator kayıt öncesinde çalışır. Başarılı sonuç aktivite
+sırası/saatleriyle birlikte `RouteExecutionSnapshot` olarak ilk kayda girer.
+Mevcut planın daha sonra yeniden optimize edilmesi açık ön izleme/onay akışını
+korur. Uçuş, havaalanı/otel transferi ve şehirlerarası sabit geçiş günleri
+otomatik yeniden sıralanmaz.
+
+**Canlı veri:** Mobil uygulama sağlayıcı anahtarı taşımaz. Supabase
+`route-matrix` Edge Function, sunucu secret'ındaki Google Routes anahtarıyla
+yürüyüş, transit ve sürüş matrislerini alıp Rotori'nin sağlayıcıdan bağımsız
+modeline normalize eder. Canlı çağrı/cache kullanılamazsa plan kaybolmaz;
+koordinat fallback'i ve `estimated` veri kalitesi içeride korunur.
+
+**Sunum:** Kompakt geçiş satırları pembe kart değildir; nötr, zeminsiz tek
+satırdır. `TAHMİNİ` kelimesi satırdan kaldırılır. Veri güveni erişilebilirlik
+semantiği ve iç modelde kalır; kesin hat/yön bilgisi yalnız güvenilir sağlayıcı
+sonucunda gösterilir. Havaalanı transferinin pazarlama/genel açıklaması yerine
+hesaplanan varış saati, süre ve havalimanına uygun ulaşım seçenekleri görünür.
+
+**Neden:** Kullanıcı plan oluşturduktan sonra ikinci bir optimizasyon eylemi
+aramamalıdır. Güçlü motorun yalnız isteğe bağlı düğmenin arkasında kalması ilk
+gösterilen rotayı gereksiz biçimde zayıflatıyordu. Rota sağlayıcısını sunucu
+sınırında bağlamak motorun gerçek kapıdan kapıya sürelerle çalışmasını sağlarken
+anahtar güvenliğini ve çevrimdışı fallback'i korur.

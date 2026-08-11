@@ -3688,7 +3688,7 @@ class _RouteExecutionLegCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = LanguageScope.of(context);
     final estimated = leg.isEstimated;
-    final accent = estimated ? palette.sakura : palette.accent;
+    final accent = palette.accent;
     final line = !estimated && leg.lineId?.trim().isNotEmpty == true
         ? leg.lineId!.trim()
         : null;
@@ -3706,14 +3706,8 @@ class _RouteExecutionLegCard extends StatelessWidget {
       return Semantics(
         container: true,
         label: semanticsLabel,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
-          decoration: BoxDecoration(
-            color: accent.withValues(alpha: .06),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: accent.withValues(alpha: .2)),
-          ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
           child: Row(
             children: [
               Icon(_routeModeIcon(leg.mode), color: accent, size: 16),
@@ -3741,17 +3735,6 @@ class _RouteExecutionLegCard extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              if (estimated) ...[
-                const SizedBox(width: 5),
-                Text(
-                  s.s('routeOptimization.legs.estimated'),
-                  style: TextStyle(
-                    color: accent,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
             ],
           ),
         ),
@@ -3765,9 +3748,9 @@ class _RouteExecutionLegCard extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: accent.withValues(alpha: .08),
+          color: palette.card,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: accent.withValues(alpha: .32)),
+          border: Border.all(color: palette.borderStrong),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -3786,23 +3769,6 @@ class _RouteExecutionLegCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (estimated)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: .14),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      s.s('routeOptimization.legs.estimated'),
-                      style: TextStyle(
-                        color: accent,
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
               ],
             ),
             const SizedBox(height: 8),
@@ -3884,17 +3850,6 @@ class _RouteExecutionLegCard extends StatelessWidget {
                   ),
               ],
             ),
-            if (estimated) ...[
-              const SizedBox(height: 8),
-              Text(
-                s.s('routeOptimization.legs.estimatedHelp'),
-                style: TextStyle(
-                  color: palette.textSecondary,
-                  fontSize: 11.5,
-                  height: 1.3,
-                ),
-              ),
-            ],
           ],
         ),
       ),
@@ -3924,13 +3879,9 @@ List<RouteExecutionLeg> _estimatedTimelineLegs(
 
   final cityData = cityDataForKey(destination?.city);
   final centerLat = destination?.lat ??
-      (cityData?.places.isNotEmpty == true
-          ? cityData!.places.first.lat
-          : null);
+      (cityData?.places.isNotEmpty == true ? cityData!.places.first.lat : null);
   final centerLng = destination?.lng ??
-      (cityData?.places.isNotEmpty == true
-          ? cityData!.places.first.lng
-          : null);
+      (cityData?.places.isNotEmpty == true ? cityData!.places.first.lng : null);
   if (centerLat == null || centerLng == null) return const [];
 
   final base = TripLocation(
@@ -4051,8 +4002,7 @@ DateTime? _timelineStart(DateTime day, TimelineItem? item) {
   if (item == null) return null;
   final minutes = _timeToMinutes(item.time ?? item.scheduledTime);
   if (minutes == null) return null;
-  return DateTime(day.year, day.month, day.day)
-      .add(Duration(minutes: minutes));
+  return DateTime(day.year, day.month, day.day).add(Duration(minutes: minutes));
 }
 
 int _timelineDurationMinutes(TimelineItem item) {
@@ -5107,8 +5057,7 @@ class _DayCardState extends State<_DayCard> {
                             ],
                           for (final leg in routeLegs.where((leg) =>
                               !leg.isTrivial &&
-                              leg.kind ==
-                                  RouteExecutionLegKind.returnToBase))
+                              leg.kind == RouteExecutionLegKind.returnToBase))
                             Padding(
                               padding: const EdgeInsets.fromLTRB(8, 3, 0, 5),
                               child: _RouteExecutionLegCard(

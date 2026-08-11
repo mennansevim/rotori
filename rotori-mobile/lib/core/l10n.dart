@@ -4420,6 +4420,10 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en:
         'Airport Limousine or express train to the hotel (Narita Express, Haruka…).'
   },
+  'gen.transfer.summary': {
+    AppLang.tr: '{arrival} varış · {minutes} dk · {modes}',
+    AppLang.en: 'Arrive {arrival} · {minutes} min · {modes}'
+  },
   'gen.arrival.lightDinnerTitle': {
     AppLang.tr: 'Hafif akşam yemeği',
     AppLang.en: 'Light dinner nearby'

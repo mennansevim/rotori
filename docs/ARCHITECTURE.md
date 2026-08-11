@@ -130,10 +130,12 @@ rotori-mobile/lib/features/
   ulaşım-yürüyüş-aktarma-maliyet özeti gösterilir. Yalnız açık kullanıcı
   onayı repository, edit session ve home widget snapshot'ını yeniler.
 - Onaylanan sonuç, `DayPlan.routeExecutionSnapshot` içinde schema v1 olarak
-  saklanır ve günlük timeline durakların arasına tek satırlık kompakt ulaşım
-  satırları yerleştirir. Snapshot henüz yoksa viewer mevcut durak sırasını
-  değiştirmeden koordinat fallback matrisiyle geçici `TAHMİNİ` satırlar üretir;
-  bunlar kalıcılaştırılmaz ve optimizer sonucu gibi sunulmaz.
+  saklanır ve günlük timeline durakların arasına tek satırlık, zeminsiz kompakt
+  ulaşım satırları yerleştirir. Yeni plan oluşturma akışı normal gezi günlerini
+  kayıt öncesinde aynı optimizer + validator hattından geçirir ve snapshot'ı
+  baştan üretir. Snapshot henüz yoksa viewer mevcut durak sırasını değiştirmeden
+  koordinat fallback matrisiyle geçici satırlar üretir; bunlar kalıcılaştırılmaz
+  ve veri kalitesi model içinde `estimated` olarak korunur.
   Plan sürümü, aktivite hash'i veya matris sürümü uyuşmazsa snapshot
   kullanılmaz. Tahmini ayaklar hat/yön uydurmaz; reliable ayaklar sağlayıcının
   opsiyonel hat/yön bilgisini gösterebilir.
@@ -204,6 +206,10 @@ Pure Dart dosyaları — `flutter test` altında hızlı çalışır.
   `RouteMatrixBackendGateway` sınırını ve normalize sonuç doğrulamasını taşır.
   `route_matrix_resolution.dart` taze cache → birincil sağlayıcı → alternatif
   sağlayıcı → stale/estimated cache → typed unavailable sırasını uygular.
+- **Canlı taşıyıcı:** `route_matrix_supabase.dart`, mobilde anahtar taşımadan
+  `route-matrix` Supabase Edge Function'ını çağırır. Edge Function Google Routes
+  Compute Route Matrix'ten yürüyüş, toplu taşıma ve taksi alternatifi üretir;
+  `GOOGLE_MAPS_ROUTES_API_KEY` yalnız Supabase secret olarak tutulur.
 - **Rota cache:** Koordinatları dört ondalığa yuvarlayan, yönü koruyan ve
   mod/gün tipi/zaman dilimi/profil/sağlayıcıyı anahtara katan cache
   sözleşmeleri `route_matrix_cache.dart` içindedir. İlk sürüm bellek içidir.
@@ -479,7 +485,9 @@ packages/
   uygulama yeniden başladığında kaybolur. Kalıcı cihaz cache'i gerçek sağlayıcı
   entegrasyonuyla birlikte eklenecektir.
 - Viewer tek günlük ön izleme/onay sözleşmesini görünür biçimde tamamlar.
-  Planner henüz eski optimizasyon yüzeyini kullanır. Günler arası
+  Yeni plan oluşturma normal günleri kayıt öncesinde otomatik optimize eder;
+  mevcut planların elle yeniden optimizasyonu açık onaylı ön izleme olarak
+  kalır. Günler arası
   taşımada mevcut `PlanScheduleEngine` iki günü zamansal olarak yeniden kurar;
   coğrafi rota ön izlemesinin iki günü tek atomik karşılaştırmada göstermesi
   gerçek route gateway/UI işiyle birlikte tamamlanacaktır.
@@ -524,11 +532,13 @@ süre, yürüyüş, bekleme, aktarma, maliyet, güvenilirlik, tahmin durumu ve
 sağlayıcının opsiyonel hat/yön bilgilerini kayıpsız taşır. Kalıcı
 `RouteExecutionSnapshot` schema v1 versioned ve opsiyoneldir; eski plan
 JSON'ları bozulmaz. Ön izleme ve viewer aynı `RouteExecutionLeg` sunum
-sözleşmesini tüketir. Snapshot bulunmayan eski veya yeni planlarda viewer,
+sözleşmesini tüketir. Snapshot bulunmayan eski planlarda viewer,
 yalnız görünür geçiş bilgisini boş bırakmamak için mevcut sıra üzerinde
 koordinat tabanlı tahmini ayaklar türetir. Bu türetim skor hesaplamaz, sırayı
-değiştirmez ve kaydedilmez; tam beam-search + validator hattı yalnız
-“Rotayı optimize et” eyleminde çalışır. Ayrıntılı fazlar ve kalite kapıları:
+değiştirmez ve kaydedilmez. Yeni planlar ise normal günlerde kayıt öncesi tam
+beam-search + validator hattından geçer; mevcut plandaki “Rotayı optimize et”
+eylemi aynı motoru açık ön izleme/onay ile yeniden çalıştırır. Ayrıntılı fazlar
+ve kalite kapıları:
 `docs/ROUTE_EXPERIENCE_REFACTOR_PLAN.md`.
 
 ## 18. Premium Çevrimdışı Japonca Metin Çevirisi

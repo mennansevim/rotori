@@ -225,10 +225,13 @@ RouteMatrix buildCoordinateFallbackMatrix(List<TripLocation> locations) {
     for (final to in locations) {
       if (from.id == to.id) continue;
       final kilometres = _distanceKm(from, to);
+      final isCoLocated = kilometres <= 0.05;
       final isShortWalk = kilometres <= 0.8;
-      final travelMinutes = isShortWalk
-          ? math.max(3, (kilometres * 14).ceil())
-          : math.max(8, (kilometres * 4.2).ceil() + 8);
+      final travelMinutes = isCoLocated
+          ? 0
+          : isShortWalk
+              ? math.max(3, (kilometres * 14).ceil())
+              : math.max(8, (kilometres * 4.2).ceil() + 8);
       final walkingMinutes = isShortWalk
           ? travelMinutes
           : math.min(25, math.max(5, (kilometres * 1.4).ceil()));
