@@ -8,9 +8,7 @@ import 'core/l10n.dart';
 import 'core/router.dart';
 import 'data/exchange_rate_store.dart';
 import 'data/language_store.dart';
-import 'data/route_matrix_supabase.dart';
 import 'env.dart';
-import 'features/plans/plan_optimization_controller.dart';
 import 'theme.dart';
 
 // Normal uygulama girişinde DevicePreview varsayılan kapalıdır.
@@ -41,14 +39,7 @@ Future<void> main() async {
   runApp(
     DevicePreview(
       enabled: _enableDevicePreviewInMain,
-      builder: (context) => ProviderScope(
-        overrides: [
-          routeMatrixBackendGatewayProvider.overrideWithValue(
-            SupabaseRouteMatrixBackendGateway(Supabase.instance.client),
-          ),
-        ],
-        child: const RotoriApp(),
-      ),
+      builder: (context) => const ProviderScope(child: RotoriApp()),
     ),
   );
 }

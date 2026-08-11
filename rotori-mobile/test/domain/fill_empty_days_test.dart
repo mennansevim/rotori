@@ -48,17 +48,30 @@ void main() {
       expect(filled[0].items, hasLength(5));
     });
 
-    test('az itemli günleri tamamlar, mevcut item korunur', () {
+    test('az itemli günü uzak aktivitelerle şişirmez, mevcut item korunur', () {
       final existing = TimelineItem(
         id: 'orig',
         title: 'Senso-ji Asakusa',
         kind: TimelineItemKind.activity,
         time: '10:00',
       );
-      final days = [_day(items: [existing])];
+      final days = [
+        _day(items: [existing])
+      ];
       final filled = fillEmptyDays(days, [_tokyoDest]);
-      expect(filled[0].items.length, greaterThanOrEqualTo(4));
+      expect(
+        filled[0].items.where((item) => item.kind != TimelineItemKind.meal),
+        hasLength(1),
+      );
       expect(filled[0].items.where((i) => i.id == 'orig'), isNotEmpty);
+    });
+
+    test('boş gün dolgusu tam veya yarım gün çapası kullanmaz', () {
+      final filled = fillEmptyDays([_day()], [_tokyoDest]);
+      final titles = filled.single.items.map((item) => item.title).join(' ');
+
+      expect(titles, isNot(contains('Tokyo Disneyland')));
+      expect(titles, isNot(contains('teamLab')));
     });
 
     test('item zaman sırasına dizilir', () {
@@ -68,7 +81,9 @@ void main() {
         kind: TimelineItemKind.activity,
         time: '18:00',
       );
-      final days = [_day(items: [existing])];
+      final days = [
+        _day(items: [existing])
+      ];
       final filled = fillEmptyDays(days, [_tokyoDest]);
       final times = filled[0].items.map((i) => i.time ?? '99:99').toList();
       final sorted = [...times]..sort((a, b) => a.compareTo(b));
@@ -92,9 +107,12 @@ void main() {
         time: '11:30',
         scheduledTime: '11:30',
       );
-      final days = [_day(items: [lunch])];
+      final days = [
+        _day(items: [lunch])
+      ];
       final filled = fillEmptyDays(days, [_tokyoDest]);
-      final mealMins = filled[0].items
+      final mealMins = filled[0]
+          .items
           .where((i) => i.kind == TimelineItemKind.meal)
           .map((i) {
         final p = (i.time ?? '99:99').split(':');

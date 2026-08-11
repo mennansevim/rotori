@@ -115,6 +115,26 @@ Trip _routeUiTrip() {
   );
 }
 
+Trip _explicitTransportTrip() {
+  final trip = _routeUiTrip();
+  trip.days.single.items = [
+    TimelineItem(
+      id: 'airport-transfer',
+      title: 'Otele transfer',
+      description: '14:45 varış · 30 dk · Metro · Otobüs · Taksi',
+      time: '14:15',
+      kind: TimelineItemKind.transport,
+    ),
+    TimelineItem(
+      id: 'hotel-checkin',
+      title: 'Varış & check-in',
+      time: '15:15',
+      kind: TimelineItemKind.hotel,
+    ),
+  ];
+  return trip;
+}
+
 Trip _cityTransitionTrip() {
   final now = DateTime.now();
   String date(int offset) {
@@ -531,6 +551,31 @@ void main() {
       find.descendant(
         of: departure,
         matching: find.text(tr('routeOptimization.legs.estimated')),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
+      'açık ulaşım öğesi kendi özetini gösterir, çevresinde sahte bacak üretmez',
+      (tester) async {
+    await tester.pumpWidget(harness(_explicitTransportTrip()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    expect(
+      find.text('14:45 varış · 30 dk · Metro · Otobüs · Taksi'),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('saved-route-leg-1-day-1-base-airport-transfer'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('saved-route-leg-1-airport-transfer-hotel-checkin'),
       ),
       findsNothing,
     );

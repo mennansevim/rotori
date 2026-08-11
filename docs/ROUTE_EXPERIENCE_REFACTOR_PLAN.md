@@ -43,7 +43,7 @@ Bu sözleşmelerden biri değişecekse önce benchmark çalıştırılır, karar
   kaybediyor.
 - Optimize edilen plan kalıcılaştırılırken aktivite sırası/saatleri saklanıyor,
   rota ayağı snapshot'ı saklanmıyor.
-- Üretim route gateway'i kapalı; koordinat fallback'i tahmini olmasına rağmen
+- Üretim route gateway'i kapalı; offline paket tahmini olmasına rağmen
   kullanıcı dili bu ayrımı yeterince görünür yapmıyor.
 - Uçuş/otel bilinmeden üretilen yer tutucular gerçek rezervasyon gibi
   algılanabiliyor.

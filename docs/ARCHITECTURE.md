@@ -4,8 +4,8 @@
 > Kalıcı kurallar için `CLAUDE.md`, günlük iş için `CURRENT_TASK.md`.
 > Rota motorunun ayrıntılı akış ve maliyet notu: `ROUTE_OPTIMIZATION.md`.
 
-Son güncelleme: **2026-08-10** (§8b abonelik/entitlement mimarisi ve §17 rota
-deneyimi refactor sınırı eklendi).
+Son güncelleme: **2026-08-11** (§19 ücretli çalışma zamanı sağlayıcısı yerine
+sürümlü offline Japonya rota paketi eklendi).
 
 ---
 
@@ -134,8 +134,8 @@ rotori-mobile/lib/features/
   ulaşım satırları yerleştirir. Yeni plan oluşturma akışı normal gezi günlerini
   kayıt öncesinde aynı optimizer + validator hattından geçirir ve snapshot'ı
   baştan üretir. Snapshot henüz yoksa viewer mevcut durak sırasını değiştirmeden
-  koordinat fallback matrisiyle geçici satırlar üretir; bunlar kalıcılaştırılmaz
-  ve veri kalitesi model içinde `estimated` olarak korunur.
+  offline Japonya paketiyle geçici satırlar üretir; bunlar kalıcılaştırılmaz ve
+  veri kalitesi model içinde `estimated` olarak korunur.
   Plan sürümü, aktivite hash'i veya matris sürümü uyuşmazsa snapshot
   kullanılmaz. Tahmini ayaklar hat/yön uydurmaz; reliable ayaklar sağlayıcının
   opsiyonel hat/yön bilgisini gösterebilir.
@@ -206,10 +206,11 @@ Pure Dart dosyaları — `flutter test` altında hızlı çalışır.
   `RouteMatrixBackendGateway` sınırını ve normalize sonuç doğrulamasını taşır.
   `route_matrix_resolution.dart` taze cache → birincil sağlayıcı → alternatif
   sağlayıcı → stale/estimated cache → typed unavailable sırasını uygular.
-- **Canlı taşıyıcı:** `route_matrix_supabase.dart`, mobilde anahtar taşımadan
-  `route-matrix` Supabase Edge Function'ını çağırır. Edge Function Google Routes
-  Compute Route Matrix'ten yürüyüş, toplu taşıma ve taksi alternatifi üretir;
-  `GOOGLE_MAPS_ROUTES_API_KEY` yalnız Supabase secret olarak tutulur.
+- **Varsayılan taşıyıcı:** `offline_japan_route_matrix.dart`, çalışma zamanı
+  API çağrısı yapmadan şehir profili, semt/istasyon kümeleri, yön, gün türü,
+  zaman bandı ve küratörlü özel bağlantılardan yürüyüş, toplu taşıma ve taksi
+  alternatifleri üretir. Sonuçlar açıkça `estimated` ve sürümlüdür; bilinmeyen
+  hat/peron/yön bilgisi uydurulmaz.
 - **Rota cache:** Koordinatları dört ondalığa yuvarlayan, yönü koruyan ve
   mod/gün tipi/zaman dilimi/profil/sağlayıcıyı anahtara katan cache
   sözleşmeleri `route_matrix_cache.dart` içindedir. İlk sürüm bellek içidir.
@@ -404,10 +405,9 @@ getirecekse mimari karar `DECISIONS.md`'ye yazılır.
 - Faz 2 için `apps/api/` altında Express stub (`/api/trips/*`) — canlı değil.
 - Mevcut canlı third-party çağrıları: **Open-Meteo** (hava — anahtar yok) ve
   **OSM tile** (harita — anahtar yok).
-- Gerçek ulaşım sağlayıcısı doğrudan Flutter'dan çağrılmaz. Mobil yalnızca
-  `RouteMatrixBackendGateway` üzerinden backend/Supabase Edge Function
-  sınırını bilir; sağlayıcı anahtarı backend ortamında kalır. Gateway şu an
-  `UnavailableRouteMatrixBackendGateway` ile kapalıdır.
+- İlk sürümde ücretli rota sağlayıcısı çağrılmaz. Günlük planlama tamamen
+  cihazdaki offline Japonya rota paketiyle çalışır. Dış navigasyon yalnız
+  kullanıcının açık “Haritada aç” eylemiyle Apple/Google Maps'e devredilir.
 
 ## 11. Background Jobs
 
@@ -436,8 +436,9 @@ getirecekse mimari karar `DECISIONS.md`'ye yazılır.
   primary/alternate/stale fallback ve AI çağrı/bütçe/cache politikasını;
   `plan_optimization_controller_test.dart` ön izleme/onay ve sonuç cache'ini;
   `plan_viewer_test.dart` görünür aksiyon, güvenli ön koşul ve eski/yeni
-  karşılaştırma/onay yüzeyini doğrular. Güncel tam paket **418/418**
-  başarılıdır.
+  karşılaştırma/onay yüzeyini doğrular. Offline rota paketi ayrıca tüm
+  küratörlü şehir/POI yön çiftlerini, zaman bandını ve bilinmeyen şehir
+  fallback'ini kapsar. Güncel tam paket **836/836** başarılıdır.
 - **CI:** Şu anda GitHub Actions henüz kurulu değil (aday karar — `DECISIONS.md`).
 - **Web QA:** `apps/planner` altında Playwright benzeri kurulum yok; F1'de QA
   dashboard'u eklendi (`888feb2`, `13969b9`) — 110 senaryo · 95 otomatik %100 pass.
@@ -478,12 +479,11 @@ packages/
   eşzamanlı düzenlenmesi son-yazan davranışına düşebilir.
 - Aktivite saatleri gezi yerel saatinin duvar saati dakikaları olarak
   saklanır. Gün sonunu aşan aktivite bölünmez; validasyonla reddedilir.
-- Rota matrisi backend/Edge Function taşıyıcısı henüz canlı değildir; provider
-  varsayılan olarak typed unavailable döndürür. Harita API anahtarı mobilde
-  bulunmaz.
-- Rota matrisi ve optimizasyon ön izleme cache'leri ilk sürümde bellek içidir;
-  uygulama yeniden başladığında kaybolur. Kalıcı cihaz cache'i gerçek sağlayıcı
-  entegrasyonuyla birlikte eklenecektir.
+- Offline rota matrisi canlı sefer, hat kesintisi, peron ve trafik bilemez;
+  bunları kesin bilgi gibi göstermez. Paket uygulama sürümüyle güncellenir.
+- Optimizasyon ön izleme cache'i ilk sürümde bellek içidir; offline matris
+  deterministik ve ucuz olduğu için uygulama yeniden başladığında güvenle
+  yeniden üretilebilir.
 - Viewer tek günlük ön izleme/onay sözleşmesini görünür biçimde tamamlar.
   Yeni plan oluşturma normal günleri kayıt öncesinde otomatik optimize eder;
   mevcut planların elle yeniden optimizasyonu açık onaylı ön izleme olarak
@@ -556,3 +556,35 @@ ayrılır. Web ön izlemesi premium kilidini gösterir; premium açıkken ML Kit
 aksiyonlarını destek-dışı bilgiyle pasif tutar. Çeviri sonuçlarında zorunlu Google Translate atfı
 yerel asset olarak gösterilir. Android alt sınırı ML Kit gereği API 23, iOS alt
 sınırı mevcut ML Kit hattıyla 15.5'tir.
+
+## 19. Offline Japonya Rota Paketi
+
+Rotori'nin rota sırası kararını veren beam-search ve bağımsız validator aynen
+korunur. Değişen katman, bu motora verilen yönlü `RouteMatrix` kaynağıdır.
+
+`OfflineJapanRouteMatrixRepository` her yön için en fazla üç seçenek üretir:
+
+1. **Yürüyüş:** kuş uçuşu mesafeyi şehrin sokak dolaşıklığı katsayısıyla
+   düzeltir; yalnız makul yürüme mesafelerinde adaydır.
+2. **Toplu taşıma:** şehrin baskın modu, ilk/son yürüyüş, ortalama bekleme,
+   araç içi süre, aktarma ve büyük istasyon tamponundan oluşur.
+3. **Taksi:** yol dolaşıklığı, şehir içi ortalama hız, zaman bandı ve araç
+   başına ücret modeliyle hesaplanır.
+
+Tokyo, Kyoto, Osaka ve Hiroshima için semt/istasyon kümeleri ile zor bağlantı
+özel kuralları paketlenir; diğer desteklenen Japonya şehirleri kalibre edilmiş
+şehir profiline, bilinmeyen noktalar muhafazakâr genel profile düşer. Sabah ve
+akşam yön etkisi deterministik olarak uygulanır. Aynı koordinat 0 dakika,
+yakın noktalar yürüyüş, uzak/özel noktalar toplu taşıma ağırlıklı ele alınır.
+
+Matris sürümü paket sürümü + hafta içi/hafta sonu + zaman bandını taşır.
+`providerId=rotori-offline-jp`, `isEstimated=true`; `lineId` ve `directionId`
+yalnız doğrulanmış paket verisi olmadığı sürece null kalır. Böylece uygulama
+tamamen çevrimdışı ve ücretsiz çalışırken tahmini bilgiyi kesin sefer bilgisi
+gibi sunmaz.
+
+Konumu doğrulanmayan öğün/özel başlık şehir merkezine zorla bağlanmaz ve rota
+düğümü olmaz; timeline'da görünmeye devam eder. İlk planın boşluk doldurma
+aşaması kısmen planlanmış bir güne yalnız öğün ekler. Tam/yarım günlük
+Disney/USJ/teamLab çapaları ve aynı yerin çift dilli katalog tekrarları dolgu
+havuzuna alınmaz. Böylece optimizer'a girmeden önce semt bütünlüğü bozulmaz.

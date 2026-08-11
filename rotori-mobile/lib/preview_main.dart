@@ -5,8 +5,6 @@
 //   flutter run -d chrome -t lib/preview_main.dart
 //
 // Üretim girişi lib/main.dart'tır; bu dosya yalnızca görsel kontrol içindir.
-import 'dart:math' as math;
-
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -23,7 +21,6 @@ import 'domain/destination_profiles.dart';
 import 'domain/fill_empty_days.dart';
 import 'domain/itinerary_generator.dart';
 import 'domain/place_coords.dart';
-import 'domain/route_matrix.dart';
 import 'domain/trip_factory.dart';
 import 'domain/types.dart';
 import 'features/auth/auth_screen.dart';
@@ -33,7 +30,6 @@ import 'features/plans/create/create_plan_screen.dart';
 import 'features/plans/flights/flight_details_page.dart';
 import 'features/plans/plan_providers.dart';
 import 'features/plans/plan_viewer_screen.dart';
-import 'features/plans/plan_optimization_controller.dart';
 import 'features/plans/plans_list_screen.dart';
 import 'features/price_tag_scanner/view/scanner_screen.dart';
 import 'features/reminders/reminders_screen.dart';
@@ -77,11 +73,6 @@ void main() {
           // Gerçek "Planlarım" ekranını dolu göstermek için (Supabase pull'u no-op).
           localPlansProvider.overrideWithValue([demo]),
           plansPullProvider.overrideWith((ref) async => <Trip>[]),
-          // Yalnızca tasarım/QA önizlemesi. Üretimde koordinattan süre
-          // üretilmez; gerçek backend gateway'i veya güvenilir cache gerekir.
-          routeMatrixRepositoryProvider.overrideWithValue(
-            const _PreviewRouteMatrixRepository(),
-          ),
         ],
         child: const _PreviewApp(),
       ),
@@ -94,21 +85,9 @@ void _hydratePreviewCoordinates(Trip trip) {
     ..sort((a, b) => a.order.compareTo(b.order));
   for (final day in trip.days) {
     final destination = getDestinationForDate(destinations, day.date);
-    final cityData = cityDataForKey(destination?.city);
-    final fallbackLat = destination?.lat ??
-        (cityData?.places.isNotEmpty == true
-            ? cityData!.places.first.lat
-            : null);
-    final fallbackLng = destination?.lng ??
-        (cityData?.places.isNotEmpty == true
-            ? cityData!.places.first.lng
-            : null);
-    if (fallbackLat == null || fallbackLng == null) continue;
     final stops = resolveDayStops(
       day,
       cityKey: destination?.city,
-      fallbackLat: fallbackLat,
-      fallbackLng: fallbackLng,
     );
     for (final stop in stops) {
       stop.item
@@ -116,76 +95,6 @@ void _hydratePreviewCoordinates(Trip trip) {
         ..lng = stop.lng;
     }
   }
-}
-
-class _PreviewRouteMatrixRepository implements RouteMatrixRepository {
-  const _PreviewRouteMatrixRepository();
-
-  @override
-  Future<RouteMatrix> getRouteMatrix({
-    required List<TripLocation> locations,
-    required DateTime day,
-    required RoutePreferences preferences,
-  }) async {
-    final entries = <RouteMatrixEntry>[];
-    for (final from in locations) {
-      for (final to in locations) {
-        if (from.id == to.id) continue;
-        final km = _previewDistanceKm(from, to);
-        final walking = math.max(3, (km / 4.8 * 60).round());
-        final transit = math.max(8, (km / 24 * 60).round() + 10);
-        final taxi = math.max(6, (km / 30 * 60).round() + 5);
-        entries.add(RouteMatrixEntry(
-          fromLocationId: from.id,
-          toLocationId: to.id,
-          options: [
-            TransportOption(
-              mode: TransportMode.walking,
-              doorToDoorMinutes: walking,
-              walkingMinutes: walking,
-              waitingMinutes: 0,
-              transferCount: 0,
-              estimatedCostYen: 0,
-              reliabilityScore: .98,
-              isEstimated: true,
-            ),
-            TransportOption(
-              mode: TransportMode.train,
-              doorToDoorMinutes: transit,
-              walkingMinutes: math.min(10, walking),
-              waitingMinutes: 5,
-              transferCount: km > 8 ? 1 : 0,
-              estimatedCostYen: math.max(150, (km * 45).round()),
-              reliabilityScore: .9,
-              isEstimated: true,
-            ),
-            TransportOption(
-              mode: TransportMode.taxi,
-              doorToDoorMinutes: taxi,
-              walkingMinutes: 1,
-              waitingMinutes: 4,
-              transferCount: 0,
-              estimatedCostYen: 500 + (km * 320).round(),
-              reliabilityScore: .72,
-              isEstimated: true,
-            ),
-          ],
-        ));
-      }
-    }
-    return RouteMatrix(entries: entries, version: 'preview-estimated-v1');
-  }
-}
-
-double _previewDistanceKm(TripLocation a, TripLocation b) {
-  const earthRadiusKm = 6371.0;
-  final lat1 = a.latitude * math.pi / 180;
-  final lat2 = b.latitude * math.pi / 180;
-  final dLat = lat2 - lat1;
-  final dLng = (b.longitude - a.longitude) * math.pi / 180;
-  final h = math.sin(dLat / 2) * math.sin(dLat / 2) +
-      math.cos(lat1) * math.cos(lat2) * math.sin(dLng / 2) * math.sin(dLng / 2);
-  return earthRadiusKm * 2 * math.atan2(math.sqrt(h), math.sqrt(1 - h));
 }
 
 /// Sıfırdan planlama akışı için boş trip — planner welcome adımı ile başlar.

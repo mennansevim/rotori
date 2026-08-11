@@ -152,7 +152,8 @@ void main() {
     expect(repository.callCount, 0);
   });
 
-  test('rota backend yokken koordinat tahminiyle önizleme üretir', () async {
+  test('enjekte edilen rota kaynağı yokken offline paket önizleme üretir',
+      () async {
     final container = ProviderContainer(
       overrides: [
         routeMatrixRepositoryProvider

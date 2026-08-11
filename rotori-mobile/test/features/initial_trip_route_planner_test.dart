@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rotori/data/offline_japan_route_matrix.dart';
 import 'package:rotori/data/route_matrix_remote.dart';
 import 'package:rotori/domain/plan_generation.dart';
+import 'package:rotori/domain/route_execution.dart';
 import 'package:rotori/domain/route_matrix.dart';
 import 'package:rotori/features/plans/initial_trip_route_planner.dart';
 import 'package:rotori/features/plans/plan_optimization_controller.dart';
@@ -49,6 +51,41 @@ void main() {
     )) {
       expect(day.items.every((item) => item.lat != null && item.lng != null),
           isTrue);
+    }
+  });
+
+  test('varsayılan ilk plan bütünüyle offline Japonya paketiyle oluşur',
+      () async {
+    final original = buildTripFromCities(
+      cityKeys: const ['tokyo'],
+      startYmd: '2026-10-01',
+      endYmd: '2026-10-07',
+    );
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    final optimized = await optimizeInitialTripRoutes(
+      trip: original,
+      buildPreview: container
+          .read(planOptimizationControllerProvider.notifier)
+          .buildInitialPreview,
+    );
+    final snapshots = optimized.days
+        .map((day) => day.routeExecutionSnapshot)
+        .whereType<RouteExecutionSnapshot>()
+        .toList(growable: false);
+
+    expect(snapshots, isNotEmpty);
+    for (final snapshot in snapshots) {
+      expect(snapshot.matrixVersion, startsWith('offline-jp-'));
+      expect(snapshot.providerIds, [kOfflineJapanRouteProviderId]);
+      expect(snapshot.legs, isNotEmpty);
+      expect(
+        snapshot.legs.every(
+          (leg) => leg.providerId == kOfflineJapanRouteProviderId,
+        ),
+        isTrue,
+      );
     }
   });
 }

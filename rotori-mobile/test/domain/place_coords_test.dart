@@ -26,6 +26,38 @@ void main() {
       expect(coords!.lat, closeTo(34.6873, 0.001));
     });
 
+    test('birleşik Shibuya başlığı gerçek Crossing noktasını bulur', () {
+      final coords = resolvePlaceCoords(
+        'Shibuya Sky & Crossing',
+        cityKey: 'Tokyo',
+      );
+      expect(coords, isNotNull);
+      expect(coords!.lat, closeTo(35.6595, 0.001));
+      expect(coords.lng, closeTo(139.7005, 0.001));
+    });
+
+    test('birleşik Asakusa başlığı Skytree noktasını şehir merkezine düşürmez',
+        () {
+      final coords = resolvePlaceCoords(
+        'Asakusa & Skytree',
+        cityKey: 'Tokyo',
+      );
+      expect(coords, isNotNull);
+      expect(coords!.lat, closeTo(35.7101, 0.001));
+      expect(coords.lng, closeTo(139.8107, 0.001));
+    });
+
+    test('Tokyo Disneyland offline POI koordinatını çözer', () {
+      final coords = resolvePlaceCoords(
+        'Tokyo Disneyland',
+        cityKey: 'Tokyo',
+      );
+
+      expect(coords, isNotNull);
+      expect(coords!.lat, closeTo(35.6329, 0.001));
+      expect(coords.lng, closeTo(139.8804, 0.001));
+    });
+
     test('anlamsız başlık null döndürür', () {
       expect(resolvePlaceCoords('Zxqw Uydurma Yer 12345'), isNull);
       expect(resolvePlaceCoords(''), isNull);

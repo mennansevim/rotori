@@ -64,6 +64,9 @@ const List<CityData> kCityData = [
       CityPlace(id: 'tk-shibuya', name: 'Shibuya Crossing', emoji: '🚥', category: LText('Şehir', 'City'), lat: 35.6595, lng: 139.7005),
       CityPlace(id: 'tk-meiji', name: 'Meiji Jingu', emoji: '🌳', category: LText('Tapınak', 'Temple'), lat: 35.6764, lng: 139.6993),
       CityPlace(id: 'tk-teamlab', name: 'teamLab Planets', emoji: '✨', category: LText('Müze', 'Museum'), lat: 35.6486, lng: 139.7869),
+      CityPlace(id: 'tk-teamlab-borderless', name: 'teamLab Borderless', emoji: '✨', category: LText('Müze', 'Museum'), lat: 35.6605, lng: 139.7292),
+      CityPlace(id: 'tk-disneyland', name: 'Tokyo Disneyland', emoji: '🏰', category: LText('Tema parkı', 'Theme park'), lat: 35.6329, lng: 139.8804),
+      CityPlace(id: 'tk-disneysea', name: 'Tokyo DisneySea', emoji: '🌊', category: LText('Tema parkı', 'Theme park'), lat: 35.6267, lng: 139.8851),
       CityPlace(id: 'tk-shinjuku-gyoen', name: 'Shinjuku Gyoen', emoji: '🌸', category: LText('Park', 'Park'), lat: 35.6852, lng: 139.71),
       CityPlace(id: 'tk-akihabara', name: 'Akihabara', emoji: '🎮', category: LText('Alışveriş', 'Shopping'), lat: 35.7022, lng: 139.7745),
       CityPlace(id: 'tk-tower', name: 'Tokyo Tower', emoji: '🗼', category: LText('Manzara', 'View'), lat: 35.6586, lng: 139.7454),
@@ -358,8 +361,7 @@ CityData? getCityData(String key) => _cityByKey[key];
 List<CityData> detectTripCities(Trip trip) {
   final dayThemes = trip.days
       .map(
-        (d) =>
-            '${d.theme} ${d.items.map((i) => i.title).join(' ')}'.toLowerCase(),
+        (d) => '${d.theme} ${d.items.map((i) => i.title).join(' ')}'.toLowerCase(),
       )
       .toList();
   final staticSignals = [
@@ -399,10 +401,7 @@ CityPlace? _matchPlaceInCity(CityData city, String t) {
     if (t.contains(n) || n.contains(t)) return p;
   }
   for (final p in city.places) {
-    final tokens = p.name
-        .toLowerCase()
-        .split(RegExp(r'[^a-zçğıöşüâ0-9\-]+'))
-        .where((w) => w.length >= 4);
+    final tokens = p.name.toLowerCase().split(RegExp(r'[^a-zçğıöşüâ0-9\-]+')).where((w) => w.length >= 4);
     if (tokens.any(t.contains)) return p;
   }
   return null;
@@ -437,9 +436,7 @@ List<NearbyPlace> nearbyCityPlaces({
       }
     }
   }
-  final origin = (lat != null && lng != null)
-      ? LatLng(lat, lng)
-      : (self != null ? LatLng(self.lat, self.lng) : null);
+  final origin = (lat != null && lng != null) ? LatLng(lat, lng) : (self != null ? LatLng(self.lat, self.lng) : null);
   if (origin == null) return const [];
   // Başlıktan şehir çıkmadıysa koordinata en yakın noktanın şehrini al;
   // en yakın nokta bile 30 km+ uzaktaysa öneri anlamsız olur.
