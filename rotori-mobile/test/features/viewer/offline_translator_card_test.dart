@@ -15,7 +15,7 @@ void main() {
 
     expect(find.byKey(const Key('offline-translator-premium-lock')),
         findsOneWidget);
-    expect(find.text('Premium ile çevrimdışı çeviri'), findsOneWidget);
+    expect(find.text('İnternet paketin tükenmesin'), findsOneWidget);
     expect(find.byKey(const Key('offline-translator-input')), findsNothing);
     expect(gateway.modelCheckCalls, 0);
   });
