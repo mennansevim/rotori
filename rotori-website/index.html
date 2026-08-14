@@ -222,11 +222,19 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 .hero-stage .phone{--w:min(340px,80vw)}
 /* El + telefon SVG mockup — CSS iPhone yerine. Alt kısımda el "yok olur" gibi
    soft gradient ile hero arka planına karışır, tasarım bütünlüğü için. */
-.hand-mobile-wrap{--hw:min(460px,70vw);width:var(--hw);position:relative;z-index:5;display:flex;justify-content:center;filter:drop-shadow(0 28px 40px rgba(15,10,30,.21))}
+.hand-mobile-wrap{--hw:min(460px,70vw);width:var(--hw);position:relative;z-index:5;display:grid;filter:drop-shadow(0 28px 40px rgba(15,10,30,.21))}
 .hand-mobile-wrap.float{animation:float 7s ease-in-out infinite}
-.hand-mobile{width:100%;height:auto;display:block;/* Yalnızca en altta hafifçe zemine karışır. */
+/* Hero tabbar'ı (Planla / Yolculuk / Sahada) sayfaya scroll etmez; telefondaki
+   ekranı değiştirir. Üç görsel de aynı 1414×2000 el+telefon kompozisyonu olduğu
+   için üst üste bindirilip çapraz geçiş yapılır — siluet ve aşağıdaki --fx
+   değerleri değişmediğinden kart yerleşimi olduğu gibi geçerli kalır. */
+.hand-mobile{grid-area:1/1;width:100%;height:auto;display:block;
+  opacity:0;transition:opacity .45s var(--ease);
+  /* Yalnızca en altta hafifçe zemine karışır. */
   -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 92%,rgba(0,0,0,.72) 97%,rgba(0,0,0,0) 100%);
   mask-image:linear-gradient(180deg,#000 0%,#000 92%,rgba(0,0,0,.72) 97%,rgba(0,0,0,0) 100%)}
+.hand-mobile.on{opacity:1}
+@media (prefers-reduced-motion:reduce){.hand-mobile{transition:none}}
 
 /* Kart yerleşimi telefonun bounding box'ına değil, hero görselindeki elin GERÇEK
    siluetine göre kurulur — kartlar telefona yakın durur ama metinleri mockup'ın
@@ -306,7 +314,8 @@ h1,h2,h3{letter-spacing:-.035em;line-height:1.04;font-weight:600}
 
 /* Tab bar (Preflight / At airport / After landing / Download style) */
 .hero-tabbar{position:absolute;z-index:8;left:50%;bottom:30px;transform:translateX(-50%);display:inline-flex;background:rgba(20,18,24,.96);border:1px solid rgba(255,255,255,.08);border-radius:17px;padding:5px;box-shadow:0 18px 36px -16px rgba(15,10,30,.38);gap:3px;flex-wrap:nowrap;justify-content:center}
-.htb{padding:11px 17px;font-size:13px;font-weight:600;color:rgba(255,255,255,.62);border-radius:12px;display:inline-flex;align-items:center;gap:7px;cursor:pointer;transition:.25s var(--ease);white-space:nowrap;font-family:inherit;background:none;border:none;text-decoration:none}
+.htb{padding:11px 17px;font-size:13px;font-weight:600;color:rgba(255,255,255,.62);border-radius:12px;display:inline-flex;align-items:center;gap:7px;cursor:pointer;transition:.25s var(--ease);white-space:nowrap;font-family:inherit;background:none;border:none;text-decoration:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+.htb:focus-visible{outline:2px solid #FFD54F;outline-offset:2px}
 .htb:hover{color:#fff}
 .htb.on{background:linear-gradient(135deg,#FFD54F,#F4B63F);color:var(--ink);box-shadow:0 8px 18px -8px rgba(232,164,76,.65)}
 @media(max-width:600px){
@@ -679,20 +688,30 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
 
       <div class="hero-stage-phone">
         <div class="hand-mobile-wrap float">
-          <picture>
-            <source srcset="img/main-hand-rotori.avif" type="image/avif" />
-            <img class="hand-mobile" src="img/main-hand-rotori.avif"
-                 width="930" height="1260"
-                 alt="Rotori uygulaması — Japonya günlük plan"
-                 loading="eager" decoding="async" fetchpriority="high" />
-          </picture>
+          <!-- Açılışta "Yolculuk" sekmesi seçili; yalnızca o ekran hemen indirilir,
+               diğer ikisi sayfa yüklendikten sonra (ya da sekmeye ilk tıklamada). -->
+          <img class="hand-mobile on" id="shotTrip" data-screen="trip"
+               src="img/main-hand-rotori-1.avif"
+               width="1414" height="2000"
+               alt="Rotori uygulaması — gün gün Japonya planı, saat saat program"
+               loading="eager" decoding="async" fetchpriority="high" />
+          <img class="hand-mobile" id="shotPlan" data-screen="plan"
+               data-src="img/main-hand-rotori-3.avif"
+               width="1414" height="2000"
+               alt="Rotori uygulaması — Japonya'da gezilecek şehirlerin seçimi"
+               decoding="async" fetchpriority="low" />
+          <img class="hand-mobile" id="shotField" data-screen="field"
+               data-src="img/main-hand-rotori-2.avif"
+               width="1414" height="2000"
+               alt="Rotori uygulaması — günün rotası harita üzerinde"
+               decoding="async" fetchpriority="low" />
         </div>
       </div>
 
       <div class="hero-tabbar" role="tablist" aria-label="Yolculuk aşamaları">
-        <a class="htb on" href="#planning" role="tab" aria-selected="true" aria-controls="planning" data-i18n="hero.tab1">✈️ Planla</a>
-        <a class="htb" href="#itinerary" role="tab" aria-selected="false" aria-controls="itinerary" data-i18n="hero.tab2">🎌 Yolculuk</a>
-        <a class="htb" href="#timing" role="tab" aria-selected="false" aria-controls="timing" data-i18n="hero.tab3">🏯 Sahada</a>
+        <button class="htb" type="button" role="tab" aria-selected="false" aria-controls="shotPlan" data-screen="plan" data-i18n="hero.tab1">✈️ Planla</button>
+        <button class="htb on" type="button" role="tab" aria-selected="true" aria-controls="shotTrip" data-screen="trip" data-i18n="hero.tab2">🎌 Yolculuk</button>
+        <button class="htb" type="button" role="tab" aria-selected="false" aria-controls="shotField" data-screen="field" data-i18n="hero.tab3">🏯 Sahada</button>
         <a class="htb" href="#final" data-i18n="hero.tab4">↓ İndir</a>
       </div>
     </div>
@@ -1829,11 +1848,23 @@ footer{border-top:1px solid var(--line);padding:44px 0 max(60px,env(safe-area-in
   addEventListener('resize',()=>{maxScroll=Math.max(1,document.body.scrollHeight-innerHeight);fr();});
   fr();
 
-  document.querySelectorAll('.hero-tabbar [role="tab"]').forEach(tab=>tab.addEventListener('click',()=>{
-    document.querySelectorAll('.hero-tabbar [role="tab"]').forEach(item=>{
+  /* Hero tabbar — sayfada bir bölüme atlamak yerine telefondaki ekranı değiştirir.
+     Varsayılan "Planla"; "↓ İndir" normal bağlantı olarak kaldı. */
+  const heroTabs=[...document.querySelectorAll('.hero-tabbar [role="tab"]')];
+  const heroShots=[...document.querySelectorAll('.hand-mobile-wrap .hand-mobile')];
+  const loadShot=img=>{if(img.dataset.src){img.src=img.dataset.src;delete img.dataset.src;}};
+  heroTabs.forEach(tab=>tab.addEventListener('click',()=>{
+    heroTabs.forEach(item=>{
       const on=item===tab;item.classList.toggle('on',on);item.setAttribute('aria-selected',on?'true':'false');
     });
+    heroShots.forEach(img=>{
+      const on=img.dataset.screen===tab.dataset.screen;
+      if(on)loadShot(img);
+      img.classList.toggle('on',on);
+    });
   }));
+  const warmShots=()=>heroShots.forEach(loadShot);
+  addEventListener('load',function(){('requestIdleCallback' in window)?requestIdleCallback(warmShots,{timeout:2500}):setTimeout(warmShots,600);});
 
   document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',(e)=>{const id=a.getAttribute('href').slice(1);const el=id?document.getElementById(id):null;if(el){e.preventDefault();el.scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'});}}));
 
