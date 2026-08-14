@@ -225,10 +225,18 @@ Pure Dart dosyaları — `flutter test` altında hızlı çalışır.
 - **Rota cache:** Koordinatları dört ondalığa yuvarlayan, yönü koruyan ve
   mod/gün tipi/zaman dilimi/profil/sağlayıcıyı anahtara katan cache
   sözleşmeleri `route_matrix_cache.dart` içindedir. İlk sürüm bellek içidir.
-- **AI review:** `ai_route_reviewer.dart` policy+bütçe kontrolünden geçmeyen
-  çağrıyı yapmaz; aynı rota için cache kullanır ve her hata/skip durumunda
-  deterministik rota nesnesini aynen döndürür. Varsayılan gerçek AI bağlantısı
-  yoktur.
+- **AI review:** Gerçek bağlantı Supabase `review-route` Edge Function
+  sınırındadır; istemci model anahtarı taşımaz. LLM deterministik rotadan sonra
+  yalnız mevcut durakların sıra adayını üretir. En karmaşık en fazla üç gün
+  çağrıya girer ve yanıt strict JSON Schema ile sınırlandırılır. Aday doğrudan
+  kalıcılaşmaz: `PlanScheduleEngine` üzerinden uygulanır, yalnız etkilenen
+  günlerde beam aramasına yumuşak sıra ipucu olur ve aynı ilk-plan optimizer +
+  bağımsız validator hattında yeniden hesaplanır. Profil-ağırlıklı gerçek rota
+  objective skoru deterministik tabanı en az %2 geçerse kabul edilir. Kabul
+  edilen aday yeni `RouteExecutionSnapshot` üretmek zorundadır; hata, timeout,
+  eksik snapshot veya skor kazancı yoksa taban rota aynen korunur. Aynı kanonik
+  istek kısa ömürlü cache ile tekrar modele gönderilmez; prompt/model sürümü
+  cache anahtarının parçasıdır.
 
 ## 8. Auth
 
@@ -661,6 +669,11 @@ bir probe olarak en sonda çalışır.
 
 Hepsi `DateTime.now()` okumaz, ağa çıkmaz, rastgelelik içermez — optimizer
 determinizmi buna bağlıdır.
+
+`HardConstraintChecker`, beam içinde aynı ulaşım seçeneği + kalkış anı + yön
+birden fazla kez değerlendirildiğinde saf transit-realism sonucunu istek ömrü
+boyunca yeniden kullanır. Cache günler veya istekler arasında paylaşılmaz;
+böylece saha bağlamı sızmaz ve semantik çıktı değişmeden sıcak yol kısalır.
 
 - **`japan_calendar.dart`** — Resmî tatil takvimi (sabit tarihler, Happy Monday
   sistemi, 1980–2099 için equinox yaklaşımı, 振替休日 zinciri, 国民の休日),

@@ -920,6 +920,44 @@ void main() {
       expect(result.metrics!.scheduleIdleMinutes, greaterThan(100));
       expect(result.metrics!.totalTransitWaitMinutes, 8);
     });
+
+    test(
+        'semantik sıra ipucu beam aramasını yönlendirir ama hard kilit değildir',
+        () async {
+      const hotel = TripLocation(
+        id: 'hint-hotel',
+        name: 'Hotel',
+        latitude: 35,
+        longitude: 139,
+      );
+      const places = [
+        TripLocation(id: 'a', name: 'A', latitude: 35.1, longitude: 139.1),
+        TripLocation(id: 'b', name: 'B', latitude: 35.1, longitude: 139.1),
+        TripLocation(id: 'c', name: 'C', latitude: 35.1, longitude: 139.1),
+      ];
+      final result = await const BeamSearchItineraryOptimizer().optimize(
+        OptimizationRequest(
+          activities: places.map(_activity).toList(),
+          routeMatrix: _completeMatrix(
+            const [hotel, ...places],
+            (_, __) => _train(10, walking: 0, waiting: 0, cost: 0),
+          ),
+          constraints: DayRouteConstraints(
+            startLocation: hotel,
+            endLocation: hotel,
+            availableStartTime: DateTime(2026, 10, 12, 9),
+            availableEndTime: DateTime(2026, 10, 12, 18),
+          ),
+          preferredActivityOrder: const ['c', 'b', 'a'],
+        ),
+      );
+
+      expect(result.isSuccess, isTrue);
+      expect(
+        result.activities.map((activity) => activity.activityId),
+        const ['c', 'b', 'a'],
+      );
+    });
   });
 }
 

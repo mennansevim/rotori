@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-08-14b — LLM rota adayı üretir; deterministik motor kabul kararını verir
+
+**Supersedes:** `2026-07-30 — Rota sırasını AI değil yönlü matris +
+deterministik motor belirler` kaydındaki “AI rotayı değiştiremez” ayrıntısı.
+Yönlü matrisin süre kaynağı, hard constraint'ler ve deterministik motorun nihai
+karar yetkisi değişmez.
+
+**Karar:** İlk plan önce mevcut beam-search + saha bağlamı + bağımsız validator
+hattından geçer. LLM yalnız mevcut aktivite kümesi içinde **sıra adayı**
+üretebilir; yeni yer ekleyemez, yer silemez veya gün değiştiremez. Yalnız
+ölçülebilir karmaşıklığı en yüksek üç gün modele gider. Strict JSON Schema'dan
+geçen aday `PlanScheduleEngine` ile güvenli taslağa uygulanır, ardından yalnız
+etkilenen günlerde beam aramasına yumuşak ipucu verilerek aynı rota motorunda
+yeniden optimize edilir. Aktivite sayısı/must-do koruması, route snapshot
+kapsamı ve profil-ağırlıklı gerçek rota objective skoru deterministik tabandan
+en az %2 iyi değilse aday reddedilir. Böylece model kararı değil arama uzayına
+semantik bir öneri verir; kabul ölçülebilir ve tekrar üretilebilir kalır.
+
+**Performans:** Aynı plan/prompt/model isteği cache'lenir. Model hatası veya
+timeout plan üretimini bozmaz. LLM aşaması ayrı süre, cache, öneri, kabul/red ve
+skor farkı metrikleri üretir; “LLM kaliteyi artırdı” iddiası ancak bu A/B
+sinyalleriyle yapılır. Deterministik sıcak yolda aynı saha ulaşım değerlemesi
+istek ömrü boyunca memoize edilir; cache sonucu planlar arasında paylaşılmaz.
+
+**Neden:** Doğrudan LLM mutasyonu geçerli olsa bile daha uzun bir rota
+üretebilir ve `PlanScheduleEngine` değişikliği mevcut route snapshot'ını
+geçersizleştirir. Yeniden optimizasyon + skor kapısı bu iki riski kapatırken
+LLM'in kullanıcı niyeti ve semantik bağlamdaki gücünü korur.
+
+---
+
 ## 2026-08-11l — Saha gerçekliği motorun içine değil, çevresine eklenir (v3)
 
 **Karar:** Japonya'ya özgü lojistik/ulaşım/takvim gerçekleri

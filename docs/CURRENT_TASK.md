@@ -13,6 +13,27 @@ algoritmasını değiştirmeden ölçülebilir kılmak.
 
 ## 🚦 SIRADAKİ OTURUM BURADAN BAŞLAR
 
+### 2026-08-14 — Hibrit LLM rota iyileştirme ve motor benchmarkı (tamamlandı)
+
+- [x] LLM'i doğrudan plan mutasyonu yerine mevcut duraklar için sıra adayı
+      üreticisine çevir; strict şema, karmaşık gün kapısı, timeout ve cache ekle.
+- [x] Adayı yalnız etkilenen günlerde yumuşak beam ipucuyla yeniden optimize et;
+      snapshot, aktivite kümesi ve en az %2 objective iyileşmesiyle kabul et.
+- [x] Saha transit değerlemesini istek ömründe memoize et ve 100×4 aynı-seed
+      benchmarkıyla hız/kalite farkını ölç.
+
+**Sonuç:** Beam 6 korunarak 100 base × 4 profil koşusunun medyanı
+**28.740 ms → 16.854 ms** oldu (**%41,4 hızlanma**). 4.672 gün kaydı,
+3.668 strict gün, dropping ile kurtarılan 464 gün, 472/17.700 düşürülen
+aktivite, 0 infeasible, 0 hard ihlal, 0 must-do kaybı ve 0 eksik dönüş dahil
+semantik çıktı önceki koşuyla birebir aynı kaldı. LLM yolu `gpt-4o-mini`
+strict Structured Outputs kullanır; en fazla üç karmaşık günü çağırır, 6 sn
+sunucu/8 sn istemci üst sınırı ve 7 günlük bellek cache'i taşır. Aday ancak
+yeniden üretilmiş snapshot ile gerçek objective skoru en az %2 iyileştirirse
+kabul edilir; tüm diğer durumlarda deterministik plan korunur. Son tam Flutter
+paketi **1.064/1.064** geçti, hedefli analiz temiz. Son teyit benchmarkı
+16.300 ms verdi ve önceki çıktıyla semantik karşılaştırma yine birebir eşleşti.
+
 ### 2026-08-11 — Dış öneri bağlantıları güvenlik bakımı (tamamlandı)
 
 - [x] Mobil hazırlık kartlarındaki tüm eSIM, otel, aktivite, transfer ve tren
