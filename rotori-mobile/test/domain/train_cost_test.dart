@@ -11,7 +11,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rotori/domain/cost_estimate.dart';
 import 'package:rotori/domain/plan_generation.dart';
-import 'package:rotori/domain/types.dart';
 
 CostLine _train(
   List<String> cities,
@@ -50,8 +49,8 @@ void main() {
 
     test('bacak sayısı arttıkça tahmin artar', () {
       final iki = _train(const ['tokyo', 'kyoto'], '2026-10-15', '2026-10-21');
-      final uc = _train(
-          const ['tokyo', 'kyoto', 'osaka'], '2026-10-15', '2026-10-21');
+      final uc =
+          _train(const ['tokyo', 'kyoto', 'osaka'], '2026-10-15', '2026-10-21');
       expect(uc.maxJpy, greaterThan(iki.maxJpy));
     });
   });
@@ -97,12 +96,12 @@ void main() {
 
   group('çocuk indirimi', () {
     test('çocuk yetişkinden ucuz sayılır', () {
-      final yetiskin =
-          _train(const ['tokyo', 'kyoto'], '2026-10-15', '2026-10-21',
-              adults: 2);
-      final cocuklu =
-          _train(const ['tokyo', 'kyoto'], '2026-10-15', '2026-10-21',
-              adults: 2, children: 2);
+      final yetiskin = _train(
+          const ['tokyo', 'kyoto'], '2026-10-15', '2026-10-21',
+          adults: 2);
+      final cocuklu = _train(
+          const ['tokyo', 'kyoto'], '2026-10-15', '2026-10-21',
+          adults: 2, children: 2);
       expect(cocuklu.maxJpy, greaterThan(yetiskin.maxJpy));
       // İki çocuk iki yetişkin kadar TUTMAMALI (yarım ücret).
       expect(cocuklu.maxJpy, lessThan(yetiskin.maxJpy * 2));

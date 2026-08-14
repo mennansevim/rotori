@@ -6,12 +6,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rotori/core/l10n.dart';
+import 'package:rotori/core/rotori_brand.dart';
 import 'package:rotori/domain/city_places.dart';
 import 'package:rotori/domain/plan_generation.dart' show CityNights;
 import 'package:rotori/features/plans/create/city_select_page.dart';
 import 'package:rotori/features/plans/create/create_plan_screen.dart';
 import 'package:rotori/features/plans/create/create_plan_widgets.dart';
 import 'package:rotori/features/plans/create/date_select_page.dart';
+import 'package:rotori/features/plans/create/preferences_page.dart';
 import 'package:rotori/features/viewer/viewer_theme.dart';
 
 String tr(String key) => L10n.resolve(key, AppLang.tr);
@@ -242,27 +244,185 @@ void main() {
           find.text(tr('create.assumptions.estimatedReason')), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets('uçuş ve otel satırlarında "Ekle" aksiyonu vardır',
+        (tester) async {
+      await pumpFlow(tester);
+      await tester.tap(find.text('Tokyo'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr('create.continue')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr('create.dates.unknown')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr('create.dates.continue')));
+      await tester.pumpAndSettle();
+
+      // ROTA + TARİHLER "Düzelt", UÇUŞ + OTEL "Ekle".
+      expect(find.text(tr('create.assumptions.edit')), findsNWidgets(2));
+      expect(find.text(tr('create.assumptions.add')), findsNWidgets(2));
+      // Aksiyonun planı üreteceği önden söylenir.
+      expect(find.text(tr('create.assumptions.addHint')), findsOneWidget);
+
+      final prefs = tester.widget<PreferencesPage>(find.byType(PreferencesPage));
+      expect(prefs.onAddFlight, isNotNull);
+      expect(prefs.onAddHotel, isNotNull);
+    });
+
+    // REGRESYON: kart uçuş/otel değerini SABİT yazıyordu
+    // (`create.assumptions.draft`), plandan hiç okumuyordu. Kullanıcı uçuşunu
+    // kaydedip buraya dönüyor, kart hâlâ "Eklenmedi · taslak" diyordu ve
+    // kaydı kaybolmuş görünüyordu.
+    testWidgets('kaydedilmiş uçuş ve otel karta yansır', (tester) async {
+      tester.view.physicalSize = const Size(1200, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: PreferencesPage(
+                palette: ViewerPalette.appleLight,
+                dietTags: const [],
+                mealBudgetJpy: null,
+                routeSummary: 'Tokyo',
+                dateSummary: '2026-09-03 → 2026-09-05',
+                datesEstimated: false,
+                onEditCities: () {},
+                onEditDates: () {},
+                onAddFlight: () {},
+                onAddHotel: () {},
+                flightSummary: 'IST → HND · gidiş-dönüş',
+                hotelSummary: 'Granbell Hotel',
+                onToggleTag: (_) {},
+                onPickBudget: (_) {},
+                generating: false,
+                onGenerate: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('IST → HND · gidiş-dönüş'), findsOneWidget);
+      expect(find.text('Granbell Hotel'), findsOneWidget);
+      // "Eklenmedi · taslak" hiç kalmadı; dört satır da "Düzelt" gösterir ve
+      // "önce plan üretilir" ipucu düşer.
+      expect(find.text(tr('create.assumptions.draft')), findsNothing);
+      expect(find.text(tr('create.assumptions.add')), findsNothing);
+      expect(find.text(tr('create.assumptions.edit')), findsNWidgets(4));
+      expect(find.text(tr('create.assumptions.addHint')), findsNothing);
+    });
+
+    testWidgets('üretim mümkün değilken "Ekle" aksiyonu görünmez',
+        (tester) async {
+      // Sayfayı doğrudan kurar: PageView tembel olduğu için akıştan
+      // gidildiğinde PreferencesPage üretilemez durumda hiç inşa edilmiyor.
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: PreferencesPage(
+              palette: ViewerPalette.appleLight,
+              dietTags: const [],
+              mealBudgetJpy: null,
+              routeSummary: '—',
+              dateSummary: '—',
+              datesEstimated: false,
+              onEditCities: () {},
+              onEditDates: () {},
+              onAddFlight: null,
+              onAddHotel: null,
+              onToggleTag: (_) {},
+              onPickBudget: (_) {},
+              generating: false,
+              onGenerate: null,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(tr('create.assumptions.add')), findsNothing);
+      expect(find.text(tr('create.assumptions.addHint')), findsNothing);
+      // ROTA / TARİHLER "Düzelt"i her hâlükârda durur.
+      expect(find.text(tr('create.assumptions.edit')), findsNWidgets(2));
+    });
+
+    testWidgets('son adımın CTA butonu turuncu, ara adımlar mavi kalır',
+        (tester) async {
+      await pumpFlow(tester);
+
+      // 1. adım — mavi "Devam".
+      var btn = tester.widget<BrandButton>(find.byType(BrandButton).first);
+      expect(btn.tone, isNull, reason: 'şehir adımı palet mavisinde kalmalı');
+      expect(btn.radius, 980);
+
+      await tester.tap(find.text('Tokyo'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr('create.continue')));
+      await tester.pumpAndSettle();
+
+      // 2. adım — hâlâ mavi.
+      btn = tester.widget<BrandButton>(find.byType(BrandButton).first);
+      expect(btn.tone, isNull, reason: 'tarih adımı palet mavisinde kalmalı');
+
+      await tester.tap(find.text(tr('create.dates.unknown')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tr('create.dates.continue')));
+      await tester.pumpAndSettle();
+
+      // 3. adım — planı üreten CTA turuncu ve daha az yuvarlak.
+      btn = tester.widget<BrandButton>(find.byType(BrandButton).first);
+      expect(btn.tone, BrandButton.ctaOrange);
+      expect(btn.radius, 14);
+      expect(btn.block, isTrue);
+    });
   });
 
   group('marka görünümü', () {
-    testWidgets('hero marka gradyanını kullanır', (tester) async {
+    testWidgets('hero marka kırmızısını kullanır, tema rengini kullanmaz',
+        (tester) async {
       await pumpFlow(tester);
 
-      final hero = tester.widget<BrandHero>(find.byType(BrandHero));
-      expect(hero.palette.brandGradient.length, 2);
-      // Mor → sakura: ilk renk fuji, ikincisi sakura.
-      expect(hero.palette.brandGradient.first, hero.palette.fuji);
-      expect(hero.palette.brandGradient.last, hero.palette.sakura);
+      // Gradyan artık paletten DEĞİL marka sabitlerinden gelir: eskiden
+      // fuji → sakura (mor → pembe) idi ve jenerik bir görünüm veriyordu.
+      final decorated = tester.widget<Container>(
+        find
+            .descendant(
+              of: find.byType(BrandHero),
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      final gradient =
+          (decorated.decoration! as BoxDecoration).gradient! as LinearGradient;
+
+      expect(gradient.colors, RotoriBrand.heroGradient);
+      final palette = tester.widget<BrandHero>(find.byType(BrandHero)).palette;
+      expect(gradient.colors, isNot(contains(palette.fuji)));
+      expect(gradient.colors, isNot(contains(palette.sakura)));
     });
 
-    testWidgets('her temada gradyan tanımlı', (tester) async {
-      for (final p in const [
-        ViewerPalette.japanDark,
-        ViewerPalette.appleLight,
-        ViewerPalette.sakuraSoft,
-      ]) {
-        expect(p.brandGradient.length, 2, reason: '${p.id} gradyanı eksik');
-      }
+    testWidgets('hero rozetinde Rotori logosu var', (tester) async {
+      await pumpFlow(tester);
+
+      final logo = find.descendant(
+        of: find.byType(BrandHero),
+        matching: find.byType(Image),
+      );
+      expect(logo, findsOneWidget);
+      final asset = tester.widget<Image>(logo).image as AssetImage;
+      expect(asset.assetName, RotoriBrand.logoAsset);
+      // 旅 kanjisi rozetten kalktı (yalnız asset yüklenemezse yedek olarak
+      // devreye girer).
+      expect(
+        find.descendant(
+          of: find.byType(BrandHero),
+          matching: find.text('旅'),
+        ),
+        findsNothing,
+      );
     });
   });
 }

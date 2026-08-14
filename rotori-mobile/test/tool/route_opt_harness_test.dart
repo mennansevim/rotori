@@ -41,6 +41,10 @@ void main() {
             (summary['infeasibleDays'] as int),
       );
       expect(
+        summary['fieldRealityContextDays'],
+        summary['optimizerEvaluatedDays'],
+      );
+      expect(
         summary['requestedActivityCount'],
         (summary['scheduledActivityCount'] as int) +
             (summary['droppedActivityCount'] as int),
@@ -50,6 +54,21 @@ void main() {
       expect(summary['mustDoDroppedCount'], 0);
       expect(summary['missingReturnLegCount'], 0);
       expect(summary['estimatedWarningMissingCount'], 0);
+      final qualityGate = envelope['qualityGate'] as Map<String, dynamic>;
+      expect(qualityGate['fieldRealityCoveragePass'], isTrue);
+      expect(qualityGate['droppingRatePass'], isTrue);
+
+      final disneyDay = (scenario['days'] as List<dynamic>)
+          .cast<Map<String, dynamic>>()
+          .firstWhere(
+            (day) => (day['inputActivities'] as List<dynamic>).any(
+              (raw) => (raw as Map<String, dynamic>)['id'] == 'tk_disneysea',
+            ),
+          );
+      final scheduledNames = (disneyDay['schedule'] as List<dynamic>)
+          .map((raw) => (raw as Map<String, dynamic>)['name']);
+      expect(disneyDay['droppedActivityIds'], isNot(contains('tk_disneysea')));
+      expect(scheduledNames, contains('Tokyo DisneySea'));
     });
 
     test('aynı seed semantik olarak aynı JSON üretir', () async {

@@ -28,6 +28,14 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Gezdiğiniz yerleri otomatik keşfetmek ve rozet kazanmanız için konumunuz kullanılır.</string>
+	<!-- iOS 14+: kullanıcı "Yaklaşık Konum" verdiyse, keşif damgası anında
+	     GEÇİCİ tam doğruluk isteriz. Apple'ın önerdiği yol budur; "Always"
+	     izni istemeyiz ve arka planda konum toplamayız. -->
+	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
+	<dict>
+		<key>DiscoveryStamp</key>
+		<string>Bulunduğunuz noktayı doğrulayıp keşif damgasını verebilmek için bu sırada kesin konum gerekir. İzin geçicidir.</string>
+	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Rotori, bilet fotoğrafını çekmek ve mağaza fiyatlarını algılayıp seçtiğiniz para birimine çevirmek için kameraya erişir. Görüntüler cihazınızda işlenir, yüklenmez.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

@@ -197,14 +197,17 @@ class StationComplexityRegistry {
         _labyrinthTokens = Set.unmodifiable({
           ..._defaultLabyrinthTokens,
           ...additionalLabyrinthTokens.map(_normalize),
-        });
+        }),
+        _labyrinthAliases = Set.unmodifiable(_defaultLabyrinthAliases);
 
   final Map<String, StationComplexity> overrides;
   final Set<String> _labyrinthTokens;
+  final Set<String> _labyrinthAliases;
 
   /// Japonya'nın "içinde kaybolunan" istasyonları. Token eşleşmesi ada göre
-  /// yapılır; `shinjuku` → "Shinjuku Station", "JR Shinjuku", "新宿" (romaji
-  /// çözümlemesinden sonra) hepsini yakalar.
+  /// yapılır. Romaji adlarda token, Japonca adlarda açık alias kullanılır;
+  /// böylece `東京国立博物館` gibi istasyon olmayan yerler yalnız şehir adı
+  /// içerdiği için yanlışlıkla labyrinth sayılmaz.
   static const Set<String> _defaultLabyrinthTokens = {
     'shinjuku',
     'tokyostation',
@@ -231,6 +234,38 @@ class StationComplexityRegistry {
     'omiya',
   };
 
+  static const Set<String> _defaultLabyrinthAliases = {
+    '新宿',
+    '新宿駅',
+    '東京駅',
+    '渋谷',
+    '渋谷駅',
+    '池袋',
+    '池袋駅',
+    '梅田',
+    '梅田駅',
+    '大阪駅',
+    '新大阪',
+    '新大阪駅',
+    '難波',
+    '難波駅',
+    '天王寺',
+    '天王寺駅',
+    '京都駅',
+    '名古屋駅',
+    '横浜駅',
+    '品川',
+    '品川駅',
+    '上野',
+    '上野駅',
+    '博多',
+    '博多駅',
+    '仙台駅',
+    '札幌駅',
+    '大宮',
+    '大宮駅',
+  };
+
   StationComplexity resolve({String? locationId, String? name}) {
     for (final raw in [locationId, name]) {
       if (raw == null || raw.isEmpty) continue;
@@ -241,6 +276,9 @@ class StationComplexityRegistry {
     for (final raw in [locationId, name]) {
       if (raw == null || raw.isEmpty) continue;
       final normalized = _normalize(raw);
+      if (_labyrinthAliases.contains(normalized)) {
+        return StationComplexity.labyrinth;
+      }
       if (_labyrinthTokens.any(normalized.contains)) {
         return StationComplexity.labyrinth;
       }
@@ -252,8 +290,10 @@ class StationComplexityRegistry {
       resolve(locationId: locationId, name: name) ==
       StationComplexity.labyrinth;
 
-  static String _normalize(String value) =>
-      value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '');
+  static String _normalize(String value) => value.toLowerCase().replaceAll(
+        RegExp(r'[^a-z0-9\u3040-\u30ff\u3400-\u9fff々ヶ]+'),
+        '',
+      );
 }
 
 // ---------------------------------------------------------------------------
@@ -285,6 +325,20 @@ class TrafficRiskPolicy {
     bool within((int, int) window) =>
         minute >= window.$1 && minute <= window.$2;
     return within(morningPeak) || within(eveningPeak);
+  }
+
+  bool isWeekend(DateTime departure) =>
+      departure.weekday == DateTime.saturday ||
+      departure.weekday == DateTime.sunday;
+
+  double multiplierFor(
+    DateTime departure, {
+    bool isPublicHoliday = false,
+  }) {
+    if (isWeekend(departure) || isPublicHoliday) {
+      return weekendLeisureMultiplier;
+    }
+    return isPeak(departure) ? peakMultiplier : offPeakMultiplier;
   }
 }
 
@@ -431,6 +485,7 @@ class TransitRealismModel {
     String? toName,
     double walkingMultiplier = 1.0,
     bool passCoversThisLeg = true,
+    bool isPublicHoliday = false,
   }) {
     if (!option.isValid) {
       return TransitRealismOutcome.infeasible(
@@ -480,7 +535,10 @@ class TransitRealismModel {
     // --- 2) Karayolu trafik riski -----------------------------------------
     var trafficMultiplier = 1.0;
     if (kTrafficExposedModes.contains(option.mode)) {
-      trafficMultiplier = _trafficMultiplier(departure);
+      trafficMultiplier = _trafficMultiplier(
+        departure,
+        isPublicHoliday: isPublicHoliday,
+      );
       rideMinutes *= trafficMultiplier;
       disclaimers.add(TransitDisclaimer.trafficRisk);
     }
@@ -530,10 +588,14 @@ class TransitRealismModel {
         shinkansenServiceFromText(option.providerId);
   }
 
-  double _trafficMultiplier(DateTime departure) {
-    if (trafficPolicy.isPeak(departure)) return trafficPolicy.peakMultiplier;
-    return trafficPolicy.offPeakMultiplier;
-  }
+  double _trafficMultiplier(
+    DateTime departure, {
+    required bool isPublicHoliday,
+  }) =>
+      trafficPolicy.multiplierFor(
+        departure,
+        isPublicHoliday: isPublicHoliday,
+      );
 
   /// Tampon yalnız istasyon kullanan modlarda geçerlidir; kapı önünden alan
   /// taksi veya doğrudan yürüyüş için istasyon labirenti yoktur.

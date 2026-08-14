@@ -2,6 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rotori/data/route_matrix_remote.dart';
 import 'package:rotori/domain/itinerary_optimizer.dart';
+import 'package:rotori/domain/japan_transit_realism.dart';
+import 'package:rotori/domain/luggage_logistics.dart';
+import 'package:rotori/domain/plan_field_signals.dart';
 import 'package:rotori/domain/route_execution.dart';
 import 'package:rotori/domain/route_matrix.dart';
 import 'package:rotori/domain/types.dart';
@@ -25,6 +28,96 @@ void main() {
       _entry('b', 'hotel', 10),
     ],
   );
+
+  group('improvesRoute — kazanç yoksa uygulanacak bir şey yok', () {
+    // Sayfa her koşulda "Uygula" sunuyordu; gün zaten en iyi sıradayken
+    // before/after birebir aynı çıkıyor ve kullanıcı boş bir işlem uygulayıp
+    // planı "optimize edilmiş" diye işaretliyordu.
+    PlanOptimizationPreview previewWith({
+      required RouteSummary before,
+      required RouteSummary after,
+    }) {
+      final trip = _tripWith();
+      return PlanOptimizationPreview(
+        originalTrip: trip,
+        optimizedTrip: trip,
+        dayNumber: 1,
+        before: before,
+        after: after,
+        result: OptimizationResult.success(
+          activities: const [],
+          legs: const [],
+          metrics: const OptimizationMetrics(
+            totalTravelMinutes: 0,
+            totalWalkingMinutes: 0,
+            totalWaitingMinutes: 0,
+            totalTransferCount: 0,
+            estimatedTransportCostYen: 0,
+            backtrackingMinutes: 0,
+            routeEfficiencyScore: 1,
+            score: 1,
+            evaluatedStateCount: 1,
+            prunedStateCount: 0,
+            beamWidth: 1,
+          ),
+          warnings: const [],
+          optimizationChanges: const [],
+        ),
+        cacheKey: 'k',
+      );
+    }
+
+    RouteSummary summary({
+      int travel = 60,
+      int walking = 20,
+      int transfers = 2,
+      int cost = 1000,
+    }) =>
+        RouteSummary(
+          totalTravelMinutes: travel,
+          totalWalkingMinutes: walking,
+          totalTransferCount: transfers,
+          estimatedTransportCostYen: cost,
+          isComplete: true,
+        );
+
+    test('birebir aynı özet → kazanç yok', () {
+      final p = previewWith(before: summary(), after: summary());
+      expect(p.improvesRoute, isFalse);
+    });
+
+    test('ulaşım süresi kısalıyorsa kazanç var', () {
+      final p = previewWith(before: summary(), after: summary(travel: 45));
+      expect(p.improvesRoute, isTrue);
+    });
+
+    test('ulaşım süresi UZUYORSA kazanç yok', () {
+      final p = previewWith(before: summary(), after: summary(travel: 75));
+      expect(p.improvesRoute, isFalse);
+    });
+
+    test('süre eşitse sırayla yürüyüş, aktarma, maliyete bakılır', () {
+      expect(
+        previewWith(before: summary(), after: summary(walking: 10)).improvesRoute,
+        isTrue,
+      );
+      expect(
+        previewWith(before: summary(), after: summary(transfers: 1))
+            .improvesRoute,
+        isTrue,
+      );
+      expect(
+        previewWith(before: summary(), after: summary(cost: 800)).improvesRoute,
+        isTrue,
+      );
+      // Yürüyüş kötüleşirken maliyet düşüyorsa: önce yürüyüşe bakılır → kazanç yok.
+      expect(
+        previewWith(before: summary(), after: summary(walking: 40, cost: 500))
+            .improvesRoute,
+        isFalse,
+      );
+    });
+  });
 
   test('ön izleme planı kaydetmeden optimize eder, onayda kalıcılaştırır',
       () async {
@@ -105,7 +198,8 @@ void main() {
     expect(repository.callCount, 2);
   });
 
-  test('infeasible gün yerel fallback ile önizleme üretir', () async {
+  test('field-aware infeasible gün saha kapılarını atlayan fallback üretmez',
+      () async {
     final repository = FakeRouteMatrixRepository(matrix);
     final container = ProviderContainer(
       overrides: [
@@ -119,14 +213,69 @@ void main() {
         .optimizeDay(_impossibleInput(hotel));
 
     final state = container.read(planOptimizationControllerProvider);
-    expect(state.hasError, isFalse);
-    final preview = state.valueOrNull;
-    expect(preview, isNotNull);
-    expect(preview!.result.isSuccess, isFalse);
+    expect(state.hasError, isTrue);
+    expect(state.error, isA<PlanOptimizationException>());
+  });
+
+  test('üretim controllerı gün sinyallerinden FieldRealityContext kurar',
+      () async {
+    final capturing = _CapturingOptimizer();
+    final container = ProviderContainer(
+      overrides: [
+        routeMatrixRepositoryProvider
+            .overrideWithValue(FakeRouteMatrixRepository(matrix)),
+        itineraryOptimizerProvider.overrideWithValue(capturing),
+      ],
+    );
+    addTearDown(container.dispose);
+    final input = _input(hotel);
+    final day = input.trip.days.single;
+    final first = day.items.first;
+    day.items[0] = TimelineItem(
+      id: first.id,
+      title: first.title,
+      lat: first.lat,
+      lng: first.lng,
+      durationMin: first.durationMin,
+      cityId: 'Tokyo',
+      closure: const ClosureSignals(
+        weeklyClosedWeekdays: [DateTime.monday],
+      ),
+    );
+    day.cityTransition = const CityTransitionPlan(
+      fromCity: 'Osaka',
+      toCity: 'Tokyo',
+      mode: 'shinkansen',
+      railPass: 'nationalJrPass',
+    );
+    day.luggage = const LuggageSignals(
+      strategy: 'coinLocker',
+      size: 'medium',
+      bagCount: 2,
+      arrivalHandlingMin: 20,
+      retrievalMin: 10,
+      advisories: ['hotelDetourExpensive'],
+    );
+
+    await container
+        .read(planOptimizationControllerProvider.notifier)
+        .optimizeDay(input);
+
+    final request = capturing.lastRequest;
+    expect(request, isNotNull);
+    expect(request!.field, isNotNull);
+    expect(request.field!.cityId, 'Tokyo');
     expect(
-        preview.result.failure?.code, OptimizationFailureCode.noFeasibleRoute);
-    expect(preview.optimizedTrip.days.single.items.length, 2,
-        reason: 'fallback tüm aktiviteleri korumalı');
+      request.field!.traveller.railPass,
+      RailPassType.nationalJrPass,
+    );
+    expect(request.field!.traveller.luggageSize, LuggageSize.medium);
+    expect(request.field!.traveller.bagCount, 2);
+    expect(
+      request.field!.luggagePlan?.strategy,
+      LuggageHandlingStrategy.coinLocker,
+    );
+    expect(request.activities.first.closureRule, isNotNull);
   });
 
   test('koordinatı eksik aktivite rota API çağrısından önce reddedilir',
@@ -206,6 +355,46 @@ void main() {
     expect(optimizedFixed.scheduledTime, '14:00');
     expect(optimizedFixed.fixedStartTime, '14:00');
     expect(optimizedFixed.fixedEndTime, '15:00');
+  });
+
+  test('kullanıcı kilidi optimizasyonda gün ve saati korur', () async {
+    // Kullanıcının kilitlediği durak "bileti alınmış" sayılır: optimizasyon
+    // onu ne taşır, ne saatini değiştirir, ne de yer açmak için düşürür.
+    final repository = FakeRouteMatrixRepository(matrix);
+    final container = ProviderContainer(
+      overrides: [
+        routeMatrixRepositoryProvider.overrideWithValue(repository),
+      ],
+    );
+    addTearDown(container.dispose);
+    final input = _input(hotel);
+    final pinned = input.trip.days.single.items.first;
+    pinned
+      ..time = '14:00'
+      ..scheduledTime = '14:00';
+    pinned.pinByUser(reason: 'Bilet alındı');
+
+    await container
+        .read(planOptimizationControllerProvider.notifier)
+        .optimizeDay(input);
+
+    final preview =
+        container.read(planOptimizationControllerProvider).valueOrNull;
+    expect(preview, isNotNull);
+
+    final stops = preview!.optimizedTrip.days.single.items;
+    // Düşürülmemiş.
+    expect(
+      stops.where((item) => item.id == pinned.id),
+      hasLength(1),
+      reason: 'kilitli durak optimizasyonda düşürüldü',
+    );
+    final optimized = stops.firstWhere((item) => item.id == pinned.id);
+    expect(optimized.time, '14:00');
+    expect(optimized.scheduledTime, '14:00');
+    // Kilit optimizasyon turundan sağ çıkar.
+    expect(optimized.isUserPinned, isTrue);
+    expect(optimized.canReorder, isFalse);
   });
 
   test('öğle yemeği erken başlayan günde bile öğlen penceresine planlanır',
@@ -307,6 +496,16 @@ class _UnavailableRepository implements RouteMatrixRepository {
       message: 'test backend unavailable',
       retryable: false,
     );
+  }
+}
+
+class _CapturingOptimizer implements ItineraryOptimizer {
+  OptimizationRequest? lastRequest;
+
+  @override
+  Future<OptimizationResult> optimize(OptimizationRequest request) {
+    lastRequest = request;
+    return const BeamSearchItineraryOptimizer().optimize(request);
   }
 }
 
@@ -657,3 +856,18 @@ RouteMatrixEntry _entry(String from, String to, int minutes) {
     ],
   );
 }
+
+Trip _tripWith() => Trip(
+      id: 'opt-trip',
+      slug: 'opt',
+      title: 'Opt',
+      timezone: 'Asia/Tokyo',
+      tripStart: '2026-07-01',
+      tripEnd: '2026-07-02',
+      flights: TripFlights(),
+      preferences: TripPreferences(
+        travelDates: TravelDates(start: '2026-07-01', end: '2026-07-02'),
+        pace: Pace.moderate,
+      ),
+      days: [DayPlan(dayNumber: 1, date: '2026-07-01', theme: 'g', items: [])],
+    );

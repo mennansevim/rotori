@@ -1,6 +1,11 @@
 // Bütçe & Harcama paneli — plandaki maliyetleri gün/kategori bazında toplar,
-// JPY→TL çevirir (elle güncellenen kur), kişi başı böler, planlanan/gerçekleşen
-// yemek bütçesini karşılaştırır ve küçük bir JPY→TL çevirici sunar.
+// JPY→seçili birime çevirir (elle güncellenen kur), kişi başı böler ve tahmini
+// gider dökümünü animasyonlu halka grafikle payına göre gösterir.
+//
+// Kaldırılanlar: JPY→TL çevirici bölümü (ayrı bir Canlı Fiyat Çevirici ekranı
+// var; buradaki kopya kartın en altında yer tutuyordu) ve "Örnek birim
+// fiyatlar" çip ızgarası (tahmin notu zaten birim tablosuna dayandığını
+// söylüyor).
 //
 // Ağ YOK / canlı FX API YOK — kur çevrimdışı, kullanıcı tarafından güncellenir.
 // Viewer paletine uyumlu (Theme + ViewerPaletteScope), Türkçe UI.
@@ -186,12 +191,6 @@ class _BudgetView extends ConsumerWidget {
                 palette: palette,
               ),
             ],
-            const SizedBox(height: 16),
-            _ConverterSection(
-              rate: rate,
-              currency: selected,
-              palette: palette,
-            ),
           ],
         ),
       ),
@@ -453,20 +452,22 @@ class _CurrencyRatesCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = LanguageScope.of(context);
     final p = palette;
+    // Kompakt kart.
+    //
+    // **Why:** Bu kart ilk ekranın üçte birini yiyordu: "Para birimi" başlığı,
+    // çip satırı, tazelik satırı, 20px'lik kur satırı + buton, ve altında
+    // "Kur elle güncellenir" dipnotu — beş ayrı blok. Oysa çipler zaten para
+    // birimi seçtiğini söylüyor ("₺ TRY"), dipnotu da "Kuru düzenle" butonu
+    // ima ediyor. Kalanı tek satıra indi.
     return _Card(
       palette: p,
       borderColor: p.accent.withValues(alpha: 0.35),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            s.s('budget.currencyTitle'),
-            style: TextStyle(color: p.textSecondary, fontSize: 13),
-          ),
-          const SizedBox(height: 10),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: 7,
+            runSpacing: 7,
             children: [
               for (final currency in DisplayCurrency.values)
                 _CurrencyChip(
@@ -478,35 +479,38 @@ class _CurrencyRatesCard extends StatelessWidget {
             ],
           ),
           if (selected != DisplayCurrency.jpy) ...[
-            const SizedBox(height: 14),
-            _RateFreshness(palette: p),
+            const SizedBox(height: 10),
             Row(
               children: [
-                Expanded(
-                  child: Text(
-                    '1 ¥ = ${selected.symbol}${formatRate(rate)}',
-                    style: TextStyle(
-                      color: p.textPrimary,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
+                Text(
+                  '1 ¥ = ${selected.symbol}${formatRate(rate)}',
+                  style: TextStyle(
+                    color: p.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
+                const SizedBox(width: 10),
+                // Tazelik artık kurun YANINDA: "1 ¥ = ₺0,3 · 11 saat önce".
+                Expanded(child: _RateFreshness(palette: p)),
                 TextButton.icon(
                   onPressed: onEditRate,
-                  icon: const Icon(Icons.edit_outlined, size: 16),
+                  icon: const Icon(Icons.edit_outlined, size: 15),
                   label: Text(s.s('budget.editRate')),
                   style: TextButton.styleFrom(
                     foregroundColor: p.accent,
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: const Size(0, 36),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    textStyle: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 2),
-            Text(
-              s.s('budget.rateManual'),
-              style: TextStyle(color: p.textMuted, fontSize: 12),
             ),
           ],
         ],
@@ -538,12 +542,12 @@ class _CurrencyChip extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           child: Text(
             '${currency.symbol} ${currency.code}',
             style: TextStyle(
               color: selected ? Colors.white : p.textPrimary,
-              fontSize: 13.5,
+              fontSize: 13,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -663,7 +667,7 @@ class _EstimatedCostBreakdownCard extends StatelessWidget {
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           for (final line in estimate.lines)
             _EstimateRow(
               emoji: _costCatEmoji(line.category),
@@ -676,12 +680,25 @@ class _EstimatedCostBreakdownCard extends StatelessWidget {
               onEdit: () => onEditLine(line.category),
               onClear: () => onClearLine(line.category),
             ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             s.s('budget.estimate.editHint'),
             style: TextStyle(color: p.textMuted, fontSize: 12),
           ),
-          const SizedBox(height: 10),
+          // Pasta, hesabın HEMEN ALTINDA: satırlar "ne kadar", pasta "hangisi
+          // baskın" sorusunu cevaplıyor. Bir kalem elle değiştirilince
+          // dilimler yeni paya doğru animasyonla akar.
+          if (_amounts().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Divider(height: 1, color: p.border),
+            const SizedBox(height: 12),
+            _BudgetSharePie(
+              key: const ValueKey('budget-share-pie'),
+              amounts: _amounts(),
+              palette: p,
+            ),
+          ],
+          const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
@@ -694,44 +711,24 @@ class _EstimatedCostBreakdownCard extends StatelessWidget {
               style: TextStyle(color: p.textSecondary, fontSize: 12),
             ),
           ),
-          if (estimate.references.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            Text(
-              s.s('budget.estimate.refTitle'),
-              style: TextStyle(
-                color: p.textSecondary,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final ref in estimate.references)
-                  _ReferenceChip(
-                    label: _referenceLabel(s, ref.key),
-                    jpy: ref.jpy,
-                    jpyRate: jpyRate,
-                    currency: currency,
-                    palette: p,
-                  ),
-              ],
-            ),
-          ],
         ],
       ),
     );
   }
 
-  String _referenceLabel(LanguageScope s, String key) {
-    final resolved = s.s('budget.ref.$key');
-    // Bilinmeyen anahtar için l10n kendi anahtarını döner → ham anahtarı göster.
-    if (resolved == 'budget.ref.$key') {
-      return key.replaceAll('_', ' ');
+  /// Pasta için kalem başına ORTA değer (min–maks ortalaması), JPY.
+  ///
+  /// **Why orta:** Başlıktaki toplam bir ARALIK; "aralığın payı" tanımsız
+  /// olurdu. Elle girilen kalemlerde min == max olduğundan orta = girilen
+  /// değer. Sıfır kalemler (taksi/elektronik kullanılmadıysa) pastaya
+  /// girmez — 0°'lik dilim yalnızca lejandı şişirir.
+  Map<CostCategory, double> _amounts() {
+    final out = <CostCategory, double>{};
+    for (final line in estimate.lines) {
+      final mid = (_effMin(line) + _effMax(line)) / 2;
+      if (mid > 0) out[line.category] = mid;
     }
-    return resolved;
+    return out;
   }
 }
 
@@ -769,7 +766,10 @@ class _EstimateRow extends StatelessWidget {
       onTap: onEdit,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        // Satır arası 6 → 1. Sekiz kalem × 12px fazladan boşluk, pastayı ve
+        // notu ekranın altına itiyordu. Satırın kendi 30px'lik ikon yüksekliği
+        // dokunma hedefini zaten taşıyor.
+        padding: const EdgeInsets.symmetric(vertical: 1),
         child: Row(
           children: [
             Text(emoji, style: const TextStyle(fontSize: 15)),
@@ -825,8 +825,8 @@ class _EstimateRow extends StatelessWidget {
               ),
             ),
             SizedBox(
-              width: 34,
-              height: 34,
+              width: 30,
+              height: 30,
               child: IconButton(
                 padding: EdgeInsets.zero,
                 iconSize: 16,
@@ -847,53 +847,359 @@ class _EstimateRow extends StatelessWidget {
   }
 }
 
-class _ReferenceChip extends StatelessWidget {
-  const _ReferenceChip({
-    required this.label,
-    required this.jpy,
-    required this.jpyRate,
-    required this.currency,
+// ---------------------------------------------------------------------------
+// 2d) Gider dağılımı — animasyonlu halka grafik.
+// ---------------------------------------------------------------------------
+
+/// Kalem başına hue (derece) — yedi ton, çember üzerinde ~51° aralıklı.
+///
+/// **Why paletten ton SEÇİLMİYOR:** `ViewerPalette` kategorik bir skala olarak
+/// tasarlanmadı ve tonları aynı tema içinde ÇAKIŞIYOR. Açık temada
+/// accent (#0071E3), sky (#007AFF) ve accentStrong (#0A6DCA) neredeyse aynı
+/// mavi; koyu temada accent ile fuji BİREBİR aynı mor (#7C6AEF). İlk iki
+/// denemede halkadaki dilimler bu yüzden ayırt edilemedi. Hue'ları elle ve
+/// eşit aralıklı seçmek her temada ayrışmayı garanti eder; doygunluk ve
+/// parlaklık temadan gelir, böylece kart zemininde okunur kalır.
+///
+/// Elektronik dizide YOK: nötr gri alır. Çoğu planda 0 olan, yani pastadan en
+/// sık kaybolan kalem o — griyi ona vermek renk bütçesini konuşan kalemlere
+/// bırakıyor.
+const Map<CostCategory, double> _costCatHue = {
+  CostCategory.flight: 212, // mavi
+  CostCategory.train: 263, // mor
+  CostCategory.food: 314, // magenta
+  CostCategory.taxi: 5, // kırmızı
+  CostCategory.hotel: 56, // amber
+  CostCategory.attractions: 107, // fıstık yeşili
+  CostCategory.shopping: 158, // turkuaz
+};
+
+Color _costCatColor(CostCategory c, ViewerPalette p) {
+  final hue = _costCatHue[c];
+  if (hue == null) {
+    return Color.lerp(p.textMuted, p.textPrimary, .2) ?? p.textMuted;
+  }
+  final dark = p.brightness == Brightness.dark;
+  return HSLColor.fromAHSL(
+    1,
+    hue,
+    dark ? .58 : .74,
+    dark ? .66 : .47,
+  ).toColor();
+}
+
+/// Hangi kalem pastada ne kadar yer kaplıyor.
+///
+/// **Why halka, dolu pasta değil:** ortadaki boşluk baskın kalemi yazıyla
+/// söyleyebiliyor; dolu pastada o bilgiyi ancak dilimlerin üstüne sıkıştırarak
+/// verirdik ve sekiz kalemde okunmazdı.
+///
+/// **Why animasyon:** kullanıcı bir kalemi elle değiştirdiğinde dilimin
+/// sıçraması "ne değişti"yi gizler. Paylar eski değerden yenisine akınca
+/// hangi kalemin büyüdüğü görünür.
+class _BudgetSharePie extends StatefulWidget {
+  const _BudgetSharePie({
+    super.key,
+    required this.amounts,
     required this.palette,
   });
 
-  final String label;
-  final int jpy;
-  final double jpyRate;
-  final DisplayCurrency currency;
+  /// Kalem → JPY tutar. Sıfır kalemler çağıran tarafından ayıklanır.
+  final Map<CostCategory, double> amounts;
   final ViewerPalette palette;
 
   @override
+  State<_BudgetSharePie> createState() => _BudgetSharePieState();
+}
+
+class _BudgetSharePieState extends State<_BudgetSharePie>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  /// Animasyonun başladığı ve bittiği paylar (0..1), kalem başına.
+  late Map<CostCategory, double> _from;
+  late Map<CostCategory, double> _to;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 620),
+      vsync: this,
+    );
+    _from = _zeroShares();
+    _to = _sharesOf(widget.amounts);
+    _controller.forward();
+  }
+
+  @override
+  void didUpdateWidget(covariant _BudgetSharePie old) {
+    super.didUpdateWidget(old);
+    final next = _sharesOf(widget.amounts);
+    if (_sameShares(next, _to)) return;
+    // Yeni animasyon, DURAN kareden başlar — kullanıcı üst üste değer girerse
+    // dilimler sıfıra dönüp yeniden büyümez.
+    _from = _lerpShares(_from, _to, _curved(_controller.value));
+    _to = next;
+    _controller.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  static double _curved(double t) => Curves.easeOutCubic.transform(t);
+
+  Map<CostCategory, double> _zeroShares() =>
+      {for (final c in CostCategory.values) c: 0};
+
+  /// Tutarları paya (0..1) çevirir. Kalemler SABİT sırada tutulur; eksikler 0.
+  /// Böylece bir kalem sıfırlanıp pastadan çıksa da ara değer hesabı bozulmaz.
+  Map<CostCategory, double> _sharesOf(Map<CostCategory, double> amounts) {
+    final total = amounts.values.fold<double>(0, (a, b) => a + b);
+    if (total <= 0) return _zeroShares();
+    return {
+      for (final c in CostCategory.values) c: (amounts[c] ?? 0) / total,
+    };
+  }
+
+  bool _sameShares(Map<CostCategory, double> a, Map<CostCategory, double> b) {
+    for (final c in CostCategory.values) {
+      if (((a[c] ?? 0) - (b[c] ?? 0)).abs() > 0.0005) return false;
+    }
+    return true;
+  }
+
+  Map<CostCategory, double> _lerpShares(
+    Map<CostCategory, double> a,
+    Map<CostCategory, double> b,
+    double t,
+  ) =>
+      {
+        for (final c in CostCategory.values)
+          c: (a[c] ?? 0) + ((b[c] ?? 0) - (a[c] ?? 0)) * t,
+      };
+
+  @override
   Widget build(BuildContext context) {
-    final p = palette;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: p.elevated,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: p.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: TextStyle(color: p.textMuted, fontSize: 11),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            '${formatJpy(jpy)} · ≈ ${formatMoney(jpy * jpyRate, currency)}',
-            style: TextStyle(
-              color: p.textPrimary,
-              fontSize: 12.5,
-              fontWeight: FontWeight.w700,
-              fontFeatures: const [FontFeature.tabularFigures()],
+    final p = widget.palette;
+    final s = LanguageScope.of(context);
+    // Erişilebilirlik: hareket kapalıysa animasyon yok, son duruma otur.
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
+
+    final finalShares = _sharesOf(widget.amounts);
+    final visible = CostCategory.values
+        .where((c) => (widget.amounts[c] ?? 0) > 0)
+        .toList()
+      ..sort((a, b) =>
+          (widget.amounts[b] ?? 0).compareTo(widget.amounts[a] ?? 0));
+    if (visible.isEmpty) return const SizedBox.shrink();
+    final top = visible.first;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              s.s('budget.share.title'),
+              style: TextStyle(
+                color: p.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-        ],
-      ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                s.s('budget.share.basis'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: p.textMuted, fontSize: 11),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Semantics(
+              label: [
+                s.s('budget.share.title'),
+                for (final c in visible)
+                  '${s.s(_costCatKey(c))} '
+                      '%${((finalShares[c] ?? 0) * 100).round()}',
+              ].join('. '),
+              child: SizedBox(
+                width: 118,
+                height: 118,
+                child: AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, _) {
+                    final shares = reduceMotion
+                        ? finalShares
+                        : _lerpShares(_from, _to, _curved(_controller.value));
+                    return CustomPaint(
+                      painter: _DonutPainter(
+                        slices: [
+                          for (final c in visible)
+                            (
+                              color: _costCatColor(c, p),
+                              share: shares[c] ?? 0,
+                            ),
+                        ],
+                        track: p.border,
+                      ),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _costCatEmoji(top),
+                              style: const TextStyle(fontSize: 17),
+                            ),
+                            const SizedBox(height: 1),
+                            Text(
+                              '%${((finalShares[top] ?? 0) * 100).round()}',
+                              style: TextStyle(
+                                color: p.textPrimary,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures()
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final c in visible)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 5),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 9,
+                            height: 9,
+                            decoration: BoxDecoration(
+                              color: _costCatColor(c, p),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                          const SizedBox(width: 7),
+                          Expanded(
+                            child: Text(
+                              s.s(_costCatKey(c)),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: p.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '%${((finalShares[c] ?? 0) * 100).round()}',
+                            style: TextStyle(
+                              color: p.textPrimary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures()
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
+}
+
+class _DonutPainter extends CustomPainter {
+  _DonutPainter({required this.slices, required this.track});
+
+  final List<({Color color, double share})> slices;
+  final Color track;
+
+  static const double _stroke = 17;
+
+  /// Dilimler arası boşluk (radyan). Aynı tondaki komşu dilimler birbirine
+  /// karışmasın; çok küçük dilimde boşluk dilimden büyük olmasın diye
+  /// dilimin kendi payıyla sınırlanır.
+  static const double _gap = 0.035;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromCircle(
+      center: Offset(size.width / 2, size.height / 2),
+      radius: (size.shortestSide - _stroke) / 2,
+    );
+
+    canvas.drawArc(
+      rect,
+      0,
+      6.283185307179586,
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = _stroke
+        ..color = track,
+    );
+
+    // 12 yönünden başla, saat yönünde ilerle — okuma sırası lejandla aynı.
+    var start = -1.5707963267948966;
+    for (final slice in slices) {
+      final full = slice.share * 6.283185307179586;
+      if (full <= 0) continue;
+      final gap = _gap.clamp(0.0, full * 0.5);
+      canvas.drawArc(
+        rect,
+        start + gap / 2,
+        full - gap,
+        false,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = _stroke
+          ..strokeCap = StrokeCap.butt
+          ..color = slice.color,
+      );
+      start += full;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DonutPainter old) =>
+      old.track != track ||
+      old.slices.length != slices.length ||
+      () {
+        for (var i = 0; i < slices.length; i++) {
+          if (old.slices[i].color != slices[i].color ||
+              old.slices[i].share != slices[i].share) {
+            return true;
+          }
+        }
+        return false;
+      }();
 }
 
 // ---------------------------------------------------------------------------
@@ -1089,147 +1395,6 @@ class _DaySection extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 4) Çevirici — JPY girdi → seçili birim çıktı (canlı).
-// ---------------------------------------------------------------------------
-
-class _ConverterSection extends StatefulWidget {
-  const _ConverterSection({
-    required this.rate,
-    required this.currency,
-    required this.palette,
-  });
-
-  final double rate;
-  final DisplayCurrency currency;
-  final ViewerPalette palette;
-
-  @override
-  State<_ConverterSection> createState() => _ConverterSectionState();
-}
-
-class _ConverterSectionState extends State<_ConverterSection> {
-  final _controller = TextEditingController(text: '1000');
-  final _focusNode = FocusNode();
-
-  @override
-  void initState() {
-    super.initState();
-    _focusNode.addListener(() => setState(() {}));
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  void _dismiss() => FocusScope.of(context).unfocus();
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = widget.palette;
-    final s = LanguageScope.of(context);
-    final jpy =
-        double.tryParse(_controller.text.trim().replaceAll(',', '.')) ?? 0;
-    final converted = jpy * widget.rate;
-    final targetLabel = widget.currency == DisplayCurrency.jpy
-        ? s.s('budget.yen')
-        : '${widget.currency.symbol} ${widget.currency.code}';
-
-    return _Card(
-      palette: palette,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SectionTitle(text: s.s('budget.converter'), palette: palette),
-          TextField(
-            controller: _controller,
-            focusNode: _focusNode,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            textInputAction: TextInputAction.done,
-            // Numerik klavyede return tuşu yok; dış alana dokununca da kapansın.
-            onTapOutside: (_) => _dismiss(),
-            onEditingComplete: _dismiss,
-            onSubmitted: (_) => _dismiss(),
-            // iOS'un kötü konumlanan "Metni Tara" (Live Text kamera) seçeneğini
-            // bu alandan kaldır — OCR için özel canlı çevirici ekranı vardır.
-            contextMenuBuilder: (context, editableState) {
-              final items = editableState.contextMenuButtonItems
-                  .where((item) =>
-                      item.type != ContextMenuButtonType.liveTextInput)
-                  .toList();
-              return AdaptiveTextSelectionToolbar.buttonItems(
-                anchors: editableState.contextMenuAnchors,
-                buttonItems: items,
-              );
-            },
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-            ],
-            onChanged: (_) => setState(() {}),
-            style: TextStyle(
-              color: palette.textPrimary,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-            decoration: InputDecoration(
-              labelText: s.s('budget.yen'),
-              labelStyle: TextStyle(color: palette.textSecondary),
-              prefixText: '¥ ',
-              prefixStyle: TextStyle(color: palette.textSecondary),
-              // Klavye üstünde "return" olmadığı için görünür "Bitti" düğmesi.
-              suffixIcon: _focusNode.hasFocus
-                  ? TextButton(
-                      onPressed: _dismiss,
-                      child: Text(s.s('common.done')),
-                    )
-                  : null,
-              border: const OutlineInputBorder(),
-              enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: palette.border),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: palette.accent.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: palette.accent.withValues(alpha: 0.3)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  targetLabel,
-                  style: TextStyle(color: palette.textSecondary, fontSize: 12),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  formatMoney(converted, widget.currency),
-                  style: TextStyle(
-                    color: palette.textPrimary,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-
-
 /// Kurun ne zaman güncellendiğini gösterir. Canlı kur hiç çekilemediyse
 /// (ilk açılış + ağ yok) hiçbir şey göstermez — yanlış güven vermeyelim.
 class _RateFreshness extends ConsumerWidget {
@@ -1245,25 +1410,28 @@ class _RateFreshness extends ConsumerWidget {
 
     final String when;
     if (diff.inMinutes < 60) {
-      when = s.p('budget.rateAgeMin', {'n': '${diff.inMinutes.clamp(1, 59)}'});
+      when =
+          s.p('budget.rateAgeMinShort', {'n': '${diff.inMinutes.clamp(1, 59)}'});
     } else if (diff.inHours < 24) {
-      when = s.p('budget.rateAgeHour', {'n': '${diff.inHours}'});
+      when = s.p('budget.rateAgeHourShort', {'n': '${diff.inHours}'});
     } else {
-      when = s.p('budget.rateAgeDay', {'n': '${diff.inDays}'});
+      when = s.p('budget.rateAgeDayShort', {'n': '${diff.inDays}'});
     }
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        children: [
-          Icon(Icons.sync_rounded, size: 12, color: palette.textMuted),
-          const SizedBox(width: 4),
-          Text(
+    // Kur satırının İÇİNDE, yanında duruyor — kendi satırı yok.
+    return Row(
+      children: [
+        Icon(Icons.sync_rounded, size: 12, color: palette.textMuted),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
             when,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(color: palette.textMuted, fontSize: 11),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

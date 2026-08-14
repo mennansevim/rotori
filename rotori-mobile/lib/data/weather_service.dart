@@ -89,12 +89,23 @@ List<DayForecast> parseForecast(String body) {
   for (var i = 0; i < times.length; i++) {
     final date = at<Object>(times, i)?.toString();
     if (date == null) continue;
+
+    // Open-Meteo tahmin ufkunun kenarında alanları `null` döndürebilir.
+    // Bunları 0'a çevirmek veri UYDURMAKTIR: weathercode 0 "açık gökyüzü"
+    // demek olduğu için ağustos Tokyo'sunda "☀️ 0°" gibi imkânsız bir gün
+    // üretiliyordu. Eksik gün hiç üretilmez; çağıran tarafta "tahmin yok"
+    // olarak görünür.
+    final code = at<num>(codes, i);
+    final high = at<num>(maxT, i);
+    final low = at<num>(minT, i);
+    if (code == null || high == null || low == null) continue;
+
     out.add(
       DayForecast(
         date: date,
-        code: (at<num>(codes, i) ?? 0).toInt(),
-        tempMax: (at<num>(maxT, i) ?? 0).toDouble(),
-        tempMin: (at<num>(minT, i) ?? 0).toDouble(),
+        code: code.toInt(),
+        tempMax: high.toDouble(),
+        tempMin: low.toDouble(),
         precipProb: (at<num>(prob, i))?.toInt(),
       ),
     );

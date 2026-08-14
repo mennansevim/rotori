@@ -1,8 +1,11 @@
-// Drawer "YOLCULUK" kartı — gece sayısı gezinin kendisinden gelir.
+// Drawer özet kartı — gece sayısı gezinin kendisinden gelir.
 //
 // Eskiden gece sayısı yalnızca REZERVE EDİLMİŞ otellerden toplanıyordu:
 // yeni üretilen planda otel olmadığı için kart "0 Gece · 10 Gün" gibi
 // kendi içinde çelişen bir şey gösteriyordu.
+//
+// Rezervasyon metriği karttan kaldırıldı; o bilgi hemen alttaki Konaklama
+// satırının işi. Burada kalan sözleşme: üç metrik, tek satır, kısa kart.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -58,11 +61,9 @@ void main() {
     // 7 gün → 6 gece. "0" ASLA görünmemeli.
     expect(find.text('6'), findsOneWidget);
     expect(find.text('7'), findsOneWidget);
-    expect(find.text(tr('viewer.stay.none')), findsOneWidget);
   });
 
-  testWidgets('otel eklenince rezerve gece sayısı ayrıca gösterilir',
-      (tester) async {
+  testWidgets('otel eklenmesi gece sayısını EZMEZ', (tester) async {
     final trip = weekTrip();
     trip.hotels.add(HotelStay(
       id: 'h1',
@@ -70,39 +71,66 @@ void main() {
       city: 'Tokyo',
       address: 'Shinjuku',
       checkIn: '2026-10-15',
-      checkOut: '2026-10-18',
+      checkOut: '2026-10-18', // yalnızca 3 gece rezerve
     ));
 
     await openDrawer(tester, trip);
 
-    // Gece sayısı hâlâ gezinin uzunluğu — otel onu EZMEZ.
+    // Gece sayısı hâlâ gezinin uzunluğu.
     expect(find.text('6'), findsOneWidget);
-    // 3 gece rezerve edildi bilgisi ayrı satırda.
-    expect(
-      find.text(L10n.parametrize(
-          tr('viewer.stay.covered'), {'booked': '3', 'total': '6'})),
-      findsOneWidget,
-    );
+    // Rezervasyon oranı ("3/6") artık bu kartta gösterilmiyor.
+    expect(find.text('3/6'), findsNothing);
   });
 
-  testWidgets('rezervasyon gezi süresini aşarsa kırpılır', (tester) async {
+  testWidgets('üç metrik tek satırda kalır ve kart kısa durur', (tester) async {
     final trip = weekTrip();
-    trip.hotels.add(HotelStay(
-      id: 'h1',
-      name: 'Uzun',
-      city: 'Tokyo',
-      address: 'x',
-      checkIn: '2026-10-01',
-      checkOut: '2026-11-01', // 31 gece — 6 gecelik geziye sığmaz
-    ));
 
     await openDrawer(tester, trip);
 
-    // "31/6 gece" saçma olurdu; 6/6'ya kırpılmalı.
+    final labels = [
+      tr('viewer.metric.nights'),
+      tr('viewer.metric.cities'),
+      tr('viewer.metric.days'),
+    ];
+    for (final label in labels) {
+      expect(find.text(label), findsOneWidget, reason: '$label yok');
+    }
+
+    // Dikey merkezleri eşit → aynı yatay şerit.
+    final centers =
+        labels.map((l) => tester.getCenter(find.text(l)).dy).toList();
+    for (final dy in centers) {
+      expect((dy - centers.first).abs(), lessThan(1.0),
+          reason: 'metrik etiketleri aynı satırda olmalı: $centers');
+    }
+
+    // Kart dikeyde kompakt kalmalı — eski üç-kolon düzeni ~150px'ti.
+    final card = find.ancestor(
+      of: find.text(tr('viewer.metric.nights')),
+      matching: find.byType(Container),
+    );
+    expect(tester.getSize(card.first).height, lessThan(90));
+
+    // Metrikler genişliğe dağılmış olmalı: sağda boşluk kalmasın.
+    // Son metriğin merkezi kartın sağ yarısında durur.
+    final cardRect = tester.getRect(card.first);
+    final lastCenter = tester.getCenter(find.text(labels.last)).dx;
+    expect(lastCenter, greaterThan(cardRect.center.dx),
+        reason: 'son metrik sağ yarıda değil — şerit sola yapışmış');
+  });
+
+  testWidgets('kartta rezervasyon aksiyonu (chevron) yoktur', (tester) async {
+    final trip = weekTrip();
+
+    await openDrawer(tester, trip);
+
+    // Özet kartı bilgi kartıdır; dokunulacak bir hedef sunmaz.
     expect(
-      find.text(L10n.parametrize(
-          tr('viewer.stay.covered'), {'booked': '6', 'total': '6'})),
-      findsOneWidget,
+      find.ancestor(
+        of: find.text(tr('viewer.metric.nights')),
+        matching: find.byType(InkWell),
+      ),
+      findsNothing,
     );
   });
 }

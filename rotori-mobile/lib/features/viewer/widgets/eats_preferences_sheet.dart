@@ -76,7 +76,7 @@ class _EatsPreferencesSheet extends StatefulWidget {
 }
 
 class _EatsPreferencesSheetState extends State<_EatsPreferencesSheet> {
-  late Set<String> _tags = widget.initialTags.toSet();
+  late final Set<String> _tags = widget.initialTags.toSet();
   late int? _budget = widget.initialBudgetJpy;
 
   ViewerPalette get p => widget.palette;
@@ -185,7 +185,8 @@ class _EatsPreferencesSheetState extends State<_EatsPreferencesSheet> {
                     runSpacing: 8,
                     children: [
                       _chip(
-                        label: const LText('Belirtmek istemiyorum', 'Prefer not to say')
+                        label: const LText(
+                                'Belirtmek istemiyorum', 'Prefer not to say')
                             .of(lang),
                         active: _budget == null,
                         onTap: () => setState(() => _budget = null),

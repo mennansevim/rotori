@@ -132,6 +132,8 @@ Map<String, dynamic> buildHarnessEnvelope({
       'totalDayRecords': days.length,
       'optimizerEvaluatedDays':
           count((day) => day['optimizerEvaluated'] == true),
+      'fieldRealityContextDays':
+          count((day) => day['fieldRealityContextEnabled'] == true),
       'strictFeasibleDays': count((day) => day['strictFeasible'] == true),
       'recoveredByDroppingDays':
           count((day) => day['recoveredByDropping'] == true),
@@ -178,6 +180,10 @@ Map<String, dynamic> buildHarnessEnvelope({
     },
     'profileComparison': profileComparison,
     'qualityGate': {
+      'fieldRealityCoveragePass': count((day) =>
+              day['optimizerEvaluated'] == true &&
+              day['fieldRealityContextEnabled'] != true) ==
+          0,
       'hardConstraintsPass': sum('hardViolationCount') == 0,
       'duplicatesPass': duplicateActivities() == 0,
       'mustDoProtectionPass': countDroppedPriority('mustDo') == 0,

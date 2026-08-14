@@ -373,6 +373,57 @@ void main() {
       expect(await canSchedule(kOrdinaryMonday), isFalse);
       expect(await canSchedule(kOrdinaryTuesday), isTrue);
     });
+
+    test('dropping fallback saha bağlamını kaybedip kapalı must-do ekleyemez',
+        () async {
+      final result = await const BeamSearchItineraryOptimizer(
+        config: OptimizerConfig(allowActivityDropping: true),
+      ).optimize(
+        OptimizationRequest(
+          activities: [
+            OptimizationActivity(
+              id: 'closed-must-do',
+              name: 'Tokyo National Museum',
+              day: kShiftedTuesday,
+              location: _quietStop,
+              durationMinutes: 90,
+              minimumDurationMinutes: 60,
+              priority: ActivityPriority.mustDo,
+              closureRule: ClosureRule(
+                weeklyClosedWeekdays: {DateTime.monday},
+              ),
+            ),
+            OptimizationActivity(
+              id: 'optional',
+              name: 'Optional stop',
+              day: kShiftedTuesday,
+              location: _shinjuku,
+              durationMinutes: 60,
+              minimumDurationMinutes: 30,
+              priority: ActivityPriority.optional,
+            ),
+          ],
+          routeMatrix: _matrix([_hotel, _quietStop, _shinjuku]),
+          constraints: DayRouteConstraints(
+            startLocation: _hotel,
+            endLocation: _hotel,
+            availableStartTime: DateTime(2026, 10, 13, 9),
+            availableEndTime: DateTime(2026, 10, 13, 20),
+          ),
+          field: FieldRealityContext(
+            travelDate: kShiftedTuesday,
+            cityId: 'tokyo',
+          ),
+        ),
+      );
+
+      expect(result.isSuccess, isFalse);
+      expect(
+        result.failure?.code,
+        OptimizationFailureCode.protectedActivityInfeasible,
+      );
+      expect(result.activities, isEmpty);
+    });
   });
 
   // =========================================================================
@@ -391,6 +442,23 @@ void main() {
       );
       expect(StationComplexity.labyrinth.navigationBufferMinutes, 15);
       expect(StationComplexity.normal.navigationBufferMinutes, 0);
+    });
+
+    test('Japonca Shinjuku aliasları labyrinth olarak çözülür', () {
+      final registry = StationComplexityRegistry();
+      expect(
+        registry.resolve(name: '新宿'),
+        StationComplexity.labyrinth,
+      );
+      expect(
+        registry.resolve(name: '新宿駅'),
+        StationComplexity.labyrinth,
+      );
+      expect(
+        registry.resolve(name: '東京国立博物館'),
+        StationComplexity.normal,
+        reason: 'şehir adını içeren her Japonca mekan istasyon değildir',
+      );
     });
 
     test('tek labyrinth istasyonda yürümeye +15 dk eklenir', () {
@@ -787,6 +855,22 @@ void main() {
       expect(offPeak.doorToDoorMinutes, 110);
     });
 
+    test('hafta sonu ve resmî tatilde leisure çarpanı 1.15x uygulanır', () {
+      final weekend = model.evaluate(
+        busOption(),
+        departure: DateTime(2026, 10, 17, 8), // Cumartesi
+      );
+      final publicHoliday = model.evaluate(
+        busOption(),
+        departure: DateTime(2026, 10, 12, 8),
+        isPublicHoliday: true,
+      );
+      expect(weekend.trafficRiskMultiplier, 1.15);
+      expect(weekend.doorToDoorMinutes, 115);
+      expect(publicHoliday.trafficRiskMultiplier, 1.15);
+      expect(publicHoliday.doorToDoorMinutes, 115);
+    });
+
     test('hasTrafficRiskDisclaimer her iki durumda da set edilir', () {
       for (final hour in [8, 13, 18]) {
         final outcome = model.evaluate(busOption(),
@@ -897,6 +981,10 @@ void main() {
         1,
       );
       expect(crowdSensitivityForCategory('Tapınak'), CrowdSensitivity.high);
+      expect(
+        crowdSensitivityForCategory('themepark'),
+        CrowdSensitivity.none,
+      );
       expect(crowdSensitivityForCategory('Otel'), CrowdSensitivity.none);
       expect(crowdSensitivityForCategory('Müze'), CrowdSensitivity.moderate);
     });
@@ -1248,6 +1336,38 @@ void main() {
   // JSON v3 sözleşmesi
   // =========================================================================
   group('JSON v3 geriye uyumluluğu', () {
+    test('Trip kök dokümanı zorunlu schemaVersion 3 alanını üretir', () {
+      final trip = Trip(
+        id: 'plan-v3',
+        slug: 'plan-v3',
+        title: 'Japan',
+        timezone: 'Asia/Tokyo',
+        tripStart: '2026-10-12',
+        tripEnd: '2026-10-13',
+        flights: TripFlights(),
+        preferences: TripPreferences(
+          travelDates: TravelDates(
+            start: '2026-10-12',
+            end: '2026-10-13',
+          ),
+          pace: Pace.moderate,
+        ),
+        days: [
+          DayPlan(
+            dayNumber: 1,
+            date: '2026-10-12',
+            theme: 'Tokyo',
+          ),
+        ],
+      );
+
+      final json = trip.toJson();
+      expect(json['schemaVersion'], Trip.currentSchemaVersion);
+      expect(json['schemaVersion'], 3);
+      expect(json['days'], isA<List<dynamic>>());
+      expect(Trip.fromJson(json).toJson()['schemaVersion'], 3);
+    });
+
     test('v2 dokümanı kayıpsız açılır ve v3 alanı eklemez', () {
       final v2 = {
         'id': 'x1',

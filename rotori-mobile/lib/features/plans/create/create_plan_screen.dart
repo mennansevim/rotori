@@ -33,6 +33,7 @@ import '../plan_optimization_controller.dart';
 import 'city_select_page.dart';
 import 'preferences_page.dart';
 import 'create_plan_widgets.dart';
+import 'rotori_route_loader.dart';
 import 'date_select_page.dart';
 
 class CreatePlanScreen extends ConsumerStatefulWidget {
@@ -52,6 +53,10 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
 
   String _start = '';
   String _end = '';
+
+  /// Üretilmiş planın kimliği. null iken plan henüz yok.
+  String? _planId;
+
   bool _datesEstimated = false;
   bool _generating = false;
   int _page = 0;
@@ -230,7 +235,13 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
       _end.isNotEmpty &&
       _selected.length <= inclusiveDays(_start, _end);
 
-  Future<void> _generate() async {
+  /// Planı üretir ve viewer'a geçer.
+  ///
+  /// [thenRoute] verilirse viewer'ın ÜSTÜNE o alt ekran açılır (`flights`,
+  /// `hotels/new`). Varsayımlar kartındaki "Ekle" aksiyonları bunu kullanır:
+  /// iki ekran da planId ile trip'i provider'dan okuduğu için plan var olmadan
+  /// açılamıyor. Viewer arada kalır, böylece geri gelince plana dönülür.
+  Future<void> _generate({String? thenRoute}) async {
     if (!_canGenerate) return;
     final repo = ref.read(plansRepositoryProvider);
     final lang = ref.read(appLangProvider);
@@ -298,9 +309,10 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
       // LLM incelemesi — deterministik rota kurulduktan SONRA çalışır ve
       // yalnız mevcut duraklar için sıra adayı önerir.
       //
-      // Öneri plan motorundan geçmek zorunda. Ağ hatası, zaman aşımı veya
-      // geçersiz bir öneride deterministik plan aynen kalır; üretim LLM'e
-      // bağımlı değildir.
+      // **Neden en iyi çaba:** Öneri plan motorundan geçmek zorunda; motor
+      // kilitli durağı ve çakışmayı reddediyor. Ağ hatası, zaman aşımı veya
+      // saçma bir öneri hâlinde deterministik plan aynen kalır ve kullanıcı
+      // hiçbir hata görmez — üretim asla LLM'e bağımlı olmaz.
       stage = 'llm_review';
       llmReport = await _reviewWithLlm(trip, lang);
       trip = llmReport.trip;
@@ -374,25 +386,36 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
     }
 
     if (!mounted) return;
-    setState(() => _generating = false);
-    if (repo == null) {
-      context.pushReplacement('/plans/${trip.id}/view');
+    final planId = trip.id;
+    setState(() {
+      _generating = false;
+      _planId = planId;
+    });
+
+    // "Ekle" akışı: oluşturma ekranı YIĞINDA KALIR ve alt ekran onun üstüne
+    // push edilir. pushReplacement bu ekranı yok ediyordu; kullanıcı uçuşu
+    // kaydedip geri geldiğinde varsayımlar adımı yerine en başa düşüyordu.
+    // push + await ile geri dönüşte aynı adımda kalır.
+    if (thenRoute != null) {
+      await context.push('/plans/$planId/$thenRoute');
+      if (mounted) setState(() {});
       return;
     }
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(s.s('create.ready')),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-    context.pushReplacement('/plans/${trip.id}/view');
-  }
 
-  // --- build ----------------------------------------------------------------
+    if (repo != null) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(s.s('create.ready')),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+    context.pushReplacement('/plans/$planId/view');
+  }
 
   /// Planı LLM'e inceletir ve kabul edilen önerileri uygular.
   ///
-  /// Her hata yutulur: dönen değer ya iyileştirilmiş plan ya da girdinin
+  /// HER hata yutulur: dönen değer ya iyileştirilmiş plan ya da girdinin
   /// aynısıdır. Çağıran akış bu adımın başarısız olabileceğini varsayar.
   Future<_LlmReviewReport> _reviewWithLlm(Trip trip, AppLang lang) async {
     final client = ref.read(routeReviewClientProvider);
@@ -468,6 +491,75 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
     }
   }
 
+  /// Üretilmiş planın kendisi — varsayım kartı uçuş/otel durumunu buradan
+  /// okur. `draftTripProvider` repo olsun olmasın (önizleme/oturumsuz dâhil)
+  /// doldurulduğu için tek güvenilir kaynak burası.
+  Trip? _generatedTrip(WidgetRef ref) {
+    final planId = _planId;
+    if (planId == null) return null;
+    final draft = ref.watch(draftTripProvider);
+    return draft?.id == planId ? draft : null;
+  }
+
+  /// "IST → HND" (gidiş-dönüşse "· gidiş-dönüş"). Havaalanı kodları dilden
+  /// bağımsız; kod yoksa şehir adına düşer.
+  String? _flightSummary(Trip? trip, LanguageScope s) {
+    final flights = trip?.flights;
+    if (flights == null) return null;
+    final outbound = flights.outbound;
+    if (outbound.isEmpty) return null;
+    String tag(FlightLeg leg) =>
+        leg.airport.trim().isNotEmpty ? leg.airport.trim() : leg.city.trim();
+    // Tek taraf boş olabilir: `_syncFlightLegs` kalkış bacağını
+    // `preferences.originAirport/originCity`'den kuruyor ve kullanıcı kalkış
+    // şehrini girmemiş olabilir. O durumda " → Kanazawa" gibi sakat bir metin
+    // yerine bilinen tarafı tek başına göster.
+    final parts = [tag(outbound.first), tag(outbound.last)]
+        .where((e) => e.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return null;
+    final route = parts.join(' → ');
+    return flights.returnLegs.isEmpty
+        ? route
+        : '$route · ${s.s('create.assumptions.roundTrip')}';
+  }
+
+  /// "Hotel Adı" (birden fazlaysa "· +2").
+  String? _hotelSummary(Trip? trip) {
+    final hotels = trip?.hotels ?? const <HotelStay>[];
+    if (hotels.isEmpty) return null;
+    final first = hotels.first.name.trim();
+    if (first.isEmpty) return null;
+    return hotels.length == 1 ? first : '$first · +${hotels.length - 1}';
+  }
+
+  /// Uçuş / konaklama adımını açar. Plan yoksa önce üretir, VARSA yeniden
+  /// üretmez.
+  ///
+  /// **Why yeniden üretmemek:** Üretim planı sıfırdan kurduğu için
+  /// kullanıcının az önce girdiği uçuş ve konaklama bilgisini silerdi.
+  Future<void> _openPlanStep(String route) async {
+    final planId = _planId;
+    if (planId == null) {
+      await _generate(thenRoute: route);
+      return;
+    }
+    await context.push('/plans/$planId/$route');
+    if (mounted) setState(() {});
+  }
+
+  /// CTA: plan hazırsa doğrudan ona geçer, değilse üretir.
+  Future<void> _finish() async {
+    final planId = _planId;
+    if (planId == null) {
+      await _generate();
+      return;
+    }
+    context.pushReplacement('/plans/$planId/view');
+  }
+
+  // --- build ----------------------------------------------------------------
+
   @override
   Widget build(BuildContext context) {
     final palette = ref.watch(viewerPaletteProvider);
@@ -483,81 +575,105 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
         data: palette.toThemeData(),
         child: Scaffold(
           backgroundColor: palette.bg,
-          body: Column(
+          // Üretim sürerken ekranı marka animasyonu kaplar. Stack şart:
+          // katmanın altındaki adım korunur, üretim başarısız olursa
+          // kullanıcı tercihlerini kaybetmeden aynı yerde kalır.
+          body: Stack(
             children: [
-              BrandHero(
-                palette: palette,
-                step: _page,
-                totalSteps: 3,
-                onBack: _back,
-                title: switch (_page) {
-                  0 => s.s('create.cities.title'),
-                  1 => s.s('create.dates.title'),
-                  _ => s.s('create.prefs.title'),
-                },
-                subtitle: switch (_page) {
-                  0 => s.s('create.cities.sub'),
-                  1 => (_selected.isEmpty
-                      ? s.s('create.dates.sub')
-                      : _routeSummary()),
-                  _ => s.s('create.prefs.sub'),
-                },
+              Column(
+                children: [
+                  BrandHero(
+                    palette: palette,
+                    step: _page,
+                    totalSteps: 3,
+                    onBack: _back,
+                    title: switch (_page) {
+                      0 => s.s('create.cities.title'),
+                      1 => s.s('create.dates.title'),
+                      _ => s.s('create.prefs.title'),
+                    },
+                    subtitle: switch (_page) {
+                      0 => s.s('create.cities.sub'),
+                      1 => (_selected.isEmpty
+                          ? s.s('create.dates.sub')
+                          : _routeSummary()),
+                      _ => s.s('create.prefs.sub'),
+                    },
+                  ),
+                  Expanded(
+                    child: PageView(
+                      controller: _pc,
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: [
+                        CitySelectPage(
+                          palette: palette,
+                          selectedKeys: _selected,
+                          onToggle: _toggleCity,
+                          onContinue:
+                              _selected.isEmpty ? null : () => _goToPage(1),
+                        ),
+                        DateSelectPage(
+                          palette: palette,
+                          startYmd: _start,
+                          endYmd: _end,
+                          cityCount: _selected.length,
+                          datesEstimated: _datesEstimated,
+                          distribution: _start.isEmpty || _end.isEmpty
+                              ? const []
+                              : previewCityDistribution(
+                                  _selected,
+                                  _start,
+                                  _end,
+                                  dayOverrides: _dayOverrides.isEmpty
+                                      ? null
+                                      : _dayOverrides,
+                                ),
+                          generating: _generating,
+                          onPickRange: _pickRange,
+                          onUnknownDates: _useSuggestedDates,
+                          onEditCities: () => _goToPage(0),
+                          // Artık son adım değil — tercihler adımına geçirir.
+                          onGenerate: _canGenerate ? () => _goToPage(2) : null,
+                          onAdjustDays: _adjustDays,
+                          routeSanity: checkRouteOrder(_selected),
+                          selectedKeys: List<String>.from(_selected),
+                          onFixRoute: _applyRouteOrder,
+                        ),
+                        PreferencesPage(
+                          palette: palette,
+                          dietTags: _dietTags,
+                          mealBudgetJpy: _mealBudgetJpy,
+                          routeSummary: _routeSummary(),
+                          dateSummary: '$_start → $_end',
+                          datesEstimated: _datesEstimated,
+                          onEditCities: () => _goToPage(0),
+                          onEditDates: () => _goToPage(1),
+                          onAddFlight: _canGenerate
+                              ? () => _openPlanStep('flights')
+                              : null,
+                          onAddHotel: _canGenerate
+                              ? () => _openPlanStep('hotels/new')
+                              : null,
+                          flightSummary: _flightSummary(
+                            _generatedTrip(ref),
+                            s,
+                          ),
+                          hotelSummary: _hotelSummary(_generatedTrip(ref)),
+                          onToggleTag: _toggleDietTag,
+                          onPickBudget: (jpy) =>
+                              setState(() => _mealBudgetJpy = jpy),
+                          generating: _generating,
+                          onGenerate: _canGenerate ? _finish : null,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              Expanded(
-                child: PageView(
-                  controller: _pc,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: [
-                    CitySelectPage(
-                      palette: palette,
-                      selectedKeys: _selected,
-                      onToggle: _toggleCity,
-                      onContinue: _selected.isEmpty ? null : () => _goToPage(1),
-                    ),
-                    DateSelectPage(
-                      palette: palette,
-                      startYmd: _start,
-                      endYmd: _end,
-                      cityCount: _selected.length,
-                      datesEstimated: _datesEstimated,
-                      distribution: _start.isEmpty || _end.isEmpty
-                          ? const []
-                          : previewCityDistribution(
-                              _selected,
-                              _start,
-                              _end,
-                              dayOverrides:
-                                  _dayOverrides.isEmpty ? null : _dayOverrides,
-                            ),
-                      generating: _generating,
-                      onPickRange: _pickRange,
-                      onUnknownDates: _useSuggestedDates,
-                      onEditCities: () => _goToPage(0),
-                      // Artık son adım değil — tercihler adımına geçirir.
-                      onGenerate: _canGenerate ? () => _goToPage(2) : null,
-                      onAdjustDays: _adjustDays,
-                      routeSanity: checkRouteOrder(_selected),
-                      selectedKeys: List<String>.from(_selected),
-                      onFixRoute: _applyRouteOrder,
-                    ),
-                    PreferencesPage(
-                      palette: palette,
-                      dietTags: _dietTags,
-                      mealBudgetJpy: _mealBudgetJpy,
-                      routeSummary: _routeSummary(),
-                      dateSummary: '$_start → $_end',
-                      datesEstimated: _datesEstimated,
-                      onEditCities: () => _goToPage(0),
-                      onEditDates: () => _goToPage(1),
-                      onToggleTag: _toggleDietTag,
-                      onPickBudget: (jpy) =>
-                          setState(() => _mealBudgetJpy = jpy),
-                      generating: _generating,
-                      onGenerate: _canGenerate ? _generate : null,
-                    ),
-                  ],
+              if (_generating)
+                Positioned.fill(
+                  child: RotoriGeneratingOverlay(palette: palette),
                 ),
-              ),
             ],
           ),
         ),

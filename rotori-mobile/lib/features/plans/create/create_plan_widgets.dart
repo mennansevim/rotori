@@ -5,6 +5,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../core/rotori_brand.dart';
 import '../../viewer/viewer_theme.dart';
 
 /// Marka gradyanlı üst başlık. plans_list_screen._PlansHeader ile aynı
@@ -37,13 +38,14 @@ class BrandHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
+        // Marka gradyanı temadan DEĞİL, marka sabitlerinden gelir.
         gradient: LinearGradient(
-          colors: palette.brandGradient,
+          colors: RotoriBrand.heroGradient,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
       ),
       child: SafeArea(
         bottom: false,
@@ -81,21 +83,31 @@ class BrandHero extends StatelessWidget {
                 padding: const EdgeInsets.only(left: 8),
                 child: Row(
                   children: [
+                    // 旅 kanjisi yerine markanın kendi işareti. Logo beyaz
+                    // zeminli olduğu için rozet de beyaz: kırmızı hero
+                    // üzerinde torii net okunur.
                     Container(
                       width: 46,
                       height: 46,
                       decoration: BoxDecoration(
-                        color: _on.withValues(alpha: 0.16),
+                        color: _on,
                         borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: _on.withValues(alpha: 0.24)),
+                        border: Border.all(color: _on.withValues(alpha: 0.5)),
                       ),
-                      alignment: Alignment.center,
-                      child: const Text(
-                        '旅',
-                        style: TextStyle(
-                          color: _on,
-                          fontSize: 25,
-                          fontWeight: FontWeight.w800,
+                      clipBehavior: Clip.antiAlias,
+                      child: Image.asset(
+                        RotoriBrand.logoAsset,
+                        fit: BoxFit.cover,
+                        // Asset yüklenemezse hero boş bir kutu göstermesin.
+                        errorBuilder: (_, __, ___) => const Center(
+                          child: Text(
+                            '旅',
+                            style: TextStyle(
+                              color: RotoriBrand.torii,
+                              fontSize: 25,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -301,7 +313,16 @@ class BrandButton extends StatelessWidget {
     required this.onPressed,
     this.block = false,
     this.busy = false,
+    this.tone,
+    this.radius = 980,
   });
+
+  /// Planı üreten son adımın CTA turuncusu.
+  ///
+  /// **Why sabit renk:** Paletten gelemiyor — appleLight'ta `sunset` kırmızı
+  /// (#FF3B30), japanDark'ta `gold` açık sarı (#FFD54F); ikisi de beyaz
+  /// etiketle bu butonun görünmesi gerektiği gibi görünmüyor.
+  static const Color ctaOrange = Color(0xFFF97316);
 
   final ViewerPalette palette;
   final String label;
@@ -311,17 +332,23 @@ class BrandButton extends StatelessWidget {
   /// true iken buton kilitlenir ve içinde spinner gösterilir.
   final bool busy;
 
+  /// Dolgu rengi. null → `palette.fuji` (akışın ara adımlarındaki mavi).
+  final Color? tone;
+
+  /// Köşe yarıçapı. Varsayılan pill; CTA için daha az yuvarlak kullanılır.
+  final double radius;
+
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null && !busy;
     return Opacity(
       opacity: enabled || busy ? 1 : 0.4,
       child: Material(
-        color: palette.fuji,
-        borderRadius: BorderRadius.circular(980),
+        color: tone ?? palette.fuji,
+        borderRadius: BorderRadius.circular(radius),
         child: InkWell(
           onTap: enabled ? onPressed : null,
-          borderRadius: BorderRadius.circular(980),
+          borderRadius: BorderRadius.circular(radius),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
             child: Row(

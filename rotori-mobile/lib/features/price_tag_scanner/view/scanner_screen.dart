@@ -327,104 +327,6 @@ class _GlassIconButton extends StatelessWidget {
   }
 }
 
-class _TopModelPanel extends StatelessWidget {
-  const _TopModelPanel({required this.state, required this.onEdit});
-
-  final ScannerState state;
-  final VoidCallback onEdit;
-
-  @override
-  Widget build(BuildContext context) {
-    final model = state.productModel;
-    final hasModel = model != null && model.isNotEmpty;
-    final jpy = state.jpyPrice;
-    final tr = state.tryPrice;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: hasModel
-              ? const Color(0xFF80D8FF).withValues(alpha: 0.65)
-              : Colors.white.withValues(alpha: 0.16),
-          width: hasModel ? 1.4 : 1,
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      hasModel
-                          ? Icons.qr_code_2_rounded
-                          : Icons.search_rounded,
-                      size: 15,
-                      color: const Color(0xFF80D8FF),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      hasModel ? 'SORGULANAN ÜRÜN' : 'MODEL ARANIYOR…',
-                      style: const TextStyle(
-                        color: Color(0xFF9BE7FF),
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
-                    if (hasModel) ...[
-                      const SizedBox(width: 8),
-                      _LockDots(locked: state.isModelLocked),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  hasModel ? model : 'Etiketi çerçeveye alın',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: hasModel ? 20 : 15,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: hasModel ? 0.5 : 0,
-                  ),
-                ),
-                if (jpy != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    '${formatJpy(jpy)}  →  ${tr == null ? '—' : formatTry(tr)}  ·  kur 0.22',
-                    style: const TextStyle(
-                      color: Color(0xFFCFD8DC),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          if (hasModel)
-            IconButton(
-              onPressed: onEdit,
-              tooltip: 'Modeli düzelt',
-              icon: const Icon(Icons.edit_rounded,
-                  color: Colors.white, size: 20),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 class _LockDots extends StatelessWidget {
   const _LockDots({required this.locked});
 
@@ -432,8 +334,7 @@ class _LockDots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        locked ? const Color(0xFFA5D6A7) : const Color(0xFFFFE082);
+    final color = locked ? const Color(0xFFA5D6A7) : const Color(0xFFFFE082);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -487,13 +388,15 @@ class _CaptureBar extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (isLimitReached)
-              _LimitReachedCard(onPremiumTap: onPremiumTap, isPremium: isPremium)
+              _LimitReachedCard(
+                  onPremiumTap: onPremiumTap, isPremium: isPremium)
             else ...[
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: isPremium
                           ? const Color(0xFFFFD700).withValues(alpha: 0.2)
@@ -503,7 +406,9 @@ class _CaptureBar extends StatelessWidget {
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
-                      isPremium ? 'Premium $remaining/$maxScans' : 'Ücretsiz $remaining/$maxScans',
+                      isPremium
+                          ? 'Premium $remaining/$maxScans'
+                          : 'Ücretsiz $remaining/$maxScans',
                       style: TextStyle(
                         color: isPremium
                             ? const Color(0xFFFFD700)
@@ -521,15 +426,22 @@ class _CaptureBar extends StatelessWidget {
                       onTap: onPremiumTap,
                       borderRadius: BorderRadius.circular(999),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 3),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFD700).withValues(alpha: 0.18),
+                          color:
+                              const Color(0xFFFFD700).withValues(alpha: 0.18),
                           borderRadius: BorderRadius.circular(999),
-                          border: Border.all(color: const Color(0xFFFFD700).withValues(alpha: 0.4)),
+                          border: Border.all(
+                              color: const Color(0xFFFFD700)
+                                  .withValues(alpha: 0.4)),
                         ),
                         child: const Text(
                           'Premium 100/gün →',
-                          style: TextStyle(color: Color(0xFFFFD700), fontSize: 9.5, fontWeight: FontWeight.w800),
+                          style: TextStyle(
+                              color: Color(0xFFFFD700),
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800),
                         ),
                       ),
                     ),
@@ -563,7 +475,8 @@ class _CaptureBar extends StatelessWidget {
                     color: const Color(0xFF0090C8),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.35), width: 1.4),
+                        color: Colors.white.withValues(alpha: 0.35),
+                        width: 1.4),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
@@ -639,7 +552,10 @@ class _LimitReachedCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: (isPremium ? const Color(0xFFFFD700) : const Color(0xFFFFAB91)).withValues(alpha: 0.5)),
+        border: Border.all(
+            color:
+                (isPremium ? const Color(0xFFFFD700) : const Color(0xFFFFAB91))
+                    .withValues(alpha: 0.5)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -650,20 +566,36 @@ class _LimitReachedCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: (isPremium ? const Color(0xFFFFD700) : const Color(0xFFFFAB91)).withValues(alpha: 0.18),
+                  color: (isPremium
+                          ? const Color(0xFFFFD700)
+                          : const Color(0xFFFFAB91))
+                      .withValues(alpha: 0.18),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(isPremium ? Icons.auto_awesome_rounded : Icons.hourglass_empty_rounded,
-                    size: 20, color: isPremium ? const Color(0xFFFFD700) : const Color(0xFFFFAB91)),
+                child: Icon(
+                    isPremium
+                        ? Icons.auto_awesome_rounded
+                        : Icons.hourglass_empty_rounded,
+                    size: 20,
+                    color: isPremium
+                        ? const Color(0xFFFFD700)
+                        : const Color(0xFFFFAB91)),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
+                    Text(title,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800)),
                     const SizedBox(height: 2),
-                    Text(subtitle, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12)),
+                    Text(subtitle,
+                        style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            fontSize: 12)),
                   ],
                 ),
               ),
@@ -681,7 +613,9 @@ class _LimitReachedCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
                 icon: const Icon(Icons.rocket_launch_rounded, size: 18),
-                label: const Text('Premium\'a geç', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+                label: const Text('Premium\'a geç',
+                    style:
+                        TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
               ),
             ),
           ],
@@ -708,7 +642,8 @@ void _showPremiumSheet(BuildContext context) {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 38, height: 4,
+              width: 38,
+              height: 4,
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(4),
@@ -716,26 +651,39 @@ void _showPremiumSheet(BuildContext context) {
             ),
             const SizedBox(height: 20),
             Container(
-              width: 56, height: 56,
+              width: 56,
+              height: 56,
               decoration: BoxDecoration(
                 color: const Color(0xFFFFD700).withValues(alpha: 0.14),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.auto_awesome_rounded, size: 28, color: Color(0xFFFFD700)),
+              child: const Icon(Icons.auto_awesome_rounded,
+                  size: 28, color: Color(0xFFFFD700)),
             ),
             const SizedBox(height: 14),
-            const Text('Rotori Premium', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+            const Text('Rotori Premium',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
             const Text(
               'Günlük 100 tarama hakkı. Fiyat etiketi tarayıcısını limitsiz kullan, '
               'istediğin kadar ürün sorgula.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Color(0xFFCFD8DC), fontSize: 14, height: 1.4),
+              style: TextStyle(
+                  color: Color(0xFFCFD8DC), fontSize: 14, height: 1.4),
             ),
             const SizedBox(height: 16),
-            _PremiumFeatureRow(icon: Icons.check_circle_rounded, text: 'Günlük 100 tarama (ücretsiz: 10)'),
-            _PremiumFeatureRow(icon: Icons.check_circle_rounded, text: 'GPT-4o-mini ile akıllı model tespiti'),
-            _PremiumFeatureRow(icon: Icons.check_circle_rounded, text: 'Trendyol, HB, Amazon canlı fiyat karşılaştırma'),
+            const _PremiumFeatureRow(
+                icon: Icons.check_circle_rounded,
+                text: 'Günlük 100 tarama (ücretsiz: 10)'),
+            const _PremiumFeatureRow(
+                icon: Icons.check_circle_rounded,
+                text: 'GPT-4o-mini ile akıllı model tespiti'),
+            const _PremiumFeatureRow(
+                icon: Icons.check_circle_rounded,
+                text: 'Trendyol, HB, Amazon canlı fiyat karşılaştırma'),
             const SizedBox(height: 22),
             SizedBox(
               width: double.infinity,
@@ -745,9 +693,12 @@ void _showPremiumSheet(BuildContext context) {
                   backgroundColor: const Color(0xFFFFD700),
                   foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
                 ),
-                child: const Text('Kapat', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                child: const Text('Kapat',
+                    style:
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
               ),
             ),
           ],
@@ -769,7 +720,10 @@ class _PremiumFeatureRow extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: const Color(0xFFA5D6A7)),
           const SizedBox(width: 10),
-          Expanded(child: Text(text, style: const TextStyle(color: Color(0xFFECEFF1), fontSize: 13.5))),
+          Expanded(
+              child: Text(text,
+                  style: const TextStyle(
+                      color: Color(0xFFECEFF1), fontSize: 13.5))),
         ],
       ),
     );
@@ -837,8 +791,6 @@ class _FrozenResultPanel extends StatelessWidget {
     final model = state.productModel ?? '—';
     final jpy = state.jpyPrice;
     final tr = state.tryPrice;
-    final isFetching = state.phase == ScannerPhase.fetchingMockPrices;
-
     return SafeArea(
       top: false,
       child: Padding(
@@ -879,7 +831,8 @@ class _FrozenResultPanel extends StatelessWidget {
                               if (state.llmResult != null &&
                                   !state.isLlmFallback) ...[
                                 const SizedBox(width: 6),
-                                _LlmBadge(confidence: state.llmResult!.confidence),
+                                _LlmBadge(
+                                    confidence: state.llmResult!.confidence),
                               ],
                               if (state.isLlmFallback) ...[
                                 const SizedBox(width: 6),
@@ -947,7 +900,7 @@ class _FrozenResultPanel extends StatelessWidget {
                   _SecondaryPricesSection(prices: state.secondaryPrices),
                 ],
 
-                if (model != null && model != '—') ...[
+                if (model != '—') ...[
                   const SizedBox(height: 12),
                   _ManualSearchRow(model: model),
                 ],
@@ -1029,10 +982,26 @@ class _ManualSearchRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final q = Uri.encodeQueryComponent(model);
     final searches = <({String label, IconData icon, String url})>[
-      (label: 'Trendyol', icon: Icons.shopping_bag_outlined, url: 'https://www.trendyol.com/sr?q=$q'),
-      (label: 'Hepsiburada', icon: Icons.store_outlined, url: 'https://www.hepsiburada.com/ara?q=$q'),
-      (label: 'Amazon TR', icon: Icons.local_shipping_outlined, url: 'https://www.amazon.com.tr/s?k=$q'),
-      (label: 'Google', icon: Icons.search, url: 'https://www.google.com/search?q=$q+site:com.tr'),
+      (
+        label: 'Trendyol',
+        icon: Icons.shopping_bag_outlined,
+        url: 'https://www.trendyol.com/sr?q=$q'
+      ),
+      (
+        label: 'Hepsiburada',
+        icon: Icons.store_outlined,
+        url: 'https://www.hepsiburada.com/ara?q=$q'
+      ),
+      (
+        label: 'Amazon TR',
+        icon: Icons.local_shipping_outlined,
+        url: 'https://www.amazon.com.tr/s?k=$q'
+      ),
+      (
+        label: 'Google',
+        icon: Icons.search,
+        url: 'https://www.google.com/search?q=$q+site:com.tr'
+      ),
     ];
     return Container(
       padding: const EdgeInsets.all(12),
@@ -1046,12 +1015,19 @@ class _ManualSearchRow extends StatelessWidget {
         children: [
           const Text(
             'Fiyat araştır',
-            style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.5),
+            style: TextStyle(
+                color: Colors.white70,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5),
           ),
           const SizedBox(height: 2),
           Text(
             'Model: $model',
-            style: const TextStyle(color: Color(0xFF80D8FF), fontSize: 12, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+                color: Color(0xFF80D8FF),
+                fontSize: 12,
+                fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -1066,17 +1042,24 @@ class _ManualSearchRow extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                     onTap: () => _openSearch(s.url),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 7),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.18)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(s.icon, size: 14, color: const Color(0xFF80D8FF)),
+                          Icon(s.icon,
+                              size: 14, color: const Color(0xFF80D8FF)),
                           const SizedBox(width: 6),
-                          Text(s.label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                          Text(s.label,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600)),
                         ],
                       ),
                     ),
@@ -1085,202 +1068,6 @@ class _ManualSearchRow extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _MarketPriceCard extends StatelessWidget {
-  const _MarketPriceCard({
-    required this.platform,
-    required this.priceTry,
-    required this.inStock,
-    this.onOpen,
-    this.source = 'mock',
-    this.isReal = false,
-  });
-
-  final String platform;
-  final String priceTry;
-  final bool inStock;
-  final VoidCallback? onOpen;
-  final String source;
-  final bool isReal;
-
-  @override
-  Widget build(BuildContext context) {
-    final stockColor = inStock ? const Color(0xFFA5D6A7) : const Color(0xFFFFCDD2);
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onOpen,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isReal
-                  ? const Color(0xFFA5D6A7).withValues(alpha: 0.3)
-                  : Colors.white.withValues(alpha: 0.12),
-            ),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          platform,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        if (source == 'html') ...[
-                          const SizedBox(width: 5),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 5, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFA5D6A7)
-                                  .withValues(alpha: 0.18),
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                            child: const Text(
-                              'canlı',
-                              style: TextStyle(
-                                color: Color(0xFFA5D6A7),
-                                fontSize: 8.5,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                        ] else if (source == 'llm') ...[
-                          const SizedBox(width: 5),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 5, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFE082)
-                                  .withValues(alpha: 0.18),
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                            child: const Text(
-                              'AI',
-                              style: TextStyle(
-                                color: Color(0xFFFFE082),
-                                fontSize: 8.5,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    if (onOpen != null) ...[
-                      const SizedBox(height: 2),
-                      const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Sitede ara',
-                            style: TextStyle(
-                              color: Color(0xFF80D8FF),
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          SizedBox(width: 2),
-                          Icon(Icons.north_east_rounded,
-                              size: 11, color: Color(0xFF80D8FF)),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              Text(
-                priceTry,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                decoration: BoxDecoration(
-                  color: stockColor.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(999),
-                  border:
-                      Border.all(color: stockColor.withValues(alpha: 0.8)),
-                ),
-                child: Text(
-                  inStock ? 'Stokta' : 'Stok yok',
-                  style: TextStyle(
-                    color: stockColor,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Pazar fiyatları başlığı — gerçek/mock durumunu gösterir.
-class _MarketPricesHeader extends StatelessWidget {
-  const _MarketPricesHeader({required this.prices, this.llmResult});
-
-  final List<Map<String, dynamic>> prices;
-  final TagScanResult? llmResult;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasReal = prices.any((p) => p['isReal'] == true);
-    return Text(
-      hasReal ? 'Türkiye pazar yerleri · canlı fiyat' : 'Türkiye pazar yerleri · tahmini fiyat (mock)',
-      style: TextStyle(
-        color:
-            hasReal ? const Color(0xFFA5D6A7) : Colors.white.withValues(alpha: 0.75),
-        fontSize: 11.5,
-        fontWeight: FontWeight.w700,
-      ),
-    );
-  }
-}
-
-/// Pazar fiyatları alt açıklaması.
-class _MarketPricesFooter extends StatelessWidget {
-  const _MarketPricesFooter({required this.prices});
-
-  final List<Map<String, dynamic>> prices;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasReal = prices.any((p) => p['isReal'] == true);
-    return Text(
-      hasReal
-          ? '"Sitede ara" gerçek arama sayfasını açar.'
-          : 'Fiyatlar demo amaçlı üretilir. "Sitede ara" gerçek arama sayfasını açar.',
-      style: TextStyle(
-        color: Colors.white.withValues(alpha: 0.5),
-        fontSize: 10.5,
-        fontWeight: FontWeight.w500,
       ),
     );
   }
@@ -1359,10 +1146,11 @@ class _SecondaryPricesSection extends StatelessWidget {
                 child: Row(
                   children: [
                     Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: _categoryColor(p.category).withValues(alpha: 0.2),
+                        color:
+                            _categoryColor(p.category).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(

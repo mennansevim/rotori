@@ -1,8 +1,13 @@
-// Hava Durumu ekranı — hedef şehir için günlük tahmin (Open-Meteo, anahtar YOK).
+// Hava Durumu ekranı — **rota boyunca** gün gün hava (Open-Meteo, anahtar YOK).
 //
-// React viewer'daki WeatherStrip.tsx'in Flutter portu: 5+ günlük şerit,
-// emoji + etiket + ↑max ↓min + 💧yağış. Veri gerçek (Open-Meteo). Viewer
-// paletine uyumlu (Theme + ViewerPaletteScope), Türkçe UI, web + mobil.
+// Eskiden burada tek bir şehrin (ilk lat/lng'li destinasyon, yoksa Tokyo) ham
+// günlük tahmini listeleniyordu. Çok şehirli bir gezide bu yanlıştı: 5. gün
+// Kyoto'dayken Tokyo'nun havası gösteriliyordu.
+//
+// Artık liste planın kendi günlerinden türer ve her satır o gün **bulunulan
+// şehrin** tahminini taşır. Eşleştirme `domain/trip_forecast.dart` içindeki
+// saf `buildRouteForecast` ile yapılır — gün kartlarındaki hava rozeti de
+// aynı fonksiyonu kullanır, böylece iki yüzey sapamaz.
 //
 // Ağ çağrısı [weatherFetcherProvider] üzerinden yapılır; testlerde bu provider
 // sahte bir fonksiyonla override edilerek yüklenmiş durum ağsız render edilir.
@@ -12,6 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/l10n.dart';
 import '../../data/weather_service.dart';
+import '../../domain/trip_forecast.dart';
 import '../../domain/types.dart';
 import 'viewer_theme.dart';
 
@@ -85,60 +91,89 @@ class _WeatherView extends ConsumerWidget {
 
   final Trip trip;
 
-  /// İlk lat/lng'si olan destinasyon; yoksa Tokyo. (city, lat, lng) döner.
-  ({String city, double lat, double lng}) _destination() {
-    final dests = [...trip.preferences.destinations]
-      ..sort((a, b) => a.order.compareTo(b.order));
-    for (final d in dests) {
-      if (d.lat != null && d.lng != null) {
-        return (
-          city: d.city.isNotEmpty ? d.city : 'Tokyo',
-          lat: d.lat!,
-          lng: d.lng!,
-        );
-      }
-    }
-    return (city: 'Tokyo', lat: 35.68, lng: 139.65);
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = ViewerPalette.of(context);
     final s = LanguageScope.of(context);
-    final dest = _destination();
-    final coords = (lat: dest.lat, lng: dest.lng);
-    final async = ref.watch(forecastProvider(coords));
 
-    return Scaffold(
-      backgroundColor: palette.bg,
-      appBar: AppBar(
-        leading: const BackButton(),
-        title: Text(
-          s.s('weather.title'),
-          style: TextStyle(
-            color: palette.textPrimary,
-            fontWeight: FontWeight.w700,
-            fontSize: 17,
+    // Rotadaki her ayrı şehir için tek çağrı. `forecastProvider` koordinat
+    // bazında önbelleklidir; aynı şehri iki kez çekmeyiz.
+    final destinations = trip.preferences.destinations;
+    final targets = distinctForecastDestinations(destinations);
+
+    Widget scaffold(Widget body) => Scaffold(
+          backgroundColor: palette.bg,
+          appBar: AppBar(
+            leading: const BackButton(),
+            title: Text(
+              s.s('weather.title'),
+              style: TextStyle(
+                color: palette.textPrimary,
+                fontWeight: FontWeight.w700,
+                fontSize: 17,
+              ),
+            ),
+            backgroundColor: palette.card,
+            foregroundColor: palette.textPrimary,
+            elevation: 0,
           ),
+          body: body,
+        );
+
+    // Koordinatı olan hiçbir destinasyon yok — çekilecek bir şey de yok.
+    if (targets.isEmpty) {
+      return scaffold(
+        ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+          children: [_EmptyCard(palette: palette)],
         ),
-        backgroundColor: palette.card,
-        foregroundColor: palette.textPrimary,
-        elevation: 0,
-      ),
-      body: async.when(
-        loading: () => _Loading(palette: palette),
-        error: (_, __) => _ErrorView(
-          palette: palette,
-          onRetry: () => ref.invalidate(forecastProvider(coords)),
-        ),
-        data: (forecast) => _ForecastList(
-          trip: trip,
-          city: dest.city,
-          forecast: forecast,
-          palette: palette,
-        ),
-      ),
-    );
+      );
+    }
+
+    final requests = targets
+        .map((d) => (lat: d.lat!, lng: d.lng!))
+        .toList(growable: false);
+    final asyncs = requests.map((c) => ref.watch(forecastProvider(c))).toList();
+
+    if (asyncs.any((a) => a.isLoading)) {
+      return scaffold(_Loading(palette: palette));
+    }
+
+    // Kısmi hata toleransı: bir şehrin çağrısı düşerse ekranı boşaltmayız,
+    // yalnız o şehrin günleri veri-yok olarak görünür. Hepsi düştüyse hata.
+    if (asyncs.every((a) => a.hasError)) {
+      return scaffold(_ErrorView(
+        palette: palette,
+        onRetry: () {
+          for (final c in requests) {
+            ref.invalidate(forecastProvider(c));
+          }
+        },
+      ));
+    }
+
+    final byDestination = <String, List<DayForecast>>{};
+    for (var i = 0; i < targets.length; i++) {
+      final value = asyncs[i].valueOrNull;
+      if (value != null) byDestination[targets[i].id] = value;
+    }
+
+    // Günler üretilmemişse (taslak plan) gezi tarih aralığından türet —
+    // ekran yine rota-farkındalıklı kalır, boşalmaz.
+    final rows = trip.days.isNotEmpty
+        ? buildRouteForecast(
+            days: trip.days,
+            destinations: destinations,
+            forecastsByDestinationId: byDestination,
+          )
+        : buildRouteForecastFromDateRange(
+            startIso: trip.tripStart,
+            endIso: trip.tripEnd,
+            destinations: destinations,
+            forecastsByDestinationId: byDestination,
+          );
+
+    return scaffold(_RouteForecastList(rows: rows, palette: palette));
   }
 }
 
@@ -214,46 +249,41 @@ class _ErrorView extends StatelessWidget {
 // Veri: şehir başlığı + kart listesi + kaynak notu.
 // ---------------------------------------------------------------------------
 
-class _ForecastList extends StatelessWidget {
-  const _ForecastList({
-    required this.trip,
-    required this.city,
-    required this.forecast,
-    required this.palette,
-  });
+/// Rota boyunca gün gün hava — şehir başlıkları altında gruplanmış.
+class _RouteForecastList extends StatelessWidget {
+  const _RouteForecastList({required this.rows, required this.palette});
 
-  final Trip trip;
-  final String city;
-  final List<DayForecast> forecast;
+  final List<RouteDayForecast> rows;
   final ViewerPalette palette;
 
   @override
   Widget build(BuildContext context) {
-    final start = trip.tripStart;
-    final end = trip.tripEnd;
-
-    // Seyahat tarih aralığıyla kesişen günler; kesişen yoksa ilk 7 gün.
-    final overlapping = (start.isNotEmpty && end.isNotEmpty)
-        ? forecast
-            .where((f) => f.date.compareTo(start) >= 0 && f.date.compareTo(end) <= 0)
-            .toList()
-        : const <DayForecast>[];
-    final shown =
-        overlapping.isNotEmpty ? overlapping : forecast.take(7).toList();
-    final rangeMatched = overlapping.isNotEmpty;
-    final today = _todayIso();
     final s = LanguageScope.of(context);
+    final today = _todayIso();
+
+    if (rows.isEmpty) {
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+        children: [_EmptyCard(palette: palette)],
+      );
+    }
+
+    final segments = groupRouteForecastByCity(rows);
+    final cities = segments
+        .map((seg) => seg.city)
+        .where((c) => c.isNotEmpty)
+        .toList(growable: false);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
       children: [
         Row(
           children: [
-            const Text('📍', style: TextStyle(fontSize: 16)),
+            const Text('🗺️', style: TextStyle(fontSize: 16)),
             const SizedBox(width: 6),
             Expanded(
               child: Text(
-                city,
+                cities.isEmpty ? s.s('weather.title') : cities.join('  →  '),
                 style: TextStyle(
                   color: palette.textPrimary,
                   fontSize: 20,
@@ -265,24 +295,29 @@ class _ForecastList extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         Text(
-          rangeMatched
-              ? s.s('weather.forecastTravel')
-              : s.s('weather.forecastUpcoming'),
+          s.s('weather.routeSubtitle'),
           style: TextStyle(color: palette.textSecondary, fontSize: 13),
         ),
-        const SizedBox(height: 16),
-        if (shown.isEmpty)
-          _EmptyCard(palette: palette)
-        else
-          for (final f in shown)
+        const SizedBox(height: 18),
+        // Tek şehirli gezide blok başlığı üstteki büyük başlıkla aynı şeyi
+        // yazardı; gruplanacak bir şey de yok. O yüzden yalnız çok bloklu
+        // rotalarda başlık çizilir.
+        for (var i = 0; i < segments.length; i++) ...[
+          if (segments.length > 1) ...[
+            if (i > 0) const SizedBox(height: 22),
+            _CitySectionHeader(segment: segments[i], palette: palette),
+            const SizedBox(height: 10),
+          ],
+          for (final row in segments[i].days)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: _DayRow(
-                forecast: f,
+                row: row,
                 palette: palette,
-                isActive: f.date == today,
+                isActive: row.date == today,
               ),
             ),
+        ],
         const SizedBox(height: 8),
         Center(
           child: Text(
@@ -295,14 +330,96 @@ class _ForecastList extends StatelessWidget {
   }
 }
 
+/// Şehir bloğunun başlığı: ad + tarih aralığı + gün sayısı.
+class _CitySectionHeader extends StatelessWidget {
+  const _CitySectionHeader({required this.segment, required this.palette});
+
+  final RouteCitySegment segment;
+  final ViewerPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
+    final p = palette;
+    final hasCity = segment.city.isNotEmpty;
+    final title = hasCity ? segment.city : s.s('weather.unknownCity');
+    final range = _formatDateRange(segment.startDate, segment.endDate, s.lang);
+
+    return Row(
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+            color: hasCity ? p.accent : p.textMuted,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: p.textPrimary,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            '$range · ${s.p('weather.dayCount', {'n': '${segment.dayCount}'})}',
+            textAlign: TextAlign.right,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: p.textMuted,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// "15–17 Eki" / "Oct 15–17". Tek günlük blokta yalnız o gün yazılır.
+String _formatDateRange(String startIso, String endIso, AppLang lang) {
+  final a = DateTime.tryParse(startIso);
+  final b = DateTime.tryParse(endIso);
+  if (a == null || b == null) return '';
+  final months = L10n.monthsShortFor(lang);
+  final sameMonth = a.month == b.month && a.year == b.year;
+
+  if (a == b) {
+    return lang == AppLang.en
+        ? '${months[a.month]} ${a.day}'
+        : '${a.day} ${months[a.month]}';
+  }
+  if (sameMonth) {
+    return lang == AppLang.en
+        ? '${months[a.month]} ${a.day}–${b.day}'
+        : '${a.day}–${b.day} ${months[a.month]}';
+  }
+  return lang == AppLang.en
+      ? '${months[a.month]} ${a.day} – ${months[b.month]} ${b.day}'
+      : '${a.day} ${months[a.month]} – ${b.day} ${months[b.month]}';
+}
+
 class _DayRow extends StatelessWidget {
   const _DayRow({
-    required this.forecast,
+    required this.row,
     required this.palette,
     required this.isActive,
   });
 
-  final DayForecast forecast;
+  final RouteDayForecast row;
   final ViewerPalette palette;
   final bool isActive;
 
@@ -310,8 +427,12 @@ class _DayRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = LanguageScope.of(context);
     final lang = s.lang;
-    final (emoji, labelKey) = weatherInfo(forecast.code);
-    final (dayLabel, weekday) = _formatDay(forecast.date, lang);
+    final forecast = row.forecast;
+    // Veri yoksa uydurmuyoruz: nötr ikon + "veri yok" etiketi.
+    final (emoji, labelKey) = forecast == null
+        ? ('—', 'weather.noData')
+        : weatherInfo(forecast.code);
+    final (dayLabel, weekday) = _formatDay(row.date, lang);
     final tempStyle = TextStyle(
       color: palette.textPrimary,
       fontSize: 15,
@@ -333,7 +454,7 @@ class _DayRow extends StatelessWidget {
         children: [
           // Tarih.
           SizedBox(
-            width: 96,
+            width: 104,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -375,6 +496,17 @@ class _DayRow extends StatelessWidget {
                     weekday,
                     style: TextStyle(color: palette.textMuted, fontSize: 12),
                   ),
+                // Şehir artık blok başlığında; satırda tekrar edilmez.
+                Text(
+                  s.p('weather.dayNumber', {'n': '${row.dayNumber}'}),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: palette.textSecondary,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
@@ -395,9 +527,9 @@ class _DayRow extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                if (forecast.precipProb != null)
+                if (forecast?.precipProb != null)
                   Text(
-                    '💧${forecast.precipProb}%',
+                    '💧${forecast!.precipProb}%',
                     style: TextStyle(
                       color: palette.sky,
                       fontSize: 12,
@@ -408,17 +540,18 @@ class _DayRow extends StatelessWidget {
               ],
             ),
           ),
-          // Sıcaklıklar.
-          Row(
-            children: [
-              Text('↑${forecast.tempMax.round()}°', style: tempStyle),
-              const SizedBox(width: 8),
-              Text(
-                '↓${forecast.tempMin.round()}°',
-                style: tempStyle.copyWith(color: palette.textSecondary),
-              ),
-            ],
-          ),
+          // Sıcaklıklar — veri yoksa hiç gösterilmez.
+          if (forecast != null)
+            Row(
+              children: [
+                Text('↑${forecast.tempMax.round()}°', style: tempStyle),
+                const SizedBox(width: 8),
+                Text(
+                  '↓${forecast.tempMin.round()}°',
+                  style: tempStyle.copyWith(color: palette.textSecondary),
+                ),
+              ],
+            ),
         ],
       ),
     );

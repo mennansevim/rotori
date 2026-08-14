@@ -12,8 +12,10 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/debug_tools.dart';
 import 'core/l10n.dart';
 import 'core/supabase_client.dart' show currentUserProvider;
+import 'domain/experience_guides.dart';
 import 'data/exchange_rate_store.dart';
 import 'data/language_store.dart';
 import 'domain/city_transfers.dart';
@@ -39,6 +41,8 @@ import 'features/viewer/checklist_screen.dart';
 import 'features/viewer/compass_screen.dart';
 import 'features/viewer/day_map_screen.dart';
 import 'features/viewer/eats_screen.dart';
+import 'features/viewer/experience_detail_screen.dart';
+import 'features/viewer/experience_guide_screen.dart';
 import 'features/viewer/gps_sim_screen.dart';
 import 'features/viewer/japanese_phrases_screen.dart';
 import 'features/viewer/must_know_screen.dart';
@@ -47,6 +51,10 @@ import 'features/viewer/weather_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  // Bu hedef release derlenir (bkz. .claude/launch.json), o yüzden `kDebugMode`
+  // false. Geliştirici anahtarları (drawer'daki "Premium (debug)") bayrakla
+  // açılır; üretim girişi lib/main.dart bunu hiç çağırmaz.
+  enablePreviewDebugTools();
   final demo = _buildDemoTrip();
   _hydratePreviewCoordinates(demo);
 
@@ -251,6 +259,19 @@ class _PreviewApp extends ConsumerWidget {
           builder: (_, s) => _BudgetRoute(planId: s.pathParameters['id']!),
         ),
         GoRoute(
+          path: '/plans/:id/experiences',
+          builder: (_, s) => _ExperienceGuideRoute(
+            planId: s.pathParameters['id']!,
+          ),
+        ),
+        GoRoute(
+          path: '/plans/:id/experiences/:guideId',
+          builder: (_, s) => _ExperienceDetailRoute(
+            planId: s.pathParameters['id']!,
+            guideId: s.pathParameters['guideId']!,
+          ),
+        ),
+        GoRoute(
           path: '/plans/:id/checklist',
           builder: (_, s) => _ChecklistRoute(planId: s.pathParameters['id']!),
         ),
@@ -397,6 +418,60 @@ class _EatsRoute extends ConsumerWidget {
     final planAsync = ref.watch(planByIdProvider(planId));
     return planAsync.when(
       data: (trip) => EatsScreen(trip: trip),
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Scaffold(
+        body: Center(
+          child: Text(
+            LanguageScope.of(context).p('home.planLoadFailed', {'err': '$e'}),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Preview: eğlence rehberi indeksi — plan bağlamıyla, "Plana ekle" çipi açık.
+class _ExperienceGuideRoute extends ConsumerWidget {
+  const _ExperienceGuideRoute({required this.planId});
+  final String planId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final planAsync = ref.watch(planByIdProvider(planId));
+    return planAsync.when(
+      data: (trip) => ExperienceGuideScreen(trip: trip),
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Scaffold(
+        body: Center(
+          child: Text(
+            LanguageScope.of(context).p('home.planLoadFailed', {'err': '$e'}),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Preview: tek bir rehberin detayı. Normalde yalnız indeks satırına
+/// dokunarak açılıyor; doğrudan URL'i olmadan tek başına görüntülenemiyordu.
+class _ExperienceDetailRoute extends ConsumerWidget {
+  const _ExperienceDetailRoute({required this.planId, required this.guideId});
+  final String planId;
+  final String guideId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final guide = kExperienceGuides.firstWhere(
+      (g) => g.id == guideId,
+      orElse: () => kExperienceGuides.first,
+    );
+    final planAsync = ref.watch(planByIdProvider(planId));
+    return planAsync.when(
+      data: (trip) => ExperienceDetailScreen(guide: guide, trip: trip),
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       ),

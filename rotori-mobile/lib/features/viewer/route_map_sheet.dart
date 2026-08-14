@@ -1,8 +1,7 @@
 // Animasyonlu rota haritası — "Haritada gör" butonunun açtığı modal sayfa.
 //
-// Neden ayrı bir ekran: `day_map_screen.dart` çevrimdışı prewarm + Google raster
-// tile'lı "çalışma" haritası; burada amaç rotayı ANLATMAK. Sade (CartoDB
-// Positron / Dark Matter) bir zemin üzerinde:
+// Neden ayrı bir ekran: `day_map_screen.dart` etkileşimli "çalışma" haritası;
+// burada amaç rotayı ANLATMAK. Standart OSM raster zemini üzerinde:
 //   1) Kamera açılışta tüm durakları içine alacak şekilde `CameraFit.bounds`,
 //   2) Rota çizgisi baştan sona akıcı biçimde çizilir (tek AnimationController),
 //   3) Çizgi bir durağa ulaştığında o durağın kırmızı pini elastik "pop" ile
@@ -162,7 +161,7 @@ double _legLength(LatLng a, LatLng b) {
 /// Animasyonlu gün rotası haritasını modal bottom sheet olarak açar.
 ///
 /// [tileProvider] yalnızca testlerde verilir (ağ isteği bypass); üretimde
-/// null → [CachingTileProvider.shared].
+/// null → [RotoriTileProvider.shared].
 Future<void> showRouteMapSheet({
   required BuildContext context,
   required Trip trip,
@@ -409,7 +408,7 @@ class _AnimatedRouteMapState extends State<AnimatedRouteMap>
   @override
   Widget build(BuildContext context) {
     final s = LanguageScope.of(context);
-    final provider = widget.tileProvider ?? CachingTileProvider.shared;
+    final provider = widget.tileProvider ?? RotoriTileProvider.shared;
 
     return Stack(
       children: [
@@ -448,8 +447,6 @@ class _AnimatedRouteMapState extends State<AnimatedRouteMap>
   }
 
   Widget _buildMap(TileProvider provider) {
-    final isDark = palette.brightness == Brightness.dark;
-
     // Otel de kadraja girsin — aksi halde kamera duraklara sığar ve günün
     // başladığı yer ekranın dışında kalır.
     final framed = <LatLng>[
@@ -498,16 +495,10 @@ class _AnimatedRouteMapState extends State<AnimatedRouteMap>
       options: options,
       children: [
         TileLayer(
-          // CartoDB Positron / Dark Matter — etiketleri ve POI kalabalığı
-          // seyrek, gri tonlu sade zemin. Kırmızı rota üstünde tek vurgu olur.
-          // Anahtar gerekmez; OSM verisi + CARTO stili (attribution zorunlu).
-          urlTemplate: isDark
-              ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-              : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-          subdomains: const ['a', 'b', 'c', 'd'],
+          // Standart OSM raster katmanı. Toplu indirme ve disk cache yoktur.
+          urlTemplate: kRotoriTileUrlTemplate,
           userAgentPackageName: 'com.mennansevim.rotori',
-          retinaMode: RetinaMode.isHighDensity(context),
-          maxZoom: 20,
+          maxZoom: 19,
           tileProvider: provider,
         ),
         // Yalnızca rota katmanı her karede yeniden kurulur; tile katmanı bu
@@ -919,7 +910,7 @@ class _ZoomButton extends StatelessWidget {
 }
 
 /// Harita üstündeki yüzen aksiyon barı — tekrar oynat, rotaya sığdır,
-/// Google Maps'te aç. Altında zorunlu CARTO/OSM atıfı.
+/// Google Maps'te aç. Altında zorunlu OSM atfı.
 class _MapActionBar extends StatelessWidget {
   const _MapActionBar({
     required this.palette,

@@ -83,10 +83,10 @@ const List<DietaryOption> kDietaryOptions = [
     countries: ['JP'],
   ),
   DietaryOption(
-    id: 'chicken_only',
-    label: 'diet.chickenOnly.label',
+    id: 'poultry_ok',
+    label: 'diet.poultryOk.label',
     emoji: '🍗',
-    description: 'diet.chickenOnly.desc',
+    description: 'diet.poultryOk.desc',
   ),
   DietaryOption(
     id: 'seafood_ok',
@@ -167,6 +167,28 @@ List<String> dietaryTagsFromSensitivities(
   return out.toList();
 }
 
+/// Hayvansal ürün TERCİHLERİ (kısıt değil). Üçü birlikte seçilebilir; yalnızca
+/// vegan/vejetaryen ile çelişirler.
+const Set<String> kAnimalProductChoices = {
+  'meat_ok',
+  'seafood_ok',
+  'poultry_ok',
+};
+
+/// Kaydedilmiş beslenme etiketlerini güncel kimliklere taşır.
+///
+/// `chicken_only` → `poultry_ok`: eski kimlik "sadece tavuk" (kırmızı eti
+/// dışla) anlamı taşıyordu ama bu anlam hiçbir yerde uygulanmıyordu ve
+/// arayüzde "Tavuk / hindi" olarak görünüyordu. Kullanıcının kastettiği
+/// "kanatlı da severim"di; kimlik de artık bunu söylüyor.
+List<String> normalizeDietaryTags(Iterable<String> tags) {
+  final out = <String>{};
+  for (final tag in tags) {
+    out.add(tag == 'chicken_only' ? 'poultry_ok' : tag);
+  }
+  return out.toList(growable: false);
+}
+
 class DietarySelectionUpdate {
   const DietarySelectionUpdate({
     required this.selected,
@@ -188,18 +210,21 @@ DietarySelectionUpdate toggleDietaryTag(
     return DietarySelectionUpdate(selected: selected.toList(growable: false));
   }
 
-  const animalProductChoices = {'meat_ok', 'seafood_ok', 'chicken_only'};
   final conflicts = <String>{};
   if (toggled == 'vegan') {
-    conflicts.addAll({...animalProductChoices, 'vegetarian'});
+    conflicts.addAll({...kAnimalProductChoices, 'vegetarian'});
   } else if (toggled == 'vegetarian') {
-    conflicts.addAll({...animalProductChoices, 'vegan'});
-  } else if (toggled == 'meat_ok') {
-    conflicts.addAll({'vegan', 'vegetarian', 'chicken_only'});
-  } else if (toggled == 'seafood_ok') {
+    conflicts.addAll({...kAnimalProductChoices, 'vegan'});
+  } else if (kAnimalProductChoices.contains(toggled)) {
+    // Et / kanatlı / deniz ürünü BİRBİRİNİ DIŞLAMAZ.
+    //
+    // **Why:** Eskiden `meat_ok` ile `chicken_only` çelişik sayılıyordu, çünkü
+    // etiketin adı "sadece tavuk" idi. Ama arayüzde "Tavuk / hindi" yazıyor ve
+    // kullanıcı ikisini de sevebiliyor. Dahası bu dışlamanın hiçbir karşılığı
+    // yoktu: yemek değerlendirmesi (`_conflicts`, japanese_dishes.dart) bu üç
+    // etiketi hiç okumuyor — üçü de yalnızca POZİTİF tercih. Tek gerçek
+    // çelişki vegan/vejetaryen ile olan.
     conflicts.addAll({'vegan', 'vegetarian'});
-  } else if (toggled == 'chicken_only') {
-    conflicts.addAll({'vegan', 'vegetarian', 'meat_ok'});
   }
   final removed = selected.where(conflicts.contains).toList(growable: false);
   selected.removeAll(conflicts);

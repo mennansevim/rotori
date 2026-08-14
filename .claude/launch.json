@@ -2,6 +2,17 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "website",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd rotori-website && python3 -m http.server 5199 --bind 127.0.0.1"
+      ],
+      "port": 5199,
+      "url": "http://127.0.0.1:5199",
+      "autoPort": false
+    },
+    {
       "name": "planner",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
@@ -28,10 +39,10 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "cd rotori-mobile && flutter run -d web-server --web-hostname 127.0.0.1 --web-port 8091 -t lib/preview_main.dart"
+        "cd rotori-mobile && flutter run -d web-server --release --web-hostname 127.0.0.1 --web-port 8092 -t lib/preview_main.dart"
       ],
-      "port": 8091,
-      "url": "http://127.0.0.1:8091/",
+      "port": 8092,
+      "url": "http://127.0.0.1:8092/",
       "autoPort": false
     },
     {

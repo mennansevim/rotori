@@ -127,6 +127,27 @@ class MoveActivityToDay extends PlanEditCommand {
   final bool preserveExistingTimes;
 }
 
+/// Kullanıcının bir durağı kilitlemesi / kilidini açması.
+///
+/// Kilitli durak yeniden üretim ve optimizasyonda gününü ve saatini korur —
+/// kullanıcı bileti almış olabilir. Sistem kilitleri (uçuş, otel, saatli
+/// giriş) bu komutla değiştirilemez; bkz. [TimelineItem.canUserToggleLock].
+class SetActivityUserLock extends PlanEditCommand {
+  const SetActivityUserLock({
+    required this.dayNumber,
+    required this.activityId,
+    required this.locked,
+    required this.reason,
+  });
+
+  final int dayNumber;
+  final String activityId;
+  final bool locked;
+
+  /// Kilit rozetinin ve ekran okuyucunun göstereceği yerelleştirilmiş metin.
+  final String reason;
+}
+
 class UpdateActivityTime extends PlanEditCommand {
   const UpdateActivityTime({
     required this.dayNumber,
@@ -418,6 +439,7 @@ class PlanScheduleEngine {
     final failure = switch (command) {
       MoveActivityWithinDay command => _moveWithinDay(trip, command),
       MoveActivityToDay command => _moveToDay(trip, command),
+      SetActivityUserLock command => _setUserLock(trip, command),
       UpdateActivityTime command => _updateTime(trip, command),
       UpdateActivityDuration command => _updateDuration(trip, command),
       UpdateActivitySchedule command => _updateSchedule(trip, command),
@@ -655,6 +677,24 @@ class PlanScheduleEngine {
     return command.preserveExistingTimes
         ? _shiftForwardOnly(target, targetIndex + 1)
         : _reschedule(target, targetIndex + 1);
+  }
+
+  PlanEditFailure? _setUserLock(Trip trip, SetActivityUserLock command) {
+    final day = _day(trip, command.dayNumber);
+    if (day == null) return _missingDay(command.dayNumber);
+    final index = day.items.indexWhere((item) => item.id == command.activityId);
+    if (index < 0) return _missingActivity(command.activityId);
+    final item = day.items[index];
+    // Sistem kilidi olan durak (uçuş saati, otel check-in'i, saatli giriş)
+    // kullanıcı tarafından açılamaz: kilit plan verisinden türüyor, elle
+    // açmak veriyle çelişen bir plan üretirdi.
+    if (!item.canUserToggleLock) return _locked(item);
+    if (command.locked) {
+      item.pinByUser(reason: command.reason);
+    } else {
+      item.unpinByUser();
+    }
+    return null;
   }
 
   PlanEditFailure? _updateTime(Trip trip, UpdateActivityTime command) {

@@ -662,6 +662,7 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
         constraints: original.constraints,
         preferences: original.preferences,
         weights: original.weights,
+        field: original.field,
         preferredActivityOrder: original.preferredActivityOrder,
       );
 

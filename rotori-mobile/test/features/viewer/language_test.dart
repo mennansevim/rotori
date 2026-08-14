@@ -116,10 +116,11 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.text('💰 Budget'), findsOneWidget);
-      expect(find.text('Converter'), findsOneWidget);
       expect(find.text('Edit rate'), findsOneWidget);
+      // Çevirici bölümü kaldırıldı; dil kontrolü artık pasta başlığı üzerinden.
+      expect(find.text('Cost distribution'), findsOneWidget);
       // Türkçe karşılıkları görünmemeli.
-      expect(find.text('Çevirici'), findsNothing);
+      expect(find.text('Gider dağılımı'), findsNothing);
       expect(find.text('💰 Bütçe'), findsNothing);
     });
 
@@ -134,7 +135,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.text('💰 Bütçe'), findsOneWidget);
-      expect(find.text('Çevirici'), findsOneWidget);
+      expect(find.text('Gider dağılımı'), findsOneWidget);
     });
   });
 }
