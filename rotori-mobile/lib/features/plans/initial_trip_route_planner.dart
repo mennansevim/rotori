@@ -19,12 +19,17 @@ Future<Trip> optimizeInitialTripRoutes({
   required Trip trip,
   required InitialRoutePreviewBuilder buildPreview,
   int planVersion = 1,
+  Set<int>? dayNumbers,
+  bool useInputOrderAsHint = false,
 }) async {
   var optimized = Trip.fromJson(trip.toJson());
   final destinations = [...optimized.preferences.destinations]
     ..sort((a, b) => a.order.compareTo(b.order));
 
   for (final sourceDay in [...optimized.days]) {
+    if (dayNumbers != null && !dayNumbers.contains(sourceDay.dayNumber)) {
+      continue;
+    }
     if (!_isOptimizableSightseeingDay(sourceDay)) continue;
 
     final destination = getDestinationForDate(destinations, sourceDay.date);
@@ -82,6 +87,9 @@ Future<Trip> optimizeInitialTripRoutes({
                 optimized.preferences.maxStepsPerDay == null ? 180 : 120,
             partySize: optimized.preferences.partySize ?? 1,
           ),
+          preferredActivityOrder: useInputOrderAsHint
+              ? day.items.map((item) => item.id).toList(growable: false)
+              : const [],
         ),
       );
       optimized = preview.optimizedTrip;

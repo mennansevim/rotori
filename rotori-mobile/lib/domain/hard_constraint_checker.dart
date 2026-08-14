@@ -147,7 +147,7 @@ class RouteProgress {
 // ---------------------------------------------------------------------------
 
 class HardConstraintChecker {
-  const HardConstraintChecker({
+  HardConstraintChecker({
     required this.constraints,
     required this.preferences,
     this.field,
@@ -158,6 +158,11 @@ class HardConstraintChecker {
 
   /// `null` ise yalnız v2 kapıları uygulanır.
   final FieldRealityContext? field;
+
+  /// Beam araması aynı matristeki aynı bacağı, aynı kalkış anında birçok kez
+  /// değerlendirir. Saha modeli saf ve bağlam istek boyunca değişmez olduğu
+  /// için sonucu checker ömrü boyunca güvenle yeniden kullanabiliriz.
+  final Map<_RealisedTransitCacheKey, RealisedTransit?> _transitCache = {};
 
   /// Tüm ikili kapılar. İlk ihlalde döner — sıralama en ucuzdan en pahalıya.
   HardConstraintViolation? check(PlacementCandidate candidate) {
@@ -302,6 +307,17 @@ class HardConstraintChecker {
     if (context == null) {
       return RealisedTransit(option: option, disclaimers: const {});
     }
+    final cacheKey = _RealisedTransitCacheKey(
+      option: option,
+      departure: departure,
+      fromId: from.id,
+      fromName: from.name,
+      toId: to.id,
+      toName: to.name,
+    );
+    if (_transitCache.containsKey(cacheKey)) {
+      return _transitCache[cacheKey];
+    }
     final outcome = context.transitModel.evaluate(
       option,
       departure: departure,
@@ -313,8 +329,11 @@ class HardConstraintChecker {
       walkingMultiplier: context.walkingCrowdMultiplier,
       passCoversThisLeg: context.passCoversAllLegs,
     );
-    if (!outcome.isFeasible) return null;
-    return RealisedTransit(
+    if (!outcome.isFeasible) {
+      _transitCache[cacheKey] = null;
+      return null;
+    }
+    final realised = RealisedTransit(
       option: option.copyWith(
         doorToDoorMinutes: outcome.doorToDoorMinutes,
         walkingMinutes: outcome.walkingMinutes,
@@ -326,7 +345,47 @@ class HardConstraintChecker {
       trafficRiskMultiplier: outcome.trafficRiskMultiplier,
       effectiveService: outcome.effectiveService,
     );
+    _transitCache[cacheKey] = realised;
+    return realised;
   }
+}
+
+class _RealisedTransitCacheKey {
+  const _RealisedTransitCacheKey({
+    required this.option,
+    required this.departure,
+    required this.fromId,
+    required this.fromName,
+    required this.toId,
+    required this.toName,
+  });
+
+  final TransportOption option;
+  final DateTime departure;
+  final String fromId;
+  final String fromName;
+  final String toId;
+  final String toName;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _RealisedTransitCacheKey &&
+      identical(option, other.option) &&
+      departure == other.departure &&
+      fromId == other.fromId &&
+      fromName == other.fromName &&
+      toId == other.toId &&
+      toName == other.toName;
+
+  @override
+  int get hashCode => Object.hash(
+        identityHashCode(option),
+        departure,
+        fromId,
+        fromName,
+        toId,
+        toName,
+      );
 }
 
 /// Saha düzeltmesi uygulanmış ulaşım seçeneği + UI sinyalleri.
@@ -463,6 +522,21 @@ class CostFunction {
       TimeOfDayPreference.evening => start.hour >= 17,
     };
     return isPreferred ? 0 : 12;
+  }
+
+  /// Semantik bir aday sırayı beam için arama ipucuna çevirir. İpucu hiçbir
+  /// aktiviteyi sabitlemez; yalnız önerilen pozisyondan uzaklaşmayı küçük bir
+  /// maliyetle işaretler. Nihai kabul dış objective skoruyla ayrıca yapılır.
+  double orderHintPenalty(
+    List<String> preferredOrder,
+    int scheduledCount,
+    String activityId,
+  ) {
+    if (preferredOrder.isEmpty) return 0;
+    final preferredIndex = preferredOrder.indexOf(activityId);
+    if (preferredIndex < 0) return 0;
+    return (preferredIndex - scheduledCount).abs() *
+        config.orderHintDeviationPenalty;
   }
 
   double clusterBreakPenalty(

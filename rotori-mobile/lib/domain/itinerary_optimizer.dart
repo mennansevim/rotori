@@ -200,6 +200,7 @@ class OptimizerConfig {
     this.walkingTimeToleranceMinutes = 5,
     this.walkingFatigueThresholdMinutes = 90,
     this.clusterReentryPenalty = 120,
+    this.orderHintDeviationPenalty = 2,
     this.localImprovementPasses = 3,
     this.allowActivityDropping = false,
   });
@@ -212,6 +213,10 @@ class OptimizerConfig {
   final int walkingTimeToleranceMinutes;
   final int walkingFatigueThresholdMinutes;
   final double clusterReentryPenalty;
+
+  /// Dışarıdan gelen sıra adayı için yumuşak sapma maliyeti. Hard constraint
+  /// değildir; daha iyi fiziksel rota gerektiğinde motor öneriden ayrılır.
+  final double orderHintDeviationPenalty;
   final int localImprovementPasses;
 
   /// Kapalıyken (varsayılan) davranış değişmez: sabit-olmayan aktiviteler de
@@ -235,7 +240,9 @@ class OptimizationRequest {
     this.preferences = const RoutePreferences(),
     OptimizationWeights? weights,
     this.field,
+    List<String> preferredActivityOrder = const [],
   })  : activities = List.unmodifiable(activities),
+        preferredActivityOrder = List.unmodifiable(preferredActivityOrder),
         weights =
             weights ?? OptimizationWeights.forProfile(preferences.profile);
 
@@ -244,6 +251,11 @@ class OptimizationRequest {
   final DayRouteConstraints constraints;
   final RoutePreferences preferences;
   final OptimizationWeights weights;
+
+  /// Beam aramasını yönlendiren, fakat fizibiliteyi belirlemeyen sıra adayı.
+  /// LLM gibi dış aday üreticiler bu alanı kullanır; boşken v3 davranışı aynen
+  /// korunur.
+  final List<String> preferredActivityOrder;
 
   /// v3 saha bağlamı. `null` iken motor v2 davranışını birebir korur —
   /// mevcut üretim kalite kapıları tek seferde değişmez.
@@ -650,6 +662,7 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
         constraints: original.constraints,
         preferences: original.preferences,
         weights: original.weights,
+        preferredActivityOrder: original.preferredActivityOrder,
       );
 
   /// İstek başına bir kez kurulan çekirdek. Hard kısıtlar ve maliyet modeli
@@ -1054,6 +1067,11 @@ class BeamSearchItineraryOptimizer implements ItineraryOptimizer {
         (fatigue - state.fatigue) * request.weights.walking +
         clusterBreak * request.weights.clusterBreak +
         complexity * request.weights.complexity +
+        kernel.cost.orderHintPenalty(
+          request.preferredActivityOrder,
+          state.scheduled.length,
+          activity.id,
+        ) +
         kernel.cost.preferredTimePenalty(activity, start);
 
     final leg = _leg(

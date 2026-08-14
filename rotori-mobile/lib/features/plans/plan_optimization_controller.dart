@@ -23,6 +23,7 @@ class DayOptimizationInput {
     required this.planVersion,
     required this.constraints,
     this.preferences = const RoutePreferences(),
+    this.preferredActivityOrder = const [],
   });
 
   final Trip trip;
@@ -30,6 +31,7 @@ class DayOptimizationInput {
   final int planVersion;
   final DayRouteConstraints constraints;
   final RoutePreferences preferences;
+  final List<String> preferredActivityOrder;
 }
 
 class RouteSummary {
@@ -277,6 +279,7 @@ class PlanOptimizationController
       routeMatrix: matrix,
       constraints: input.constraints,
       preferences: input.preferences,
+      preferredActivityOrder: input.preferredActivityOrder,
     );
     final result = await ref.read(itineraryOptimizerProvider).optimize(request);
     if (!result.isSuccess || result.metrics == null) {
@@ -691,6 +694,7 @@ String _cacheKey(
     input.trip.id,
     input.planVersion,
     _activityHash(day),
+    _stableHash(input.preferredActivityOrder.join('\u0000')),
     input.preferences.profile.name,
     matrixVersion,
   ].join(':');

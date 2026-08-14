@@ -17,11 +17,13 @@ import '../../../core/l10n.dart';
 import '../../../data/crash_reporter.dart';
 import '../../../data/language_store.dart';
 import '../../../data/plans_repository.dart';
+import '../../../data/route_review_client.dart';
 import '../../../data/telemetry_service.dart';
 import '../../../domain/city_places.dart';
 import '../../../domain/dietary.dart';
 import '../../../domain/plan_generation.dart';
 import '../../../domain/route_analytics.dart';
+import '../../../domain/route_review.dart';
 import '../../../domain/route_sanity.dart';
 import '../../../domain/types.dart';
 import '../../viewer/viewer_theme.dart';
@@ -254,6 +256,7 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
     );
     var stage = 'build';
     Trip? trip;
+    _LlmReviewReport? llmReport;
 
     try {
       // İlk taslak hızlı ve deterministik üretilir; kaydedilmeden önce aşağıda
@@ -292,6 +295,16 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
             .buildInitialPreview,
       );
 
+      // LLM incelemesi — deterministik rota kurulduktan SONRA çalışır ve
+      // yalnız mevcut duraklar için sıra adayı önerir.
+      //
+      // Öneri plan motorundan geçmek zorunda. Ağ hatası, zaman aşımı veya
+      // geçersiz bir öneride deterministik plan aynen kalır; üretim LLM'e
+      // bağımlı değildir.
+      stage = 'llm_review';
+      llmReport = await _reviewWithLlm(trip, lang);
+      trip = llmReport.trip;
+
       // Repo yokken (önizleme/oturumsuz) viewer planı buradan okur.
       ref.read(draftTripProvider.notifier).state = trip;
 
@@ -305,10 +318,13 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
 
       stopwatch.stop();
       try {
-        final metrics = RouteAnalyticsSnapshot.metrics(
-          trip,
-          elapsedMs: stopwatch.elapsedMilliseconds,
-        );
+        final metrics = {
+          ...RouteAnalyticsSnapshot.metrics(
+            trip,
+            elapsedMs: stopwatch.elapsedMilliseconds,
+          ),
+          ...llmReport.toMetrics(),
+        };
         await telemetry.routeGenerationSucceeded(
           attemptId: attemptId,
           requestJson: requestJson,
@@ -373,6 +389,84 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
   }
 
   // --- build ----------------------------------------------------------------
+
+  /// Planı LLM'e inceletir ve kabul edilen önerileri uygular.
+  ///
+  /// Her hata yutulur: dönen değer ya iyileştirilmiş plan ya da girdinin
+  /// aynısıdır. Çağıran akış bu adımın başarısız olabileceğini varsayar.
+  Future<_LlmReviewReport> _reviewWithLlm(Trip trip, AppLang lang) async {
+    final client = ref.read(routeReviewClientProvider);
+    final candidateDays = routeReviewCandidateDays(trip);
+    if (client == null || candidateDays.isEmpty) {
+      return _LlmReviewReport(
+        trip: trip,
+        status: VerifiedRouteReviewStatus.skippedByPolicy,
+      );
+    }
+    final stopwatch = Stopwatch()..start();
+    try {
+      final payload = buildRouteReviewPayload(
+        trip: trip,
+        languageCode: lang.code,
+        dayNumbers: candidateDays,
+      );
+      final call =
+          await client.review(payload).timeout(const Duration(seconds: 8));
+      if (!call.review.hasSuggestions) {
+        stopwatch.stop();
+        return _LlmReviewReport(
+          trip: trip,
+          status: VerifiedRouteReviewStatus.noSuggestion,
+          elapsedMs: stopwatch.elapsedMilliseconds,
+          cacheHit: call.cacheHit,
+          model: call.model,
+          promptVersion: call.promptVersion,
+          providerElapsedMs: call.providerElapsedMs,
+          inputTokens: call.inputTokens,
+          outputTokens: call.outputTokens,
+        );
+      }
+
+      final result = await verifyRouteReviewCandidate(
+        baseline: trip,
+        review: call.review,
+        optimizeCandidate: (candidate, affectedDays) =>
+            optimizeInitialTripRoutes(
+          trip: candidate,
+          dayNumbers: affectedDays,
+          useInputOrderAsHint: true,
+          buildPreview: ref
+              .read(planOptimizationControllerProvider.notifier)
+              .buildInitialPreview,
+        ),
+      );
+      stopwatch.stop();
+      return _LlmReviewReport(
+        trip: result.trip,
+        status: result.status,
+        elapsedMs: stopwatch.elapsedMilliseconds,
+        cacheHit: call.cacheHit,
+        model: call.model,
+        promptVersion: call.promptVersion,
+        providerElapsedMs: call.providerElapsedMs,
+        inputTokens: call.inputTokens,
+        outputTokens: call.outputTokens,
+        suggestedDayCount: call.review.days.length,
+        appliedDayCount: result.appliedDays.length,
+        rejectedDayCount: result.rejectedDays.length,
+        baselineScore: result.baselineScore,
+        candidateScore: result.candidateScore,
+        improvementPercent: result.improvementPercent,
+      );
+    } on Object {
+      stopwatch.stop();
+      return _LlmReviewReport(
+        trip: trip,
+        status: VerifiedRouteReviewStatus.unavailable,
+        elapsedMs: stopwatch.elapsedMilliseconds,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -470,4 +564,62 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
       ),
     );
   }
+}
+
+class _LlmReviewReport {
+  const _LlmReviewReport({
+    required this.trip,
+    required this.status,
+    this.elapsedMs,
+    this.cacheHit = false,
+    this.model,
+    this.promptVersion = routeReviewPromptVersion,
+    this.providerElapsedMs,
+    this.inputTokens,
+    this.outputTokens,
+    this.suggestedDayCount = 0,
+    this.appliedDayCount = 0,
+    this.rejectedDayCount = 0,
+    this.baselineScore,
+    this.candidateScore,
+    this.improvementPercent,
+  });
+
+  final Trip trip;
+  final VerifiedRouteReviewStatus status;
+  final int? elapsedMs;
+  final bool cacheHit;
+  final String? model;
+  final String promptVersion;
+  final int? providerElapsedMs;
+  final int? inputTokens;
+  final int? outputTokens;
+  final int suggestedDayCount;
+  final int appliedDayCount;
+  final int rejectedDayCount;
+  final RouteReviewScore? baselineScore;
+  final RouteReviewScore? candidateScore;
+  final double? improvementPercent;
+
+  Map<String, dynamic> toMetrics() => {
+        'llmReviewStatus': status.name,
+        'llmCalled': status != VerifiedRouteReviewStatus.skippedByPolicy,
+        'llmCacheHit': cacheHit,
+        'llmPromptVersion': promptVersion,
+        if (model != null) 'llmModel': model,
+        if (elapsedMs != null) 'llmElapsedMs': elapsedMs,
+        if (providerElapsedMs != null)
+          'llmProviderElapsedMs': providerElapsedMs,
+        if (inputTokens != null) 'llmInputTokens': inputTokens,
+        if (outputTokens != null) 'llmOutputTokens': outputTokens,
+        'llmSuggestedDayCount': suggestedDayCount,
+        'llmAppliedDayCount': appliedDayCount,
+        'llmRejectedDayCount': rejectedDayCount,
+        if (baselineScore != null)
+          'llmBaselineObjective': baselineScore!.objective,
+        if (candidateScore != null)
+          'llmCandidateObjective': candidateScore!.objective,
+        if (improvementPercent != null)
+          'llmImprovementPercent': improvementPercent,
+      };
 }

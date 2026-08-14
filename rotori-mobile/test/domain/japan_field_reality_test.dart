@@ -805,6 +805,45 @@ void main() {
       expect(outcome.doorToDoorMinutes, 30);
     });
 
+    test('checker aynı bacak ve kalkış için saha sonucunu yeniden kullanır',
+        () {
+      final day = DateTime(2026, 10, 15);
+      final checker = HardConstraintChecker(
+        constraints: DayRouteConstraints(
+          startLocation: _hotel,
+          endLocation: _hotel,
+          availableStartTime: DateTime(2026, 10, 15, 7),
+          availableEndTime: DateTime(2026, 10, 15, 22),
+        ),
+        preferences: const RoutePreferences(),
+        field: FieldRealityContext(travelDate: day),
+      );
+      final option = busOption();
+      final departure = DateTime(2026, 10, 15, 8);
+
+      final first = checker.realiseTransit(
+        option: option,
+        departure: departure,
+        from: _hotel,
+        to: _quietStop,
+      );
+      final repeated = checker.realiseTransit(
+        option: option,
+        departure: departure,
+        from: _hotel,
+        to: _quietStop,
+      );
+      final anotherDeparture = checker.realiseTransit(
+        option: option,
+        departure: departure.add(const Duration(minutes: 1)),
+        from: _hotel,
+        to: _quietStop,
+      );
+
+      expect(identical(first, repeated), isTrue);
+      expect(identical(first, anotherDeparture), isFalse);
+    });
+
     test('picker otobüs seçeneğine trafik uyarısı ekler', () {
       final bus = cityTransitionOptionsFor(
         fromCity: 'Tokyo',

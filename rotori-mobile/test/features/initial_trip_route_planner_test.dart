@@ -5,6 +5,7 @@ import 'package:rotori/data/route_matrix_remote.dart';
 import 'package:rotori/domain/plan_generation.dart';
 import 'package:rotori/domain/route_execution.dart';
 import 'package:rotori/domain/route_matrix.dart';
+import 'package:rotori/domain/types.dart';
 import 'package:rotori/features/plans/initial_trip_route_planner.dart';
 import 'package:rotori/features/plans/plan_optimization_controller.dart';
 
@@ -87,6 +88,37 @@ void main() {
         isTrue,
       );
     }
+  });
+
+  test('aday yeniden optimizasyonu yalnız etkilenen günü değiştirir', () async {
+    final original = buildTripFromCities(
+      cityKeys: const ['tokyo'],
+      startYmd: '2026-10-01',
+      endYmd: '2026-10-07',
+    );
+    final target = original.days.firstWhere(
+      (day) =>
+          day.items.length >= 2 &&
+          !day.items.any((item) => item.kind == TimelineItemKind.transport),
+    );
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    final optimized = await optimizeInitialTripRoutes(
+      trip: original,
+      dayNumbers: {target.dayNumber},
+      useInputOrderAsHint: true,
+      buildPreview: container
+          .read(planOptimizationControllerProvider.notifier)
+          .buildInitialPreview,
+    );
+
+    expect(
+      optimized.days
+          .where((day) => day.routeExecutionSnapshot != null)
+          .map((day) => day.dayNumber),
+      [target.dayNumber],
+    );
   });
 }
 
