@@ -111,7 +111,7 @@
         "trafficRiskMultiplier": {
           "type": "number",
           "minimum": 1,
-          "description": "Uygulanan trafik çarpanı. Peak (hafta içi 07:00-09:30 / 17:00-19:30) 1.3; diğer 1.1."
+          "description": "Uygulanan trafik çarpanı. Hafta içi peak (07:00-09:30 / 17:00-19:30) 1.3; hafta içi off-peak 1.1; hafta sonu ve resmî tatil leisure riski 1.15."
         },
         "stationNavigationBufferMin": {
           "type": "integer",

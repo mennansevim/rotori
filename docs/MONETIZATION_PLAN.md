@@ -28,7 +28,7 @@ Kod tabanından doğrulanan gerçekler:
 | Tarama kotası | **Çalışıyor, sunucuda zorlanıyor.** free 10 / premium 100, `tag_cache` tekrar çağrıyı önlüyor | `0008_daily_scans.sql`, `supabase/functions/parse-price-tag/index.ts:176` |
 | Rota optimizasyonu kilidi | **Coming-soon duvarı, satış değil.** Kilit istemcide → bypass edilebilir | `lib/core/l10n.dart:2646`, `lib/features/plans/plan_viewer_screen.dart:4055` |
 | Optimizasyon kazanç verisi | **Var.** `totalTravelMinutes` öncesi/sonrası hesaplanıyor | `lib/features/plans/plan_optimization_controller.dart:44` |
-| Offline tile önbelleği | **Var ama tek gün.** `prewarmTiles()` yazılmış, 400 tile üst sınırı | `lib/features/viewer/offline_tile_provider.dart:133` |
+| Offline tile önbelleği | **Yok.** Sağlayıcı politikası nedeniyle prewarm ve disk cache kaldırıldı; harita online | `lib/features/viewer/offline_tile_provider.dart` |
 | Lokalizasyon | **%100 iki dilli.** TR 1240 / EN 1240 anahtar | `lib/core/l10n.dart` |
 | Gezi limiti | **Yok.** Sınırsız gezi oluşturulabiliyor | `lib/features/plans/plans_list_screen.dart` |
 | Sosyal kanal | **Açık, erken aşama.** @japonyaruyasi yayında (10–15 video), ~1000 video arşivi + otomatik hat kurulu ama hat yalnızca 2 gönderi yapmış; `topic` otomasyonu `enabled: false` | `rotori-social/data/instagram_uploads.jsonl`, `automation_config.json` |
