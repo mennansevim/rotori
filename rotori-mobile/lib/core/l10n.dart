@@ -63,7 +63,44 @@ class L10n {
   /// 1-index'li gün adları (DateTime.weekday: 1=Pzt..7=Paz; index 0 boş).
   static List<String> weekdaysFor(AppLang lang) =>
       lang == AppLang.en ? _enWeekdays : _trWeekdays;
+
+  /// Kısa ay adları (1-index'li; index 0 boş). Dar başlıklarda tam ad satırı
+  /// taşırdığı için kullanılır: "15–17 Eki".
+  static List<String> monthsShortFor(AppLang lang) =>
+      lang == AppLang.en ? _enMonthsShort : _trMonthsShort;
 }
+
+const List<String> _trMonthsShort = [
+  '',
+  'Oca',
+  'Şub',
+  'Mar',
+  'Nis',
+  'May',
+  'Haz',
+  'Tem',
+  'Ağu',
+  'Eyl',
+  'Eki',
+  'Kas',
+  'Ara',
+];
+
+const List<String> _enMonthsShort = [
+  '',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
 
 // ---------------------------------------------------------------------------
 // Tarih dizileri.
@@ -553,7 +590,10 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Food guide'
   },
   'viewer.tt.eats': {AppLang.tr: 'Rotori Eats', AppLang.en: 'Rotori Eats'},
-  'viewer.tt.theme': {AppLang.tr: 'Tema', AppLang.en: 'Theme'},
+  'viewer.tt.theme': {
+    AppLang.tr: 'Tasarımı değiştir',
+    AppLang.en: 'Change design',
+  },
   'viewer.tt.edit': {AppLang.tr: 'Düzenle', AppLang.en: 'Edit'},
   'viewer.tt.viewTrain': {
     AppLang.tr: 'Tren görünümü',
@@ -721,6 +761,37 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Taşımak için uzun basıp sürükle',
     AppLang.en: 'Long press and drag to move',
   },
+  // Kullanıcı kilidi — bileti alınmış durakları rota yeniden üretilirken
+  // yerinde tutar.
+  'viewer.edit.pinReason': {
+    AppLang.tr: 'Kilitledin — bileti alınmış olabilir',
+    AppLang.en: 'You locked this — the ticket may be booked',
+  },
+  'viewer.edit.pin': {
+    AppLang.tr: 'Kilitle',
+    AppLang.en: 'Lock',
+  },
+  'viewer.edit.unpin': {
+    AppLang.tr: 'Kilidi aç',
+    AppLang.en: 'Unlock',
+  },
+  'viewer.edit.pinHint': {
+    AppLang.tr: 'Rota yeniden kurulsa da bu durak günü ve saatiyle kalır.',
+    AppLang.en:
+        'This stop keeps its day and time even if the route is rebuilt.',
+  },
+  'viewer.edit.pinned': {
+    AppLang.tr: '🔒 Durak kilitlendi',
+    AppLang.en: '🔒 Stop locked',
+  },
+  'viewer.edit.unpinned': {
+    AppLang.tr: '🔓 Kilit açıldı',
+    AppLang.en: '🔓 Stop unlocked',
+  },
+  'viewer.edit.pinSystemLocked': {
+    AppLang.tr: 'Bu saat uçuş/otel bilgisinden geliyor, elle açılamaz.',
+    AppLang.en: 'This time comes from flight/stay data and cannot be unlocked.',
+  },
   'viewer.edit.editDay': {AppLang.tr: 'Günü düzenle', AppLang.en: 'Edit day'},
   'viewer.edit.dayTitle': {AppLang.tr: 'Gün başlığı', AppLang.en: 'Day title'},
   'viewer.edit.dayDate': {AppLang.tr: 'Tarih', AppLang.en: 'Date'},
@@ -802,6 +873,44 @@ const Map<String, Map<AppLang, String>> _strings = {
   },
   'viewer.item.next': {AppLang.tr: 'Sıradaki', AppLang.en: 'Next'},
   'viewer.theme.title': {AppLang.tr: 'Tema', AppLang.en: 'Theme'},
+  'viewer.appearance.title': {
+    AppLang.tr: 'Tasarımı değiştir',
+    AppLang.en: 'Change design',
+  },
+  'viewer.template.title': {AppLang.tr: 'Tasarım', AppLang.en: 'Design'},
+  'viewer.template.journeyProgress': {
+    AppLang.tr: 'Yolculuk',
+    AppLang.en: 'Journey',
+  },
+  'viewer.template.journeyProgress.description': {
+    AppLang.tr: 'İlerleme ve sıradaki adıma odaklanır',
+    AppLang.en: 'Focuses on progress and the next step',
+  },
+  'viewer.template.mapFocus': {
+    AppLang.tr: 'Harita',
+    AppLang.en: 'Map',
+  },
+  'viewer.template.mapFocus.description': {
+    AppLang.tr: 'Günün rotasını ve duraklarını öne çıkarır',
+    AppLang.en: 'Highlights the day route and its stops',
+  },
+  'viewer.template.progress': {
+    AppLang.tr: '{done}/{total} tamamlandı',
+    AppLang.en: '{done}/{total} completed',
+  },
+  'viewer.template.next': {AppLang.tr: 'Sıradaki', AppLang.en: 'Next'},
+  'viewer.template.dayComplete': {
+    AppLang.tr: 'Bugünün planı tamamlandı',
+    AppLang.en: 'Today\'s plan is complete',
+  },
+  'viewer.template.map.open': {
+    AppLang.tr: 'Haritada aç',
+    AppLang.en: 'Open map',
+  },
+  'viewer.template.map.layers': {
+    AppLang.tr: 'Katmanlar',
+    AppLang.en: 'Layers',
+  },
   // Tema adları (React data-theme).
   'theme.japanDark': {AppLang.tr: 'Japon Gecesi', AppLang.en: 'Japan Night'},
   'theme.appleLight': {AppLang.tr: 'Apple Aydınlık', AppLang.en: 'Apple Light'},
@@ -1010,6 +1119,16 @@ const Map<String, Map<AppLang, String>> _strings = {
   'budget.estimate.refTitle': {
     AppLang.tr: 'Örnek birim fiyatlar',
     AppLang.en: 'Sample unit prices',
+  },
+  'budget.share.title': {
+    AppLang.tr: 'Gider dağılımı',
+    AppLang.en: 'Cost distribution',
+  },
+  // Pasta ORTA tahmini kullanır; başlıktaki toplam bir aralık olduğu için
+  // "aralığın payı" tanımsız olurdu. Kullanıcı neyi gördüğünü bilsin.
+  'budget.share.basis': {
+    AppLang.tr: 'Min–maks ortalamasına göre',
+    AppLang.en: 'Based on the min–max average',
   },
   'budget.currencyTitle': {
     AppLang.tr: 'Para birimi',
@@ -1299,6 +1418,22 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Forecast for the coming days',
   },
   'weather.today': {AppLang.tr: 'Bugün', AppLang.en: 'Today'},
+  'weather.routeSubtitle': {
+    AppLang.tr: 'Rotandaki her gün, o gün bulunduğun şehrin havası',
+    AppLang.en: "Each day of your route, in the city you're in that day"
+  },
+  'weather.dayNumber': {AppLang.tr: '{n}. gün', AppLang.en: 'Day {n}'},
+  'weather.dayCount': {AppLang.tr: '{n} gün', AppLang.en: '{n} days'},
+  'weather.unknownCity': {
+    AppLang.tr: 'Rota dışı günler',
+    AppLang.en: 'Days outside the route'
+  },
+  // "Henüz" bilinçli: veri eksikliği kalıcı değil, tahmin ufku daha o güne
+  // ulaşmadı. Kullanıcı yaklaştıkça dolacağını anlamalı.
+  'weather.noData': {
+    AppLang.tr: 'Henüz tahmin yok',
+    AppLang.en: 'No forecast yet'
+  },
   'weather.source': {
     AppLang.tr: 'Kaynak: Open-Meteo',
     AppLang.en: 'Source: Open-Meteo',
@@ -1572,13 +1707,13 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Wagyu, yakiniku, et ağırlıklı menüler',
     AppLang.en: 'Wagyu, yakiniku, meat-heavy menus'
   },
-  'diet.chickenOnly.label': {
+  'diet.poultryOk.label': {
     AppLang.tr: 'Tavuk / hindi',
     AppLang.en: 'Chicken / turkey'
   },
-  'diet.chickenOnly.desc': {
-    AppLang.tr: 'Kırmızı et yerine tavuk tercih',
-    AppLang.en: 'Prefer chicken over red meat'
+  'diet.poultryOk.desc': {
+    AppLang.tr: 'Yakitori, karaage, oyakodon uygun',
+    AppLang.en: 'Yakitori, karaage and oyakodon are fine'
   },
   'diet.seafoodOk.label': {AppLang.tr: 'Deniz ürünü', AppLang.en: 'Seafood'},
   'diet.seafoodOk.desc': {
@@ -1683,6 +1818,14 @@ const Map<String, Map<AppLang, String>> _strings = {
   'hotels.saveError': {
     AppLang.tr: 'Plan yüklenemedi.',
     AppLang.en: 'Could not load the plan.',
+  },
+  'hotels.needsSession': {
+    AppLang.tr: 'Oteli kaydetmek için oturum açman gerekiyor.',
+    AppLang.en: 'Sign in to save a hotel.',
+  },
+  'hotels.saveFailed': {
+    AppLang.tr: 'Otel kaydedilemedi. Bağlantını kontrol edip tekrar dene.',
+    AppLang.en: 'Could not save the hotel. Check your connection and retry.',
   },
   'hotels.pickDate': {AppLang.tr: 'Tarih seç', AppLang.en: 'Pick a date'},
   'booking.title': {
@@ -2502,22 +2645,6 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: '📍 Current: {emoji} {name} · {city} · {mins} min'
   },
   'map.dayTitle': {AppLang.tr: '🗺️ Gün {day}', AppLang.en: '🗺️ Day {day}'},
-  'map.prewarm': {
-    AppLang.tr: '📥 Çevrimdışı hazırla',
-    AppLang.en: '📥 Prepare offline'
-  },
-  'map.prewarmDone': {
-    AppLang.tr: 'Çevrimdışı hazır — {count} kare',
-    AppLang.en: 'Offline ready — {count} tiles'
-  },
-  'map.prewarmSkipped': {
-    AppLang.tr: 'Çevrimdışı hazırlama atlandı (alan çok geniş ya da web).',
-    AppLang.en: 'Offline prep skipped (area too large, or running on web).'
-  },
-  'map.prewarmFailed': {
-    AppLang.tr: 'Çevrimdışı hazırlama başarısız: {err}',
-    AppLang.en: 'Offline prep failed: {err}'
-  },
   'map.osmAttribution': {
     AppLang.tr: '© OpenStreetMap katkıda bulunanlar',
     AppLang.en: '© OpenStreetMap contributors'
@@ -2549,8 +2676,8 @@ const Map<String, Map<AppLang, String>> _strings = {
   'map.fitRoute': {AppLang.tr: 'Rotaya sığdır', AppLang.en: 'Fit route'},
   'map.navigate': {AppLang.tr: 'Yol tarifi', AppLang.en: 'Navigate'},
   'map.minimalAttribution': {
-    AppLang.tr: '© OpenStreetMap katkıda bulunanlar · © CARTO',
-    AppLang.en: '© OpenStreetMap contributors · © CARTO'
+    AppLang.tr: '© OpenStreetMap katkıda bulunanlar',
+    AppLang.en: '© OpenStreetMap contributors'
   },
   'routeOptimization.action': {
     AppLang.tr: 'Rotayı optimize et',
@@ -2661,6 +2788,17 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Apply route'
   },
   'routeOptimization.cancel': {AppLang.tr: 'Vazgeç', AppLang.en: 'Cancel'},
+  // Kazanç yoksa "Uygula" hiç sunulmaz: uygulanacak bir şey yok.
+  'routeOptimization.noGain.title': {
+    AppLang.tr: 'Bu gün zaten en iyi sırada',
+    AppLang.en: 'This day is already in the best order',
+  },
+  'routeOptimization.noGain.body': {
+    AppLang.tr:
+        'Durakları yeniden dizmeyi denedim; ulaşım süresi, yürüyüş, aktarma ve maliyetin hiçbirinde kazanç çıkmadı. Değiştirecek bir şey yok.',
+    AppLang.en:
+        'I tried reordering the stops; there was no gain in travel time, walking, transfers or cost. Nothing to change.',
+  },
   'routeOptimization.retry': {
     AppLang.tr: 'Tekrar dene',
     AppLang.en: 'Try again'
@@ -3156,7 +3294,6 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Sürpriz yok, plan var.',
     AppLang.en: 'No surprises, just a plan.',
   },
-  'drawer.section.trip': {AppLang.tr: 'YOLCULUK', AppLang.en: 'TRIP'},
   'drawer.section.discover': {AppLang.tr: 'KEŞFET', AppLang.en: 'DISCOVER'},
   'drawer.section.tools': {AppLang.tr: 'ARAÇLAR', AppLang.en: 'TOOLS'},
   // KEŞFET karolarının tek satırlık açıklamaları. Eskiden karolar etiketsiz
@@ -3178,8 +3315,8 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'USJ, Disney and teamLab: tickets, timing, full day',
   },
   'drawer.discover.weather.sub': {
-    AppLang.tr: 'Günlük tahmin',
-    AppLang.en: 'Daily forecast',
+    AppLang.tr: 'Rota boyunca gün gün',
+    AppLang.en: 'Day by day along your route',
   },
   'drawer.discover.budget.sub': {
     AppLang.tr: 'Harcama takibi',
@@ -3433,6 +3570,17 @@ const Map<String, Map<AppLang, String>> _strings = {
         'The year and dates were suggested to balance seasonal weather and crowds; you can change them.'
   },
   'create.assumptions.edit': {AppLang.tr: 'Düzelt', AppLang.en: 'Edit'},
+  'create.assumptions.roundTrip': {
+    AppLang.tr: 'gidiş-dönüş',
+    AppLang.en: 'round trip',
+  },
+  'create.assumptions.add': {AppLang.tr: 'Ekle', AppLang.en: 'Add'},
+  // Uçuş/otel ekleme planın var olmasını gerektiriyor: aksiyon önce planı
+  // üretir, sonra ilgili ekranı açar. Kullanıcı ne olacağını önden bilsin.
+  'create.assumptions.addHint': {
+    AppLang.tr: 'Plan oluşturulur ve bu adım hemen açılır.',
+    AppLang.en: 'Your plan is created, then this step opens.',
+  },
   'create.prefs.diet': {
     AppLang.tr: 'Beslenme tercihlerin',
     AppLang.en: 'Your dietary needs',
@@ -3519,6 +3667,21 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Kur {n} gün önce güncellendi',
     AppLang.en: 'Rate updated {n}d ago',
   },
+  // Kısa biçimler: kur satırı artık tek satırda kur + tazelik + "Kuru düzenle"
+  // taşıyor; uzun cümle orada kırpılıyordu ("Kur 11 saat önce…"). Bağlam
+  // (kurun hemen yanı + ⟳ ikonu) neyin güncellendiğini zaten söylüyor.
+  'budget.rateAgeMinShort': {
+    AppLang.tr: '{n} dk önce',
+    AppLang.en: '{n} min ago',
+  },
+  'budget.rateAgeHourShort': {
+    AppLang.tr: '{n} sa önce',
+    AppLang.en: '{n}h ago',
+  },
+  'budget.rateAgeDayShort': {
+    AppLang.tr: '{n} gün önce',
+    AppLang.en: '{n}d ago',
+  },
   'viewer.guide.search': {
     AppLang.tr: 'Rehberde ara — Suica, valiz, fiş…',
     AppLang.en: 'Search the guide — Suica, packing, plugs…',
@@ -3526,14 +3689,6 @@ const Map<String, Map<AppLang, String>> _strings = {
   'viewer.guide.noResult': {
     AppLang.tr: 'Bu aramaya uyan madde yok.',
     AppLang.en: 'No tips match that search.',
-  },
-  'viewer.stay.none': {
-    AppLang.tr: 'Konaklama henüz eklenmedi',
-    AppLang.en: 'No stay added yet',
-  },
-  'viewer.stay.covered': {
-    AppLang.tr: '{booked}/{total} gece rezerve edildi',
-    AppLang.en: '{booked}/{total} nights booked',
   },
   'viewer.transition.official': {
     AppLang.tr: 'Resmî bilet',

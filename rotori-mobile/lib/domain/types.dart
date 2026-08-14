@@ -2,6 +2,7 @@
 // Plain Dart sınıfları; JSON'a serileştirilir (Supabase plans.doc jsonb).
 // Not: MVP freezed'siz — Faz 3b'de freezed'e geçilecek (data class + copyWith + eşitlik).
 
+import 'dietary.dart' show normalizeDietaryTags;
 import 'plan_field_signals.dart';
 import 'route_execution.dart';
 
@@ -64,6 +65,13 @@ enum ActivityLockType {
   hotel,
   ticketedEvent,
   external,
+
+  /// Kullanıcının elle kilitlediği durak — bileti alınmış olabilir.
+  ///
+  /// Diğer kilitler plan verisinden türer (uçuş saati, otel check-in'i);
+  /// bu tek kilidi KULLANICI koyar ve yalnız o kaldırabilir. Rota yeniden
+  /// üretilirken/optimize edilirken günü ve saati sabit kalır.
+  userPinned,
 }
 
 /// Walking target → günlük adım üst sınırı eşlemesi.
@@ -135,6 +143,7 @@ String _activityLockTypeToJson(ActivityLockType value) => switch (value) {
       ActivityLockType.hotel => 'hotel',
       ActivityLockType.ticketedEvent => 'ticketed_event',
       ActivityLockType.external => 'external',
+      ActivityLockType.userPinned => 'user_pinned',
     };
 
 ActivityLockType _activityLockTypeFromJson(dynamic value) => switch (value) {
@@ -143,6 +152,7 @@ ActivityLockType _activityLockTypeFromJson(dynamic value) => switch (value) {
       'hotel' => ActivityLockType.hotel,
       'ticketed_event' => ActivityLockType.ticketedEvent,
       'external' => ActivityLockType.external,
+      'user_pinned' => ActivityLockType.userPinned,
       _ => ActivityLockType.none,
     };
 
@@ -493,7 +503,8 @@ class DestinationFoodPrefs {
   factory DestinationFoodPrefs.fromJson(Map<String, dynamic> j) =>
       DestinationFoodPrefs(
         destinationId: j['destinationId'] as String,
-        dietaryTags: List<String>.from(j['dietaryTags'] as List? ?? const []),
+        dietaryTags: normalizeDietaryTags(
+            List<String>.from(j['dietaryTags'] as List? ?? const [])),
         foodLikes: List<String>.from(j['foodLikes'] as List? ?? const []),
         foodDislikes: List<String>.from(j['foodDislikes'] as List? ?? const []),
         mealBudgetPerPerson: (j['mealBudgetPerPerson'] as num?)?.toInt(),
@@ -696,7 +707,8 @@ class TripPreferences {
             .map((e) => DestinationFoodPrefs.fromJson((e as Map).cast()))
             .toList(),
         dietary: List<String>.from(j['dietary'] as List? ?? const []),
-        dietaryTags: List<String>.from(j['dietaryTags'] as List? ?? const []),
+        dietaryTags: normalizeDietaryTags(
+            List<String>.from(j['dietaryTags'] as List? ?? const [])),
         walkingTarget: _walkingTargetFromJson(j['walkingTarget']),
         transportPreference:
             _transportPreferenceFromJson(j['transportPreference']),
@@ -942,6 +954,46 @@ class TimelineItem {
       fixedStartTime != null ||
       !canChangeTime ||
       !canReorder;
+
+  /// Kullanıcının kendi koyduğu kilit mi?
+  bool get isUserPinned => lockType == ActivityLockType.userPinned;
+
+  /// Kullanıcı bu durağı kilitleyip açabilir mi?
+  ///
+  /// Sistem kilitleri (uçuş saati, otel check-in'i, saatli giriş) plan
+  /// verisinden türer — onları elle açmak veriyle çelişen bir plan üretirdi.
+  /// O yüzden yalnızca hiç kilitli olmayan ya da zaten KULLANICI tarafından
+  /// kilitlenmiş duraklar bu aksiyonu görür.
+  bool get canUserToggleLock =>
+      lockType == ActivityLockType.none || isUserPinned;
+
+  /// Durağı kullanıcı kilidiyle sabitler: gün, sıra ve saat donar.
+  ///
+  /// [reason] ekran okuyucu ve kilit rozetinin açıklaması olarak saklanır.
+  /// `fixedStartTime` mevcut saatten yazılır; rota yeniden üretilirken motor
+  /// bu saati sabit kabul eder (bkz. plan_optimization_controller `isLocked`).
+  void pinByUser({required String reason}) {
+    if (!canUserToggleLock) return;
+    lockType = ActivityLockType.userPinned;
+    fixedStartTime ??= time ?? scheduledTime;
+    canChangeDay = false;
+    canChangeTime = false;
+    canReorder = false;
+    canDelete = false;
+    lockReason = reason;
+  }
+
+  /// Kullanıcı kilidini kaldırır. Sistem kilitlerine dokunmaz.
+  void unpinByUser() {
+    if (!isUserPinned) return;
+    lockType = ActivityLockType.none;
+    fixedStartTime = null;
+    canChangeDay = true;
+    canChangeTime = true;
+    canReorder = true;
+    canDelete = true;
+    lockReason = null;
+  }
 
   /// Tekrar politikası çözümü — v3 alanı yoksa varsayılan `hardZero`.
   bool get allowsRepeat =>
@@ -1304,6 +1356,8 @@ class Deadlines {
 }
 
 class Trip {
+  static const int currentSchemaVersion = 3;
+
   Trip({
     required this.id,
     required this.slug,
@@ -1365,6 +1419,7 @@ class Trip {
       );
 
   Map<String, dynamic> toJson() => {
+        'schemaVersion': currentSchemaVersion,
         'id': id,
         'slug': slug,
         'title': title,

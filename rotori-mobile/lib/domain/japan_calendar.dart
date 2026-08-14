@@ -577,6 +577,16 @@ enum CrowdSensitivity { none, moderate, high }
 CrowdSensitivity crowdSensitivityForCategory(String? category) {
   final value = (category ?? '').toLowerCase();
   if (value.isEmpty) return CrowdSensitivity.moderate;
+  // Tam gün tema parkı süreleri zaten kuyrukları ve park içi dolaşımı içeren
+  // ziyaret bütçeleridir. Bunları açık hava "park" kategorisi gibi yüksek
+  // çarpmak aynı kalabalığı iki kez sayıp bütün günü uygulanamaz yapar.
+  const alreadyBudgeted = [
+    'themepark',
+    'theme park',
+    'tema parkı',
+    'tema parki'
+  ];
+  if (alreadyBudgeted.any(value.contains)) return CrowdSensitivity.none;
   const high = [
     'temple',
     'shrine',

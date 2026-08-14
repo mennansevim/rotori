@@ -115,4 +115,64 @@ void main() {
     expect(find.text('Ghibli bileti'), findsOneWidget);
     expect(notifications.scheduled, hasLength(1));
   });
+
+  // REGRESYON: hazır seçim işaretlendiğinde "Seçilen hatırlatıcıları ekle"
+  // pasif kalıyordu ve NEDENİ hiçbir yerde yazmıyordu. `_canSave` her seçim
+  // için ziyaret tarihi şart koşuyor; tarih alanı ise altı kartlık ızgaranın
+  // altında, kaydırmadan görünmüyor. Kullanıcı için buton sebepsiz bozuktu.
+  testWidgets('seçim yapılıp tarih girilmeyince eksik açıkça söylenir',
+      (tester) async {
+    tester.view.physicalSize = const Size(430, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final notifications = _FakeNotifications();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          notificationsServiceProvider.overrideWithValue(notifications),
+        ],
+        child: const LanguageScope(
+          lang: AppLang.tr,
+          child: MaterialApp(home: RemindersScreen()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('add-reminder')));
+    await tester.pumpAndSettle();
+
+    // Hiçbir şey seçilmemişken de buton pasif — ama nedeni yazılı.
+    expect(_saveButton(tester).onPressed, isNull);
+    expect(find.textContaining('Bir hazır seçim işaretle'), findsOneWidget);
+
+    // Bir hazır seçim işaretle.
+    await tester.tap(find.byKey(const ValueKey('reminder-preset-tokyo-disney')));
+    await tester.pumpAndSettle();
+
+    // Buton hâlâ pasif — çünkü ziyaret tarihi yok. Artık BUNU söylüyor.
+    expect(_saveButton(tester).onPressed, isNull);
+    expect(find.textContaining('ziyaret tarihi gerekiyor'), findsOneWidget);
+    expect(find.byKey(const ValueKey('reminder-blocked-hint')), findsOneWidget);
+
+    // İpucuna dokununca tarih bölümü görünür olur.
+    await tester.tap(find.byKey(const ValueKey('reminder-blocked-hint')));
+    await tester.pumpAndSettle();
+    expect(find.text('Ziyaret tarihleri'), findsOneWidget);
+
+    // Tarih girilince buton aktifleşir ve engel açıklaması kalkar.
+    await tester.tap(find.text('Ziyaret tarihini seç'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    expect(_saveButton(tester).onPressed, isNotNull);
+    expect(find.byKey(const ValueKey('reminder-blocked-hint')), findsNothing);
+  });
 }
+
+FilledButton _saveButton(WidgetTester tester) => tester.widget<FilledButton>(
+      find.byKey(const ValueKey('save-reminders')),
+    );

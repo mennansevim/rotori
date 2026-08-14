@@ -1,0 +1,5 @@
+"CFBundleDisplayName" = "Rotori";
+"NSLocationWhenInUseUsageDescription" = "Rotori uses your location while the app is open to confirm visited places and award discovery badges. Your precise location stays on your device.";
+"DiscoveryStamp" = "Rotori temporarily needs precise location to confirm that you are at this place and award its discovery badge.";
+"NSCameraUsageDescription" = "Rotori uses the camera to scan ticket images and shop prices. Images are processed on your device and are not uploaded.";
+"NSPhotoLibraryUsageDescription" = "Rotori needs photo library access when you choose an existing ticket image to scan on your device.";

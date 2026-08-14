@@ -22,6 +22,7 @@ import '../../data/user_stats_store.dart';
 import '../../data/visit_store.dart';
 import '../../domain/city_places.dart';
 import '../../domain/geofence.dart';
+import '../../domain/gps_arming_policy.dart';
 import '../../domain/types.dart';
 
 /// Konum izni durumu (React: GeofencePermission + iOS deniedForever ayrımı).
@@ -180,7 +181,9 @@ class GeofenceController extends ChangeNotifier with WidgetsBindingObserver {
     int graceSeconds = 120,
     PositionStreamFactory? positionStreamFactory,
     PermissionRequester? permissionRequester,
+    GpsArmingPolicy? armingPolicy,
   })  : _trip = trip,
+        _armingPolicy = armingPolicy,
         _visitStore = visitStore,
         _statsStore = statsStore,
       _prefs = prefs,
@@ -205,6 +208,18 @@ class GeofenceController extends ChangeNotifier with WidgetsBindingObserver {
   final String? _prefsPrefix;
   final PositionStreamFactory? _positionStreamFactory;
   final PermissionRequester _permissionRequester;
+
+  /// Verilirse GPS kademesi plandan **türetilir** (zaman + mesafe kapısı).
+  /// `null` iken davranış v2 ile birebir aynı kalır: kullanıcı modu elle seçer
+  /// ve akış gezi penceresi boyunca açık kalır.
+  final GpsArmingPolicy? _armingPolicy;
+
+  GpsArmingDecision? _lastArmingDecision;
+
+  /// iOS 14+ / Android 12+ doğruluk yetkisi. Varsayılan `precise`; gerçek
+  /// değer izin akışında okunur.
+  LocationAccuracyAuthorization _accuracyAuthorization =
+      LocationAccuracyAuthorization.precise;
 
   late final GeofenceEngine _engine;
   late UserStats _stats;
@@ -236,6 +251,60 @@ class GeofenceController extends ChangeNotifier with WidgetsBindingObserver {
   bool get smartTrackingEnabled => _smartTrackingEnabled;
   bool get isInTripWindow => _isWithinTripWindow(DateTime.now());
 
+  /// Politika etkinken son verilen karar — UI'daki dürüst durum çipi için.
+  GpsArmingDecision? get armingDecision => _lastArmingDecision;
+
+  bool get isArmingPolicyEnabled => _armingPolicy != null;
+
+  /// Kullanıcı "Yaklaşık Konum" verdiyse `reduced`.
+  LocationAccuracyAuthorization get accuracyAuthorization =>
+      _accuracyAuthorization;
+
+  /// Damga anı için Apple'ın **geçici** tam doğruluk iznini ister.
+  ///
+  /// Yalnız kullanıcı fiilen bir keşif noktasının yakınındayken çağrılmalı
+  /// (`armingDecision.needsTemporaryFullAccuracy`). Erken sormak hem kabul
+  /// oranını düşürür hem App Store incelemesinde gereksiz sürtünme yaratır.
+  Future<bool> requestPreciseAccuracyForDiscovery() async {
+    try {
+      final status = await Geolocator.requestTemporaryFullAccuracy(
+        purposeKey: 'DiscoveryStamp',
+      );
+      _accuracyAuthorization = status == LocationAccuracyStatus.reduced
+          ? LocationAccuracyAuthorization.reduced
+          : LocationAccuracyAuthorization.precise;
+      notifyListeners();
+      return _accuracyAuthorization == LocationAccuracyAuthorization.precise;
+    } catch (_) {
+      // iOS 13 ve altı / Android: API yok sayılır, mevcut yetki korunur.
+      return _accuracyAuthorization == LocationAccuracyAuthorization.precise;
+    }
+  }
+
+  Future<void> _refreshAccuracyAuthorization() async {
+    try {
+      final status = await Geolocator.getLocationAccuracy();
+      _accuracyAuthorization = status == LocationAccuracyStatus.reduced
+          ? LocationAccuracyAuthorization.reduced
+          : LocationAccuracyAuthorization.precise;
+    } catch (_) {
+      _accuracyAuthorization = LocationAccuracyAuthorization.precise;
+    }
+  }
+
+  /// Akışta fiilen kullanılacak mod. Politika etkinken kademeden türer;
+  /// değilse kullanıcının seçtiği mod geçerlidir.
+  GeofenceTrackingMode get effectiveTrackingMode {
+    final decision = _lastArmingDecision;
+    if (_armingPolicy == null || decision == null) return _trackingMode;
+    return switch (decision.tier) {
+      GpsArmingTier.precise => GeofenceTrackingMode.precise,
+      GpsArmingTier.balanced => GeofenceTrackingMode.balanced,
+      GpsArmingTier.oneShot => GeofenceTrackingMode.batterySaver,
+      GpsArmingTier.off => GeofenceTrackingMode.batterySaver,
+    };
+  }
+
   /// Konum takibini başlat (izin akışı dahil).
   Future<void> start() async {
     if (_status == GeofencePermissionStatus.unsupported) return;
@@ -249,6 +318,9 @@ class GeofenceController extends ChangeNotifier with WidgetsBindingObserver {
       notifyListeners();
       return;
     }
+    // İzin alındıktan sonra doğruluk yetkisi netleşir (kullanıcı "Yaklaşık
+    // Konum" seçmiş olabilir); politika buna göre karar verir.
+    await _refreshAccuracyAuthorization();
     if (!_shouldTrackNow()) {
       notifyListeners();
       return;
@@ -442,8 +514,107 @@ class GeofenceController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   bool _shouldTrackNow() {
+    final policy = _armingPolicy;
+    if (policy != null) {
+      // Politika etkinken kullanıcı "akıllı takip"i kapatarak sürekli akışa
+      // dönebilir; aksi halde kademe kararı belirler.
+      if (!_smartTrackingEnabled) return true;
+      return _evaluateArming(policy).isStreaming;
+    }
     if (!_smartTrackingEnabled) return true;
     return _isWithinTripWindow(DateTime.now());
+  }
+
+  /// Kademeyi yeniden değerlendirir ve sonucu saklar.
+  GpsArmingDecision _evaluateArming(GpsArmingPolicy policy) {
+    final now = DateTime.now();
+    final decision = policy.evaluate(
+      now: now,
+      isWithinTripWindow: _isWithinTripWindow(now),
+      hasPermission: _status == GeofencePermissionStatus.granted,
+      targets: _armingTargets(now),
+      lastFix: _lastSample == null
+          ? null
+          : GeoFix(
+              lat: _lastSample!.lat,
+              lng: _lastSample!.lng,
+              timestamp: _lastSample!.timestamp,
+              accuracyMeters: _lastSample!.accuracy,
+            ),
+      accuracy: _accuracyAuthorization,
+    );
+    _lastArmingDecision = decision;
+    return decision;
+  }
+
+  /// Keşif noktalarını politika hedefine çevirir.
+  ///
+  /// Planlı saat, o günün timeline satırlarından **koordinat yakınlığıyla**
+  /// eşleştirilir: fence ile satır ~300 m içindeyse satırın saati zaman kapısı
+  /// olur. Eşleşme yoksa `scheduledAt` null kalır — saati bilinmeyen bir
+  /// hedefi saat yüzünden ıskalamak istemeyiz.
+  List<GpsTarget> _armingTargets(DateTime now) {
+    final today = _todayPlan(now);
+    final scheduled = <({double lat, double lng, DateTime at})>[];
+    if (today != null) {
+      for (final item in today.items) {
+        final lat = item.lat, lng = item.lng;
+        final hhmm = item.scheduledTime ?? item.time;
+        if (lat == null || lng == null || hhmm == null) continue;
+        final parts = hhmm.split(':');
+        if (parts.length < 2) continue;
+        final hour = int.tryParse(parts[0]);
+        final minute = int.tryParse(parts[1]);
+        if (hour == null || minute == null) continue;
+        scheduled.add((
+          lat: lat,
+          lng: lng,
+          at: DateTime(now.year, now.month, now.day, hour, minute),
+        ));
+      }
+    }
+
+    final visits = _engine.visits.records;
+    return [
+      for (final fence in _engine.fences)
+        GpsTarget(
+          id: fence.id,
+          lat: fence.lat,
+          lng: fence.lng,
+          radiusMeters: fence.radiusMeters,
+          scheduledAt: _scheduleFor(fence, scheduled),
+          isDiscovered: visits[fence.id]?.completedAt != null,
+        ),
+    ];
+  }
+
+  DateTime? _scheduleFor(
+    Geofence fence,
+    List<({double lat, double lng, DateTime at})> scheduled,
+  ) {
+    DateTime? best;
+    var bestMeters = double.infinity;
+    for (final row in scheduled) {
+      final meters = distanceMeters(
+        LatLng(fence.lat, fence.lng),
+        LatLng(row.lat, row.lng),
+      );
+      if (meters <= 300 && meters < bestMeters) {
+        bestMeters = meters;
+        best = row.at;
+      }
+    }
+    return best;
+  }
+
+  DayPlan? _todayPlan(DateTime now) {
+    final iso = '${now.year.toString().padLeft(4, '0')}-'
+        '${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}';
+    for (final day in _trip.days) {
+      if (day.date == iso) return day;
+    }
+    return null;
   }
 
   bool _isWithinTripWindow(DateTime now) {

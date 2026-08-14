@@ -328,6 +328,7 @@ class HardConstraintChecker {
       toName: to.name,
       walkingMultiplier: context.walkingCrowdMultiplier,
       passCoversThisLeg: context.passCoversAllLegs,
+      isPublicHoliday: context.isPublicHoliday,
     );
     if (!outcome.isFeasible) {
       _transitCache[cacheKey] = null;

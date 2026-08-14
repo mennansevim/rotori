@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/l10n.dart';
 import '../../data/google_maps_launcher.dart';
@@ -39,8 +40,8 @@ class DayMapScreen extends ConsumerWidget {
   final VoidCallback? onBack;
 
   /// Test'lerde ağ tile isteğini bypass etmek için enjekte edilir; üretimde
-  /// null → [CachingTileProvider.shared] — çevrimdışı-aware raster tile
-  /// sağlayıcısı (iOS/Android'de yerel diske cache eder; web'de düz ağ).
+  /// null → [RotoriTileProvider.shared]. Testler ağ isteğini bypass etmek için
+  /// kendi sağlayıcısını enjekte eder.
   final TileProvider? tileProvider;
 
   DayPlan? get _day {
@@ -90,8 +91,6 @@ class _DayMapView extends StatefulWidget {
 
 class _DayMapViewState extends State<_DayMapView> {
   // Prewarm ilerleme durumu — 0..1 arası; null iken overlay gizli.
-  double? _prewarmProgress;
-
   Trip get trip => widget.trip;
   DayPlan? get day => widget.day;
   ViewerPalette get palette => widget.palette;
@@ -119,13 +118,7 @@ class _DayMapViewState extends State<_DayMapView> {
           )
         : const <ResolvedStop>[];
 
-    // Çevrimdışı hazırlama: yalnızca kullanılan sağlayıcı çevrimdışı-uyumluysa
-    // ve harita üzerinde noktalar varsa göster. Test'ler kendi provider'ını
-    // enjekte edince buton görünmez → smoke test kırılmaz.
-    final effectiveProvider = tileProvider ?? CachingTileProvider.shared;
-    final canPrewarm = effectiveProvider is CachingTileProvider &&
-        stops.isNotEmpty &&
-        _prewarmProgress == null;
+    final effectiveProvider = tileProvider ?? RotoriTileProvider.shared;
 
     return Scaffold(
       backgroundColor: palette.bg,
@@ -152,27 +145,6 @@ class _DayMapViewState extends State<_DayMapView> {
             color: palette.textPrimary,
             onPressed: () => _openInGoogleMaps(stops, cityCenter, cityLabel),
           ),
-          if (canPrewarm)
-            TextButton.icon(
-              onPressed: () => _prewarmCurrentDay(
-                effectiveProvider,
-                stops,
-                cityCenter,
-              ),
-              icon: Icon(
-                Icons.download_for_offline_outlined,
-                color: palette.textPrimary,
-                size: 18,
-              ),
-              label: Text(
-                s.s('map.prewarm'),
-                style: TextStyle(
-                  color: palette.textPrimary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
-              ),
-            ),
         ],
       ),
       body: Stack(
@@ -184,18 +156,6 @@ class _DayMapViewState extends State<_DayMapView> {
               right: 16,
               top: 16,
               child: _EmptyBanner(palette: palette),
-            ),
-          if (_prewarmProgress != null)
-            Positioned(
-              left: 0,
-              right: 0,
-              top: 0,
-              child: LinearProgressIndicator(
-                value: _prewarmProgress,
-                minHeight: 3,
-                backgroundColor: palette.card.withValues(alpha: 0.6),
-                valueColor: AlwaysStoppedAnimation(palette.accent),
-              ),
             ),
         ],
       ),
@@ -211,76 +171,13 @@ class _DayMapViewState extends State<_DayMapView> {
     widget.onBack?.call();
   }
 
-  Future<void> _prewarmCurrentDay(
-    CachingTileProvider provider,
-    List<ResolvedStop> stops,
-    LatLng cityCenter,
-  ) async {
-    // Sınırlar: duraklar → LatLngBounds; tek durak varsa dar bir kutu.
-    final points = [for (final s in stops) LatLng(s.lat, s.lng)];
-    final LatLngBounds bounds;
-    if (points.length >= 2) {
-      bounds = LatLngBounds.fromPoints(points);
-    } else if (points.length == 1) {
-      // Tek durak: ~1km'lik dar bir kare.
-      final p = points.first;
-      const d = 0.01;
-      bounds = LatLngBounds(
-        LatLng(p.latitude - d, p.longitude - d),
-        LatLng(p.latitude + d, p.longitude + d),
-      );
-    } else {
-      // Şehir merkezi civarı — teorik olarak canPrewarm=false, gelmemeli.
-      const d = 0.05;
-      bounds = LatLngBounds(
-        LatLng(cityCenter.latitude - d, cityCenter.longitude - d),
-        LatLng(cityCenter.latitude + d, cityCenter.longitude + d),
-      );
-    }
-    setState(() => _prewarmProgress = 0.0);
-    final messenger = ScaffoldMessenger.of(context);
-    final s = LanguageScope.of(context);
-    try {
-      final count = await provider.prewarmTiles(
-        south: bounds.south,
-        north: bounds.north,
-        west: bounds.west,
-        east: bounds.east,
-        minZoom: 12,
-        maxZoom: 15,
-        onProgress: (done, total) {
-          if (!mounted || total == 0) return;
-          setState(() => _prewarmProgress = done / total);
-        },
-      );
-      if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            count > 0
-                ? s.p('map.prewarmDone', {'count': '$count'})
-                : s.s('map.prewarmSkipped'),
-          ),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(content: Text(s.p('map.prewarmFailed', {'err': '$e'}))),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _prewarmProgress = null);
-      }
-    }
-  }
-
   Widget _buildMap(
     BuildContext context,
     List<ResolvedStop> stops,
     LatLng cityCenter,
     TileProvider effectiveProvider,
   ) {
+    final s = LanguageScope.of(context);
     final points = [for (final s in stops) LatLng(s.lat, s.lng)];
 
     final MapOptions options;
@@ -313,13 +210,10 @@ class _DayMapViewState extends State<_DayMapView> {
       options: options,
       children: [
         TileLayer(
-          // Google Maps raster tile'ları — yerel dil etiketleriyle (hl=ja).
-          // lyrs=m: standart yol haritası. {s} alt alan adı 0-3 arası dağıtılır.
-          urlTemplate:
-              'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&hl=ja&gl=JP',
-          subdomains: const ['0', '1', '2', '3'],
+          // Standart OSM raster katmanı. Toplu indirme ve disk cache yoktur.
+          urlTemplate: kRotoriTileUrlTemplate,
           userAgentPackageName: 'com.mennansevim.rotori',
-          maxZoom: 20,
+          maxZoom: 19,
           tileProvider: effectiveProvider,
         ),
         if (points.length >= 2)
@@ -357,8 +251,13 @@ class _DayMapViewState extends State<_DayMapView> {
         RichAttributionWidget(
           attributions: [
             TextSourceAttribution(
-              '© Google',
-              onTap: () {},
+              s.s('map.osmAttribution'),
+              onTap: () async {
+                await launchUrl(
+                  Uri.parse(kOpenStreetMapCopyrightUrl),
+                  mode: LaunchMode.externalApplication,
+                );
+              },
             ),
           ],
         ),

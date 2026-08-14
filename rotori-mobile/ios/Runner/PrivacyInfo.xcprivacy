@@ -2,10 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <!-- App Store 2024+ zorunlu: hangi verileri topluyoruz ve neden "required
-       reason API"larını çağırıyoruz. Rotori sadece kullanıcının kendi
-       plan/ilerleme verisini SharedPreferences'ta ve Supabase'te tutar;
-       reklam ID toplamaz, third-party tracking yapmaz. -->
+  <!-- Rotori reklam kimliği toplamaz ve kullanıcılar arası takip yapmaz.
+       Bu beyan Supabase'te tutulan hesap/plan verisini ve pseudonymous
+       kullanıcı kimliğiyle çalışan ürün analitiği + Sentry tanılamasını
+       kapsar. Cihaz konumu sunucuya gönderilmediği için "collected data"
+       listesinde yer almaz. -->
   <key>NSPrivacyTracking</key>
   <false/>
   <key>NSPrivacyTrackingDomains</key>
@@ -26,11 +27,11 @@
       </array>
     </dict>
     <dict>
-      <!-- Konum (yalnızca cihaz üzerinde, geofence/reward hesaplaması için) -->
+      <!-- Kullanıcı içeriği (plan / notlar) -->
       <key>NSPrivacyCollectedDataType</key>
-      <string>NSPrivacyCollectedDataTypePreciseLocation</string>
+      <string>NSPrivacyCollectedDataTypeOtherUserContent</string>
       <key>NSPrivacyCollectedDataTypeLinked</key>
-      <false/>
+      <true/>
       <key>NSPrivacyCollectedDataTypeTracking</key>
       <false/>
       <key>NSPrivacyCollectedDataTypePurposes</key>
@@ -39,9 +40,49 @@
       </array>
     </dict>
     <dict>
-      <!-- Kullanıcı içeriği (plan / notlar) -->
+      <!-- Supabase auth kullanıcı kimliği -->
       <key>NSPrivacyCollectedDataType</key>
-      <string>NSPrivacyCollectedDataTypeOtherUserContent</string>
+      <string>NSPrivacyCollectedDataTypeUserID</string>
+      <key>NSPrivacyCollectedDataTypeLinked</key>
+      <true/>
+      <key>NSPrivacyCollectedDataTypeTracking</key>
+      <false/>
+      <key>NSPrivacyCollectedDataTypePurposes</key>
+      <array>
+        <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+        <string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+      </array>
+    </dict>
+    <dict>
+      <!-- Uygulama içi ekran/özellik etkileşimleri -->
+      <key>NSPrivacyCollectedDataType</key>
+      <string>NSPrivacyCollectedDataTypeProductInteraction</string>
+      <key>NSPrivacyCollectedDataTypeLinked</key>
+      <true/>
+      <key>NSPrivacyCollectedDataTypeTracking</key>
+      <false/>
+      <key>NSPrivacyCollectedDataTypePurposes</key>
+      <array>
+        <string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+      </array>
+    </dict>
+    <dict>
+      <!-- Sentry crash tanılaması -->
+      <key>NSPrivacyCollectedDataType</key>
+      <string>NSPrivacyCollectedDataTypeCrashData</string>
+      <key>NSPrivacyCollectedDataTypeLinked</key>
+      <true/>
+      <key>NSPrivacyCollectedDataTypeTracking</key>
+      <false/>
+      <key>NSPrivacyCollectedDataTypePurposes</key>
+      <array>
+        <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+      </array>
+    </dict>
+    <dict>
+      <!-- Sentry performans tanılaması -->
+      <key>NSPrivacyCollectedDataType</key>
+      <string>NSPrivacyCollectedDataTypePerformanceData</string>
       <key>NSPrivacyCollectedDataTypeLinked</key>
       <true/>
       <key>NSPrivacyCollectedDataTypeTracking</key>

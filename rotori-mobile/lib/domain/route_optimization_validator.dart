@@ -1,4 +1,6 @@
+import 'hard_constraint_checker.dart';
 import 'itinerary_optimizer.dart';
+import 'route_matrix.dart';
 
 enum RouteValidationIssueCode {
   unsuccessfulResult,
@@ -14,6 +16,7 @@ enum RouteValidationIssueCode {
   returnLegMissing,
   returnAfterDayEnd,
   metricMismatch,
+  fieldConstraintViolation,
 }
 
 class RouteValidationIssue {
@@ -66,6 +69,17 @@ class RouteOptimizationValidator {
     }
 
     final scheduledIds = <String>{};
+    final locationsById = <String, TripLocation>{
+      request.constraints.startLocation.id: request.constraints.startLocation,
+      request.constraints.endLocation.id: request.constraints.endLocation,
+      for (final activity in request.activities)
+        activity.location.id: activity.location,
+    };
+    final checker = HardConstraintChecker(
+      constraints: request.constraints,
+      preferences: request.preferences,
+      field: request.field,
+    );
     DateTime? previousEnd;
     for (final scheduled in result.activities) {
       final activity = scheduled.activity;
@@ -106,7 +120,45 @@ class RouteOptimizationValidator {
         ));
       }
 
-      _validateLeg(request, scheduled.inboundLeg, issues);
+      final field = request.field;
+      if (field != null) {
+        final closure = checker.checkClosure(activity, field);
+        if (closure != null) {
+          issues.add(RouteValidationIssue(
+            code: RouteValidationIssueCode.fieldConstraintViolation,
+            message: closure.message,
+            activityId: activity.id,
+          ));
+        }
+        final checkIn = checker.checkHotelCheckInWindow(
+          PlacementCandidate(
+            activity: activity,
+            arrival: scheduled.inboundLeg.arrivalTime,
+            start: scheduled.startTime,
+            end: scheduled.endTime,
+            bufferMinutes: scheduled.inboundLeg.bufferMinutes,
+            totalWalkingMinutes: scheduled.inboundLeg.walkingDurationMinutes,
+            effectiveOpeningTime: activity.openingTime,
+            effectiveClosingTime: activity.closingTime,
+          ),
+          field,
+        );
+        if (checkIn != null) {
+          issues.add(RouteValidationIssue(
+            code: RouteValidationIssueCode.fieldConstraintViolation,
+            message: checkIn.message,
+            activityId: activity.id,
+          ));
+        }
+      }
+
+      _validateLeg(
+        request,
+        scheduled.inboundLeg,
+        issues,
+        checker: checker,
+        locationsById: locationsById,
+      );
     }
 
     final droppedIds = <String>{};
@@ -154,7 +206,13 @@ class RouteOptimizationValidator {
       ));
     } else {
       final returnLeg = result.legs.last;
-      _validateLeg(request, returnLeg, issues);
+      _validateLeg(
+        request,
+        returnLeg,
+        issues,
+        checker: checker,
+        locationsById: locationsById,
+      );
       if (returnLeg.toLocationId != request.constraints.endLocation.id) {
         issues.add(RouteValidationIssue(
           code: RouteValidationIssueCode.returnLegMissing,
@@ -210,8 +268,10 @@ class RouteOptimizationValidator {
   void _validateLeg(
     OptimizationRequest request,
     RouteLeg leg,
-    List<RouteValidationIssue> issues,
-  ) {
+    List<RouteValidationIssue> issues, {
+    required HardConstraintChecker checker,
+    required Map<String, TripLocation> locationsById,
+  }) {
     final options = request.routeMatrix.options(
       leg.fromLocationId,
       leg.toLocationId,
@@ -225,12 +285,27 @@ class RouteOptimizationValidator {
       ));
       return;
     }
-    final matches = options.any((option) =>
-        option.mode == leg.mode &&
-        option.doorToDoorMinutes == leg.travelDurationMinutes &&
-        option.walkingMinutes == leg.walkingDurationMinutes &&
-        option.transferCount == leg.transferCount &&
-        option.estimatedCostYen == leg.estimatedCostYen);
+    final from = locationsById[leg.fromLocationId];
+    final to = locationsById[leg.toLocationId];
+    final matches = options.any((option) {
+      if (option.mode != leg.mode) return false;
+      var effective = option;
+      if (request.field != null) {
+        if (from == null || to == null) return false;
+        final realised = checker.realiseTransit(
+          option: option,
+          departure: leg.departureTime,
+          from: from,
+          to: to,
+        );
+        if (realised == null) return false;
+        effective = realised.option;
+      }
+      return effective.doorToDoorMinutes == leg.travelDurationMinutes &&
+          effective.walkingMinutes == leg.walkingDurationMinutes &&
+          effective.transferCount == leg.transferCount &&
+          effective.estimatedCostYen == leg.estimatedCostYen;
+    });
     if (!matches) {
       issues.add(RouteValidationIssue(
         code: RouteValidationIssueCode.routeLegMismatch,

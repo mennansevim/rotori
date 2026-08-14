@@ -12,15 +12,19 @@
 //      aktif günde "Sıradaki" aktivite işaretlenir; ilk build'de otomatik konum.
 
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter/services.dart';
+import 'package:latlong2/latlong.dart' hide Path;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/debug_tools.dart';
 import '../../core/l10n.dart';
 import '../../core/supabase_client.dart';
 import '../../data/language_store.dart';
@@ -43,7 +47,6 @@ import '../../domain/itinerary_optimizer.dart';
 import '../../domain/japanese_phrases_data.dart';
 import '../../domain/localized_text.dart';
 import '../../domain/place_coords.dart';
-import '../../domain/place_image_resolver.dart';
 import '../../domain/plan_generation.dart' show tripHasFlightInfo;
 import '../../domain/plan_schedule_engine.dart';
 import '../../domain/ticketed_activity.dart';
@@ -56,6 +59,7 @@ import '../../data/affiliate_links.dart';
 import '../../data/tts_service.dart';
 import '../../domain/travel_tips_data.dart';
 import '../../domain/must_see_suggestions.dart';
+import '../../domain/trip_forecast.dart';
 import '../../domain/types.dart';
 import '../auth/auth_repository.dart';
 import '../shared/place_detail_sheet.dart';
@@ -65,6 +69,7 @@ import '../viewer/eats_screen.dart';
 import '../viewer/experience_guide_screen.dart';
 import '../viewer/home_widget_hook.dart';
 import '../viewer/offline_translator_card.dart';
+import '../viewer/offline_tile_provider.dart';
 import '../viewer/pre_departure_checklist_screen.dart';
 import '../viewer/reward_map_screen.dart';
 import '../viewer/route_map_sheet.dart';
@@ -258,6 +263,11 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
   bool _mustSeeCardDismissed = false;
   int _flightDrawerExpansionRequest = 0;
 
+  /// Harita tasarımında kullanıcı tarafından seçilen tek gün. `null` iken
+  /// takvimdeki gerçek aktif gün kullanılır. Bu yalnızca sunum durumudur;
+  /// planın günlerini veya rota verisini değiştirmez.
+  int? _selectedMapDayNumber;
+
   late final PlanEditSession _editSession;
   PlanEditState? _editState;
   Timer? _undoSnackTimer;
@@ -430,30 +440,28 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
     return result;
   }
 
-  /// Her destinasyon için Open-Meteo'dan 16 günlük tahmin çek. Bir günün
-  /// forecast'i, o tarihte hangi şehre ait olduğuna göre eşleştirilir —
-  /// böylece Kyoto gününe Tokyo hava tahmini düşmez. Ağ hatası sessiz.
+  /// Her destinasyon için Open-Meteo'dan tahmin çek ve gün↔şehir eşleştirmesini
+  /// paylaşılan [buildRouteForecast]'e yaptır — hava ekranı da aynı fonksiyonu
+  /// kullanır, böylece gün rozeti ile liste birbirinden sapamaz.
+  /// Ağ hatası sessizdir; o destinasyonun günleri rozetsiz kalır.
   Future<void> _loadForecast() async {
     final dests = _sortedDestinations;
     if (dests.isEmpty) return;
-    final result = <String, DayForecast>{};
-    final seen = <String>{};
-    for (final d in dests) {
-      final lat = d.lat, lng = d.lng;
-      if (lat == null || lng == null) continue;
-      final key = '$lat,$lng';
-      if (!seen.add(key)) continue;
+    final byDestination = <String, List<DayForecast>>{};
+    for (final d in distinctForecastDestinations(dests)) {
       try {
-        final list = await fetchForecast(lat, lng);
-        for (final f in list) {
-          final match = getDestinationForDate(dests, f.date);
-          if (match?.id == d.id) result[f.date] = f;
-        }
+        byDestination[d.id] = await fetchForecast(d.lat!, d.lng!);
       } catch (_) {
         // Ağ hatası — sessizce geç, hava rozeti o gün için gösterilmez.
       }
     }
-    if (!mounted || result.isEmpty) return;
+    if (!mounted || byDestination.isEmpty) return;
+    final result = routeForecastByDate(buildRouteForecast(
+      days: _trip.days,
+      destinations: dests,
+      forecastsByDestinationId: byDestination,
+    ));
+    if (result.isEmpty) return;
     setState(() => _forecast = result);
   }
 
@@ -499,9 +507,21 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
   @override
   Widget build(BuildContext context) {
     final palette = ViewerPalette.of(context);
+    final template = ref.watch(viewerTemplateProvider);
     final trip = _trip;
     final days = _sortedDays;
     final activeIndex = _activeDayIndex(days);
+    final activeDay = days.isEmpty ? null : days[activeIndex];
+    final requestedMapIndex = days.indexWhere(
+      (candidate) => candidate.dayNumber == _selectedMapDayNumber,
+    );
+    final selectedMapIndex = days.isEmpty
+        ? -1
+        : requestedMapIndex >= 0
+            ? requestedMapIndex
+            : activeIndex;
+    final selectedMapDay = selectedMapIndex < 0 ? null : days[selectedMapIndex];
+    final isMapPresentation = template == ViewerTemplateId.mapFocus;
 
     // Minimalize edilmiş viewer: sadece üst bar + doğrudan gün akışı. Uçuş
     // özeti, konaklama, metrikler ve tüm aksiyon butonları drawer içinde.
@@ -541,9 +561,51 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                   // Tab 0 — Ana Sayfa: gün akışı.
                   ListView(
                     controller: _scrollController,
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
+                    padding: EdgeInsets.fromLTRB(
+                      isMapPresentation ? 0 : 16,
+                      isMapPresentation ? 0 : 12,
+                      isMapPresentation ? 0 : 16,
+                      40,
+                    ),
                     children: [
-                      if (!tripHasFlightInfo(trip) && !_flightCardDismissed)
+                      if (activeDay != null &&
+                          !_editMode &&
+                          template == ViewerTemplateId.journeyProgress)
+                        _JourneyProgressHero(
+                          day: activeDay,
+                          palette: palette,
+                          onOpenItem: (item) => _openItem(
+                            item,
+                            getDestinationForDate(
+                              _sortedDestinations,
+                              activeDay.date,
+                            ),
+                          ),
+                        ),
+                      if (selectedMapDay != null &&
+                          template == ViewerTemplateId.mapFocus)
+                        _MapFocusHero(
+                          trip: trip,
+                          day: selectedMapDay,
+                          days: days,
+                          palette: palette,
+                          onSelectDay: (candidate) {
+                            final index = days.indexWhere(
+                              (d) => d.dayNumber == candidate.dayNumber,
+                            );
+                            if (index < 0) return;
+                            setState(() {
+                              _selectedMapDayNumber = candidate.dayNumber;
+                              _expandedInView
+                                ..clear()
+                                ..add(index);
+                            });
+                          },
+                          onOpenMap: _openDayMap,
+                        ),
+                      if (template != ViewerTemplateId.mapFocus &&
+                          !tripHasFlightInfo(trip) &&
+                          !_flightCardDismissed)
                         _AddFlightCard(
                           palette: palette,
                           onOpen: _openFlightDetails,
@@ -554,7 +616,9 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                             );
                           },
                         ),
-                      if (!_mustSeeCardDismissed && days.isNotEmpty)
+                      if (template != ViewerTemplateId.mapFocus &&
+                          !_mustSeeCardDismissed &&
+                          days.isNotEmpty)
                         MustSeeCard(
                           palette: palette,
                           trip: trip,
@@ -570,68 +634,90 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                         _EmptyDaysCard(palette: palette)
                       else
                         for (var i = 0; i < days.length; i++) ...[
-                          _DayCard(
-                            key: i == activeIndex ? _activeDayKey : null,
-                            day: days[i],
-                            palette: palette,
-                            dest: getDestinationForDate(
-                              _sortedDestinations,
-                              days[i].date,
-                            ),
-                            bubbleColor: cityColorFor(
-                              _sortedDestinations,
-                              getDestinationForDate(
-                                _sortedDestinations,
-                                days[i].date,
-                              )?.id,
-                            ),
-                            forecast: _forecast[days[i].date],
-                            isPast: i < activeIndex,
-                            isActive: i == activeIndex,
-                            expanded: _editMode
-                                ? !_collapsedInEdit.contains(i)
-                                : _expandedInView.contains(i),
-                            onToggleExpand: () => setState(() {
-                              if (_editMode) {
-                                if (!_collapsedInEdit.remove(i)) {
-                                  _collapsedInEdit.add(i);
-                                }
-                              } else {
-                                if (!_expandedInView.remove(i)) {
-                                  _expandedInView.add(i);
-                                }
-                              }
-                            }),
-                            editMode: _editMode,
-                            allDays: days,
-                            onOpenItem: _openItem,
-                            onOpenMap: _openDayMap,
-                            isPremium: ref.watch(premiumProvider),
-                            onOptimizeRoute: () => _openRouteOptimization(
-                              days[i],
-                              getDestinationForDate(
+                          if (template != ViewerTemplateId.mapFocus ||
+                              i == selectedMapIndex)
+                            _DayCard(
+                              key: isMapPresentation
+                                  ? ValueKey(
+                                      'viewer-map-route-day-${days[i].dayNumber}',
+                                    )
+                                  : i == activeIndex
+                                      ? _activeDayKey
+                                      : null,
+                              day: days[i],
+                              palette: palette,
+                              template: template,
+                              dest: getDestinationForDate(
                                 _sortedDestinations,
                                 days[i].date,
                               ),
+                              bubbleColor: cityColorFor(
+                                _sortedDestinations,
+                                getDestinationForDate(
+                                  _sortedDestinations,
+                                  days[i].date,
+                                )?.id,
+                              ),
+                              forecast: _forecast[days[i].date],
+                              // Hava CTA'sı yalnız gerçekten gerekliyse ve
+                              // tahmin kesinleşmiş pencerede ise yanar.
+                              canOptimizeForWeather:
+                                  _shouldOfferWeatherOptimization(
+                                days[i],
+                                _forecast[days[i].date],
+                              ),
+                              isPast: i < activeIndex,
+                              isActive: template == ViewerTemplateId.mapFocus
+                                  ? i == selectedMapIndex
+                                  : i == activeIndex,
+                              expanded: template == ViewerTemplateId.mapFocus
+                                  ? i == selectedMapIndex
+                                  : _editMode
+                                      ? !_collapsedInEdit.contains(i)
+                                      : _expandedInView.contains(i),
+                              onToggleExpand: () => setState(() {
+                                if (_editMode) {
+                                  if (!_collapsedInEdit.remove(i)) {
+                                    _collapsedInEdit.add(i);
+                                  }
+                                } else {
+                                  if (!_expandedInView.remove(i)) {
+                                    _expandedInView.add(i);
+                                  }
+                                }
+                              }),
+                              editMode: _editMode,
+                              allDays: days,
+                              onOpenItem: _openItem,
+                              onOpenMap: _openDayMap,
+                              isPremium: ref.watch(premiumProvider),
+                              onOptimizeRoute: () => _openRouteOptimization(
+                                days[i],
+                                getDestinationForDate(
+                                  _sortedDestinations,
+                                  days[i].date,
+                                ),
+                              ),
+                              onOptimizeWeatherRoute:
+                                  (day, destination, forecast) =>
+                                      _openRouteOptimization(
+                                day,
+                                destination,
+                                forecast: forecast,
+                                useWeatherAdjustment: true,
+                              ),
+                              onDropItem: _dropActivity,
+                              onDeleteItem: _deleteItem,
+                              onEditItemTime: _editItemTime,
+                              onToggleItemLock: _toggleItemLock,
+                              onAddItem: _addItemToDay,
+                              onEditDay: _editDay,
+                              onMoveDay: _moveDay,
+                              onDragUpdate: _autoScrollDuringDrag,
+                              dragActive: _dragActiveNotifier,
                             ),
-                            onOptimizeWeatherRoute:
-                                (day, destination, forecast) =>
-                                    _openRouteOptimization(
-                              day,
-                              destination,
-                              forecast: forecast,
-                              useWeatherAdjustment: true,
-                            ),
-                            onDropItem: _dropActivity,
-                            onDeleteItem: _deleteItem,
-                            onEditItemTime: _editItemTime,
-                            onAddItem: _addItemToDay,
-                            onEditDay: _editDay,
-                            onMoveDay: _moveDay,
-                            onDragUpdate: _autoScrollDuringDrag,
-                            dragActive: _dragActiveNotifier,
-                          ),
-                          if (i < days.length - 1)
+                          if (template != ViewerTemplateId.mapFocus &&
+                              i < days.length - 1)
                             _cityTransitionBetween(
                                 days[i], days[i + 1], palette),
                         ],
@@ -1034,6 +1120,32 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
   /// - Farklı gün seçilirse item hedef güne "insertItemSorted" ile eklenir;
   ///   kullanıcı saati elle değiştirmediyse hedef güne uygun otomatik saat
   ///   önerilir (son durak + 90 dk, boşsa 09:00).
+  /// Kullanıcı kilidini aç/kapa.
+  ///
+  /// Kilitli durak rota yeniden kurulurken/optimize edilirken gününü ve
+  /// saatini korur — kullanıcı bileti almış olabilir. Sistem kilitleri
+  /// (uçuş, otel, saatli giriş) buradan değiştirilemez.
+  Future<void> _toggleItemLock(DayPlan day, TimelineItem item) async {
+    final s = LanguageScope.of(context);
+    if (!item.canUserToggleLock) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(s.s('viewer.edit.pinSystemLocked'))),
+      );
+      return;
+    }
+    final shouldLock = !item.isUserPinned;
+    await _applyEdit(
+      SetActivityUserLock(
+        dayNumber: day.dayNumber,
+        activityId: item.id,
+        locked: shouldLock,
+        reason: s.s('viewer.edit.pinReason'),
+      ),
+      successMessage:
+          shouldLock ? s.s('viewer.edit.pinned') : s.s('viewer.edit.unpinned'),
+    );
+  }
+
   Future<void> _editItemTime(DayPlan day, int index) async {
     if (index < 0 || index >= day.items.length) return;
     final it = day.items[index];
@@ -1513,19 +1625,22 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
   }
 
   /// İlk kez gidenler için USJ, Tokyo Disney ve teamLab bilet/gün rehberi.
-  void _openExperienceGuide() {
+  Future<void> _openExperienceGuide() async {
     final palette = ref.read(viewerPaletteProvider);
-    Navigator.of(context).push(
+    await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => Theme(
           data: palette.toThemeData(),
           child: ViewerPaletteScope(
             palette: palette,
-            child: const ExperienceGuideScreen(),
+            // Trip geçilir ki detayda "Plana ekle" çalışsın; dönüşte plan
+            // değişmiş olabilir, o yüzden setState ile tazeleniyor.
+            child: ExperienceGuideScreen(trip: _trip),
           ),
         ),
       ),
     );
+    if (mounted) setState(() {});
   }
 
   /// Planın şehirlerini, yakın yerleri ve kazanılan keşifleri haritada açar.
@@ -1664,14 +1779,17 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
   }
 
   void _openThemePicker() {
-    final palette = ref.read(viewerPaletteProvider);
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: palette.card,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => _ThemePickerSheet(current: palette.id),
+      builder: (ctx) => const FractionallySizedBox(
+        heightFactor: 0.82,
+        child: _ThemePickerSheet(),
+      ),
     );
   }
 
@@ -1711,99 +1829,120 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
     final selectedMode = toDay.cityTransition?.mode ??
         (_isRailTransfer(transfer?.mode) ? 'shinkansen' : 'train');
     final rail = selectedMode == 'shinkansen';
+    final modeLabel = s.s('viewer.transition.mode.$selectedMode');
+
+    // Dikey ritim: üstteki gün kartı zaten 12px alt boşluk bırakıyor, bu
+    // yüzden buranın üstü 0. Eskiden simetrik 8px vardı ve pill üstteki
+    // karttan 20px (12+8), alttakinden 8px uzakta duruyordu — göz bunu
+    // "alttaki güne ait bir etiket" gibi okuyordu.
+    //
+    // Yatay: çizgiler gün kartlarıyla aynı hizada başlar (eski 4px inset
+    // kartların kenarından içeride kalıyordu).
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Expanded(
-            child: Container(
-              height: 1,
-              color: p.textMuted.withValues(alpha: 0.35),
-            ),
-          ),
+          Expanded(child: Container(height: 1, color: p.border)),
           const SizedBox(width: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: p.accent.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: p.accent.withValues(alpha: 0.4),
-                width: 1,
+          // Dekorasyon `Material`'da, InkWell'in DIŞINDA değil.
+          //
+          // **Why:** Eskiden çerçeveli Container'ın 12px iç boşluğu InkWell'in
+          // DIŞINDA kalıyordu; pill'in kenarına dokunmak hiçbir şey yapmıyor,
+          // ripple de kapsülü doldurmuyordu. Tek kapsül = tek dokunma hedefi.
+          Semantics(
+            button: true,
+            label: '$label · $modeLabel',
+            child: Material(
+              color: p.accent.withValues(alpha: .10),
+              shape: StadiumBorder(
+                side: BorderSide(color: p.accent.withValues(alpha: .35)),
               ),
-            ),
-            child: InkWell(
-              key: ValueKey(
-                'city-transition-$fromCity-$toCity-$selectedMode',
-              ),
-              borderRadius: BorderRadius.circular(999),
-              onTap: () => _openCityTransitionPicker(
-                fromDay: fromDay,
-                toDay: toDay,
-                fromCity: fromCity,
-                toCity: toCity,
-                palette: p,
-              ),
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(_cityTransitionEmoji(selectedMode),
-                        style: const TextStyle(fontSize: 13)),
-                    const SizedBox(width: 4),
-                    Text(label,
-                        style: TextStyle(
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                key: ValueKey(
+                  'city-transition-$fromCity-$toCity-$selectedMode',
+                ),
+                onTap: () => _openCityTransitionPicker(
+                  fromDay: fromDay,
+                  toDay: toDay,
+                  fromCity: fromCity,
+                  toCity: toCity,
+                  palette: p,
+                ),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 34),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Tek gap değeri: 6. Eskiden 4/6/5/3/0 karışıktı ve
+                        // chevron kendinden önceki ikona sıfır boşlukla
+                        // yapışıyordu.
+                        Text(
+                          _cityTransitionEmoji(selectedMode),
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          label,
+                          style: TextStyle(
                             fontSize: 12,
                             color: p.accent,
-                            fontWeight: FontWeight.w700)),
-                    const SizedBox(width: 6),
-                    Text(
-                      s.s('viewer.transition.mode.$selectedMode'),
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        color: p.textSecondary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    if (rail) ...[
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 5, vertical: 2),
-                        decoration: BoxDecoration(
-                          color:
-                              const Color(0xFFFFD700).withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          s.s('viewer.transition.official'),
-                          style: const TextStyle(
-                            fontSize: 8.5,
-                            color: Color(0xFFD4A017),
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 3),
-                      Icon(Icons.open_in_new_rounded,
-                          size: 11, color: p.accent.withValues(alpha: 0.7)),
-                    ],
-                    Icon(Icons.expand_more_rounded,
-                        size: 15, color: p.accent.withValues(alpha: 0.75)),
-                  ],
+                        const SizedBox(width: 6),
+                        Text(
+                          modeLabel,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: p.textSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (rail) ...[
+                          const SizedBox(width: 6),
+                          // Rozet artık palete bağlı. Eskiden 0xFFFFD700 /
+                          // 0xFFD4A017 sabitleriydi; koyu temada zeminle
+                          // çakışıyordu.
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: p.gold.withValues(alpha: .18),
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: Text(
+                              s.s('viewer.transition.official'),
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                color: Color.lerp(p.gold, p.textPrimary, .3),
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
+                        // `open_in_new` kaldırıldı: dışarı açılacağını
+                        // söylüyordu ama pill'in tek aksiyonu mod seçiciyi
+                        // AÇMAK. Resmî bilet bağlantısı seçicinin içinde.
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.expand_more_rounded,
+                          size: 16,
+                          color: p.accent.withValues(alpha: .75),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
           const SizedBox(width: 10),
-          Expanded(
-            child: Container(
-              height: 1,
-              color: p.textMuted.withValues(alpha: 0.35),
-            ),
-          ),
+          Expanded(child: Container(height: 1, color: p.border)),
         ],
       ),
     );
@@ -2018,10 +2157,27 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
         hintKey: 'routeOptimization.weather.extremeTemp',
       );
     }
-    return const _WeatherRouteAdjustment(
-      profile: RouteOptimizationProfile.balanced,
-      hintKey: 'routeOptimization.weather.clear',
-    );
+
+    // Hava rotayı değiştirmeyi gerektirmiyor → **öneri yok**.
+    //
+    // Eskiden burada `balanced` + "clear" ipucu dönüyordu; bu null olmadığı
+    // için "Havaya göre optimize et" CTA'sı sorunsuz bir günde de yanıyordu.
+    // Zaten düzgün olan bir planı optimize etmeye çağırmak kullanıcının
+    // güvenini tüketir.
+    return null;
+  }
+
+  /// Bu gün için hava temelli optimizasyon **teklif edilmeli mi?**
+  ///
+  /// İki kapı birlikte geçilmeli:
+  /// 1. Hava gerçekten bir değişiklik gerektiriyor (fırtına/yoğun yağış/aşırı
+  ///    sıcaklık) — [_weatherRouteAdjustmentFor] null değil.
+  /// 2. Tarih tahminin kesinleştiği pencerede ([kForecastActionableHorizonDays]).
+  ///    16 gün sonrasının kodu için rota bozmak, tahmin tutmayınca kullanıcıyı
+  ///    boşa uğraştırır.
+  bool _shouldOfferWeatherOptimization(DayPlan day, DayForecast? forecast) {
+    if (_weatherRouteAdjustmentFor(forecast) == null) return false;
+    return isForecastActionable(dateIso: day.date, today: DateTime.now());
   }
 }
 
@@ -3706,24 +3862,83 @@ class _OptimizationComparison extends StatelessWidget {
           ],
         ],
         const SizedBox(height: 20),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: onCancel,
-                child: Text(s.s('routeOptimization.cancel')),
-              ),
+        // Kazanç yoksa "Uygula" HİÇ çizilmez.
+        //
+        // **Why pasif buton değil, yokluk:** Gri bir "Uygula" kullanıcıyı
+        // "neden basamıyorum" diye uğraştırır. Burada basılacak bir şey yok;
+        // doğru cevap butonu değil, açıklamayı göstermek.
+        if (!preview.improvesRoute)
+          Container(
+            key: const ValueKey('route-optimization-no-gain'),
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: palette.elevated,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: palette.border),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: FilledButton(
-                key: const ValueKey('confirm-route-optimization'),
-                onPressed: onConfirm,
-                child: Text(s.s('routeOptimization.apply')),
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.check_circle_outline,
+                        size: 18, color: palette.matcha),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        s.s('routeOptimization.noGain.title'),
+                        style: TextStyle(
+                          color: palette.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  s.s('routeOptimization.noGain.body'),
+                  style: TextStyle(
+                    color: palette.textSecondary,
+                    fontSize: 12.5,
+                    height: 1.4,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          )
+        else
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: onCancel,
+                  child: Text(s.s('routeOptimization.cancel')),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton(
+                  key: const ValueKey('confirm-route-optimization'),
+                  onPressed: onConfirm,
+                  child: Text(s.s('routeOptimization.apply')),
+                ),
+              ),
+            ],
+          ),
+        if (!preview.improvesRoute) ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              key: const ValueKey('route-optimization-close'),
+              onPressed: onCancel,
+              child: Text(s.s('common.done')),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -4640,14 +4855,833 @@ void _showOptimizePaywall(BuildContext context, ViewerPalette p) {
   );
 }
 
+class _JourneyProgressHero extends StatelessWidget {
+  const _JourneyProgressHero({
+    required this.day,
+    required this.palette,
+    required this.onOpenItem,
+  });
+
+  final DayPlan day;
+  final ViewerPalette palette;
+  final ValueChanged<TimelineItem> onOpenItem;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
+    final now = DateTime.now();
+    final date = DateTime.tryParse(day.date);
+    final today = DateTime(now.year, now.month, now.day);
+    final planDate =
+        date == null ? null : DateTime(date.year, date.month, date.day);
+    final completed = <TimelineItem>{};
+    for (final item in day.items) {
+      final minutes = _timeToMinutes(item.time ?? item.scheduledTime);
+      final isDone = planDate != null &&
+          (planDate.isBefore(today) ||
+              (planDate == today &&
+                  minutes != null &&
+                  minutes < now.hour * 60 + now.minute));
+      if (isDone) completed.add(item);
+    }
+    final total = day.items.length;
+    final done = completed.length;
+    TimelineItem? next;
+    for (final item in day.items) {
+      if (!completed.contains(item)) {
+        next = item;
+        break;
+      }
+    }
+
+    return Container(
+      key: const ValueKey('viewer-template-journey-hero'),
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: palette.card,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        children: [
+          SizedBox(
+            height: 205,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Positioned.fill(
+                  child: CustomPaint(
+                    key: const ValueKey('viewer-journey-japan-line-art'),
+                    painter: _JapanJourneyLineArtPainter(palette: palette),
+                  ),
+                ),
+                SizedBox(
+                  width: 138,
+                  height: 138,
+                  child: CustomPaint(
+                    key: const ValueKey('viewer-journey-segmented-progress'),
+                    painter: _SegmentedJourneyProgressPainter(
+                      done: done,
+                      total: total,
+                      palette: palette,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          s.lang == AppLang.tr ? 'İLERLEMEN' : 'PROGRESS',
+                          style: TextStyle(
+                            color: palette.textSecondary,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '$done/$total',
+                          style: TextStyle(
+                            color: palette.accent,
+                            fontSize: 31,
+                            fontWeight: FontWeight.w900,
+                            height: 1,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          s.lang == AppLang.tr ? 'tamamlandı' : 'completed',
+                          style: TextStyle(
+                            color: palette.textPrimary,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (next != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+              child: Material(
+                color: palette.accent,
+                borderRadius: BorderRadius.circular(20),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => onOpenItem(next!),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 64,
+                          height: 70,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.16),
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: const Icon(
+                            Icons.flight_land_rounded,
+                            color: Colors.white,
+                            size: 36,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 7,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFF655B),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      s.s('viewer.template.next').toUpperCase(),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 7),
+                                  Expanded(
+                                    child: Text(
+                                      _formatDayTitle(
+                                        day.date,
+                                        day.dayNumber,
+                                        s.lang,
+                                        weekdayHint: day.weekday,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                '${next.time ?? next.scheduledTime ?? ''}  ${next.title}',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1.08,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const CircleAvatar(
+                          radius: 19,
+                          backgroundColor: Colors.white,
+                          child:
+                              Icon(Icons.chevron_right, color: Colors.black87),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            )
+          else
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: palette.matcha.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle, color: palette.matcha),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      s.s('viewer.template.dayComplete'),
+                      style: TextStyle(
+                        color: palette.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SegmentedJourneyProgressPainter extends CustomPainter {
+  const _SegmentedJourneyProgressPainter({
+    required this.done,
+    required this.total,
+    required this.palette,
+  });
+
+  final int done;
+  final int total;
+  final ViewerPalette palette;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final rect = Rect.fromCircle(center: center, radius: size.width * 0.43);
+    const gap = 0.075;
+    const sweep = math.pi / 2 - gap * 2;
+    final activeSegments = total == 0 ? 0 : ((done / total) * 4).ceil();
+    final segmentPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 22
+      ..strokeCap = StrokeCap.butt;
+
+    for (var index = 0; index < 4; index++) {
+      segmentPaint.color = index < activeSegments
+          ? palette.accent
+          : Color.alphaBlend(
+              palette.textSecondary.withValues(alpha: 0.10),
+              palette.card,
+            );
+      final start = -math.pi / 2 + index * math.pi / 2 + gap;
+      canvas.drawArc(rect, start, sweep, false, segmentPaint);
+
+      final angle = start + sweep / 2;
+      final labelCenter = center +
+          Offset(math.cos(angle), math.sin(angle)) * (size.width * 0.43);
+      final label = TextPainter(
+        text: TextSpan(
+          text: '${index + 1}',
+          style: TextStyle(
+            color:
+                index < activeSegments ? Colors.white : palette.textSecondary,
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      label.paint(
+        canvas,
+        labelCenter - Offset(label.width / 2, label.height / 2),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SegmentedJourneyProgressPainter oldDelegate) =>
+      oldDelegate.done != done ||
+      oldDelegate.total != total ||
+      oldDelegate.palette != palette;
+}
+
+class _JapanJourneyLineArtPainter extends CustomPainter {
+  const _JapanJourneyLineArtPainter({required this.palette});
+
+  final ViewerPalette palette;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final blue = Paint()
+      ..color = palette.accent.withValues(alpha: 0.78)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final coral = Paint()
+      ..color = const Color(0xFFFF5F60).withValues(alpha: 0.86)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    final baselineY = size.height * 0.88;
+
+    final tower = Path()
+      ..moveTo(size.width * 0.07, baselineY)
+      ..lineTo(size.width * 0.10, size.height * 0.22)
+      ..lineTo(size.width * 0.13, baselineY)
+      ..moveTo(size.width * 0.083, size.height * 0.62)
+      ..lineTo(size.width * 0.117, size.height * 0.62)
+      ..moveTo(size.width * 0.078, size.height * 0.72)
+      ..lineTo(size.width * 0.122, size.height * 0.72)
+      ..moveTo(size.width * 0.10, size.height * 0.22)
+      ..lineTo(size.width * 0.10, size.height * 0.15);
+    canvas.drawPath(tower, blue);
+
+    final plane = Path()
+      ..moveTo(size.width * 0.18, size.height * 0.39)
+      ..lineTo(size.width * 0.31, size.height * 0.31)
+      ..lineTo(size.width * 0.33, size.height * 0.34)
+      ..lineTo(size.width * 0.24, size.height * 0.42)
+      ..lineTo(size.width * 0.20, size.height * 0.51)
+      ..lineTo(size.width * 0.18, size.height * 0.50)
+      ..lineTo(size.width * 0.20, size.height * 0.43)
+      ..close();
+    canvas.drawPath(plane, blue);
+
+    canvas.drawCircle(
+      Offset(size.width * 0.79, size.height * 0.43),
+      size.height * 0.105,
+      Paint()..color = const Color(0xFFFF5F60),
+    );
+    final mountain = Path()
+      ..moveTo(size.width * 0.64, baselineY)
+      ..lineTo(size.width * 0.79, size.height * 0.50)
+      ..lineTo(size.width * 0.92, baselineY)
+      ..moveTo(size.width * 0.745, size.height * 0.62)
+      ..lineTo(size.width * 0.79, size.height * 0.50)
+      ..lineTo(size.width * 0.83, size.height * 0.62)
+      ..lineTo(size.width * 0.805, size.height * 0.59)
+      ..lineTo(size.width * 0.785, size.height * 0.63)
+      ..lineTo(size.width * 0.77, size.height * 0.59)
+      ..close();
+    canvas.drawPath(mountain, blue);
+
+    final pagodaX = size.width * 0.93;
+    for (var index = 0; index < 3; index++) {
+      final y = baselineY - index * 15;
+      canvas.drawLine(
+        Offset(pagodaX - 18 + index * 3, y),
+        Offset(pagodaX + 18 - index * 3, y),
+        blue,
+      );
+      canvas.drawLine(
+        Offset(pagodaX - 14 + index * 3, y - 4),
+        Offset(pagodaX + 14 - index * 3, y - 4),
+        blue,
+      );
+    }
+    canvas.drawLine(
+      Offset(pagodaX, baselineY - 49),
+      Offset(pagodaX, baselineY),
+      blue,
+    );
+
+    final branch = Path()
+      ..moveTo(size.width, size.height * 0.12)
+      ..quadraticBezierTo(
+        size.width * 0.94,
+        size.height * 0.18,
+        size.width * 0.90,
+        size.height * 0.30,
+      );
+    canvas.drawPath(branch, blue);
+    for (final point in [
+      Offset(size.width * 0.94, size.height * 0.18),
+      Offset(size.width * 0.90, size.height * 0.27),
+      Offset(size.width * 0.97, size.height * 0.13),
+    ]) {
+      canvas.drawCircle(point, 4.2, coral);
+      canvas.drawCircle(point, 1.2, coral);
+    }
+
+    canvas.drawLine(
+      Offset(size.width * 0.03, baselineY),
+      Offset(size.width * 0.36, baselineY),
+      blue,
+    );
+    canvas.drawLine(
+      Offset(size.width * 0.63, baselineY),
+      Offset(size.width * 0.97, baselineY),
+      blue,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _JapanJourneyLineArtPainter oldDelegate) =>
+      oldDelegate.palette != palette;
+}
+
+class _MapFocusHero extends StatelessWidget {
+  const _MapFocusHero({
+    required this.trip,
+    required this.day,
+    required this.days,
+    required this.palette,
+    required this.onSelectDay,
+    required this.onOpenMap,
+  });
+
+  final Trip trip;
+  final DayPlan day;
+  final List<DayPlan> days;
+  final ViewerPalette palette;
+  final ValueChanged<DayPlan> onSelectDay;
+  final ValueChanged<DayPlan> onOpenMap;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
+    final destinations = [...trip.preferences.destinations]
+      ..sort((a, b) => a.order.compareTo(b.order));
+    final destination = getDestinationForDate(destinations, day.date);
+    final city = cityDataForKey(destination?.city);
+    final fallbackLat = destination?.lat ??
+        (city?.places.isNotEmpty == true ? city!.places.first.lat : 36.2048);
+    final fallbackLng = destination?.lng ??
+        (city?.places.isNotEmpty == true ? city!.places.first.lng : 138.2529);
+    final stops = resolveDayStops(
+      day,
+      cityKey: destination?.city,
+      fallbackLat: fallbackLat,
+      fallbackLng: fallbackLng,
+    );
+    final points = [for (final stop in stops) LatLng(stop.lat, stop.lng)];
+    final options = points.length >= 2
+        ? MapOptions(
+            initialCameraFit: CameraFit.bounds(
+              bounds: LatLngBounds.fromPoints(points),
+              padding: const EdgeInsets.fromLTRB(70, 62, 70, 130),
+            ),
+            interactionOptions:
+                const InteractionOptions(flags: InteractiveFlag.none),
+          )
+        : MapOptions(
+            initialCenter: points.isEmpty
+                ? LatLng(fallbackLat, fallbackLng)
+                : points.first,
+            initialZoom: points.isEmpty ? 11 : 14,
+            interactionOptions:
+                const InteractionOptions(flags: InteractiveFlag.none),
+          );
+
+    return Container(
+      key: const ValueKey('viewer-template-map-hero'),
+      height: 390,
+      margin: const EdgeInsets.only(bottom: 12),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: palette.card,
+        borderRadius: const BorderRadius.vertical(
+          bottom: Radius.circular(24),
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: IgnorePointer(
+              child: FlutterMap(
+                key: ValueKey('viewer-map-${day.date}'),
+                options: options,
+                children: [
+                  TileLayer(
+                    urlTemplate: kRotoriTileUrlTemplate,
+                    userAgentPackageName: 'com.mennansevim.rotori',
+                    maxZoom: 19,
+                    tileProvider: RotoriTileProvider.shared,
+                  ),
+                  if (points.length >= 2)
+                    PolylineLayer(
+                      polylines: [
+                        Polyline(
+                          points: points,
+                          color: Colors.white.withValues(alpha: 0.88),
+                          strokeWidth: 5.5,
+                        ),
+                        Polyline(
+                          points: points,
+                          color: const Color(0xFF1687E8),
+                          strokeWidth: 3,
+                        ),
+                      ],
+                    ),
+                  MarkerLayer(
+                    markers: [
+                      for (final stop in stops)
+                        Marker(
+                          point: LatLng(stop.lat, stop.lng),
+                          width: 140,
+                          height: 88,
+                          child: _MapTemplateMarker(
+                            stop: stop,
+                            palette: palette,
+                          ),
+                        ),
+                    ],
+                  ),
+                  RichAttributionWidget(
+                    showFlutterMapAttribution: false,
+                    attributions: [
+                      TextSourceAttribution(
+                        s.s('map.osmAttribution'),
+                        onTap: () async {
+                          await launchUrl(
+                            Uri.parse(kOpenStreetMapCopyrightUrl),
+                            mode: LaunchMode.externalApplication,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 102,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(onTap: () => onOpenMap(day)),
+            ),
+          ),
+          Positioned(
+            left: 12,
+            top: 12,
+            child: Material(
+              color: palette.card.withValues(alpha: 0.94),
+              borderRadius: BorderRadius.circular(999),
+              elevation: 2,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: () => onOpenMap(day),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.layers_outlined,
+                          color: palette.textPrimary, size: 18),
+                      const SizedBox(width: 7),
+                      Text(
+                        LanguageScope.of(context)
+                            .s('viewer.template.map.layers'),
+                        style: TextStyle(
+                          color: palette.textPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 14,
+            bottom: 86,
+            child: Material(
+              color: palette.card.withValues(alpha: 0.97),
+              shape: const CircleBorder(),
+              elevation: 4,
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () => onOpenMap(day),
+                child: SizedBox(
+                  width: 50,
+                  height: 50,
+                  child: Icon(
+                    Icons.my_location_rounded,
+                    color: palette.textPrimary,
+                    size: 25,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 8,
+            right: 8,
+            bottom: 8,
+            child: SizedBox(
+              height: 68,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final separatorWidth = days.length > 5 ? 4.0 : 6.0;
+                  final chipWidth = days.isEmpty
+                      ? constraints.maxWidth
+                      : (constraints.maxWidth -
+                              separatorWidth * (days.length - 1)) /
+                          days.length;
+                  return ListView.separated(
+                    key: const ValueKey('viewer-map-day-strip'),
+                    scrollDirection: Axis.horizontal,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: days.length,
+                    separatorBuilder: (_, __) =>
+                        SizedBox(width: separatorWidth),
+                    itemBuilder: (context, index) {
+                      final candidate = days[index];
+                      final selected = candidate.dayNumber == day.dayNumber;
+                      final parsed = DateTime.tryParse(candidate.date);
+                      final lang = LanguageScope.of(context).lang;
+                      final month = parsed == null
+                          ? ''
+                          : L10n.monthsFor(lang)[parsed.month];
+                      final shortMonth =
+                          month.length > 3 ? month.substring(0, 3) : month;
+                      final weekday = parsed == null
+                          ? ''
+                          : L10n.weekdaysFor(lang)[parsed.weekday];
+                      final shortWeekday = weekday.length > 3
+                          ? weekday.substring(0, 3)
+                          : weekday;
+                      const chipTints = [
+                        Color(0xFF368BFF),
+                        Color(0xFFFFB52E),
+                        Color(0xFFFF668C),
+                        Color(0xFF8B6CFF),
+                        Color(0xFF35B979),
+                        Color(0xFF24AFC0),
+                        Color(0xFFFF7A59),
+                      ];
+                      final tint = chipTints[index % chipTints.length];
+                      final chipColor = Color.alphaBlend(
+                        tint.withValues(alpha: selected ? 0.20 : 0.10),
+                        palette.card,
+                      );
+                      return Material(
+                        color: chipColor.withValues(alpha: 0.98),
+                        borderRadius: BorderRadius.circular(14),
+                        elevation: selected ? 3 : 1,
+                        child: InkWell(
+                          key: ValueKey(
+                            'viewer-map-day-${candidate.dayNumber}',
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          onTap: () => onSelectDay(candidate),
+                          child: Container(
+                            width: chipWidth,
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: selected
+                                    ? palette.accent
+                                    : tint.withValues(alpha: 0.42),
+                                width: selected ? 2 : 1,
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  parsed == null
+                                      ? '${candidate.dayNumber}'
+                                      : '${parsed.day}',
+                                  style: TextStyle(
+                                    color: selected
+                                        ? palette.accent
+                                        : palette.textPrimary,
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                    height: 1,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  shortMonth,
+                                  style: TextStyle(
+                                    color: selected
+                                        ? palette.accent
+                                        : palette.textSecondary,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  shortWeekday,
+                                  style: TextStyle(
+                                    color: palette.textSecondary,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MapTemplateMarker extends StatelessWidget {
+  const _MapTemplateMarker({required this.stop, required this.palette});
+
+  final ResolvedStop stop;
+  final ViewerPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.topCenter,
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          top: 30,
+          child: SizedBox(
+            width: 28,
+            height: 28,
+            child: _MapTemplatePin(
+              order: stop.order,
+              palette: palette,
+            ),
+          ),
+        ),
+        Positioned(
+          top: stop.order.isOdd ? 0 : 62,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 136),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.9),
+              borderRadius: BorderRadius.circular(7),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x1F000000),
+                  blurRadius: 4,
+                  offset: Offset(0, 1),
+                ),
+              ],
+            ),
+            child: Text(
+              stop.item.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFF172033),
+                fontSize: 9.2,
+                fontWeight: FontWeight.w700,
+                height: 1.1,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MapTemplatePin extends StatelessWidget {
+  const _MapTemplatePin({required this.order, required this.palette});
+
+  final int order;
+  final ViewerPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: palette.sakura,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: const [
+          BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 1)),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        '$order',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
 class _DayCard extends StatefulWidget {
   const _DayCard({
     super.key,
     required this.day,
     required this.palette,
+    required this.template,
     required this.dest,
     required this.bubbleColor,
     this.forecast,
+    this.canOptimizeForWeather = false,
     required this.isPast,
     required this.isActive,
     required this.expanded,
@@ -4662,6 +5696,7 @@ class _DayCard extends StatefulWidget {
     required this.onDropItem,
     required this.onDeleteItem,
     required this.onEditItemTime,
+    required this.onToggleItemLock,
     required this.onAddItem,
     required this.onEditDay,
     required this.onMoveDay,
@@ -4670,9 +5705,14 @@ class _DayCard extends StatefulWidget {
   });
   final DayPlan day;
   final ViewerPalette palette;
+  final ViewerTemplateId template;
   final TripDestination? dest;
   final Color bubbleColor;
   final DayForecast? forecast;
+
+  /// Hava temelli optimizasyon bu gün için anlamlı mı? `false` iken CTA hiç
+  /// çizilmez — düzgün bir planı "optimize et" diye çağırmak güveni tüketir.
+  final bool canOptimizeForWeather;
   final bool isPast;
   final bool isActive;
 
@@ -4717,6 +5757,9 @@ class _DayCard extends StatefulWidget {
 
   /// Bir durağın saatini düzenle (time picker) → gün yeniden saatlenir.
   final void Function(DayPlan day, int itemIdx) onEditItemTime;
+
+  /// Kullanıcı kilidini aç/kapa (bileti alınmış durakları korumak için).
+  final void Function(DayPlan day, TimelineItem item) onToggleItemLock;
 
   /// Bu güne yeni durak ekle (autocomplete + saat sheet).
   final void Function(DayPlan day, TripDestination? dest) onAddItem;
@@ -4785,6 +5828,8 @@ class _DayCardState extends State<_DayCard> {
   Widget build(BuildContext context) {
     final p = widget.palette;
     final day = widget.day;
+    final compact = widget.template == ViewerTemplateId.mapFocus;
+    final cardRadius = compact ? 22.0 : 18.0;
     // Akordiyon: parent tek-açık mantığını yönetir. Düzenleme modunda tüm
     // günler zorla açık (kullanıcı kapalı gündeki item'ı düzenleyemez).
     final expanded = widget.expanded;
@@ -4800,15 +5845,17 @@ class _DayCardState extends State<_DayCard> {
     final routeLegs = _displayRouteLegs(day, widget.dest);
 
     final card = Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: compact ? 6 : 12),
       decoration: BoxDecoration(
-        color: widget.isActive ? p.cardHover : p.card,
-        borderRadius: BorderRadius.circular(18),
+        color: compact ? p.card : (widget.isActive ? p.cardHover : p.card),
+        borderRadius: BorderRadius.circular(cardRadius),
         border: Border.all(
-          color: widget.isActive ? p.sakura.withValues(alpha: 0.45) : p.border,
-          width: widget.isActive ? 1.5 : 1,
+          color: widget.isActive && !compact
+              ? p.sakura.withValues(alpha: 0.45)
+              : p.border,
+          width: widget.isActive && !compact ? 1.5 : 1,
         ),
-        boxShadow: widget.isActive
+        boxShadow: widget.isActive && !compact
             ? [
                 BoxShadow(
                   color: p.sakura.withValues(alpha: 0.22),
@@ -4823,16 +5870,23 @@ class _DayCardState extends State<_DayCard> {
         children: [
           // Başlık satırı (tıklanınca genişlet/daralt).
           InkWell(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(cardRadius),
             onTap: widget.onToggleExpand,
             child: Padding(
-              padding: const EdgeInsets.all(14),
+              padding: EdgeInsets.symmetric(
+                horizontal: compact ? 10 : 14,
+                vertical: compact ? 9 : 14,
+              ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _DayBadge(
-                      day: day, palette: p, bubbleColor: widget.bubbleColor),
-                  const SizedBox(width: 12),
+                    day: day,
+                    palette: p,
+                    bubbleColor: widget.bubbleColor,
+                    compact: compact,
+                  ),
+                  SizedBox(width: compact ? 10 : 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -4851,7 +5905,7 @@ class _DayCardState extends State<_DayCard> {
                                 style: TextStyle(
                                   color: p.textPrimary,
                                   fontWeight: FontWeight.w700,
-                                  fontSize: 15,
+                                  fontSize: compact ? 14.5 : 15,
                                 ),
                               ),
                             ),
@@ -4931,7 +5985,12 @@ class _DayCardState extends State<_DayCard> {
             child: !expanded
                 ? const SizedBox(width: double.infinity)
                 : Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                    padding: EdgeInsets.fromLTRB(
+                      compact ? 10 : 14,
+                      0,
+                      compact ? 10 : 14,
+                      compact ? 10 : 14,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -4993,6 +6052,8 @@ class _DayCardState extends State<_DayCard> {
                                             widget.onEditItemTime(day, i),
                                         onOpen: () => widget.onOpenItem(
                                             item, widget.dest),
+                                        onToggleLock: () =>
+                                            widget.onToggleItemLock(day, item),
                                       );
                                       final canDelete =
                                           item.canDelete && !item.isFixed;
@@ -5103,23 +6164,14 @@ class _DayCardState extends State<_DayCard> {
                             )
                           else
                             for (var i = 0; i < day.items.length; i++) ...[
-                              for (final leg in routeLegs.where((leg) =>
-                                  !leg.isTrivial &&
-                                  leg.toLocationId == day.items[i].id))
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.fromLTRB(8, 3, 0, 5),
-                                  child: _RouteExecutionLegCard(
-                                    key: ValueKey(
-                                      'saved-route-leg-${day.dayNumber}-${leg.fromLocationId}-${leg.toLocationId}',
-                                    ),
-                                    leg: leg,
-                                    palette: p,
-                                    compact: true,
-                                  ),
-                                ),
+                              // Geliş bacağı ayrı bir satır değil, durağın alt
+                              // başlığıdır: "Dotonbori / Yürüyerek · 18 dk".
                               _TimelineRow(
                                 item: day.items[i],
+                                inboundLeg: _inboundLegFor(
+                                  routeLegs,
+                                  day.items[i].id,
+                                ),
                                 palette: p,
                                 dest: widget.dest,
                                 isNext: i == nextIdx,
@@ -5215,7 +6267,7 @@ class _DayCardState extends State<_DayCard> {
         duration: const Duration(milliseconds: 160),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(compact ? 14 : 20),
             border:
                 _isDropTarget ? Border.all(color: p.accent, width: 2) : null,
           ),
@@ -5306,18 +6358,19 @@ class _DayCardState extends State<_DayCard> {
             ],
           ),
           actions: [
-            FilledButton.icon(
-              onPressed: () {
-                Navigator.pop(context);
-                widget.onOptimizeWeatherRoute(
-                  widget.day,
-                  widget.dest,
-                  widget.forecast,
-                );
-              },
-              icon: const Icon(Icons.auto_awesome, size: 16),
-              label: Text(s.s('routeOptimization.weatherAction')),
-            ),
+            if (widget.canOptimizeForWeather)
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  widget.onOptimizeWeatherRoute(
+                    widget.day,
+                    widget.dest,
+                    widget.forecast,
+                  );
+                },
+                icon: const Icon(Icons.auto_awesome, size: 16),
+                label: Text(s.s('routeOptimization.weatherAction')),
+              ),
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
@@ -5396,11 +6449,16 @@ class _WeatherBadge extends StatelessWidget {
 }
 
 class _DayBadge extends StatelessWidget {
-  const _DayBadge(
-      {required this.day, required this.palette, required this.bubbleColor});
+  const _DayBadge({
+    required this.day,
+    required this.palette,
+    required this.bubbleColor,
+    required this.compact,
+  });
   final DayPlan day;
   final ViewerPalette palette;
   final Color bubbleColor;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -5412,30 +6470,30 @@ class _DayBadge extends StatelessWidget {
     final monthShort =
         monthFull.length > 3 ? monthFull.substring(0, 3) : monthFull;
     return Container(
-      width: 54,
-      height: 54,
+      width: compact ? 46 : 54,
+      height: compact ? 46 : 54,
       decoration: BoxDecoration(
         color: bubbleColor,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(compact ? 11 : 14),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             dayOfMonth,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w800,
-              fontSize: 20,
+              fontSize: compact ? 18 : 20,
               height: 1,
             ),
           ),
           if (monthShort.isNotEmpty)
             Text(
               monthShort,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white70,
-                fontSize: 10,
+                fontSize: compact ? 9 : 10,
               ),
             ),
         ],
@@ -5529,13 +6587,6 @@ class _MetaChip extends StatelessWidget {
   }
 }
 
-IconData _kindIcon(TimelineItemKind? k) => switch (k) {
-      TimelineItemKind.meal => Icons.restaurant,
-      TimelineItemKind.transport => Icons.directions_transit,
-      TimelineItemKind.hotel => Icons.hotel,
-      _ => Icons.place,
-    };
-
 // ---------------------------------------------------------------------------
 // Düzenleme modunda kullanılan wrapper — mevcut _TimelineRow'u aynen render
 // eder ama yanına sıralama/taşıma/kaldırma menüsü ekler. `_TimelineRow`'un
@@ -5550,6 +6601,7 @@ class _EditableTimelineRow extends StatelessWidget {
     required this.allDays,
     required this.onEditTime,
     required this.onOpen,
+    required this.onToggleLock,
     this.warnings = const [],
   });
 
@@ -5560,6 +6612,9 @@ class _EditableTimelineRow extends StatelessWidget {
   final List<DayPlan> allDays;
   final VoidCallback onEditTime;
   final VoidCallback onOpen;
+
+  /// Kullanıcı kilidini aç/kapa. Sistem kilitli duraklarda çağrılmaz.
+  final VoidCallback onToggleLock;
 
   /// Bu satırın plan uyarıları (zaman çakışması / yemek penceresi ihlali).
   /// Boş liste → normal görünüm. Doluysa saat rozeti turuncuya döner ve
@@ -5600,13 +6655,30 @@ class _EditableTimelineRow extends StatelessWidget {
                           color: p.textMuted,
                         ),
                       )
+                    // Kullanıcı kilidi dokunulabilir ve accent renkte: sistem
+                    // kilidinden (gri, sabit) hem görsel hem davranışça ayrı.
                     : Semantics(
-                        label:
-                            item.lockReason ?? s.s('viewer.edit.fixedReason'),
-                        child: Icon(
-                          Icons.lock_rounded,
-                          size: 15,
-                          color: p.textMuted,
+                        label: item.isUserPinned
+                            ? s.s('viewer.edit.unpin')
+                            : item.lockReason ?? s.s('viewer.edit.fixedReason'),
+                        button: item.isUserPinned,
+                        child: IconButton(
+                          key: ValueKey('unpin-${item.id}'),
+                          onPressed: item.isUserPinned ? onToggleLock : null,
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 22,
+                            minHeight: 32,
+                          ),
+                          tooltip: item.isUserPinned
+                              ? s.s('viewer.edit.unpin')
+                              : s.s('viewer.edit.pinSystemLocked'),
+                          icon: Icon(
+                            Icons.lock_rounded,
+                            size: item.isUserPinned ? 17 : 15,
+                            color: item.isUserPinned ? p.accent : p.textMuted,
+                          ),
                         ),
                       ),
               ),
@@ -5622,8 +6694,6 @@ class _EditableTimelineRow extends StatelessWidget {
               warnings: warnings,
               onTap: item.canChangeTime && !item.isFixed ? onEditTime : null,
             ),
-            const SizedBox(width: 8),
-            _ItemThumb(item: item, dest: dest, palette: p, size: 40),
             const SizedBox(width: 10),
             // Başlık + açıklama — tıklanınca detay.
             Expanded(
@@ -5664,8 +6734,36 @@ class _EditableTimelineRow extends StatelessWidget {
             // • Silme  → sola swipe (Dismissible)
             // • Taşıma → basılı tut + günler arası sürükle-bırak
             // • Detay  → satıra tıkla
-            // Sabit satırlarda küçük kilit rozeti tutulmuş.
-            if (item.isFixed)
+            // • Kilit  → açık kilit rozetine dokun
+            //
+            // Kilitli durakta rozet zaten solda (dokunulabilir) duruyor;
+            // burada yalnız HENÜZ kilitlenmemiş duraklar için "kilitle"
+            // aksiyonu gösterilir.
+            if (item.canUserToggleLock && !item.isFixed)
+              Padding(
+                padding: const EdgeInsets.only(left: 2),
+                child: Semantics(
+                  label: s.s('viewer.edit.pin'),
+                  button: true,
+                  child: IconButton(
+                    key: ValueKey('pin-${item.id}'),
+                    onPressed: onToggleLock,
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 30,
+                      minHeight: 32,
+                    ),
+                    tooltip: s.s('viewer.edit.pin'),
+                    icon: Icon(
+                      Icons.lock_open_rounded,
+                      size: 15,
+                      color: p.textMuted,
+                    ),
+                  ),
+                ),
+              )
+            else if (item.isFixed && !item.isUserPinned)
               Padding(
                 padding: const EdgeInsets.only(left: 4),
                 child: Semantics(
@@ -5707,98 +6805,6 @@ class _MiniIconBtn extends StatelessWidget {
         icon,
         size: 20,
         color: enabled ? color : color.withValues(alpha: 0.25),
-      ),
-    );
-  }
-}
-
-/// Timeline durağı için küçük yuvarlatılmış görsel. `PlaceImageResolver` ile
-/// çözülür (küratörlü → Wikipedia). Görsel yoksa tür ikonuna düşer.
-class _ItemThumb extends StatefulWidget {
-  const _ItemThumb({
-    required this.item,
-    required this.dest,
-    required this.palette,
-    this.size = 40,
-  });
-  final TimelineItem item;
-  final TripDestination? dest;
-  final ViewerPalette palette;
-  final double size;
-
-  @override
-  State<_ItemThumb> createState() => _ItemThumbState();
-}
-
-class _ItemThumbState extends State<_ItemThumb> {
-  String? _url;
-  bool _done = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _resolve();
-  }
-
-  @override
-  void didUpdateWidget(covariant _ItemThumb old) {
-    super.didUpdateWidget(old);
-    if (old.item.title != widget.item.title) {
-      _done = false;
-      _url = null;
-      _resolve();
-    }
-  }
-
-  bool get _eligible {
-    final k = widget.item.kind;
-    // Şehirler-arası geçiş bandının kendi tasarımı var; thumb gösterme.
-    if (k == TimelineItemKind.transport && widget.item.title.contains('→')) {
-      return false;
-    }
-    return true;
-  }
-
-  Future<void> _resolve() async {
-    if (!_eligible) {
-      setState(() => _done = true);
-      return;
-    }
-    final urls = await PlaceImageResolver.instance
-        .resolve(widget.item.title, city: widget.dest?.city);
-    if (!mounted) return;
-    setState(() {
-      _url = urls.isNotEmpty ? urls.first : null;
-      _done = true;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final p = widget.palette;
-    final size = widget.size;
-    final fallback = Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: p.elevated,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: p.border),
-      ),
-      alignment: Alignment.center,
-      child: Icon(_kindIcon(widget.item.kind), size: 18, color: p.textMuted),
-    );
-    if (!_done || _url == null) return fallback;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: Image.network(
-        _url!,
-        width: size,
-        height: size,
-        fit: BoxFit.cover,
-        gaplessPlayback: true,
-        loadingBuilder: (_, child, prog) => prog == null ? child : fallback,
-        errorBuilder: (_, __, ___) => fallback,
       ),
     );
   }
@@ -6747,6 +7753,21 @@ class _AddPlaceSheetState extends State<_AddPlaceSheet> {
   }
 }
 
+/// Bir durağa **gelinen** bacağı bulur.
+///
+/// Bacak artık kendi satırında değil, varış durağının alt başlığında gösterilir;
+/// bu yüzden eşleşme `toLocationId` üzerindendir. Süresi sıfır olan (aynı nokta)
+/// bacaklar kullanıcıya bilgi taşımaz, atlanır.
+RouteExecutionLeg? _inboundLegFor(
+  List<RouteExecutionLeg> legs,
+  String itemId,
+) {
+  for (final leg in legs) {
+    if (!leg.isTrivial && leg.toLocationId == itemId) return leg;
+  }
+  return null;
+}
+
 class _TimelineRow extends StatelessWidget {
   const _TimelineRow({
     required this.item,
@@ -6757,6 +7778,7 @@ class _TimelineRow extends StatelessWidget {
     required this.isFirst,
     required this.isLast,
     required this.onOpen,
+    this.inboundLeg,
     this.warnings = const [],
   });
   final TimelineItem item;
@@ -6767,9 +7789,63 @@ class _TimelineRow extends StatelessWidget {
   final bool isFirst;
   final bool isLast;
   final VoidCallback onOpen;
+
+  /// Bu durağa gelinen ulaşım bacağı. Alt başlıkta rozet olarak gösterilir.
+  final RouteExecutionLeg? inboundLeg;
+
   final List<PlanWarning> warnings;
 
   static const Color _amber = Color(0xFFFF9F0A);
+
+  /// "🚶 Yürüyerek · 18 dk" rozeti. Durağın kimliğini bastırmaması için
+  /// başlıktan küçük ve accent tonundadır.
+  Widget _transitBadge(BuildContext context, RouteExecutionLeg leg) {
+    final s = LanguageScope.of(context);
+    final p = palette;
+    final muted = isPastItem;
+    final color = muted ? p.textMuted : p.accent;
+    final label = '${_routeModeLabel(s, leg.mode)} · '
+        '${leg.travelDurationMinutes} ${s.s('routeOptimization.minute')}';
+    return Semantics(
+      key: ValueKey('timeline-transit-badge-${item.id}'),
+      label: s.p('routeOptimization.legs.semantics', {
+        'from': leg.fromName,
+        'to': leg.toName,
+        'mode': _routeModeLabel(s, leg.mode),
+        'minutes': '${leg.travelDurationMinutes}',
+      }),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(7),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(_routeModeIcon(leg.mode), size: 12, color: color),
+            const SizedBox(width: 4),
+            // Flexible şart: Row'un flex'siz çocuğu maxWidth:infinity ile
+            // ölçülür, ellipsis hiç devreye girmez ve Row rozeti taşırır.
+            // Container clip yapmadığı için taşan metin ("… dk") komşu
+            // açıklamanın üstüne basılıyordu.
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -6836,8 +7912,6 @@ class _TimelineRow extends StatelessWidget {
                       ),
                     ),
                   ),
-                  _ItemThumb(item: item, dest: dest, palette: p),
-                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -6877,7 +7951,36 @@ class _TimelineRow extends StatelessWidget {
                             ],
                           ],
                         ),
-                        if (item.description != null &&
+                        // Alt başlık: önce ulaşım rozeti, sonra açıklama.
+                        //
+                        // **Why Wrap:** İki `Flexible` genişliği yarı yarıya
+                        // bölüyordu — rozet kendi içeriğinden dar kalıp taşıyor,
+                        // açıklama da erken kırpılıyordu. Wrap ile rozet kendi
+                        // boyunda durur; açıklama aynı satıra sığmıyorsa alt
+                        // satıra iner, üst üste binmez.
+                        if (inboundLeg != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 3),
+                            child: Wrap(
+                              spacing: 6,
+                              runSpacing: 3,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                _transitBadge(context, inboundLeg!),
+                                if (item.description?.isNotEmpty == true)
+                                  Text(
+                                    item.description!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: p.textSecondary,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          )
+                        else if (item.description != null &&
                             item.description!.isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.only(top: 2),
@@ -7212,7 +8315,7 @@ class _TimelineRailPainter extends CustomPainter {
 }
 
 // ---------------------------------------------------------------------------
-// 4) Tema seçici.
+// 4) Görünüm seçici: düzen + renk teması + dil.
 // ---------------------------------------------------------------------------
 
 /// ViewerThemeId → l10n anahtarı (tema adı, dile göre çözülür).
@@ -7222,68 +8325,202 @@ String _themeLabelKey(ViewerThemeId id) => switch (id) {
       ViewerThemeId.sakuraSoft => 'theme.sakuraSoft',
     };
 
+String _templateLabelKey(ViewerTemplateId id) => switch (id) {
+      ViewerTemplateId.journeyProgress => 'viewer.template.journeyProgress',
+      ViewerTemplateId.mapFocus => 'viewer.template.mapFocus',
+    };
+
+String _templateDescriptionKey(ViewerTemplateId id) => switch (id) {
+      ViewerTemplateId.journeyProgress =>
+        'viewer.template.journeyProgress.description',
+      ViewerTemplateId.mapFocus => 'viewer.template.mapFocus.description',
+    };
+
 class _ThemePickerSheet extends ConsumerWidget {
-  const _ThemePickerSheet({required this.current});
-  final ViewerThemeId current;
+  const _ThemePickerSheet();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final current = ref.watch(viewerThemeProvider);
+    final currentTemplate = ref.watch(viewerTemplateProvider);
     final palette = ViewerPalette.forId(current);
     final s = LanguageScope.of(context);
     final lang = ref.watch(appLangProvider);
-    return SafeArea(
-      top: false,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              s.s('viewer.theme.title'),
-              style: TextStyle(
-                color: palette.textPrimary,
-                fontWeight: FontWeight.w700,
-                fontSize: 18,
-              ),
-            ),
-            const SizedBox(height: 12),
-            for (final id in ViewerThemeId.values)
-              _ThemeOption(
-                id: id,
-                selected: id == current,
-                onTap: () {
-                  ref.read(viewerThemeProvider.notifier).set(id);
-                  Navigator.of(context).pop();
-                },
-              ),
-            const SizedBox(height: 16),
-            // Dil / Language seçici — appLangProvider'ı ayarlar (kalıcı).
-            Text(
-              s.s('lang.title'),
-              style: TextStyle(
-                color: palette.textPrimary,
-                fontWeight: FontWeight.w700,
-                fontSize: 18,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
+    return Theme(
+      data: palette.toThemeData(),
+      child: Material(
+        color: palette.card,
+        clipBehavior: Clip.antiAlias,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (final l in AppLang.values) ...[
-                  Expanded(
-                    child: _LangOption(
-                      lang: l,
-                      palette: palette,
-                      selected: l == lang,
-                      onTap: () => ref.read(appLangProvider.notifier).set(l),
-                    ),
+                Text(
+                  s.s('viewer.appearance.title'),
+                  style: TextStyle(
+                    color: palette.textPrimary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 20,
                   ),
-                  if (l != AppLang.values.last) const SizedBox(width: 10),
-                ],
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  s.s('viewer.template.title'),
+                  style: TextStyle(
+                    color: palette.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                for (final id in ViewerTemplateId.values)
+                  _TemplateOption(
+                    id: id,
+                    palette: palette,
+                    selected: id == currentTemplate,
+                    onTap: () =>
+                        ref.read(viewerTemplateProvider.notifier).set(id),
+                  ),
+                const SizedBox(height: 14),
+                Divider(color: palette.border),
+                const SizedBox(height: 14),
+                Text(
+                  s.s('viewer.theme.title'),
+                  style: TextStyle(
+                    color: palette.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                for (final id in ViewerThemeId.values)
+                  _ThemeOption(
+                    id: id,
+                    selected: id == current,
+                    onTap: () => ref.read(viewerThemeProvider.notifier).set(id),
+                  ),
+                const SizedBox(height: 16),
+                // Dil / Language seçici — appLangProvider'ı ayarlar (kalıcı).
+                Text(
+                  s.s('lang.title'),
+                  style: TextStyle(
+                    color: palette.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    for (final l in AppLang.values) ...[
+                      Expanded(
+                        child: _LangOption(
+                          lang: l,
+                          palette: palette,
+                          selected: l == lang,
+                          onTap: () =>
+                              ref.read(appLangProvider.notifier).set(l),
+                        ),
+                      ),
+                      if (l != AppLang.values.last) const SizedBox(width: 10),
+                    ],
+                  ],
+                ),
               ],
             ),
-          ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TemplateOption extends StatelessWidget {
+  const _TemplateOption({
+    required this.id,
+    required this.palette,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final ViewerTemplateId id;
+  final ViewerPalette palette;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
+    final mapFocused = id == ViewerTemplateId.mapFocus;
+    return Semantics(
+      selected: selected,
+      button: true,
+      child: InkWell(
+        key: ValueKey('viewer-template-${id.storageKey}'),
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: selected
+                ? palette.accent.withValues(alpha: 0.08)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: selected ? palette.accent : palette.border,
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: palette.elevated,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: palette.border),
+                ),
+                child: Icon(
+                  mapFocused ? Icons.map_outlined : Icons.route_outlined,
+                  color: palette.accent,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      s.s(_templateLabelKey(id)),
+                      style: TextStyle(
+                        color: palette.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      s.s(_templateDescriptionKey(id)),
+                      style: TextStyle(
+                        color: palette.textSecondary,
+                        fontSize: 12,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (selected)
+                Icon(Icons.check_circle, color: palette.accent, size: 20),
+            ],
+          ),
         ),
       ),
     );

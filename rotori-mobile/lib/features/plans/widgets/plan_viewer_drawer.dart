@@ -53,23 +53,55 @@ class _ViewerDrawer extends ConsumerWidget {
         isGuest ? s.s('drawer.role.guest') : s.s('drawer.role.traveler');
     final avatarInitial =
         isGuest ? '?' : email.trim().substring(0, 1).toUpperCase();
+    final checklistTone = Color.lerp(p.sky, p.matcha, .48)!;
 
-    // KEŞFET — Premium fiyat tarayıcı vitrin kartı + sakin 2x2 araç ızgarası.
+    // KEŞFET — bütün araçlar tek sakin inset-group içinde.
     //
-    // **Why:** Beş araç eşit boyutta, ETİKETSİZ ikon kareleriydi. Sonuç: hiçbiri
-    // kendini anlatmıyordu (etiket yalnızca tooltip'teydi, dokunmatikte tooltip
-    // yok) ve ürünün en zengin özelliği olan Eats, para tarayıcıyla aynı görsel
-    // ağırlıkta kalıyordu. Artık Eats tam genişlikte marka gradyanıyla duruyor,
-    // diğerleri ad + tek satır açıklama + kendi rengiyle ayrışıyor.
+    // **Why:** Gradyan vitrinler ile 2×2 renkli karolar, üstteki Yolculuk ve
+    // alttaki Hesap bölümlerinin sade dilini bölüyordu. Satır düzeni hem daha
+    // hızlı taranıyor hem de büyük yazı boyutunda daha güvenli genişliyor.
+    final isPremium = ref.watch(premiumProvider);
     final discoverActions = <_DrawerActionSpec>[
       _DrawerActionSpec(
+        itemKey: const ValueKey('drawer-scanner-hero'),
+        icon: Icons.document_scanner_outlined,
+        label: s.s('scanner.price_tag'),
+        hint: s.s('drawer.discover.scanner.heroSub'),
+        tone: p.fuji,
+        badge: isPremium
+            ? s.s('drawer.premium.active')
+            : s.s('drawer.premium.label'),
+        onTap: () => context.push('/price-tag-scanner'),
+      ),
+      _DrawerActionSpec(
+        itemKey: const ValueKey('drawer-experience-guide'),
+        icon: Icons.attractions_rounded,
+        label: s.s('viewer.tt.experienceGuide'),
+        hint: s.s('drawer.discover.experienceGuide.sub'),
+        tone: p.sky,
+        onTap: onOpenExperienceGuide,
+      ),
+      // Rotori Eats üçüncü sırada: yemek, yolculuk sırasında günde birkaç kez
+      // açılan araç — hava/bütçe/checklist'in altında kalınca her seferinde
+      // listenin sonuna kaydırmak gerekiyordu.
+      _DrawerActionSpec(
+        itemKey: ValueKey('drawer-action-${s.s('viewer.tt.eats')}'),
+        icon: Icons.ramen_dining_rounded,
+        label: s.s('viewer.tt.eats'),
+        hint: s.s('drawer.discover.eats.short'),
+        tone: p.sakura,
+        onTap: onOpenFoodGuide,
+      ),
+      _DrawerActionSpec(
+        itemKey: ValueKey('drawer-action-${s.s('viewer.tt.weather')}'),
         icon: Icons.cloud_outlined,
         label: s.s('viewer.tt.weather'),
         hint: s.s('drawer.discover.weather.sub'),
-        tone: p.sky,
+        tone: p.gold,
         onTap: onOpenWeather,
       ),
       _DrawerActionSpec(
+        itemKey: ValueKey('drawer-action-${s.s('viewer.tt.budget')}'),
         icon: Icons.account_balance_wallet_outlined,
         label: s.s('viewer.tt.budget'),
         hint: s.s('drawer.discover.budget.sub'),
@@ -77,18 +109,12 @@ class _ViewerDrawer extends ConsumerWidget {
         onTap: onOpenBudget,
       ),
       _DrawerActionSpec(
+        itemKey: ValueKey('drawer-action-${s.s('viewer.tt.checklist')}'),
         icon: Icons.checklist_rounded,
         label: s.s('viewer.tt.checklist'),
         hint: s.s('drawer.discover.checklist.sub'),
-        tone: p.fuji,
+        tone: checklistTone,
         onTap: onOpenPrep,
-      ),
-      _DrawerActionSpec(
-        icon: Icons.ramen_dining_rounded,
-        label: s.s('viewer.tt.eats'),
-        hint: s.s('drawer.discover.eats.short'),
-        tone: p.sakura,
-        onTap: onOpenFoodGuide,
       ),
     ];
 
@@ -113,11 +139,9 @@ class _ViewerDrawer extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _DrawerSectionLabel(
-                    label: s.s('drawer.section.trip'),
-                    palette: p,
-                  ),
-                  const SizedBox(height: 8),
+                  // "YOLCULUK" başlığı kaldırıldı: altındaki özet kartı zaten
+                  // kendini anlatıyor, bir de bölüm etiketi taşımak drawer'ın
+                  // en üstünü gereksiz uzatıyordu.
                   _DrawerStaySummary(
                     trip: trip,
                     palette: p,
@@ -138,40 +162,9 @@ class _ViewerDrawer extends ConsumerWidget {
                     palette: p,
                   ),
                   const SizedBox(height: 8),
-                  _DrawerScannerCard(
-                    palette: p,
-                    isPremium: ref.watch(premiumProvider),
-                    onTap: () => context.push('/price-tag-scanner'),
-                  ),
-                  const SizedBox(height: 10),
-                  _DrawerExperienceGuideCard(
-                    palette: p,
-                    onTap: onOpenExperienceGuide,
-                  ),
-                  const SizedBox(height: 10),
-                  _DrawerActionGrid(
+                  _DrawerActionGroup(
                     actions: discoverActions,
                     palette: p,
-                  ),
-                  const SizedBox(height: 22),
-                  _DrawerSectionLabel(
-                    label: s.s('drawer.section.tools'),
-                    palette: p,
-                  ),
-                  const SizedBox(height: 8),
-                  _DrawerNavGroup(
-                    palette: p,
-                    children: [
-                      _DrawerNavTile(
-                        palette: p,
-                        icon: Icons.palette_outlined,
-                        label: s.s('viewer.tt.theme'),
-                        onTap: () {
-                          Navigator.of(context).pop();
-                          onOpenThemePicker();
-                        },
-                      ),
-                    ],
                   ),
                   const SizedBox(height: 22),
                   _DrawerSectionLabel(
@@ -182,16 +175,35 @@ class _ViewerDrawer extends ConsumerWidget {
                   _DrawerProfileCard(
                     palette: p,
                     avatarInitial: avatarInitial,
+                    icon: isGuest ? Icons.explore_rounded : null,
                     title: isGuest ? role : email,
                     subtitle: isGuest ? null : role,
+                    onTap: isGuest
+                        ? () {
+                            Navigator.of(context).pop();
+                            context.push('/auth');
+                          }
+                        : null,
                   ),
                   const SizedBox(height: 8),
                   _DrawerNavGroup(
+                    widgetKey: const ValueKey('drawer-account-actions'),
                     palette: p,
                     children: [
                       _DrawerNavTile(
                         palette: p,
+                        icon: Icons.palette_outlined,
+                        iconColor: p.fuji,
+                        label: s.s('viewer.tt.theme'),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          onOpenThemePicker();
+                        },
+                      ),
+                      _DrawerNavTile(
+                        palette: p,
                         icon: Icons.shopping_bag_outlined,
+                        iconColor: p.fuji,
                         label: s.s('drawer.nav.travelEssentials'),
                         onTap: () {
                           Navigator.of(context).pop();
@@ -201,6 +213,7 @@ class _ViewerDrawer extends ConsumerWidget {
                       _DrawerNavTile(
                         palette: p,
                         icon: Icons.list_alt_rounded,
+                        iconColor: p.gold,
                         label: s.s('drawer.nav.plans'),
                         onTap: () {
                           Navigator.of(context).pop();
@@ -210,13 +223,28 @@ class _ViewerDrawer extends ConsumerWidget {
                       _DrawerNavTile(
                         palette: p,
                         icon: Icons.bug_report_outlined,
+                        iconColor: p.sunset,
                         label: s.s('bugReport.menu'),
                         onTap: () {
                           Navigator.of(context).pop();
                           onReportBug();
                         },
                       ),
-                      if (kDebugMode) _DebugPremiumTile(palette: p),
+                      // `kDebugMode` yerine `showDebugTools`: önizleme hedefi
+                      // release derlendiği için anahtar orada hiç
+                      // görünmüyordu, yani premium arkasındaki ekranlar
+                      // önizlemede denenemiyordu. Üretim girişi bayrağı hiç
+                      // açmıyor — mağaza yapısında yine gizli.
+                      if (showDebugTools) _DebugPremiumTile(palette: p),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _DrawerNavGroup(
+                    widgetKey: const ValueKey('drawer-signout-group'),
+                    palette: p,
+                    backgroundColor: p.sakura.withValues(alpha: .07),
+                    borderColor: p.sakura.withValues(alpha: .14),
+                    children: [
                       _DrawerNavTile(
                         palette: p,
                         icon: Icons.logout_rounded,
@@ -260,134 +288,101 @@ class _DrawerStaySummary extends StatelessWidget {
   /// **Why:** Eskiden bu değer yalnızca REZERVE EDİLMİŞ otellerden
   /// toplanıyordu. Yeni üretilen planda otel olmadığı için kart "0 Gece ·
   /// 10 Gün" gibi kendi içinde çelişen bir şey gösteriyordu. Gece sayısı
-  /// gezinin uzunluğunun bir gerçeği; rezervasyon durumu ayrı bir bilgi
-  /// (bkz. [_bookedNights]).
+  /// gezinin uzunluğunun bir gerçeği; rezervasyon durumu ise hemen alttaki
+  /// Konaklama satırının işi.
   int get _tripNights => dayCount > 0 ? dayCount - 1 : 0;
-
-  /// Otel rezervasyonlarının kapsadığı gece sayısı.
-  int get _bookedNights {
-    var nights = 0;
-    for (final hotel in trip.hotels) {
-      final checkIn = DateTime.tryParse(hotel.checkIn);
-      final checkOut = DateTime.tryParse(hotel.checkOut);
-      if (checkIn != null && checkOut != null) {
-        nights += checkOut.difference(checkIn).inDays.clamp(0, 60);
-      }
-    }
-    return nights.clamp(0, _tripNights);
-  }
 
   @override
   Widget build(BuildContext context) {
     final p = palette;
     final s = LanguageScope.of(context);
-    final metrics = [
+
+    // Üç metrik tek satırda. Her metriğin ikonu kendi renginde: göz sayıyı
+    // renkten ayırt ediyor, böylece etiketler küçültülebiliyor.
+    //
+    // Rezervasyon metriği ("3/6 Rezerve") kaldırıldı: aynı bilgiyi hemen
+    // alttaki Konaklama satırı otel adı ve tarihleriyle zaten veriyor.
+    final metrics = <(IconData, Color, String, String)>[
       (
         Icons.nights_stay_outlined,
+        p.fuji,
         '$_tripNights',
         s.s('viewer.metric.nights'),
       ),
       (
         Icons.location_on_outlined,
+        p.sky,
         '${trip.preferences.destinations.length}',
         s.s('viewer.metric.cities'),
       ),
       (
         Icons.calendar_month_outlined,
+        p.gold,
         '$dayCount',
         s.s('viewer.metric.days'),
       ),
     ];
 
-    final booked = _bookedNights;
-    final covered = _tripNights == 0 ? 0.0 : booked / _tripNights;
-
     return Container(
-      padding: const EdgeInsets.fromLTRB(8, 16, 8, 14),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(
         color: p.card,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: p.border),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              for (var i = 0; i < metrics.length; i++) ...[
-                Expanded(
-                  child: Column(
-                    children: [
-                      Icon(metrics[i].$1, color: p.accent, size: 20),
-                      const SizedBox(height: 7),
-                      Text(
-                        metrics[i].$2,
-                        style: TextStyle(
-                          color: p.textPrimary,
-                          fontSize: 21,
-                          fontWeight: FontWeight.w800,
-                          height: 1,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        metrics[i].$3,
-                        style: TextStyle(
-                          color: p.textSecondary,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (i < metrics.length - 1)
-                  Container(width: 1, height: 44, color: p.border),
-              ],
-            ],
+        boxShadow: [
+          BoxShadow(
+            color: p.textPrimary.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
           ),
-          // Konaklama kapsaması — "kaç gece rezerve edildi" artık gece
-          // sayısının YERİNE değil, YANINDA duruyor.
-          if (_tripNights > 0) ...[
-            const SizedBox(height: 14),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.hotel_outlined,
-                          size: 14, color: p.textSecondary),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          booked == 0
-                              ? s.s('viewer.stay.none')
-                              : s.p('viewer.stay.covered', {
-                                  'booked': '$booked',
-                                  'total': '$_tripNights',
-                                }),
+        ],
+      ),
+      // Metrikler genişliğe EŞİT dağıtılır (her biri Expanded).
+      //
+      // **Why:** Önceden şerit tek bir sola yapışık FittedBox içindeydi —
+      // dördüncü metrik ve chevron kalkınca sağda kocaman bir boşluk kaldı.
+      // Eşit paylar hem boşluğu bitirir hem ayraçları ortalar.
+      child: Row(
+        children: [
+          for (var i = 0; i < metrics.length; i++) ...[
+            if (i > 0) Container(width: 1, height: 30, color: p.border),
+            Expanded(
+              // Metrik başına scaleDown yalnızca aşırı yazı ölçeğinde devreye
+              // girer; üç etiket (Gece/Şehir/Gün) benzer genişlikte olduğu
+              // için normal ölçekte hiçbiri küçülmez, boyutlar eşit kalır.
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(metrics[i].$1, color: metrics[i].$2, size: 17),
+                    const SizedBox(width: 6),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          metrics[i].$3,
                           style: TextStyle(
-                            color:
-                                booked == 0 ? p.textSecondary : p.textPrimary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                            color: p.textPrimary,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            height: 1.15,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(3),
-                    child: LinearProgressIndicator(
-                      value: covered,
-                      minHeight: 4,
-                      backgroundColor: p.border,
-                      color: covered >= 1 ? p.accent : p.gold,
+                        Text(
+                          metrics[i].$4,
+                          style: TextStyle(
+                            color: p.textSecondary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            height: 1.2,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],
@@ -402,83 +397,114 @@ class _DrawerProfileCard extends StatelessWidget {
     required this.palette,
     required this.avatarInitial,
     required this.title,
+    this.icon,
     this.subtitle,
+    this.onTap,
   });
 
   final ViewerPalette palette;
   final String avatarInitial;
   final String title;
+  final IconData? icon;
   final String? subtitle;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final p = palette;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: p.elevated,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: p.border),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: p.gradientSakura,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              avatarInitial,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+    return Material(
+      key: const ValueKey('drawer-profile-card'),
+      color: p.sakura.withValues(alpha: .07),
+      borderRadius: BorderRadius.circular(18),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: p.sakura.withValues(alpha: .14)),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
               children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: p.textPrimary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle!,
-                    style: TextStyle(
-                      color: p.textSecondary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: p.gradientSakura,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
                   ),
-                ],
+                  alignment: Alignment.center,
+                  child: icon == null
+                      ? Text(
+                          avatarInitial,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        )
+                      : Icon(icon, color: Colors.white, size: 18),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: p.textPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle!,
+                          style: TextStyle(
+                            color: p.textSecondary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                if (onTap != null)
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 19,
+                    color: p.textMuted,
+                  ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
-/// Drawer'ın 32x32 mor rozeti + 旅 karakteri.
+/// Drawer'ın Rotori marka rozeti (torii).
+///
+/// Rebrand öncesi buraya gradient bir kutuya yazılmış 旅 karakteri
+/// çiziliyordu — bu, ürünün eski **Tabi** kimliğiydi. Rotori logosu yalnız
+/// platform launcher ikonu olarak kurulmuştu, yani uygulamanın *dışında*
+/// görünüyordu; uygulama içinde hiçbir yer onu çizmiyordu.
+///
+/// Logo kaynağı opaktır (kendi beyaz yuvarlak zeminini taşır), bu yüzden
+/// gradient dolgu gereksizdir; yalnız kırpma + hero fotoğrafı üzerinde
+/// okunurluğu koruyan kenarlık ve gölge bırakıldı.
 class _DrawerBrandMark extends StatelessWidget {
   const _DrawerBrandMark({required this.palette, this.size = 32});
   final ViewerPalette palette;
@@ -486,16 +512,12 @@ class _DrawerBrandMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(size * 0.28);
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [palette.accent, palette.fuji],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(size * 0.28),
+        borderRadius: radius,
         border: Border.all(color: Colors.white.withValues(alpha: .28)),
         boxShadow: [
           BoxShadow(
@@ -505,15 +527,30 @@ class _DrawerBrandMark extends StatelessWidget {
           ),
         ],
       ),
-      alignment: Alignment.center,
-      child: Text(
-        '旅',
-        style: TextStyle(
-          fontFamily: 'NotoSansJPRank',
-          color: Colors.white,
-          fontWeight: FontWeight.w700,
-          fontSize: size * 0.56,
-          height: 1.0,
+      child: ClipRRect(
+        borderRadius: radius,
+        child: Image.asset(
+          'assets/images/rotori-logo.png',
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          // Asset çözülemezse rozet kaybolmasın: eski işaret geri düşer.
+          errorBuilder: (context, error, stack) => Container(
+            width: size,
+            height: size,
+            color: palette.accent,
+            alignment: Alignment.center,
+            child: Text(
+              '旅',
+              style: TextStyle(
+                fontFamily: 'NotoSansJPRank',
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: size * 0.56,
+                height: 1.0,
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -662,8 +699,8 @@ class _DrawerHeroCloseButton extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           child: const SizedBox(
-            width: 36,
-            height: 36,
+            width: 40,
+            height: 40,
             child: Icon(Icons.close_rounded, color: Colors.white, size: 20),
           ),
         ),
@@ -700,18 +737,25 @@ class _DrawerNavGroup extends StatelessWidget {
   const _DrawerNavGroup({
     required this.palette,
     required this.children,
+    this.widgetKey,
+    this.backgroundColor,
+    this.borderColor,
   });
 
   final ViewerPalette palette;
   final List<Widget> children;
+  final Key? widgetKey;
+  final Color? backgroundColor;
+  final Color? borderColor;
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      key: widgetKey,
       decoration: BoxDecoration(
-        color: palette.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: palette.border),
+        color: backgroundColor ?? palette.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor ?? palette.border),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -737,24 +781,27 @@ class _DrawerNavTile extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.iconColor,
     this.destructive = false,
   });
   final ViewerPalette palette;
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final Color? iconColor;
   final bool destructive;
 
   @override
   Widget build(BuildContext context) {
     final p = palette;
     final Color color = destructive ? p.sunset : p.textPrimary;
+    final resolvedIconColor = iconColor ?? color;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 50),
+          constraints: const BoxConstraints(minHeight: 56),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
             child: Row(
@@ -763,11 +810,11 @@ class _DrawerNavTile extends StatelessWidget {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: .09),
+                    color: resolvedIconColor.withValues(alpha: .09),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   alignment: Alignment.center,
-                  child: Icon(icon, size: 18, color: color),
+                  child: Icon(icon, size: 18, color: resolvedIconColor),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -781,12 +828,11 @@ class _DrawerNavTile extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (!destructive)
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    size: 19,
-                    color: p.textMuted,
-                  ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 19,
+                  color: destructive ? p.sunset : p.textMuted,
+                ),
               ],
             ),
           ),
@@ -1347,9 +1393,87 @@ class _DrawerHotelsMiniState extends State<_DrawerHotelsMini> {
                         ),
                       ),
                     ),
+                  // Liste doluyken de ekleme yolu açık kalmalı.
+                  //
+                  // **Why:** `_DrawerAddCard` yalnız `hotels.isEmpty` dalında
+                  // çiziliyordu ve `/plans/:id/hotels/new` rotasının uygulamada
+                  // başka hiçbir girişi yok. Sonuç: ilk otel eklendiği anda
+                  // ikinciyi eklemek imkânsız hale geliyordu — çok şehirli
+                  // planlarda (Tokyo + Kyoto) rezervasyon yarım kalıyordu.
+                  _DrawerInlineAddRow(
+                    key: const ValueKey('drawer-hotels-add-another'),
+                    palette: p,
+                    icon: Icons.hotel_outlined,
+                    label: s.s('hotels.addAnother'),
+                    route: '/plans/${widget.trip.id}/hotels/new',
+                  ),
                 ],
               ),
             ),
+    );
+  }
+}
+
+/// Açılmış bir drawer bölümünün sonunda duran ince ekleme satırı.
+///
+/// `_DrawerAddCard`'ın boş-durum kartından kasten daha sakin: bölüm zaten
+/// içerik gösteriyorken ekleme aksiyonu listenin kendisiyle görsel olarak
+/// yarışmamalı.
+class _DrawerInlineAddRow extends StatelessWidget {
+  const _DrawerInlineAddRow({
+    super.key,
+    required this.palette,
+    required this.icon,
+    required this.label,
+    required this.route,
+  });
+
+  final ViewerPalette palette;
+  final IconData icon;
+  final String label;
+  final String route;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).pop();
+          context.push(route);
+        },
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: p.accent.withValues(alpha: 0.35)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                Icon(icon, size: 16, color: p.accent),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: p.accent,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Icon(Icons.add_circle_outline, size: 18, color: p.accent),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1383,8 +1507,8 @@ class _DrawerCollapsible extends StatelessWidget {
     final p = palette;
     return Container(
       decoration: BoxDecoration(
-        color: p.elevated,
-        borderRadius: BorderRadius.circular(14),
+        color: p.card,
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: p.border),
       ),
       clipBehavior: Clip.antiAlias,
@@ -1469,22 +1593,25 @@ class _DrawerCollapsible extends StatelessWidget {
 
 class _DrawerActionSpec {
   const _DrawerActionSpec({
+    required this.itemKey,
     required this.icon,
     required this.label,
     required this.hint,
     required this.tone,
     required this.onTap,
+    this.badge,
   });
+  final Key itemKey;
   final IconData icon;
   final String label;
 
   /// Tek satırlık açıklama — karonun ne işe yaradığını dokunmadan anlatır.
   final String hint;
 
-  /// Karonun kendi rengi. Hepsi accent olunca ızgara tek bir mavi bloğa
-  /// dönüşüyordu; renk ayrımı taramayı hızlandırır.
+  /// İkon rozetinin tonu; yüzeyin kendisi bütün satırlarda nötr kalır.
   final Color tone;
   final VoidCallback onTap;
+  final String? badge;
 }
 
 /// Uçuş/otel gibi henüz doldurulmamış bölümler için "ekle" kartı. Tıklanınca
@@ -1518,8 +1645,8 @@ class _DrawerAddCard extends StatelessWidget {
     final p = palette;
     final s = LanguageScope.of(context);
     return Material(
-      color: p.elevated,
-      borderRadius: BorderRadius.circular(14),
+      color: p.card,
+      borderRadius: BorderRadius.circular(18),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap ??
@@ -1529,7 +1656,7 @@ class _DrawerAddCard extends StatelessWidget {
             },
         child: DecoratedBox(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(color: p.border),
           ),
           child: Padding(
@@ -1580,292 +1707,39 @@ class _DrawerAddCard extends StatelessWidget {
   }
 }
 
-/// Premium fiyat etiketi tarayıcısının tam genişlik vitrin kartı.
-class _DrawerScannerCard extends StatelessWidget {
-  const _DrawerScannerCard({
-    required this.palette,
-    required this.isPremium,
-    required this.onTap,
-  });
-  final ViewerPalette palette;
-  final bool isPremium;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = palette;
-    final s = LanguageScope.of(context);
-
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(18),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        key: const ValueKey('drawer-scanner-hero'),
-        onTap: () {
-          Navigator.of(context).pop();
-          onTap();
-        },
-        child: Ink(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [p.fuji, p.accentStrong],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: p.fuji.withValues(alpha: 0.22),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.22),
-                    borderRadius: BorderRadius.circular(13),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.34),
-                    ),
-                  ),
-                  alignment: Alignment.center,
-                  child: const Icon(
-                    Icons.document_scanner_outlined,
-                    size: 22,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              s.s('scanner.price_tag'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.2,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          _DrawerPremiumChip(active: isPremium),
-                        ],
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        s.s('drawer.discover.scanner.heroSub'),
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.92),
-                          fontSize: 11.5,
-                          height: 1.3,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 6),
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  size: 22,
-                  color: Colors.white,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// USJ, Tokyo Disney ve teamLab için bilet-süre-gün akışına açılan vitrin.
-class _DrawerExperienceGuideCard extends StatelessWidget {
-  const _DrawerExperienceGuideCard({
-    required this.palette,
-    required this.onTap,
-  });
-
-  final ViewerPalette palette;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = palette;
-    final s = LanguageScope.of(context);
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(18),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        key: const ValueKey('drawer-experience-guide'),
-        onTap: () {
-          Navigator.of(context).pop();
-          onTap();
-        },
-        child: Ink(
-          padding: const EdgeInsets.fromLTRB(14, 13, 12, 13),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [p.sunset, p.sakura, p.fuji],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: p.sakura.withValues(alpha: .22),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .2),
-                  borderRadius: BorderRadius.circular(13),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: .32),
-                  ),
-                ),
-                alignment: Alignment.center,
-                child: const Icon(
-                  Icons.attractions_rounded,
-                  size: 22,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      s.s('viewer.tt.experienceGuide'),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      s.s('drawer.discover.experienceGuide.sub'),
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: .92),
-                        fontSize: 11.5,
-                        height: 1.3,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: Colors.white,
-                size: 22,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DrawerPremiumChip extends StatelessWidget {
-  const _DrawerPremiumChip({required this.active});
-
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = LanguageScope.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.20),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        active ? s.s('drawer.premium.active') : s.s('drawer.premium.label'),
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 9.5,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-  }
-}
-
-/// Drawer içi keşif ızgarası — iki sütun, her karo ad + tek satır açıklama.
-///
-/// Eskiden beş karo tek satırda, etiketsiz ikon kareleriydi; 5 x ~60 px alanda
-/// metin sığmıyordu. İki sütuna geçince her karo adını ve ne işe yaradığını
-/// söyleyebiliyor.
-class _DrawerActionGrid extends StatelessWidget {
-  const _DrawerActionGrid({required this.actions, required this.palette});
+/// Keşif araçlarını Hesap bölümüyle aynı sakin inset-group düzeninde toplar.
+class _DrawerActionGroup extends StatelessWidget {
+  const _DrawerActionGroup({required this.actions, required this.palette});
   final List<_DrawerActionSpec> actions;
   final ViewerPalette palette;
 
   @override
   Widget build(BuildContext context) {
-    final p = palette;
-    final rows = <Widget>[];
-    for (var i = 0; i < actions.length; i += 2) {
-      final left = actions[i];
-      final right = i + 1 < actions.length ? actions[i + 1] : null;
-      rows.add(
-        // IntrinsicHeight: iki karodan biri iki satır açıklama alsa bile
-        // yükseklikleri eşit kalır.
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(child: _DrawerActionTile(spec: left, palette: p)),
-              const SizedBox(width: 10),
-              Expanded(
-                child: right == null
-                    ? const SizedBox.shrink()
-                    : _DrawerActionTile(spec: right, palette: p),
+    return Container(
+      key: const ValueKey('drawer-discover-group'),
+      decoration: BoxDecoration(
+        color: palette.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: palette.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (var i = 0; i < actions.length; i++) ...[
+            _DrawerActionTile(spec: actions[i], palette: palette),
+            if (i < actions.length - 1)
+              Padding(
+                padding: const EdgeInsets.only(left: 64),
+                child: Divider(color: palette.border, height: 1),
               ),
-            ],
-          ),
-        ),
-      );
-      if (i + 2 < actions.length) rows.add(const SizedBox(height: 10));
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: rows,
+          ],
+        ],
+      ),
     );
   }
 }
 
-/// Tek bir keşif karosu — renkli ikon rozeti, ad ve tek satır açıklama.
+/// Tek keşif satırı — görünür ad/açıklama, sakin ikon rozeti ve yön işareti.
 class _DrawerActionTile extends StatelessWidget {
   const _DrawerActionTile({required this.spec, required this.palette});
   final _DrawerActionSpec spec;
@@ -1879,92 +1753,112 @@ class _DrawerActionTile extends StatelessWidget {
       label: '${spec.label}. ${spec.hint}',
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
-        clipBehavior: Clip.antiAlias,
         child: InkWell(
-          key: ValueKey('drawer-action-${spec.label}'),
+          key: spec.itemKey,
           onTap: () {
             Navigator.of(context).pop();
             spec.onTap();
           },
-          child: Ink(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  spec.tone.withValues(alpha: .075),
-                  p.card,
-                  p.card,
-                ],
-              ),
-              border: Border.all(color: p.borderStrong),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(
-                    alpha: p.brightness == Brightness.dark ? .12 : .035,
-                  ),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 64),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(13, 13, 11, 13),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+              padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: spec.tone.withValues(alpha: 0.11),
-                          borderRadius: BorderRadius.circular(11),
-                          border: Border.all(
-                            color: spec.tone.withValues(alpha: .12),
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: spec.tone.withValues(alpha: .11),
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(spec.icon, size: 20, color: spec.tone),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                spec.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: p.textPrimary,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            if (spec.badge != null) ...[
+                              const SizedBox(width: 7),
+                              _DrawerPremiumChip(
+                                label: spec.badge!,
+                                palette: p,
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          spec.hint,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: p.textSecondary,
+                            fontSize: 11.5,
+                            height: 1.25,
                           ),
                         ),
-                        alignment: Alignment.center,
-                        child: Icon(spec.icon, size: 18, color: spec.tone),
-                      ),
-                      const Spacer(),
-                      Icon(
-                        Icons.north_east_rounded,
-                        size: 14,
-                        color: p.textMuted,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 9),
-                  Text(
-                    spec.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: p.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    spec.hint,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: p.textSecondary,
-                      fontSize: 11,
-                      height: 1.25,
-                    ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 21,
+                    color: p.textMuted,
                   ),
                 ],
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DrawerPremiumChip extends StatelessWidget {
+  const _DrawerPremiumChip({
+    required this.label,
+    required this.palette,
+  });
+
+  final String label;
+  final ViewerPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: palette.accent.withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: palette.accentStrong,
+          fontSize: 9.5,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );

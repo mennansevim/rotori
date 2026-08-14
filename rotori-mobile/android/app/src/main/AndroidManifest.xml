@@ -2,6 +2,15 @@
     <!-- Canlı fiyat çevirici (kamera üzeri OCR) — cihaz üstü, görüntü yüklenmez. -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
+
+    <!-- Keşif/rozet akışı — YALNIZ uygulama önplandayken.
+         ACCESS_BACKGROUND_LOCATION bilinçli olarak İSTENMEZ: arka planda konum
+         toplamıyoruz. iOS'ta karşılığı "When In Use" ve UIBackgroundModes yok.
+         COARSE, kullanıcı "yaklaşık konum" verdiğinde akışın çalışması için
+         gerekli; FINE ise keşif damgasının doğrulanması için. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-feature android:name="android.hardware.location.gps" android:required="false"/>
     <application
         android:label="Rotori"
         android:name="${applicationName}"

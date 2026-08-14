@@ -63,21 +63,53 @@ class _AddHotelPageState extends ConsumerState<AddHotelPage> {
       _draft.checkIn.isNotEmpty &&
       _draft.checkOut.isNotEmpty;
 
+  void _toast(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _save(Trip trip) async {
     setState(() => _submitted = true);
     if (!_valid || _saving) return;
-    final repo = ref.read(plansRepositoryProvider);
-    if (repo == null) return;
+
+    final s = LanguageScope.of(context);
+
     setState(() => _saving = true);
-    // Mevcut trip üzerine oteli ekleyip kaydet. Trip mutable olduğundan
-    // doğrudan listeye ekliyoruz; repository yerel + Supabase senkronunu yapar.
-    trip.hotels.add(_draft);
+
+    // Oturum YOKSA da kaydet.
+    //
+    // **Why:** Burada `repo == null` iken "oturum açman gerekiyor" deyip
+    // çıkılıyordu, oysa oturumsuz akış uygulamanın desteklediği bir yol:
+    // `planByIdProvider` repo yokken planı `draftTripProvider`'dan okuyor ve
+    // uçuş ekranı (flight_details_page) tam olarak bunu yapıyor —
+    // `repo?.save()` no-op olur, taslak yine güncellenir. İki ekranın farklı
+    // davranması yüzünden aynı planda uçuş eklenebiliyor ama otel
+    // eklenemiyordu.
+    //
+    // Kopya üzerinde çalışılır: yerinde mutasyon aynı nesneyi geri yazdığı
+    // için stream yeni bir değer yayınlamıyordu (uçuş ekranındaki desen).
+    final saved = Trip.fromJson(trip.toJson());
+    saved.hotels.add(_draft);
+
+    // Yalnız KAYIT try içinde. Eskiden `context.pop()` de içindeydi:
+    // navigasyon hatası "Otel kaydedilemedi" diye raporlanıyordu, oysa otel
+    // kaydedilmişti — kullanıcı yanlış bilgiyle ikinci kez kaydetmeye
+    // çalışırdı.
     try {
-      await repo.save(trip);
-      if (mounted) context.pop();
-    } finally {
-      if (mounted) setState(() => _saving = false);
+      await ref.read(plansRepositoryProvider)?.save(saved);
+    } on Object {
+      if (mounted) {
+        setState(() => _saving = false);
+        _toast(s.s('hotels.saveFailed'));
+      }
+      return;
     }
+
+    ref.read(draftTripProvider.notifier).state = saved;
+    if (!mounted) return;
+    setState(() => _saving = false);
+    context.pop();
   }
 
   @override

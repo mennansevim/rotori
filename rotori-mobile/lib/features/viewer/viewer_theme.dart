@@ -17,6 +17,24 @@ import '../../data/plans_repository.dart';
 
 enum ViewerThemeId { japanDark, appleLight, sakuraSoft }
 
+/// Viewer'ın renklerinden bağımsız gün-akışı düzeni.
+///
+/// Seçim yalnız sunumu değiştirir; plan ve rota modellerine yazılmaz.
+enum ViewerTemplateId { journeyProgress, mapFocus }
+
+extension ViewerTemplateIdX on ViewerTemplateId {
+  String get storageKey => switch (this) {
+        ViewerTemplateId.journeyProgress => 'journey-progress',
+        ViewerTemplateId.mapFocus => 'map-focus',
+      };
+
+  static ViewerTemplateId fromStorage(String? raw) => switch (raw) {
+        'journey-progress' || 'calm-cards' => ViewerTemplateId.journeyProgress,
+        'map-focus' || 'compact-timeline' => ViewerTemplateId.mapFocus,
+        _ => ViewerTemplateId.journeyProgress,
+      };
+}
+
 extension ViewerThemeIdX on ViewerThemeId {
   /// SharedPreferences / React ile uyumlu string anahtar.
   String get storageKey => switch (this) {
@@ -266,13 +284,16 @@ class ViewerThemeNotifier extends StateNotifier<ViewerThemeId> {
 
   final Ref _ref;
   static const _key = 'viewer:theme';
+  bool _selectionChanged = false;
 
   Future<void> _load() async {
     final prefs = await _ref.read(sharedPrefsProvider.future);
-    state = ViewerThemeIdX.fromStorage(prefs.getString(_key));
+    final stored = ViewerThemeIdX.fromStorage(prefs.getString(_key));
+    if (!_selectionChanged) state = stored;
   }
 
   Future<void> set(ViewerThemeId id) async {
+    _selectionChanged = true;
     state = id;
     final prefs = await _prefs();
     await prefs.setString(_key, id.storageKey);
@@ -294,3 +315,37 @@ final viewerThemeProvider =
 final viewerPaletteProvider = Provider<ViewerPalette>((ref) {
   return ViewerPalette.forId(ref.watch(viewerThemeProvider));
 });
+
+class ViewerTemplateNotifier extends StateNotifier<ViewerTemplateId> {
+  ViewerTemplateNotifier(this._ref) : super(ViewerTemplateId.journeyProgress) {
+    _load();
+  }
+
+  final Ref _ref;
+  static const _key = 'viewer:template';
+  bool _selectionChanged = false;
+
+  Future<void> _load() async {
+    final prefs = await _ref.read(sharedPrefsProvider.future);
+    final stored = ViewerTemplateIdX.fromStorage(prefs.getString(_key));
+    if (!_selectionChanged) state = stored;
+  }
+
+  Future<void> set(ViewerTemplateId id) async {
+    _selectionChanged = true;
+    state = id;
+    final prefs = await _prefs();
+    await prefs.setString(_key, id.storageKey);
+  }
+
+  Future<SharedPreferences> _prefs() async {
+    final cached = _ref.read(sharedPrefsProvider).valueOrNull;
+    if (cached != null) return cached;
+    return _ref.read(sharedPrefsProvider.future);
+  }
+}
+
+final viewerTemplateProvider =
+    StateNotifierProvider<ViewerTemplateNotifier, ViewerTemplateId>(
+  (ref) => ViewerTemplateNotifier(ref),
+);

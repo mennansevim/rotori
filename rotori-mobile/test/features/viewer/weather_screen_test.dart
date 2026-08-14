@@ -120,4 +120,120 @@ void main() {
     );
     expect(find.text('Tekrar dene'), findsOneWidget);
   });
+
+  testWidgets('çok şehirli rotada her gün kendi şehrinin havasını gösterir',
+      (tester) async {
+    useTallViewport(tester);
+
+    final trip = Trip(
+      id: 'trip-multi',
+      slug: 'multi',
+      title: 'Tokyo + Kyoto',
+      timezone: 'Asia/Tokyo',
+      tripStart: '2026-10-15',
+      tripEnd: '2026-10-18',
+      flights: TripFlights(),
+      days: [
+        DayPlan(dayNumber: 1, date: '2026-10-15', theme: ''),
+        DayPlan(dayNumber: 2, date: '2026-10-16', theme: ''),
+        DayPlan(dayNumber: 3, date: '2026-10-17', theme: ''),
+        DayPlan(dayNumber: 4, date: '2026-10-18', theme: ''),
+      ],
+      preferences: TripPreferences(
+        travelDates: TravelDates(start: '2026-10-15', end: '2026-10-18'),
+        pace: Pace.moderate,
+        destinations: [
+          TripDestination(
+            id: 'd-tokyo',
+            countryCode: 'JP',
+            countryName: 'Japonya',
+            city: 'Tokyo',
+            arrivalDate: '2026-10-15',
+            departureDate: '2026-10-16',
+            order: 0,
+            lat: 35.68,
+            lng: 139.65,
+          ),
+          TripDestination(
+            id: 'd-kyoto',
+            countryCode: 'JP',
+            countryName: 'Japonya',
+            city: 'Kyoto',
+            arrivalDate: '2026-10-17',
+            departureDate: '2026-10-18',
+            order: 1,
+            lat: 35.01,
+            lng: 135.76,
+          ),
+        ],
+      ),
+    );
+
+    // Koordinata göre ayrışan sahte servis: Tokyo 30°, Kyoto 22°.
+    Future<List<DayForecast>> fetch(double lat, double lng) async {
+      final isTokyo = lat > 35.3;
+      return [
+        for (final d in const [
+          '2026-10-15',
+          '2026-10-16',
+          '2026-10-17',
+          '2026-10-18',
+        ])
+          DayForecast(
+            date: d,
+            code: isTokyo ? 0 : 61,
+            tempMax: isTokyo ? 30 : 22,
+            tempMin: isTokyo ? 20 : 14,
+          ),
+      ];
+    }
+
+    await tester.pumpWidget(harness(trip, fetch: fetch));
+    await tester.pumpAndSettle();
+
+    // Başlık rotanın şehir zincirini gösterir.
+    expect(find.text('Tokyo  →  Kyoto'), findsOneWidget);
+
+    // Şehirler blok başlığı olarak çıkar (tarih aralığı + gün sayısıyla).
+    expect(find.text('Tokyo'), findsOneWidget);
+    expect(find.text('Kyoto'), findsOneWidget);
+    expect(find.text('15–16 Eki · 2 gün'), findsOneWidget);
+    expect(find.text('17–18 Eki · 2 gün'), findsOneWidget);
+    // Tek şehirli gezide başlık tekrar edilmez (aşağıdaki testte kanıtlı).
+
+    // Gün satırları şehri tekrar etmez.
+    expect(find.text('1. gün'), findsOneWidget);
+    expect(find.text('4. gün'), findsOneWidget);
+    expect(find.textContaining('· Tokyo'), findsNothing);
+
+    // Asıl invariant: Kyoto günleri Tokyo sıcaklığını göstermez.
+    expect(find.text('↑30°'), findsNWidgets(2));
+    expect(find.text('↑22°'), findsNWidgets(2));
+  });
+
+  testWidgets('tahmin ufku dışındaki gün "Henüz tahmin yok" gösterir',
+      (tester) async {
+    useTallViewport(tester);
+
+    final trip = _sampleTrip();
+    // Servis yalnız ilk günü döndürüyor; 18 ve 19 veri-yok kalmalı.
+    Future<List<DayForecast>> fetch(double lat, double lng) async => const [
+          DayForecast(
+            date: '2026-07-17',
+            code: 0,
+            tempMax: 31.4,
+            tempMin: 24.1,
+          ),
+        ];
+
+    await tester.pumpWidget(harness(trip, fetch: fetch));
+    await tester.pumpAndSettle();
+
+    expect(find.text('↑31°'), findsOneWidget);
+    expect(find.text('Henüz tahmin yok'), findsNWidgets(2));
+
+    // Tek şehirli gezide blok başlığı çizilmez — üstteki başlık yeterli.
+    expect(find.text('Tokyo'), findsOneWidget);
+    expect(find.textContaining('gün', findRichText: false), findsWidgets);
+  });
 }

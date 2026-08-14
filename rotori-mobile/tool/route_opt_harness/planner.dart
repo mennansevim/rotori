@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:rotori/domain/itinerary_optimizer.dart';
 import 'package:rotori/domain/route_matrix.dart';
 import 'package:rotori/domain/route_optimization_validator.dart';
+import 'package:rotori/domain/route_field_context.dart';
 import 'package:rotori/domain/trip_activity_assignment.dart' as assignment;
 
 import 'matrix_builder.dart';
@@ -416,7 +417,15 @@ class TripPlanner {
     List<PoiSpec> dayPois,
     Set<String> repeatFixtureIds,
   ) async {
-    final startOfDayMinutes = spec.dailyStartHour * 60;
+    final isThemeparkDay =
+        dayPois.any((p) => p.dayRole == PoiDayRole.fullDayExclusive);
+    // Tam gün parklarında kapı açılışına yetişmek için otelden erken çıkılır.
+    // Rastgele senaryonun 09:00 tercihini aynen kullanmak, saha istasyon
+    // tamponlarıyla birlikte korunan park gününü yapay biçimde infeasible
+    // yapıyordu.
+    final startOfDayMinutes =
+        (isThemeparkDay ? min(spec.dailyStartHour, 8) : spec.dailyStartHour) *
+            60;
     final transferReadyMinutes = switch (td.type) {
       _DayType.arrival => 10 * 60 + _arrivalDuration(spec, td.city) + 60,
       _DayType.transfer =>
@@ -444,9 +453,6 @@ class TripPlanner {
     // Tema parkı günü: 8 saatlik tek blok gün penceresini neredeyse tümüyle
     // doldurur. Ziyaretçi kahvaltı/öğle/akşamı parkın içinde alır; ayrı
     // oturmalı öğün eklenmez (aksi halde park bloğu bölünür veya sığmaz).
-    final isThemeparkDay =
-        dayPois.any((p) => p.dayRole == PoiDayRole.fullDayExclusive);
-
     // Kahvaltı: yalnızca tam günlerde (tema parkı günleri hariç), otelde sabah.
     if (td.type == _DayType.full && !isThemeparkDay) {
       final brk = TripLocation(
@@ -501,6 +507,10 @@ class TripPlanner {
         openingTime: open,
         closingTime: close,
         category: p.category,
+        priority: p.dayRole == PoiDayRole.fullDayExclusive ||
+                p.dayRole == PoiDayRole.excursion
+            ? ActivityPriority.mustDo
+            : ActivityPriority.normal,
       ));
     }
 
@@ -595,6 +605,11 @@ class TripPlanner {
             ? LuggageState.carried
             : LuggageState.none,
       ),
+      field: FieldRealityContext(
+        travelDate: date,
+        cityId: city.name,
+        traveller: TravellerProfile(partySize: spec.party),
+      ),
     );
 
     final strictResult = await BeamSearchItineraryOptimizer(
@@ -660,6 +675,7 @@ class TripPlanner {
       'startsAtHotel': city.hotelName,
       'endsAtHotel': city.hotelName,
       'optimizerEvaluated': true,
+      'fieldRealityContextEnabled': true,
       'strictFeasible': strictFeasible,
       'recoveredByDropping':
           !strictFeasible && result.isSuccess && droppedActivityCount > 0,

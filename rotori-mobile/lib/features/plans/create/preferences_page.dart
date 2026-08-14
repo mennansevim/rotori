@@ -32,6 +32,10 @@ class PreferencesPage extends StatelessWidget {
     required this.datesEstimated,
     required this.onEditCities,
     required this.onEditDates,
+    required this.onAddFlight,
+    required this.onAddHotel,
+    this.flightSummary,
+    this.hotelSummary,
     required this.onToggleTag,
     required this.onPickBudget,
     required this.generating,
@@ -46,6 +50,16 @@ class PreferencesPage extends StatelessWidget {
   final bool datesEstimated;
   final VoidCallback onEditCities;
   final VoidCallback onEditDates;
+
+  /// Planı üretip uçuş / konaklama ekranını açar. Üretim henüz mümkün
+  /// değilse (şehir veya tarih eksik) null gelir ve satır pasif görünür.
+  final VoidCallback? onAddFlight;
+  final VoidCallback? onAddHotel;
+
+  /// Kaydedilmiş uçuş/otel özeti; null ise henüz eklenmemiş.
+  final String? flightSummary;
+  final String? hotelSummary;
+
   final void Function(String tagId) onToggleTag;
   final void Function(int? jpy) onPickBudget;
   final bool generating;
@@ -71,6 +85,10 @@ class PreferencesPage extends StatelessWidget {
                 datesEstimated: datesEstimated,
                 onEditCities: onEditCities,
                 onEditDates: onEditDates,
+                onAddFlight: onAddFlight,
+                onAddHotel: onAddHotel,
+                flightSummary: flightSummary,
+                hotelSummary: hotelSummary,
               ),
               const SizedBox(height: 24),
               _title(s.s('create.prefs.diet')),
@@ -122,10 +140,14 @@ class PreferencesPage extends StatelessWidget {
         ),
         CreateBottomBar(
           palette: p,
+          // Akışın SON adımı — planı üreten asıl aksiyon. Ara adımların
+          // mavi "Devam" butonlarından turuncu tonla ayrılır.
           child: BrandButton(
             palette: p,
             block: true,
             busy: generating,
+            tone: BrandButton.ctaOrange,
+            radius: 14,
             label: generating
                 ? s.s('create.generating')
                 : '✨ ${s.s('create.generate')}',
@@ -191,6 +213,10 @@ class _AssumptionSummaryCard extends StatelessWidget {
     required this.datesEstimated,
     required this.onEditCities,
     required this.onEditDates,
+    required this.onAddFlight,
+    required this.onAddHotel,
+    required this.flightSummary,
+    required this.hotelSummary,
   });
 
   final ViewerPalette palette;
@@ -199,6 +225,12 @@ class _AssumptionSummaryCard extends StatelessWidget {
   final bool datesEstimated;
   final VoidCallback onEditCities;
   final VoidCallback onEditDates;
+  final VoidCallback? onAddFlight;
+  final VoidCallback? onAddHotel;
+
+  /// Kaydedilmiş uçuş/otel özeti; null ise henüz eklenmemiş.
+  final String? flightSummary;
+  final String? hotelSummary;
 
   @override
   Widget build(BuildContext context) {
@@ -253,16 +285,36 @@ class _AssumptionSummaryCard extends StatelessWidget {
             onEdit: onEditDates,
             palette: palette,
           ),
+          // Uçuş/otel ekleme planın VAR OLMASINI gerektiriyor (iki ekran da
+          // planId ile trip'i provider'dan okuyor), plan ise ancak üretimden
+          // sonra oluşuyor. O yüzden aksiyon: önce üret, sonra o ekranı aç.
+          //
+          // Değerler PLANDAN okunur. Eskiden ikisi de sabit
+          // `create.assumptions.draft` yazıyordu; kullanıcı uçuşunu kaydedip
+          // buraya dönüyor, kart hâlâ "Eklenmedi · taslak" diyordu ve kayıt
+          // kaybolmuş görünüyordu. (create_plan_screen dönüşte setState
+          // çağırıyor — tazelenme niyeti vardı, tazelenecek veri yoktu.)
           _AssumptionRow(
             icon: Icons.flight_outlined,
             label: s.s('create.assumptions.flight'),
-            value: s.s('create.assumptions.draft'),
+            value: flightSummary ?? s.s('create.assumptions.draft'),
+            onEdit: onAddFlight,
+            actionLabel: flightSummary == null
+                ? s.s('create.assumptions.add')
+                : s.s('create.assumptions.edit'),
+            helper: flightSummary != null || onAddFlight == null
+                ? null
+                : s.s('create.assumptions.addHint'),
             palette: palette,
           ),
           _AssumptionRow(
             icon: Icons.hotel_outlined,
             label: s.s('create.assumptions.hotel'),
-            value: s.s('create.assumptions.draft'),
+            value: hotelSummary ?? s.s('create.assumptions.draft'),
+            onEdit: onAddHotel,
+            actionLabel: hotelSummary == null
+                ? s.s('create.assumptions.add')
+                : s.s('create.assumptions.edit'),
             palette: palette,
             isLast: true,
           ),

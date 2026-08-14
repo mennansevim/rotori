@@ -438,7 +438,12 @@ void main() {
     expect(optimize, findsOneWidget);
     expect(find.text('Premium'), findsWidgets);
 
-    await tester.ensureVisible(optimize);
+    await tester.scrollUntilVisible(
+      optimize,
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(optimize);
     await tester.pumpAndSettle();
 
@@ -531,25 +536,33 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 150));
 
-    final departure = find.byKey(
-      const ValueKey('saved-route-leg-1-day-1-base-b'),
-    );
-    final betweenStops = find.byKey(
-      const ValueKey('saved-route-leg-1-b-a'),
-    );
+    // Hem kalkış hem duraklar-arası bacak, varış durağının rozetine iner.
+    final departureBadge =
+        find.byKey(const ValueKey('timeline-transit-badge-b'));
+    final betweenStopsBadge =
+        find.byKey(const ValueKey('timeline-transit-badge-a'));
     await tester.scrollUntilVisible(
-      departure,
+      departureBadge,
       180,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
 
-    expect(departure, findsOneWidget);
-    expect(betweenStops, findsOneWidget);
-    expect(tester.getSize(departure).height, lessThan(44));
+    expect(departureBadge, findsOneWidget);
+    expect(betweenStopsBadge, findsOneWidget);
+
+    // Rozet kartı büyütmemeli: tek satırlık kompakt yükseklik.
+    expect(tester.getSize(departureBadge).height, lessThan(24));
+
+    // Ayrı bacak satırları kaldırıldı.
+    expect(
+      find.byKey(const ValueKey('saved-route-leg-1-day-1-base-b')),
+      findsNothing,
+    );
+    expect(find.byKey(const ValueKey('saved-route-leg-1-b-a')), findsNothing);
     expect(
       find.descendant(
-        of: departure,
+        of: departureBadge,
         matching: find.text(tr('routeOptimization.legs.estimated')),
       ),
       findsNothing,
@@ -562,6 +575,11 @@ void main() {
     await tester.pumpWidget(harness(_explicitTransportTrip()));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 150));
+    await tester.drag(
+      find.byType(ListView).first,
+      const Offset(0, -360),
+    );
+    await tester.pumpAndSettle();
 
     expect(
       find.text('14:45 varış · 30 dk · Metro · Otobüs · Taksi'),
@@ -582,25 +600,74 @@ void main() {
   });
 
   testWidgets(
+      'uzun açıklamalı durakta ulaşım rozeti taşmaz ve etiketi tam görünür',
+      (tester) async {
+    // Regresyon: rozetin iç Row'u flex'siz Text taşıdığı için maxWidth:
+    // infinity ile ölçülüyordu; ellipsis devreye girmiyor, Container clip
+    // yapmadığı için taşan "… dk" komşu açıklamanın üstüne basıyordu.
+    tester.view.physicalSize = const Size(360, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final trip = _savedRouteTrip();
+    trip.days.single.items.firstWhere((item) => item.id == 'b').description =
+        'Tokyo · cumartesi kalabalığı için sabah erken saatleri tercih et';
+
+    await tester.pumpWidget(harness(trip));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    final badge = find.byKey(const ValueKey('timeline-transit-badge-b'));
+    await tester.scrollUntilVisible(
+      badge,
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+
+    // Overflow olsaydı RenderFlex hata fırlatırdı.
+    expect(tester.takeException(), isNull);
+
+    // Rozet etiketi kırpılmadan duruyor ve satır tek satırlık kalıyor.
+    expect(find.text('Metro · 18 dk'), findsOneWidget);
+    expect(tester.getSize(badge).height, lessThan(24));
+
+    // Açıklama rozetin üstüne binmiyor: ya sağında ya alt satırda durur.
+    final badgeRect = tester.getRect(badge);
+    final descRect = tester.getRect(find.textContaining('cumartesi'));
+    expect(
+      descRect.left >= badgeRect.right - 0.5 ||
+          descRect.top >= badgeRect.bottom - 0.5,
+      isTrue,
+      reason: 'açıklama rozetle çakışıyor: $descRect vs $badgeRect',
+    );
+  });
+
+  testWidgets(
       'onaylanmış rota snapshotı plan yeniden açılınca günlük akışta görünür',
       (tester) async {
     await tester.pumpWidget(harness(_savedRouteTrip()));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 150));
 
-    final savedLeg = find.byKey(
-      const ValueKey('saved-route-leg-1-day-1-base-b'),
-    );
+    // Geliş bacağı artık kendi satırında değil, varış durağının alt
+    // başlığındaki rozettedir.
+    final badge = find.byKey(const ValueKey('timeline-transit-badge-b'));
     await tester.scrollUntilVisible(
-      savedLeg,
+      badge,
       180,
       scrollable: find.byType(Scrollable).first,
     );
 
-    expect(savedLeg, findsOneWidget);
-    expect(find.text('Tokyo  →  Tokyo Skytree'), findsOneWidget);
+    expect(badge, findsOneWidget);
     expect(find.text('Metro · 18 dk'), findsOneWidget);
-    expect(tester.getSize(savedLeg).height, lessThan(44));
+
+    // Ayrı bacak satırı ve onun "A  →  B" metni kaldırıldı.
+    expect(
+      find.byKey(const ValueKey('saved-route-leg-1-day-1-base-b')),
+      findsNothing,
+    );
+    expect(find.text('Tokyo  →  Tokyo Skytree'), findsNothing);
     expect(find.text(tr('routeOptimization.legs.departure')), findsNothing);
     expect(find.textContaining('Hat: Ginza Line'), findsNothing);
   });
@@ -618,6 +685,10 @@ void main() {
       180,
       scrollable: find.byType(Scrollable).first,
     );
+    // Satırlardan küçük görseller kalkınca liste kısaldı ve hedef sabit üst
+    // barın altına düşebiliyor; biraz geri kaydırıp barın altından çıkar.
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 120));
+    await tester.pumpAndSettle();
     await tester.tap(transition);
     await tester.pumpAndSettle();
 
@@ -638,6 +709,58 @@ void main() {
     );
   });
 
+  testWidgets('şehir geçiş nesnesi kartlar arasında eşit boşlukta durur',
+      (tester) async {
+    await tester.pumpWidget(harness(_cityTransitionTrip()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    final transition = find.text('Tokyo → Kyoto');
+    await tester.scrollUntilVisible(
+      transition,
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 120));
+    await tester.pumpAndSettle();
+
+    final pill = find.byKey(
+      const ValueKey('city-transition-Tokyo-Kyoto-shinkansen'),
+    );
+    expect(pill, findsOneWidget);
+
+    // Kapsül tek dokunma hedefi ve gövdesi yeterince yüksek. Eskiden çerçeveli
+    // Container'ın 12px padding'i InkWell'in DIŞINDA kalıyordu.
+    expect(tester.getSize(pill).height, greaterThanOrEqualTo(34));
+
+    // Dikey ritim: gün kartı kendi altına 12px bırakıyor, bu yüzden geçiş
+    // satırının ÜST boşluğu 0 ve ALT boşluğu 12 olmalı — iki kart arasında
+    // eşit 12/12. Eskiden `symmetric(vertical: 8)` vardı; üstte 20px (kartın
+    // 12'si + pill'in 8'i), altta 8px oluşuyordu.
+    final insets = find
+        .ancestor(of: pill, matching: find.byType(Padding))
+        .evaluate()
+        .map((e) => (e.widget as Padding).padding)
+        .toList();
+    expect(
+      insets,
+      contains(const EdgeInsets.only(bottom: 12)),
+      reason: 'geçiş satırının sarmalayıcı boşluğu 0/12 değil: $insets',
+    );
+    expect(
+      insets,
+      isNot(contains(const EdgeInsets.symmetric(vertical: 8, horizontal: 4))),
+      reason: 'eski asimetrik boşluk geri gelmiş',
+    );
+
+    // `open_in_new` kaldırıldı: pill dışarı açmıyor, mod seçiciyi açıyor.
+    expect(
+      find.descendant(
+          of: pill, matching: find.byIcon(Icons.open_in_new_rounded)),
+      findsNothing,
+    );
+  });
+
   testWidgets('şehir geçişi bilet editörü ESC ile güvenli kapanır',
       (tester) async {
     await tester.pumpWidget(harness(_cityTransitionTrip()));
@@ -650,6 +773,10 @@ void main() {
       180,
       scrollable: find.byType(Scrollable).first,
     );
+    // Satırlardan küçük görseller kalkınca liste kısaldı ve hedef sabit üst
+    // barın altına düşebiliyor; biraz geri kaydırıp barın altından çıkar.
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 120));
+    await tester.pumpAndSettle();
     await tester.tap(transition);
     await tester.pumpAndSettle();
     await tester.tap(
@@ -695,7 +822,7 @@ void main() {
     expect(find.text(tr('reward.title')), findsOneWidget);
   });
 
-  testWidgets('tema seçici açılır ve 3 tema listelenir', (tester) async {
+  testWidgets('tasarım seçici iki düzeni ve 3 temayı sunar', (tester) async {
     await tester.pumpWidget(harness(_sampleTrip()));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
@@ -712,9 +839,149 @@ void main() {
     expect(find.text('Japon Gecesi'), findsOneWidget);
     expect(find.text('Apple Aydınlık'), findsOneWidget);
     expect(find.text('Sakura Yumuşak'), findsOneWidget);
+    expect(find.text('Yolculuk'), findsOneWidget);
+    expect(find.text('Harita'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('viewer-template-journey-progress')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('viewer-template-map-focus')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('viewer-template-map-focus')),
+    );
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey('viewer-template-map-hero')),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('hamburger menüsü dört net bölüm ve kaydırma sunar',
+  testWidgets(
+      'harita tasarımında gün seçimi haritayı ve tek rota kartını değiştirir',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'viewer:template': 'map-focus',
+    });
+    final trip = _sampleTrip();
+
+    await tester.pumpWidget(harness(trip));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    expect(
+      find.byKey(const ValueKey('viewer-template-map-hero')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('viewer-map-route-day-2')),
+        matching: find.text('Aktif Aktivite'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Gecmis Aktivite'), findsNothing);
+    expect(find.text('Gelecek Aktivite'), findsNothing);
+
+    final dayThreeChip = tester.widget<InkWell>(
+      find.byKey(const ValueKey('viewer-map-day-3')),
+    );
+    dayThreeChip.onTap!();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('viewer-map-route-day-3')),
+        matching: find.text('Gelecek Aktivite'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Aktif Aktivite'), findsNothing);
+    expect(find.text('Gecmis Aktivite'), findsNothing);
+    expect(
+      find.byKey(ValueKey('viewer-map-${trip.days[2].date}')),
+      findsOneWidget,
+    );
+    final dayStrip = tester.widget<ListView>(
+      find.byKey(const ValueKey('viewer-map-day-strip')),
+    );
+    expect(dayStrip.physics, isA<NeverScrollableScrollPhysics>());
+  });
+
+  testWidgets(
+      'yolculuk tasarımı Japonya çizimini ve parçalı ilerlemeyi gösterir',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'viewer:template': 'journey-progress',
+    });
+
+    await tester.pumpWidget(harness(_sampleTrip()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    expect(
+      find.byKey(const ValueKey('viewer-template-journey-hero')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('viewer-journey-japan-line-art')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('viewer-journey-segmented-progress')),
+      findsOneWidget,
+    );
+    expect(find.text('İLERLEMEN'), findsOneWidget);
+  });
+
+  testWidgets(
+      'harita tasarımında düzenleme yalnız seçili günü açık ve düzenlenebilir tutar',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'viewer:template': 'map-focus',
+    });
+
+    await tester.pumpWidget(harness(_sampleTrip()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    final dayThreeChip = tester.widget<InkWell>(
+      find.byKey(const ValueKey('viewer-map-day-3')),
+    );
+    dayThreeChip.onTap!();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.byIcon(Icons.edit_outlined));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    expect(
+      find.byKey(const ValueKey('viewer-template-map-hero')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('viewer-map-route-day-3')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('viewer-map-route-day-1')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('viewer-map-route-day-2')),
+      findsNothing,
+    );
+    expect(find.byKey(const ValueKey('draggable-it3')), findsOneWidget);
+    expect(find.byKey(const ValueKey('draggable-it1')), findsNothing);
+    expect(find.byKey(const ValueKey('draggable-it2')), findsNothing);
+    expect(find.byIcon(Icons.check), findsOneWidget);
+  });
+
+  testWidgets('hamburger menüsü Keşfet ve Hesap bölümleriyle kaydırma sunar',
       (tester) async {
     await tester.pumpWidget(harness(_sampleTrip()));
     await tester.pump();
@@ -723,13 +990,21 @@ void main() {
     await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();
 
-    expect(find.text('YOLCULUK'), findsOneWidget);
+    // "YOLCULUK" etiketi kaldırıldı: özet kartı en üstte, başlıksız duruyor.
+    expect(find.text('YOLCULUK'), findsNothing);
     expect(find.text('KEŞFET'), findsOneWidget);
-    expect(find.text('ARAÇLAR'), findsOneWidget);
+    expect(find.text('ARAÇLAR'), findsNothing);
     expect(find.text('HESAP'), findsOneWidget);
     expect(find.byType(SingleChildScrollView), findsWidgets);
     expect(find.byIcon(Icons.map_outlined), findsWidgets);
     expect(find.byIcon(Icons.palette_outlined), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('drawer-account-actions')),
+        matching: find.byIcon(Icons.palette_outlined),
+      ),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('drawer-scanner-hero')), findsOneWidget);
     expect(find.text('Premium'), findsWidgets);
     expect(find.byKey(const ValueKey('drawer-action-Rotori Eats')),
@@ -878,6 +1153,34 @@ void main() {
       expect(find.text('Plan baştan oluşturulsun mu?'), findsOneWidget);
       expect(find.text('Vazgeç'), findsOneWidget);
       expect(find.text('Baştan oluştur'), findsWidgets);
+    });
+
+    testWidgets('edit modunda durak kilitlenip kilidi açılabilir',
+        (tester) async {
+      final trip = _sampleTrip();
+      final target = trip.days
+          .expand((d) => d.items)
+          .firstWhere((i) => i.canUserToggleLock && !i.isFixed);
+
+      await tester.pumpWidget(harness(trip));
+      await tester.pump();
+      await tester.tap(find.byIcon(Icons.edit_outlined));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Kilitsiz durakta "kilitle" aksiyonu var, "kilidi aç" yok.
+      final pin = find.byKey(ValueKey('pin-${target.id}'));
+      expect(pin, findsOneWidget);
+      expect(find.byKey(ValueKey('unpin-${target.id}')), findsNothing);
+
+      await tester.ensureVisible(pin);
+      await tester.pumpAndSettle();
+      await tester.tap(pin);
+      await tester.pumpAndSettle();
+
+      // Kilitlendi: rozet taraf değiştirdi ve onay mesajı çıktı.
+      expect(find.text(tr('viewer.edit.pinned')), findsOneWidget);
+      expect(find.byKey(ValueKey('unpin-${target.id}')), findsOneWidget);
+      expect(find.byKey(ValueKey('pin-${target.id}')), findsNothing);
     });
 
     testWidgets('kilitli aktivite sürüklenemez ve değiştirilemez',

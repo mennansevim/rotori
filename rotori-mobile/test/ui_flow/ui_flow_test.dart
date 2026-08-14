@@ -92,9 +92,8 @@ void main() {
       await tester.pumpWidget(_wrap(const AuthScreen()));
       await _settle(tester);
 
-      // AuthScreen alanları dev kolaylığı için önden dolu geliyor
-      // (demo@rotori.app / Demo1234!). Kullanıcı simülasyonu için ikisini
-      // de geçersiz değerlerle ez.
+      // Boş production alanlarına geçersiz değerler girerek istemci tarafı
+      // doğrulamasını tetikle.
       final emailField = find.widgetWithText(TextFormField, 'E-posta');
       final passField = find.widgetWithText(TextFormField, 'Şifre');
       await tester.enterText(emailField, 'gecersizmail');

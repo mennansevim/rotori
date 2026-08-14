@@ -12,8 +12,9 @@ Bu checklist, `mobile/docs/RELEASE_QA_ANALYSIS_2026-07-26.md` bulgularına göre
 - [ ] **Release build smoke**: Uygulama gerçek cihazda açılıyor; crash/blank screen yok.
 - [ ] **Auth route güvenliği**: Login olmadan protected ekranlara erişim yok; logout sonrası geri dönüş engelli.
 - [ ] **Apple Sign-In capability**:
-  - [ ] `Runner.entitlements` içinde `com.apple.developer.applesignin = Default` var.
-  - [ ] Xcode Signing & Capabilities altında **Sign in with Apple** açık.
+  - [x] `Runner.entitlements` içinde `com.apple.developer.applesignin = Default` var.
+  - [x] Runner build ayarları entitlement dosyasına bağlı ve Xcode target
+        capability kaydı açık.
   - [ ] Apple Developer / Supabase credential eşleşmesi doğrulandı.
 - [ ] **Plan veri bütünlüğü**: Plan kaydet/aç sonrası veri kaybı yok.
 - [ ] **Gözlemlenebilirlik**:

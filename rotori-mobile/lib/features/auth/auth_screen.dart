@@ -45,10 +45,11 @@ class AuthScreen extends ConsumerStatefulWidget {
 
 class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _formKey = GlobalKey<FormState>();
-  // DEV: test kullanıcısı önden dolu — tek tık "Giriş yap".
-  // (Prod'da bu varsayılanlar kaldırılacak.)
-  final _emailController = TextEditingController(text: 'demo@rotori.app');
-  final _passwordController = TextEditingController(text: 'Demo1234!');
+  // Production giriş ekranı hiçbir hesabı veya parolayı kaynak koddan
+  // doldurmaz. App Review test hesabı gerekiyorsa yalnızca App Store
+  // Connect'in inceleme notlarında paylaşılır.
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _isRegister = false;
   bool _busy = false;
   String? _error;

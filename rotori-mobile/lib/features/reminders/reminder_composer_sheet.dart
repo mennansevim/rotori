@@ -186,6 +186,9 @@ class _ReminderComposerSheetState
     extends ConsumerState<_ReminderComposerSheet> {
   final Set<String> _selected = {};
   final Map<String, DateTime> _eventDates = {};
+
+  /// "Ziyaret tarihleri" bölümüne kaydırmak için.
+  final GlobalKey _datesSectionKey = GlobalKey();
   final TextEditingController _customTitle = TextEditingController();
   bool _customEnabled = false;
   DateTime? _customDate;
@@ -337,6 +340,7 @@ class _ReminderComposerSheetState
                   if (selectedWindows.isNotEmpty) ...[
                     const SizedBox(height: 22),
                     _ComposerTitle(
+                      key: _datesSectionKey,
                       title: const LText('Ziyaret tarihleri', 'Visit dates')
                           .of(lang),
                       subtitle: const LText(
@@ -383,8 +387,38 @@ class _ReminderComposerSheetState
                   top: BorderSide(color: theme.colorScheme.outlineVariant),
                 ),
               ),
-              child: FilledButton.icon(
-                key: const ValueKey('save-reminders'),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Pasif butonun NEDENİ.
+                  //
+                  // **Why:** Bir hazır seçim işaretlendiğinde buton yine pasif
+                  // kalıyordu, çünkü `_canSave` her seçim için ziyaret tarihi
+                  // şart koşuyor. Tarih alanı ise altı kartlık ızgaranın
+                  // ALTINDA, kaydırmadan görünmüyor. Kullanıcı için buton
+                  // sebepsiz bozuk görünüyordu. Satır eksiği söylüyor ve
+                  // dokununca ilgili bölüme kaydırıyor.
+                  if (_missingDateCount > 0) ...[
+                    _BlockedHint(
+                      text: lang == AppLang.tr
+                          ? '$_missingDateCount seçim için ziyaret tarihi gerekiyor'
+                          : '$_missingDateCount selection(s) need a visit date',
+                      actionLabel:
+                          const LText('Tarihi seç', 'Pick the date').of(lang),
+                      onTap: _scrollToDates,
+                    ),
+                    const SizedBox(height: 10),
+                  ] else if (!_canSave) ...[
+                    _BlockedHint(
+                      text: const LText(
+                        'Bir hazır seçim işaretle ya da kendi hatırlatıcını ekle',
+                        'Pick a ready-made choice or add your own reminder',
+                      ).of(lang),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                  FilledButton.icon(
+                    key: const ValueKey('save-reminders'),
                 onPressed: _canSave && !_saving ? _save : null,
                 icon: _saving
                     ? const SizedBox.square(
@@ -400,17 +434,34 @@ class _ReminderComposerSheetState
                           'Add selected reminders',
                         ).of(lang),
                 ),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(52),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(52),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  /// Seçili ama ziyaret tarihi girilmemiş hazır seçim sayısı.
+  int get _missingDateCount =>
+      _selected.where((id) => !_eventDates.containsKey(id)).length;
+
+  void _scrollToDates() {
+    final ctx = _datesSectionKey.currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(
+      ctx,
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+      alignment: .1,
     );
   }
 
@@ -559,8 +610,74 @@ class _InfoBanner extends StatelessWidget {
   }
 }
 
+/// Pasif CTA'nın nedenini söyleyen satır. Verildiyse dokunulabilir ve eksik
+/// alana kaydırır — "buton çalışmıyor" hissini "şu eksik" bilgisine çevirir.
+class _BlockedHint extends StatelessWidget {
+  const _BlockedHint({
+    required this.text,
+    this.actionLabel,
+    this.onTap,
+  });
+
+  final String text;
+  final String? actionLabel;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final row = Row(
+      children: [
+        Icon(
+          Icons.info_outline_rounded,
+          size: 16,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              height: 1.3,
+            ),
+          ),
+        ),
+        if (actionLabel != null) ...[
+          const SizedBox(width: 8),
+          Text(
+            actionLabel!,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ],
+    );
+    if (onTap == null) return row;
+    return Semantics(
+      button: true,
+      label: '$text. $actionLabel',
+      child: InkWell(
+        key: const ValueKey('reminder-blocked-hint'),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: row,
+        ),
+      ),
+    );
+  }
+}
+
 class _ComposerTitle extends StatelessWidget {
-  const _ComposerTitle({required this.title, required this.subtitle});
+  const _ComposerTitle({
+    super.key,
+    required this.title,
+    required this.subtitle,
+  });
   final String title;
   final String subtitle;
 

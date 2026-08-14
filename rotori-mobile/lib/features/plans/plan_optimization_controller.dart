@@ -1,11 +1,18 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/offline_japan_route_matrix.dart';
 import '../../domain/day_optimizer.dart';
+import '../../domain/destination_profiles.dart';
 import '../../domain/itinerary_optimizer.dart';
+import '../../domain/japan_calendar.dart';
+import '../../domain/japan_transit_realism.dart';
+import '../../domain/luggage_logistics.dart';
+import '../../domain/plan_field_signals.dart';
 import '../../domain/plan_warnings.dart';
+import '../../domain/route_field_context.dart';
 import '../../domain/route_time_bounds.dart';
 import '../../domain/route_matrix.dart';
 import '../../domain/route_execution.dart';
@@ -74,6 +81,28 @@ class PlanOptimizationPreview {
   final List<RouteExecutionLeg> executionLegs;
   final bool fromCache;
   final bool isConfirmed;
+
+  /// Optimize edilmiş rota mevcut rotadan GERÇEKTEN iyi mi?
+  ///
+  /// **Neden gerekli:** Sayfa `before`/`after` kartlarını gösterip her koşulda
+  /// "Uygula" sunuyordu. Gün zaten en iyi sırada olduğunda iki kart birebir
+  /// aynı çıkıyor, kullanıcı yine de uygulayabiliyor ve hiçbir şey değişmiyor —
+  /// planı "optimize edilmiş" diye işaretleyen boş bir işlem.
+  ///
+  /// Sıralama hedefin önem sırasıdır: ulaşım süresi > yürüyüş > aktarma sayısı
+  /// > maliyet. Eşitlikte bir sonrakine bakılır; hepsi eşitse kazanç yok.
+  bool get improvesRoute {
+    if (after.totalTravelMinutes != before.totalTravelMinutes) {
+      return after.totalTravelMinutes < before.totalTravelMinutes;
+    }
+    if (after.totalWalkingMinutes != before.totalWalkingMinutes) {
+      return after.totalWalkingMinutes < before.totalWalkingMinutes;
+    }
+    if (after.totalTransferCount != before.totalTransferCount) {
+      return after.totalTransferCount < before.totalTransferCount;
+    }
+    return after.estimatedTransportCostYen < before.estimatedTransportCostYen;
+  }
 
   PlanOptimizationPreview copyWith({
     bool? fromCache,
@@ -184,6 +213,13 @@ class PlanOptimizationController
     if (dayDate == null) {
       throw FormatException('Plan günü tarihi geçersiz: ${day.date}');
     }
+    final cityId = _dominantCity(input.trip, day);
+    final field = _fieldRealityFor(
+      input: input,
+      day: day,
+      dayDate: dayDate,
+      cityId: cityId,
+    );
 
     final activities = day.items.map((item) {
       final lat = item.lat;
@@ -236,14 +272,24 @@ class PlanOptimizationController
             !item.canChangeDay ||
             !item.canChangeTime ||
             !item.canReorder,
+        // Kullanıcı kilidi rezervasyon sayılır: kilidi koymasının sebebi
+        // zaten "bileti aldım" — motor bu durakları taşımaya çalışmadan önce
+        // rezervasyonlu duraklarla aynı korumayı uygular.
         hasReservation: item.lockType == ActivityLockType.trainReservation ||
             item.lockType == ActivityLockType.ticketedEvent ||
             item.lockType == ActivityLockType.external ||
+            item.isUserPinned ||
             isTimedEntryTitle(item.title),
         category: item.kind?.name,
-        priority: item.kind == TimelineItemKind.meal || locked
-            ? ActivityPriority.mustDo
-            : ActivityPriority.normal,
+        cityId: item.cityId ?? cityId,
+        closureRule: _closureRuleFor(item),
+        requiresHotelCheckIn: _isHotelCheckIn(item),
+        repeatRule: _repeatRuleFor(item),
+        // Kilitli durak asla "yer açmak için" düşürülmez.
+        priority:
+            item.kind == TimelineItemKind.meal || locked || item.isUserPinned
+                ? ActivityPriority.mustDo
+                : ActivityPriority.normal,
       );
     }).toList(growable: false);
 
@@ -279,6 +325,7 @@ class PlanOptimizationController
       routeMatrix: matrix,
       constraints: input.constraints,
       preferences: input.preferences,
+      field: field,
       preferredActivityOrder: input.preferredActivityOrder,
     );
     final result = await ref.read(itineraryOptimizerProvider).optimize(request);
@@ -446,7 +493,12 @@ class PlanOptimizationController
     required String cacheKey,
     required OptimizationFailure? failure,
   }) {
-    if (!_shouldUseLocalFallback(failure)) return null;
+    if (!_shouldUseLocalFallback(
+      failure,
+      hasFieldReality: request.field != null,
+    )) {
+      return null;
+    }
 
     final originalDay = input.trip.days[dayIndex];
     final optimizedItems = optimizeDayItems(
@@ -495,8 +547,15 @@ class PlanOptimizationController
     return preview;
   }
 
-  bool _shouldUseLocalFallback(OptimizationFailure? failure) {
+  bool _shouldUseLocalFallback(
+    OptimizationFailure? failure, {
+    required bool hasFieldReality,
+  }) {
     if (failure == null) return false;
+    // Kural tabanlı fallback saha kapılarını yeniden çalıştırmaz. Takvim,
+    // pass, bagaj veya istasyon kuralı etkin bir isteği bu yola sokmak,
+    // optimizer'ın reddettiği rotayı sessizce geri getirebilir.
+    if (hasFieldReality) return false;
     return switch (failure.code) {
       OptimizationFailureCode.noFeasibleRoute ||
       OptimizationFailureCode.routeDataMissing ||
@@ -695,9 +754,32 @@ String _cacheKey(
     input.planVersion,
     _activityHash(day),
     _stableHash(input.preferredActivityOrder.join('\u0000')),
+    _fieldRealityHash(input, day),
     input.preferences.profile.name,
     matrixVersion,
   ].join(':');
+}
+
+String _fieldRealityHash(DayOptimizationInput input, DayPlan day) {
+  final source = {
+    'partySize':
+        input.trip.preferences.partySize ?? input.preferences.partySize,
+    'routePartySize': input.preferences.partySize,
+    'cityTransition': day.cityTransition?.toJson(),
+    'luggage': day.luggage?.toJson(),
+    'crowd': day.crowd?.toJson(),
+    'items': [
+      for (final item in day.items)
+        {
+          'id': item.id,
+          'cityId': item.cityId,
+          'transit': item.transit?.toJson(),
+          'repeat': item.repeat?.toJson(),
+          'closure': item.closure?.toJson(),
+        },
+    ],
+  };
+  return _stableHash(jsonEncode(source));
 }
 
 String _activityHash(DayPlan day) {
@@ -728,3 +810,124 @@ String _stableHash(String value) {
 }
 
 Trip _cloneTrip(Trip trip) => Trip.fromJson(trip.toJson());
+
+String? _dominantCity(Trip trip, DayPlan day) {
+  for (final item in day.items) {
+    final cityId = item.cityId?.trim();
+    if (cityId != null && cityId.isNotEmpty) return cityId;
+  }
+  final transitionCity = day.cityTransition?.toCity.trim();
+  if (transitionCity != null && transitionCity.isNotEmpty) {
+    return transitionCity;
+  }
+  return getDestinationForDate(trip.preferences.destinations, day.date)?.city;
+}
+
+FieldRealityContext _fieldRealityFor({
+  required DayOptimizationInput input,
+  required DayPlan day,
+  required DateTime dayDate,
+  required String? cityId,
+}) {
+  final luggage = day.luggage;
+  final railPassValue = day.cityTransition?.railPass ?? _firstRailPass(day);
+  final luggageSize = _enumByName(
+        LuggageSize.values,
+        luggage?.size,
+      ) ??
+      LuggageSize.none;
+  return FieldRealityContext(
+    travelDate: dayDate,
+    cityId: cityId,
+    traveller: TravellerProfile(
+      railPass: _railPassFromValue(railPassValue),
+      luggageSize: luggageSize,
+      bagCount: luggage?.bagCount ?? 0,
+      partySize:
+          input.trip.preferences.partySize ?? input.preferences.partySize,
+    ),
+    luggagePlan: _luggagePlanFor(luggage),
+  );
+}
+
+RailPassType _railPassFromValue(String? value) =>
+    _enumByName(RailPassType.values, value) ?? RailPassType.none;
+
+String? _firstRailPass(DayPlan day) {
+  for (final item in day.items) {
+    final value = item.transit?.railPass;
+    if (value != null && value.trim().isNotEmpty) return value;
+  }
+  return null;
+}
+
+LuggagePlan? _luggagePlanFor(LuggageSignals? signals) {
+  if (signals == null) return null;
+  final strategy = _enumByName(
+        LuggageHandlingStrategy.values,
+        signals.strategy,
+      ) ??
+      LuggageHandlingStrategy.none;
+  return LuggagePlan(
+    strategy: strategy,
+    originHandoverMinutes: signals.originHandoverMin,
+    arrivalHandlingMinutes: signals.arrivalHandlingMin,
+    retrievalMinutes: signals.retrievalMin,
+    estimatedCostYen: signals.estimatedCostYen,
+    advisories: {
+      for (final value in signals.advisories)
+        if (_enumByName(LuggageAdvisory.values, value) case final advisory?)
+          advisory,
+    },
+    reasonCode: signals.reasonCode ?? 'persisted-${strategy.name}',
+    baggageAvailableAfterDays: signals.baggageAvailableAfterDays,
+  );
+}
+
+ClosureRule? _closureRuleFor(TimelineItem item) {
+  final signals = item.closure;
+  if (signals == null || signals.weeklyClosedWeekdays.isEmpty) return null;
+  return ClosureRule(
+    weeklyClosedWeekdays: signals.weeklyClosedWeekdays.toSet(),
+  );
+}
+
+RepeatRule _repeatRuleFor(TimelineItem item) {
+  final signals = item.repeat;
+  if (signals == null) {
+    return inferRepeatRule(
+      title: item.title,
+      category: item.kind?.name,
+    );
+  }
+  if (signals.userExplicitSelection || signals.policy == 'userOverride') {
+    return const RepeatRule.userSelected();
+  }
+  final maximum = signals.maximumConsecutiveDays ?? 2;
+  if (signals.isRepeatableZone || signals.policy == 'repeatableZone') {
+    return RepeatRule.zone(maximumConsecutiveDays: maximum);
+  }
+  final quota = signals.recommendedTotalMinutes;
+  if (signals.policy == 'timeQuota' && quota != null && quota > 0) {
+    return RepeatRule.quota(quota, maximumConsecutiveDays: maximum);
+  }
+  return const RepeatRule(policy: RepeatPolicy.hardZero);
+}
+
+bool _isHotelCheckIn(TimelineItem item) {
+  if (item.kind != TimelineItemKind.hotel) return false;
+  final value = item.title.toLowerCase();
+  return value.contains('check-in') ||
+      value.contains('check in') ||
+      value.contains('checkin') ||
+      value.contains('giriş') ||
+      value.contains('giris');
+}
+
+T? _enumByName<T extends Enum>(List<T> values, String? raw) {
+  if (raw == null) return null;
+  for (final value in values) {
+    if (value.name == raw.trim()) return value;
+  }
+  return null;
+}

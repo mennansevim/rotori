@@ -1,0 +1,5 @@
+"CFBundleDisplayName" = "Rotori";
+"NSLocationWhenInUseUsageDescription" = "Rotori, uygulama açıkken ziyaret ettiğin yerleri doğrulamak ve keşif rozeti vermek için konumunu kullanır. Kesin konumun cihazından gönderilmez.";
+"DiscoveryStamp" = "Rotori, bu yerde olduğunu doğrulayıp keşif rozetini verebilmek için geçici olarak kesin konuma ihtiyaç duyar.";
+"NSCameraUsageDescription" = "Rotori, bilet görsellerini ve mağaza fiyatlarını taramak için kamerayı kullanır. Görüntüler cihazında işlenir ve yüklenmez.";
+"NSPhotoLibraryUsageDescription" = "Rotori, cihazında taramak üzere mevcut bir bilet görseli seçtiğinde fotoğraf arşivine erişir.";
