@@ -59,8 +59,9 @@ ve rehber. Marka önce "Tabi" (旅) olarak öneriliydi, 2026-07 civarında
   (**gitignore**).
 - **i18n:** Manuel `lib/core/l10n.dart` — `AppLang.tr | .en`, ~800+ anahtar +
   büyük içerik için `LText(tr, en)` (bkz. `domain/localized_text.dart`).
-- **Harita:** `flutter_map` + OSM raster tile (API key yok) + offline tile
-  cache (`flutter_cache_manager`, web'de kIsWeb ile no-op).
+- **Harita:** `flutter_map` + standart OSM raster tile (API key yok). Toplu
+  ön-indirme ve kalıcı disk cache yoktur; yalnız Flutter'ın oturum içi bellek
+  cache'i kullanılır. Genel App Store ölçeğinden önce SLA'lı sağlayıcı seçilir.
 - **Rota optimizasyonu:** Saf Dart yönlü `RouteMatrix` +
   `BeamSearchItineraryOptimizer` (beam width 6, local improvement, dört
   profil). Gerçek ulaşım sağlayıcısı yalnızca backend/Edge Function gateway'i
@@ -131,12 +132,13 @@ rotori-mobile/lib/
 
 1. **Domain saf tutulur.** `rotori-mobile/lib/domain/` içindeki dosyalar `flutter/*`
    veya `supabase_flutter` import etmez — böylece unit-test'lenebilir.
-2. **Çevrimdışı-öncelikli.** Uçakta / dolaşımda çalışmalı: OSM tile cache,
-   `shared_preferences` yerel plan, `LText` gömülü içerik.
+2. **Çevrimdışı-öncelikli veri.** Plan, `shared_preferences` snapshot'ı ve
+   `LText` içerikleri ağsız çalışır. Harita zemini sağlayıcı politikası gereği
+   online'dır; uygulama çevrimdışı tile paketi vaat etmez.
 3. **Kimlik doğrulaması ürünün önünde bariyer değil.** Preview/QA
    ekranları auth'suz açılır; yalnızca senkron gerektiği anda oturum sorulur.
 4. **Web türev bir hedef.** `--kIsWeb` gate'i ile paketler graceful düşer
-   (OCR, bildirim, tile cache, home widget). Ana geliştirme mobil.
+   (OCR, bildirim, home widget). Ana geliştirme mobil.
 5. **Marka dili tek yerden.** Metinler `l10n.dart` / `LText`, renk `theme.dart`,
    ikon set `lucide_icons_flutter` — emoji sadece bilinçli semantik yerlerde.
 6. **Yeni kurulum aydınlık başlar.** Uygulama kabuğu `AppTheme.light`, viewer
@@ -153,7 +155,8 @@ rotori-mobile/lib/
 
 - İlk açılış → interaktif: **≤ 2 s** iPhone 12 üstünde.
 - Plan üretimi (`itinerary_generator` + `fillEmptyDays`): **≤ 300 ms** 13-gün, 4-şehir.
-- Harita gün açılışı: cache hit varsa **≤ 250 ms**.
+- Harita gün açılışı: oturum içi bellek cache hit varsa **≤ 250 ms**; soğuk
+  açılış sağlayıcı/ağ hızına bağlıdır.
 - Uygulama boyutu (iOS release): **≤ 60 MB**.
 
 ## 9. Güvenlik Kuralları

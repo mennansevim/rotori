@@ -3,15 +3,74 @@
 > Bu dosya *bugünkü* çalışmanın canlı görünümüdür. Her tamamlanan görevden
 > hemen sonra güncellenir.
 
-**Bugünün tarihi:** 2026-08-11
-**Aktif branch:** `main`
-**Sprint hedefi:** Mobil crash/hata takibi ile gizlilik odaklı rota ve ürün
-analitiğini production'a hazır hale getirmek; mevcut deterministik rota
-algoritmasını değiştirmeden ölçülebilir kılmak.
+**Bugünün tarihi:** 2026-08-14
+**Aktif branch:** `feat/route-v3-field-reality`
+**Sprint hedefi:** Rota v3 saha gerçekliği katmanını üretim çağrılarına
+bağlamak, retry/fallback kaçaklarını kapatmak ve geniş QA ile doğrulamak.
 
 ---
 
 ## 🚦 SIRADAKİ OTURUM BURADAN BAŞLAR
+
+**Aktif yayın takibi:** `docs/TESTFLIGHT_READINESS.md`
+
+Bir sonraki oturumda bu dosyanın **P0 / 1. Apple imzalama** bölümündeki ilk
+işaretlenmemiş maddeden devam edilir. Tamamlanan her madde kanıtıyla birlikte
+orada işaretlenir; bu dosyada ayrıca paralel bir checklist tutulmaz.
+
+### 2026-08-14 — TestFlight kod hazırlığı ve harita politika düzeltmesi (tamamlandı)
+
+- [x] Production auth ekranından gömülü demo e-posta/parolayı kaldır.
+- [x] Privacy Manifest'i güncelle ve Runner resource paketine bağla.
+- [x] Sign in with Apple entitlement'ını bütün Runner build ayarlarına bağla;
+      TR/EN `InfoPlist.strings` permission metinlerini ekle.
+- [x] Premium butonlarını ve mevcut Pro bilgilendirme akışını koru.
+- [x] Google/CARTO raster endpoint'lerini standart OSM katmanına taşı; toplu
+      ön-indirme, disk cache ve `flutter_cache_manager` bağımlılığını kaldır.
+- [x] OSM attribution'ını telif sayfasına bağla ve analiz borcunu temizle.
+
+**Sonuç:** Uygulama içi harita online çalışmayı koruyor ancak artık kalıcı
+offline tile paketi vaat etmiyor. Plan/veri snapshot'larının çevrimdışı
+davranışı değişmedi. Apple hesabı, provisioning profile, Supabase production
+ve App Store Connect üzerinde dış değişiklik yapılmadı. Flutter analyze temiz,
+tam Flutter test paketi başarılı. Temiz `--release --no-codesign` iOS build'i
+132,7 MB `Runner.app` üretti; uygulamanın kendi `PrivacyInfo.xcprivacy` dosyası
+ile `en.lproj`/`tr.lproj` permission metinleri paket içinde doğrulandı.
+
+### 2026-08-14 — Viewer'da iki tasarım arasında geçiş (tamamlandı)
+
+- [x] “Yolculuk” görünümünde ilerleme özeti ile sıradaki aktiviteyi öne çıkar.
+- [x] “Harita” görünümünde seçili tek günün raster yol haritası katmanını,
+      numaralı GPS duraklarını ve rota çizgisini planın üstüne taşı.
+- [x] Tarih çipini tek aktif gün kaynağı yap; harita ile aşağıdaki rota
+      içeriğini birlikte değiştir ve diğer günleri bu görünümde çizme.
+- [x] Harita görünümünde düzenlemeyi de seçili güne kilitle; haritayı görünür
+      tut ve tarih sekmelerini ikonsuz, kompakt, renkli hale getir.
+- [x] Harita tarih şeridindeki tüm günleri telefon genişliğine kaydırmasız
+      sığdır; Yolculuk hero'sunu çizimli Japonya ve parçalı ilerleme tasarımına
+      yaklaştır.
+- [x] Drawer'daki “Tasarımı değiştir” seçimini cihazda kalıcı, tema seçiminden
+      bağımsız ve plan verisini değiştirmeyen tekli seçim olarak uygula.
+
+**Sonuç:** Kullanıcı aynı seyahat planını Yolculuk veya Harita tasarımıyla
+görüntüleyebiliyor; seçim uygulama yeniden açıldığında korunuyor. Eski/geçici
+ayar anahtarları güvenli biçimde yeni iki tasarıma taşınıyor, bilinmeyen değerler
+Yolculuk görünümüne dönüyor. Harita görünümünde 28→29→30 canlı geçişi üç ayrı
+ekran görüntüsüyle doğrulandı; her seçim yalnız ilgili günün haritasını ve rota
+kartını gösteriyor. OSM yol haritası tam genişlikte, tarih şeridi haritanın
+içinde; beyaz halolu mavi rota, dönüşümlü yer etiketli pembe GPS pinleri ve
+beyaz tek-gün paneli referans görselin hiyerarşisine getirildi. Rota çizgisi
+son görsel turda 3 px sabit mavi çizgi ve 5,5 px ince beyaz halo olarak
+zarifleştirildi; kırmızı numaralı noktalar 36 px'ten 28 px'e indirildi.
+Tarih sekmeleri ikonsuz, daha renkli ve telefon genişliğine eşit paylaşılan
+kaydırmasız bir şeride dönüştürüldü. Harita düzenleme modu haritayı koruyup
+yalnız seçili günü düzenliyor. Yolculuk üst alanı Tokyo kulesi/uçak ile
+Fuji/pagoda/sakura çizimlerini, dört parçalı ilerleme halkasını ve referanstaki
+mavi “Sıradaki” kartını kullanıyor.
+Tasarım seçici, kalıcılık ve viewer regresyonları testlerle kapsandı; hedefli
+analiz temiz, tam Flutter paketi **1.078/1.078** başarılı. Daha sonra yapılan
+TestFlight hazırlığında fiyat etiketi tarayıcı ve bağımsız test lint'leri de
+temizlendi.
 
 ### 2026-08-14 — Hibrit LLM rota iyileştirme ve motor benchmarkı (tamamlandı)
 
@@ -33,6 +92,107 @@ yeniden üretilmiş snapshot ile gerçek objective skoru en az %2 iyileştirirse
 kabul edilir; tüm diğer durumlarda deterministik plan korunur. Son tam Flutter
 paketi **1.064/1.064** geçti, hedefli analiz temiz. Son teyit benchmarkı
 16.300 ms verdi ve önceki çıktıyla semantik karşılaştırma yine birebir eşleşti.
+
+### 2026-08-14 — R harfinden türeyen Rotori reklam animasyonu (tamamlandı)
+
+- [x] Rotori işaretini kırmızı rota çizgisinden kuran özgün açılış hareketini
+      ve ekranları tekrar işarete toplayan kapanışı tasarla.
+- [x] Şehir seçimi, gün planı, ayrıntılı timeline ve bütçe ekranlarını sakin,
+      beyaz boşluk ağırlıklı 9:16 reklam akışına bağla.
+- [x] Telifsiz sentetik ses tasarımını ekle; H.264/AAC medya özelliklerini,
+      geçiş karelerini, okunabilirliği ve final posterini doğrula.
+
+**Sonuç:** `rotori-social/scripts/create_rotori_r_ad.py` aynı reklamı yerel
+asset'lerden tekrar üretebiliyor. Nihai çıktı 1080×1920, 30 fps, 12,6 saniye,
+H.264 + AAC ve yaklaşık 3 MB olarak
+`rotori-social/output/reels/rotori_r_apple_ad_1080x1920.mp4` altında hazırlandı.
+Altı kritik kare ve yarım saniyelik hareket matrisi görsel olarak kontrol
+edildi; başlık geçişlerindeki üst üste binme giderildi.
+
+### 2026-08-14 — Drawer Tema/Hesap hiyerarşisi (tamamlandı)
+
+- [x] Tek öğeli Araçlar bölümünü, başlığını ve ayrı kartını kaldır.
+- [x] Tema seçiciyi Hesap bölümündeki ayar grubunun ilk satırına taşı.
+- [x] Tema seçici davranışını, yeni bölüm sırasını ve dar telefon görünümünü
+      regresyonlarla doğrula.
+
+**Sonuç:** Drawer artık Yolculuk → Keşfet → Hesap hiyerarşisini kullanıyor.
+Tema, Misafir/profil kartının altındaki hesap ayar grubunda yer alıyor;
+Araçlar başlığı görünmüyor. İlgili drawer/viewer regresyonları **41/41**
+başarılı, hedefli analiz temiz; iPhone 15 Pro ön izlemesinde alt bölüm
+görsel olarak doğrulandı.
+
+### 2026-08-13 — Eğlence rehberi görsel sadeleştirmesi (tamamlandı)
+
+- [x] Seçili deneyim, rehber özeti, Premium hatırlatıcı ve resmî video
+      alanlarındaki geniş kırmızı/mor gradyan yüzeyleri kaldır.
+- [x] Uyarı, ipucu, akış ve strateji kartlarını viewer'ın beyaz/dark nötr
+      kart sistemi ile tek ana vurgu rengine taşı.
+- [x] Deneyim seçimi, hatırlatıcı, resmî bağlantılar ve yatay kart davranışını
+      koru; dar telefon görünümünü ve regresyonları doğrula.
+
+**Sonuç:** Hero görseli sayfanın tek güçlü görsel yüzeyi olarak korundu;
+gövde kartları tema uyumlu nötr yüzey, ince kenarlık ve mavi ana vurgu ile
+drawer'ın genel diline yaklaştırıldı. Renk artık seçili durum, küçük ikon ve
+ana aksiyonlarla sınırlı. 390×844 iPhone ön izlemesinde üst, orta ve alt
+kaydırma konumları taşmasız doğrulandı. Eğlence rehberi regresyonları **6/6**
+başarılı; hedefli analiz temiz.
+
+### 2026-08-13 — Viewer drawer referans tasarım cilası (tamamlandı)
+
+- [x] Keşfet satırlarında ikon tonlarını mor, mavi, turuncu, yeşil, turkuaz
+      ve pembe olarak ayrıştır; ortak sakin inset-group yüzeyini koru.
+- [x] Misafir hesabını pembe vurgulu, oturum açmaya yönlendiren profil
+      satırına dönüştür; hesap aksiyonlarında işlevsel renk hiyerarşisi kur.
+- [x] “Çıkış yap” aksiyonunu ana hesap grubundan ayırıp pembe uyarı yüzeyine
+      taşı; dar ekran ve regresyon kontrollerini tamamla.
+
+**Sonuç:** Referans görseldeki üst hero, üçlü gezi özeti, uçuş/konaklama ve
+tek-gruplu Keşfet yapısı korunarak alt bölümün renk ve hesap hiyerarşisi
+tamamlandı. iPhone 390×844 web ön izlemesinde üst/alt kaydırma konumları
+görsel doğrulandı. Drawer, özet ve viewer regresyonları **41/41** başarılı;
+hedefli analiz temiz.
+
+### 2026-08-12 — Viewer drawer görsel bütünlük turu (tamamlandı)
+
+- [x] Yolculuk ve Hesap bölümlerindeki sakin inset-group dilini Keşfet ve
+      Araçlar dahil panelin tamamına uygula.
+- [x] Keşfet'teki iki gradyan vitrin ile 2×2 renkli kart ızgarasını tek,
+      okunabilir aksiyon grubuna indir; bütün davranış ve Premium durumunu
+      koru.
+- [x] TR/EN, küçük ekran, dark tema, widget regresyonları ve analizle doğrula.
+
+**Sonuç:** Hero ve Yolculuk bilgi yapısı korunurken drawer'ın bütün alt yüzeyi
+18 px köşe yarıçaplı, ince kenarlıklı beyaz/dark inset-group sistemine alındı.
+Fiyat etiketi tarayıcı, macera rehberi, hava, bütçe, checklist ve Rotori Eats
+tek altı satırlı grupta birleşti; gradyanlar, büyük gölgeler, 2×2 karo düzeni
+ve kuzeydoğu okları kaldırıldı. Premium durumu küçük rozetle korunuyor.
+Hedefli analiz temiz; drawer, yolculuk özeti ve viewer regresyonları **37/37**
+başarılı. 390×844 iPhone ön izlemesinde açık ve Japon Gecesi temalarında üst,
+orta ve alt scroll konumları görsel olarak doğrulandı; yeni taşma veya konsol
+hatası yok.
+
+### 2026-08-12 — Rota v3 üretim entegrasyonu ve bakım doğrulaması (tamamlandı)
+
+- [x] `FieldRealityContext` üretim controller'ında tarih, şehir, parti, pass,
+      bagaj, kapanış ve tekrar sinyallerinden kurulsun; retry/dropping boyunca
+      kaybolmasın.
+- [x] Field hard kapılarını atlayan yerel fallback'i kapat; bağımsız validator
+      saha-düzeltilmiş transit ve kapanış kurallarını yeniden doğrulasın.
+- [x] Plan köküne `schemaVersion: 3`, Japonca büyük istasyon alias'ları ve
+      hafta sonu/resmî tatil trafik katsayısı ekle.
+- [x] 100×4 optimizer QA'sını gerçek field bağlamıyla çalıştır; tam gün tema
+      parkı sürelerinde kuyrukların iki kez sayılmasını ve must-do öncelik
+      kaybını gider.
+
+**Sonuç:** Üretim ve harness isteklerinin tamamı saha bağlamlıdır. 100 base ×
+4 profil koşusunda **4.252 gün / 3.748 optimizer günü / 16.120 aktivite**
+incelendi: 0 infeasible, 0 hard ihlal, 0 ardışık tekrar, 0 must-do kaybı,
+0 eksik dönüş; bırakma oranı **%2,58** ile %3 kapısının altında. Gerçek üretim
+QA'sı **160 plan / 1.600 gün / 2.776 aktivite / 800 geçiş kontrolünde** 0 hata
+verdi. Hedefli analiz temiz, odaklı rota regresyonları **80/80**, tam Flutter
+paketi **916/916** geçti. Ham stres raporu ve bakım doğrulaması `output/`
+altındadır; çalışma henüz commitlenmedi.
 
 ### 2026-08-11 — Dış öneri bağlantıları güvenlik bakımı (tamamlandı)
 

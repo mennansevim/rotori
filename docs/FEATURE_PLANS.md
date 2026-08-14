@@ -89,11 +89,14 @@ Rakip paywall haritası (referans):
 - **Neden / kanıt:** Offline, araştırmadaki her listede en yüksek WTP'li
   kalem. Japonya'da hiçbir tren uygulaması iyi offline çalışmıyor (JRailPass
   2026). Roaming pahalı, gerçek bir korku.
-- **Mevcut kod:** `prewarmTiles()` (`offline_tile_provider.dart:133`) yazılı
-  ama tek gün + 400 tile üst sınır. Çok-günlü parçalı indirmeye genişlet.
-- **Maliyet:** Near-zero COGS. Efor: 2–3 gün.
-- **Katman:** Pro (ücretsiz kullanıcı yine görüntülediği günü cache'ler).
-- **Durum:** → **MONETIZATION_PLAN Faz 3.4'te** (yayın sonrası).
+- **Mevcut kod:** Sağlayıcı politikası nedeniyle toplu ön-indirme ve kalıcı
+  disk cache kaldırıldı; harita yalnız online tile + oturum içi bellek cache'i
+  kullanır.
+- **Gereksinim:** Offline paket hakkı ve production SLA veren lisanslı bir
+  sağlayıcı seçilmeden bu özellik yeniden açılmaz.
+- **Maliyet:** Sağlayıcı lisansı + entegrasyon. Efor sağlayıcıya göre değişir.
+- **Katman:** Pro adayı; mevcut release kapsamında değildir.
+- **Durum:** bloke — lisanslı tile sağlayıcısı kararı bekliyor.
 
 ### Kur + fiyat tarayıcı premium (AR overlay)
 - **Ne:** Canlı kur tarayıcı + TR pazar fiyat karşılaştırması; kamerada yen

@@ -4,8 +4,9 @@
 > Kalıcı kurallar için `CLAUDE.md`, günlük iş için `CURRENT_TASK.md`.
 > Rota motorunun ayrıntılı akış ve maliyet notu: `ROUTE_OPTIMIZATION.md`.
 
-Son güncelleme: **2026-08-11** (§19 ücretli çalışma zamanı sağlayıcısı yerine
-sürümlü offline Japonya rota paketi eklendi).
+Son güncelleme: **2026-08-14** (§20 saha gerçekliği üretim controller'ına ve
+bağımsız validator'a bağlandı; §5 viewer drawer üç bölümlü hiyerarşiye ve
+kalıcı Yolculuk/Harita görünüm seçimine alındı).
 
 ---
 
@@ -26,7 +27,7 @@ sürümlü offline Japonya rota paketi eklendi).
             │                            │
             ▼                            ▼
    shared_preferences /            legacy/data/trips/*.json
-   flutter_cache_manager           (statik seyahat verisi)
+   session ImageCache              (statik seyahat verisi)
 ```
 
 > **Monorepo (2026-08-03):** Kök `rotori-app/`. Üç ayak: `rotori-mobile/`,
@@ -75,7 +76,7 @@ rotori-mobile/lib/features/
 │  │  must_know_screen.dart, pre_departure_checklist_screen.dart,
 │  │  reward_map_screen.dart, weather_screen.dart, gps_sim_screen.dart
 │  ├─ geofence_service.dart  # GPS akışı → geofence + XP
-│  ├─ offline_tile_provider.dart  # OSM tile cache köprüsü
+│  ├─ offline_tile_provider.dart  # OSM ağ tile sağlayıcısı (disk cache yok)
 │  ├─ home_widget_hook.dart  # iOS App Group köprüsü (web no-op)
 │  ├─ sakura_overlay.dart    # dekoratif overlay
 │  ├─ viewer_theme.dart      # viewer'a özel renk overrid'leri
@@ -100,6 +101,19 @@ rotori-mobile/lib/features/
 - **Tema başlangıcı:** Uygulama kabuğu ve viewer yeni kurulumda aydınlık açılır.
   Viewer `viewer:theme` tercihi varsa onu yükler; böylece mevcut kullanıcının
   koyu veya Sakura tercihi varsayılan değişikliğinden etkilenmez.
+- **Viewer düzen şablonu:** Renk temasından bağımsız tek seçimli
+  `ViewerTemplateId` kullanılır. `viewer:template` tercihi yerelde saklanır;
+  bilinmeyen veya eski değer güvenli biçimde `journeyProgress` varsayılanına
+  düşer. İlk sürümde kullanıcı **Yolculuk** ile **Harita** arasında seçim
+  yapar. İki şablon aynı anda uygulanmaz; plan verisi ve düzenleme komutları
+  şablondan bağımsız kalır. Harita şablonunda ayrıca tek bir
+  `_selectedMapDayNumber` sunum durumu vardır: tarih çipi haritayı ve aşağıdaki
+  tek günlük rota kartını aynı anda değiştirir; seçili olmayan günler bu
+  görünümde çizilmez. Harita şablonunda düzenleme modu da bu seçime bağlıdır:
+  harita görünür kalır ve yalnız seçili günün rota kartı düzenlenebilir.
+  Harita tarih şeridi telefonda tüm günleri mevcut genişliğe eşit dağıtır ve
+  yatay kaydırma üretmez. Yolculuk şablonunun hero alanı Japonya çizgi sanatı,
+  dört parçalı ilerleme halkası ve tek sıradaki-aktivite kartından oluşur.
 - **Servis→UI:** UI `ref.watch()` ile Provider'ı dinler. Servis Supabase'e
   yazar, ardından provider `invalidate()` edilir.
 - **Optimistic UI** planner adımlarında bilinçli kullanılır (kullanıcı
@@ -155,12 +169,14 @@ rotori-mobile/lib/features/
   hem timeline öğesinde saklanır; rota optimizer'ı etkinlik bazlı erken-varış
   payını sabit aktivite tamponunun alt sınırı olarak uygular.
 - Viewer hamburger menüsü `FittedBox` ile küçültülmez. Sabit marka/gezi başlığı
-  altında kaydırılabilir **Yolculuk → Keşfet → Araçlar → Hesap** hiyerarşisi
-  kullanır. Keşfet'te Premium fiyat etiketi tarayıcı ve macera rehberi tam
-  genişlik vitrin kartlarıdır; hava, bütçe, checklist ve ücretsiz Rotori Eats
-  düşük doygunluklu ortak yüzey dilinde iki sütunlu kartlardır. Uçuş/otel
-  ayrıntıları açılabilir; ayarlar gruplanmış en az 48 px dokunma alanlı
-  satırlardır.
+  altında kaydırılabilir **Yolculuk → Keşfet → Hesap** hiyerarşisi kullanır.
+  Ayrı bir Araçlar bölümü yoktur; görünüm tercihi olan Tema, Hesap ayarlarıyla
+  aynı grupta sunulur. Yolculuk özeti, uçuş/otel akordiyonları, Keşfet
+  aksiyonları ve Hesap aynı açık renkli inset-group yüzey dilini paylaşır.
+  Keşfet'teki altı aksiyon tek grupta ikon + başlık + kısa açıklama + chevron
+  satırlarıdır; Premium durumu yalnız sakin bir rozetle belirtilir, gradyan
+  vitrin veya ayrı 2×2 karo hiyerarşisi kullanılmaz. Uçuş/otel ayrıntıları
+  açılabilir; bütün aksiyon satırları en az 48 px dokunma alanını korur.
 - Plan oluşturulduktan sonra eklenen uçuş bilgileri alan değişiminde otomatik
   kaydedilmez. Form yerel bir plan taslağı düzenler; alttaki tek “Kaydet”
   uçuş bacaklarını ve yalnız varış/dönüş günlerini atomik yeniler, aradaki
@@ -406,8 +422,9 @@ aboneliği ise ayrıca iptal edilmedikçe **devam eder**. Silme akışı:
   Eski planlarda bulunmayabilir; aktivite veya zaman çizelgesi değişikliğinde
   otomatik temizlenir. `TripPreferences.planAssumptions` da aynı geriye
   uyumluluk ilkesiyle opsiyoneldir.
-- **`flutter_cache_manager`** — OSM harita karoları (iOS/Android). Web'de
-  `kIsWeb` kapısı; `NetworkImage`'e düşer.
+- **Harita tile'ları** — standart OSM raster katmanı `NetworkImage` ile açılır.
+  Toplu ön-indirme ve kalıcı disk cache yoktur; yalnız oturum içi Flutter
+  `ImageCache` tekrarları hızlandırır.
 - **Home widget (iOS)** — App Group üzerinden `UserDefaults`'a yazar; web/Android'de no-op.
 - **Bildirim programı** — yerel `timezone` verisi ile `flutter_local_notifications`.
 - **Hatırlatıcı erişimi** — var olan hatırlatmalar görülebilir ve
@@ -654,10 +671,20 @@ stratejisini yönetir; fizibilite ve maliyet iki ayrı sınıfa çıkarılmışt
 | `CostFunction` | **Sürekli** maliyet | Fizibiliteyi asla değiştirmez |
 | `FieldRealityContext` | Saha bilgisinin tek taşıyıcısı | **Opsiyonel** |
 
-`field == null` iken motor v2 davranışını **birebir** korur. Bu, kalite
-kapılarının (0 hard violation, ~%1.77 drop) tek seferde bozulmamasını garanti
-eden geriye uyumluluk sözleşmesidir ve harness zarfı karşılaştırmasıyla
-doğrulanır.
+`field == null` iken motor v2 davranışını **birebir** korur. Bu yalnız eski
+çağıranlar ve izole geriye-uyumluluk testleri içindir. Üretim
+`PlanOptimizationController` her gün için tarih, baskın şehir, pass, bagaj ve
+parti sinyallerinden `FieldRealityContext` kurar; 100×4 harness da her
+optimizer gününde bağlamı zorunlu kılar ve kapsam sayacı üretir. Aktivite
+düşürme/retry sırasında oluşturulan her `OptimizationRequest` bağlamı aynen
+korur.
+
+Tam gün tema parkı blokları kuyruk ve park içi dolaşımı zaten içeren ziyaret
+bütçeleridir; sezon çarpanı bu süreyi ikinci kez büyütmez. Harness bu blokları
+`mustDo` olarak korur ve kapı açılışına yetişmek için tema parkı günlerinde
+08:00 otel çıkışını üst sınır kabul eder. Böylece field gerçekliği must-do
+etkinliği sessizce düşürmek veya uygulanamaz bırakmak yerine gerçekçi gün
+penceresiyle birlikte sınanır.
 
 `_append` akışı **saha düzeltmesi → zamanlama → hard kapılar → maliyet**
 sırasındadır. Süre düzeltmesi uygulanmadan kısıt kontrol etmek (ör. Sakura'da
@@ -683,8 +710,9 @@ böylece saha bağlamı sızmaz ve semantik çıktı değişmeden sıcak yol kı
   pencereleri, Golden Week, Obon, yılbaşı).
 - **`japan_transit_realism.dart`** — `RailPassType`, `ShinkansenService`,
   `StationComplexity` (labyrinth → +15 dk `stationNavigationBuffer`, kalkış ve
-  varış ayrı ayrı sayılır), `TrafficRiskPolicy` (peak 1.30 / off-peak 1.10,
-  yalnız `bus`/`taxi`).
+  varış ayrı ayrı sayılır; romaji ve açık Japonca istasyon alias'ları aynı
+  kayda iner), `TrafficRiskPolicy` (hafta içi peak 1.30 / off-peak 1.10,
+  hafta sonu ve resmî tatil 1.15; yalnız `bus`/`taxi`).
 - **`luggage_logistics.dart`** — `LuggageHandlingStrategy` karar ağacı ve otel
   check-in penceresi. Erken varışta coin locker ile otele erken bırakma **dakika
   bazında yarışır**; sabit kural yerine karşılaştırma kullanılır.
@@ -750,3 +778,9 @@ Saha meta verisi opsiyonel iç nesnelere taşınır: `TimelineItem.transit` /
 **serileştirilmez**; v2 dokümanı v3 okuyucuda kayıpsız açılır (round-trip
 regresyona bağlı) ve v2'nin düz `repeatAllowed` bayrağı `userOverride`
 politikasına yükseltilir.
+
+Kanonik kök belge `Trip.toJson()` çıktısıdır ve her zaman
+`schemaVersion: 3` ile `days` alanlarını üretir. Bağımsız
+`RouteOptimizationValidator`, field-aware bacakları ham matrisle doğrudan
+karşılaştırmaz; aynı transit-realism dönüşümünü bağımsız biçimde yeniden
+uygulayıp süre/yürüme/aktarma/ücret eşleşmesini ve saha hard kapılarını denetler.

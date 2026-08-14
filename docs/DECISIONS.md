@@ -5,6 +5,125 @@
 
 ---
 
+## 2026-08-14h — Harita tile'ları önceden indirilmez ve diskte tutulmaz
+
+**Supersedes:** `2026-07-x — Harita: OSM raster tile + kendi cache` kararının
+cache bölümü ile `2026-08-14e` kaydındaki Google raster sağlayıcısı ayrıntısı.
+
+**Karar:** Uygulama içi üç harita yüzeyi standart OSM raster katmanını tek
+`RotoriTileProvider` üzerinden kullanır. Sağlayıcı yalnız Flutter'ın oturum içi
+bellek cache'ine izin verir; `prewarmTiles`, “Çevrimdışı hazırla”, 30 günlük
+disk cache ve `flutter_cache_manager` bağımlılığı kaldırılmıştır. Attribution
+OSM telif sayfasına bağlanır. Google Maps yalnız kullanıcının açık navigasyon
+eylemiyle dış uygulama olarak açılır.
+
+Standart OSM servisi düşük hacimli TestFlight içindir. Genel App Store ölçeği
+öncesinde ticari kullanım/SLA ve gerekiyorsa offline paket hakkı veren bir
+sağlayıcı seçilmelidir; endpoint tek sabitten değiştirilebilir.
+
+**Neden:** Önceki Google raster endpoint'i belgelenmiş mobil SDK akışı değildi;
+toplu ön-indirme ve sabit süreli disk cache sağlayıcı politikalarıyla uyumlu
+değildi. Ürün, garanti edemediği çevrimdışı haritayı vaat etmemelidir.
+
+---
+
+## 2026-08-14g — Viewer hero'ları telefon genişliğinde tek kompozisyondur
+
+**Karar:** Harita şablonundaki tarih şeridi sabit çip genişliği kullanmaz;
+mevcut telefon genişliği günler arasında eşit paylaşılır ve yatay kaydırma
+kapatılır. Yolculuk şablonunun üst alanı Japonya çizgi sanatı, dört parçalı
+ilerleme halkası ve mavi “Sıradaki” kartıyla referans kompozisyona yaklaştırılır.
+
+**Neden:** Sabit genişlikli tarih kartları dar telefonda şeridi ekrandan
+taşırıyordu. Önceki Yolculuk hero'su ise yalnız standart ilerleme göstergesi ve
+metin kullandığı için seçilen görsel tasarımın Tokyo/Fuji dengesini vermiyordu.
+
+---
+
+## 2026-08-14f — Harita düzenlemesi seçili güne kilitlidir
+
+**Supersedes:** `2026-08-14e` kaydındaki “Düzenleme modunda tüm günlerin
+görünmesi korunur” ayrıntısı.
+
+**Karar:** Harita şablonunda kalem düğmesi haritayı veya tarih şeridini
+kaldırmaz. Düzenleme boyunca yalnız seçili günün günlük rota kartı çizilir ve
+yalnız o günün aktiviteleri değiştirilebilir. Kullanıcı başka bir tarih çipine
+bastığında harita, tek rota kartı ve düzenleme hedefi birlikte yeni güne geçer.
+
+Tarih çiplerinde görsel ikon kullanılmaz. Kompakt dikdörtgenler gün, ay ve
+hafta gününü gösterir; günler düşük yoğunluklu farklı renklerle ayrılır, seçili
+gün ise ana vurgu rengi ve daha güçlü çerçeveyle belirtilir.
+
+**Neden:** Harita üstünde tek aktif rota gösterilirken düzenlemede tüm günleri
+açmak iki farklı aktiflik modeli yaratıyordu. Görüntüleme ve düzenleme hedefini
+aynı seçili gün durumuna bağlamak yanlış günü değiştirme riskini kaldırır.
+
+---
+
+## 2026-08-14e — Harita şablonunda tek aktif gün vardır
+
+**Karar:** Harita şablonundaki tarih çipleri ayrı bir modal açmaz. Seçilen çip
+tek aktif gün durumunu değiştirir; üstteki harita durakları/rota çizgisi ve
+haritanın hemen altındaki günlük timeline birlikte aynı güne geçer. Seçili
+olmayan günlerin rota kartları Harita görünümünde çizilmez. Düzenleme modunda
+tüm günlerin görünmesi korunur.
+
+Harita yüzeyi mevcut Google raster yol haritası katmanını, GPS'ten çözülmüş gün
+duraklarını, beyaz halo üstünde mavi rota çizgisini ve numaralı pembe pinleri
+kullanır. Katman/konum kontrolleri seçili günün ayrıntılı haritasını açar.
+
+**Neden:** Tarih çipinin ayrı harita açması ve altta bütün günlerin kalması,
+aynı anda birden fazla “aktif rota” algısı yaratıyordu. Tek gün kaynağı,
+kullanıcının “29 seçiliyken yalnız 29 Ağustos rotası” beklentisini veri
+mutasyonu yapmadan açık ve test edilebilir hale getirir.
+
+---
+
+## 2026-08-14d — İlk iki viewer düzeni Yolculuk ve Harita'dır
+
+**Supersedes:** `2026-08-14c` kaydındaki Ferah Kartlar / Kompakt Akış seçenek
+adları ve görsel kapsamı. Tema ile düzenin ayrılması, tek seçim, yerel
+kalıcılık ve plan verisinden bağımsızlık aynen korunur.
+
+**Karar:** Kullanıcıya sunulan iki düzen **Yolculuk** (`journeyProgress`) ve
+**Harita** (`mapFocus`) olacaktır. Yolculuk görünümü aktif günün tamamlanma
+oranını ve sıradaki aktiviteyi ana kahraman yüzeyinde gösterir. Harita görünümü
+aktif günün koordinatı doğrulanmış duraklarını, rota çizgisini ve gün seçimini
+listenin üstünde gösterir; tam harita mevcut günlük harita ekranına açılır.
+
+Eski/ara QA anahtarları (`calm-cards`, `compact-timeline`) sırasıyla yeni iki
+seçeneğe okunabilir; yeni kayıtlar yalnız `journey-progress` ve `map-focus`
+değerlerini yazar. Böylece geliştirme sırasında kaydedilmiş yerel tercih de
+çökme veya boş görünüm üretmez.
+
+**Neden:** Kullanıcı görsel keşifte ilerleme-odaklı ve harita-öncelikli iki
+tasarımı açıkça seçti. Bunlar yalnız yoğunluk farkı değil, seyahat sırasında iki
+ayrı zihinsel modele karşılık gelir: “sırada ne var?” ve “neredeyim/nereye
+gidiyorum?”.
+
+---
+
+## 2026-08-14c — Viewer tema ve düzen şablonunu ayrı tercihler olarak saklar
+
+**Karar:** Viewer görünümü iki bağımsız, tek seçimli eksene ayrılır. `Tema`
+yalnız renk paletini (`japanDark`, `appleLight`, `sakuraSoft`), `Düzen` ise gün
+kartlarının bilgi yoğunluğunu belirler. İlk düzen seçenekleri **Ferah Kartlar**
+(`calmCards`, varsayılan) ve **Kompakt Akış** (`compactTimeline`) olacaktır.
+Kullanıcı iki seçenekten birini seçer; iki düzen aynı anda birleşmez.
+
+`viewer:template` yalnız görsel tercih olarak `SharedPreferences` içinde
+saklanır. Eski kurulumda anahtar yoksa veya değer tanınmıyorsa Ferah Kartlar'a
+düşülür. Şablon değişikliği `Trip`, `DayPlan`, rota snapshot'ı veya plan edit
+komutlarını değiştirmez; bu yüzden tema/düzen değişimi veri kaybı ve plan
+senkronu üretmez.
+
+**Neden:** Mevcut üç tema renkleri değiştiriyor fakat kart yoğunluğunu
+değiştirmiyordu. Ferah görünüm ile dar ekranda daha fazla satır gösteren kompakt
+görünümü aynı veri ve davranış katmanı üstünde tutmak, ikinci bir viewer
+uygulaması oluşturmadan gerçek bir kullanıcı seçimi sağlar.
+
+---
+
 ## 2026-08-14b — LLM rota adayı üretir; deterministik motor kabul kararını verir
 
 **Supersedes:** `2026-07-30 — Rota sırasını AI değil yönlü matris +
@@ -33,6 +152,98 @@ istek ömrü boyunca memoize edilir; cache sonucu planlar arasında paylaşılma
 üretebilir ve `PlanScheduleEngine` değişikliği mevcut route snapshot'ını
 geçersizleştirir. Yeniden optimizasyon + skor kapısı bu iki riski kapatırken
 LLM'in kullanıcı niyeti ve semantik bağlamdaki gücünü korur.
+
+---
+
+## 2026-08-14 — Viewer drawer üç bölümlüdür; Tema Hesap altında yer alır
+
+**Supersedes:** `2026-08-12b` ve `2026-08-01` kayıtlarındaki ayrı Araçlar
+bölümü ayrıntısı. Inset-group yüzey dili ve Tema seçicinin davranışı değişmez.
+
+**Karar:** Viewer drawer **Yolculuk → Keşfet → Hesap** sırasını kullanır.
+Tek satır kalan Araçlar bölümü ve başlığı kaldırılır. Tema seçici, seyahat
+öncesi hazırlık, planlar ve hata bildirimiyle birlikte Hesap ayar grubunda
+sunulur.
+
+**Neden:** Tek öğeli Araçlar bölümü menüde gereksiz bir başlık, dikey boşluk
+ve ayrı kart üretiyordu. Tema bir görünüm tercihi olduğu için hesap ve uygulama
+ayarlarıyla aynı grupta daha doğal bulunur; davranış kaybetmeden drawer daha
+kısa ve daha hızlı taranır.
+
+---
+
+## 2026-08-12b — Viewer drawer tek sakin inset-group dili kullanır
+
+**Supersedes:** `2026-08-10c` kaydındaki fiyat etiketi tarayıcının gradyan
+vitrin kartı olması ve Keşfet'in 2×2 küçük kartlarla sunulması ayrıntısı.
+Özelliklerin kapsamı, Premium sınırı ve navigasyon davranışı değişmez.
+
+**Karar:** Viewer drawer'ın Yolculuk, Keşfet, Araçlar ve Hesap bölümleri aynı
+açık renkli, ince kenarlıklı inset-group sistemini kullanır. Keşfet'teki fiyat
+tarayıcı, macera rehberi, hava, bütçe, checklist ve Rotori Eats tek grupta;
+ikon, başlık, kısa açıklama ve chevron taşıyan satırlar olarak sunulur.
+Premium durumu küçük ve düşük doygunluklu bir rozetle belirtilir. Keşfet içinde
+gradyan vitrin, büyük gölge ve iki sütunlu kart ızgarası kullanılmaz.
+
+**Neden:** Drawer'ın üstündeki yolculuk kartları ve altındaki hesap listesi
+sakin ve okunabilirken ortadaki iki yüksek doygunluklu vitrin ile dört ayrı
+renkli karo bütün hiyerarşiyi bozuyordu. Tek yüzey sistemi daha hızlı taranır,
+daha az kaydırma ister ve büyük yazı boyutunda daha öngörülebilir genişler.
+
+**Erişilebilirlik:** Her satır en az 56 px dokunma alanına sahiptir; başlık ve
+açıklama görünür kalır, ikon tek başına anlam taşımak zorunda değildir.
+
+---
+
+## 2026-08-12a — Tam gün tema parkı ziyaret bütçesi kalabalıkla ikinci kez büyütülmez
+
+**Karar:** `themepark` / `theme park` kategorisindeki tam gün blokları
+`CrowdSensitivity.none` kabul edilir. Bu blokların 8 saatlik ziyaret bütçesi
+kuyruk ve park içi dolaşımı zaten içerir; Sakura/Golden Week çarpanını tekrar
+uygulamak aynı yoğunluğu iki kez sayar. İstasyon yürüyüşü ve ulaşım saha
+düzeltmeleri uygulanmaya devam eder.
+
+100×4 QA planlayıcısı `fullDayExclusive` ve `excursion` önceliğini ikinci
+optimizasyon isteğinde de `mustDo` olarak korur. Tam gün parkı bulunan günde
+otelden çıkış en geç 08:00 alınır; 09:00 rastgele günlük başlangıç tercihi
+park açılışına yetişmeyi engellemez.
+
+**Kanıt:** İlk field-aware stres koşusu DisneySea'yı 184 kez düşürerek %3
+bırakma kapısını aştı. Öncelik koruması bu hatayı görünür biçimde infeasible
+yaptı; süre semantiği ve erken çıkış düzeltmesinden sonra aynı seed ile
+100 base × 4 profil / 3.748 optimizer gününde **0 infeasible, 0 hard ihlal,
+0 must-do kaybı** ve **%2,58 bırakma** elde edildi.
+
+---
+
+## 2026-08-11m — Saha bağlamı üretimde zorunludur ve retry boyunca korunur
+
+**Supersedes:** `2026-08-11l` kararındaki `field == null` kullanımının üretim
+kalite kapılarına da uygulanabileceği yorumu. Null davranış yalnız geriye
+uyumluluk sözleşmesi olarak kalır.
+
+**Karar:** `PlanOptimizationController` her normal rota isteğinde plan günü,
+baskın şehir, parti, JR Pass, bagaj, kapanış ve tekrar sinyallerinden
+`FieldRealityContext` kurar. `OptimizationRequest` yeniden oluşturulan bütün
+retry/dropping yollarında `field` aynen kopyalanır. Field-aware optimizer
+başarısızsa aynı hard kapıları çalıştırmayan yerel sıralama fallback'i başarılı
+rota gibi sunulmaz. Bağımsız validator, field ile düzeltilmiş transit bacağını
+ham matris değerine karşılaştırmak yerine aynı saf saha modelini yeniden
+uygular.
+
+**JSON:** Kanonik plan kökü `Trip.toJson()` çıktısıdır ve
+`schemaVersion: 3` üretir. Şema ile gerçek persistence/export belgesi bu alan
+üzerinden aynı sürümü taşır.
+
+**İstasyon ve trafik:** Japonca büyük istasyon adları açık alias listesiyle
+çözülür; yalnız şehir kanjisini içeren mekanlar istasyon sayılmaz. Hafta içi
+peak/off-peak çarpanlarına ek olarak hafta sonu ve resmî tatilde 1.15 leisure
+riski uygulanır.
+
+**Kalite kapısı:** 100×4 optimizer harness'ı her optimizer gününde field
+bağlamını açar ve `fieldRealityCoveragePass` ölçer. Dropping + shifted-holiday,
+Japonca istasyon alias'ı, hafta sonu/resmî tatil trafiği, controller saha
+bağlantısı ve plan-v3 kök sürümü ayrı regresyonlardır.
 
 ---
 
@@ -634,7 +845,7 @@ yeniden çevrilmez.
 ## 2026-07-x — Web hedefi **conditional import ile graceful**
 
 **Karar:** Mobil-only paketler (ML Kit OCR, `flutter_local_notifications`,
-`flutter_cache_manager` file cache, `home_widget`) web build'ine sızmaz.
+`home_widget`) web build'ine sızmaz.
 Her biri `kIsWeb` kapısı veya conditional import ile no-op'a düşer.
 
 **Neden:** `preview_main.dart` ile web-preview üzerinden tasarım/QA yapılıyor;
