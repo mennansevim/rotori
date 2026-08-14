@@ -382,11 +382,16 @@
     "mp4_path": "/Users/sevimm/Documents/Projects/rotori-app/rotori-social/output/stories/ready/tokyo-kulesi-ni-ziyaret-etmeden-once-bu-_1785500489.jpg",
     "caption": "🎌 Kültür Notu\n\nTokyo Kulesi, şehrin simgelerinden biri. Ancak, ziyaretinizden en iyi şekilde yararlanmak için bilmeniz gereken bazı ipuçları var.\n\nTokyo Kulesi, her gün birçok ziyaretçi ağırlıyor. Ancak, zirveye çıkmak için en yoğun saatlerde gitmekten kaçınmalısınız. Sabah erken veya akşam saatlerinde gitmek, hem kalabalıktan kaçmanızı sağlar hem de muhteşem gün doğumu veya gün batımı manzarasıyla karşılaşmanızı sağlar.\n\n📌 Turist için: Ziyaret saatlerinizi planlarken, en yoğun zamanlardan kaçınarak hem zaman kazanır hem de daha keyifli bir deneyim yaşarsınız. Ayrıca, gün doğumu veya gün batımı gibi özel anları yakalamak için harika bir fırsat sunar.\n\n💡 Rotori ipucu: Tokyo Kulesi'nde en iyi manzarayı görmek için sabah erken veya akşam gitmeyi tercih edin.\n\n🔗 Kaynak: Tokyo Turizm Ofisi\n\n#seyahattaktiği #japonya #tokyo #tokyotower #seyahat #gezilecekyerler",
     "scheduled_at": "2026-08-12T23:21:00",
-    "status": "pending",
+    "status": "failed",
     "added_at": "2026-08-05T13:39:29",
-    "result": null,
+    "result": "Story public URL erişilemedi. Aşağıdaki URL'ler test edildi: https://api.rotori.app/media/stories/ready/tokyo-kulesi-ni-ziyaret-etmeden-once-bu-_1785500489.jpg -> HTTP 404 | https://setaceous-shriekingly-soo.ngrok-free.dev/media/stories/ready/tokyo-kulesi-ni-ziyaret-etmeden-once-bu-_1785500489.jpg -> HTTP 404",
     "auto_publish": true,
-    "automation_kind": "news"
+    "automation_kind": "news",
+    "last_attempt_at": "2026-08-12T23:21:18",
+    "attempt_count": 1,
+    "failure_reason": "Story public URL erişilemedi. Aşağıdaki URL'ler test edildi: https://api.rotori.app/media/stories/ready/tokyo-kulesi-ni-ziyaret-etmeden-once-bu-_1785500489.jpg -> HTTP 404 | https://setaceous-shriekingly-soo.ngrok-free.dev/media/stories/ready/tokyo-kulesi-ni-ziyaret-etmeden-once-bu-_1785500489.jpg -> HTTP 404",
+    "last_result_at": "2026-08-12T23:21:19",
+    "last_result_status": "failed"
   },
   {
     "id": "story_kyoto_1785433206_01_1785926369",
