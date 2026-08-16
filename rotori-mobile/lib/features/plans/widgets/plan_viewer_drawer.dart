@@ -897,38 +897,10 @@ class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
   static String _dateShort(String iso, AppLang lang) {
     final d = DateTime.tryParse(iso);
     if (d == null) return '';
-    const trMonths = [
-      '',
-      'Oca',
-      'Şub',
-      'Mar',
-      'Nis',
-      'May',
-      'Haz',
-      'Tem',
-      'Ağu',
-      'Eyl',
-      'Eki',
-      'Kas',
-      'Ara',
-    ];
-    const enMonths = [
-      '',
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final m = lang == AppLang.en ? enMonths[d.month] : trMonths[d.month];
-    return '${d.day} $m ${d.year}';
+    final m = L10n.monthsShortFor(lang)[d.month];
+    final weekday = L10n.weekdaysFor(lang)[d.weekday];
+    final shortWeekday = weekday.length > 3 ? weekday.substring(0, 3) : weekday;
+    return '${d.day} $m ${d.year}, $shortWeekday';
   }
 
   /// Aynı gün olmayan varış — "+1" göstermek için.
@@ -939,6 +911,97 @@ class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
     final depDate = DateTime(dep.year, dep.month, dep.day);
     final arrDate = DateTime(arr.year, arr.month, arr.day);
     return arrDate.difference(depDate).inDays;
+  }
+
+  String _duration(String depIso, String arrIso) {
+    final departure = DateTime.tryParse(depIso);
+    final arrival = DateTime.tryParse(arrIso);
+    if (departure == null || arrival == null) return '';
+    final minutes = arrival.difference(departure).inMinutes;
+    if (minutes <= 0) return '';
+    return LanguageScope.of(context).p('viewer.flights.duration', {
+      'h': '${minutes ~/ 60}',
+      'm': (minutes % 60).toString().padLeft(2, '0'),
+    });
+  }
+
+  Widget _airportBadge(String airport) {
+    final p = widget.palette;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: p.elevated,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        airport,
+        style: TextStyle(
+          color: p.textSecondary,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
+        ),
+      ),
+    );
+  }
+
+  String _tripLabel(String value, AppLang lang) {
+    if (lang == AppLang.tr) {
+      return value.replaceAll('Gezi', 'GEZİ').toUpperCase();
+    }
+    return value.toUpperCase();
+  }
+
+  Widget _endpoint({
+    required FlightLeg leg,
+    required bool alignRight,
+  }) {
+    final p = widget.palette;
+    final city = leg.city.trim().isEmpty ? '—' : leg.city.trim();
+    final alignment =
+        alignRight ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+    return Column(
+      crossAxisAlignment: alignment,
+      children: [
+        Text(
+          _time(leg.dateTime),
+          maxLines: 1,
+          style: TextStyle(
+            color: p.textPrimary,
+            fontSize: 30,
+            height: 1,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -1.2,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment:
+              alignRight ? MainAxisAlignment.end : MainAxisAlignment.start,
+          children: [
+            if (alignRight) _airportBadge(_iata(leg)),
+            if (alignRight) const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                city,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: alignRight ? TextAlign.end : TextAlign.start,
+                style: TextStyle(
+                  color: p.textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            if (!alignRight) const SizedBox(width: 6),
+            if (!alignRight) _airportBadge(_iata(leg)),
+          ],
+        ),
+      ],
+    );
   }
 
   Widget _legCard({
@@ -953,10 +1016,11 @@ class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
     final to = legs.last;
     final offset = _dayOffset(from.dateTime, to.dateTime);
     final hopsCount = legs.length - 1; // aktarma sayısı
+    final duration = _duration(from.dateTime, to.dateTime);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
         decoration: BoxDecoration(
           color: p.card,
           borderRadius: BorderRadius.circular(12),
@@ -967,125 +1031,115 @@ class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
           children: [
             Row(
               children: [
-                Text(
-                  tripLabel,
-                  style: TextStyle(
-                    color: p.textMuted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.4,
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: p.accent.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    _tripLabel(tripLabel, s.lang),
+                    style: TextStyle(
+                      color: p.accent,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.2,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  '·',
-                  style: TextStyle(color: p.textMuted, fontSize: 11),
-                ),
-                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     _dateShort(from.dateTime, s.lang),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.end,
                     style: TextStyle(
                       color: p.textSecondary,
-                      fontSize: 11.5,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 22),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
+                Expanded(child: _endpoint(leg: from, alignRight: false)),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 88,
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        _time(from.dateTime),
-                        style: TextStyle(
-                          color: p.textPrimary,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.5,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        from.city.isNotEmpty
-                            ? '${from.city} (${_iata(from)})'
-                            : _iata(from),
-                        style: TextStyle(
-                          color: p.textSecondary,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: Icon(Icons.flight, size: 18, color: p.accent),
-                ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerRight,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      SizedBox(
+                        height: 36,
+                        child: Stack(
+                          alignment: Alignment.center,
                           children: [
-                            Text(
-                              _time(to.dateTime),
-                              style: TextStyle(
-                                color: p.textPrimary,
-                                fontSize: 22,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.5,
-                                fontFeatures: const [
-                                  FontFeature.tabularFigures()
-                                ],
-                              ),
-                            ),
-                            if (offset > 0)
-                              Padding(
-                                padding: const EdgeInsets.only(left: 2, top: 2),
-                                child: Text(
-                                  '+$offset',
-                                  style: TextStyle(
-                                    color: p.accent,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              top: 18,
+                              child: SizedBox(
+                                height: 2,
+                                child: CustomPaint(
+                                  painter: _FlightDashedLinePainter(
+                                    color: p.textMuted.withValues(alpha: 0.6),
                                   ),
                                 ),
                               ),
+                            ),
+                            Container(
+                              color: p.card,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 5),
+                              child: Icon(
+                                Icons.flight_rounded,
+                                color: p.accent,
+                                size: 28,
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        to.city.isNotEmpty
-                            ? '${to.city} (${_iata(to)})'
-                            : _iata(to),
-                        style: TextStyle(
-                          color: p.textSecondary,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
+                      if (duration.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          duration,
+                          maxLines: 1,
+                          overflow: TextOverflow.clip,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: p.textMuted,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.end,
-                      ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      _endpoint(leg: to, alignRight: true),
+                      if (offset > 0)
+                        Positioned(
+                          right: 0,
+                          top: -4,
+                          child: Text(
+                            '+$offset',
+                            style: TextStyle(
+                              color: p.accent,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -1173,6 +1227,34 @@ class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
             ),
     );
   }
+}
+
+class _FlightDashedLinePainter extends CustomPainter {
+  const _FlightDashedLinePainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+    const dashWidth = 6.0;
+    const gap = 6.0;
+    for (var x = 0.0; x < size.width; x += dashWidth + gap) {
+      canvas.drawLine(
+        Offset(x, size.height / 2),
+        Offset(
+            (x + dashWidth).clamp(0.0, size.width).toDouble(), size.height / 2),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _FlightDashedLinePainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 /// Drawer içi konaklama bölümü — default kapalı, "N otel" badge; açıldığında

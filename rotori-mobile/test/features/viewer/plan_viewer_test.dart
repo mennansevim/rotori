@@ -1488,3 +1488,6 @@ void main() {
     });
   });
 }
+    // Referans uçuş kompozisyonunun başlık ve süre katmanı da görünür.
+    expect(find.text('GEZİ 1'), findsOneWidget);
+    expect(find.text('8sa 00dk'), findsOneWidget);
