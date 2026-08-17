@@ -58,6 +58,12 @@ void main() {
       expect(info['time'], '08:05');
     });
 
+    test('20xx dışı dört haneli yılı her ayırıcıda normalize eder', () {
+      expect(parseTicketInfo('Date 1999-7-5')['date'], '1999-07-05');
+      expect(parseTicketInfo('Date 1899/3/4')['date'], '1899-03-04');
+      expect(parseTicketInfo('Date 3001.5.6')['date'], '3001-05-06');
+    });
+
     test('boş metin → boş harita', () {
       expect(parseTicketInfo(''), isEmpty);
     });
@@ -176,6 +182,21 @@ void main() {
         candidates
             .where((candidate) => candidate.type == TicketCandidateType.qr),
         hasLength(1),
+      );
+    });
+
+    test('candidate parser accepts and deduplicates non-20xx dates', () {
+      final candidates = buildTicketImportCandidates(
+        'Archive 1999-7-5\nHistorical 1899/3/4\nFuture 3001.5.6\n'
+        'Repeat 1999-07-05',
+        qrPayloads: const [],
+      );
+
+      expect(
+        candidates
+            .where((candidate) => candidate.type == TicketCandidateType.date)
+            .map((candidate) => candidate.value),
+        orderedEquals(['1999-07-05', '1899-03-04', '3001-05-06']),
       );
     });
   });

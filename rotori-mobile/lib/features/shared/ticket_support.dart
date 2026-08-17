@@ -73,7 +73,7 @@ Map<String, String> parseTicketInfo(String text) {
   if (text.isEmpty) return out;
 
   final dateMatch =
-      RegExp(r'(20\d{2})[-/.](\d{1,2})[-/.](\d{1,2})').firstMatch(text);
+      RegExp(r'(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})').firstMatch(text);
   if (dateMatch != null) {
     final y = dateMatch.group(1)!;
     final m = dateMatch.group(2)!.padLeft(2, '0');
@@ -124,7 +124,7 @@ List<TicketImportCandidate> buildTicketImportCandidates(
     ));
   }
 
-  final datePattern = RegExp(r'\b(20\d{2})[-/.](\d{1,2})[-/.](\d{1,2})\b');
+  final datePattern = RegExp(r'\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b');
   for (final match in datePattern.allMatches(text)) {
     final year = match.group(1)!;
     final month = match.group(2)!.padLeft(2, '0');
