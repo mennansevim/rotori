@@ -2,7 +2,7 @@
 //
 // Bu test üç şeyi korur:
 //   1) her keşif aracının adı ve açıklaması ekranda yazılı,
-//   2) altı aksiyon aynı grupta satır olarak sunuluyor,
+//   2) sekiz aksiyon aynı grupta satır olarak sunuluyor,
 //   3) fiyat etiketi tarayıcı Premium durum rozetini kaybetmiyor.
 
 import 'package:flutter/material.dart';
@@ -107,7 +107,7 @@ void main() {
         of: group,
         matching: find.byIcon(Icons.chevron_right_rounded),
       ),
-      findsNWidgets(6),
+      findsNWidgets(8),
     );
     expect(
       find.descendant(
@@ -136,6 +136,8 @@ void main() {
 
     final discoverGroup = find.byKey(const ValueKey('drawer-discover-group'));
     final actionIcons = <IconData>[
+      Icons.palette_outlined,
+      Icons.shopping_bag_outlined,
       Icons.document_scanner_outlined,
       Icons.attractions_rounded,
       Icons.cloud_outlined,

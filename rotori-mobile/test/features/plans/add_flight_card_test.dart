@@ -84,21 +84,34 @@ void main() {
       startYmd: '2026-10-15',
       endYmd: '2026-10-21',
     );
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
     await tester.pumpWidget(harness(trip));
     await tester.pumpAndSettle();
 
     expect(find.text(tr('viewer.addFlight.title')), findsOneWidget);
     // Viewer'da başka kapatılabilir kartlar da var ("Bunları da gör") —
     // ✕ ikonunu UÇUŞ kartının içinde ara, yoksa finder belirsiz kalıyor.
-    await tester.tap(find.descendant(
-      of: find
-          .ancestor(
-            of: find.text(tr('viewer.addFlight.title')),
-            matching: find.byType(Container),
-          )
-          .first,
-      matching: find.byIcon(Icons.close_rounded),
-    ));
+    final flightRow = find
+        .ancestor(
+          of: find.text(tr('viewer.addFlight.title')),
+          matching: find.byType(Row),
+        )
+        .last;
+    final closeButton = find.descendant(
+      of: flightRow,
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is IconButton &&
+            widget.onPressed != null &&
+            widget.icon is Icon &&
+            (widget.icon as Icon).icon == Icons.close_rounded,
+      ),
+    );
+    await tester.ensureVisible(closeButton);
+    await tester.tap(closeButton);
     await tester.pumpAndSettle();
 
     expect(find.text(tr('viewer.addFlight.title')), findsNothing);
