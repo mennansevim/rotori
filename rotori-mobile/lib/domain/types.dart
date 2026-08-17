@@ -239,6 +239,34 @@ class HotelStay {
       };
 }
 
+class TicketDetail {
+  const TicketDetail({
+    required this.id,
+    required this.label,
+    required this.value,
+    this.semanticKey,
+  });
+
+  final String id;
+  final String? semanticKey;
+  final String label;
+  final String value;
+
+  factory TicketDetail.fromJson(Map<String, dynamic> json) => TicketDetail(
+        id: json['id'] as String,
+        semanticKey: json['semanticKey'] as String?,
+        label: (json['label'] as String?) ?? '',
+        value: (json['value'] as String?) ?? '',
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        if (semanticKey != null) 'semanticKey': semanticKey,
+        'label': label,
+        'value': value,
+      };
+}
+
 class Ticket {
   Ticket({
     required this.id,
@@ -256,6 +284,8 @@ class Ticket {
     this.entryTime,
     this.durationMin,
     this.arrivalBufferMin,
+    this.localMediaRef,
+    this.confirmedDetails = const [],
   });
   final String id;
   String kind; // TicketKind veya string
@@ -272,6 +302,8 @@ class Ticket {
   String? entryTime;
   int? durationMin;
   int? arrivalBufferMin;
+  String? localMediaRef;
+  List<TicketDetail> confirmedDetails;
 
   factory Ticket.fromJson(Map<String, dynamic> j) => Ticket(
         id: j['id'] as String,
@@ -290,7 +322,29 @@ class Ticket {
         entryTime: j['entryTime'] as String?,
         durationMin: (j['durationMin'] as num?)?.toInt(),
         arrivalBufferMin: (j['arrivalBufferMin'] as num?)?.toInt(),
+        localMediaRef: j['localMediaRef'] as String?,
+        confirmedDetails: _confirmedDetailsFromJson(j['confirmedDetails']),
       );
+
+  static List<TicketDetail> _confirmedDetailsFromJson(dynamic value) {
+    if (value is! List) return const [];
+    final details = <TicketDetail>[];
+    for (final rawDetail in value) {
+      if (rawDetail is! Map) continue;
+      final id = rawDetail['id'];
+      if (id is! String) continue;
+      final semanticKey = rawDetail['semanticKey'];
+      final label = rawDetail['label'];
+      final detailValue = rawDetail['value'];
+      details.add(TicketDetail(
+        id: id,
+        semanticKey: semanticKey is String ? semanticKey : null,
+        label: label is String ? label : '',
+        value: detailValue is String ? detailValue : '',
+      ));
+    }
+    return details;
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -309,6 +363,10 @@ class Ticket {
         if (entryTime != null) 'entryTime': entryTime,
         if (durationMin != null) 'durationMin': durationMin,
         if (arrivalBufferMin != null) 'arrivalBufferMin': arrivalBufferMin,
+        if (localMediaRef != null) 'localMediaRef': localMediaRef,
+        if (confirmedDetails.isNotEmpty)
+          'confirmedDetails':
+              confirmedDetails.map((detail) => detail.toJson()).toList(),
       };
 }
 
@@ -364,6 +422,7 @@ class CityTransitionPlan {
   CityTransitionPlan copyWith({
     String? mode,
     String? linkedTicketId,
+    bool clearLinkedTicket = false,
     String? railPass,
     int? durationMinutes,
     String? serviceLabel,
@@ -374,7 +433,8 @@ class CityTransitionPlan {
       fromCity: fromCity,
       toCity: toCity,
       mode: mode ?? this.mode,
-      linkedTicketId: linkedTicketId ?? this.linkedTicketId,
+      linkedTicketId:
+          clearLinkedTicket ? null : (linkedTicketId ?? this.linkedTicketId),
       railPass: railPass ?? this.railPass,
       durationMinutes: durationMinutes ?? this.durationMinutes,
       serviceLabel: serviceLabel ?? this.serviceLabel,

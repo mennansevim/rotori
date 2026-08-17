@@ -276,6 +276,12 @@ class UpsertTicket extends PlanEditCommand {
   final int? transitionDayNumber;
 }
 
+class DeleteTicket extends PlanEditCommand {
+  const DeleteTicket({required this.ticketId});
+
+  final String ticketId;
+}
+
 /// UI, drag-and-drop ve persistence katmanlarının tamamı bu motoru kullanır.
 ///
 /// Motor girdiyi değiştirmez. Başarılı sonuç yeni bir [Trip], başarısız sonuç
@@ -451,6 +457,7 @@ class PlanScheduleEngine {
       UpdateDayDetails command => _updateDayDetails(trip, command),
       UpdateCityTransition command => _updateCityTransition(trip, command),
       UpsertTicket command => _upsertTicket(trip, command),
+      DeleteTicket command => _deleteTicket(trip, command),
     };
     if (failure != null) return PlanEditResult.failure(failure);
     _invalidateChangedRouteSnapshots(baseline, trip);
@@ -1046,6 +1053,42 @@ class PlanScheduleEngine {
       );
     }
     day.cityTransition = transition.copyWith(linkedTicketId: ticket.id);
+    return null;
+  }
+
+  PlanEditFailure? _deleteTicket(Trip trip, DeleteTicket command) {
+    final index =
+        trip.tickets.indexWhere((ticket) => ticket.id == command.ticketId);
+    if (index < 0) return null;
+
+    final ticket = trip.tickets.removeAt(index);
+    for (final day in trip.days) {
+      if (day.cityTransition?.linkedTicketId == ticket.id) {
+        day.cityTransition = day.cityTransition!.copyWith(
+          clearLinkedTicket: true,
+        );
+      }
+    }
+
+    final linkedActivityId = ticket.linkedActivityId;
+    if (linkedActivityId == null) return null;
+    for (final day in trip.days) {
+      for (final activity in day.items) {
+        if (activity.id != linkedActivityId ||
+            activity.lockType != ActivityLockType.ticketedEvent) {
+          continue;
+        }
+        activity.lockType = ActivityLockType.none;
+        activity.fixedStartTime = null;
+        activity.fixedEndTime = null;
+        activity.canChangeTime = true;
+        activity.canChangeDay = true;
+        activity.canReorder = true;
+        activity.canDelete = true;
+        activity.lockReason = null;
+        return null;
+      }
+    }
     return null;
   }
 

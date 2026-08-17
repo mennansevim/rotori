@@ -60,6 +60,64 @@ TimelineItem findItem(Trip trip, String id) => trip.days
 void main() {
   const engine = PlanScheduleEngine();
 
+  test('DeleteTicket removes ticket and clears city transition link', () {
+    final trip = tripWith([day(1, [])]);
+    trip.days.single.cityTransition = const CityTransitionPlan(
+      fromCity: 'Tokyo',
+      toCity: 'Kyoto',
+      mode: 'shinkansen',
+      linkedTicketId: 't1',
+    );
+    trip.tickets.add(Ticket(
+      id: 't1',
+      kind: 'train',
+      label: 'Tokyo → Kyoto',
+      purchased: true,
+    ));
+
+    final result = const PlanScheduleEngine().apply(
+      trip,
+      const DeleteTicket(ticketId: 't1'),
+    );
+
+    expect(result.isSuccess, isTrue);
+    expect(result.trip!.tickets, isEmpty);
+    expect(result.trip!.days.single.cityTransition!.linkedTicketId, isNull);
+  });
+
+  test('DeleteTicket unlocks only its linked ticketed activity', () {
+    final locked = item('teamlab', '14:00')
+      ..lockType = ActivityLockType.ticketedEvent
+      ..fixedStartTime = '14:00'
+      ..canChangeTime = false
+      ..canReorder = false;
+    final trip = tripWith([
+      day(1, [locked])
+    ]);
+    trip.tickets.add(Ticket(
+      id: 't1',
+      kind: 'attraction',
+      label: 'teamLab',
+      purchased: true,
+      linkedActivityId: 'teamlab',
+    ));
+
+    final result = const PlanScheduleEngine().apply(
+      trip,
+      const DeleteTicket(ticketId: 't1'),
+    );
+
+    final activity = result.trip!.days.single.items.single;
+    expect(activity.lockType, ActivityLockType.none);
+    expect(activity.fixedStartTime, isNull);
+    expect(activity.fixedEndTime, isNull);
+    expect(activity.canChangeTime, isTrue);
+    expect(activity.canChangeDay, isTrue);
+    expect(activity.canReorder, isTrue);
+    expect(activity.canDelete, isTrue);
+    expect(activity.lockReason, isNull);
+  });
+
   group('biletli etkinlik planlama', () {
     test('etkinlik ve bilet atomik eklenir; gün sabit saatin çevresine dizilir',
         () {
