@@ -54,6 +54,8 @@ class _TicketImportReviewSheetState extends State<TicketImportReviewSheet> {
       .toList(growable: true);
   late final TextEditingController _labelController;
   final List<_ManualDetail> _manualDetails = [];
+  late final bool _hadDateCandidates;
+  late final bool _hadTimeCandidates;
   String? _selectedDateId;
   String? _selectedTimeId;
   var _purchased = false;
@@ -63,6 +65,8 @@ class _TicketImportReviewSheetState extends State<TicketImportReviewSheet> {
   @override
   void initState() {
     super.initState();
+    _hadDateCandidates = _ofType(TicketCandidateType.date).isNotEmpty;
+    _hadTimeCandidates = _ofType(TicketCandidateType.time).isNotEmpty;
     final extractedLabel = _candidates
         .where((candidate) => candidate.type == TicketCandidateType.label)
         .map((candidate) => candidate.controller.text.trim())
@@ -101,7 +105,12 @@ class _TicketImportReviewSheetState extends State<TicketImportReviewSheet> {
 
   bool get _canSave =>
       _labelController.text.trim().isNotEmpty &&
-      (!_requiresDateSelection || _selectedDateId != null);
+      (!_requiresDateSelection ||
+          _selectedValue(
+                _selectedDateId,
+                _ofType(TicketCandidateType.date),
+              ) !=
+              null);
 
   void _onChanged() {
     if (mounted) setState(() {});
@@ -127,11 +136,11 @@ class _TicketImportReviewSheetState extends State<TicketImportReviewSheet> {
     ticket.purchased = _purchased;
 
     final dates = _ofType(TicketCandidateType.date);
-    if (dates.isNotEmpty) {
+    if (_hadDateCandidates) {
       ticket.visitDate = _selectedValue(_selectedDateId, dates);
     }
     final times = _ofType(TicketCandidateType.time);
-    if (times.isNotEmpty) {
+    if (_hadTimeCandidates) {
       ticket.entryTime = _selectedValue(_selectedTimeId, times);
     }
     final urls = _ofType(TicketCandidateType.url)
@@ -164,10 +173,11 @@ class _TicketImportReviewSheetState extends State<TicketImportReviewSheet> {
     List<_EditableCandidate> candidates,
   ) {
     if (id == null) return null;
-    return candidates
+    final value = candidates
         .where((candidate) => candidate.id == id)
         .map((candidate) => candidate.controller.text.trim())
         .firstOrNull;
+    return value == null || value.isEmpty ? null : value;
   }
 
   @override
@@ -266,6 +276,7 @@ class _TicketImportReviewSheetState extends State<TicketImportReviewSheet> {
                           onAccepted: (candidate, accepted) => setState(
                             () => candidate.accepted = accepted,
                           ),
+                          onValueChanged: _onChanged,
                           decoration: _decoration,
                         ),
                       ],
@@ -346,6 +357,7 @@ class _CandidateGroup extends StatelessWidget {
     required this.onSelected,
     required this.onRemove,
     required this.onAccepted,
+    required this.onValueChanged,
     required this.decoration,
   });
 
@@ -356,6 +368,7 @@ class _CandidateGroup extends StatelessWidget {
   final ValueChanged<String?> onSelected;
   final ValueChanged<_EditableCandidate> onRemove;
   final void Function(_EditableCandidate candidate, bool accepted) onAccepted;
+  final VoidCallback onValueChanged;
   final InputDecoration Function(String label) decoration;
 
   @override
@@ -385,6 +398,7 @@ class _CandidateGroup extends StatelessWidget {
                     controlAffinity: ListTileControlAffinity.leading,
                     title: TextField(
                       controller: candidate.controller,
+                      onChanged: (_) => onValueChanged(),
                       style: TextStyle(color: palette.textPrimary),
                       decoration: decoration(s.s('ticketReview.value')),
                     ),

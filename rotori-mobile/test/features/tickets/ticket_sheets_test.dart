@@ -31,6 +31,8 @@ Ticket _ticket({
   String id = 'ticket-1',
   String label = 'teamLab Planets',
   bool purchased = true,
+  String? visitDate,
+  String? entryTime,
   String? localMediaRef,
   String? scannedText,
 }) =>
@@ -39,6 +41,8 @@ Ticket _ticket({
       kind: 'attraction',
       label: label,
       purchased: purchased,
+      visitDate: visitDate,
+      entryTime: entryTime,
       localMediaRef: localMediaRef,
       scannedText: scannedText,
     );
@@ -311,6 +315,239 @@ void main() {
       result?.ticket.confirmedDetails.single.semanticKey,
       TicketCandidateType.qr.name,
     );
+  });
+
+  testWidgets('review omits an unchecked QR candidate from saved details',
+      (tester) async {
+    TicketReviewResult? result;
+    await tester.pumpWidget(
+      _harness(
+        builder: (context) => Scaffold(
+          body: FilledButton(
+            onPressed: () async {
+              result = await showTicketImportReviewSheet(
+                context: context,
+                extraction: const TicketExtractionResult(
+                  candidates: [
+                    TicketImportCandidate(
+                      id: 'qr-unchecked',
+                      type: TicketCandidateType.qr,
+                      value: 'https://ticket.example/unselected',
+                      needsReview: true,
+                    ),
+                  ],
+                ),
+                initialTicket: _ticket(),
+                palette: _palette,
+              );
+            },
+            child: const Text('Open'),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<Checkbox>(
+            find.byKey(const ValueKey('ticket-review-accept-qr-unchecked')),
+          )
+          .value,
+      isFalse,
+    );
+    await tester.tap(find.byKey(const ValueKey('ticket-review-save')));
+    await tester.pumpAndSettle();
+
+    expect(result?.ticket.confirmedDetails, isEmpty);
+  });
+
+  testWidgets('removing canonical candidates clears prior date and time',
+      (tester) async {
+    TicketReviewResult? result;
+    await tester.pumpWidget(
+      _harness(
+        builder: (context) => Scaffold(
+          body: FilledButton(
+            onPressed: () async {
+              result = await showTicketImportReviewSheet(
+                context: context,
+                extraction: const TicketExtractionResult(
+                  candidates: [
+                    TicketImportCandidate(
+                      id: 'replacement-date',
+                      type: TicketCandidateType.date,
+                      value: '2026-09-01',
+                      needsReview: false,
+                    ),
+                    TicketImportCandidate(
+                      id: 'replacement-time',
+                      type: TicketCandidateType.time,
+                      value: '10:15',
+                      needsReview: false,
+                    ),
+                  ],
+                ),
+                initialTicket: _ticket(
+                  visitDate: '2026-08-20',
+                  entryTime: '09:00',
+                ),
+                palette: _palette,
+              );
+            },
+            child: const Text('Open'),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(const ValueKey('ticket-review-scroll')),
+      const Offset(0, -220),
+    );
+    await tester.pump();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('ticket-review-date-group')),
+        matching: find.byType(IconButton),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('ticket-review-time-group')),
+        matching: find.byType(IconButton),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('ticket-review-save')));
+    await tester.pumpAndSettle();
+
+    expect(result?.ticket.visitDate, isNull);
+    expect(result?.ticket.entryTime, isNull);
+  });
+
+  testWidgets('a selected blank date keeps save disabled', (tester) async {
+    await tester.pumpWidget(
+      _harness(
+        builder: (context) => Scaffold(
+          body: FilledButton(
+            onPressed: () => showTicketImportReviewSheet(
+              context: context,
+              extraction: const TicketExtractionResult(
+                candidates: [
+                  TicketImportCandidate(
+                    id: 'editable-date',
+                    type: TicketCandidateType.date,
+                    value: '2026-09-01',
+                    needsReview: false,
+                  ),
+                ],
+              ),
+              initialTicket: _ticket(
+                visitDate: '2026-08-20',
+                entryTime: '09:00',
+              ),
+              palette: _palette,
+            ),
+            child: const Text('Open'),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(const ValueKey('ticket-review-scroll')),
+      const Offset(0, -180),
+    );
+    await tester.pump();
+    final candidate =
+        find.byKey(const ValueKey('ticket-review-date-editable-date'));
+    await tester.tap(
+      find.descendant(of: candidate, matching: find.byType(Radio<String>)),
+    );
+    await tester.enterText(
+      find.descendant(of: candidate, matching: find.byType(TextField)),
+      '',
+    );
+    await tester.pump();
+
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.byKey(const ValueKey('ticket-review-save')),
+          )
+          .onPressed,
+      isNull,
+    );
+  });
+
+  testWidgets('a selected blank time clears a prior entry time on save',
+      (tester) async {
+    TicketReviewResult? result;
+    await tester.pumpWidget(
+      _harness(
+        builder: (context) => Scaffold(
+          body: FilledButton(
+            onPressed: () async {
+              result = await showTicketImportReviewSheet(
+                context: context,
+                extraction: const TicketExtractionResult(
+                  candidates: [
+                    TicketImportCandidate(
+                      id: 'valid-date',
+                      type: TicketCandidateType.date,
+                      value: '2026-09-01',
+                      needsReview: false,
+                    ),
+                    TicketImportCandidate(
+                      id: 'blank-time',
+                      type: TicketCandidateType.time,
+                      value: '10:15',
+                      needsReview: false,
+                    ),
+                  ],
+                ),
+                initialTicket: _ticket(
+                  visitDate: '2026-08-20',
+                  entryTime: '09:00',
+                ),
+                palette: _palette,
+              );
+            },
+            child: const Text('Open'),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(const ValueKey('ticket-review-scroll')),
+      const Offset(0, -220),
+    );
+    await tester.pump();
+    final date = find.byKey(const ValueKey('ticket-review-date-valid-date'));
+    await tester.tap(
+      find.descendant(of: date, matching: find.byType(Radio<String>)),
+    );
+    final time = find.byKey(const ValueKey('ticket-review-time-blank-time'));
+    await tester.enterText(
+      find.descendant(of: time, matching: find.byType(TextField)),
+      '',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('ticket-review-save')));
+    await tester.pumpAndSettle();
+
+    expect(result?.ticket.visitDate, '2026-09-01');
+    expect(result?.ticket.entryTime, isNull);
   });
 
   testWidgets('detail renders local media and returns a saved edited ticket',
