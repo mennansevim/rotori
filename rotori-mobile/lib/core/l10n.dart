@@ -677,6 +677,127 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'İlk bileti ekle',
     AppLang.en: 'Add first ticket',
   },
+  'ticketAdd.title': {AppLang.tr: 'Bilet ekle', AppLang.en: 'Add ticket'},
+  'ticketAdd.body': {
+    AppLang.tr: 'Biletini ekleme şeklini seç.',
+    AppLang.en: 'Choose how you want to add your ticket.',
+  },
+  'ticketAdd.gallery': {
+    AppLang.tr: 'Fotoğraflardan seç',
+    AppLang.en: 'Choose from photos',
+  },
+  'ticketAdd.galleryBody': {
+    AppLang.tr: 'Ekran görüntüsü veya bilet fotoğrafı',
+    AppLang.en: 'A screenshot or ticket photo',
+  },
+  'ticketAdd.camera': {
+    AppLang.tr: 'Kamerayla tara',
+    AppLang.en: 'Scan with camera',
+  },
+  'ticketAdd.cameraBody': {
+    AppLang.tr: 'Yeni bir bilet fotoğrafı çek',
+    AppLang.en: 'Take a new ticket photo',
+  },
+  'ticketAdd.plan': {
+    AppLang.tr: 'Plandan seç',
+    AppLang.en: 'Choose from plan',
+  },
+  'ticketAdd.planBody': {
+    AppLang.tr: 'Etkinlik veya şehir geçişiyle bağla',
+    AppLang.en: 'Link an activity or city transfer',
+  },
+  'ticketAdd.manual': {AppLang.tr: 'Elle gir', AppLang.en: 'Enter manually'},
+  'ticketAdd.manualBody': {
+    AppLang.tr: 'Görselsiz bir bilet oluştur',
+    AppLang.en: 'Create a ticket without an image',
+  },
+  'ticketReview.title': {
+    AppLang.tr: 'Bulunan bilgileri kontrol et',
+    AppLang.en: 'Review found details',
+  },
+  'ticketReview.body': {
+    AppLang.tr: 'Yalnız onayladığın bilgiler bilete eklenir.',
+    AppLang.en: 'Only details you approve are added to the ticket.',
+  },
+  'ticketReview.label': {AppLang.tr: 'Bilet adı', AppLang.en: 'Ticket name'},
+  'ticketReview.purchased': {
+    AppLang.tr: 'Satın alındı',
+    AppLang.en: 'Purchased',
+  },
+  'ticketReview.purchasedBody': {
+    AppLang.tr: 'Bu bilgi otomatik belirlenmez.',
+    AppLang.en: 'This is never determined automatically.',
+  },
+  'ticketReview.save': {AppLang.tr: 'Bileti kaydet', AppLang.en: 'Save ticket'},
+  'ticketReview.value': {AppLang.tr: 'Değer', AppLang.en: 'Value'},
+  'ticketReview.needsReview': {
+    AppLang.tr: 'Kontrol et',
+    AppLang.en: 'Review',
+  },
+  'ticketReview.remove': {AppLang.tr: 'Kaldır', AppLang.en: 'Remove'},
+  'ticketReview.accept': {AppLang.tr: 'Bilete ekle', AppLang.en: 'Add to ticket'},
+  'ticketReview.addDetail': {
+    AppLang.tr: 'Ayrıntı ekle',
+    AppLang.en: 'Add detail',
+  },
+  'ticketReview.detailLabel': {
+    AppLang.tr: 'Ayrıntı adı',
+    AppLang.en: 'Detail label',
+  },
+  'ticketReview.detailValue': {
+    AppLang.tr: 'Ayrıntı değeri',
+    AppLang.en: 'Detail value',
+  },
+  'ticketReview.candidate.label': {AppLang.tr: 'Bilet adı', AppLang.en: 'Ticket name'},
+  'ticketReview.candidate.date': {AppLang.tr: 'Tarih', AppLang.en: 'Date'},
+  'ticketReview.candidate.time': {AppLang.tr: 'Saat', AppLang.en: 'Time'},
+  'ticketReview.candidate.venue': {AppLang.tr: 'Mekân', AppLang.en: 'Venue'},
+  'ticketReview.candidate.confirmationCode': {
+    AppLang.tr: 'Onay kodu',
+    AppLang.en: 'Confirmation code',
+  },
+  'ticketReview.candidate.seat': {AppLang.tr: 'Koltuk', AppLang.en: 'Seat'},
+  'ticketReview.candidate.gate': {AppLang.tr: 'Kapı', AppLang.en: 'Gate'},
+  'ticketReview.candidate.partySize': {
+    AppLang.tr: 'Kişi sayısı',
+    AppLang.en: 'Party size',
+  },
+  'ticketReview.candidate.url': {AppLang.tr: 'Bağlantı', AppLang.en: 'Link'},
+  'ticketReview.candidate.qr': {AppLang.tr: 'QR içeriği', AppLang.en: 'QR content'},
+  'ticketDetail.title': {
+    AppLang.tr: 'Bileti düzenle',
+    AppLang.en: 'Edit ticket',
+  },
+  'ticketDetail.label': {AppLang.tr: 'Bilet adı', AppLang.en: 'Ticket name'},
+  'ticketDetail.purchased': {
+    AppLang.tr: 'Satın alındı',
+    AppLang.en: 'Purchased',
+  },
+  'ticketDetail.save': {AppLang.tr: 'Kaydet', AppLang.en: 'Save'},
+  'ticketDetail.replaceMedia': {
+    AppLang.tr: 'Bilet görselini değiştir',
+    AppLang.en: 'Replace ticket image',
+  },
+  'ticketDetail.reattachMedia': {
+    AppLang.tr: 'Görseli yeniden ekle',
+    AppLang.en: 'Reattach ticket image',
+  },
+  'ticketDetail.reattach': {AppLang.tr: 'Ekle', AppLang.en: 'Reattach'},
+  'ticketDetail.mediaLabel': {
+    AppLang.tr: '{name} bilet görseli',
+    AppLang.en: 'Ticket image for {name}',
+  },
+  'ticketDetail.delete': {AppLang.tr: 'Bileti sil', AppLang.en: 'Delete ticket'},
+  'ticketDetail.deleteTitle': {
+    AppLang.tr: 'Bilet silinsin mi?',
+    AppLang.en: 'Delete ticket?',
+  },
+  'ticketDetail.deleteBody': {
+    AppLang.tr: '{name} ve bağlı görseli silinecek.',
+    AppLang.en: '{name} and its attached image will be deleted.',
+  },
+  'ticketDetail.deleteConfirm': {AppLang.tr: 'Sil', AppLang.en: 'Delete'},
+  'ticketDetail.cancel': {AppLang.tr: 'Vazgeç', AppLang.en: 'Cancel'},
   'viewer.tt.budget': {AppLang.tr: 'Bütçe', AppLang.en: 'Budget'},
   'viewer.tt.checklist': {AppLang.tr: 'Checklist', AppLang.en: 'Checklist'},
   'viewer.tt.phrases': {AppLang.tr: 'Japonca', AppLang.en: 'Japanese'},
