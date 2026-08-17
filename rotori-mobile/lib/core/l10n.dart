@@ -581,6 +581,102 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Rezervasyon bekliyor',
     AppLang.en: 'Reservation pending',
   },
+
+  // ----- Rotori Wallet -----
+  'ticketWallet.title': {AppLang.tr: 'Biletler', AppLang.en: 'Tickets'},
+  'ticketWallet.add': {AppLang.tr: 'Bilet ekle', AppLang.en: 'Add ticket'},
+  'ticketWallet.summary.tickets.singular': {
+    AppLang.tr: '{count} bilet',
+    AppLang.en: '{count} ticket',
+  },
+  'ticketWallet.summary.tickets.plural': {
+    AppLang.tr: '{count} bilet',
+    AppLang.en: '{count} tickets',
+  },
+  'ticketWallet.summary.ready.singular': {
+    AppLang.tr: '{count} hazır',
+    AppLang.en: '{count} ready',
+  },
+  'ticketWallet.summary.ready.plural': {
+    AppLang.tr: '{count} hazır',
+    AppLang.en: '{count} ready',
+  },
+  'ticketWallet.summary.next.today': {
+    AppLang.tr: 'sıradaki bugün',
+    AppLang.en: 'next today',
+  },
+  'ticketWallet.summary.next.tomorrow': {
+    AppLang.tr: 'sıradaki yarın',
+    AppLang.en: 'next tomorrow',
+  },
+  'ticketWallet.summary.next.days': {
+    AppLang.tr: 'sıradaki {count} gün sonra',
+    AppLang.en: 'next in {count} days',
+  },
+  'ticketWallet.summary.separator': {AppLang.tr: ' · ', AppLang.en: ' · '},
+  'ticketWallet.otherReady': {
+    AppLang.tr: 'Diğer hazır biletler',
+    AppLang.en: 'Other ready tickets',
+  },
+  'ticketWallet.pending': {
+    AppLang.tr: 'Hazırlanıyor',
+    AppLang.en: 'In progress',
+  },
+  'ticketWallet.status.ready': {AppLang.tr: 'Hazır', AppLang.en: 'Ready'},
+  'ticketWallet.status.pending': {
+    AppLang.tr: 'Rezervasyon bekliyor',
+    AppLang.en: 'Reservation pending',
+  },
+  'ticketWallet.status.saleToday': {
+    AppLang.tr: 'Satış bugün',
+    AppLang.en: 'On sale today',
+  },
+  'ticketWallet.status.saleTomorrow': {
+    AppLang.tr: 'Satışa 1 gün',
+    AppLang.en: 'On sale in 1 day',
+  },
+  'ticketWallet.status.saleInDays': {
+    AppLang.tr: 'Satışa {count} gün',
+    AppLang.en: 'On sale in {count} days',
+  },
+  'ticketWallet.status.missingInfo': {
+    AppLang.tr: 'Eksik bilgi',
+    AppLang.en: 'Missing information',
+  },
+  'ticketWallet.date': {
+    AppLang.tr: '{day} {month} {year}',
+    AppLang.en: '{month} {day}, {year}',
+  },
+  'ticketWallet.semantic.separator': {
+    AppLang.tr: ', ',
+    AppLang.en: ', ',
+  },
+  'ticketWallet.semantic.summary': {
+    AppLang.tr: '{name}. {details}. {status}',
+    AppLang.en: '{name}. {details}. {status}',
+  },
+  'ticketWallet.semantic.summaryNoDetails': {
+    AppLang.tr: '{name}. {status}',
+    AppLang.en: '{name}. {status}',
+  },
+  'ticketWallet.openMedia': {
+    AppLang.tr: '{name} bilet görselini aç',
+    AppLang.en: 'Open ticket image for {name}',
+  },
+  'ticketWallet.empty.title': {
+    AppLang.tr: 'Biletlerin burada hazır olacak',
+    AppLang.en: 'Your tickets will be ready here',
+  },
+  'ticketWallet.empty.body': {
+    AppLang.tr:
+        'Tren ve etkinlik biletlerini ekle; sıradaki rezervasyonun yolculukta elinin altında olsun.',
+    AppLang.en:
+        'Add train and attraction tickets so your next reservation stays close at hand.',
+  },
+  'ticketWallet.empty.add': {
+    AppLang.tr: 'İlk bileti ekle',
+    AppLang.en: 'Add first ticket',
+  },
   'viewer.tt.budget': {AppLang.tr: 'Bütçe', AppLang.en: 'Budget'},
   'viewer.tt.checklist': {AppLang.tr: 'Checklist', AppLang.en: 'Checklist'},
   'viewer.tt.phrases': {AppLang.tr: 'Japonca', AppLang.en: 'Japanese'},
