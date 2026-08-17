@@ -14,3 +14,6 @@ rotori-mobile/env.json
 # Yerel QA/ikon artefaktları ve indirilen araç binary'leri — repoya girmez.
 output/
 rotori-mobile/sentry-wizard
+
+# Yerel görsel tasarım keşfi oturumları — repoya girmez.
+.superpowers/
