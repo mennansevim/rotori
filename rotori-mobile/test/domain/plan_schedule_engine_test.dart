@@ -89,8 +89,10 @@ void main() {
     final locked = item('teamlab', '14:00')
       ..lockType = ActivityLockType.ticketedEvent
       ..fixedStartTime = '14:00'
+      ..canChangeDay = false
       ..canChangeTime = false
-      ..canReorder = false;
+      ..canReorder = false
+      ..canDelete = false;
     final trip = tripWith([
       day(1, [locked])
     ]);
