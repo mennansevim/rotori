@@ -1,8 +1,9 @@
-// Rehber sekmesi — düzen sözleşmesi.
+// Rehber sekmesi — yeni bilgi mimarisi sözleşmesi.
 //
-// 1) "Seyahat öncesi hallet" EN ÜSTTE (aksiyon gerektiren tek şey),
-// 2) bölümler KAPALI başlar (duvar değil),
-// 3) çocuk maddeleri yalnız çocuklu gezide görünür.
+// 1) büyük "Rehber" başlığı + "Hızlı erişim" + "Tüm konular" görünür,
+// 2) "Seyahat öncesi hallet" başlığın üstünü işgal etmez,
+// 3) konu seçimi aynı sekmede temiz detay görünümü açar,
+// 4) arama, detay dönüşünde korunur ve çocuk filtrelemesi bozulmaz.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,7 +36,6 @@ void main() {
         child: MaterialApp(home: PlanViewerScreen(planId: trip.id)),
       );
 
-  /// Rehber sekmesine geç.
   Future<void> openGuide(WidgetTester tester, Trip trip) async {
     tester.view.physicalSize = const Size(390, 1400);
     tester.view.devicePixelRatio = 1.0;
@@ -49,90 +49,113 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
   }
 
-  /// Viewer'ın kesintisiz animasyonu yüzünden pumpAndSettle kullanılamıyor.
   Future<void> settle(WidgetTester tester) async {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
   }
 
-  /// Suica bölümü listenin altında kalıyor — dokunmadan önce görünür yap.
-  Future<void> openSuica(WidgetTester tester) async {
-    final header = find.text('Suica Kartı Nasıl Alınır?');
-    await tester.scrollUntilVisible(header, 200,
-        scrollable: find.byType(Scrollable).last);
-    await settle(tester);
-    await tester.tap(header);
-    await settle(tester);
-  }
+  Finder guideScroll() => find.byType(Scrollable).last;
 
-  testWidgets('"Seyahat öncesi hallet" KAPALI başlar', (tester) async {
+  Finder guideText(String text) =>
+      find.descendant(of: guideScroll(), matching: find.text(text));
+
+  Finder guideTextContaining(String text) => find.descendant(
+        of: guideScroll(),
+        matching: find.textContaining(text),
+      );
+
+  Finder guideKey(String key) => find.byKey(ValueKey(key));
+
+  TextField searchField(WidgetTester tester) =>
+      tester.widget<TextField>(guideKey('viewer-guide-search'));
+
+  testWidgets('rehber başlığı, hızlı erişim ve yardımcı satır görünür',
+      (tester) async {
     final trip = baseTrip();
     await openGuide(tester, trip);
 
-    expect(find.textContaining('Seyahat öncesi hallet'), findsOneWidget);
-    // Kapalıyken afiliye bağlantıları render edilmemeli.
-    expect(find.textContaining('JR Pass (Tüm Japonya)'), findsNothing);
-  });
+    final heading = guideKey('guide-title');
+    final quickAccess = guideKey('guide-quick-access-heading');
+    final allTopics = guideKey('guide-all-topics-heading');
+    final prep = guideKey('guide-predeparture');
 
-  testWidgets('"Seyahat öncesi hallet" dokununca açılır', (tester) async {
-    final trip = baseTrip();
-    await openGuide(tester, trip);
-
-    await tester.tap(find.textContaining('Seyahat öncesi hallet'));
-    await settle(tester);
-
-    expect(find.textContaining('JR Pass'), findsWidgets);
-  });
-
-  testWidgets('"Seyahat öncesi hallet" rehberin EN ÜSTÜNDE', (tester) async {
-    final trip = baseTrip();
-    await openGuide(tester, trip);
-
-    final prep = find.textContaining('Seyahat öncesi hallet');
-    final heading = find.text('Mutlaka Bilmeniz Gerekenler');
-    expect(prep, findsOneWidget);
     expect(heading, findsOneWidget);
+    expect(quickAccess, findsOneWidget);
+    expect(allTopics, findsOneWidget);
+    expect(guideKey('guide-quick-6'), findsOneWidget);
+    expect(guideKey('guide-quick-2'), findsOneWidget);
+    expect(guideKey('guide-quick-1'), findsOneWidget);
+    expect(guideKey('guide-quick-3'), findsOneWidget);
 
-    // Aksiyon kartı, konu başlığından YUKARIDA olmalı.
-    expect(tester.getTopLeft(prep).dy, lessThan(tester.getTopLeft(heading).dy),
-        reason: 'aksiyon kartı aşağı kaymış — kullanıcı hiç görmez');
+    final scrollable = find.byType(Scrollable).first;
+    for (var i = 0; i < 5 && prep.evaluate().isEmpty; i++) {
+      await tester.drag(scrollable, const Offset(0, -700));
+      await settle(tester);
+    }
+
+    expect(prep, findsOneWidget);
+
+    expect(
+      tester.getTopLeft(prep).dy,
+      greaterThan(tester.getTopLeft(allTopics).dy),
+      reason: 'yardımcı satır konu listesi başlığının üstünde kalmamalı',
+    );
   });
 
-  testWidgets('bölümler kapalı başlar — madde duvarı yok', (tester) async {
+  testWidgets('konuya dokununca aynı sekmede detay açılır', (tester) async {
     final trip = baseTrip();
     await openGuide(tester, trip);
 
-    expect(find.text('Suica Kartı Nasıl Alınır?'), findsOneWidget);
-    // Kapalıyken madde metni render edilmemeli.
-    expect(find.textContaining('EN KOLAY YOL'), findsNothing);
+    await tester.tap(guideKey('guide-topic-2'));
+    await settle(tester);
+
+    expect(guideKey('guide-back-all'), findsOneWidget);
+    expect(guideTextContaining('EN KOLAY YOL'), findsOneWidget);
+    expect(find.text('Rehber'), findsWidgets);
   });
 
-  testWidgets('başlığa dokununca bölüm açılır', (tester) async {
+  testWidgets('arama eşleşen konuyu açar ve geri dönüşte aramayı korur',
+      (tester) async {
     final trip = baseTrip();
     await openGuide(tester, trip);
 
-    await openSuica(tester);
+    await tester.enterText(
+      guideKey('viewer-guide-search'),
+      'Welcome Suica',
+    );
+    await settle(tester);
 
-    expect(find.textContaining('EN KOLAY YOL'), findsOneWidget);
+    expect(guideKey('guide-back-all'), findsOneWidget);
+    expect(guideTextContaining('Welcome Suica'), findsOneWidget);
+    expect(guideKey('guide-topic-0'), findsNothing);
+
+    await tester.tap(guideKey('guide-back-all'));
+    await settle(tester);
+
+    expect(searchField(tester).controller!.text, 'Welcome Suica');
+    expect(guideKey('guide-topic-2'), findsOneWidget);
+    expect(guideKey('guide-topic-0'), findsNothing);
   });
 
   group('çocuk maddeleri', () {
-    testWidgets('çocuksuz gezide GÖRÜNMEZ', (tester) async {
+    testWidgets('çocuksuz gezide görünmez', (tester) async {
       final trip = baseTrip()..preferences.childrenCount = 0;
       await openGuide(tester, trip);
 
-      await openSuica(tester);
+      await tester.tap(guideKey('guide-topic-2'));
+      await settle(tester);
 
-      expect(find.textContaining('ÇOCUK SUICA'), findsNothing);
+      expect(guideTextContaining('ÇOCUK SUICA'), findsNothing);
     });
 
-    testWidgets('çocuklu gezide GÖRÜNÜR', (tester) async {
+    testWidgets('çocuklu gezide görünür', (tester) async {
       final trip = baseTrip()..preferences.childrenCount = 2;
       await openGuide(tester, trip);
 
-      await openSuica(tester);
+      await tester.tap(guideKey('guide-topic-2'));
+      await settle(tester);
 
-      expect(find.textContaining('ÇOCUK SUICA'), findsOneWidget);
+      expect(guideTextContaining('ÇOCUK SUICA'), findsOneWidget);
     });
 
     testWidgets('kids ilgi etiketi de yeterli', (tester) async {
@@ -141,39 +164,10 @@ void main() {
         ..preferences.interests.add(InterestTag.kids);
       await openGuide(tester, trip);
 
-      await openSuica(tester);
+      await tester.tap(guideKey('guide-topic-2'));
+      await settle(tester);
 
-      expect(find.textContaining('ÇOCUK SUICA'), findsOneWidget);
+      expect(guideTextContaining('ÇOCUK SUICA'), findsOneWidget);
     });
-
-    testWidgets('madde sayısı rozeti çocuklu gezide artar', (tester) async {
-      final withoutKids = baseTrip()..preferences.childrenCount = 0;
-      await openGuide(tester, withoutKids);
-      // Suica bölümü rozetinde 5 yetişkin maddesi.
-      expect(find.text('5'), findsWidgets);
-    });
-  });
-
-  testWidgets('arama madde bulur ve bölümü açar', (tester) async {
-    final trip = baseTrip();
-    await openGuide(tester, trip);
-
-    await tester.enterText(find.byType(TextField).first, 'konbini');
-    await settle(tester);
-
-    // Eşleşen madde doğrudan görünür (arama sırasında bölümler açık).
-    expect(find.textContaining('konbini'), findsWidgets);
-    // Eşleşmeyen bölüm hiç çizilmez.
-    expect(find.text('Belgeler ve Giriş'), findsNothing);
-  });
-
-  testWidgets('eşleşme yoksa bilgilendirir', (tester) async {
-    final trip = baseTrip();
-    await openGuide(tester, trip);
-
-    await tester.enterText(find.byType(TextField).first, 'zzzxxqq');
-    await settle(tester);
-
-    expect(find.text(tr('viewer.guide.noResult')), findsOneWidget);
   });
 }
