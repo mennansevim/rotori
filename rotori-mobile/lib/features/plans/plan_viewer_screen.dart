@@ -944,6 +944,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
           ),
           actions: [
             TextButton(
+              key: const ValueKey('viewer-top-status-bar'),
               onPressed: () => Navigator.of(dialogContext).pop(false),
               child: Text(s.s('common.cancel')),
             ),
@@ -3173,46 +3174,48 @@ class _GuideListView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        Text(
-          key: const ValueKey('guide-quick-access-heading'),
-          const LText('Hızlı erişim', 'Quick access').of(lang),
-          style: TextStyle(
-            color: p.textPrimary,
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
+        if (visibleQuickAccessIndices.isNotEmpty) ...[
+          Text(
+            key: const ValueKey('guide-quick-access-heading'),
+            const LText('Hızlı erişim', 'Quick access').of(lang),
+            style: TextStyle(
+              color: p.textPrimary,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-        ),
-        const SizedBox(height: 10),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final cardWidth = (constraints.maxWidth - 10) / 2;
-            return Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                for (final index in quickAccessIndices)
-                  SizedBox(
-                    width: cardWidth,
-                    child: _GuideQuickAccessCard(
-                      key: ValueKey('guide-quick-$index'),
-                      palette: p,
-                      lang: lang,
-                      section: kMustKnowSections[index],
-                      label: switch (index) {
-                        6 => const LText('Acil Durum', 'Emergency'),
-                        2 => const LText('Suica', 'Suica'),
-                        1 => const LText('Para', 'Money'),
-                        3 => const LText('İnternet', 'Internet'),
-                        _ => const LText('Konu', 'Topic'),
-                      },
-                      onTap: () => onOpenSection(index),
+          const SizedBox(height: 10),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final cardWidth = (constraints.maxWidth - 10) / 2;
+              return Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (final index in visibleQuickAccessIndices)
+                    SizedBox(
+                      width: cardWidth,
+                      child: _GuideQuickAccessCard(
+                        key: ValueKey('guide-quick-$index'),
+                        palette: p,
+                        lang: lang,
+                        section: kMustKnowSections[index],
+                        label: switch (index) {
+                          6 => const LText('Acil Durum', 'Emergency'),
+                          2 => const LText('Suica', 'Suica'),
+                          1 => const LText('Para', 'Money'),
+                          3 => const LText('İnternet', 'Internet'),
+                          _ => const LText('Konu', 'Topic'),
+                        },
+                        onTap: () => onOpenSection(index),
+                      ),
                     ),
-                  ),
-              ],
-            );
-          },
-        ),
-        const SizedBox(height: 18),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 18),
+        ],
         Text(
           key: const ValueKey('guide-all-topics-heading'),
           const LText('Tüm konular', 'All topics').of(lang),
@@ -3757,8 +3760,16 @@ class _TicketChip extends StatelessWidget {
       bg = palette.sunset.withValues(alpha: 0.25);
       fg = palette.sunset;
     } else if (ticket.visitDate != null) {
+    final visibleQuickAccessIndices = searching
+        ? quickAccessIndices
+            .where(
+              (index) => visibleSections.any((entry) => entry.index == index),
+            )
+            .toList(growable: false)
+        : quickAccessIndices;
       text = '$emoji ${_daysUntil(ticket.visitDate!)}g';
       bg = palette.topBarOnColor.withValues(alpha: 0.18);
+      key: const ValueKey('viewer-guide-scroll'),
       fg = palette.topBarOnColor;
     } else {
       final short = ticket.label.split(' ').first;

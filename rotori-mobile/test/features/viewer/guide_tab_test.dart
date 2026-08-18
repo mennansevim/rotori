@@ -110,6 +110,8 @@ void main() {
     await settle(tester);
 
     expect(guideKey('guide-back-all'), findsOneWidget);
+    expect(guideKey('viewer-top-status-bar'), findsOneWidget);
+    expect(guideKey('viewer-quick-nav'), findsOneWidget);
     expect(guideTextContaining('EN KOLAY YOL'), findsOneWidget);
     expect(find.text('Rehber'), findsWidgets);
   });
@@ -135,6 +137,23 @@ void main() {
     expect(searchField(tester).controller!.text, 'Welcome Suica');
     expect(guideKey('guide-topic-2'), findsOneWidget);
     expect(guideKey('guide-topic-0'), findsNothing);
+  });
+
+  testWidgets('arama sonucu yokken hızlı erişim gizlenir ve boş detay açılmaz',
+      (tester) async {
+    final trip = baseTrip();
+    await openGuide(tester, trip);
+
+    await tester.enterText(
+      guideKey('viewer-guide-search'),
+      'zzz-no-match',
+    );
+    await settle(tester);
+
+    expect(guideKey('guide-quick-access-heading'), findsNothing);
+    expect(guideKey('guide-quick-6'), findsNothing);
+    expect(guideKey('guide-quick-2'), findsNothing);
+    expect(guideKey('guide-back-all'), findsNothing);
   });
 
   group('çocuk maddeleri', () {
