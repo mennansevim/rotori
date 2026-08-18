@@ -2987,9 +2987,8 @@ class _TabMustKnowViewState extends State<_TabMustKnowView> {
   }
 
   List<int> _matchingSectionIndices(String q) {
-    if (q.isEmpty) {
+    if (q.isEmpty)
       return List<int>.generate(kMustKnowSections.length, (i) => i);
-    }
     final matches = <int>[];
     for (var i = 0; i < kMustKnowSections.length; i++) {
       if (_sectionMatchesQuery(kMustKnowSections[i], q)) {
@@ -3014,6 +3013,7 @@ class _TabMustKnowViewState extends State<_TabMustKnowView> {
   Widget build(BuildContext context) {
     final p = widget.palette;
     final lang = widget.lang;
+    final s = LanguageScope.of(context);
     final q = _query.trim().toLowerCase();
     final visibleIndices = _matchingSectionIndices(q);
     final detailIndex = _selectedSectionIndex;

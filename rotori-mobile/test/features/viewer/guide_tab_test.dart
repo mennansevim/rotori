@@ -56,6 +56,9 @@ void main() {
 
   Finder guideScroll() => find.byType(Scrollable).last;
 
+  Finder guideText(String text) =>
+      find.descendant(of: guideScroll(), matching: find.text(text));
+
   Finder guideTextContaining(String text) => find.descendant(
         of: guideScroll(),
         matching: find.textContaining(text),
