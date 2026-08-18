@@ -36,7 +36,7 @@ dify:
 openai:
   # platform.openai.com/api-keys → Create new secret key
   # gpt-4o-mini kullanıyoruz — story kartı başına ~$0.001, ucuz
-  api_key: "***REMOVED-OPENAI-KEY***"
+  api_key: "sk-YOUR_OPENAI_API_KEY"
   model: "gpt-4o-mini"                # gpt-4o-mini | gpt-4o | gpt-4.1-mini
   base_url: "https://api.openai.com/v1"
   timeout_sn: 60
