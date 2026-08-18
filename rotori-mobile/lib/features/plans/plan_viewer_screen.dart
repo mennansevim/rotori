@@ -2281,6 +2281,7 @@ class _TopStatusBarState extends State<_TopStatusBar>
     final s = LanguageScope.of(context);
 
     return Container(
+      key: const ValueKey('viewer-top-status-bar'),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: p.topBar,
@@ -2493,6 +2494,7 @@ class _ViewerQuickNav extends StatelessWidget {
     ];
 
     return Material(
+      key: const ValueKey('viewer-quick-nav'),
       color: palette.card.withValues(alpha: 0.98),
       child: SafeArea(
         top: false,
@@ -2515,26 +2517,34 @@ class _ViewerQuickNav extends StatelessWidget {
                         onTabChanged(i);
                       }
                     },
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(tabs[i].emoji,
-                            style:
-                                TextStyle(fontSize: activeTab == i ? 22 : 20)),
-                        const SizedBox(height: 2),
-                        Text(
-                          tabs[i].label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: activeTab == i ? activeColor : inactiveColor,
-                            fontSize: 11,
-                            fontWeight: activeTab == i
-                                ? FontWeight.w700
-                                : FontWeight.w600,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            tabs[i].emoji,
+                            style: TextStyle(
+                              fontSize: activeTab == i ? 22 : 20,
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 2),
+                          Text(
+                            tabs[i].label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color:
+                                  activeTab == i ? activeColor : inactiveColor,
+                              fontSize: 11,
+                              fontWeight: activeTab == i
+                                  ? FontWeight.w700
+                                  : FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -2932,23 +2942,15 @@ class _TabPhrasesViewState extends State<_TabPhrasesView> {
 
 /// Rehber sekmesi.
 ///
-/// **Yeniden düzenlendi.** Eskiden 13 bölümün TÜM maddeleri açık haldeydi:
-/// yüzlerce satırlık tek bir duvar. Kullanıcı aradığını bulmak için
-/// kaydırmak zorundaydı ve en altta duran "seyahat öncesi hallet" kartını
-/// (zamana duyarlı, aksiyon gerektiren tek şey) çoğu kimse hiç görmüyordu.
-///
-/// Yeni düzen:
-///  1. Aksiyon gerektiren "seyahat öncesi hallet" EN ÜSTTE,
-///  2. Arama kutusu — 13 bölümde gezinmek yerine yazıp bul,
-///  3. Bölümler KAPALI başlar, dokununca açılır (madde sayısı görünür).
-///
-/// Maddeler geziye göre süzülür: çocuksuz planda çocuk maddeleri gösterilmez.
+/// Büyük başlık, hızlı erişim kartları, tek grup konu listesi ve sekme içi
+/// detay görünümü — hepsi aynı tab içinde kalır.
 class _TabMustKnowView extends StatefulWidget {
   const _TabMustKnowView({
     required this.palette,
     required this.lang,
     required this.trip,
   });
+
   final ViewerPalette palette;
   final AppLang lang;
   final Trip trip;
@@ -2958,9 +2960,9 @@ class _TabMustKnowView extends StatefulWidget {
 }
 
 class _TabMustKnowViewState extends State<_TabMustKnowView> {
-  final _expanded = <int>{};
   final _searchCtrl = TextEditingController();
   String _query = '';
+  int? _selectedSectionIndex;
 
   @override
   void dispose() {
@@ -2968,70 +2970,221 @@ class _TabMustKnowViewState extends State<_TabMustKnowView> {
     super.dispose();
   }
 
-  /// Gezide çocuk var mı? childrenCount ya da kids ilgi etiketi.
   bool get _hasKids {
     final prefs = widget.trip.preferences;
     if ((prefs.childrenCount ?? 0) > 0) return true;
     return prefs.interests.contains(InterestTag.kids);
   }
 
-  bool _tipVisible(MustKnowTip t) =>
-      t.audience == MustKnowAudience.all || _hasKids;
+  bool _tipVisible(MustKnowTip tip) =>
+      tip.audience == MustKnowAudience.all || _hasKids;
 
-  /// Bölümün bu geziye ve aramaya uyan maddeleri.
-  List<MustKnowTip> _tipsOf(MustKnowSection section) {
-    final q = _query.trim().toLowerCase();
-    return section.tips.where((t) {
-      if (!_tipVisible(t)) return false;
+  bool _sectionMatchesQuery(MustKnowSection section, String q) {
+    final title = section.title.of(widget.lang).toLowerCase();
+    if (title.contains(q)) return true;
+    return section.tips.any((tip) {
+      if (!_tipVisible(tip)) return false;
+      return tip.text.of(widget.lang).toLowerCase().contains(q);
+    });
+  }
+
+  List<int> _matchingSectionIndices(String q) {
+    if (q.isEmpty) {
+      return List<int>.generate(kMustKnowSections.length, (i) => i);
+    }
+    final matches = <int>[];
+    for (var i = 0; i < kMustKnowSections.length; i++) {
+      if (_sectionMatchesQuery(kMustKnowSections[i], q)) {
+        matches.add(i);
+      }
+    }
+    return matches;
+  }
+
+  List<MustKnowTip> _tipsOf(MustKnowSection section, {String? query}) {
+    final q = (query ?? _query).trim().toLowerCase();
+    return section.tips.where((tip) {
+      if (!_tipVisible(tip)) return false;
       if (q.isEmpty) return true;
-      return t.text.of(widget.lang).toLowerCase().contains(q) ||
-          section.title.of(widget.lang).toLowerCase().contains(q);
+      final title = section.title.of(widget.lang).toLowerCase();
+      return tip.text.of(widget.lang).toLowerCase().contains(q) ||
+          title.contains(q);
     }).toList();
+  }
+
+  void _openSection(int index) {
+    setState(() => _selectedSectionIndex = index);
+  }
+
+  void _clearSearch() {
+    setState(() {
+      _searchCtrl.clear();
+      _query = '';
+      _selectedSectionIndex = null;
+    });
+  }
+
+  void _updateQuery(String value) {
+    final q = value.trim().toLowerCase();
+    final matches = _matchingSectionIndices(q);
+    setState(() {
+      _query = value;
+      if (q.isEmpty) {
+        _selectedSectionIndex = null;
+      } else if (matches.length == 1) {
+        _selectedSectionIndex = matches.single;
+      } else {
+        _selectedSectionIndex = null;
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final p = widget.palette;
     final lang = widget.lang;
-    final s = LanguageScope.of(context);
-    final searching = _query.trim().isNotEmpty;
+    final q = _query.trim().toLowerCase();
+    final visibleIndices = _matchingSectionIndices(q);
+    final detailIndex = _selectedSectionIndex;
+    final visibleSections = visibleIndices
+        .map(
+          (index) => (
+            index: index,
+            section: kMustKnowSections[index],
+            tips: _tipsOf(kMustKnowSections[index], query: _query),
+          ),
+        )
+        .toList(growable: false);
 
-    // Boş bölümler hiç çizilmez (ör. arama eşleşmedi).
-    final sections =
-        <({int index, MustKnowSection section, List<MustKnowTip> tips})>[];
-    for (var i = 0; i < kMustKnowSections.length; i++) {
-      final tips = _tipsOf(kMustKnowSections[i]);
-      if (tips.isEmpty) continue;
-      sections.add((index: i, section: kMustKnowSections[i], tips: tips));
-    }
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    return AnimatedSwitcher(
+      duration:
+          reduceMotion ? Duration.zero : const Duration(milliseconds: 220),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeOutCubic,
+      transitionBuilder: (child, animation) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0.02, 0),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
+          ),
+        );
+      },
+      child: detailIndex == null
+          ? _GuideListView(
+              key: const ValueKey('guide-list'),
+              palette: p,
+              lang: lang,
+              searchCtrl: _searchCtrl,
+              query: _query,
+              hasResults: q.isEmpty || visibleSections.isNotEmpty,
+              visibleSections: visibleSections,
+              onQueryChanged: _updateQuery,
+              onClearSearch: _clearSearch,
+              onOpenSection: _openSection,
+            )
+          : _GuideDetailView(
+              key: ValueKey('guide-detail-$detailIndex'),
+              palette: p,
+              lang: lang,
+              section: kMustKnowSections[detailIndex],
+              tips: _tipsOf(kMustKnowSections[detailIndex], query: _query),
+              onBackToAllTopics: () =>
+                  setState(() => _selectedSectionIndex = null),
+            ),
+    );
+  }
+}
+
+class _GuideListView extends StatelessWidget {
+  const _GuideListView({
+    super.key,
+    required this.palette,
+    required this.lang,
+    required this.searchCtrl,
+    required this.query,
+    required this.hasResults,
+    required this.visibleSections,
+    required this.onQueryChanged,
+    required this.onClearSearch,
+    required this.onOpenSection,
+  });
+
+  final ViewerPalette palette;
+  final AppLang lang;
+  final TextEditingController searchCtrl;
+  final String query;
+  final bool hasResults;
+  final List<({int index, MustKnowSection section, List<MustKnowTip> tips})>
+      visibleSections;
+  final ValueChanged<String> onQueryChanged;
+  final VoidCallback onClearSearch;
+  final ValueChanged<int> onOpenSection;
+
+  List<int> get _quickAccessIndices {
+    int findByTrTitle(String title) => kMustKnowSections.indexWhere(
+          (section) => section.title.tr == title,
+        );
+    return [
+      findByTrTitle('Acil Durum ve Güvenlik'),
+      findByTrTitle('Suica Kartı Nasıl Alınır?'),
+      findByTrTitle('Para ve Ödeme'),
+      findByTrTitle('Ulaşım ve İnternet'),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    final s = LanguageScope.of(context);
+    final q = query.trim();
+    final searching = q.isNotEmpty;
+    final quickAccessIndices = _quickAccessIndices;
+    final visibleQuickAccessIndices = searching
+        ? quickAccessIndices
+            .where(
+              (index) => visibleSections.any((entry) => entry.index == index),
+            )
+            .toList(growable: false)
+        : quickAccessIndices;
 
     return ListView(
+      key: const ValueKey('viewer-guide-scroll'),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
       children: [
-        // 1) AKSİYON — zamana duyarlı olan tek şey, en üstte.
-        _PreDepartureCard(palette: p, lang: lang),
-        const SizedBox(height: 20),
-
         Text(
-          const LText('Mutlaka Bilmeniz Gerekenler', 'Must-Know Before You Go')
-              .of(lang),
+          key: const ValueKey('guide-title'),
+          const LText('Rehber', 'Guide').of(lang),
           style: TextStyle(
-              color: p.textPrimary, fontSize: 20, fontWeight: FontWeight.w800),
+            color: p.textPrimary,
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.4,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           const LText(
-            'Başlığa dokun, o konudaki maddeler açılsın.',
-            'Tap a topic to open its tips.',
+            'Japonya yolculuğunda işine yarayacak pratik notlar ve kısa '
+                'uyarılar.',
+            'Practical notes and quick warnings for your Japan trip.',
           ).of(lang),
-          style: TextStyle(color: p.textSecondary, fontSize: 13.5),
+          style: TextStyle(color: p.textSecondary, fontSize: 14, height: 1.4),
         ),
-        const SizedBox(height: 12),
-
-        // 2) ARAMA — 13 bölümde gezinmeye alternatif.
+        const SizedBox(height: 14),
         TextField(
-          controller: _searchCtrl,
-          onChanged: (v) => setState(() => _query = v),
+          key: const ValueKey('viewer-guide-search'),
+          controller: searchCtrl,
+          onChanged: onQueryChanged,
           style: TextStyle(color: p.textPrimary, fontSize: 14),
           decoration: InputDecoration(
             hintText: s.s('viewer.guide.search'),
@@ -3042,10 +3195,7 @@ class _TabMustKnowViewState extends State<_TabMustKnowView> {
                 ? IconButton(
                     icon:
                         Icon(Icons.close_rounded, size: 18, color: p.textMuted),
-                    onPressed: () {
-                      _searchCtrl.clear();
-                      setState(() => _query = '');
-                    },
+                    onPressed: onClearSearch,
                   )
                 : null,
             filled: true,
@@ -3062,151 +3212,454 @@ class _TabMustKnowViewState extends State<_TabMustKnowView> {
             ),
           ),
         ),
-        const SizedBox(height: 14),
-
-        if (sections.isEmpty)
+        const SizedBox(height: 16),
+        if (visibleQuickAccessIndices.isNotEmpty) ...[
+          Text(
+            key: const ValueKey('guide-quick-access-heading'),
+            const LText('Hızlı erişim', 'Quick access').of(lang),
+            style: TextStyle(
+              color: p.textPrimary,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final cardWidth = (constraints.maxWidth - 10) / 2;
+              return Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (final index in visibleQuickAccessIndices)
+                    SizedBox(
+                      width: cardWidth,
+                      child: _GuideQuickAccessCard(
+                        key: ValueKey('guide-quick-$index'),
+                        palette: p,
+                        lang: lang,
+                        section: kMustKnowSections[index],
+                        label: switch (index) {
+                          6 => const LText('Acil Durum', 'Emergency'),
+                          2 => const LText('Suica', 'Suica'),
+                          1 => const LText('Para', 'Money'),
+                          3 => const LText('İnternet', 'Internet'),
+                          _ => const LText('Konu', 'Topic'),
+                        },
+                        onTap: () => onOpenSection(index),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 18),
+        ],
+        Text(
+          key: const ValueKey('guide-all-topics-heading'),
+          const LText('Tüm konular', 'All topics').of(lang),
+          style: TextStyle(
+            color: p.textPrimary,
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 10),
+        if (!hasResults)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 28),
+            padding: const EdgeInsets.symmetric(vertical: 24),
             child: Text(
               s.s('viewer.guide.noResult'),
               textAlign: TextAlign.center,
               style: TextStyle(color: p.textSecondary, fontSize: 14),
             ),
-          ),
-
-        // 3) KATLANABİLİR BÖLÜMLER — arama sırasında kendiliğinden açık.
-        for (final entry in sections)
-          _GuideSectionCard(
+          )
+        else
+          _GuideTopicGroup(
             palette: p,
             lang: lang,
-            section: entry.section,
-            tips: entry.tips,
-            expanded: searching || _expanded.contains(entry.index),
-            onToggle: () => setState(() {
-              if (!_expanded.remove(entry.index)) _expanded.add(entry.index);
-            }),
+            sections: visibleSections,
+            onOpenSection: onOpenSection,
           ),
+        const SizedBox(height: 16),
+        _PreDepartureCard(palette: p, lang: lang),
       ],
     );
   }
 }
 
-/// Katlanabilir konu kartı — kapalıyken yalnız başlık + madde sayısı.
-class _GuideSectionCard extends StatelessWidget {
-  const _GuideSectionCard({
+class _GuideDetailView extends StatelessWidget {
+  const _GuideDetailView({
+    super.key,
     required this.palette,
     required this.lang,
     required this.section,
     required this.tips,
-    required this.expanded,
-    required this.onToggle,
+    required this.onBackToAllTopics,
   });
 
   final ViewerPalette palette;
   final AppLang lang;
   final MustKnowSection section;
   final List<MustKnowTip> tips;
-  final bool expanded;
-  final VoidCallback onToggle;
+  final VoidCallback onBackToAllTopics;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    return ListView(
+      key: const ValueKey('viewer-guide-scroll'),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+      children: [
+        TextButton.icon(
+          key: const ValueKey('guide-back-all'),
+          onPressed: onBackToAllTopics,
+          icon: const Icon(Icons.arrow_back_rounded, size: 18),
+          label: Text(
+            const LText('Tüm konular', 'All topics').of(lang),
+            style: TextStyle(
+              color: p.accent,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          style: TextButton.styleFrom(
+            alignment: Alignment.centerLeft,
+            padding: EdgeInsets.zero,
+            minimumSize: const Size(0, 44),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            foregroundColor: p.accent,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: p.card,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: p.border),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: p.accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(
+                  section.emoji,
+                  style: const TextStyle(fontSize: 20),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      section.title.of(lang),
+                      style: TextStyle(
+                        color: p.textPrimary,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      lang == AppLang.tr
+                          ? '${tips.length} madde'
+                          : '${tips.length} tips',
+                      style: TextStyle(
+                        color: p.textSecondary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: p.card,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: p.border),
+          ),
+          child: Column(
+            children: [
+              for (var i = 0; i < tips.length; i++) ...[
+                if (i > 0) Divider(height: 1, color: p.border),
+                _GuideTipRow(
+                  tip: tips[i],
+                  palette: p,
+                  lang: lang,
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        _PreDepartureCard(palette: p, lang: lang),
+      ],
+    );
+  }
+}
+
+class _GuideQuickAccessCard extends StatelessWidget {
+  const _GuideQuickAccessCard({
+    super.key,
+    required this.palette,
+    required this.lang,
+    required this.section,
+    required this.label,
+    required this.onTap,
+  });
+
+  final ViewerPalette palette;
+  final AppLang lang;
+  final MustKnowSection section;
+  final LText label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    return Semantics(
+      button: true,
+      label: '${label.of(lang)} · ${section.title.of(lang)}',
+      child: Material(
+        color: p.card,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 64),
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: p.accent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      section.emoji,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label.of(lang),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: p.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          section.title.of(lang),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: p.textSecondary,
+                            fontSize: 12,
+                            height: 1.1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GuideTopicGroup extends StatelessWidget {
+  const _GuideTopicGroup({
+    required this.palette,
+    required this.lang,
+    required this.sections,
+    required this.onOpenSection,
+  });
+
+  final ViewerPalette palette;
+  final AppLang lang;
+  final List<({int index, MustKnowSection section, List<MustKnowTip> tips})>
+      sections;
+  final ValueChanged<int> onOpenSection;
 
   @override
   Widget build(BuildContext context) {
     final p = palette;
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: p.card,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: p.border),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Semantics(
-            button: true,
-            expanded: expanded,
-            child: Material(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(16),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: onToggle,
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Row(
-                    children: [
-                      Text(section.emoji, style: const TextStyle(fontSize: 20)),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          section.title.of(lang),
-                          style: TextStyle(
-                            color: p.textPrimary,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 7, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: p.accent.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${tips.length}',
-                          style: TextStyle(
-                            color: p.accent,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      AnimatedRotation(
-                        turns: expanded ? 0.5 : 0,
-                        duration: const Duration(milliseconds: 180),
-                        child: Icon(Icons.keyboard_arrow_down_rounded,
-                            size: 22, color: p.textMuted),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+          for (var i = 0; i < sections.length; i++) ...[
+            if (i > 0) Divider(height: 1, color: p.border),
+            _GuideTopicRow(
+              index: sections[i].index,
+              palette: p,
+              lang: lang,
+              section: sections[i].section,
+              tips: sections[i].tips,
+              onTap: () => onOpenSection(sections[i].index),
             ),
-          ),
-          if (expanded)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _GuideTopicRow extends StatelessWidget {
+  const _GuideTopicRow({
+    required this.index,
+    required this.palette,
+    required this.lang,
+    required this.section,
+    required this.tips,
+    required this.onTap,
+  });
+
+  final int index;
+  final ViewerPalette palette;
+  final AppLang lang;
+  final MustKnowSection section;
+  final List<MustKnowTip> tips;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    return Semantics(
+      button: true,
+      label: '${section.title.of(lang)} · ${tips.length}',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          key: ValueKey('guide-topic-$index'),
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 56),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
                 children: [
-                  for (final tip in tips)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(tip.emoji, style: const TextStyle(fontSize: 14)),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              tip.text.of(lang),
-                              style: TextStyle(
-                                color: p.textSecondary,
-                                fontSize: 13.5,
-                                height: 1.4,
-                              ),
-                            ),
-                          ),
-                        ],
+                  Container(
+                    width: 38,
+                    height: 38,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: p.accent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(section.emoji,
+                        style: const TextStyle(fontSize: 18)),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      section.title.of(lang),
+                      style: TextStyle(
+                        color: p.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
+                  ),
+                  const SizedBox(width: 10),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: p.accent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${tips.length}',
+                      style: TextStyle(
+                        color: p.accent,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(Icons.chevron_right_rounded, color: p.textMuted),
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GuideTipRow extends StatelessWidget {
+  const _GuideTipRow({
+    required this.tip,
+    required this.palette,
+    required this.lang,
+  });
+
+  final MustKnowTip tip;
+  final ViewerPalette palette;
+  final AppLang lang;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = palette;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(tip.emoji, style: const TextStyle(fontSize: 14)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              tip.text.of(lang),
+              style: TextStyle(
+                color: p.textSecondary,
+                fontSize: 13.5,
+                height: 1.45,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -3215,9 +3668,7 @@ class _GuideSectionCard extends StatelessWidget {
 
 /// "Seyahat öncesi hallet" — zamana duyarlı afiliye kartları.
 ///
-/// Diğer rehber bölümleriyle aynı dil: KATLANABİLİR ve varsayılan KAPALI.
-/// Beş bağlantı açıkken kartın kendisi bir ekran boyu yer kaplıyordu ve
-/// altındaki konu başlıkları hiç görünmüyordu.
+/// Sekmenin altında ikincil ve kapalı bir yardımcı satır olarak kalır.
 class _PreDepartureCard extends StatefulWidget {
   const _PreDepartureCard({required this.palette, required this.lang});
   final ViewerPalette palette;
@@ -3237,21 +3688,15 @@ class _PreDepartureCardState extends State<_PreDepartureCard> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            p.accent.withValues(alpha: 0.08),
-            p.gold.withValues(alpha: 0.06),
-          ],
-        ),
+        color: p.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: p.accent.withValues(alpha: 0.2)),
+        border: Border.all(color: p.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Semantics(
+            key: const ValueKey('guide-predeparture'),
             button: true,
             expanded: _expanded,
             child: Material(
@@ -3260,62 +3705,91 @@ class _PreDepartureCardState extends State<_PreDepartureCard> {
               child: InkWell(
                 borderRadius: BorderRadius.circular(18),
                 onTap: () => setState(() => _expanded = !_expanded),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              const LText('📦 Seyahat öncesi hallet',
-                                      '📦 Book before you go')
-                                  .of(lang),
-                              style: TextStyle(
-                                color: p.textPrimary,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              const LText(
-                                'Bunları şimdiden ayırt, yerin garanti olsun.',
-                                'Book now, secure your spot.',
-                              ).of(lang),
-                              style: TextStyle(
-                                color: p.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 56),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: p.accent.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child:
+                              const Text('📦', style: TextStyle(fontSize: 18)),
                         ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 7, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: p.accent.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${kPreDepartureAffiliates.length}',
-                          style: TextStyle(
-                            color: p.accent,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                const LText(
+                                  'Seyahat öncesi hallet',
+                                  'Book before you go',
+                                ).of(lang),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: p.textPrimary,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                const LText(
+                                  'Bunları şimdiden ayırt, yerin garanti olsun.',
+                                  'Book now, secure your spot.',
+                                ).of(lang),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: p.textSecondary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      AnimatedRotation(
-                        turns: _expanded ? 0.5 : 0,
-                        duration: const Duration(milliseconds: 180),
-                        child: Icon(Icons.keyboard_arrow_down_rounded,
-                            size: 22, color: p.textMuted),
-                      ),
-                    ],
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: p.accent.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${kPreDepartureAffiliates.length}',
+                            style: TextStyle(
+                              color: p.accent,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        AnimatedRotation(
+                          turns: _expanded ? 0.5 : 0,
+                          duration: const Duration(milliseconds: 180),
+                          child: Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            size: 22,
+                            color: p.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -3328,7 +3802,7 @@ class _PreDepartureCardState extends State<_PreDepartureCard> {
                 children: [
                   for (final link in kPreDepartureAffiliates)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.only(top: 8),
                       child: _AffiliateCard(link: link, palette: p, lang: lang),
                     ),
                 ],
