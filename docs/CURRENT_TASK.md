@@ -14,6 +14,18 @@ bağlamak, retry/fallback kaçaklarını kapatmak ve geniş QA ile doğrulamak.
 
 **Aktif yayın takibi:** `docs/TESTFLIGHT_READINESS.md`
 
+### 2026-08-18 — Planlarım kartlarında şehir rotası görünümü (tamamlandı)
+
+- [x] Plan kartlarını şehir hero görseli ve referans kart hiyerarşisine taşı.
+- [x] Çok şehirli planlarda şehirleri rota sırasıyla, ülke adıyla birlikte göster.
+- [x] Tarih aralığı, gün sayısı ve şehir sayısını TR/EN yerelleştir.
+- [x] Düzenle/sil aksiyonlarını kartın üst menüsünde koru; şehir sunum yardımcılarını test et.
+
+**Sonuç:** Planlarım ekranındaki düz satır kartlar, yerel şehir görseli,
+başlık, şehir rotası, kısa tarih aralığı, gün rozeti ve şehir rozeti taşıyan
+referans görünümlü kartlara dönüştürüldü. Şehirler plan verisindeki rota sırasına
+göre tekilleştirilerek gösteriliyor; analiz ve plan sunum testleri başarılı.
+
 Bir sonraki oturumda bu dosyanın **P0 / 1. Apple imzalama** bölümündeki ilk
 işaretlenmemiş maddeden devam edilir. Tamamlanan her madde kanıtıyla birlikte
 orada işaretlenir; bu dosyada ayrıca paralel bir checklist tutulmaz.

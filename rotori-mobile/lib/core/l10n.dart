@@ -4034,6 +4034,11 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: '{start} → {end}  ·  {n} gün',
     AppLang.en: '{start} → {end}  ·  {n} days'
   },
+  'plans.days': {AppLang.tr: '{n} gün', AppLang.en: '{n} days'},
+  'plans.destinations': {
+    AppLang.tr: '{n} şehir',
+    AppLang.en: '{n} cities',
+  },
   'plans.view': {AppLang.tr: 'Görüntüle', AppLang.en: 'View'},
   'plans.edit': {AppLang.tr: 'Düzenle', AppLang.en: 'Edit'},
   'plans.delete': {AppLang.tr: 'Sil', AppLang.en: 'Delete'},
