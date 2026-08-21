@@ -3,6 +3,47 @@
 > Sadece **append**. Eski kayıt silinmez; yanlış çıkarsa altına yeni bir
 > kayıt eklenir ve orijinali *supersedes* alanıyla bağlanır.
 
+## 2026-08-18 — Premium bilgilendirmeleri tek mor–altın sheet kullanır
+
+**Karar:** Kullanıcıyı ücretli bir özelliğin sınırı hakkında bilgilendiren
+modal yüzeyler tek `RotoriPremiumSheet` bileşenini kullanır. Tasarım seçici,
+rota optimizasyonu, hatırlatıcı ve fiyat etiketi tarayıcı aynı mor gradyan,
+altın madalyon, bağlama özel fayda satırları ve sarı “Anladım” aksiyonuyla
+açılır. Başlık, açıklama, ikon ve fayda metinleri özelliğe göre değişebilir;
+görsel kabuk, kapatma davranışı, güvenli alan ve büyük-yazı kaydırması değişmez.
+
+Sayfa içindeki Premium rozetleri ve kilitli tanıtım kartları modal uyarı
+değildir; mevcut bilgi mimarisini korur. Genel hata, silme ve izin uyarıları bu
+kararın kapsamında değildir.
+
+**Neden:** Aynı yetki sınırının beyaz, siyah ve mor üç ayrı sheet olarak
+görünmesi ürünün neyin Premium olduğunu anlatma biçimini tutarsızlaştırıyordu.
+Tek bileşen öngörülebilirlik, görsel bütünlük, TR/EN bakım kolaylığı ve dar
+ekran erişilebilirliği sağlar.
+
+---
+
+## 2026-08-17a — Rota Panoraması ücretsiz varsayılan, diğer viewer düzenleri premium
+
+**Supersedes:** `2026-08-14d` kaydındaki iki düzenli ilk sürüm kapsamı ve
+`viewer:template` için Yolculuk varsayılanı.
+
+**Karar:** Viewer üç düzen sunar: Rota Panoraması, Yolculuk ve Harita. Rota
+Panoraması ücretsiz ve yeni kurulumda seçili varsayılandır. Yolculuk ile Harita
+Rotori Pro kapsamındadır; ücretsiz kullanıcı bu kartları yatay önizleme
+galerisinde görebilir, ancak seçim yaptığında standart premium bilgilendirme
+sheet'ini görür ve mevcut düzen değişmez. Tasarım kartları gerçek ekran
+kompozisyonunu küçük ölçekte gösterir; seçili kart mavi çerçeve ve onay işareti
+ile, kilitli kart sağ üst kilit simgesi ile belirtilir.
+
+**Yolculuk hero'su:** `journey-progress-hero.webp` kartın arkasında düşük
+opaklıklı ve merkezlenmiş olarak kullanılır. İlerleme halkası ve metinler
+üstte kalır; görsel okunabilirliği bozmayacak nötr bir katmanla bastırılır.
+
+**Neden:** Kullanıcıya premium düzenlerin farkını seçimden önce anlatmak ve
+ücretsiz yüzeyde işe yarar, tamamlanmış bir başlangıç düzeni bırakmak gerekir.
+Yatay kaydırılan kartlar bu seçimi tek bakışta karşılaştırılabilir tutar.
+
 ---
 
 ## 2026-08-14h — Harita tile'ları önceden indirilmez ve diskte tutulmaz
@@ -1395,3 +1436,182 @@ proje saklama politikası ve destek üzerinden erken silme talebi kapsamındadı
 farklıdır. Ayrım, rota verisini üçüncü tarafa taşımadan başarı oranı, süre ve
 çıktı kalitesini ölçmeyi; Sentry'nin crash gruplama ve stack trace gücünden de
 yararlanmayı sağlar.
+
+---
+
+## 2026-08-16 — Yolculuk hero'su aktif şehre bağlı yerel fotoğraftır
+
+**Karar:** Plan oluştur kataloğundaki 21 şehir için Wikimedia Commons’tan
+özgür lisanslı bir baş görseli seçilir, WebP olarak uygulamaya gömülür ve
+`city_hero_assets.dart` üzerinden çözülür. Yolculuk tasarımında aktif günün
+destinasyon şehri değiştiğinde üst görsel de değişir; görsel Stack arka
+planında sabit kalır, ilerleme/sıradaki aktivite ve gün akışı üstüne kayar.
+
+**Neden:** Kullanıcının planı okurken hangi şehirde olduğunu ilk bakışta
+anlaması gerekiyor. Görseli ağdan çalışma zamanında çekmek çevrimdışı-öncelikli
+ürün davranışını bozar; yerel asset seti bunu korurken 21 şehirde tutarlı bir
+hero kompozisyonu sağlar. Kaynak dosyaları ve Commons bağlantıları
+`assets/images/city-hero-sources.md` içinde izlenebilir tutulur.
+
+---
+
+## 2026-08-17 — Şehir fotoğrafı Rota Panoraması kartına aittir
+
+**Supersedes:** `2026-08-16` kararındaki fotoğrafın Yolculuk hero'suna
+yerleştirilmesi ayrıntısı. Yerel asset seti, lisans kaydı ve aktif şehir
+çözümleme yaklaşımı korunur.
+
+**Karar:** Aktif günün şehir fotoğrafı tüm Yolculuk hero'suna yayılmaz. Görsel,
+yalnız Rota Panoraması kartının sınırları içinde; kart köşelerine kırpılmış,
+merkezlenmiş, oranı bozulmadan ölçeklenmiş ve düşük opaklıklı dekoratif arka
+plan olarak çizilir. Başlık, adım halkası ve metrikler her zaman ön planda ve
+okunabilir kalır. Telefonlarda kartın dış yatay boşluğu 16 dp tabanını, iç
+boşluğu ise genişliğe göre 14–18 dp aralığını korur.
+
+**Neden:** Şehir bağlamı günün rota metriklerine aittir; bütün Yolculuk
+başlığını fotoğrafa çevirmek bilgi hiyerarşisini değiştiriyor ve görseli yanlış
+tasarımda gösteriyordu. Sınırlı opaklık ve dengeli boşluklar Apple tasarımındaki
+sadelik, okunabilirlik ve mekânsal tutarlılık ilkelerini korur.
+
+---
+
+## 2026-08-17b — Seyahat detaylarında kompakt ve nötr Apple hiyerarşisi
+
+**Karar:** Harita hero'su önceki yüksekliğinin yaklaşık %90'ında ve 241–270 dp
+aralığında kalır. Tarih kartları çok renkli yüzeyler yerine nötr yüzey ve yalnız
+seçimde vurgu rengi kullanır. Sıradaki aktivite kartı yaklaşık %15 küçülür ancak
+44 dp dokunma hedefinin altına inmez. Uçuş kartları kalkış–rota–varış biçiminde
+üç sütunlu kurulur; gün farkı varış saatine binmeyen ayrı bir üst simgedir.
+
+Otel ekleme formu kullanıcı verisiymiş gibi algılanabilecek hiçbir örnek ad,
+adres, telefon veya bağlantı taşımaz ve boş açılır. “Google Maps’te otel bul”
+eylemi API anahtarı ya da ücretli Places entegrasyonu kullanmadan harici Google
+Maps aramasını açar; kullanıcı bulduğu adı, adresi veya paylaşım bağlantısını
+forma ekler.
+
+**Neden:** Sadelik, tutarlı boşluk ve tek vurgu rengi bilgi yoğun ekranı daha
+okunur kılar. Boş otel alanları gizlilik beklentisini korur; harici arama ise
+ücretli bir servis bağımlılığı ve yanıltıcı otomatik seçim vaadi oluşturmadan
+otel bulmayı kolaylaştırır.
+
+---
+
+## 2026-08-17c — Yolculuk hero görseli tam opaklıkta
+
+**Supersedes:** `2026-08-17a` kaydındaki Yolculuk hero'su düşük opaklık
+ayrıntısı.
+
+**Karar:** Yalnız Yolculuk ekranındaki `journey-progress-hero.webp` görseli
+tam opaklıkta (`1.0`) gösterilir. Rota Panoraması şehir görseli, tasarım
+önizlemeleri ve diğer viewer katmanları kendi opaklık değerlerini korur.
+
+**Neden:** Yolculuk ekranındaki görsel kompozisyon ürünün ana görsel anlatımı
+olduğundan, kullanıcı talebi doğrultusunda tam görünürlük önceliklendirildi.
+
+---
+
+## 2026-08-17d — Ödül kutlaması ve drawer keşif hiyerarşisi
+
+**Karar:** Rütbe atlama ödülü, arka planı karartan ve içeriği tek bir koyu cam
+kartta odaklayan modal yüzey olarak sunulur. Üstte sıcak ruby/altın madalyon,
+altın küçük başlık, alt çizgisiz rütbe adı/açıklaması, kısa mesaj çipi ve tek
+stadyum biçimli “Devam” aksiyonu bulunur. `reduceMotion` davranışı korunur.
+“Tasarımı değiştir” ile “Seyahat öncesi hallet” satırları Keşfet başlığının
+altındaki ortak inset-group içine alınır; Hesap bölümü bu iki yolculuk aracını
+tekrarlamaz.
+
+**Neden:** Ödül anı, arka plandaki planı geçici olarak susturup yeni rütbeyi
+anlaşılır bir hiyerarşiyle göstermelidir. Tasarım ve hazırlık araçları planı
+keşfetme/kişiselleştirme akışının parçasıdır; Hesap altında tutulmaları bilgi
+mimarisinde yanlış beklenti yaratıyordu. Alt çizgisiz tipografi, metinlerin
+bağlantı gibi algılanmasını önler.
+
+---
+
+## 2026-08-18 — Hazırlık aracı yalnız Keşfet menüsünde gösterilir
+
+**Supersedes:** Rehber yeniden tasarımında “Seyahat öncesi hallet” kartının
+konu listesinin altında ve konu detaylarında gösterilmesi ayrıntısı.
+
+**Karar:** “Seyahat öncesi hallet” kartı Rehber konu listesinde ve konu
+detaylarında gösterilmez. Hazırlık ekranına erişim Keşfet menüsündeki mevcut
+satır üzerinden korunur.
+
+**Neden:** Rehber, pratik bilgi konularına odaklı kalmalıdır. Aynı hazırlık
+aracını hem Rehber içinde hem Keşfet menüsünde tekrarlamak bilgi hiyerarşisini
+gereksiz yere kalabalıklaştırır.
+
+---
+
+## 2026-08-18 — Preview drawer çıkış aksiyonu login rotasına döner
+
+**Supersedes:** 2026-08-18 tarihli “Auth ve preview hesap aksiyonları” işindeki
+misafir satırını yalnızca pasif durum bilgisi yapan ayrıntı.
+
+**Karar:** Viewer drawer içindeki “Çıkış yap” satırı preview/oturumsuz
+kullanıcıda da görünür. Misafir satır seçildiğinde `/auth` rotası açılır;
+gerçek oturumda önce Supabase `signOut()` çağrılır, sonra aynı rota açıkça
+seçilir. Böylece preview kullanıcı login yüzeyine ulaşmak için görünür ve
+öngörülebilir bir hesap aksiyonuna sahip olur.
+
+**Neden:** Misafir durumda satırı tamamen saklamak, kullanıcıya oturum açma
+ve hesap değiştirme yolu bırakmıyordu. Aynı satır dili login ve logout
+durumlarını tek bir görünür aksiyonla birleştirir.
+
+---
+
+## 2026-08-18 — Preview auth işlemleri yerel başarıyla demo planına döner
+
+**Karar:** `preview_main.dart` Supabase başlatmadığı için `/auth` rotası
+`PreviewAuthRepository` kullanır. Google, Apple, e-posta giriş ve kayıt
+çağrıları ağ isteği üretmeden başarılı tamamlanır; `AuthScreen` callback'i
+preview router'ını `/plans` demo ekranına taşır. Production `AuthScreen`
+callback vermeden Supabase auth state akışını kullanmaya devam eder.
+
+Apple butonu private-use font karakteri yerine `LucideIcons.apple` ile çizilir;
+web ve native yüzeylerde eksik glif kutusu oluşmaz.
+
+**Neden:** Preview'ın sözleşmesi Supabase/login olmadan tüm ekranları görsel
+olarak gezdirmektir. Production repository'sini preview'da doğrudan okumak,
+her auth tıklamasında başlatılmamış Supabase assertion'ı üretiyordu. Yerel
+repository bu sınırı korurken kullanıcı akışını test edilebilir bırakır.
+
+---
+
+## 2026-08-21 — Faz 1 harita durakları zoom ile fotoğrafa dönüşür
+
+**Karar:** Tripist-benzeri ilk sürümde yalnız planlı duraklar fotoğraf marker'ı
+olabilir. `RouteMapSheet` ve Harita hero'su, `PlaceImageResolver` içindeki
+önceden küratörlenmiş görseli zoom 15 ve üzerinde gösterir; daha uzak ölçekte
+mevcut numaralı pin ve ad etiketi korunur. Görsel yüklenemezse numaralı pin
+fallback'i kullanılır. Harita pan/zoom sırasında Wikipedia araması, yakındaki
+POI keşfi veya yeni backend çağrısı başlatılmaz.
+
+**Ücretsiz kapsam:** Yeni harita SDK'sı, ücretli POI/imagery API'si, tile
+ön-indirmesi ve kalıcı görsel cache'i bu faza girmez. Mevcut OSM raster katmanı
+ve oturum içi cache politikası devam eder. Bu kapsam faz 1 için yeterli kabul
+edilir; çevredeki tüm işletmelerin keşfi ve zenginleştirilmiş yer kartları
+sonraki fazın konusudur.
+
+**Neden:** Fotoğrafı yalnız kullanıcı durağa yaklaştığında öne çıkarmak rota
+bağlamını ve sade başlangıç görünümünü birlikte korur. Küratörlü kaynakla
+çalışmak, hareketli harita sırasında belirsizliği ve ağ maliyetini azaltır.
+Wikimedia görsellerinin ücretsiz yeniden kullanım koşulları dosya bazında
+değişebildiği için yazar/lisans/atıf envanteri release öncesi zorunlu açık iş
+olarak kalır; bu karar lisans denetimini tamamlanmış saymaz.
+
+---
+
+## 2026-08-21 — Viewer drawer tek KEŞFET başlığı ve ortak açılır başlık dili kullanır
+
+**Karar:** Viewer drawer'da keşif araçlarının üst başlığı yalnızca **KEŞFET**
+olarak gösterilir. Planlama ve rehber listeleri alt başlık metinleri olmadan,
+aynı inset-group dili içinde boşlukla ayrılır. Uçuşlar ve Konaklama satırları
+aynı `_DrawerCollapsible` başlık ölçüsünü, yazı ağırlığını ve ikon/rozet
+oranını kullanır.
+
+**Neden:** “KEŞFET → PLANLAMA ARAÇLARI” gibi art arda gelen etiketler aynı
+bilgi alanını iki kez adlandırıyor ve drawer'ın üst bölümünü gereksiz yere
+uzatıyordu. Uçuşlar'ın daha küçük dense başlığı da aynı seviyedeki Konaklama
+satırıyla görsel dengeyi bozuyordu. Tek hiyerarşi ve ortak tipografi, hızlı
+tarama ile büyük yazı ayarlarında daha öngörülebilir kalır.

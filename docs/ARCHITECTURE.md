@@ -4,9 +4,8 @@
 > Kalıcı kurallar için `CLAUDE.md`, günlük iş için `CURRENT_TASK.md`.
 > Rota motorunun ayrıntılı akış ve maliyet notu: `ROUTE_OPTIMIZATION.md`.
 
-Son güncelleme: **2026-08-14** (§20 saha gerçekliği üretim controller'ına ve
-bağımsız validator'a bağlandı; §5 viewer drawer üç bölümlü hiyerarşiye ve
-kalıcı Yolculuk/Harita görünüm seçimine alındı).
+Son güncelleme: **2026-08-21** (§5 viewer haritasına zoom-gated planlı durak
+fotoğraf marker'ları eklendi; küratörlü görseller ve güvenli fallback korunur).
 
 ---
 
@@ -90,6 +89,10 @@ rotori-mobile/lib/features/
 - **Flutter mobil:** `lib/core/router.dart` içinde `go_router`. Provider adı
   `routerProvider`. Auth guard router seviyesinde; oturum yoksa `/auth`'a
   yönlendirir. Preview modu (`preview_main.dart`) router'ı bypass'lar.
+  Preview auth rotası Supabase başlatmadan `PreviewAuthRepository` kullanır;
+  Google, Apple ve kayıt aksiyonları gerçek oturum açmadan demo planlarına
+  dönen yerel başarı callback'iyle çalışır. Production router bu callback'i
+  kullanmaz; Supabase auth state yönlendirmeyi sürdürür.
 - **Web (legacy planner + viewer):** `apps/*/vite.config.ts` üstünden Vite
   route'ları; `docs/PHASE2-ROUTING.md` içinde nginx örneği.
 
@@ -103,17 +106,30 @@ rotori-mobile/lib/features/
   koyu veya Sakura tercihi varsayılan değişikliğinden etkilenmez.
 - **Viewer düzen şablonu:** Renk temasından bağımsız tek seçimli
   `ViewerTemplateId` kullanılır. `viewer:template` tercihi yerelde saklanır;
-  bilinmeyen veya eski değer güvenli biçimde `journeyProgress` varsayılanına
-  düşer. İlk sürümde kullanıcı **Yolculuk** ile **Harita** arasında seçim
-  yapar. İki şablon aynı anda uygulanmaz; plan verisi ve düzenleme komutları
-  şablondan bağımsız kalır. Harita şablonunda ayrıca tek bir
+  bilinmeyen veya eski değer güvenli biçimde **Rota Panoraması** varsayılanına
+  düşer. Kullanıcı üç şablonu yatay kaydırılan, her biri gerçek kompozisyonu
+  küçük ölçekte gösteren önizleme kartlarından seçer. Rota Panoraması ücretsiz
+  ve başlangıçta seçilidir; **Yolculuk** ile **Harita** Rotori Pro kapsamındadır
+  ve ücretsiz kullanıcıda kilitli görünür. İki şablon aynı anda uygulanmaz;
+  plan verisi ve düzenleme komutları şablondan bağımsız kalır. Harita şablonunda ayrıca tek bir
   `_selectedMapDayNumber` sunum durumu vardır: tarih çipi haritayı ve aşağıdaki
   tek günlük rota kartını aynı anda değiştirir; seçili olmayan günler bu
   görünümde çizilmez. Harita şablonunda düzenleme modu da bu seçime bağlıdır:
   harita görünür kalır ve yalnız seçili günün rota kartı düzenlenebilir.
+  Harita planlı durakları zoom 15 ve üzerinde `PlaceImageResolver` içindeki
+  önceden küratörlenmiş görsellerle fotoğraf marker'ı olarak gösterir; daha
+  uzak zoom'larda mevcut numaralı pin/etiket korunur. Bu katman pan veya zoom
+  sırasında yeni Wikipedia/POI araması başlatmaz; ağ görseli yüklenemezse pin
+  fallback'i kullanılır.
   Harita tarih şeridi telefonda tüm günleri mevcut genişliğe eşit dağıtır ve
-  yatay kaydırma üretmez. Yolculuk şablonunun hero alanı Japonya çizgi sanatı,
-  dört parçalı ilerleme halkası ve tek sıradaki-aktivite kartından oluşur.
+  yatay kaydırma üretmez. Yolculuk şablonunun hero alanı yerel
+  `journey-progress-hero.webp` görselini tam opaklıklı arka plan, dört
+  parçalı ilerleme halkasını ve tek sıradaki-aktivite kartını taşır. Aktif destinasyona göre
+  seçilen yerel şehir fotoğrafı tüm Yolculuk hero'suna yayılmaz; yalnız Rota
+  Panoraması kartında düşük opaklıklı, merkezlenmiş ve kontrollü ölçeklenmiş
+  dekoratif arka plan olarak kullanılır. Şehir anahtarları
+  `domain/city_hero_assets.dart` içinden `kCityData` alias'larıyla çözülür ve
+  görseller `assets/images/city-hero-*.webp` olarak paketlenir.
 - **Servis→UI:** UI `ref.watch()` ile Provider'ı dinler. Servis Supabase'e
   yazar, ardından provider `invalidate()` edilir.
 - **Optimistic UI** planner adımlarında bilinçli kullanılır (kullanıcı
@@ -167,7 +183,10 @@ rotori-mobile/lib/features/
   etkinliği doğru güne taşır, giriş saati hard constraint olur ve esnek duraklar
   rezervasyonun çevresine yeniden dizilir. Süre ile erken-varış payı hem bilette
   hem timeline öğesinde saklanır; rota optimizer'ı etkinlik bazlı erken-varış
-  payını sabit aktivite tamponunun alt sınırı olarak uygular.
+  payını sabit aktivite tamponunun alt sınırı olarak uygular. Yer detayındaki
+  “Bilet ekle” aksiyonu ayrı bir ekleme yüzeyi üretmez; detay sheet'ini kapatıp
+  kalıcı viewer shell içindeki Biletler sekmesine geçer ve cüzdanın ortak
+  fotoğraf/kamera/manuel ekleme panelini seçili aktiviteyle önceden doldurur.
 - Viewer hamburger menüsü `FittedBox` ile küçültülmez. Sabit marka/gezi başlığı
   altında kaydırılabilir **Yolculuk → Keşfet → Hesap** hiyerarşisi kullanır.
   Ayrı bir Araçlar bölümü yoktur; görünüm tercihi olan Tema, Hesap ayarlarıyla
@@ -425,6 +444,10 @@ aboneliği ise ayrıca iptal edilmedikçe **devam eder**. Silme akışı:
 - **Harita tile'ları** — standart OSM raster katmanı `NetworkImage` ile açılır.
   Toplu ön-indirme ve kalıcı disk cache yoktur; yalnız oturum içi Flutter
   `ImageCache` tekrarları hızlandırır.
+- **Harita durak görselleri** — yalnız `PlaceImageResolver.peekCurated()` ile
+  bilinen görseller kullanılır; harita hareketi sırasında Wikipedia fallback'i
+  veya POI araması yapılmaz. Görseller kalıcı olarak indirilmez. Wikimedia dosya
+  bazlı yazar/lisans atıfları release kapısından önce envanterlenmelidir.
 - **Home widget (iOS)** — App Group üzerinden `UserDefaults`'a yazar; web/Android'de no-op.
 - **Bildirim programı** — yerel `timezone` verisi ile `flutter_local_notifications`.
 - **Hatırlatıcı erişimi** — var olan hatırlatmalar görülebilir ve

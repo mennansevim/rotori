@@ -39,11 +39,11 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "cd rotori-mobile && flutter run -d web-server --release --web-hostname 127.0.0.1 --web-port 8092 -t lib/preview_main.dart"
+        "cd rotori-mobile && flutter run -d web-server --release --web-hostname 127.0.0.1 --web-port 8101 -t lib/preview_main.dart"
       ],
-      "port": 8092,
-      "url": "http://127.0.0.1:8092/",
-      "autoPort": false
+      "port": 8101,
+      "url": "http://127.0.0.1:8101/",
+      "autoPort": true
     },
     {
       "name": "flutter-real",

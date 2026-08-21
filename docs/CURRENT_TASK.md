@@ -3,10 +3,306 @@
 > Bu dosya *bugünkü* çalışmanın canlı görünümüdür. Her tamamlanan görevden
 > hemen sonra güncellenir.
 
-**Bugünün tarihi:** 2026-08-14
-**Aktif branch:** `feat/route-v3-field-reality`
+**Bugünün tarihi:** 2026-08-21
+**Aktif branch:** `main`
 **Sprint hedefi:** Rota v3 saha gerçekliği katmanını üretim çağrılarına
 bağlamak, retry/fallback kaçaklarını kapatmak ve geniş QA ile doğrulamak.
+
+### 2026-08-21 — Viewer drawer tipografi ve başlık hiyerarşisi (tamamlandı)
+
+- [x] Uçuşlar ve Konaklama açılır satırlarının başlık ölçüsünü ortaklaştır.
+- [x] KEŞFET altında tekrar eden PLANLAMA ARAÇLARI ve REHBERLER başlıklarını
+      kaldır; araç gruplarını tek KEŞFET başlığı altında tut.
+- [x] Drawer, otel ve uçuş regresyonlarını çalıştır; hedefli analizi temizle.
+
+**Sonuç:** Uçuşlar satırı artık Konaklama ile aynı ortak açılır başlık
+tipografisini kullanıyor. Keşfet alanında yalnızca bir üst başlık kalıyor;
+planlama ve rehber listeleri görsel olarak boşlukla ayrılan iki grup halinde
+okunuyor. Hedefli drawer/otel/uçuş testleri **18/18** geçti, analiz temiz.
+
+### 2026-08-21 — Faz 1 Tripist-benzeri durak fotoğraf marker'ları (tamamlandı)
+
+- [x] Planlı duraklarda mevcut küratörlü görselleri fotoğraf marker'ı olarak
+      kullan; görselleri harita yakınlaşınca görünür kıl.
+- [x] Harita pan/zoom sırasında yeni Wikipedia/POI araması başlatma; görsel
+      yüklenemezse mevcut numaralı marker'a güvenli biçimde dön.
+- [x] OSM/tile altyapısını ve ücretsiz kapsamı koru; etkileşimli tam haritada
+      zoom davranışını, hero önizlemesinde sakin başlangıç görünümünü doğrula.
+- [x] İlgili viewer harita testlerini ve hedefli analizi çalıştır.
+
+**Sonuç:** `RouteMapSheet` ve Harita hero'sundaki planlı duraklar zoom 15 ve
+üzerinde mevcut küratörlü görseli, daha uzak ölçekte ise mevcut numaralı pin ve
+etiketi gösteriyor. Görsel yüklenemezse pin görünümü korunuyor. Yeni POI API'si,
+backend veya tile ön-indirmesi eklenmedi. Hedefli analiz temiz; viewer harita,
+görsel resolver ve rehber testleri **40/40** geçti. Wikimedia görselleri için
+dosya bazlı yazar/lisans atıf envanteri release öncesi açık iştir.
+
+### 2026-08-21 — Web logosunu mobil kaynağıyla eşitleme (tamamlandı)
+
+- [x] Mobilde kullanılan `rotori-logo.png` dosyasını web asset'lerine ekle.
+- [x] Ana site, App Preview, destek ve gizlilik sayfalarındaki görünür marka
+      işaretlerini aynı logo kaynağına bağla.
+- [x] Favicon ve PWA ikon varyantlarını tarayıcı uyumluluğu için koru.
+
+**Sonuç:** `rotori-mobile/assets/images/rotori-logo.png` ile web'deki görünür
+logo kullanımları birebir eşitlendi. Yeni web asset'i kaynak dosyayla aynı
+SHA-1 değerini taşıyor.
+
+### 2026-08-19 — Günlük hava aksiyonu ve yağmur sıralaması (tamamlandı)
+
+- [x] Gün kartlarındaki “Rotayı optimize et” aksiyonunu “Havaya göre düzenle”
+      olarak değiştir; premium kilidini bu bağlamdan kaldır.
+- [x] Her günün altında mevcut güvenli rota önizleme/onay akışını hava aksiyonu
+      üzerinden erişilebilir tut.
+- [x] Hava aksiyonu için viewer regresyon testi ve hedefli analiz çalıştır.
+- [x] Yağışlı/sert hava günlerinde kapalı mekânları öne, açık hava duraklarını
+      sona alan kararlı kategori sınıflandırması üret; katalog placeId
+      kategorilerini ve metin sinyallerini birlikte kullan.
+- [x] Hava sırasını rota motoruna soft order hint olarak geçir; saatli ve
+      kilitli durakların hard constraint davranışını koru.
+
+**Sonuç:** Her gün kartındaki rota aksiyonu artık “Havaya göre düzenle” olarak
+görünüyor. Yağmur/sert hava tespitinde müze, akvaryum, alışveriş, restoran ve
+benzeri kapalı mekânlar öne; park, bahçe, doğa ve açık hava durakları sona
+alınıyor. Rota motoru ulaşım/açılış saatlerini yeniden doğruluyor; saatli ve
+kilitli duraklar korunuyor, plan yalnız kullanıcı onayıyla değişiyor. İlgili
+domain/controller/viewer/weather testleri geçti ve hedefli analiz temiz.
+
+
+### 2026-08-18 — Preview auth akışlarını çalıştırma (tamamlandı)
+
+- [x] Preview'da Supabase başlatılmadığı halde production auth repository'sine
+      giden Google, Apple ve kayıt aksiyonlarını yerel preview repository'sine
+      bağla.
+- [x] Başarılı preview auth işlemlerini demo planlarına döndüren callback ekle;
+      production auth state yönlendirmesini değiştirme.
+- [x] Apple butonundaki web font karakterini gerçek Apple ikonuyla değiştir;
+      preview auth testleri, analiz ve canlı 390×844 akışıyla doğrula.
+
+**Sonuç:** Preview auth ekranı artık Supabase istemcisi istemiyor. Google,
+Apple ve e-posta/şifre kayıt aksiyonları yerel preview repository'siyle
+başarılı olup `/plans` demo ekranına dönüyor. Apple ikonu web'de görünür hale
+geldi. Canlı preview'da üç akış da doğrulandı; auth testleri **12/12**, hedefli
+analiz temiz.
+
+### 2026-08-18 — Preview çıkış ve auth akışları (tamamlandı)
+
+- [x] Drawer'da “Çıkış yap” satırını misafir/preview kullanıcıda da göster;
+      dokununca login ekranına yönlendir, gerçek oturumda sign-out yapıp aynı
+      hedefe geç.
+- [x] Google ile giriş butonunun OAuth çağrısını ve kayıt modunun
+      `signUpWithPassword` çağrısını widget testleriyle doğrula.
+- [x] Çıkış satırının görünürlüğü ve login rotasına geçişi için drawer
+      regresyonu ekle; hedefli test ve analizi çalıştır.
+
+**Sonuç:** Preview drawer artık “Çıkış yap” satırını saklamıyor. Satır misafir
+kullanıcıyı doğrudan login rotasına götürüyor; giriş yapılmış kullanıcıda önce
+Supabase oturumu kapatılıyor, ardından aynı login rotası açılıyor. Google OAuth
+ve e-posta/şifreyle kayıt hareketleri widget testleriyle doğrulandı.
+
+### 2026-08-18 — Rehber hazırlık kartını kaldırma (tamamlandı)
+
+- [x] “Seyahat öncesi hallet” kartını Rehber konu listesi ve konu detayından
+      kaldır; Keşfet menüsündeki ayrı erişimi koru.
+- [x] Kartın Rehber'e geri eklenmesini yakalayan widget regresyonu ekle.
+
+**Sonuç:** Hazırlık kartı ve yalnız bu karta hizmet eden Rehber içi affiliate
+bileşeni kaldırıldı. Hazırlık akışının Keşfet menüsündeki girişi korunuyor.
+Rehber + drawer hedefli testleri **20/20** geçti, targeted analyze temiz,
+release web derlemesi başarılı ve Rehber listesinin sonu canlı preview'da
+görsel olarak doğrulandı.
+
+### 2026-08-18 — Rehber detay geçiş izi (tamamlandı)
+
+- [x] Videodaki hayalet izi üreten liste–detay cross-fade katmanını kaldır.
+- [x] Detayı sağdan, konu listesini soldan tam ekran genişliğinde ve kırpılmış
+      panel geçişleriyle aç; geri dönüşte yönleri tersine çevir.
+- [x] Geçişin ilk ve ara karelerini widget regresyonuyla; analiz, release web
+      derlemesi ve canlı preview akışıyla doğrula.
+
+**Sonuç:** Rehber sekmesindeki `AnimatedSwitcher` artık iki tam sayfayı
+cross-fade etmiyor. `ClipRect` içindeki anahtarlı tam genişlik geçişinde liste
+sola çıkarken detay sağdan geliyor; geri dönüşte hareket aynalanıyor. Böylece
+videoda görülen yarı saydam metin izi ortadan kalkıyor. Rehber + drawer hedefli
+testleri **20/20** geçti, targeted analyze temiz, release web derlemesi başarılı
+ve güncel Rehber → Para ve Ödeme akışı canlı preview'da açıldı.
+
+### 2026-08-18 — Premium uyarı standardı (tamamlandı)
+
+- [x] Tasarım seçici, rota optimizasyonu, hatırlatıcı ve fiyat etiketi
+      tarayıcı premium uyarılarını tek ortak bileşene bağla.
+- [x] Tüm premium sheet'lerde mor gradyan, altın madalyon, bağlama özel fayda
+      listesi ve sarı “Anladım” aksiyonunu standartlaştır.
+- [x] TR/EN metinleri, büyük yazıda kaydırma ve telefon görünümünü doğrula.
+
+**Sonuç:** Dört ayrı premium uyarısı `RotoriPremiumSheet` üzerinden aynı
+mor–altın görsel dili kullanıyor. Mevcut ekranlara özgü başlık, açıklama ve
+faydalar korunurken kapatma davranışı ve erişilebilir yerleşim ortaklaştı.
+Ortak bileşen, hatırlatıcı, fiyat tarayıcı ve viewer testleri başarılı;
+hedefli analiz temiz, release web derlemesi tamamlandı ve 390×844 ön izlemede
+tasarım seçici premium uyarısı taşmasız doğrulandı.
+
+### 2026-08-18 — Aktivite detayından ortak bilet ekleme (tamamlandı)
+
+- [x] Yer detayındaki “Bilet ekle” aksiyonunu ayrı kamera/galeri menüsünden
+      çıkarıp kalıcı alt menüdeki Biletler sekmesine bağla.
+- [x] Bilet cüzdanındaki ortak fotoğraf, kamera ve manuel ekleme panelini
+      aktivite bağlamıyla yeniden kullan; seçili aktivitede “Plandan seç”
+      tekrarını gösterme.
+- [x] Kaydedilen bileti `AttachTicketToActivity` ile seçili aktiviteye bağla;
+      eski doğrudan içe aktarma çağrılarını geriye uyumlu tut.
+
+**Sonuç:** Aktivite detayındaki CTA önce detay sheet'ini kapatıyor, Biletler
+sekmesine geçiyor ve ortak bilet ekleme panelini açıyor. Alt menü aynı viewer
+shell içinde sabit kalıyor. İlgili widget paketleri **65/65** geçti, hedefli
+analiz temiz, release web preview derlendi ve Tokyo Disneyland akışı açık
+önizlemede konsol hatası olmadan doğrulandı.
+
+### 2026-08-18 — Rehber sekmesi yeniden tasarımı (tamamlandı)
+
+- [x] Rehber'i büyük başlık, geziye bağlı açıklama ve tüm konularda çalışan
+      arama alanıyla yeniden düzenle.
+- [x] Acil Durum, Suica, Para ve İnternet için Hızlı erişim alanı ile tek
+      inset-group konu listesini; ikon, madde sayısı ve chevron hiyerarşisini
+      ekle.
+- [x] Konu detayını aynı Rehber sekmesinde geri düğmesiyle aç; üst durum
+      çubuğu ve sabit alt menüyü koru.
+
+**Sonuç:** Rehber büyük başlık, arama, Hızlı erişim ve inset konu listesiyle
+yenilendi; detay görünümü aynı sekmede açılıyor ve persistent shell korunuyor.
+Hedefli viewer testleri **67/67** geçti, targeted analyze **0 issue** verdi ve
+`flutter build web --release -t lib/preview_main.dart` başarılı oldu.
+390×844 web ön izlemesinde liste/detay taşmasız ve sabit alt menüyle görsel
+doğrulandı.
+
+### 2026-08-18 — Auth ve preview hesap aksiyonları (tamamlandı)
+
+- [x] Google giriş butonundaki tekrar eden `G` metnini kaldır; görünen ifade
+      yalnızca “Google ile Giriş Yap” olsun.
+- [x] Apple ile girişi iOS/macOS native akışında koru, web'de Supabase OAuth
+      akışını da göster; Google OAuth açılışını platform varsayılanına taşı.
+- [x] Preview'daki Misafir satırını pasif durum bilgisi yap; oturumsuz
+      kullanıcıya çalışmayan Çıkış yap aksiyonu gösterme.
+- [x] Auth etiketi, Apple görünürlüğü ve Misafir davranışı için regresyon testi
+      ekle; hedefli analiz ve release web derlemesini çalıştır.
+
+**Sonuç:** Auth ekranındaki Google etiketi düzeltildi. Apple butonu iOS/macOS'ta
+nonce doğrulamalı native akışı, web'de Supabase OAuth'u kullanıyor. Preview'da
+Misafir satırı drawer'ı kapatıp auth ekranına göndermiyor; Çıkış yap yalnızca
+gerçek oturumda gösteriliyor. Auth/drawer hedefli testleri ve değişen dosya
+analizi başarılı; güncel release web preview `rotori-mobile/build/web` altında
+üretildi. Drawer test paketinde önceki tasarım değişikliklerinden kalan 6→8
+ikon beklentisi ayrı tutuldu.
+
+### 2026-08-17 — Ödül kutlaması ve drawer yerleşimi (tamamlandı)
+
+- [x] Rütbe ödülü penceresini örnekteki koyu cam yüzey, madalyon, sıcak altın
+      vurgu ve tek “Devam” aksiyonuyla yenile; metinlerde alt çizgi kullanma.
+- [x] “Tasarımı değiştir” ve “Seyahat öncesi hallet” satırlarını Keşfet
+      başlığının altındaki gruba taşı; Hesap bölümünü yalnız hesap/uygulama
+      aksiyonlarıyla bırak.
+- [x] Türkçe ve İngilizce yardımcı metinleri ekle; drawer yerleşim testini yeni
+      bilgi mimarisine göre güncelle.
+
+**Sonuç:** Rütbe atlama penceresi referanstaki koyu, odaklı ödül yüzeyine
+yaklaştırıldı; madalyon üstte taşan sıcak ruby/altın görünümde, başlıklar ve
+CTA alt çizgisiz. Tasarım ve seyahat öncesi satırları Keşfet grubunun ilk iki
+öğesi olarak gösteriliyor. Analiz temiz, hedefli drawer senaryosu başarılı.
+
+### 2026-08-17 — Tasarım seçici kompakt ve erişilebilir sheet (tamamlandı)
+
+- [x] Tasarım seçiciyi telefon yüksekliğine uyumlu, en fazla %90 ekran
+      yüksekliğinde ve içerik kaydırılabilir olacak şekilde düzenle.
+- [x] Tasarım önizlemelerini, tema seçeneklerini ve dil butonlarını daha
+      kompakt ölçülere indir; “Bitir” düğmesini alt alanda sabit tut.
+
+**Sonuç:** Tasarım sheet'i artık içerik uzadığında yalnızca gövdeyi kaydırıyor;
+“Bitir” düğmesi her ekran yüksekliğinde görünür kalıyor. Önizleme kartı 184 dp,
+seçim satırları ve kapatma düğmesi daha dengeli dokunma alanlarıyla gösteriliyor.
+Widget testi, statik analiz ve release web önizlemesi başarılı.
+
+### 2026-08-17 — Uçuş kartı responsive son cilası (tamamlandı)
+
+- [x] Rota çizgisini sabit dar merkez kutusu yerine üç sütunlu akışın tamamına
+      yay; uçak ikonunu çizginin gerçek merkezine al.
+- [x] Varış bilgisini referanstaki şehir → IATA sırasına taşı; dar ekranda
+      şehir adlarının gereksiz kırpılmasını önle.
+- [x] Üst etiket, tarih, IATA rozeti ve iç girintileri referans yoğunluğuna
+      getir; TR/EN, aktarma ve gün aşımı davranışını koru.
+
+**Sonuç:** Drawer uçuş kartı 390 dp ön izlemede referans kompozisyonuna
+yaklaştırıldı. Noktalı rota iki yandan görünür, şehir/IATA hiyerarşisi iki
+uçta tutarlı ve kart içi yatay boşluklar dar ekranda taşmasız. Hedefli viewer
+widget paketi **48/48** geçti; Flutter web release ön izlemesi görsel olarak
+doğrulandı.
+
+### 2026-08-17 — Uçuşlar bölümü kompaktlaştırma (tamamlandı)
+
+- [x] Uçuş akordiyonunu ve iki uçuş kartını yaklaşık %40 daha küçük görsel
+      yoğunluğa indir; başlık, etiket, tarih, saat ve rota metriklerini birlikte
+      ölçekle.
+- [x] Kartlar küçülürken şehir/IATA, aktarma, süre ve gün aşımı bilgisini
+      koru; uçuş akordiyonunda 44 dp dokunma alanını koru.
+
+**Sonuç:** Uçuşlar bölümü dar ön izlemede daha az dikey alan kaplıyor; saatler,
+etiketler ve rota detayları yaklaşık %40 küçültüldü. Otel akordiyonu genel
+kabuk davranışını koruyor. Viewer widget paketi ve dosya analizi başarılı;
+390 dp release web ön izlemesi görsel olarak doğrulandı.
+
+### 2026-08-17 — Journey hero ve premium tasarım seçici (tamamlandı)
+
+- [x] Yolculuk hero'sunda `journey-progress-hero.webp` görselini düşük
+      opaklıklı, ortalanmış arka plan olarak kullan.
+- [x] Tasarım değiştir sheet'ini yatay kaydırılan, gerçek görsel önizlemeli
+      kartlara taşı; seçili tasarımı ve dokunma alanlarını okunaklı koru.
+- [x] Rota Panoraması'nı ücretsiz varsayılan bırak; Yolculuk ve Harita'yı
+      premium kilidi ve standart bilgilendirme sheet'iyle sınırla.
+
+**Sonuç:** Yeni kurulum Rota Panoraması ile açılıyor. Tasarım sheet'i yatay
+önizleme kartlarında seçili durumu, iki premium kilidini ve premium
+bilgilendirmesini gösteriyor. Yolculuk hero'su yerel görseli %100 opaklıkta
+merkezli arka plan olarak kullanıyor; ilerleme halkası ve metinler okunaklı
+kalıyor. İlgili viewer widget testleri **54/54** geçti, hedefli `flutter
+analyze --no-pub` temiz ve release web önizlemesi görsel olarak doğrulandı.
+
+### 2026-08-17 — Panorama, uçuş, harita ve otel tasarımı (tamamlandı)
+
+- [x] Aktif şehir fotoğrafını Yolculuk hero'sundan kaldırıp Rota Panoraması
+      kartına düşük opaklıklı, merkezlenmiş arka plan olarak taşı.
+- [x] Panorama kartının dış ve iç yatay boşluklarını dar telefonlarda dengeli
+      ve taşmasız hale getir.
+- [x] Drawer uçuş kartını referanstaki üç sütunlu saat–rota–saat düzenine taşı;
+      şehir/IATA ve gün aşımı bilgisinin saate binmesini engelle.
+- [x] Harita hero'sunu yaklaşık %10, Sıradaki kartını yaklaşık %15 küçült;
+      tarih kartlarını daha sade ve okunabilir Apple hiyerarşisine taşı.
+- [x] Otel ekleme formundaki kişisel örnek/metinleri tamamen temizle; ücretsiz
+      Google Maps araması açan yönlendirmeyi ve tek sütunlu telefon düzenini ekle.
+- [x] Hedefli widget testleri, analiz ve tarayıcı önizlemesiyle iki kez doğrula.
+
+**Sonuç:** Şehir fotoğrafı yalnız Rota Panoraması kartında %12,6 opaklıkla,
+merkezlenmiş ve karta kırpılmış olarak gösteriliyor; Yolculuk yeniden sakin
+çizgi desenini kullanıyor. Uçuş kartı üç sütunlu ve dar ekranda taşmasız;
+gün aşımı saatten ayrıldı. Harita 241–270 dp aralığına, Sıradaki kartı yaklaşık
+%15 daha küçük kompozisyona çekildi; tarih şeridi nötrleştirildi. Otel formu
+boş açılıyor, kişisel örnek içermiyor ve ücretsiz Google Maps araması sunuyor.
+İlgili widget paketleri iki turda **49/49**, tüm Flutter test paketi
+**1083/1083** başarılı; tam `flutter analyze` temiz ve tarayıcı önizlemesiyle
+görsel kontrol tamamlandı.
+
+---
+
+### 2026-08-17 — Uçuş kartı referans görseli (tamamlandı)
+
+- [x] Drawer içindeki uçuş kartını referanstaki gezi etiketi, tarih, büyük saat,
+      noktalı rota ve şehir/IATA düzenine taşı.
+- [x] Gidiş-dönüş, aktarma ve gün aşımı gösterimlerini koru; TR/EN ve dar
+      telefon görünümünü widget testleriyle doğrula.
+
+**Sonuç:** Drawer uçuş kartları referanstaki kompozisyona taşındı: `GEZİ/TRIP`
+etiketi ve tarih üst satıra, büyük saatler noktalı rota/uçak ikonunun iki yanına,
+şehir adları ayrı IATA rozetlerine alındı. Uçuş süresi, aktarma bilgisi ve gece
+varışında `+1` korunuyor. Hedefli analiz temiz; viewer regresyonları **46/46**
+başarılı.
 
 ---
 
@@ -29,6 +325,19 @@ göre tekilleştirilerek gösteriliyor; analiz ve plan sunum testleri başarıl�
 Bir sonraki oturumda bu dosyanın **P0 / 1. Apple imzalama** bölümündeki ilk
 işaretlenmemiş maddeden devam edilir. Tamamlanan her madde kanıtıyla birlikte
 orada işaretlenir; bu dosyada ayrıca paralel bir checklist tutulmaz.
+
+### 2026-08-16 — Şehir bazlı sabit hero görseli (tamamlandı)
+
+- [x] Plan oluştur kataloğundaki 21 şehir için yerel, özgür lisanslı Commons
+      hero görsellerini WebP asset olarak ekle.
+- [x] Yolculuk tasarımındaki üst görseli aktif destinasyon şehrine bağla.
+- [x] Görseli sabit tutup ilerleme/sıradaki aktivite ve gün akışını üzerine
+      kaydır; hedefli analiz ve viewer widget testini çalıştır.
+
+**Sonuç:** Tokyo’dan Okinawa’ya tüm şehirler için `city-hero-*.webp` asset’leri
+paketlendi. Yolculuk tasarımında günün destinasyonu değişince hero da değişiyor;
+şehir görseli sabit kalırken altındaki kart yüzeyi ve rota akışı üstüne kayıyor.
+Hedefli `flutter analyze` temiz, viewer test paketi **46/46** başarılı.
 
 ### 2026-08-14 — TestFlight kod hazırlığı ve harita politika düzeltmesi (tamamlandı)
 
