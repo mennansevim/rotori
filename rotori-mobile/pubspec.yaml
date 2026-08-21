@@ -108,6 +108,34 @@ flutter:
     - assets/images/experience-guide-hero.webp
     # ML Kit çeviri sonuçlarının yanında zorunlu Google Translate atfı.
     - assets/images/powered-by-google-translate.png
+    # Yolculuk ilerleme kartının Japonya çizimi (Tokyo Kulesi / Fuji + tapınak).
+    # Zemin şeffaf — elle çizilmiş vektör sanatın yerini aldı, palette.card
+    # her temada olduğu gibi arkadan görünür.
+    - assets/images/journey-progress-hero.webp
+    # Plan viewer hero'su: Plan oluştur'da seçilebilen her şehir için yerel,
+    # özgür lisanslı Commons görseli. Şehir anahtarları city_hero_assets.dart
+    # içinden çözülür; böylece aktif şehir değişince görsel de değişir.
+    - assets/images/city-hero-tokyo.webp
+    - assets/images/city-hero-kyoto.webp
+    - assets/images/city-hero-osaka.webp
+    - assets/images/city-hero-nara.webp
+    - assets/images/city-hero-hiroshima.webp
+    - assets/images/city-hero-sapporo.webp
+    - assets/images/city-hero-kanazawa.webp
+    - assets/images/city-hero-yokohama.webp
+    - assets/images/city-hero-hakone.webp
+    - assets/images/city-hero-kamakura.webp
+    - assets/images/city-hero-fuji.webp
+    - assets/images/city-hero-nikko.webp
+    - assets/images/city-hero-nagoya.webp
+    - assets/images/city-hero-kobe.webp
+    - assets/images/city-hero-himeji.webp
+    - assets/images/city-hero-takayama.webp
+    - assets/images/city-hero-matsumoto.webp
+    - assets/images/city-hero-fukuoka.webp
+    - assets/images/city-hero-nagasaki.webp
+    - assets/images/city-hero-hakodate.webp
+    - assets/images/city-hero-okinawa.webp
     # Yıl bazlı birim maliyet tablosu (bütçe tahmini; elle düzenlenebilir).
     - assets/data/unit_costs.ini
 

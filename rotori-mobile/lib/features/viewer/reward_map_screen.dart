@@ -69,8 +69,13 @@ Color _rankColor(ViewerPalette p, int tier) {
 }
 
 class RewardMapScreen extends ConsumerStatefulWidget {
-  const RewardMapScreen({super.key, required this.trip});
+  const RewardMapScreen({
+    super.key,
+    required this.trip,
+    this.bottomNavigationBar,
+  });
   final Trip trip;
+  final Widget? bottomNavigationBar;
 
   @override
   ConsumerState<RewardMapScreen> createState() => _RewardMapScreenState();
@@ -126,7 +131,6 @@ class _RewardMapScreenState extends ConsumerState<RewardMapScreen> {
       transitionDuration:
           reduceMotion ? Duration.zero : const Duration(milliseconds: 320),
       pageBuilder: (_, __, ___) => _RankUpCelebration(
-        palette: palette,
         rank: rank,
         color: _rankColor(palette, tier),
         reduceMotion: reduceMotion,
@@ -248,6 +252,7 @@ class _RewardMapScreenState extends ConsumerState<RewardMapScreen> {
                 ..onDiscovered = _showDiscovery
                 ..onBadgesEarned = _showBadges,
             ),
+      bottomNavigationBar: widget.bottomNavigationBar,
     );
   }
 }
@@ -887,19 +892,16 @@ class _TrackingButton extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Ghibli esintili rütbe-atlama kutlaması — yumuşak sıcak ışık, yukarı süzülen
-// toz zerreleri (susuwatari) + altın parıltılar ve nazikçe beliren madalyon.
-// ~2.8 sn sonra kendiliğinden yumuşakça kapanır.
+// Rütbe-atlama kutlaması — örnek tasarımdaki koyu cam yüzey, sıcak altın
+// vurgular ve üstte taşan madalyon. Hareket azaltma tercihi korunur.
 // ---------------------------------------------------------------------------
 
 class _RankUpCelebration extends StatefulWidget {
   const _RankUpCelebration({
-    required this.palette,
     required this.rank,
     required this.color,
     required this.reduceMotion,
   });
-  final ViewerPalette palette;
   final _RankInfo rank;
   final Color color;
   final bool reduceMotion;
@@ -957,7 +959,6 @@ class _RankUpCelebrationState extends State<_RankUpCelebration>
   @override
   Widget build(BuildContext context) {
     final s = LanguageScope.of(context);
-    final p = widget.palette;
     final color = widget.color;
 
     return GestureDetector(
@@ -1024,7 +1025,6 @@ class _RankUpCelebrationState extends State<_RankUpCelebration>
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 360),
                       child: _RankUpCard(
-                        palette: p,
                         rank: widget.rank,
                         color: color,
                         label: s.s('reward.rankUp.label'),
@@ -1049,7 +1049,6 @@ class _RankUpCelebrationState extends State<_RankUpCelebration>
 /// yüksek kontrastlı merkez kart.
 class _RankUpCard extends StatelessWidget {
   const _RankUpCard({
-    required this.palette,
     required this.rank,
     required this.color,
     required this.label,
@@ -1059,7 +1058,6 @@ class _RankUpCard extends StatelessWidget {
     required this.onClose,
   });
 
-  final ViewerPalette palette;
   final _RankInfo rank;
   final Color color;
   final String label;
@@ -1070,30 +1068,32 @@ class _RankUpCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final secondaryColor = Colors.white.withValues(alpha: 0.86);
+    const warmGold = Color(0xFFE6C07A);
+    const cream = Color(0xFFFFF5EA);
+    final secondaryColor = Colors.white.withValues(alpha: 0.82);
 
     return Stack(
       alignment: Alignment.topCenter,
       children: [
         Container(
-          margin: const EdgeInsets.only(top: 58),
-          padding: const EdgeInsets.fromLTRB(20, 72, 20, 18),
+          margin: const EdgeInsets.only(top: 62),
+          padding: const EdgeInsets.fromLTRB(22, 76, 22, 22),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(30),
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Color.lerp(color, Colors.black, .66)!,
-                Color.lerp(palette.bg, Colors.black, .52)!,
+                const Color(0xFF202632),
+                Color.lerp(const Color(0xFF241418), color, .14)!,
               ],
             ),
-            border: Border.all(color: Colors.white.withValues(alpha: .20)),
+            border: Border.all(color: warmGold.withValues(alpha: .48)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: .42),
-                blurRadius: 28,
-                offset: const Offset(0, 10),
+                blurRadius: 34,
+                offset: const Offset(0, 14),
               ),
             ],
           ),
@@ -1105,11 +1105,12 @@ class _RankUpCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       label,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.82),
-                        fontSize: 12,
+                      style: const TextStyle(
+                        color: warmGold,
+                        fontSize: 12.5,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: 1.8,
+                        letterSpacing: 1.7,
+                        decoration: TextDecoration.none,
                       ),
                     ),
                   ),
@@ -1130,10 +1131,11 @@ class _RankUpCard extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 36,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.4,
-                  height: 1,
+                  fontSize: 42,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.6,
+                  height: 1.04,
+                  decoration: TextDecoration.none,
                 ),
               ),
               const SizedBox(height: 6),
@@ -1145,18 +1147,21 @@ class _RankUpCard extends StatelessWidget {
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   height: 1.2,
+                  decoration: TextDecoration.none,
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 18),
               Container(
                 width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.20),
-                  borderRadius: BorderRadius.circular(14),
+                  color: Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(18),
                   border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                      Border.all(color: Colors.white.withValues(alpha: 0.14)),
                 ),
                 child: Text(
                   body,
@@ -1166,21 +1171,25 @@ class _RankUpCard extends StatelessWidget {
                     fontSize: 14,
                     height: 1.42,
                     fontWeight: FontWeight.w500,
+                    decoration: TextDecoration.none,
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: onClose,
                   style: FilledButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Color.lerp(color, Colors.black, .45),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    backgroundColor: cream,
+                    foregroundColor: const Color(0xFF6F2424),
+                    minimumSize: const Size.fromHeight(52),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: const StadiumBorder(),
                     textStyle: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      decoration: TextDecoration.none,
                     ),
                   ),
                   child: Text(actionLabel),
@@ -1203,23 +1212,30 @@ class _GlowMedallion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const ruby = Color(0xFF8F2E2C);
+    const rose = Color(0xFFC85A51);
+    const warmGold = Color(0xFFF6D7AE);
     return Container(
-      width: 116,
-      height: 116,
+      width: 122,
+      height: 122,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [color, Color.lerp(color, Colors.black, 0.24)!],
+          colors: [Color.lerp(rose, color, .18)!, ruby],
         ),
-        border:
-            Border.all(color: Colors.white.withValues(alpha: 0.30), width: 2),
+        border: Border.all(color: warmGold.withValues(alpha: 0.82), width: 2),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha: 0.55),
-            blurRadius: 40,
-            spreadRadius: 4,
+            color: warmGold.withValues(alpha: 0.22),
+            blurRadius: 18,
+            spreadRadius: 2,
+          ),
+          BoxShadow(
+            color: color.withValues(alpha: 0.58),
+            blurRadius: 34,
+            spreadRadius: 5,
           ),
         ],
       ),
@@ -1232,6 +1248,7 @@ class _GlowMedallion extends StatelessWidget {
           fontSize: kanji.runes.length > 1 ? 44 : 60,
           fontWeight: FontWeight.w700,
           height: 1,
+          decoration: TextDecoration.none,
         ),
       ),
     );

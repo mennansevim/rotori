@@ -20,19 +20,29 @@ enum ViewerThemeId { japanDark, appleLight, sakuraSoft }
 /// Viewer'ın renklerinden bağımsız gün-akışı düzeni.
 ///
 /// Seçim yalnız sunumu değiştirir; plan ve rota modellerine yazılmaz.
-enum ViewerTemplateId { journeyProgress, mapFocus }
+enum ViewerTemplateId { journeyProgress, mapFocus, routePanorama }
 
 extension ViewerTemplateIdX on ViewerTemplateId {
   String get storageKey => switch (this) {
         ViewerTemplateId.journeyProgress => 'journey-progress',
         ViewerTemplateId.mapFocus => 'map-focus',
+        ViewerTemplateId.routePanorama => 'route-panorama',
       };
 
   static ViewerTemplateId fromStorage(String? raw) => switch (raw) {
         'journey-progress' || 'calm-cards' => ViewerTemplateId.journeyProgress,
         'map-focus' || 'compact-timeline' => ViewerTemplateId.mapFocus,
-        _ => ViewerTemplateId.journeyProgress,
+        'route-panorama' => ViewerTemplateId.routePanorama,
+        _ => ViewerTemplateId.routePanorama,
       };
+
+  /// Gün akışı (gün kartları listesi) bu tasarımda yolculuk düzeniyle aynı mı?
+  ///
+  /// Rota Panoraması yalnızca başlığı değiştirir; altındaki her şey yolculuk
+  /// tasarımının aynısıdır.
+  bool get usesJourneyLayout =>
+      this == ViewerTemplateId.journeyProgress ||
+      this == ViewerTemplateId.routePanorama;
 }
 
 extension ViewerThemeIdX on ViewerThemeId {
@@ -224,9 +234,15 @@ class ViewerPalette {
       brightness: brightness,
     ).copyWith(
       primary: accent,
+      onPrimary: Colors.white,
       secondary: sakura,
+      onSecondary: brightness == Brightness.dark ? Colors.black : textPrimary,
+      error: sunset,
+      onError: textPrimary,
       surface: card,
       onSurface: textPrimary,
+      outline: border,
+      outlineVariant: borderStrong,
     );
     return base.copyWith(
       brightness: brightness,
@@ -317,7 +333,7 @@ final viewerPaletteProvider = Provider<ViewerPalette>((ref) {
 });
 
 class ViewerTemplateNotifier extends StateNotifier<ViewerTemplateId> {
-  ViewerTemplateNotifier(this._ref) : super(ViewerTemplateId.journeyProgress) {
+  ViewerTemplateNotifier(this._ref) : super(ViewerTemplateId.routePanorama) {
     _load();
   }
 

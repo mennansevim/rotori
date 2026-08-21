@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:rotori/domain/types.dart';
 import 'package:rotori/features/shared/place_detail_sheet.dart';
 
@@ -77,5 +78,53 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Shibuya Sky'), findsNothing);
+  });
+
+  testWidgets('bilet içe aktarma iptali hata mesajı göstermez', (tester) async {
+    final item = TimelineItem(
+      id: 'ticket-cancel',
+      title: 'teamLab Planets',
+      kind: TimelineItemKind.activity,
+    );
+    TimelineItem? delegatedItem;
+    ImageSource? delegatedSource;
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: Builder(
+          builder: (context) => FilledButton(
+            onPressed: () => showPlaceDetailSheet(
+              context: context,
+              item: item,
+              city: 'Tokyo',
+              countryCode: 'JP',
+              onImportTicket: (receivedItem, source) async {
+                delegatedItem = receivedItem;
+                delegatedSource = source;
+                return false;
+              },
+            ),
+            child: const Text('aç'),
+          ),
+        ),
+      ),
+    ));
+
+    await tester.tap(find.text('aç'));
+    await tester.pumpAndSettle();
+    final addTicket = find.byKey(const ValueKey('place-detail-add-ticket'));
+    await tester.dragUntilVisible(
+      addTicket,
+      find.byType(ListView).last,
+      const Offset(0, -300),
+    );
+    await tester.tap(addTicket);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Galeri'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bilet eklenemedi — tekrar deneyin'), findsNothing);
+    expect(find.text('Bilet eklendi'), findsNothing);
+    expect(delegatedItem, same(item));
+    expect(delegatedSource, ImageSource.gallery);
   });
 }

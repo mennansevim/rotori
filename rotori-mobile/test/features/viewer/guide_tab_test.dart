@@ -1,7 +1,7 @@
 // Rehber sekmesi — yeni bilgi mimarisi sözleşmesi.
 //
 // 1) büyük "Rehber" başlığı + "Hızlı erişim" + "Tüm konular" görünür,
-// 2) "Seyahat öncesi hallet" başlığın üstünü işgal etmez,
+// 2) "Seyahat öncesi hallet" Rehber içinde görünmez,
 // 3) konu seçimi aynı sekmede temiz detay görünümü açar,
 // 4) arama, detay dönüşünde korunur ve çocuk filtrelemesi bozulmaz.
 
@@ -81,10 +81,38 @@ void main() {
 
   Finder guideKey(String key) => find.byKey(ValueKey(key));
 
+  SlideTransition closestSlideTo(
+    WidgetTester tester,
+    Finder descendant,
+  ) {
+    SlideTransition? result;
+    tester.element(descendant).visitAncestorElements((element) {
+      if (element.widget case final SlideTransition transition) {
+        result = transition;
+        return false;
+      }
+      return true;
+    });
+    return result!;
+  }
+
+  bool hasFadeBeforeGuideSwitcher(
+    WidgetTester tester,
+    Finder descendant,
+  ) {
+    var hasFade = false;
+    tester.element(descendant).visitAncestorElements((element) {
+      if (element.widget is AnimatedSwitcher) return false;
+      if (element.widget is FadeTransition) hasFade = true;
+      return true;
+    });
+    return hasFade;
+  }
+
   TextField searchField(WidgetTester tester) =>
       tester.widget<TextField>(guideKey('viewer-guide-search'));
 
-  testWidgets('rehber başlığı, hızlı erişim ve yardımcı satır görünür',
+  testWidgets('rehber başlığı ve konular görünür, hazırlık kartı görünmez',
       (tester) async {
     final trip = baseTrip();
     await openGuide(tester, trip);
@@ -108,13 +136,8 @@ void main() {
       await settle(tester);
     }
 
-    expect(prep, findsOneWidget);
-
-    expect(
-      tester.getTopLeft(prep).dy,
-      greaterThan(tester.getTopLeft(allTopics).dy),
-      reason: 'yardımcı satır konu listesi başlığının üstünde kalmamalı',
-    );
+    expect(prep, findsNothing);
+    expect(find.text('Seyahat öncesi hallet'), findsNothing);
   });
 
   testWidgets('konuya dokununca aynı sekmede detay açılır', (tester) async {
@@ -129,6 +152,78 @@ void main() {
     expect(guideKey('viewer-quick-nav'), findsOneWidget);
     expect(guideTextContaining('EN KOLAY YOL'), findsOneWidget);
     expect(find.text('Rehber'), findsWidgets);
+  });
+
+  testWidgets('detay açılışı sağdan, konu listesine dönüş soldan gelir',
+      (tester) async {
+    final trip = baseTrip();
+    await openGuide(tester, trip);
+
+    await tester.tap(guideKey('guide-topic-2'));
+    await tester.pump(const Duration(milliseconds: 110));
+
+    final detailSlide = closestSlideTo(tester, guideKey('guide-back-all'));
+    expect(
+      detailSlide.position.value.dx,
+      greaterThan(0),
+    );
+
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(guideKey('guide-back-all'));
+    await tester.pump(const Duration(milliseconds: 110));
+
+    final listSlide = closestSlideTo(tester, guideKey('guide-title'));
+    expect(
+      listSlide.position.value.dx,
+      lessThan(0),
+    );
+
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.enterText(
+      guideKey('viewer-guide-search'),
+      'Welcome Suica',
+    );
+    await tester.pump(const Duration(milliseconds: 110));
+
+    final searchDetailSlide =
+        closestSlideTo(tester, guideKey('guide-back-all'));
+    expect(
+      searchDetailSlide.position.value.dx,
+      greaterThan(0),
+    );
+  });
+
+  testWidgets('rehber sayfaları iz bırakmadan karşı yönlere kayar',
+      (tester) async {
+    final trip = baseTrip();
+    await openGuide(tester, trip);
+
+    await tester.tap(guideKey('guide-topic-2'));
+    await tester.pump();
+
+    final detailSlide = closestSlideTo(tester, guideKey('guide-back-all'));
+    expect(
+      detailSlide.position.value.dx,
+      closeTo(1, 0.001),
+      reason: 'detay, eski sayfanın üstünde değil ekranın sağından başlamalı',
+    );
+    expect(
+      hasFadeBeforeGuideSwitcher(tester, guideKey('guide-back-all')),
+      isFalse,
+      reason: 'iki tam sayfa cross-fade edilince metinler hayalet iz bırakıyor',
+    );
+
+    await tester.pump(const Duration(milliseconds: 110));
+
+    expect(
+      closestSlideTo(tester, guideKey('guide-back-all')).position.value.dx,
+      greaterThan(0),
+    );
+    expect(
+      closestSlideTo(tester, guideKey('guide-title')).position.value.dx,
+      lessThan(0),
+      reason: 'liste sola çıkarken detay sağdan girmeli',
+    );
   });
 
   testWidgets('arama eşleşen konuyu açar ve geri dönüşte aramayı korur',

@@ -77,6 +77,18 @@ void main() {
     await tester.pump(const Duration(milliseconds: 80));
 
     expect(find.text(tr('hotels.saveHotel')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('hotel-find-on-google-maps')),
+      findsOneWidget,
+    );
+    expect(find.text('Hotel Grand City'), findsNothing);
+    expect(find.textContaining('Ikebukuro'), findsNothing);
+    expect(find.textContaining('ホテルグランドシティ'), findsNothing);
+
+    for (final field in tester.widgetList<TextField>(find.byType(TextField))) {
+      expect(field.controller?.text ?? '', isEmpty);
+      expect(field.decoration?.hintText, isNull);
+    }
   });
 
   /// Tarih seçiciyi açıp ilk uygun günü onaylar. `_valid` bunları şart
@@ -84,9 +96,11 @@ void main() {
   Future<void> pickBothDates(WidgetTester tester) async {
     for (var i = 0; i < 2; i++) {
       await tester.tap(
-        find.byWidgetPredicate(
-          (w) => w.runtimeType.toString() == '_DateBox',
-        ).at(i),
+        find
+            .byWidgetPredicate(
+              (w) => w.runtimeType.toString() == '_DateBox',
+            )
+            .at(i),
       );
       await tester.pumpAndSettle();
       await tester.tap(find.text('OK'));

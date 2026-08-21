@@ -36,11 +36,14 @@ void main() {
     PlanOptimizationPreview previewWith({
       required RouteSummary before,
       required RouteSummary after,
+      Trip? originalTrip,
+      Trip? optimizedTrip,
+      List<String> preferredActivityOrder = const [],
     }) {
-      final trip = _tripWith();
+      final trip = originalTrip ?? _tripWith();
       return PlanOptimizationPreview(
         originalTrip: trip,
-        optimizedTrip: trip,
+        optimizedTrip: optimizedTrip ?? trip,
         dayNumber: 1,
         before: before,
         after: after,
@@ -64,6 +67,7 @@ void main() {
           optimizationChanges: const [],
         ),
         cacheKey: 'k',
+        preferredActivityOrder: preferredActivityOrder,
       );
     }
 
@@ -98,7 +102,8 @@ void main() {
 
     test('süre eşitse sırayla yürüyüş, aktarma, maliyete bakılır', () {
       expect(
-        previewWith(before: summary(), after: summary(walking: 10)).improvesRoute,
+        previewWith(before: summary(), after: summary(walking: 10))
+            .improvesRoute,
         isTrue,
       );
       expect(
@@ -115,6 +120,32 @@ void main() {
         previewWith(before: summary(), after: summary(walking: 40, cost: 500))
             .improvesRoute,
         isFalse,
+      );
+    });
+
+    test('hava sıra ipucuna yaklaşan aday eşit metrikte uygulanabilir', () {
+      final original = _tripWith();
+      original.days.single.items.addAll([
+        TimelineItem(id: 'park', title: 'Ueno Parkı'),
+        TimelineItem(id: 'museum', title: 'Tokyo Ulusal Müzesi'),
+      ]);
+      final optimized = Trip.fromJson(original.toJson());
+      optimized.days.single.items
+        ..clear()
+        ..addAll([
+          TimelineItem(id: 'museum', title: 'Tokyo Ulusal Müzesi'),
+          TimelineItem(id: 'park', title: 'Ueno Parkı'),
+        ]);
+
+      expect(
+        previewWith(
+          before: summary(),
+          after: summary(),
+          originalTrip: original,
+          optimizedTrip: optimized,
+          preferredActivityOrder: const ['museum', 'park'],
+        ).improvesRoute,
+        isTrue,
       );
     });
   });

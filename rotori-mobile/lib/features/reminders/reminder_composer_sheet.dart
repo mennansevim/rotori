@@ -6,6 +6,7 @@ import '../../data/reminders_store.dart';
 import '../../domain/booking_windows.dart';
 import '../../domain/localized_text.dart';
 import '../notifications/notifications_service.dart';
+import '../shared/rotori_premium_sheet.dart';
 
 Future<int?> showReminderComposerSheet(
   BuildContext context, {
@@ -13,12 +14,28 @@ Future<int?> showReminderComposerSheet(
   String? initialWindowId,
 }) {
   if (!isPremium) {
-    return showModalBottomSheet<int>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const _ReminderPremiumSheet(),
+    final s = LanguageScope.of(context);
+    return showRotoriPremiumSheet<int>(
+      context,
+      title: s.s('reminders.premiumTitle'),
+      body: s.s('reminders.premiumBody'),
+      closeLabel: s.s('reminders.premiumClose'),
+      sheetKey: const ValueKey('reminder-premium-sheet'),
+      closeButtonKey: const ValueKey('reminder-premium-close'),
+      benefits: [
+        RotoriPremiumBenefit(
+          icon: Icons.event_available_rounded,
+          text: s.s('reminders.premiumBenefitDates'),
+        ),
+        RotoriPremiumBenefit(
+          icon: Icons.layers_rounded,
+          text: s.s('reminders.premiumBenefitMultiple'),
+        ),
+        RotoriPremiumBenefit(
+          icon: Icons.tune_rounded,
+          text: s.s('reminders.premiumBenefitCustom'),
+        ),
+      ],
     );
   }
   return showModalBottomSheet<int>(
@@ -28,148 +45,6 @@ Future<int?> showReminderComposerSheet(
     backgroundColor: Colors.transparent,
     builder: (_) => _ReminderComposerSheet(initialWindowId: initialWindowId),
   );
-}
-
-class _ReminderPremiumSheet extends StatelessWidget {
-  const _ReminderPremiumSheet();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final s = LanguageScope.of(context);
-    const gold = Color(0xFFFFD166);
-    return Material(
-      key: const ValueKey('reminder-premium-sheet'),
-      color: Colors.transparent,
-      child: Container(
-        decoration: const BoxDecoration(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF211A47), Color(0xFF3A286D)],
-          ),
-        ),
-        padding: EdgeInsets.fromLTRB(
-          22,
-          14,
-          22,
-          22 + MediaQuery.paddingOf(context).bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 42,
-              height: 5,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: .25),
-                borderRadius: BorderRadius.circular(99),
-              ),
-            ),
-            const SizedBox(height: 22),
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: gold.withValues(alpha: .15),
-                shape: BoxShape.circle,
-                border: Border.all(color: gold.withValues(alpha: .42)),
-              ),
-              child: const Icon(
-                Icons.workspace_premium_rounded,
-                color: gold,
-                size: 31,
-              ),
-            ),
-            const SizedBox(height: 15),
-            Text(
-              s.s('reminders.premiumTitle'),
-              style: theme.textTheme.headlineSmall?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -.5,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              s.s('reminders.premiumBody'),
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.white.withValues(alpha: .78),
-                height: 1.45,
-              ),
-            ),
-            const SizedBox(height: 18),
-            for (final item in [
-              ('reminders.premiumBenefitDates', Icons.event_available_rounded),
-              ('reminders.premiumBenefitMultiple', Icons.layers_rounded),
-              ('reminders.premiumBenefitCustom', Icons.tune_rounded),
-            ]) ...[
-              _PremiumBenefit(icon: item.$2, text: s.s(item.$1)),
-              const SizedBox(height: 9),
-            ],
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                key: const ValueKey('reminder-premium-close'),
-                onPressed: () => Navigator.pop(context),
-                style: FilledButton.styleFrom(
-                  backgroundColor: gold,
-                  foregroundColor: const Color(0xFF211A47),
-                  minimumSize: const Size.fromHeight(52),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: Text(
-                  s.s('reminders.premiumClose'),
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PremiumBenefit extends StatelessWidget {
-  const _PremiumBenefit({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: .09),
-            borderRadius: BorderRadius.circular(11),
-          ),
-          child: Icon(icon, size: 18, color: const Color(0xFFFFD166)),
-        ),
-        const SizedBox(width: 11),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: .9),
-              fontSize: 13,
-              height: 1.3,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 }
 
 class _ReminderComposerSheet extends ConsumerStatefulWidget {
@@ -419,21 +294,21 @@ class _ReminderComposerSheetState
                   ],
                   FilledButton.icon(
                     key: const ValueKey('save-reminders'),
-                onPressed: _canSave && !_saving ? _save : null,
-                icon: _saving
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.notifications_active_rounded),
-                label: Text(
-                  _saving
-                      ? const LText('Ekleniyor…', 'Adding…').of(lang)
-                      : const LText(
-                          'Seçilen hatırlatıcıları ekle',
-                          'Add selected reminders',
-                        ).of(lang),
-                ),
+                    onPressed: _canSave && !_saving ? _save : null,
+                    icon: _saving
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.notifications_active_rounded),
+                    label: Text(
+                      _saving
+                          ? const LText('Ekleniyor…', 'Adding…').of(lang)
+                          : const LText(
+                              'Seçilen hatırlatıcıları ekle',
+                              'Add selected reminders',
+                            ).of(lang),
+                    ),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size.fromHeight(52),
                       shape: RoundedRectangleBorder(

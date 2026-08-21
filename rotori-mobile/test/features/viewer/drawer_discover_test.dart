@@ -17,6 +17,7 @@ import 'package:rotori/domain/types.dart';
 import 'package:rotori/features/plans/plan_providers.dart';
 import 'package:rotori/features/plans/plan_viewer_screen.dart';
 import 'package:rotori/features/plans/premium_provider.dart';
+import 'package:rotori/features/viewer/experience_guide_screen.dart';
 
 String tr(String key) => L10n.resolve(key, AppLang.tr);
 
@@ -70,6 +71,14 @@ void main() {
     expect(find.text(tr('viewer.tt.experienceGuide')), findsOneWidget);
     expect(
         find.text(tr('drawer.discover.experienceGuide.sub')), findsOneWidget);
+  });
+
+  testWidgets('misafir kullanıcıda da çıkış yap satırı görünür',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await openDrawer(tester, weekTrip());
+
+    expect(find.text(tr('drawer.signout')), findsOneWidget);
   });
 
   testWidgets('fiyat tarayıcı kartı premium durum rozetini gösterir',
@@ -129,7 +138,41 @@ void main() {
     expect(gradientDecoration, findsNothing);
   });
 
-  testWidgets('keşif ikonları renklerle ayrışır, çıkış ayrı grupta kalır',
+  testWidgets('keşif araçları tek başlık altında iki gruba ayrılır',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await openDrawer(tester, weekTrip());
+
+    // KEŞFET bölümünde alt başlıklar tekrarlanmıyor; iki grup yalnızca
+    // boşlukla ayrılıyor.
+    expect(find.text('KEŞFET'), findsOneWidget);
+    expect(find.text('PLANLAMA ARAÇLARI'), findsNothing);
+    expect(find.text('REHBERLER'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('drawer-planning-tools-group')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('drawer-guides-group')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('drawer-planning-tools-group')),
+        matching: find.text(tr('viewer.tt.weather')),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('drawer-guides-group')),
+        matching: find.text(tr('viewer.tt.experienceGuide')),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('keşif ikonları renklerle ayrışır, misafire çıkış sunulur',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
     await openDrawer(tester, weekTrip());
@@ -145,7 +188,7 @@ void main() {
       Icons.checklist_rounded,
       Icons.ramen_dining_rounded,
     ];
-    final tones = <Color?>{
+    final tones = <Color?>[
       for (final icon in actionIcons)
         tester
             .widget<Icon>(
@@ -155,21 +198,15 @@ void main() {
               ),
             )
             .color,
-    };
+    ];
     expect(tones, hasLength(actionIcons.length));
+    expect(tones.every((tone) => tone != null), isTrue);
+    expect(tones.toSet(), hasLength(6));
 
-    final accountActions =
-        find.byKey(const ValueKey('drawer-account-actions'));
+    final accountActions = find.byKey(const ValueKey('drawer-account-actions'));
     final signOutGroup = find.byKey(const ValueKey('drawer-signout-group'));
     expect(accountActions, findsOneWidget);
     expect(signOutGroup, findsOneWidget);
-    expect(
-      find.descendant(
-        of: accountActions,
-        matching: find.text(tr('drawer.signout')),
-      ),
-      findsNothing,
-    );
     expect(
       find.descendant(
         of: signOutGroup,
@@ -190,6 +227,45 @@ void main() {
     // Yemek rehberi açıldı: kategori çipleri ve yemek sayacı geliyor.
     expect(find.text('Neyi yiyebilirsin?'), findsOneWidget);
     expect(find.textContaining('yemek'), findsWidgets);
+  });
+
+  testWidgets('Rehber drawer kapanınca kayarak alt sayfa olarak açılır',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await openDrawer(tester, weekTrip());
+
+    await tester.tap(find.text(tr('viewer.tt.experienceGuide')));
+    await tester.pump(const Duration(milliseconds: 160));
+
+    // Drawer kapanış animasyonu sürerken yeni rota başlatılmamalı; aksi halde
+    // yeni sayfa drawer'ın üstüne biner ve geçiş silinme gibi görünür.
+    expect(find.byType(ExperienceGuideScreen), findsNothing);
+    expect(
+      find.byKey(const ValueKey('drawer-guides-group')),
+      findsOneWidget,
+    );
+
+    await tester.pumpAndSettle();
+    expect(find.byType(ExperienceGuideScreen), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('drawer-guides-group')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('Rehber alt sayfa geçişi fade yerine yalnızca kayar',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await openDrawer(tester, weekTrip());
+
+    await tester.tap(find.text(tr('viewer.tt.experienceGuide')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ExperienceGuideScreen), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('experience-guide-slide-route')),
+      findsOneWidget,
+    );
   });
 
   // Premium anahtarı.

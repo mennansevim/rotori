@@ -97,6 +97,17 @@ class AuthRepository {
   /// Kullanıcı akışı iptal ederse sessizce döner; diğer hatalarda Türkçe
   /// mesajlı bir [Exception] fırlatır (UI SnackBar'da gösterir).
   Future<void> signInWithApple() async {
+    if (kIsWeb) {
+      final launched = await _client.auth.signInWithOAuth(
+        OAuthProvider.apple,
+        authScreenLaunchMode: LaunchMode.platformDefault,
+      );
+      if (!launched) {
+        throw Exception('Apple giriş sayfası açılamadı.');
+      }
+      return;
+    }
+
     final rawNonce = generateRawNonce();
     final hashedNonce = sha256OfString(rawNonce);
     try {
@@ -138,11 +149,14 @@ class AuthRepository {
   ///
   /// Web'de deep link yerine aynı pencerede redirect olur.
   Future<void> signInWithGoogle() async {
-    await _client.auth.signInWithOAuth(
+    final launched = await _client.auth.signInWithOAuth(
       OAuthProvider.google,
       redirectTo: kIsWeb ? null : 'io.supabase.rotori://login-callback/',
-      authScreenLaunchMode: LaunchMode.externalApplication,
+      authScreenLaunchMode: LaunchMode.platformDefault,
     );
+    if (!launched) {
+      throw Exception('Google giriş sayfası açılamadı.');
+    }
   }
 }
 

@@ -41,7 +41,7 @@ void main() {
     expect(container.read(viewerThemeProvider), ViewerThemeId.japanDark);
   });
 
-  test('düzen tercihi olmayan yeni kurulum yolculuk tasarımıyla başlar',
+  test('düzen tercihi olmayan yeni kurulum rota panoramasıyla başlar',
       () async {
     SharedPreferences.setMockInitialValues({});
     final container = ProviderContainer(
@@ -55,13 +55,13 @@ void main() {
 
     expect(
       container.read(viewerTemplateProvider),
-      ViewerTemplateId.journeyProgress,
+      ViewerTemplateId.routePanorama,
     );
     await container.read(sharedPrefsProvider.future);
     await Future<void>.delayed(Duration.zero);
     expect(
       container.read(viewerTemplateProvider),
-      ViewerTemplateId.journeyProgress,
+      ViewerTemplateId.routePanorama,
     );
   });
 
@@ -108,7 +108,7 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     expect(
       container.read(viewerTemplateProvider),
-      ViewerTemplateId.journeyProgress,
+      ViewerTemplateId.routePanorama,
     );
   });
 

@@ -23,11 +23,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/l10n.dart';
+import '../../core/rotori_motion.dart';
 import '../../data/google_maps_launcher.dart';
 import '../../domain/city_places.dart';
 import '../../domain/destination_profiles.dart';
 import '../../domain/hotel_location.dart';
 import '../../domain/place_coords.dart';
+import '../../domain/place_image_resolver.dart';
 import '../../domain/types.dart';
 import '../shared/place_detail_sheet.dart';
 import 'offline_tile_provider.dart';
@@ -74,6 +76,11 @@ const double _kMarkerHeight = 112;
 /// Ad etiketlerinin görünmeye başladığı zoom — altında etiketler üst üste
 /// biner, harita okunmaz olur.
 const double _kLabelMinZoom = 11.5;
+
+/// Fotoğraflı durak marker'larının görünmeye başladığı zoom. Şehir ölçeğinde
+/// marker'ları sade tutar; kullanıcı durağa yaklaştığında görseli öne çıkarır.
+const double _kPhotoMarkerMinZoom = 15;
+const double _kPhotoMarkerSize = 46;
 
 /// Zoom butonlarının adım büyüklüğü.
 const double _kZoomStep = 1;
@@ -349,6 +356,9 @@ class _AnimatedRouteMapState extends State<AnimatedRouteMap>
   /// Rota çizim ilerlemesi (0..1) — polyline ve pin belirme sırasını sürer.
   late final AnimationController _drawCtrl;
 
+  bool _reduceMotion = false;
+  bool _motionConfigured = false;
+
   final MapController _mapCtrl = MapController();
 
   late List<LatLng> _points;
@@ -358,7 +368,10 @@ class _AnimatedRouteMapState extends State<AnimatedRouteMap>
   void initState() {
     super.initState();
     _recomputeRoute();
-    _drawCtrl = AnimationController(vsync: this, duration: _drawDuration());
+    _drawCtrl = AnimationController(
+      vsync: this,
+      duration: _drawDuration(),
+    );
     if (_points.length < 2) {
       // Tek durak (ya da hiç): çizecek bacak yok, pin hemen görünsün.
       _drawCtrl.value = 1.0;
@@ -366,8 +379,31 @@ class _AnimatedRouteMapState extends State<AnimatedRouteMap>
       // İlk kareden sonra başlat: sheet'in giriş animasyonu ile çakışmasın
       // ve harita ilk layout'unu (fitBounds) yapmış olsun.
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _drawCtrl.forward();
+        if (mounted && !_reduceMotion) _drawCtrl.forward();
       });
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final nextReduceMotion = RotoriMotion.reduce(context);
+    if (_motionConfigured && nextReduceMotion == _reduceMotion) return;
+
+    _motionConfigured = true;
+    _reduceMotion = nextReduceMotion;
+    if (_reduceMotion) {
+      _drawCtrl
+        ..stop()
+        ..duration = Duration.zero
+        ..value = 1.0;
+    } else {
+      _drawCtrl.duration = _drawDuration();
+      if (_points.length >= 2 && _drawCtrl.value == 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && !_reduceMotion) _drawCtrl.forward();
+        });
+      }
     }
   }
 
@@ -376,7 +412,8 @@ class _AnimatedRouteMapState extends State<AnimatedRouteMap>
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.stops, widget.stops)) {
       _recomputeRoute();
-      _drawCtrl.duration = _drawDuration();
+      _drawCtrl.duration = _reduceMotion ? Duration.zero : _drawDuration();
+      if (_reduceMotion) _drawCtrl.value = 1.0;
     }
   }
 
@@ -1078,7 +1115,9 @@ class _RouteStopPin extends StatelessWidget {
     // Ad etiketi yalnızca şehir ölçeğinde ve üstünde — uzaklaşınca etiketler
     // üst üste binip haritayı okunmaz hale getirir.
     final zoom = MapCamera.maybeOf(context)?.zoom ?? 0;
-    final showLabel = zoom >= _kLabelMinZoom;
+    final imageUrl = _curatedImageUrl(stop);
+    final showPhoto = imageUrl != null && zoom >= _kPhotoMarkerMinZoom;
+    final showLabel = zoom >= _kLabelMinZoom && !showPhoto;
 
     return Opacity(
       // Opaklık ölçekten hızlı dolar; pin daha büyümesini bitirmeden nettir.
@@ -1103,14 +1142,107 @@ class _RouteStopPin extends StatelessWidget {
               ),
             ),
           Transform.scale(
+            key: ValueKey('route-stop-${stop.order}'),
             scale: scale,
             child: GestureDetector(
               onTap: onTap,
               behavior: HitTestBehavior.opaque,
-              child: _PinCore(stop: stop),
+              child: showPhoto
+                  ? _PhotoPinCore(stop: stop, imageUrl: imageUrl)
+                  : _PinCore(stop: stop),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+String? _curatedImageUrl(ResolvedStop stop) {
+  final resolver = PlaceImageResolver.instance;
+  final direct = resolver.peekCurated(stop.item.title);
+  if (direct != null && direct.isNotEmpty) return direct.first;
+  final place = stop.place;
+  if (place == null) return null;
+  final matched = resolver.peekCurated(place.name);
+  return matched == null || matched.isEmpty ? null : matched.first;
+}
+
+/// Yalnızca önceden küratörlenmiş görselleri kullanır; harita pan/zoom
+/// sırasında yeni Wikipedia araması başlatmaz.
+class _PhotoPinCore extends StatelessWidget {
+  const _PhotoPinCore({required this.stop, required this.imageUrl});
+
+  final ResolvedStop stop;
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: stop.item.title,
+      button: true,
+      child: SizedBox(
+        width: _kPhotoMarkerSize + 2,
+        height: _kPhotoMarkerSize + 2,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              left: 1,
+              top: 1,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(9),
+                child: Container(
+                  width: _kPhotoMarkerSize,
+                  height: _kPhotoMarkerSize,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: Colors.white, width: 2.5),
+                    borderRadius: BorderRadius.circular(9),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x45000000),
+                        blurRadius: 7,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    cacheWidth: 128,
+                    cacheHeight: 128,
+                    filterQuality: FilterQuality.low,
+                    errorBuilder: (_, __, ___) => _PinCore(stop: stop),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              right: -1,
+              top: -1,
+              child: Container(
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: kRouteAccent, width: 1.5),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '${stop.order}',
+                  style: const TextStyle(
+                    color: kRouteAccent,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 9.5,
+                    height: 1,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1140,7 +1272,6 @@ class _PinCore extends StatelessWidget {
             left: 5,
             top: 5,
             child: Container(
-              key: ValueKey('route-stop-${stop.order}'),
               width: _kPinSize,
               height: _kPinSize,
               decoration: BoxDecoration(

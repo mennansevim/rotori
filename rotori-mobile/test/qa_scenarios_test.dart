@@ -55,7 +55,8 @@ Future<void> runScenario(
   }
   try {
     await body(tester);
-    logBuf.writeln('OK — ${DateTime.now().difference(start).inMilliseconds} ms');
+    logBuf
+        .writeln('OK — ${DateTime.now().difference(start).inMilliseconds} ms');
   } catch (e, st) {
     status = 'fail';
     error = e.toString();
@@ -200,14 +201,30 @@ void main() {
     // Yerel dosyaya yaz — flutter test masaüstü VM'de cwd = mobile/.
     try {
       final file = File('qa/latest-run.json');
-      await file.writeAsString(
-          const JsonEncoder.withIndent('  ').convert(report));
+      await file
+          .writeAsString(const JsonEncoder.withIndent('  ').convert(report));
       // ignore: avoid_print
-      print('QA report written to qa/latest-run.json (${_results.length} results)');
+      print(
+          'QA report written to qa/latest-run.json (${_results.length} results)');
     } catch (e) {
       // ignore: avoid_print
       print('QA report write failed: $e');
     }
+  });
+
+  testWidgets('ticket wallet QA — Biletler kalıcı alt nav içinde açılır',
+      (tester) async {
+    await tester.pumpWidget(_viewerHarness(_sampleTripToday()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    await tester.tap(
+      find.text(L10n.resolve('viewer.quick.tickets', AppLang.tr)).last,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('ticket-wallet-title')), findsOneWidget);
+    expect(find.byKey(const ValueKey('viewer-quick-nav')), findsOneWidget);
   });
 
   testWidgets('QA runner — ilk 10 senaryo', (tester) async {
@@ -235,20 +252,23 @@ void main() {
       expect(find.textContaining('Bu plana'), findsOneWidget);
     });
 
-    // ---- s13: Viewer minimalize — hero yok ----
+    // ---- s13: Apple tarzı merkez başlıkta plan adı görünür ----
     await runScenario('s13', tester: tester, (t) async {
       await t.pumpWidget(_viewerHarness(_sampleTripToday()));
       await t.pumpAndSettle();
-      // Hero başlığı 'QA Test Trip' body'de DEĞİL (minimalize edildi)
-      expect(find.text('QA Test Trip'), findsNothing);
-      // '✈️ Uçuşlar' section kartı olmamalı (drawer'a taşındı)
+      // Plan adı artık header'da gösterilir (minimalize edildiği dönem bitti).
+      expect(find.text('QA Test Trip'), findsOneWidget);
+      // '✈️ Uçuşlar' section kartı hâlâ body'de değil (drawer'a taşındı).
       expect(find.text('✈️ Uçuşlar'), findsNothing);
     });
 
-    // ---- s14: Aktif gün expanded + geçmiş soluk ----
+    // ---- s14: View modunda geçmiş gün gizli + aktif gün görünür ----
     await runScenario('s14', tester: tester, (t) async {
       await t.pumpWidget(_viewerHarness(_sampleTripToday()));
       await t.pumpAndSettle();
+      // View modunda geçmiş günler gizlenir (dayVisible: i >= activeIndex).
+      expect(find.text('Geçmiş aktivite'), findsNothing,
+          reason: 'view modunda geçmiş gün gizli olmalı');
       // Aktif günün aktivitesi görünmeli (senso-ji)
       await t.dragUntilVisible(
         find.text('Senso-ji (Asakusa)'),
@@ -256,13 +276,6 @@ void main() {
         const Offset(0, -200),
       );
       expect(find.text('Senso-ji (Asakusa)'), findsOneWidget);
-      // Geçmiş gün kartında Opacity 0.6 olmalı
-      final opacities = t
-          .widgetList<Opacity>(find.byType(Opacity))
-          .map((w) => w.opacity)
-          .toList();
-      expect(opacities.contains(0.6), isTrue,
-          reason: 'geçmiş gün kartı 0.6 opaklıkta olmalı');
     });
 
     // ---- s15: Hamburger drawer içeriği ----
@@ -273,9 +286,10 @@ void main() {
       await t.pumpAndSettle();
       // Rotori markası + drawer aksiyonları
       expect(find.text('Rotori'), findsWidgets);
-      // Aksiyon grid buttons — palette ve Google Maps var
+      // Aksiyon grid — tema ve seyahat eşyaları kısayolları var
+      // (Google Maps aksiyonu route_map_sheet'e taşındı).
       expect(find.byIcon(Icons.palette_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.travel_explore), findsOneWidget);
+      expect(find.byIcon(Icons.shopping_bag_outlined), findsOneWidget);
     });
 
     // ---- s16: Bildirim (🔔) sağa taşınmış ----
@@ -310,7 +324,9 @@ void main() {
       // Drawer aç
       await t.tap(find.byIcon(Icons.menu));
       await t.pumpAndSettle();
-      // Palette butonuna dokun
+      // Palette butonu drawer altında kalabilir — görünür yapıp dokun.
+      await t.ensureVisible(find.byIcon(Icons.palette_outlined));
+      await t.pumpAndSettle();
       await t.tap(find.byIcon(Icons.palette_outlined));
       await t.pumpAndSettle();
       // 3 tema listelenmeli
@@ -501,9 +517,7 @@ void main() {
         tripEnd: '2026-05-13',
         flights: TripFlights(returnLegs: [
           FlightLeg(
-              city: 'Osaka',
-              airport: 'KIX',
-              dateTime: '2026-05-13T20:00:00'),
+              city: 'Osaka', airport: 'KIX', dateTime: '2026-05-13T20:00:00'),
         ]),
         preferences: TripPreferences(
           travelDates: TravelDates(start: '2026-05-07', end: '2026-05-13'),
@@ -582,8 +596,8 @@ void main() {
 
     // ---- s50: 10+ şehirli plan crash yok ----
     await runScenario('s50', tester: tester, (t) async {
-      final dests = List.generate(
-          12, (i) => _dest(id: 'c$i', city: 'City$i', order: i));
+      final dests =
+          List.generate(12, (i) => _dest(id: 'c$i', city: 'City$i', order: i));
       expect(dests.length, 12);
       dests.sort((a, b) => a.order.compareTo(b.order));
       expect(dests.first.city, 'City0');
@@ -635,7 +649,8 @@ void main() {
       final en = L10n.resolve('hero.lead', AppLang.en);
       final ratio = en.length / tr.length;
       expect(ratio, lessThan(1.8),
-          reason: 'EN uzunluğu ratio=$ratio (tr=${tr.length}, en=${en.length})');
+          reason:
+              'EN uzunluğu ratio=$ratio (tr=${tr.length}, en=${en.length})');
     });
 
     // ---- s63: EN key'lerinde Türkçe karakter yok ----
@@ -770,8 +785,7 @@ void main() {
           .whereType<File>()
           .where((f) => f.path.contains('1024'))
           .toList();
-      expect(entries.isNotEmpty, isTrue,
-          reason: '1024x1024 app icon PNG yok');
+      expect(entries.isNotEmpty, isTrue, reason: '1024x1024 app icon PNG yok');
     });
 
     // ================================================================
@@ -792,13 +806,13 @@ void main() {
 
     // ---- s07: 3+ şehirli variasyonlar coğrafi sıra korur ----
     await runScenario('s07', tester: tester, (t) async {
-      final threeCity = tripVariations()
-          .where((v) => v.cities.length >= 3)
-          .toList();
+      final threeCity =
+          tripVariations().where((v) => v.cities.length >= 3).toList();
       expect(threeCity.length, greaterThan(0));
       for (final v in threeCity) {
         final trip = makeTripFromVariation(v);
-        final orders = trip.preferences.destinations.map((d) => d.order).toList();
+        final orders =
+            trip.preferences.destinations.map((d) => d.order).toList();
         // Order 0,1,2,... sıralı olmalı
         for (var i = 0; i < orders.length; i++) {
           expect(orders[i], i, reason: 'Order mismatch in ${v.label}');
@@ -837,7 +851,9 @@ void main() {
         checkOut: '2026-05-10',
         address: 'Tokyo',
       );
-      expect(DateTime.parse(hotel.checkOut).isAfter(DateTime.parse(hotel.checkIn)), isTrue);
+      expect(
+          DateTime.parse(hotel.checkOut).isAfter(DateTime.parse(hotel.checkIn)),
+          isTrue);
     });
 
     // ---- s12: Trip JSON round-trip ----
@@ -880,7 +896,9 @@ void main() {
         final start = DateTime.parse(trip.tripStart);
         final end = DateTime.parse(trip.tripEnd);
         final days = end.difference(start).inDays + 1;
-        expect(days, v.window.days, reason: '${v.label}: window.days=${v.window.days} but computed=$days');
+        expect(days, v.window.days,
+            reason:
+                '${v.label}: window.days=${v.window.days} but computed=$days');
       }
     });
 
@@ -923,7 +941,7 @@ void main() {
       final file = File('lib/features/plans/plan_viewer_screen.dart');
       final content = file.readAsStringSync();
       expect(content.contains('TextOverflow.ellipsis'), isTrue);
-      expect(content.contains('softWrap: false'), isTrue);
+      expect(content.contains('maxLines: 1'), isTrue);
     });
 
     // ---- s87: SnackBar dedupe ----
@@ -932,7 +950,8 @@ void main() {
       final content = file.readAsStringSync();
       // clearSnackBars() önceden çağrılıyor olmalı yaygın patternde
       // (viewer değil, phrase screen'de var); pattern testi
-      final phrasesFile = File('lib/features/viewer/japanese_phrases_screen.dart');
+      final phrasesFile =
+          File('lib/features/viewer/japanese_phrases_screen.dart');
       final phrasesContent = phrasesFile.readAsStringSync();
       expect(phrasesContent.contains('clearSnackBars'), isTrue);
       expect(content.length, greaterThan(0)); // referans
@@ -955,7 +974,8 @@ void main() {
       }
       // Doğrulama
       for (var i = 0; i < 100; i++) {
-        expect(containers[i].read(userTrip), 'user-$i', reason: 'User $i leaked');
+        expect(containers[i].read(userTrip), 'user-$i',
+            reason: 'User $i leaked');
       }
     });
 
@@ -1024,8 +1044,10 @@ void main() {
 
     // ---- s106: 3 gün / 20 gün ekstremlerinde day count sanity ----
     await runScenario('s106', tester: tester, (t) async {
-      final shortTrips = tripVariations().where((v) => v.window.days <= 4).toList();
-      final longTrips = tripVariations().where((v) => v.window.days >= 15).toList();
+      final shortTrips =
+          tripVariations().where((v) => v.window.days <= 4).toList();
+      final longTrips =
+          tripVariations().where((v) => v.window.days >= 15).toList();
       expect(shortTrips.isNotEmpty, isTrue);
       expect(longTrips.isNotEmpty, isTrue);
       for (final v in shortTrips) {
@@ -1125,7 +1147,7 @@ void main() {
 
     // ---- s04: Drawer signOut çağrısı ----
     await runScenario('s04', tester: tester, (t) async {
-      final file = File('lib/features/plans/plan_viewer_screen.dart');
+      final file = File('lib/features/plans/widgets/plan_viewer_drawer.dart');
       final content = file.readAsStringSync();
       expect(content.contains('signOut'), isTrue);
       expect(content.contains('drawer.signout'), isTrue);
@@ -1133,7 +1155,8 @@ void main() {
 
     // ---- s17: Prep checklist screen mevcut ----
     await runScenario('s17', tester: tester, (t) async {
-      final file = File('lib/features/viewer/pre_departure_checklist_screen.dart');
+      final file =
+          File('lib/features/viewer/pre_departure_checklist_screen.dart');
       expect(file.existsSync(), isTrue);
       final content = file.readAsStringSync();
       expect(content.contains('PreDepartureChecklistScreen'), isTrue);
@@ -1151,39 +1174,44 @@ void main() {
 
     // ---- s21: Day map pin logic mevcut ----
     await runScenario('s21', tester: tester, (t) async {
-      final content = File('lib/features/viewer/day_map_screen.dart')
-          .readAsStringSync();
+      final content =
+          File('lib/features/viewer/day_map_screen.dart').readAsStringSync();
       expect(content.contains('MarkerLayer'), isTrue);
       expect(content.contains('resolveDayStops'), isTrue);
     });
 
     // ---- s22: Day map Google Maps butonu ----
     await runScenario('s22', tester: tester, (t) async {
-      final content = File('lib/features/viewer/day_map_screen.dart')
-          .readAsStringSync();
+      final content =
+          File('lib/features/viewer/day_map_screen.dart').readAsStringSync();
       expect(content.contains('openGoogleMaps'), isTrue);
       expect(content.contains('_openInGoogleMaps'), isTrue);
     });
 
-    // ---- s23: Drawer 'Google Maps' aksiyonu ----
+    // ---- s23: Google Maps aksiyonu route_map_sheet'te ----
     await runScenario('s23', tester: tester, (t) async {
-      final content = File('lib/features/plans/plan_viewer_screen.dart')
-          .readAsStringSync();
-      expect(content.contains('_openTripInGoogleMaps'), isTrue);
-      expect(content.contains('travel_explore'), isTrue);
+      final content =
+          File('lib/features/viewer/route_map_sheet.dart').readAsStringSync();
+      expect(content.contains('_openInGoogleMaps'), isTrue);
+      expect(content.contains('openGoogleMapsRoute'), isTrue);
     });
 
     // ---- s24: GpsSimScreen + geofence controller ----
     await runScenario('s24', tester: tester, (t) async {
-      expect(File('lib/features/viewer/gps_sim_screen.dart').existsSync(), isTrue);
-      expect(File('lib/features/viewer/geofence_service.dart').existsSync(), isTrue);
+      expect(
+          File('lib/features/viewer/gps_sim_screen.dart').existsSync(), isTrue);
+      expect(File('lib/features/viewer/geofence_service.dart').existsSync(),
+          isTrue);
     });
 
-    // ---- s27: Bilet ekleme dialog / addTicket ----
+    // ---- s27: Yer detayı ortak bilet import akışına delege eder ----
     await runScenario('s27', tester: tester, (t) async {
       final content = File('lib/features/shared/place_detail_sheet.dart')
           .readAsStringSync();
-      expect(content.contains('onAddTicket'), isTrue);
+      expect(content.contains('onImportTicket'), isTrue);
+      expect(content.contains('base64Encode'), isFalse);
+      expect(content.contains('extractTicketText'), isFalse);
+      expect(content.contains('purchased: true'), isFalse);
     });
 
     // ---- s29: Dietary filter recommendedFoods'da uygulanır ----
@@ -1198,8 +1226,8 @@ void main() {
 
     // ---- s38: Palette light + dark hem tanımlı ----
     await runScenario('s38', tester: tester, (t) async {
-      final content = File('lib/features/viewer/viewer_theme.dart')
-          .readAsStringSync();
+      final content =
+          File('lib/features/viewer/viewer_theme.dart').readAsStringSync();
       // En az 3 tema tanımlı: japon gecesi, apple aydınlık, sakura yumuşak
       expect(content.contains('Japon Gecesi'), isTrue);
       expect(content.contains('Apple Aydınlık'), isTrue);
@@ -1224,44 +1252,50 @@ void main() {
     await runScenario('s54', tester: tester, (t) async {
       final routerContent = File('lib/core/router.dart').readAsStringSync();
       final previewContent = File('lib/preview_main.dart').readAsStringSync();
-      expect(routerContent.contains('prep') || previewContent.contains('prep'), isTrue);
+      expect(routerContent.contains('prep') || previewContent.contains('prep'),
+          isTrue);
     });
 
     // ---- s55: Drawer aksiyon buttonu Navigator.push kullanır ----
     await runScenario('s55', tester: tester, (t) async {
-      final content = File('lib/features/plans/plan_viewer_screen.dart')
-          .readAsStringSync();
+      final content =
+          File('lib/features/plans/plan_viewer_screen.dart').readAsStringSync();
       expect(content.contains('Navigator.of(context).push'), isTrue);
       expect(content.contains('MaterialPageRoute'), isTrue);
     });
 
     // ---- s56: Scaffold drawer + Navigator ilişkisi ----
     await runScenario('s56', tester: tester, (t) async {
-      final content = File('lib/features/plans/plan_viewer_screen.dart')
-          .readAsStringSync();
-      expect(content.contains('Scaffold(') && content.contains('drawer:'), isTrue);
+      final content =
+          File('lib/features/plans/plan_viewer_screen.dart').readAsStringSync();
+      expect(
+          content.contains('Scaffold(') && content.contains('drawer:'), isTrue);
     });
 
     // ---- s57: place_detail_sheet showModalBottomSheet ----
     await runScenario('s57', tester: tester, (t) async {
       final content = File('lib/features/shared/place_detail_sheet.dart')
           .readAsStringSync();
-      expect(content.contains('showModalBottomSheet') ||
-              content.contains('showPlaceDetailSheet'), isTrue);
+      expect(
+          content.contains('showModalBottomSheet') ||
+              content.contains('showPlaceDetailSheet'),
+          isTrue);
     });
 
     // ---- s58: Router redirect authState ----
     await runScenario('s58', tester: tester, (t) async {
       final content = File('lib/core/router.dart').readAsStringSync();
-      expect(content.contains('authState') || content.contains('redirect'), isTrue);
+      expect(content.contains('authState') || content.contains('redirect'),
+          isTrue);
     });
 
     // ---- s69: Geofence match radius parametresi ----
     await runScenario('s69', tester: tester, (t) async {
-      final content = File('lib/features/viewer/geofence_service.dart')
-          .readAsStringSync();
+      final content =
+          File('lib/features/viewer/geofence_service.dart').readAsStringSync();
       // Radius / distance kontrolü var mı
-      expect(content.contains('radius') || content.contains('distance'), isTrue);
+      expect(
+          content.contains('radius') || content.contains('distance'), isTrue);
     });
 
     // ---- s70: Badge persist storage ----
@@ -1275,14 +1309,16 @@ void main() {
       // GpsSim veya geofence_service accuracy handling
       final gpsContent =
           File('lib/features/viewer/gps_sim_screen.dart').readAsStringSync();
-      expect(gpsContent.contains('accuracy') || gpsContent.contains('LatLng'), isTrue);
+      expect(gpsContent.contains('accuracy') || gpsContent.contains('LatLng'),
+          isTrue);
     });
 
     // ---- s81: Gluten-free dietary çift-yönlü filter ----
     await runScenario('s81', tester: tester, (t) async {
       // Domain'de dietary flag handling
       final types = File('lib/domain/types.dart').readAsStringSync();
-      expect(types.contains('dietary') || types.contains('preferences'), isTrue);
+      expect(
+          types.contains('dietary') || types.contains('preferences'), isTrue);
     });
 
     // Rapor için dosyaya yazma tearDownAll'da yapılır.

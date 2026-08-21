@@ -735,7 +735,10 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Review',
   },
   'ticketReview.remove': {AppLang.tr: 'Kaldır', AppLang.en: 'Remove'},
-  'ticketReview.accept': {AppLang.tr: 'Bilete ekle', AppLang.en: 'Add to ticket'},
+  'ticketReview.accept': {
+    AppLang.tr: 'Bilete ekle',
+    AppLang.en: 'Add to ticket'
+  },
   'ticketReview.addDetail': {
     AppLang.tr: 'Ayrıntı ekle',
     AppLang.en: 'Add detail',
@@ -748,7 +751,10 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Ayrıntı değeri',
     AppLang.en: 'Detail value',
   },
-  'ticketReview.candidate.label': {AppLang.tr: 'Bilet adı', AppLang.en: 'Ticket name'},
+  'ticketReview.candidate.label': {
+    AppLang.tr: 'Bilet adı',
+    AppLang.en: 'Ticket name'
+  },
   'ticketReview.candidate.date': {AppLang.tr: 'Tarih', AppLang.en: 'Date'},
   'ticketReview.candidate.time': {AppLang.tr: 'Saat', AppLang.en: 'Time'},
   'ticketReview.candidate.venue': {AppLang.tr: 'Mekân', AppLang.en: 'Venue'},
@@ -763,7 +769,10 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Party size',
   },
   'ticketReview.candidate.url': {AppLang.tr: 'Bağlantı', AppLang.en: 'Link'},
-  'ticketReview.candidate.qr': {AppLang.tr: 'QR içeriği', AppLang.en: 'QR content'},
+  'ticketReview.candidate.qr': {
+    AppLang.tr: 'QR içeriği',
+    AppLang.en: 'QR content'
+  },
   'ticketDetail.title': {
     AppLang.tr: 'Bileti düzenle',
     AppLang.en: 'Edit ticket',
@@ -787,7 +796,10 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: '{name} bilet görseli',
     AppLang.en: 'Ticket image for {name}',
   },
-  'ticketDetail.delete': {AppLang.tr: 'Bileti sil', AppLang.en: 'Delete ticket'},
+  'ticketDetail.delete': {
+    AppLang.tr: 'Bileti sil',
+    AppLang.en: 'Delete ticket'
+  },
   'ticketDetail.deleteTitle': {
     AppLang.tr: 'Bilet silinsin mi?',
     AppLang.en: 'Delete ticket?',
@@ -2023,6 +2035,30 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Haritada aç',
     AppLang.en: 'Open in Maps',
   },
+  'hotels.findOnMap': {
+    AppLang.tr: 'Google Maps’te otel bul',
+    AppLang.en: 'Find a hotel in Google Maps',
+  },
+  'hotels.mapPickerHelp': {
+    AppLang.tr:
+        'Google Maps ücretsiz açılır. Oteli bulduktan sonra adını, adresini veya paylaşım bağlantısını buraya ekleyebilirsin.',
+    AppLang.en:
+        'Google Maps opens for free. After finding the hotel, add its name, address, or shared link here.',
+  },
+  'hotels.mapOpenFailed': {
+    AppLang.tr: 'Google Maps açılamadı.',
+    AppLang.en: 'Google Maps could not be opened.',
+  },
+  'hotels.mapSearchDefault': {
+    AppLang.tr: 'otel',
+    AppLang.en: 'hotel',
+  },
+  'hotels.formIntro': {
+    AppLang.tr:
+        'Konaklama bilgilerini ekle; rota, taksi ve günlük plan detaylarında kullanalım.',
+    AppLang.en:
+        'Add your stay details so they can be used for routes, taxis, and daily planning.',
+  },
   'hotels.phone': {AppLang.tr: 'Telefon', AppLang.en: 'Phone'},
   'hotels.notes': {AppLang.tr: 'Notlar', AppLang.en: 'Notes'},
   'hotels.notesPlaceholder': {
@@ -2035,10 +2071,6 @@ const Map<String, Map<AppLang, String>> _strings = {
   'hotels.saveError': {
     AppLang.tr: 'Plan yüklenemedi.',
     AppLang.en: 'Could not load the plan.',
-  },
-  'hotels.needsSession': {
-    AppLang.tr: 'Oteli kaydetmek için oturum açman gerekiyor.',
-    AppLang.en: 'Sign in to save a hotel.',
   },
   'hotels.saveFailed': {
     AppLang.tr: 'Otel kaydedilemedi. Bağlantını kontrol edip tekrar dene.',
@@ -2870,6 +2902,72 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.tr: 'Bu güne haritada gösterilecek konumlu durak yok.',
     AppLang.en: 'No located stops to show on the map for this day.'
   },
+  'viewer.metrics.steps': {AppLang.tr: 'adım', AppLang.en: 'steps'},
+  'viewer.metrics.distance': {AppLang.tr: 'mesafe', AppLang.en: 'distance'},
+  'viewer.metrics.calories': {AppLang.tr: 'kcal', AppLang.en: 'kcal'},
+  'viewer.metrics.caloriesLabel': {
+    AppLang.tr: 'kalori',
+    AppLang.en: 'calories'
+  },
+  'viewer.metrics.duration': {AppLang.tr: 'süre', AppLang.en: 'duration'},
+  'viewer.metrics.stops': {AppLang.tr: 'durak', AppLang.en: 'stops'},
+  'viewer.metrics.progress': {AppLang.tr: 'ilerleme', AppLang.en: 'progress'},
+  'viewer.metrics.remaining': {AppLang.tr: 'kalan', AppLang.en: 'remaining'},
+  'viewer.metrics.reservations': {
+    AppLang.tr: 'rezervasyon',
+    AppLang.en: 'bookings'
+  },
+  'viewer.metrics.live': {AppLang.tr: 'CİHAZ', AppLang.en: 'LIVE'},
+  'viewer.template.routePanorama': {
+    AppLang.tr: 'Rota Panoraması',
+    AppLang.en: 'Route panorama'
+  },
+  'viewer.template.routePanorama.description': {
+    AppLang.tr: 'Adım, kalori ve mesafeyle günün panosu',
+    AppLang.en: 'Steps, calories and distance dashboard'
+  },
+  'viewer.template.premium.title': {
+    AppLang.tr: 'Rotori Pro tasarımı',
+    AppLang.en: 'A Rotori Pro design'
+  },
+  'viewer.template.premium.body': {
+    AppLang.tr:
+        'Yolculuk ve Harita tasarımları Rotori Pro ile açılır. Premium’a geçince istediğin görünümü kullanabilirsin.',
+    AppLang.en:
+        'Journey and Map designs unlock with Rotori Pro. Upgrade to use the view that fits your trip.'
+  },
+  'viewer.template.premium.journey': {
+    AppLang.tr: 'İlerlemeyi ve sıradaki adımı öne çıkarır',
+    AppLang.en: 'Brings progress and the next step forward'
+  },
+  'viewer.template.premium.map': {
+    AppLang.tr: 'Günün rotasını ve duraklarını haritada gösterir',
+    AppLang.en: 'Shows the day route and stops on a map'
+  },
+  'viewer.template.premium.close': {
+    AppLang.tr: 'Anladım',
+    AppLang.en: 'Got it'
+  },
+  'viewer.report.title': {
+    AppLang.tr: 'Gezi tamamlandı! 🎉',
+    AppLang.en: 'Trip complete! 🎉'
+  },
+  'viewer.report.days': {AppLang.tr: 'gün', AppLang.en: 'days'},
+  'viewer.report.places': {AppLang.tr: 'mekan', AppLang.en: 'places'},
+  'viewer.report.meals': {AppLang.tr: 'öğün', AppLang.en: 'meals'},
+  'viewer.report.cities': {AppLang.tr: 'şehir', AppLang.en: 'cities'},
+  'viewer.report.showDays': {
+    AppLang.tr: 'Günleri gör',
+    AppLang.en: 'Show days'
+  },
+  'viewer.report.hideDays': {
+    AppLang.tr: 'Günleri gizle',
+    AppLang.en: 'Hide days'
+  },
+  'viewer.report.cta': {
+    AppLang.tr: 'Gezi tamamlandı — Raporu gör',
+    AppLang.en: 'Trip complete — View report'
+  },
   'map.openInGoogleMaps': {
     AppLang.tr: 'Google Maps\'te aç',
     AppLang.en: 'Open in Google Maps'
@@ -2909,6 +3007,10 @@ const Map<String, Map<AppLang, String>> _strings = {
         'Sabit saatler korunur. Değişiklikler yalnızca onayladığında kaydedilir.',
     AppLang.en:
         'Fixed times stay protected. Changes are saved only after approval.'
+  },
+  'routeOptimization.recommended': {
+    AppLang.tr: 'Önerilen rota',
+    AppLang.en: 'Recommended route',
   },
   'routeOptimization.loading': {
     AppLang.tr: 'En uygun günlük rota hesaplanıyor…',
@@ -3021,20 +3123,24 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Try again'
   },
   'routeOptimization.weatherAction': {
-    AppLang.tr: 'Havaya göre optimize et',
-    AppLang.en: 'Optimize for weather',
+    AppLang.tr: 'Havaya göre düzenle',
+    AppLang.en: 'Adjust for weather',
   },
   'routeOptimization.weather.clear': {
     AppLang.tr: 'Hava uygun: dengeli profil seçildi.',
     AppLang.en: 'Weather is favorable: balanced profile selected.',
   },
   'routeOptimization.weather.rain': {
-    AppLang.tr: 'Yağış bekleniyor: az yürüyüş profili seçildi.',
-    AppLang.en: 'Rain expected: less-walking profile selected.',
+    AppLang.tr:
+        'Yağış bekleniyor: kapalı mekânlar öne, açık hava durakları sona alındı.',
+    AppLang.en:
+        'Rain expected: indoor stops moved earlier and outdoor stops later.',
   },
   'routeOptimization.weather.storm': {
-    AppLang.tr: 'Sert hava koşulu: yürüyüş limiti düşürüldü.',
-    AppLang.en: 'Severe weather: walking limit reduced.',
+    AppLang.tr:
+        'Sert hava koşulu: kapalı mekânlar öne alındı ve yürüyüş azaltıldı.',
+    AppLang.en:
+        'Severe weather: indoor stops moved earlier and walking reduced.',
   },
   'routeOptimization.weather.extremeTemp': {
     AppLang.tr: 'Sıcaklık sert: yürüyüş limiti düşürüldü.',
@@ -3105,14 +3211,48 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Cheapest'
   },
   'routeOptimization.premium.title': {
-    AppLang.tr: '🔒 Premium Özellik',
-    AppLang.en: '🔒 Premium Feature'
+    AppLang.tr: 'Rotori Pro özelliği',
+    AppLang.en: 'A Rotori Pro feature'
   },
   'routeOptimization.premium.body': {
     AppLang.tr: 'Rota optimizasyonu premium üyeler için sunulacak. '
         'Şimdilik rotanı "Haritada gör" butonuyla Google Maps üzerinden takip edebilirsin.',
     AppLang.en: 'Route optimization will be available for premium members. '
         'For now, you can follow your route on Google Maps using the "View on map" button.'
+  },
+  'routeOptimization.premium.benefitOrder': {
+    AppLang.tr: 'Günlük rotanı en uygun sıraya getirir',
+    AppLang.en: 'Puts your daily route in the most suitable order'
+  },
+  'routeOptimization.premium.benefitCompare': {
+    AppLang.tr: 'Yürüyüş, süre, aktarma ve maliyeti karşılaştırır',
+    AppLang.en: 'Compares walking, time, transfers, and cost'
+  },
+  'routeOptimization.premium.benefitPreview': {
+    AppLang.tr: 'Değişikliği uygulamadan önce gösterir',
+    AppLang.en: 'Shows the change before you apply it'
+  },
+  'scanner.premium.title': {
+    AppLang.tr: 'Rotori Pro özelliği',
+    AppLang.en: 'A Rotori Pro feature'
+  },
+  'scanner.premium.body': {
+    AppLang.tr:
+        'Fiyat etiketlerini daha sık tara, ürünü tanı ve Türkiye fiyatlarıyla tek yerde karşılaştır.',
+    AppLang.en:
+        'Scan more price tags, identify products, and compare them with prices in Türkiye in one place.'
+  },
+  'scanner.premium.benefitScans': {
+    AppLang.tr: 'Günde 100 fiyat etiketi tarar',
+    AppLang.en: 'Scans 100 price tags per day'
+  },
+  'scanner.premium.benefitDetection': {
+    AppLang.tr: 'Ürünü akıllı model tespitiyle tanır',
+    AppLang.en: 'Identifies the product with smart model detection'
+  },
+  'scanner.premium.benefitCompare': {
+    AppLang.tr: 'Türkiye mağazalarındaki fiyatlarla karşılaştırır',
+    AppLang.en: 'Compares prices across stores in Türkiye'
   },
   'home.appTitle': {
     AppLang.tr: 'Rotori Önizleme',
@@ -3367,6 +3507,45 @@ const Map<String, Map<AppLang, String>> _strings = {
   },
   'reminders.title': {AppLang.tr: 'Hatırlatmalar', AppLang.en: 'Reminders'},
   'reminders.add': {AppLang.tr: 'Hatırlatıcı ekle', AppLang.en: 'Add reminder'},
+  'reminders.other': {
+    AppLang.tr: 'Diğer hatırlatıcılar',
+    AppLang.en: 'Other reminders',
+  },
+  'reminders.remove': {
+    AppLang.tr: '{name} hatırlatıcısını sil',
+    AppLang.en: 'Delete reminder for {name}',
+  },
+  'reminders.status.today': {AppLang.tr: 'Bugün', AppLang.en: 'Today'},
+  'reminders.status.upcoming': {
+    AppLang.tr: 'Yaklaşıyor',
+    AppLang.en: 'Upcoming',
+  },
+  'reminders.status.passed': {AppLang.tr: 'Geçti', AppLang.en: 'Passed'},
+  'reminders.summary.count.singular': {
+    AppLang.tr: '{count} hatırlatıcı',
+    AppLang.en: '{count} reminder',
+  },
+  'reminders.summary.count.plural': {
+    AppLang.tr: '{count} hatırlatıcı',
+    AppLang.en: '{count} reminders',
+  },
+  'reminders.summary.next.today': {
+    AppLang.tr: 'sıradaki bugün',
+    AppLang.en: 'next today',
+  },
+  'reminders.summary.next.tomorrow': {
+    AppLang.tr: 'sıradaki yarın',
+    AppLang.en: 'next tomorrow',
+  },
+  'reminders.summary.next.days': {
+    AppLang.tr: 'sıradaki {count} gün sonra',
+    AppLang.en: 'next in {count} days',
+  },
+  'reminders.summary.next.none': {
+    AppLang.tr: 'hepsi geçmiş',
+    AppLang.en: 'all passed',
+  },
+  'reminders.summary.separator': {AppLang.tr: ' · ', AppLang.en: ' · '},
   'reminders.premiumBadge': {AppLang.tr: 'PRO', AppLang.en: 'PRO'},
   'reminders.premiumTitle': {
     AppLang.tr: 'Rotori Pro özelliği',
@@ -3469,8 +3648,8 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Sign in with Apple'
   },
   'auth.signInWithGoogle': {
-    AppLang.tr: 'G Google ile Giriş Yap',
-    AppLang.en: 'G Sign in with Google'
+    AppLang.tr: 'Google ile Giriş Yap',
+    AppLang.en: 'Sign in with Google'
   },
   'auth.tagline': {
     AppLang.tr: 'Sürpriz yok, plan var.',
@@ -3512,6 +3691,14 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'No surprises, just a plan.',
   },
   'drawer.section.discover': {AppLang.tr: 'KEŞFET', AppLang.en: 'DISCOVER'},
+  'drawer.section.planning': {
+    AppLang.tr: 'PLANLAMA ARAÇLARI',
+    AppLang.en: 'PLANNING TOOLS',
+  },
+  'drawer.section.guides': {
+    AppLang.tr: 'REHBERLER',
+    AppLang.en: 'GUIDES',
+  },
   'drawer.section.tools': {AppLang.tr: 'ARAÇLAR', AppLang.en: 'TOOLS'},
   // KEŞFET karolarının tek satırlık açıklamaları. Eskiden karolar etiketsiz
   // ikon kareleriydi; hangisinin ne yaptığı ancak tooltip ile anlaşılıyordu.
@@ -3550,6 +3737,14 @@ const Map<String, Map<AppLang, String>> _strings = {
   'drawer.discover.scanner.heroSub': {
     AppLang.tr: 'Etiketi tara, ürünü çevir ve fiyatı anında karşılaştır',
     AppLang.en: 'Scan a label, translate the product and compare its price',
+  },
+  'drawer.discover.theme.sub': {
+    AppLang.tr: 'Görünümünü kişiselleştir',
+    AppLang.en: 'Personalize your view',
+  },
+  'drawer.discover.travelEssentials.sub': {
+    AppLang.tr: 'Yola çıkmadan gerekenler',
+    AppLang.en: 'Travel essentials before departure',
   },
   'drawer.premium.label': {
     AppLang.tr: 'Premium',

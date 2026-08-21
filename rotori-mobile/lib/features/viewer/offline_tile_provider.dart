@@ -14,8 +14,25 @@ import 'package:flutter_map/flutter_map.dart';
 const String kRotoriTileUrlTemplate =
     'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
+/// Etiketsiz (yazısız) açık raster katman — viewer başlığındaki özet harita
+/// için.
+///
+/// **Neden ayrı katman:** Standart OSM tile'ları yer adlarını yerel dilde
+/// basıyor; Japonya rotasında başlık tamamen Japonca yazıyla doluyor ve
+/// kullanıcı için okunaksız oluyordu. Etiketsiz zemin, rotanın şeklini ve
+/// durak numaralarını öne çıkarır — durak adlarını zaten kendi
+/// işaretçilerimiz kendi dilimizde yazıyor.
+const String kRotoriPlainTileUrlTemplate =
+    'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png';
+
+/// [kRotoriPlainTileUrlTemplate] için subdomain havuzu.
+const List<String> kRotoriPlainTileSubdomains = ['a', 'b', 'c', 'd'];
+
 const String kOpenStreetMapCopyrightUrl =
     'https://www.openstreetmap.org/copyright';
+
+/// Etiketsiz katmanın sağlayıcısı — atıf zorunlu.
+const String kCartoAttributionUrl = 'https://carto.com/attributions';
 
 /// Ağ tile'larını yalnızca Flutter'ın standart ImageCache'i üzerinden kullanan
 /// sağlayıcı. Disk cache ve toplu ön-indirme özellikle desteklenmez.

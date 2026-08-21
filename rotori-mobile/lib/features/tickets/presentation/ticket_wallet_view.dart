@@ -49,6 +49,7 @@ class TicketWalletView extends StatelessWidget {
 
     return CustomScrollView(
       key: const ValueKey('ticket-wallet-scroll'),
+      primary: false,
       slivers: [
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),

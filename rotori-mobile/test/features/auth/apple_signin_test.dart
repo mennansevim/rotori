@@ -5,8 +5,10 @@
 // fonksiyonlarını ve ekranın kurulabilirliğini doğruluyoruz.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:rotori/features/auth/auth_repository.dart';
 import 'package:rotori/features/auth/auth_screen.dart';
 
@@ -69,5 +71,23 @@ void main() {
     expect(find.text('Sürpriz yok, plan var.'), findsOneWidget);
     // Apple butonu platform gate'li: test host'u iOS/macOS değilse gizli.
     // Ekranın hatasız kurulması yeterli doğrulamadır.
+  });
+
+  testWidgets('iOS auth ekranında Apple ve doğru Google etiketleri görünür',
+      (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(home: AuthScreen()),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Apple ile Giriş Yap'), findsOneWidget);
+    expect(find.byIcon(LucideIcons.apple), findsOneWidget);
+    expect(find.text('Google ile Giriş Yap'), findsOneWidget);
+    expect(find.text('G Google ile Giriş Yap'), findsNothing);
+    debugDefaultTargetPlatformOverride = null;
   });
 }

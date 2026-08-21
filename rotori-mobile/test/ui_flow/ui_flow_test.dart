@@ -167,8 +167,10 @@ void main() {
       await _settle(tester);
 
       // Google butonu iOS/Android/web hepsinde görünmeli (Apple sadece iOS/macOS).
-      expect(find.text('G Google ile Giriş Yap'), findsOneWidget,
+      expect(find.text('Google ile Giriş Yap'), findsOneWidget,
           reason: 'Google butonu tüm platformlarda görünmeli');
+      expect(find.text('G Google ile Giriş Yap'), findsNothing,
+          reason: 'Google logosu buton metnine karışmamalı');
     });
   });
 

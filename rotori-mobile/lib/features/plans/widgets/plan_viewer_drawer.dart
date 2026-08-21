@@ -55,13 +55,29 @@ class _ViewerDrawer extends ConsumerWidget {
         isGuest ? '?' : email.trim().substring(0, 1).toUpperCase();
     final checklistTone = Color.lerp(p.sky, p.matcha, .48)!;
 
-    // KEŞFET — bütün araçlar tek sakin inset-group içinde.
+    // KEŞFET — araçlar iki anlamlı alt grupta, sakin inset-group yüzeyinde.
     //
     // **Why:** Gradyan vitrinler ile 2×2 renkli karolar, üstteki Yolculuk ve
     // alttaki Hesap bölümlerinin sade dilini bölüyordu. Satır düzeni hem daha
     // hızlı taranıyor hem de büyük yazı boyutunda daha güvenli genişliyor.
     final isPremium = ref.watch(premiumProvider);
-    final discoverActions = <_DrawerActionSpec>[
+    final planningActions = <_DrawerActionSpec>[
+      _DrawerActionSpec(
+        itemKey: const ValueKey('drawer-change-design'),
+        icon: Icons.palette_outlined,
+        label: s.s('viewer.tt.theme'),
+        hint: s.s('drawer.discover.theme.sub'),
+        tone: p.fuji,
+        onTap: onOpenThemePicker,
+      ),
+      _DrawerActionSpec(
+        itemKey: const ValueKey('drawer-travel-essentials'),
+        icon: Icons.shopping_bag_outlined,
+        label: s.s('drawer.nav.travelEssentials'),
+        hint: s.s('drawer.discover.travelEssentials.sub'),
+        tone: p.fuji,
+        onTap: onOpenPrep,
+      ),
       _DrawerActionSpec(
         itemKey: const ValueKey('drawer-scanner-hero'),
         icon: Icons.document_scanner_outlined,
@@ -72,25 +88,6 @@ class _ViewerDrawer extends ConsumerWidget {
             ? s.s('drawer.premium.active')
             : s.s('drawer.premium.label'),
         onTap: () => context.push('/price-tag-scanner'),
-      ),
-      _DrawerActionSpec(
-        itemKey: const ValueKey('drawer-experience-guide'),
-        icon: Icons.attractions_rounded,
-        label: s.s('viewer.tt.experienceGuide'),
-        hint: s.s('drawer.discover.experienceGuide.sub'),
-        tone: p.sky,
-        onTap: onOpenExperienceGuide,
-      ),
-      // Rotori Eats üçüncü sırada: yemek, yolculuk sırasında günde birkaç kez
-      // açılan araç — hava/bütçe/checklist'in altında kalınca her seferinde
-      // listenin sonuna kaydırmak gerekiyordu.
-      _DrawerActionSpec(
-        itemKey: ValueKey('drawer-action-${s.s('viewer.tt.eats')}'),
-        icon: Icons.ramen_dining_rounded,
-        label: s.s('viewer.tt.eats'),
-        hint: s.s('drawer.discover.eats.short'),
-        tone: p.sakura,
-        onTap: onOpenFoodGuide,
       ),
       _DrawerActionSpec(
         itemKey: ValueKey('drawer-action-${s.s('viewer.tt.weather')}'),
@@ -115,6 +112,27 @@ class _ViewerDrawer extends ConsumerWidget {
         hint: s.s('drawer.discover.checklist.sub'),
         tone: checklistTone,
         onTap: onOpenPrep,
+      ),
+    ];
+    final guideActions = <_DrawerActionSpec>[
+      _DrawerActionSpec(
+        itemKey: const ValueKey('drawer-experience-guide'),
+        icon: Icons.attractions_rounded,
+        label: s.s('viewer.tt.experienceGuide'),
+        hint: s.s('drawer.discover.experienceGuide.sub'),
+        tone: p.sky,
+        onTap: onOpenExperienceGuide,
+      ),
+      // Rotori Eats üçüncü sırada: yemek, yolculuk sırasında günde birkaç kez
+      // açılan araç — hava/bütçe/checklist'in altında kalınca her seferinde
+      // listenin sonuna kaydırmak gerekiyordu.
+      _DrawerActionSpec(
+        itemKey: ValueKey('drawer-action-${s.s('viewer.tt.eats')}'),
+        icon: Icons.ramen_dining_rounded,
+        label: s.s('viewer.tt.eats'),
+        hint: s.s('drawer.discover.eats.short'),
+        tone: p.sakura,
+        onTap: onOpenFoodGuide,
       ),
     ];
 
@@ -162,8 +180,9 @@ class _ViewerDrawer extends ConsumerWidget {
                     palette: p,
                   ),
                   const SizedBox(height: 8),
-                  _DrawerActionGroup(
-                    actions: discoverActions,
+                  _DrawerDiscoverGroups(
+                    planningActions: planningActions,
+                    guideActions: guideActions,
                     palette: p,
                   ),
                   const SizedBox(height: 22),
@@ -178,38 +197,16 @@ class _ViewerDrawer extends ConsumerWidget {
                     icon: isGuest ? Icons.explore_rounded : null,
                     title: isGuest ? role : email,
                     subtitle: isGuest ? null : role,
-                    onTap: isGuest
-                        ? () {
-                            Navigator.of(context).pop();
-                            context.push('/auth');
-                          }
-                        : null,
+                    // Preview'daki misafir yalnızca durum bilgisidir. Auth
+                    // guard olmayan bu yüzeyde dokununca /auth'a gitmek,
+                    // kullanıcıya uygulamadan çıkmış gibi görünüyordu.
+                    onTap: null,
                   ),
                   const SizedBox(height: 8),
                   _DrawerNavGroup(
                     widgetKey: const ValueKey('drawer-account-actions'),
                     palette: p,
                     children: [
-                      _DrawerNavTile(
-                        palette: p,
-                        icon: Icons.palette_outlined,
-                        iconColor: p.fuji,
-                        label: s.s('viewer.tt.theme'),
-                        onTap: () {
-                          Navigator.of(context).pop();
-                          onOpenThemePicker();
-                        },
-                      ),
-                      _DrawerNavTile(
-                        palette: p,
-                        icon: Icons.shopping_bag_outlined,
-                        iconColor: p.fuji,
-                        label: s.s('drawer.nav.travelEssentials'),
-                        onTap: () {
-                          Navigator.of(context).pop();
-                          onOpenPrep();
-                        },
-                      ),
                       _DrawerNavTile(
                         palette: p,
                         icon: Icons.list_alt_rounded,
@@ -252,11 +249,10 @@ class _ViewerDrawer extends ConsumerWidget {
                         destructive: true,
                         onTap: () async {
                           Navigator.of(context).pop();
-                          try {
+                          if (!isGuest) {
                             await ref.read(authRepositoryProvider).signOut();
-                          } catch (_) {
-                            // Preview / Supabase yok — sessizce yut.
                           }
+                          if (context.mounted) context.go('/auth');
                         },
                       ),
                     ],
@@ -928,18 +924,18 @@ class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
   Widget _airportBadge(String airport) {
     final p = widget.palette;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
       decoration: BoxDecoration(
         color: p.elevated,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(5),
       ),
       child: Text(
         airport,
         style: TextStyle(
           color: p.textSecondary,
-          fontSize: 12,
+          fontSize: 8.5,
           fontWeight: FontWeight.w700,
-          letterSpacing: 0.2,
+          letterSpacing: 0.1,
         ),
       ),
     );
@@ -955,6 +951,8 @@ class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
   Widget _endpoint({
     required FlightLeg leg,
     required bool alignRight,
+    required double timeFontSize,
+    int dayOffset = 0,
   }) {
     final p = widget.palette;
     final city = leg.city.trim().isEmpty ? '—' : leg.city.trim();
@@ -963,26 +961,49 @@ class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
     return Column(
       crossAxisAlignment: alignment,
       children: [
-        Text(
-          _time(leg.dateTime),
-          maxLines: 1,
-          style: TextStyle(
-            color: p.textPrimary,
-            fontSize: 30,
-            height: 1,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -1.2,
-            fontFeatures: const [FontFeature.tabularFigures()],
+        Align(
+          alignment: alignRight ? Alignment.centerRight : Alignment.centerLeft,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _time(leg.dateTime),
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: p.textPrimary,
+                    fontSize: timeFontSize,
+                    height: 1,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -1.2,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+                if (dayOffset > 0) ...[
+                  const SizedBox(width: 2),
+                  Text(
+                    '+$dayOffset',
+                    key: const ValueKey('drawer-flight-day-offset'),
+                    style: TextStyle(
+                      color: p.accent,
+                      fontSize: 11,
+                      height: 1,
+                      fontWeight: FontWeight.w800,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 9),
         Row(
           mainAxisSize: MainAxisSize.max,
-          mainAxisAlignment:
-              alignRight ? MainAxisAlignment.end : MainAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            if (alignRight) _airportBadge(_iata(leg)),
-            if (alignRight) const SizedBox(width: 6),
             Flexible(
               child: Text(
                 city,
@@ -991,13 +1012,13 @@ class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
                 textAlign: alignRight ? TextAlign.end : TextAlign.start,
                 style: TextStyle(
                   color: p.textPrimary,
-                  fontSize: 15,
+                  fontSize: 11,
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ),
-            if (!alignRight) const SizedBox(width: 6),
-            if (!alignRight) _airportBadge(_iata(leg)),
+            const SizedBox(width: 6),
+            _airportBadge(_iata(leg)),
           ],
         ),
       ],
@@ -1018,12 +1039,13 @@ class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
     final hopsCount = legs.length - 1; // aktarma sayısı
     final duration = _duration(from.dateTime, to.dateTime);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+        key: ValueKey('drawer-flight-card-$tripLabel'),
+        padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
         decoration: BoxDecoration(
           color: p.card,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(11),
           border: Border.all(color: p.border),
         ),
         child: Column(
@@ -1033,21 +1055,22 @@ class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
               children: [
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
                   decoration: BoxDecoration(
                     color: p.accent.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(7),
                   ),
                   child: Text(
                     _tripLabel(tripLabel, s.lang),
                     style: TextStyle(
                       color: p.accent,
-                      fontSize: 15,
+                      fontSize: 10,
                       fontWeight: FontWeight.w800,
-                      letterSpacing: 0.2,
+                      letterSpacing: 0.1,
                     ),
                   ),
                 ),
+                const SizedBox(width: 5),
                 Expanded(
                   child: Text(
                     _dateShort(from.dateTime, s.lang),
@@ -1056,97 +1079,112 @@ class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
                     textAlign: TextAlign.end,
                     style: TextStyle(
                       color: p.textSecondary,
-                      fontSize: 12,
+                      fontSize: 10,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 22),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: _endpoint(leg: from, alignRight: false)),
-                const SizedBox(width: 10),
-                SizedBox(
-                  width: 88,
-                  child: Column(
-                    children: [
-                      SizedBox(
-                        height: 36,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Positioned(
-                              left: 0,
-                              right: 0,
-                              top: 18,
-                              child: SizedBox(
-                                height: 2,
-                                child: CustomPaint(
-                                  painter: _FlightDashedLinePainter(
-                                    color: p.textMuted.withValues(alpha: 0.6),
+            const SizedBox(height: 11),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = constraints.maxWidth < 310;
+                final columnGap = compact ? 3.0 : 4.0;
+                final timeFontSize = compact ? 18.0 : 20.0;
+                return Row(
+                  key: ValueKey('drawer-flight-route-$tripLabel'),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 4,
+                      child: _endpoint(
+                        leg: from,
+                        alignRight: false,
+                        timeFontSize: timeFontSize,
+                      ),
+                    ),
+                    SizedBox(width: columnGap),
+                    Expanded(
+                      flex: 5,
+                      child: Column(
+                        children: [
+                          SizedBox(
+                            height: 24,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: SizedBox(
+                                    height: 2,
+                                    child: CustomPaint(
+                                      painter: _FlightDashedLinePainter(
+                                        color:
+                                            p.textMuted.withValues(alpha: 0.72),
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
+                                Container(
+                                  color: p.card,
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 2),
+                                  child: Icon(
+                                    Icons.flight_rounded,
+                                    color: p.accent,
+                                    size: 19,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: SizedBox(
+                                    height: 2,
+                                    child: CustomPaint(
+                                      painter: _FlightDashedLinePainter(
+                                        color:
+                                            p.textMuted.withValues(alpha: 0.72),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            Container(
-                              color: p.card,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 5),
-                              child: Icon(
-                                Icons.flight_rounded,
-                                color: p.accent,
-                                size: 28,
+                          ),
+                          if (duration.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              duration,
+                              maxLines: 1,
+                              overflow: TextOverflow.clip,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: p.textMuted,
+                                fontSize: compact ? 8.5 : 9,
+                                fontWeight: FontWeight.w500,
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
                               ),
                             ),
                           ],
-                        ),
+                        ],
                       ),
-                      if (duration.isNotEmpty) ...[
-                        const SizedBox(height: 3),
-                        Text(
-                          duration,
-                          maxLines: 1,
-                          overflow: TextOverflow.clip,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: p.textMuted,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      _endpoint(leg: to, alignRight: true),
-                      if (offset > 0)
-                        Positioned(
-                          right: 0,
-                          top: -4,
-                          child: Text(
-                            '+$offset',
-                            style: TextStyle(
-                              color: p.accent,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
+                    ),
+                    SizedBox(width: columnGap),
+                    Expanded(
+                      flex: 4,
+                      child: _endpoint(
+                        leg: to,
+                        alignRight: true,
+                        timeFontSize: timeFontSize,
+                        dayOffset: offset,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
             if (hopsCount > 0) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: 3),
               Text(
                 s.p(
                   hopsCount == 1
@@ -1156,7 +1194,7 @@ class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
                 ),
                 style: TextStyle(
                   color: p.textMuted,
-                  fontSize: 11,
+                  fontSize: 9,
                 ),
               ),
             ],
@@ -1203,7 +1241,7 @@ class _DrawerFlightsMiniState extends State<_DrawerFlightsMini> {
       child: tripsCount == 0
           ? const SizedBox.shrink()
           : Padding(
-              padding: const EdgeInsets.only(top: 10),
+              padding: const EdgeInsets.only(top: 6),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -1587,6 +1625,7 @@ class _DrawerCollapsible extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = palette;
+    const iconSize = 30.0;
     return Container(
       decoration: BoxDecoration(
         color: p.card,
@@ -1599,70 +1638,82 @@ class _DrawerCollapsible extends StatelessWidget {
         children: [
           InkWell(
             onTap: onToggle,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Row(
-                children: [
-                  Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      color: iconColor.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(8),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 0),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Row(
+                  children: [
+                    Container(
+                      width: iconSize,
+                      height: iconSize,
+                      decoration: BoxDecoration(
+                        color: iconColor.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(icon, size: 16, color: iconColor),
                     ),
-                    alignment: Alignment.center,
-                    child: Icon(icon, size: 16, color: iconColor),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        color: p.textPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          color: p.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: iconColor.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      badge,
-                      style: TextStyle(
-                        color: iconColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: iconColor.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        badge,
+                        style: TextStyle(
+                          color: iconColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  AnimatedRotation(
-                    turns: expanded ? 0.5 : 0,
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOutCubic,
-                    child: Icon(
-                      Icons.expand_more,
-                      size: 20,
-                      color: p.textMuted,
+                    const SizedBox(width: 4),
+                    AnimatedRotation(
+                      turns: expanded ? 0.5 : 0,
+                      duration: RotoriMotion.duration(
+                          context, const Duration(milliseconds: 220)),
+                      curve: RotoriMotion.curve(context),
+                      child: Icon(
+                        Icons.expand_more,
+                        size: 20,
+                        color: p.textMuted,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-          AnimatedSize(
+          RotoriAnimatedSize(
             duration: const Duration(milliseconds: 260),
             curve: Curves.easeInOutCubic,
             alignment: Alignment.topCenter,
             clipBehavior: Clip.hardEdge,
             child: expanded
                 ? Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                    padding: const EdgeInsets.fromLTRB(
+                      8,
+                      0,
+                      8,
+                      12,
+                    ),
                     child: child,
                   )
                 : const SizedBox(width: double.infinity),
@@ -1790,15 +1841,55 @@ class _DrawerAddCard extends StatelessWidget {
 }
 
 /// Keşif araçlarını Hesap bölümüyle aynı sakin inset-group düzeninde toplar.
-class _DrawerActionGroup extends StatelessWidget {
-  const _DrawerActionGroup({required this.actions, required this.palette});
-  final List<_DrawerActionSpec> actions;
+class _DrawerDiscoverGroups extends StatelessWidget {
+  const _DrawerDiscoverGroups({
+    required this.planningActions,
+    required this.guideActions,
+    required this.palette,
+  });
+
+  final List<_DrawerActionSpec> planningActions;
+  final List<_DrawerActionSpec> guideActions;
   final ViewerPalette palette;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       key: const ValueKey('drawer-discover-group'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _DrawerActionGroup(
+            groupKey: const ValueKey('drawer-planning-tools-group'),
+            actions: planningActions,
+            palette: palette,
+          ),
+          const SizedBox(height: 18),
+          _DrawerActionGroup(
+            groupKey: const ValueKey('drawer-guides-group'),
+            actions: guideActions,
+            palette: palette,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DrawerActionGroup extends StatelessWidget {
+  const _DrawerActionGroup({
+    required this.groupKey,
+    required this.actions,
+    required this.palette,
+  });
+  final Key groupKey;
+  final List<_DrawerActionSpec> actions;
+  final ViewerPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: groupKey,
       decoration: BoxDecoration(
         color: palette.card,
         borderRadius: BorderRadius.circular(18),
@@ -1839,7 +1930,14 @@ class _DrawerActionTile extends StatelessWidget {
           key: spec.itemKey,
           onTap: () {
             Navigator.of(context).pop();
-            spec.onTap();
+            // Drawer kapanış animasyonu bitmeden yeni route'u push etmek,
+            // alt sayfanın drawer'ın üstüne binmesine ve geçişin silinme gibi
+            // görünmesine neden olur. Önce drawer'ın kapanmasına izin ver,
+            // sonra route kendi sağdan kayma animasyonuyla başlasın.
+            Future<void>.delayed(
+              const Duration(milliseconds: 260),
+              spec.onTap,
+            );
           },
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 64),

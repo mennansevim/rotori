@@ -53,6 +53,10 @@ void main() {
 
     expect(
         find.byKey(const ValueKey('reminder-premium-sheet')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('rotori-premium-sheet')),
+      findsOneWidget,
+    );
     expect(find.text('Rotori Pro özelliği'), findsWidgets);
     expect(find.byKey(const ValueKey('reminder-preset-shinkansen-smartex')),
         findsNothing);
@@ -149,7 +153,8 @@ void main() {
     expect(find.textContaining('Bir hazır seçim işaretle'), findsOneWidget);
 
     // Bir hazır seçim işaretle.
-    await tester.tap(find.byKey(const ValueKey('reminder-preset-tokyo-disney')));
+    await tester
+        .tap(find.byKey(const ValueKey('reminder-preset-tokyo-disney')));
     await tester.pumpAndSettle();
 
     // Buton hâlâ pasif — çünkü ziyaret tarihi yok. Artık BUNU söylüyor.

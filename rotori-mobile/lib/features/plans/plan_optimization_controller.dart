@@ -66,6 +66,7 @@ class PlanOptimizationPreview {
     required this.after,
     required this.result,
     required this.cacheKey,
+    this.preferredActivityOrder = const [],
     this.executionLegs = const [],
     this.fromCache = false,
     this.isConfirmed = false,
@@ -78,6 +79,7 @@ class PlanOptimizationPreview {
   final RouteSummary after;
   final OptimizationResult result;
   final String cacheKey;
+  final List<String> preferredActivityOrder;
   final List<RouteExecutionLeg> executionLegs;
   final bool fromCache;
   final bool isConfirmed;
@@ -92,6 +94,7 @@ class PlanOptimizationPreview {
   /// Sıralama hedefin önem sırasıdır: ulaşım süresi > yürüyüş > aktarma sayısı
   /// > maliyet. Eşitlikte bir sonrakine bakılır; hepsi eşitse kazanç yok.
   bool get improvesRoute {
+    if (_improvesPreferredOrder) return true;
     if (after.totalTravelMinutes != before.totalTravelMinutes) {
       return after.totalTravelMinutes < before.totalTravelMinutes;
     }
@@ -102,6 +105,28 @@ class PlanOptimizationPreview {
       return after.totalTransferCount < before.totalTransferCount;
     }
     return after.estimatedTransportCostYen < before.estimatedTransportCostYen;
+  }
+
+  bool get _improvesPreferredOrder {
+    if (preferredActivityOrder.isEmpty) return false;
+    List<String> ids(Trip trip) => trip.days
+        .where((day) => day.dayNumber == dayNumber)
+        .expand((day) => day.items)
+        .map((item) => item.id)
+        .toList(growable: false);
+    int deviation(List<String> order) {
+      var total = 0;
+      for (var index = 0; index < order.length; index++) {
+        final preferredIndex = preferredActivityOrder.indexOf(order[index]);
+        if (preferredIndex >= 0) total += (preferredIndex - index).abs();
+      }
+      return total;
+    }
+
+    final beforeOrder = ids(originalTrip);
+    final afterOrder = ids(optimizedTrip);
+    return afterOrder.join('\u0000') != beforeOrder.join('\u0000') &&
+        deviation(afterOrder) < deviation(beforeOrder);
   }
 
   PlanOptimizationPreview copyWith({
@@ -116,6 +141,7 @@ class PlanOptimizationPreview {
       after: after,
       result: result,
       cacheKey: cacheKey,
+      preferredActivityOrder: preferredActivityOrder,
       executionLegs: executionLegs,
       fromCache: fromCache ?? this.fromCache,
       isConfirmed: isConfirmed ?? this.isConfirmed,
@@ -402,6 +428,7 @@ class PlanOptimizationController
       ),
       result: result,
       cacheKey: cacheKey,
+      preferredActivityOrder: input.preferredActivityOrder,
       executionLegs: executionLegs,
     );
     previewCache.put(cacheKey, preview);
@@ -542,6 +569,7 @@ class PlanOptimizationController
       after: _summarizeOriginal(request, normalizedItems),
       result: OptimizationResult.failure(fallbackFailure),
       cacheKey: cacheKey,
+      preferredActivityOrder: input.preferredActivityOrder,
     );
     ref.read(planOptimizationPreviewCacheProvider).put(cacheKey, preview);
     return preview;

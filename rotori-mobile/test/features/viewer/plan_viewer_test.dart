@@ -1,19 +1,28 @@
 // Plan viewer widget testi — temalı görüntüleyicinin temel davranışları:
 // başlık render, aktif gün genişletilmiş + geçmiş gün soluk, tema seçici açılır.
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:rotori/data/plans_repository.dart';
 import 'package:rotori/core/supabase_client.dart';
+import 'package:rotori/domain/plan_schedule_engine.dart';
 import 'package:rotori/domain/route_matrix.dart';
 import 'package:rotori/domain/route_execution.dart';
+import 'package:rotori/features/tickets/data/ticket_local_media_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:rotori/core/debug_clock.dart';
+import 'package:rotori/data/device_steps.dart';
 import 'package:rotori/core/l10n.dart';
 import 'package:rotori/features/plans/premium_provider.dart';
 import 'package:rotori/domain/types.dart';
+import 'package:rotori/features/plans/plan_edit_session.dart';
 import 'package:rotori/features/plans/plan_providers.dart';
 import 'package:rotori/features/plans/plan_optimization_controller.dart';
 import 'package:rotori/features/plans/plan_viewer_screen.dart';
@@ -55,6 +64,41 @@ Trip _sampleTrip() {
       mk(1, -2, 'Geçmiş Gün Teması', 'Gecmis Aktivite'),
       mk(2, 0, 'Aktif Gün Teması', 'Aktif Aktivite'),
       mk(3, 2, 'Gelecek Gün Teması', 'Gelecek Aktivite'),
+    ],
+  );
+}
+
+/// Tek günlük, saatli üç duraklı Trip — saat bazlı "sıradaki aktivite"
+/// seçimini sabit bir "şimdi" ile test etmek için.
+Trip _hourTrip(DateTime day) {
+  final date = '${day.year.toString().padLeft(4, '0')}-'
+      '${day.month.toString().padLeft(2, '0')}-'
+      '${day.day.toString().padLeft(2, '0')}';
+  return Trip(
+    id: 'hour-trip',
+    slug: 'hour-trip',
+    title: 'Saat Testi',
+    subtitle: 'Widget testi',
+    timezone: 'Asia/Tokyo',
+    tripStart: date,
+    tripEnd: date,
+    flights: TripFlights(),
+    preferences: TripPreferences(
+      travelDates: TravelDates(start: date, end: date),
+      pace: Pace.moderate,
+    ),
+    days: [
+      DayPlan(
+        dayNumber: 1,
+        date: date,
+        theme: 'Saat Günü',
+        tags: const ['test'],
+        items: [
+          TimelineItem(id: 'h1', title: 'Sabah Durağı', time: '09:00'),
+          TimelineItem(id: 'h2', title: 'Öğlen Durağı', time: '13:00'),
+          TimelineItem(id: 'h3', title: 'Akşam Durağı', time: '18:00'),
+        ],
+      ),
     ],
   );
 }
@@ -294,15 +338,84 @@ RouteMatrixEntry _routeUiEntry(
 
 String tr(String key) => L10n.resolve(key, AppLang.tr);
 
+class _MemoryTicketMediaStore implements TicketLocalMediaStore {
+  final Map<String, Uint8List> _staged = {};
+  final Map<String, Uint8List> _committed = {};
+  var _nextId = 0;
+
+  int get stagedCount => _staged.length;
+  int get committedCount => _committed.length;
+  Uint8List? lastStagedBytes;
+
+  void seedCommitted(String ref, List<int> bytes) {
+    _committed[ref] = Uint8List.fromList(bytes);
+  }
+
+  bool containsCommitted(String ref) => _committed.containsKey(ref);
+
+  @override
+  Future<StagedTicketMedia> stage({
+    required String planId,
+    required String ticketId,
+    required Uint8List bytes,
+    required String extension,
+  }) async {
+    final normalized = normalizeTicketMediaExtension(extension);
+    final token = '$planId/$ticketId/${_nextId++}';
+    lastStagedBytes = Uint8List.fromList(bytes);
+    _staged[token] = Uint8List.fromList(bytes);
+    return StagedTicketMedia(token: token, extension: normalized);
+  }
+
+  @override
+  Future<String> commit(StagedTicketMedia media) async {
+    final bytes = _staged.remove(media.token)!;
+    final ref = 'memory:${media.token}.${media.extension}';
+    _committed[ref] = bytes;
+    return ref;
+  }
+
+  @override
+  Future<Uint8List?> read(String localMediaRef) async =>
+      _committed[localMediaRef];
+
+  @override
+  Future<void> discard(StagedTicketMedia media) async {
+    _staged.remove(media.token);
+  }
+
+  @override
+  Future<void> delete(String localMediaRef) async {
+    _committed.remove(localMediaRef);
+  }
+
+  @override
+  Future<void> cleanupStale({required DateTime now}) async {}
+}
+
 void main() {
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    // Viewer regresyonları eski düzen davranışını doğrudan test eder; yeni
+    // kurulum varsayılanı viewer_theme_test.dart içinde ayrıca doğrulanır.
+    SharedPreferences.setMockInitialValues({
+      'viewer:template': 'journey-progress',
+      kPremiumPrefsKey: true,
+    });
   });
 
   Widget harness(
     Trip trip, {
     bool accessibleNavigation = false,
     RouteMatrixRepository? routeRepository,
+    bool debugClock = false,
+    DateTime? nowOverride,
+    int? deviceSteps,
+    TicketLocalMediaStore? ticketMediaStore,
+    Future<XFile?> Function(ImageSource source)? pickTicketImage,
+    Future<PlanEditResult> Function(
+      PlanEditSession session,
+      PlanEditCommand command,
+    )? executeTicketCommand,
   }) {
     return ProviderScope(
       overrides: [
@@ -313,6 +426,21 @@ void main() {
         planByIdProvider(trip.id).overrideWith((ref) => Stream.value(trip)),
         if (routeRepository != null)
           routeMatrixRepositoryProvider.overrideWithValue(routeRepository),
+        // Debug saat barı varsayılan kapalı; yalnız saat testleri açar.
+        if (debugClock) debugClockBarEnabledProvider.overrideWithValue(true),
+        // Sabit "şimdi": saat bazlı sıradaki-aktivite seçimini duvar saatinden
+        // bağımsız test etmek için.
+        if (nowOverride != null) nowProvider.overrideWithValue(nowOverride),
+        // Telefon adım sayacını taklit et.
+        if (deviceSteps != null)
+          deviceStepReaderProvider.overrideWithValue((_) async => deviceSteps),
+        if (ticketMediaStore != null)
+          ticketLocalMediaStoreProvider.overrideWithValue(ticketMediaStore),
+        if (pickTicketImage != null)
+          ticketImagePickerProvider.overrideWithValue(pickTicketImage),
+        if (executeTicketCommand != null)
+          ticketEditCommandExecutorProvider
+              .overrideWithValue(executeTicketCommand),
       ],
       child: MaterialApp(
         // Sonsuz sakura/pulse animasyonlarını testte kapat (deterministik).
@@ -346,23 +474,21 @@ void main() {
     expect(find.text('Aktif Gün Teması'), findsWidgets);
   });
 
-  testWidgets('geçmiş gün okunabilir tam opaklıkta render edilir',
+  testWidgets('geçmiş gün görüntülemede gizli, düzenleme modunda geri gelir',
       (tester) async {
     await tester.pumpWidget(harness(_sampleTrip()));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    final opacities = tester
-        .widgetList<Opacity>(
-          find.ancestor(
-            of: find.text('Geçmiş Gün Teması'),
-            matching: find.byType(Opacity),
-          ),
-        )
-        .map((w) => w.opacity)
-        .toList();
-    expect(opacities.contains(0.6), isFalse,
-        reason: 'geçmiş gün içeriği plan sonrasında da net okunmalı');
+    // Görüntüleme modu: geçmiş gün (1. gün) listeden düşer, aktif gün en üstte.
+    expect(find.text('Geçmiş Gün Teması'), findsNothing);
+    expect(find.text('Aktif Gün Teması'), findsWidgets);
+
+    // Düzenleme moduna geç → geçmiş gün de düzenlenebilsin diye geri gelir.
+    await tester.tap(find.byIcon(Icons.edit_outlined));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+    expect(find.text('Geçmiş Gün Teması'), findsWidgets);
   });
 
   testWidgets('aktif gün genişletilmiş, gelecek gün kapalı', (tester) async {
@@ -420,23 +546,19 @@ void main() {
     expect(find.text('Sıradaki'), findsOneWidget);
   });
 
-  // Rota optimizasyonu artık PREMIUM arkasında: gün kartındaki buton
-  // doğrudan optimizasyonu çalıştırmıyor, paywall sheet'ini açıyor.
-  // Optimizasyon motorunun kendisi plan_optimization_controller_test.dart
-  // tarafından kapsanıyor.
-  // Rota optimizasyonu premium arkasında. ÜCRETSİZ kullanıcıda paywall,
-  // PREMIUM kullanıcıda gerçek optimizasyon açılmalı. Eskiden buton premium
-  // bayrağını hiç okumuyordu: kullanıcı premium'u açsa bile paywall geliyordu.
-  testWidgets('ücretsiz kullanıcıda optimize butonu paywall açar',
+  testWidgets('hava durumuna göre düzenle aksiyonu ücretsiz kullanıcıda görünür',
       (tester) async {
-    SharedPreferences.setMockInitialValues({kPremiumPrefsKey: false});
+    SharedPreferences.setMockInitialValues({
+      kPremiumPrefsKey: false,
+      'viewer:template': 'journey-progress',
+    });
     await tester.pumpWidget(harness(_sampleTrip()));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 300));
 
     final optimize = find.byKey(const ValueKey('optimize-route-2'));
     expect(optimize, findsOneWidget);
-    expect(find.text('Premium'), findsWidgets);
+    expect(find.text(tr('routeOptimization.weatherAction')), findsOneWidget);
 
     await tester.scrollUntilVisible(
       optimize,
@@ -447,11 +569,15 @@ void main() {
     await tester.tap(optimize);
     await tester.pumpAndSettle();
 
-    expect(find.text(tr('routeOptimization.premium.title')), findsOneWidget);
+    expect(find.text(tr('routeOptimization.needTwoStops')), findsOneWidget);
   });
 
-  testWidgets('premium açıkken paywall GELMEZ, rozet kalkar', (tester) async {
-    SharedPreferences.setMockInitialValues({kPremiumPrefsKey: true});
+  testWidgets('premium durumu hava aksiyonunun etiketini değiştirmez',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({
+      kPremiumPrefsKey: true,
+      'viewer:template': 'journey-progress',
+    });
     await tester.pumpWidget(harness(_sampleTrip()));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
@@ -460,15 +586,17 @@ void main() {
 
     final optimize = find.byKey(const ValueKey('optimize-route-2'));
     expect(optimize, findsOneWidget);
-    expect(find.text('Premium'), findsNothing,
-        reason: 'premium kullanıcıya kilit rozeti gösterilmemeli');
+    expect(find.text(tr('routeOptimization.weatherAction')), findsOneWidget);
 
-    await tester.ensureVisible(optimize);
+    await tester.scrollUntilVisible(
+      optimize,
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(optimize);
     await tester.pumpAndSettle();
 
-    expect(find.text(tr('routeOptimization.premium.title')), findsNothing,
-        reason: 'premium açıkken paywall açılmamalı');
+    expect(find.text(tr('routeOptimization.premium.title')), findsNothing);
   });
 
   testWidgets('optimizasyon ön izlemesi ulaşım türü, hat ve yönü gösterir',
@@ -572,7 +700,15 @@ void main() {
   testWidgets(
       'açık ulaşım öğesi kendi özetini gösterir, çevresinde sahte bacak üretmez',
       (tester) async {
-    await tester.pumpWidget(harness(_explicitTransportTrip()));
+    // Trip'in tek günü bugüne kurulu (14:15/15:15 saatli duraklar); gerçek
+    // saat bu saatleri geçmişse `_isTripFinished` devreye girip günlük
+    // timeline yerine "Gezi tamamlandı" raporunu gösterir ve bu testi saatin
+    // koşulma anına bağlı kılardı. `nowOverride` günü sabit 10:00'a kilitler.
+    final today = DateTime.now();
+    final beforeAnyStop = DateTime(today.year, today.month, today.day, 10);
+    await tester.pumpWidget(
+      harness(_explicitTransportTrip(), nowOverride: beforeAnyStop),
+    );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 150));
     await tester.drag(
@@ -784,30 +920,482 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text(tr('viewer.ticketEditor.addTitle')), findsOneWidget);
+    expect(find.text(tr('ticketReview.title')), findsOneWidget);
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.text(tr('viewer.ticketEditor.addTitle')), findsNothing);
+    expect(find.text(tr('ticketReview.title')), findsNothing);
     expect(find.text('Tokyo → Kyoto ulaşımı'), findsOneWidget);
   });
 
-  testWidgets('boş bilet sekmesi açıklama ve birincil ekleme aksiyonu gösterir',
+  testWidgets('Biletler sekmesi wallet başlığını ve kalıcı alt navı gösterir',
       (tester) async {
     await tester.pumpWidget(harness(_sampleTrip()));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    await tester.tap(find.text('Biletler').last);
+    await tester.tap(find.text(tr('viewer.quick.tickets')).last);
     await tester.pumpAndSettle();
 
-    expect(find.text(tr('viewer.quick.noTickets')), findsOneWidget);
-    expect(find.text(tr('viewer.quick.noTicketsHelp')), findsOneWidget);
-    expect(find.byKey(const ValueKey('add-first-ticket')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('add-first-ticket')));
+    expect(find.byKey(const ValueKey('ticket-wallet-title')), findsOneWidget);
+    expect(find.byKey(const ValueKey('ticket-wallet-empty')), findsOneWidget);
+    expect(find.byKey(const ValueKey('viewer-quick-nav')), findsOneWidget);
+  });
+
+  testWidgets('Biletler ana sayfanın kaydırma konumunu miras almaz',
+      (tester) async {
+    await tester.pumpWidget(harness(_sampleTrip()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -900));
+    await tester.pump();
+    await tester.tap(find.text(tr('viewer.quick.tickets')).last);
     await tester.pumpAndSettle();
-    expect(find.text(tr('viewer.ticketEditor.addTitle')), findsOneWidget);
+
+    final title = find.byKey(const ValueKey('ticket-wallet-title'));
+    expect(title, findsOneWidget);
+    expect(tester.getTopLeft(title).dy, greaterThanOrEqualTo(0));
+    expect(tester.getBottomRight(title).dy, lessThan(600));
+  });
+
+  testWidgets('ticket manuel giriş aynı review akışından walletta görünür',
+      (tester) async {
+    await tester.pumpWidget(harness(_sampleTrip()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.text(tr('viewer.quick.tickets')).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('ticket-wallet-add')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('viewer-quick-nav')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('ticket-add-manual')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('ticket-review-label')),
+      'Ghibli Museum',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('ticket-review-save')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ghibli Museum'), findsOneWidget);
+    expect(find.byKey(const ValueKey('viewer-quick-nav')), findsOneWidget);
+  });
+
+  testWidgets('ticket ekleme sheeti viewer shell üstünde açılır',
+      (tester) async {
+    await tester.pumpWidget(harness(_sampleTrip()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.text(tr('viewer.quick.tickets')).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('ticket-wallet-add')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('ticket-add-gallery')), findsOneWidget);
+    expect(find.byKey(const ValueKey('viewer-quick-nav')), findsOneWidget);
+  });
+
+  testWidgets(
+      'aktivite detayındaki bilet ekle ortak wallet akışını açar ve alt navı korur',
+      (tester) async {
+    final trip = _sampleTrip();
+    trip.days[1].items = [
+      TimelineItem(
+        id: 'activity-ticket-entry',
+        title: 'teamLab Planets',
+        time: '10:00',
+      ),
+    ];
+    await tester.pumpWidget(harness(trip));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final activity = find.text('teamLab Planets');
+    await tester.scrollUntilVisible(
+      activity,
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -180));
+    await tester.pumpAndSettle();
+    await tester.tap(activity);
+    await tester.pumpAndSettle();
+
+    final addTicket = find.byKey(const ValueKey('place-detail-add-ticket'));
+    await tester.dragUntilVisible(
+      addTicket,
+      find.byType(ListView).last,
+      const Offset(0, -300),
+    );
+    final quickNavElement =
+        tester.element(find.byKey(const ValueKey('viewer-quick-nav')));
+    await tester.tap(addTicket);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('ticket-wallet-title')), findsOneWidget);
+    expect(find.byKey(const ValueKey('ticket-add-gallery')), findsOneWidget);
+    expect(find.byKey(const ValueKey('ticket-add-manual')), findsOneWidget);
+    expect(find.byKey(const ValueKey('ticket-add-plan')), findsNothing);
+    expect(
+      tester.element(find.byKey(const ValueKey('viewer-quick-nav'))),
+      same(quickNavElement),
+    );
+  });
+
+  testWidgets('aktivite detayından manuel bilet etkinliğe kimlikle bağlanır',
+      (tester) async {
+    final trip = _sampleTrip();
+    trip.days[1].items = [
+      TimelineItem(
+        id: 'activity-ticket-attach',
+        title: 'teamLab Planets',
+        time: '10:00',
+      ),
+    ];
+    final commands = <PlanEditCommand>[];
+    await tester.pumpWidget(harness(
+      trip,
+      executeTicketCommand: (_, command) async {
+        commands.add(command);
+        return PlanEditResult.success(trip, const []);
+      },
+    ));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final activity = find.text('teamLab Planets');
+    await tester.scrollUntilVisible(
+      activity,
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -180));
+    await tester.pumpAndSettle();
+    await tester.tap(activity);
+    await tester.pumpAndSettle();
+    final addTicket = find.byKey(const ValueKey('place-detail-add-ticket'));
+    await tester.dragUntilVisible(
+      addTicket,
+      find.byType(ListView).last,
+      const Offset(0, -300),
+    );
+    await tester.tap(addTicket);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('ticket-add-manual')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('ticket-review-save')));
+    await tester.pumpAndSettle();
+
+    expect(commands, hasLength(1));
+    expect(commands.single, isA<AttachTicketToActivity>());
+    expect(
+      (commands.single as AttachTicketToActivity).activityId,
+      'activity-ticket-attach',
+    );
+  });
+
+  testWidgets('ticket detaydan silinince wallettan kaldırılır', (tester) async {
+    final trip = _sampleTrip()
+      ..tickets = [
+        Ticket(
+          id: 'delete-me',
+          kind: 'attraction',
+          label: 'Silinecek Bilet',
+          purchased: true,
+          visitDate: _sampleTrip().days.last.date,
+        ),
+      ];
+    await tester.pumpWidget(harness(trip));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.text(tr('viewer.quick.tickets')).last);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('ticket-wallet-card-press-delete-me')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('ticket-detail-delete')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('ticket-detail-confirm-delete')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Silinecek Bilet'), findsNothing);
+    expect(find.byKey(const ValueKey('ticket-wallet-empty')), findsOneWidget);
+  });
+
+  testWidgets('bağlı bilet detay kaydı etkinlik komutunu kullanır',
+      (tester) async {
+    final trip = _sampleTrip()
+      ..tickets = [
+        Ticket(
+          id: 'linked-ticket',
+          kind: 'attraction',
+          label: 'Bağlı Bilet',
+          purchased: true,
+          linkedActivityId: 'it2',
+        ),
+      ];
+    final commands = <PlanEditCommand>[];
+    await tester.pumpWidget(harness(
+      trip,
+      executeTicketCommand: (_, command) async {
+        commands.add(command);
+        return PlanEditResult.success(trip, const []);
+      },
+    ));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.text(tr('viewer.quick.tickets')).last);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('ticket-wallet-card-press-linked-ticket')),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('ticket-detail-label')),
+      'Bağlı Bilet Güncel',
+    );
+    await tester.tap(find.byKey(const ValueKey('ticket-detail-save')));
+    await tester.pumpAndSettle();
+
+    expect(commands, hasLength(1));
+    expect(commands.single, isA<AttachTicketToActivity>());
+  });
+
+  testWidgets('plandan bilet seçimi review üzerinden etkinliğe bağlanır',
+      (tester) async {
+    final trip = _sampleTrip();
+    trip.days[1].items = [
+      TimelineItem(
+        id: 'plan-ticket-item',
+        title: 'teamLab Planets',
+        time: '14:30',
+      ),
+    ];
+    final commands = <PlanEditCommand>[];
+    await tester.pumpWidget(harness(
+      trip,
+      executeTicketCommand: (_, command) async {
+        commands.add(command);
+        return PlanEditResult.success(trip, const []);
+      },
+    ));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.text(tr('viewer.quick.tickets')).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('ticket-wallet-add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('ticket-add-plan')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('teamLab Planets'));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .widget<TextField>(
+            find.byKey(const ValueKey('ticket-review-label')),
+          )
+          .controller
+          ?.text,
+      'teamLab Planets',
+    );
+    await tester.tap(find.byKey(const ValueKey('ticket-review-save')));
+    await tester.pumpAndSettle();
+
+    expect(commands, hasLength(1));
+    expect(commands.single, isA<AttachTicketToActivity>());
+  });
+
+  testWidgets('medya değiştirme kaydı başarısızsa eski medya korunur',
+      (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    const oldRef = 'memory:old-ticket.png';
+    final pngBytes = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+    );
+    final mediaStore = _MemoryTicketMediaStore()
+      ..seedCommitted(oldRef, pngBytes);
+    final trip = _sampleTrip()
+      ..tickets = [
+        Ticket(
+          id: 'replace-ticket',
+          kind: 'attraction',
+          label: 'Medyası Değişecek',
+          purchased: true,
+          localMediaRef: oldRef,
+        ),
+      ];
+    await tester.pumpWidget(harness(
+      trip,
+      ticketMediaStore: mediaStore,
+      pickTicketImage: (_) async => XFile.fromData(
+        Uint8List.fromList(pngBytes),
+        name: 'replacement.png',
+        mimeType: 'image/png',
+      ),
+      executeTicketCommand: (_, __) async => PlanEditResult.failure(
+        const PlanEditFailure(
+          PlanEditFailureCode.activityNotFound,
+          message: 'simulated replacement failure',
+        ),
+      ),
+    ));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.text(tr('viewer.quick.tickets')).last);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('ticket-wallet-card-press-replace-ticket')),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('ticket-detail-replace-media')),
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('ticket-detail-replace-media')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr('ticketAdd.gallery')).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('ticket-review-save')));
+    await tester.pumpAndSettle();
+    debugDefaultTargetPlatformOverride = null;
+
+    expect(mediaStore.containsCommitted(oldRef), isTrue);
+    expect(mediaStore.committedCount, 1);
+    expect(mediaStore.stagedCount, 0);
+  });
+
+  testWidgets('silme kaydı başarısızsa mevcut medya korunur', (tester) async {
+    const mediaRef = 'memory:keep-me.png';
+    final mediaStore = _MemoryTicketMediaStore()
+      ..seedCommitted(
+        mediaRef,
+        base64Decode(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+        ),
+      );
+    final trip = _sampleTrip()
+      ..tickets = [
+        Ticket(
+          id: 'keep-ticket',
+          kind: 'attraction',
+          label: 'Korunacak Bilet',
+          purchased: true,
+          localMediaRef: mediaRef,
+        ),
+      ];
+    await tester.pumpWidget(harness(
+      trip,
+      ticketMediaStore: mediaStore,
+      executeTicketCommand: (_, __) async => PlanEditResult.failure(
+        const PlanEditFailure(
+          PlanEditFailureCode.activityNotFound,
+          message: 'simulated delete failure',
+        ),
+      ),
+    ));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.text(tr('viewer.quick.tickets')).last);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('ticket-wallet-card-press-keep-ticket')),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('ticket-detail-delete')),
+      180,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.drag(
+      find.byType(Scrollable).last,
+      const Offset(0, -140),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('ticket-detail-delete')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('ticket-detail-confirm-delete')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(mediaStore.containsCommitted(mediaRef), isTrue);
+    expect(find.text('Korunacak Bilet'), findsOneWidget);
+  });
+
+  testWidgets('ticket import persistence hatasında medya rollback edilir',
+      (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    final mediaStore = _MemoryTicketMediaStore();
+    final picked = XFile.fromData(
+      Uint8List.fromList(const [137, 80, 78, 71]),
+      name: 'ticket.png',
+      mimeType: 'image/png',
+    );
+    await tester.pumpWidget(harness(
+      _sampleTrip(),
+      ticketMediaStore: mediaStore,
+      pickTicketImage: (_) async => picked,
+      executeTicketCommand: (_, __) async => PlanEditResult.failure(
+        const PlanEditFailure(
+          PlanEditFailureCode.activityNotFound,
+          message: 'simulated persistence failure',
+        ),
+      ),
+    ));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.text(tr('viewer.quick.tickets')).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('ticket-wallet-add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('ticket-add-gallery')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('ticket-review-label')),
+      'Rollback Bileti',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('ticket-review-save')));
+    await tester.pumpAndSettle();
+    debugDefaultTargetPlatformOverride = null;
+
+    expect(mediaStore.stagedCount, 0);
+    expect(mediaStore.committedCount, 0);
+    expect(mediaStore.lastStagedBytes, orderedEquals(const [137, 80, 78, 71]));
+    expect(find.text('Rollback Bileti'), findsNothing);
+  });
+
+  test('aynı başlıklı bağlı bilet başka etkinliğe eşleşmez', () {
+    final linked = Ticket(
+      id: 'linked-a',
+      kind: 'attraction',
+      label: 'teamLab Planets',
+      purchased: true,
+      linkedActivityId: 'activity-a',
+    );
+    final item = TimelineItem(id: 'activity-b', title: 'teamLab Planets');
+
+    expect(findExistingTicketForItem([linked], item), isNull);
   });
 
   testWidgets('Keşfet alt menü butonu keşif haritasını açar', (tester) async {
@@ -815,14 +1403,25 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
+    final nav = find.byKey(const ValueKey('viewer-quick-nav')).hitTestable();
+    final originalNavElement = tester.element(nav);
+    final originalNavTopLeft = tester.getTopLeft(nav);
+
     await tester.tap(find.text(tr('viewer.quick.explore')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text(tr('reward.title')), findsOneWidget);
+    final visibleNav =
+        find.byKey(const ValueKey('viewer-quick-nav')).hitTestable();
+    expect(visibleNav, findsOneWidget);
+    expect(tester.element(visibleNav), same(originalNavElement));
+    expect(tester.getTopLeft(visibleNav), originalNavTopLeft);
   });
 
-  testWidgets('tasarım seçici iki düzeni ve 3 temayı sunar', (tester) async {
+  testWidgets('tasarım seçici yatay üç önizlemeyi ve ücretsiz kilitleri sunar',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(harness(_sampleTrip()));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
@@ -840,7 +1439,29 @@ void main() {
     expect(find.text('Apple Aydınlık'), findsOneWidget);
     expect(find.text('Sakura Yumuşak'), findsOneWidget);
     expect(find.text('Yolculuk'), findsOneWidget);
+    expect(find.text('Rota Panoraması'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('viewer-template-horizontal-list')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('viewer-template-selected-route-panorama')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('viewer-template-lock-journey-progress')),
+      findsOneWidget,
+    );
+    await tester.drag(
+      find.byKey(const ValueKey('viewer-template-horizontal-list')),
+      const Offset(-260, 0),
+    );
+    await tester.pumpAndSettle();
     expect(find.text('Harita'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('viewer-template-lock-map-focus')),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const ValueKey('viewer-template-journey-progress')),
       findsOneWidget,
@@ -850,9 +1471,43 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(
-      find.byKey(const ValueKey('viewer-template-map-focus')),
+    await tester.tap(find.byKey(const ValueKey('viewer-template-map-focus')));
+    await tester.pump();
+    expect(find.text(tr('viewer.template.premium.title')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('rotori-premium-sheet')),
+      findsOneWidget,
     );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('viewer-template-premium-close')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('viewer-template-premium-close')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('viewer-template-map-hero')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('premium kullanıcı harita tasarımını açabilir', (tester) async {
+    SharedPreferences.setMockInitialValues({kPremiumPrefsKey: true});
+    await tester.pumpWidget(harness(_sampleTrip()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byIcon(Icons.palette_outlined));
+    await tester.tap(find.byIcon(Icons.palette_outlined));
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(const ValueKey('viewer-template-horizontal-list')),
+      const Offset(-260, 0),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('viewer-template-map-focus')));
     await tester.pump();
     expect(
       find.byKey(const ValueKey('viewer-template-map-hero')),
@@ -913,7 +1568,436 @@ void main() {
   });
 
   testWidgets(
-      'yolculuk tasarımı Japonya çizimini ve parçalı ilerlemeyi gösterir',
+      'harita tasarımı sıradaki aktivite kartını haritanın altında gösterir',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'viewer:template': 'map-focus',
+    });
+
+    await tester.pumpWidget(harness(_sampleTrip()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    // Gelecek bir günü seç: o günün ilk aktivitesi her zaman "sıradaki"dir,
+    // böylece test duvar saatinden bağımsız (aktif gün, saatin ilerlemesiyle
+    // "tamamlandı" olup kartı gizleyebilirdi).
+    final dayThreeChip = tester.widget<InkWell>(
+      find.byKey(const ValueKey('viewer-map-day-3')),
+    );
+    dayThreeChip.onTap!();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // Kart harita ile aynı ekranda, ayrı bir sabit blok olarak durur.
+    expect(
+      find.byKey(const ValueKey('viewer-map-next-activity')),
+      findsOneWidget,
+    );
+    // "SIRADAKI" rozeti kartın içinde görünür.
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('viewer-map-next-activity')),
+        matching: find.text('SIRADAKI'),
+      ),
+      findsOneWidget,
+    );
+    // Kart seçili günün ilk aktivitesini gösterir.
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('viewer-map-next-activity')),
+        matching: find.textContaining('Gelecek Aktivite'),
+      ),
+      findsOneWidget,
+    );
+    final mapHeight = tester
+        .getSize(find.byKey(const ValueKey('viewer-template-map-hero')))
+        .height;
+    expect(mapHeight, inInclusiveRange(241.0, 270.0));
+    expect(
+      tester
+          .getSize(find.byKey(const ValueKey('viewer-map-next-activity')))
+          .height,
+      lessThanOrEqualTo(78),
+    );
+    expect(
+      tester.getSize(find.byKey(const ValueKey('viewer-map-day-strip'))).height,
+      closeTo(62, 0.5),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('rota panoraması tasarımı adım halkası ve metrikleri gösterir',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'viewer:template': 'route-panorama',
+    });
+    final trip = _sampleTrip();
+    trip.days[1].stepsEstimate = 12400;
+
+    await tester.pumpWidget(harness(trip));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    expect(
+      find.byKey(const ValueKey('viewer-template-panorama-hero')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('viewer-panorama-step-ring')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('viewer-panorama-contrast-overlay')),
+      findsOneWidget,
+    );
+    // Adım plandan gelir ve binlik ayraçla yazılır.
+    expect(
+      find.byKey(const ValueKey('viewer-panorama-steps')),
+      findsOneWidget,
+    );
+    expect(find.text('12.400'), findsOneWidget);
+    // Kalori adımdan türer: 12400 * 0.04 = 496.
+    expect(find.text('496 kcal'), findsOneWidget);
+    // Alt şerit metrikleri.
+    expect(find.text('durak'), findsOneWidget);
+    expect(find.text('ilerleme'), findsOneWidget);
+    expect(find.text('kalan'), findsOneWidget);
+    expect(find.text('rezervasyon'), findsOneWidget);
+    // Gün akışı yolculuk tasarımıyla aynı kalır — aktif gün kartı yerinde.
+    // Panoramanın üstündeki metrik kartı + sıradaki-aktivite bandı ekstra yer
+    // kapladığı için gün kartı ilk ekranda olmayabilir, kaydırarak doğrula.
+    await tester.scrollUntilVisible(
+      find.text('Aktif Gün Teması'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Aktif Gün Teması'), findsWidgets);
+
+    expect(
+      find.byKey(const ValueKey('viewer-day-card-active-accent')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('tema ve dil seçenekleri aynı satır içi seçim desenini kullanır',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(harness(_sampleTrip()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byIcon(Icons.palette_outlined));
+    await tester.tap(find.byIcon(Icons.palette_outlined));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('viewer-theme-option-apple-light')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('viewer-language-option-tr')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('viewer-theme-option-apple-light')),
+        matching: find.byIcon(Icons.check_circle),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('viewer-language-option-tr')),
+        matching: find.byIcon(Icons.check_circle),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+      'rota panoraması son GÜN değilken tamamlandı bandını hâlâ gösterir',
+      (tester) async {
+    // REGRESYON: panorama başlığı yolculuk temasının header'ını değiştiriyor
+    // ama altındaki "sıradaki aktivite / gün tamamlandı" bandı
+    // (_JourneyHeroSheet) unutulup hiç render edilmemişti — günün son
+    // aktivitesi geçtiğinde kullanıcıya hiçbir şey söylenmiyordu. Bu, gezinin
+    // SON günü olmayan bir gün tamamlandığında (gezi bitmedi) hâlâ eski
+    // sade banner'ın çıktığını doğrular — tam rapor yalnız gezi tamamen
+    // bittiğinde (bkz. bir altındaki test) devreye girmeli.
+    SharedPreferences.setMockInitialValues({
+      'viewer:template': 'route-panorama',
+    });
+    final trip = _sampleTrip(); // 3 gün: geçmiş, bugün (aktif), gelecek.
+    final now = DateTime.now();
+    // Bugünün (aktif gün, 2. gün) tek aktivitesi 10:00 — günü geç bir saate
+    // taşı ki tamamlanmış sayılsın, ama gelecekte 3. gün hâlâ duruyor.
+    final lateToday = DateTime(now.year, now.month, now.day, 23, 59);
+
+    await tester.pumpWidget(harness(trip, nowOverride: lateToday));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    expect(
+      find.byKey(const ValueKey('viewer-template-panorama-hero')),
+      findsOneWidget,
+    );
+    expect(find.text('Bugünün planı tamamlandı'), findsOneWidget);
+    // Gezi bitmedi — tam rapor ÇIKMAMALI.
+    expect(
+      find.byKey(const ValueKey('viewer-trip-completion-report')),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
+      'rota panoraması gezinin SON aktivitesi geçince tam rapor gösterir',
+      (tester) async {
+    // Tek günlük gezide o gün aynı zamanda SON gün de olduğu için, günü
+    // bitirmek gezinin TAMAMINI bitirir — artık sade banner değil, tüm
+    // geziyi özetleyen detaylı rapor gösterilmeli ve gün kartı kapanmalı.
+    SharedPreferences.setMockInitialValues({
+      'viewer:template': 'route-panorama',
+    });
+    final trip = _hourTrip(DateTime(2026, 6, 15));
+
+    // 19:00 → günün son durağı (18:00) da geçti, sıradaki kalmadı.
+    await tester.pumpWidget(
+      harness(trip, nowOverride: DateTime(2026, 6, 15, 19)),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    // Sade "Bugünün planı tamamlandı" bandı DEĞİL, tam rapor çıkmalı.
+    expect(find.text('Bugünün planı tamamlandı'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('viewer-trip-completion-report')),
+      findsOneWidget,
+    );
+    expect(find.text('Gezi tamamlandı! 🎉'), findsOneWidget);
+    // Gün kartı kapanmış olmalı — "Sabah Durağı" (ilk durak) görünmemeli.
+    expect(find.text('Sabah Durağı'), findsNothing);
+    // "Günleri gör" ile tekrar açılabilmeli.
+    await tester.tap(
+      find.byKey(const ValueKey('viewer-trip-report-toggle-days')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Sabah Durağı'), findsOneWidget);
+  });
+
+  testWidgets('cihazdan gelen adım plan tahminini geçersiz kılar',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'viewer:template': 'route-panorama',
+    });
+    final trip = _sampleTrip();
+    trip.days[1].stepsEstimate = 12400;
+
+    await tester.pumpWidget(
+      harness(
+        trip,
+        // Telefon sağlık verisi varmış gibi davran.
+        deviceSteps: 8250,
+      ),
+    );
+    await tester.pump();
+    // Cihaz okuması asenkron — future çözülene kadar plan tahmini görünür.
+    await tester.pump(const Duration(milliseconds: 150));
+    await tester.pump();
+
+    // Plan tahmini değil cihaz değeri gösterilir + CİHAZ rozeti çıkar.
+    expect(find.text('8.250'), findsOneWidget);
+    expect(find.text('12.400'), findsNothing);
+    expect(find.text('CİHAZ'), findsOneWidget);
+    // Kalori de cihaz adımından hesaplanır: 8250 * 0.04 = 330.
+    expect(find.text('330 kcal'), findsOneWidget);
+  });
+
+  testWidgets('harita tasarımında gezi bitince rapor CTA\'sı bottom sheet açar',
+      (tester) async {
+    // Harita günleri kapatmaz (tarih şeridiyle geziliyor kalır), ama gezi
+    // tamamen bittiğinde "sıradaki aktivite" boşluğunda tam rapora götüren
+    // bir CTA çıkmalı — aksi halde harita temasında da sessizlik olurdu.
+    SharedPreferences.setMockInitialValues({
+      'viewer:template': 'map-focus',
+    });
+    final trip = _hourTrip(DateTime(2026, 6, 15));
+
+    // Bottom sheet açılışı haritayı yeniden düzenler ve testte gerçek ağ
+    // olmadığı için tile istekleri 400 ile döner — bu, davranışla ilgisiz
+    // bir gürültü. Diğer map testlerinin aksine burada CTA'ya dokunma +
+    // sheet açılışı birden fazla ek pump tetiklediği için görmezden gel.
+    final originalOnError = FlutterError.onError;
+    FlutterError.onError = (details) {
+      if (details.exception is NetworkImageLoadException) return;
+      originalOnError?.call(details);
+    };
+    addTearDown(() => FlutterError.onError = originalOnError);
+
+    await tester.pumpWidget(
+      harness(trip, nowOverride: DateTime(2026, 6, 15, 19)),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    final cta = find.byKey(const ValueKey('viewer-map-trip-complete-cta'));
+    expect(cta, findsOneWidget);
+    // Normal "sıradaki aktivite" kartı artık yok, CTA onun yerinde.
+    expect(
+      find.byKey(const ValueKey('viewer-map-next-activity')),
+      findsNothing,
+    );
+
+    await tester.tap(cta);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    expect(
+      find.byKey(const ValueKey('viewer-trip-completion-report')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('debug saat barı gün ilerletince yolculuk ilerleme sayacı artar',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'viewer:template': 'journey-progress',
+    });
+
+    await tester.pumpWidget(harness(_sampleTrip(), debugClock: true));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    // Bar yalnız opt-in ile görünür.
+    expect(
+      find.byKey(const ValueKey('viewer-debug-clock-bar')),
+      findsOneWidget,
+    );
+    // Aktif gün bugün = 2. gün → sayaç 2/3.
+    expect(find.text('2/3'), findsOneWidget);
+
+    // +1 gün: aktif gün 3'e kayar → sayaç 3/3.
+    await tester.tap(
+      find.byKey(const ValueKey('viewer-debug-clock-day-fwd')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    expect(find.text('3/3'), findsOneWidget);
+    expect(find.text('2/3'), findsNothing);
+  });
+
+  testWidgets(
+      'gün ilerleyince geçmişte kalan gün gizlenir, yeni aktif gün en üstte',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'viewer:template': 'journey-progress',
+    });
+
+    await tester.pumpWidget(harness(_sampleTrip(), debugClock: true));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    // Başta: 1. gün (geçmiş) gizli, 2. gün (aktif) görünür.
+    expect(find.text('Geçmiş Gün Teması'), findsNothing);
+    expect(find.text('Aktif Gün Teması'), findsWidgets);
+
+    // +1 gün → aktif gün 3'e kayar; artık 2. gün de geçmişte kalıp gizlenir,
+    // 3. gün (yeni aktif) görünür ve otomatik açılır.
+    await tester.tap(
+      find.byKey(const ValueKey('viewer-debug-clock-day-fwd')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('Aktif Gün Teması'), findsNothing);
+    expect(find.text('Gelecek Gün Teması'), findsWidgets);
+    // Yeni aktif gün otomatik açık → aktivitesi görünür.
+    expect(find.text('Gelecek Aktivite'), findsOneWidget);
+  });
+
+  testWidgets(
+      'debug saat barı gün ilerletince harita sıradaki aktiviteyi günceller',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'viewer:template': 'map-focus',
+    });
+
+    await tester.pumpWidget(harness(_sampleTrip(), debugClock: true));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    expect(
+      find.byKey(const ValueKey('viewer-debug-clock-bar')),
+      findsOneWidget,
+    );
+
+    // +1 gün → aktif gün 3 (gelecek); seçili gün otomatik takip eder ve kart
+    // o günün ilk aktivitesini gösterir.
+    await tester.tap(
+      find.byKey(const ValueKey('viewer-debug-clock-day-fwd')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('viewer-map-next-activity')),
+        matching: find.textContaining('Gelecek Aktivite'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('saat ilerledikçe sıradaki aktivite günün sonraki durağına kayar',
+      (tester) async {
+    // Yolculuk teması: harita/tile yok, sıradaki-aktivite kartı hero içinde.
+    SharedPreferences.setMockInitialValues({
+      'viewer:template': 'journey-progress',
+    });
+    final trip = _hourTrip(DateTime(2026, 6, 15));
+
+    // 10:00 → sıradaki, 13:00'daki "Öğlen Durağı".
+    await tester.pumpWidget(
+      harness(trip, nowOverride: DateTime(2026, 6, 15, 10)),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('viewer-journey-next-activity')),
+        matching: find.textContaining('Öğlen Durağı'),
+      ),
+      findsOneWidget,
+    );
+
+    // 14:00 → 13:00 geçti, sıradaki 18:00'daki "Akşam Durağı".
+    await tester.pumpWidget(
+      harness(trip, nowOverride: DateTime(2026, 6, 15, 14)),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('viewer-journey-next-activity')),
+        matching: find.textContaining('Akşam Durağı'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('viewer-journey-next-activity')),
+        matching: find.textContaining('Öğlen Durağı'),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('yolculuk tasarımı hero görseli ve parçalı ilerlemeyi gösterir',
       (tester) async {
     SharedPreferences.setMockInitialValues({
       'viewer:template': 'journey-progress',
@@ -928,7 +2012,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('viewer-journey-japan-line-art')),
+      find.byKey(const ValueKey('viewer-journey-progress-background')),
       findsOneWidget,
     );
     expect(
@@ -936,6 +2020,55 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('İLERLEMEN'), findsOneWidget);
+
+    expect(
+      find.byKey(const ValueKey('viewer-panorama-city-background')),
+      findsNothing,
+    );
+
+    // Hero görseli kartın tamamını kaplar; şehir fotoğrafı bu şablona ait
+    // değildir.
+    final heroWidth = tester
+        .getSize(find.byKey(const ValueKey('viewer-template-journey-hero')))
+        .width;
+    final backgroundWidth = tester
+        .getSize(
+            find.byKey(const ValueKey('viewer-journey-progress-background')))
+        .width;
+    expect(
+      backgroundWidth,
+      closeTo(heroWidth, 0.5),
+      reason: 'yolculuk hero görseli kartın tamamını kaplamıyor',
+    );
+  });
+
+  testWidgets('şehir fotoğrafı yalnız rota panoraması kartında gösterilir',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'viewer:template': 'route-panorama',
+    });
+
+    await tester.pumpWidget(harness(_routeUiTrip()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    final imageFinder =
+        find.byKey(const ValueKey('viewer-panorama-city-background'));
+    final heroFinder =
+        find.byKey(const ValueKey('viewer-template-panorama-hero'));
+    final image = tester.widget<Image>(imageFinder);
+    expect((image.image as AssetImage).assetName,
+        'assets/images/city-hero-tokyo.webp');
+    final imageSize = tester.getSize(imageFinder);
+    final heroSize = tester.getSize(heroFinder);
+    // Container anahtarı border ve 12 dp alt margin'i de ölçer; fotoğraf
+    // bunların içindeki kırpılmış kart yüzeyini kaplar.
+    expect(imageSize.width, closeTo(heroSize.width - 2, 0.5));
+    expect(imageSize.height, closeTo(heroSize.height - 14, 0.5));
+    expect(
+      find.byKey(const ValueKey('viewer-template-journey-hero')),
+      findsNothing,
+    );
   });
 
   testWidgets(
@@ -983,6 +2116,10 @@ void main() {
 
   testWidgets('hamburger menüsü Keşfet ve Hesap bölümleriyle kaydırma sunar',
       (tester) async {
+    SharedPreferences.setMockInitialValues({
+      kPremiumPrefsKey: false,
+      'viewer:template': 'journey-progress',
+    });
     await tester.pumpWidget(harness(_sampleTrip()));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
@@ -1000,9 +2137,20 @@ void main() {
     expect(find.byIcon(Icons.palette_outlined), findsOneWidget);
     expect(
       find.descendant(
+        of: find.byKey(const ValueKey('drawer-discover-group')),
+        matching: find.byIcon(Icons.palette_outlined),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
         of: find.byKey(const ValueKey('drawer-account-actions')),
         matching: find.byIcon(Icons.palette_outlined),
       ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('drawer-travel-essentials')),
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('drawer-scanner-hero')), findsOneWidget);
@@ -1013,6 +2161,9 @@ void main() {
 
   testWidgets('uçuş satırı boş şehir+havaalanı ile "—" gösterir',
       (tester) async {
+    tester.view.physicalSize = const Size(390, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     final now = DateTime.now();
     String d(int off) {
       final t = now.add(Duration(days: off));
@@ -1038,8 +2189,10 @@ void main() {
               city: 'Tokyo', airport: 'HND', dateTime: '${d(-1)}T18:00:00'),
         ],
         returnLegs: [
-          // Tamamen boş bacak → filtre dışı kalmalı
-          FlightLeg(city: '', airport: '', dateTime: ''),
+          FlightLeg(
+              city: 'Tokyo', airport: 'HND', dateTime: '${d(0)}T20:00:00'),
+          FlightLeg(
+              city: 'İstanbul', airport: 'IST', dateTime: '${d(1)}T06:00:00'),
         ],
       ),
       preferences: TripPreferences(
@@ -1059,6 +2212,15 @@ void main() {
     // Uçuş özeti artık drawer'ın içinde — hamburger'a dokun, aç.
     await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();
+
+    final flightIcon = find.byIcon(Icons.flight_takeoff);
+    expect(flightIcon, findsOneWidget);
+    expect(tester.widget<Icon>(flightIcon).size, 16);
+    final flightIconContainer = find
+        .ancestor(of: flightIcon, matching: find.byType(Container))
+        .first;
+    expect(tester.getSize(flightIconContainer), const Size(30, 30));
+
     await tester.tap(find.byIcon(Icons.flight_takeoff));
     await tester.pumpAndSettle();
 
@@ -1066,6 +2228,14 @@ void main() {
     expect(find.text('—'), findsWidgets);
     // Dolu bacak korunmalı — IATA "HND" görünür (city yerine airport tercih).
     expect(find.textContaining('HND'), findsWidgets);
+    // Referans uçuş kompozisyonunun başlık ve süre katmanı da görünür.
+    expect(find.text('GEZİ 1'), findsOneWidget);
+    expect(find.text('8sa 00dk'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('drawer-flight-day-offset')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
   });
 
   group('Düzenleme modu', () {

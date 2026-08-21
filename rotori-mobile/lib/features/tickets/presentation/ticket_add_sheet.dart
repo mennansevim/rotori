@@ -8,6 +8,7 @@ enum TicketAddSource { gallery, camera, plan, manual }
 Future<TicketAddSource?> showTicketAddSheet({
   required BuildContext context,
   required ViewerPalette palette,
+  bool showPlanOption = true,
 }) {
   return showModalBottomSheet<TicketAddSource>(
     context: context,
@@ -17,6 +18,7 @@ Future<TicketAddSource?> showTicketAddSheet({
     sheetAnimationStyle: _sheetAnimationStyle(context),
     builder: (sheetContext) => TicketAddSheetBody(
       palette: palette,
+      showPlanOption: showPlanOption,
       onSelect: (source) => Navigator.pop(sheetContext, source),
     ),
   );
@@ -26,10 +28,12 @@ class TicketAddSheetBody extends StatelessWidget {
   const TicketAddSheetBody({
     super.key,
     required this.palette,
+    this.showPlanOption = true,
     required this.onSelect,
   });
 
   final ViewerPalette palette;
+  final bool showPlanOption;
   final ValueChanged<TicketAddSource> onSelect;
 
   @override
@@ -80,15 +84,17 @@ class TicketAddSheetBody extends StatelessWidget {
                 onTap: onSelect,
               ),
               const SizedBox(height: 18),
-              _SourceAction(
-                source: TicketAddSource.plan,
-                icon: Icons.map_outlined,
-                title: s.s('ticketAdd.plan'),
-                subtitle: s.s('ticketAdd.planBody'),
-                palette: palette,
-                onTap: onSelect,
-              ),
-              const SizedBox(height: 10),
+              if (showPlanOption) ...[
+                _SourceAction(
+                  source: TicketAddSource.plan,
+                  icon: Icons.map_outlined,
+                  title: s.s('ticketAdd.plan'),
+                  subtitle: s.s('ticketAdd.planBody'),
+                  palette: palette,
+                  onTap: onSelect,
+                ),
+                const SizedBox(height: 10),
+              ],
               _SourceAction(
                 source: TicketAddSource.manual,
                 icon: Icons.edit_note_outlined,

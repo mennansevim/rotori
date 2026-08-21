@@ -31,6 +31,36 @@ import 'experience_urgency.dart';
 import 'experience_visuals.dart';
 import 'viewer_theme.dart';
 
+/// Rehber yüzeyleri için yalnızca yatay kayan alt sayfa geçişi.
+///
+/// `MaterialPageRoute`, platforma göre fade içeren bir geçiş seçebiliyor.
+/// Rehber drawer'dan bir alt sayfa gibi açıldığı için burada geçişi açıkça
+/// tanımlıyoruz: opak ekran sağdan gelir, alttaki ekranın silik görüntüsü
+/// oluşturulmaz.
+Route<void> experienceGuideSlideRoute({required WidgetBuilder builder}) {
+  return PageRouteBuilder<void>(
+    opaque: true,
+    pageBuilder: (context, animation, secondaryAnimation) => builder(context),
+    transitionDuration: const Duration(milliseconds: 280),
+    reverseTransitionDuration: const Duration(milliseconds: 220),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      );
+      return SlideTransition(
+        key: const ValueKey('experience-guide-slide-route'),
+        position: Tween<Offset>(
+          begin: const Offset(1, 0),
+          end: Offset.zero,
+        ).animate(curved),
+        child: child,
+      );
+    },
+  );
+}
+
 class ExperienceGuideScreen extends ConsumerWidget {
   const ExperienceGuideScreen({super.key, this.trip});
 
@@ -45,7 +75,7 @@ class ExperienceGuideScreen extends ConsumerWidget {
     ExperienceGuide guide,
   ) {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
+      experienceGuideSlideRoute(
         builder: (_) => Theme(
           data: palette.toThemeData(),
           child: ViewerPaletteScope(

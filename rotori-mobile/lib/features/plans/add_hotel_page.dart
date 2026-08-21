@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/l10n.dart';
+import '../../data/google_maps_launcher.dart';
 import '../../data/plans_repository.dart';
 import '../../domain/trip_factory.dart';
 import '../../domain/types.dart';
@@ -67,6 +68,16 @@ class _AddHotelPageState extends ConsumerState<AddHotelPage> {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _findOnGoogleMaps(LanguageScope s) async {
+    final query = [_draft.name.trim(), _draft.city.trim()]
+        .where((part) => part.isNotEmpty)
+        .join(' ');
+    final opened = await openGoogleMapsSearch(
+      query.isEmpty ? s.s('hotels.mapSearchDefault') : query,
+    );
+    if (!opened) _toast(s.s('hotels.mapOpenFailed'));
   }
 
   Future<void> _save(Trip trip) async {
@@ -152,126 +163,205 @@ class _AddHotelPageState extends ConsumerState<AddHotelPage> {
     return SafeArea(
       top: false,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: PField(
-                  label: s.s('hotels.city'),
-                  child: PTextField(
-                    value: _draft.city,
-                    hint: 'Tokyo',
-                    invalid: _submitted && _draft.city.trim().isEmpty,
-                    onChanged: (v) => setState(() => _draft.city = v),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: PField(
-                  label: s.s('hotels.hotelName'),
-                  child: PTextField(
-                    value: _draft.name,
-                    hint: 'Hotel Grand City',
-                    invalid: _submitted && _draft.name.trim().isEmpty,
-                    onChanged: (v) => setState(() => _draft.name = v),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: PField(
-                  label: s.s('hotels.checkIn'),
-                  child: _DateBox(
-                    value: _draft.checkIn,
-                    invalid: _submitted && _draft.checkIn.isEmpty,
-                    onTap: () => _pickDate(
-                      current: _draft.checkIn,
-                      minDate: tripStart,
-                      maxDate: tripEnd,
-                      onPick: (v) => _draft.checkIn = v,
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 620),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: PT.bgElevated,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: PT.border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: PT.accentSoft,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.hotel_rounded,
+                                color: PT.accent,
+                                size: 22,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                s.s('hotels.formIntro'),
+                                style: const TextStyle(
+                                  color: PT.textSecondary,
+                                  fontSize: 14,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        PButton(
+                          key: const ValueKey('hotel-find-on-google-maps'),
+                          label: s.s('hotels.findOnMap'),
+                          primary: false,
+                          block: true,
+                          leading: const Icon(
+                            Icons.map_outlined,
+                            color: PT.accent,
+                            size: 19,
+                          ),
+                          onPressed: () => _findOnGoogleMaps(s),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          s.s('hotels.mapPickerHelp'),
+                          style: const TextStyle(
+                            color: PT.textTertiary,
+                            fontSize: 12,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: PField(
-                  label: s.s('hotels.checkOut'),
-                  child: _DateBox(
-                    value: _draft.checkOut,
-                    invalid: _submitted && _draft.checkOut.isEmpty,
-                    onTap: () => _pickDate(
-                      current: _draft.checkOut,
-                      minDate:
-                          _draft.checkIn.isNotEmpty ? _draft.checkIn : tripStart,
-                      maxDate: tripEnd,
-                      onPick: (v) => _draft.checkOut = v,
+                  PField(
+                    label: s.s('hotels.city'),
+                    child: PTextField(
+                      key: const ValueKey('hotel-city-field'),
+                      value: _draft.city,
+                      invalid: _submitted && _draft.city.trim().isEmpty,
+                      onChanged: (v) => setState(() => _draft.city = v),
                     ),
                   ),
-                ),
+                  PField(
+                    label: s.s('hotels.hotelName'),
+                    child: PTextField(
+                      key: const ValueKey('hotel-name-field'),
+                      value: _draft.name,
+                      invalid: _submitted && _draft.name.trim().isEmpty,
+                      onChanged: (v) => setState(() => _draft.name = v),
+                    ),
+                  ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: PField(
+                          label: s.s('hotels.checkIn'),
+                          child: _DateBox(
+                            value: _draft.checkIn,
+                            invalid: _submitted && _draft.checkIn.isEmpty,
+                            onTap: () => _pickDate(
+                              current: _draft.checkIn,
+                              minDate: tripStart,
+                              maxDate: tripEnd,
+                              onPick: (v) => _draft.checkIn = v,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: PField(
+                          label: s.s('hotels.checkOut'),
+                          child: _DateBox(
+                            value: _draft.checkOut,
+                            invalid: _submitted && _draft.checkOut.isEmpty,
+                            onTap: () => _pickDate(
+                              current: _draft.checkOut,
+                              minDate: _draft.checkIn.isNotEmpty
+                                  ? _draft.checkIn
+                                  : tripStart,
+                              maxDate: tripEnd,
+                              onPick: (v) => _draft.checkOut = v,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  PField(
+                    label: s.s('hotels.address'),
+                    hint: _submitted && _draft.address.trim().isEmpty
+                        ? Text(
+                            s.s('hotels.addressRequired'),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: PT.danger,
+                            ),
+                          )
+                        : null,
+                    child: PTextField(
+                      key: const ValueKey('hotel-address-field'),
+                      value: _draft.address,
+                      invalid: _submitted && _draft.address.trim().isEmpty,
+                      onChanged: (v) => setState(() => _draft.address = v),
+                    ),
+                  ),
+                  PField(
+                    label: s.s('hotels.addressLocal'),
+                    hint: Text(
+                      s.s('hotels.addressLocalHint'),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: PT.textTertiary,
+                      ),
+                    ),
+                    child: PTextField(
+                      key: const ValueKey('hotel-local-address-field'),
+                      value: _draft.addressLocal ?? '',
+                      onChanged: (v) => _draft.addressLocal = v,
+                    ),
+                  ),
+                  PField(
+                    label: s.s('hotels.mapsUrl'),
+                    child: PTextField(
+                      key: const ValueKey('hotel-maps-url-field'),
+                      value: _draft.mapsUrl ?? '',
+                      keyboardType: TextInputType.url,
+                      onChanged: (v) => _draft.mapsUrl = v,
+                    ),
+                  ),
+                  PField(
+                    label: s.s('hotels.phone'),
+                    child: PTextField(
+                      key: const ValueKey('hotel-phone-field'),
+                      value: _draft.phone ?? '',
+                      keyboardType: TextInputType.phone,
+                      onChanged: (v) => _draft.phone = v,
+                    ),
+                  ),
+                  PField(
+                    label: s.s('hotels.notes'),
+                    child: PTextField(
+                      key: const ValueKey('hotel-notes-field'),
+                      value: _draft.notes ?? '',
+                      onChanged: (v) => _draft.notes = v,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  PButton(
+                    label: _saving
+                        ? s.s('hotels.saving')
+                        : s.s('hotels.saveHotel'),
+                    block: true,
+                    onPressed: _saving ? null : () => _save(trip),
+                  ),
+                ],
               ),
-            ],
-          ),
-          PField(
-            label: s.s('hotels.address'),
-            hint: _draft.address.trim().isEmpty
-                ? Text(s.s('hotels.addressRequired'),
-                    style: const TextStyle(fontSize: 12, color: PT.danger))
-                : null,
-            child: PTextField(
-              value: _draft.address,
-              hint: '2-37-6 Ikebukuro, Toshima-ku, Tokyo 171-0014',
-              invalid: _submitted && _draft.address.trim().isEmpty,
-              onChanged: (v) => setState(() => _draft.address = v),
             ),
-          ),
-          PField(
-            label: s.s('hotels.addressLocal'),
-            hint: Text(s.s('hotels.addressLocalHint'),
-                style: const TextStyle(fontSize: 12, color: PT.textTertiary)),
-            child: PTextField(
-              value: _draft.addressLocal ?? '',
-              hint: 'ホテルグランドシティ池袋 東京都豊島区...',
-              onChanged: (v) => _draft.addressLocal = v,
-            ),
-          ),
-          PField(
-            label: s.s('hotels.mapsUrl'),
-            child: PTextField(
-              value: _draft.mapsUrl ?? '',
-              hint: 'https://maps.google.com/...',
-              onChanged: (v) => _draft.mapsUrl = v,
-            ),
-          ),
-          PField(
-            label: s.s('hotels.phone'),
-            child: PTextField(
-              value: _draft.phone ?? '',
-              hint: '+81 ...',
-              keyboardType: TextInputType.phone,
-              onChanged: (v) => _draft.phone = v,
-            ),
-          ),
-          PField(
-            label: s.s('hotels.notes'),
-            child: PTextField(
-              value: _draft.notes ?? '',
-              hint: s.s('hotels.notesPlaceholder'),
-              onChanged: (v) => _draft.notes = v,
-            ),
-          ),
-          const SizedBox(height: 8),
-          PButton(
-            label: _saving ? s.s('hotels.saving') : s.s('hotels.saveHotel'),
-            block: true,
-            onPressed: _saving ? null : () => _save(trip),
           ),
         ],
       ),
@@ -302,8 +392,7 @@ class _DateBox extends StatelessWidget {
         decoration: BoxDecoration(
           color: PT.bgSubtle,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-              color: invalid ? PT.danger : PT.borderStrong),
+          border: Border.all(color: invalid ? PT.danger : PT.borderStrong),
         ),
         child: Row(
           children: [

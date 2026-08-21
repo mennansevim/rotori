@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/l10n.dart';
 import '../../plans/premium_provider.dart';
+import '../../shared/rotori_premium_sheet.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../data/tag_scanner_client.dart';
@@ -112,7 +114,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
                 remaining: state.dailyLimitRemaining ?? 10,
                 maxScans: _premiumNow(ref, state) ? 100 : 10,
                 isPremium: _premiumNow(ref, state),
-                onPremiumTap: () => _showPremiumSheet(context),
+                onPremiumTap: () => showPriceTagPremiumSheet(context),
               ),
             )
           else
@@ -323,36 +325,6 @@ class _GlassIconButton extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _LockDots extends StatelessWidget {
-  const _LockDots({required this.locked});
-
-  final bool locked;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = locked ? const Color(0xFFA5D6A7) : const Color(0xFFFFE082);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          locked ? Icons.check_circle_rounded : Icons.timelapse_rounded,
-          size: 13,
-          color: color,
-        ),
-        const SizedBox(width: 3),
-        Text(
-          locked ? 'kararlı' : 'okunuyor',
-          style: TextStyle(
-            color: color,
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
     );
   }
 }
@@ -626,108 +598,28 @@ class _LimitReachedCard extends StatelessWidget {
 }
 
 /// Premium bilgilendirme bottom sheet'i.
-void _showPremiumSheet(BuildContext context) {
-  showModalBottomSheet<void>(
-    context: context,
-    backgroundColor: Colors.transparent,
-    builder: (ctx) => Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF1B1B1F),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+void showPriceTagPremiumSheet(BuildContext context) {
+  final s = LanguageScope.of(context);
+  showRotoriPremiumSheet<void>(
+    context,
+    title: s.s('scanner.premium.title'),
+    body: s.s('scanner.premium.body'),
+    closeLabel: s.s('reminders.premiumClose'),
+    benefits: [
+      RotoriPremiumBenefit(
+        icon: Icons.document_scanner_rounded,
+        text: s.s('scanner.premium.benefitScans'),
       ),
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 38,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFD700).withValues(alpha: 0.14),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.auto_awesome_rounded,
-                  size: 28, color: Color(0xFFFFD700)),
-            ),
-            const SizedBox(height: 14),
-            const Text('Rotori Premium',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800)),
-            const SizedBox(height: 8),
-            const Text(
-              'Günlük 100 tarama hakkı. Fiyat etiketi tarayıcısını limitsiz kullan, '
-              'istediğin kadar ürün sorgula.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: Color(0xFFCFD8DC), fontSize: 14, height: 1.4),
-            ),
-            const SizedBox(height: 16),
-            const _PremiumFeatureRow(
-                icon: Icons.check_circle_rounded,
-                text: 'Günlük 100 tarama (ücretsiz: 10)'),
-            const _PremiumFeatureRow(
-                icon: Icons.check_circle_rounded,
-                text: 'GPT-4o-mini ile akıllı model tespiti'),
-            const _PremiumFeatureRow(
-                icon: Icons.check_circle_rounded,
-                text: 'Trendyol, HB, Amazon canlı fiyat karşılaştırma'),
-            const SizedBox(height: 22),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFFFD700),
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                ),
-                child: const Text('Kapat',
-                    style:
-                        TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-              ),
-            ),
-          ],
-        ),
+      RotoriPremiumBenefit(
+        icon: Icons.auto_awesome_rounded,
+        text: s.s('scanner.premium.benefitDetection'),
       ),
-    ),
+      RotoriPremiumBenefit(
+        icon: Icons.compare_arrows_rounded,
+        text: s.s('scanner.premium.benefitCompare'),
+      ),
+    ],
   );
-}
-
-class _PremiumFeatureRow extends StatelessWidget {
-  const _PremiumFeatureRow({required this.icon, required this.text});
-  final IconData icon;
-  final String text;
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: const Color(0xFFA5D6A7)),
-          const SizedBox(width: 10),
-          Expanded(
-              child: Text(text,
-                  style: const TextStyle(
-                      color: Color(0xFFECEFF1), fontSize: 13.5))),
-        ],
-      ),
-    );
-  }
 }
 
 class _ErrorCard extends StatelessWidget {

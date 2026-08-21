@@ -6,13 +6,13 @@
 // "haritada aç" butonu ve opsiyonel "düzenle".
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/l10n.dart';
+import '../../core/rotori_motion.dart';
 import '../../data/google_maps_launcher.dart';
 import '../../domain/city_places.dart';
 import '../../domain/destination_profiles.dart';
@@ -20,16 +20,14 @@ import '../../domain/explore.dart';
 import '../../domain/japan_suggestions.dart';
 import '../../domain/place_guide.dart';
 import '../../domain/place_image_resolver.dart';
-import '../../domain/trip_factory.dart';
-import '../../domain/ticketed_activity.dart';
 import '../../domain/types.dart';
-import 'ticket_ocr.dart';
 import 'ticket_support.dart';
 
 /// Bir zaman çizelgesi öğesi için detay popup'ını açar.
 /// [onEdit] verilirse "Düzenle" butonu gösterilir (planner); viewer'da null.
-/// [existingTicket] varsa bilet kartı gösterilir; yoksa ve [onAddTicket]
-/// verilmişse bilet gerektiren yerler için "🎫 Bilet ekle" butonu çıkar.
+/// [existingTicket] varsa bilet kartı gösterilir; yoksa ve [onAddTicket] ya da
+/// [onImportTicket] verilmişse bilet gerektiren yerler için "🎫 Bilet ekle"
+/// butonu çıkar.
 Future<void> showPlaceDetailSheet({
   required BuildContext context,
   required TimelineItem item,
@@ -37,21 +35,27 @@ Future<void> showPlaceDetailSheet({
   String? countryCode,
   VoidCallback? onEdit,
   Ticket? existingTicket,
-  Future<bool> Function(Ticket)? onAddTicket,
-}) {
+  Future<void> Function(TimelineItem item)? onAddTicket,
+  Future<bool> Function(TimelineItem item, ImageSource source)? onImportTicket,
+}) async {
   final profile =
       countryCode != null ? getDestinationProfile(countryCode) : null;
   // Content-fit sheet: kısa içerikte alt boşluk kalmaz, uzunda %90'a kadar
   // büyür ve kendi içinde scroll eder.
-  return showModalBottomSheet<void>(
+  final result = await showModalBottomSheet<_PlaceDetailResult>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: Colors.transparent,
-    builder: (ctx) {
-      final maxH = MediaQuery.of(ctx).size.height * 0.9;
-      return Container(
-        constraints: BoxConstraints(maxHeight: maxH),
+    builder: (ctx) => DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.72,
+      minChildSize: 0.32,
+      maxChildSize: 0.94,
+      snap: true,
+      snapSizes: const [0.42, 0.72, 0.94],
+      shouldCloseOnMinExtent: true,
+      builder: (ctx, scrollController) => Container(
         decoration: BoxDecoration(
           color: Theme.of(ctx).colorScheme.surface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -65,12 +69,18 @@ Future<void> showPlaceDetailSheet({
           onEdit: onEdit,
           existingTicket: existingTicket,
           onAddTicket: onAddTicket,
-          scrollController: null,
+          onImportTicket: onImportTicket,
+          scrollController: scrollController,
         ),
-      );
-    },
+      ),
+    ),
   );
+  if (result == _PlaceDetailResult.addTicket) {
+    await onAddTicket?.call(item);
+  }
 }
+
+enum _PlaceDetailResult { addTicket }
 
 // Uzun tarih (viewer'daki formatla tutarlı) — bilet ziyaret tarihi için.
 // Ay adları core/l10n.dart'tan aktif dile göre alınır.
@@ -158,6 +168,7 @@ class _PlaceDetailSheet extends StatefulWidget {
     required this.onEdit,
     required this.existingTicket,
     required this.onAddTicket,
+    required this.onImportTicket,
     this.scrollController,
   });
 
@@ -167,7 +178,9 @@ class _PlaceDetailSheet extends StatefulWidget {
   final DestinationProfile? profile;
   final VoidCallback? onEdit;
   final Ticket? existingTicket;
-  final Future<bool> Function(Ticket)? onAddTicket;
+  final Future<void> Function(TimelineItem item)? onAddTicket;
+  final Future<bool> Function(TimelineItem item, ImageSource source)?
+      onImportTicket;
   final ScrollController? scrollController;
 
   @override
@@ -175,9 +188,8 @@ class _PlaceDetailSheet extends StatefulWidget {
 }
 
 class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
-  // Bu oturumda eklenen bilet (varsa widget.existingTicket'i geçersiz kılar).
-  Ticket? _added;
   bool _pickingTicket = false;
+  bool _ticketAdded = false;
 
   TimelineItem get item => widget.item;
   String get city => widget.city;
@@ -185,7 +197,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
   DestinationProfile? get profile => widget.profile;
   VoidCallback? get onEdit => widget.onEdit;
 
-  Ticket? get _ticket => _added ?? widget.existingTicket;
+  Ticket? get _ticket => widget.existingTicket;
 
   Future<void> _openMap(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -294,6 +306,10 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
   /// "Bilet ekle" → Kamera / Galeri / Vazgeç seçenekli küçük bir sheet açar.
   Future<void> _startAddTicket() async {
     if (_pickingTicket) return;
+    if (widget.onAddTicket != null) {
+      Navigator.of(context).pop(_PlaceDetailResult.addTicket);
+      return;
+    }
     final s = LanguageScope.of(context);
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
@@ -337,7 +353,7 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
       },
     );
     if (source == null) return;
-    await _pickAndAddTicket(source);
+    await _delegateTicketImport(source);
   }
 
   Widget _pickerRow(
@@ -369,57 +385,23 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
     );
   }
 
-  Future<void> _pickAndAddTicket(ImageSource source) async {
+  Future<void> _delegateTicketImport(ImageSource source) async {
     final messenger = ScaffoldMessenger.of(context);
     final s = LanguageScope.of(context);
     setState(() => _pickingTicket = true);
     try {
-      final picker = ImagePicker();
-      final XFile? picked = await picker.pickImage(
-        source: source,
-        imageQuality: 70,
-        maxWidth: 1600,
-      );
-      if (picked == null) {
+      final saved = await widget.onImportTicket!(item, source);
+      if (!saved) {
         if (mounted) setState(() => _pickingTicket = false);
         return;
       }
-      final bytes = await picked.readAsBytes();
-      final b64 = base64Encode(bytes);
-      final dataUrl = 'data:image/jpeg;base64,$b64';
-
-      String text = '';
-      if (!kIsWeb) {
-        text = await extractTicketText(picked.path);
-      }
-      final info = parseTicketInfo(text);
-      final defaults = ticketedActivityDefaultsForTitle(item.title);
-
-      final normalized = _normalize(item.title);
-      final ticket = Ticket(
-        id: newTicketId(),
-        kind: 'attraction',
-        label: normalized.isEmpty ? item.title : item.title,
-        purchased: true,
-        visitDate: info['date'],
-        entryTime: info['time'],
-        durationMin: defaults.durationMinutes,
-        arrivalBufferMin: defaults.arrivalBufferMinutes,
-        imageDataUrl: dataUrl,
-        scannedText: text.isEmpty ? null : text,
-        emoji: '🎫',
-      );
-      final saved = await widget.onAddTicket!(ticket);
-      if (!saved) throw StateError('ticket could not be linked');
       if (!mounted) return;
       setState(() {
-        _added = ticket;
+        _ticketAdded = true;
         _pickingTicket = false;
       });
       messenger.showSnackBar(SnackBar(
-        content: Text(kIsWeb
-            ? s.s('placeDetail.ticketAddedWeb')
-            : s.s('placeDetail.ticketAdded')),
+        content: Text(s.s('placeDetail.ticketAdded')),
       ));
     } catch (e) {
       if (mounted) setState(() => _pickingTicket = false);
@@ -569,309 +551,347 @@ class _PlaceDetailSheetState extends State<_PlaceDetailSheet> {
     final ticket = _ticket;
     final needsTicket = requiresTicket(item, category: match?.category);
 
-    return ListView(
-      controller: widget.scrollController,
-      shrinkWrap: true,
-      physics: const ClampingScrollPhysics(),
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 8,
-        bottom: 20 + MediaQuery.of(context).viewInsets.bottom,
-      ),
+    final header = Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Center(
-          child: Container(
-            width: 36,
-            height: 4,
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color: tertiary,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-        ),
-
-        Align(
-          alignment: Alignment.centerRight,
-          child: IconButton(
-            tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
-            onPressed: () => Navigator.of(context).maybePop(),
-            icon: Icon(Icons.close_rounded, color: tertiary),
-          ),
-        ),
-        const SizedBox(height: 2),
-
-        // Başlık
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: subtleBg,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(_kindIcon(item.kind), size: 18, color: cs.primary),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(item.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: onSurface)),
-                  if (time.isNotEmpty || rating != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 1),
-                      child: Text(
-                        [
-                          if (time.isNotEmpty) time,
-                          if (rating != null)
-                            _formatRatingLabel(rating, guide?.reviewCount, s),
-                        ].join(' · '),
-                        style: TextStyle(fontSize: 12.5, color: secondary),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-
-        // Fotoğraflar — rehber görseli varsa anında, yoksa Wikipedia'dan çözülür.
-        _PlaceCarousel(
-          title: item.title,
-          city: city,
-          seedImages: guide?.imageUrls ?? const [],
-          subtleBg: subtleBg,
-        ),
-
-        // Tanıtım
-        Text(intro,
-            style: TextStyle(fontSize: 13.5, color: secondary, height: 1.45)),
-
-        // Kullanıcının kendi notu (plandaki tips alanı)
-        if (userTip != null && userTip.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        Padding(
+          padding: const EdgeInsets.only(top: 8, left: 20, right: 8),
+          child: Column(
             children: [
-              const Text('💡', style: TextStyle(fontSize: 13)),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(userTip,
-                    style: TextStyle(
-                        fontSize: 12.5, color: onSurface, height: 1.35)),
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 4),
+                  decoration: BoxDecoration(
+                    color: tertiary,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  icon: Icon(Icons.close_rounded, color: tertiary),
+                ),
               ),
             ],
           ),
-        ],
-        const SizedBox(height: 12),
-
-        // Kompakt istatistik barı: Süre | Yürüme | Rezervasyon
-        _StatBar(
-          cells: [
-            if (guide != null)
-              (
-                '⏱',
-                s.s('placeDetail.duration'),
-                _formatDuration(guide.visitDurationMin, s)
-              ),
-            ('👣', s.s('placeDetail.walking'), _formatSteps(steps, s)),
-            if (guide?.advanceBookingDays != null)
-              (
-                '🎟',
-                s.s('placeDetail.ticketLabel'),
-                s.p('placeDetail.daysBefore',
-                    {'n': '${guide!.advanceBookingDays}'})
-              ),
-          ],
-          subtleBg: subtleBg,
-          onSurface: onSurface,
-          secondary: secondary,
         ),
-
-        // En iyi zaman — tek satır
-        if (guide != null) ...[
-          const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Text('🌅', style: TextStyle(fontSize: 13)),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(guide.bestTimeOfDay.of(s.lang),
-                    style: TextStyle(fontSize: 12.5, color: secondary)),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: subtleBg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(_kindIcon(item.kind), size: 18, color: cs.primary),
               ),
-            ],
-          ),
-        ],
-
-        // Ziyaretçi ipuçları
-        if (guide != null && guide.tips.isNotEmpty) ...[
-          const SizedBox(height: 14),
-          Text(s.s('placeDetail.tips'),
-              style: TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w700, color: onSurface)),
-          const SizedBox(height: 6),
-          ...guide.tips.map((t) => Padding(
-                padding: const EdgeInsets.only(bottom: 5),
-                child: Row(
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('·',
+                    Text(item.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                            color: cs.primary)),
-                    const SizedBox(width: 7),
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: onSurface)),
+                    if (time.isNotEmpty || rating != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 1),
+                        child: Text(
+                          [
+                            if (time.isNotEmpty) time,
+                            if (rating != null)
+                              _formatRatingLabel(rating, guide?.reviewCount, s),
+                          ].join(' · '),
+                          style: TextStyle(fontSize: 12.5, color: secondary),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
+    );
+
+    return Column(
+      children: [
+        header,
+        Expanded(
+          child: ListView(
+            controller: widget.scrollController,
+            physics: const ClampingScrollPhysics(),
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 0,
+              bottom: 20 + MediaQuery.of(context).viewInsets.bottom,
+            ),
+            children: [
+              // Fotoğraflar — rehber görseli varsa anında, yoksa Wikipedia'dan çözülür.
+              _PlaceCarousel(
+                title: item.title,
+                city: city,
+                seedImages: guide?.imageUrls ?? const [],
+                subtleBg: subtleBg,
+              ),
+
+              // Tanıtım
+              Text(intro,
+                  style: TextStyle(
+                      fontSize: 13.5, color: secondary, height: 1.45)),
+
+              // Kullanıcının kendi notu (plandaki tips alanı)
+              if (userTip != null && userTip.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('💡', style: TextStyle(fontSize: 13)),
+                    const SizedBox(width: 6),
                     Expanded(
-                      child: Text(t.of(s.lang),
+                      child: Text(userTip,
                           style: TextStyle(
                               fontSize: 12.5, color: onSurface, height: 1.35)),
                     ),
                   ],
                 ),
-              )),
-          if (guide.bookingHint != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text('🎟 ${guide.bookingHint!.of(s.lang)}',
-                  style: TextStyle(fontSize: 12, color: secondary)),
-            ),
-        ],
+              ],
+              const SizedBox(height: 12),
 
-        // Yakınındaki öneriler / restoran önerileri
-        if (recs.isNotEmpty) ...[
-          const SizedBox(height: 14),
-          Text(
-            item.kind == TimelineItemKind.meal
-                ? s.s('placeDetail.whatToEat')
-                : s.s('placeDetail.nearby'),
-            style: TextStyle(
-                fontSize: 13, fontWeight: FontWeight.w700, color: onSurface),
-          ),
-          const SizedBox(height: 6),
-          ...recs.map((r) => Padding(
-                padding: const EdgeInsets.only(bottom: 5),
-                child: Row(
+              // Kompakt istatistik barı: Süre | Yürüme | Rezervasyon
+              _StatBar(
+                cells: [
+                  if (guide != null)
+                    (
+                      '⏱',
+                      s.s('placeDetail.duration'),
+                      _formatDuration(guide.visitDurationMin, s)
+                    ),
+                  ('👣', s.s('placeDetail.walking'), _formatSteps(steps, s)),
+                  if (guide?.advanceBookingDays != null)
+                    (
+                      '🎟',
+                      s.s('placeDetail.ticketLabel'),
+                      s.p('placeDetail.daysBefore',
+                          {'n': '${guide!.advanceBookingDays}'})
+                    ),
+                ],
+                subtleBg: subtleBg,
+                onSurface: onSurface,
+                secondary: secondary,
+              ),
+
+              // En iyi zaman — tek satır
+              if (guide != null) ...[
+                const SizedBox(height: 10),
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(r.$1, style: const TextStyle(fontSize: 14)),
-                    const SizedBox(width: 7),
+                    const Text('🌅', style: TextStyle(fontSize: 13)),
+                    const SizedBox(width: 6),
                     Expanded(
-                      child: Text(r.$2,
-                          style: TextStyle(fontSize: 13, color: onSurface)),
+                      child: Text(guide.bestTimeOfDay.of(s.lang),
+                          style: TextStyle(fontSize: 12.5, color: secondary)),
                     ),
                   ],
                 ),
-              )),
-        ],
+              ],
 
-        if (nearbyRestaurants.isNotEmpty) ...[
-          const SizedBox(height: 14),
-          Text(
-            s.s('placeDetail.nearbyRestaurants'),
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: onSurface,
-            ),
-          ),
-          const SizedBox(height: 6),
-          ...nearbyRestaurants.map((r) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Material(
-                  color: subtleBg,
-                  borderRadius: BorderRadius.circular(10),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(10),
-                    onTap: () => _openRestaurantMap(r),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 9,
-                      ),
+              // Ziyaretçi ipuçları
+              if (guide != null && guide.tips.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Text(s.s('placeDetail.tips'),
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: onSurface)),
+                const SizedBox(height: 6),
+                ...guide.tips.map((t) => Padding(
+                      padding: const EdgeInsets.only(bottom: 5),
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(r.place.emoji,
-                              style: const TextStyle(fontSize: 16)),
+                          Text('·',
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w900,
+                                  color: cs.primary)),
                           const SizedBox(width: 7),
                           Expanded(
-                            child: Text(
-                              '${r.place.name} · ${_formatDistance(r.distanceM, s.lang)}',
-                              style: TextStyle(
-                                color: onSurface,
-                                fontSize: 12.8,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                            child: Text(t.of(s.lang),
+                                style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: onSurface,
+                                    height: 1.35)),
                           ),
-                          Icon(Icons.map_outlined, size: 16, color: cs.primary),
                         ],
                       ),
-                    ),
+                    )),
+                if (guide.bookingHint != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text('🎟 ${guide.bookingHint!.of(s.lang)}',
+                        style: TextStyle(fontSize: 12, color: secondary)),
+                  ),
+              ],
+
+              // Yakınındaki öneriler / restoran önerileri
+              if (recs.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Text(
+                  item.kind == TimelineItemKind.meal
+                      ? s.s('placeDetail.whatToEat')
+                      : s.s('placeDetail.nearby'),
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: onSurface),
+                ),
+                const SizedBox(height: 6),
+                ...recs.map((r) => Padding(
+                      padding: const EdgeInsets.only(bottom: 5),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(r.$1, style: const TextStyle(fontSize: 14)),
+                          const SizedBox(width: 7),
+                          Expanded(
+                            child: Text(r.$2,
+                                style:
+                                    TextStyle(fontSize: 13, color: onSurface)),
+                          ),
+                        ],
+                      ),
+                    )),
+              ],
+
+              if (nearbyRestaurants.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Text(
+                  s.s('placeDetail.nearbyRestaurants'),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: onSurface,
                   ),
                 ),
-              )),
-        ],
+                const SizedBox(height: 6),
+                ...nearbyRestaurants.map((r) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Material(
+                        color: subtleBg,
+                        borderRadius: BorderRadius.circular(10),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: () => _openRestaurantMap(r),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 9,
+                            ),
+                            child: Row(
+                              children: [
+                                Text(r.place.emoji,
+                                    style: const TextStyle(fontSize: 16)),
+                                const SizedBox(width: 7),
+                                Expanded(
+                                  child: Text(
+                                    '${r.place.name} · ${_formatDistance(r.distanceM, s.lang)}',
+                                    style: TextStyle(
+                                      color: onSurface,
+                                      fontSize: 12.8,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                Icon(Icons.map_outlined,
+                                    size: 16, color: cs.primary),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    )),
+              ],
 
-        // Bilet — mevcut bilet kartı veya "Bilet ekle" butonu.
-        if (ticket != null) ...[
-          const SizedBox(height: 14),
-          _ticketCard(ticket,
-              onSurface: onSurface, secondary: secondary, subtleBg: subtleBg),
-        ] else if (needsTicket && widget.onAddTicket != null) ...[
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              icon: _pickingTicket
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('🎫'),
-              label: Text(_pickingTicket
-                  ? s.s('placeDetail.adding')
-                  : s.s('placeDetail.addTicket')),
-              onPressed: _pickingTicket ? null : _startAddTicket,
-            ),
-          ),
-        ],
-
-        const SizedBox(height: 16),
-
-        // Aksiyonlar
-        Row(
-          children: [
-            Expanded(
-              child: FilledButton.icon(
-                icon: const Text('🗺️'),
-                label: Text(s.s('placeDetail.openMap')),
-                onPressed: () => _openMap(context),
-              ),
-            ),
-            if (onEdit != null) ...[
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  icon: const Text('✏️'),
-                  label: Text(s.s('placeDetail.edit')),
-                  onPressed: onEdit,
+              // Bilet — mevcut bilet kartı veya "Bilet ekle" butonu.
+              if (ticket != null) ...[
+                const SizedBox(height: 14),
+                _ticketCard(ticket,
+                    onSurface: onSurface,
+                    secondary: secondary,
+                    subtleBg: subtleBg),
+              ] else if (_ticketAdded) ...[
+                const SizedBox(height: 14),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.check_circle_rounded, color: cs.primary),
+                  title: Text(s.s('placeDetail.ticketAddedStatus')),
                 ),
+              ] else if (needsTicket &&
+                  (widget.onAddTicket != null ||
+                      widget.onImportTicket != null)) ...[
+                const SizedBox(height: 14),
+                SizedBox(
+                  key: const ValueKey('place-detail-add-ticket'),
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    icon: _pickingTicket
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('🎫'),
+                    label: Text(_pickingTicket
+                        ? s.s('placeDetail.adding')
+                        : s.s('placeDetail.addTicket')),
+                    onPressed: _pickingTicket ? null : _startAddTicket,
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 16),
+
+              // Aksiyonlar
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      icon: const Text('🗺️'),
+                      label: Text(s.s('placeDetail.openMap')),
+                      onPressed: () => _openMap(context),
+                    ),
+                  ),
+                  if (onEdit != null) ...[
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Text('✏️'),
+                        label: Text(s.s('placeDetail.edit')),
+                        onPressed: onEdit,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ],
-          ],
+          ),
         ),
       ],
     );
@@ -1093,7 +1113,8 @@ class _PlaceCarouselState extends State<_PlaceCarousel> {
               children: [
                 for (var i = 0; i < _urls.length; i++)
                   AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
+                    duration: RotoriMotion.duration(
+                        context, const Duration(milliseconds: 200)),
                     margin: const EdgeInsets.symmetric(horizontal: 3),
                     width: i == _idx ? 18 : 6,
                     height: 6,

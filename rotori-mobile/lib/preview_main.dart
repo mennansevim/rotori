@@ -5,13 +5,17 @@
 //   flutter run -d chrome -t lib/preview_main.dart
 //
 // Üretim girişi lib/main.dart'tır; bu dosya yalnızca görsel kontrol içindir.
+import 'dart:convert';
+
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
+import 'core/debug_clock.dart';
 import 'core/debug_tools.dart';
 import 'core/l10n.dart';
 import 'core/supabase_client.dart' show currentUserProvider;
@@ -26,6 +30,8 @@ import 'domain/place_coords.dart';
 import 'domain/trip_factory.dart';
 import 'domain/types.dart';
 import 'features/auth/auth_screen.dart';
+import 'features/auth/auth_repository.dart';
+import 'features/auth/preview_auth_repository.dart';
 import 'features/planner/planner_theme.dart';
 import 'features/plans/add_hotel_page.dart';
 import 'features/plans/create/create_plan_screen.dart';
@@ -35,6 +41,7 @@ import 'features/plans/plan_viewer_screen.dart';
 import 'features/plans/plans_list_screen.dart';
 import 'features/price_tag_scanner/view/scanner_screen.dart';
 import 'features/reminders/reminders_screen.dart';
+import 'features/tickets/data/ticket_local_media_store.dart';
 import 'features/live_currency_scanner/presentation/pages/live_currency_scanner_page.dart';
 import 'features/viewer/budget_screen.dart';
 import 'features/viewer/checklist_screen.dart';
@@ -57,6 +64,7 @@ void main() {
   enablePreviewDebugTools();
   final demo = _buildDemoTrip();
   _hydratePreviewCoordinates(demo);
+  final ticketMediaStore = _PreviewTicketMediaStore.seeded();
 
   runApp(
     DevicePreview(
@@ -68,6 +76,9 @@ void main() {
         overrides: [
           // Supabase auth yok → repo null → save() no-op, geofence userId 'anon'.
           currentUserProvider.overrideWithValue(null),
+          // Preview Supabase başlatmaz; auth butonları yerel olarak başarılı
+          // olup aşağıdaki /auth callback'iyle demo planlarına döner.
+          authRepositoryProvider.overrideWithValue(PreviewAuthRepository()),
           // Realtime yerine trip yayınla. Öncelik: oluşturma akışının ürettiği
           // taslak → 'new' boş trip → seedli demo.
           planByIdProvider.overrideWith((ref, id) {
@@ -81,6 +92,17 @@ void main() {
           // Gerçek "Planlarım" ekranını dolu göstermek için (Supabase pull'u no-op).
           localPlansProvider.overrideWithValue([demo]),
           plansPullProvider.overrideWith((ref) async => <Trip>[]),
+          // Önizlemede gün/saat ilerletme barını aç — sıradaki aktivite ve
+          // ilerleme sayacı gerçek zamanı beklemeden denenebilsin.
+          debugClockBarEnabledProvider.overrideWithValue(true),
+          ticketLocalMediaStoreProvider.overrideWithValue(ticketMediaStore),
+          ticketImagePickerProvider.overrideWithValue(
+            (_) async => XFile.fromData(
+              Uint8List.fromList(_previewTicketImageBytes),
+              name: 'preview-ticket.png',
+              mimeType: 'image/png',
+            ),
+          ),
         ],
         child: const _PreviewApp(),
       ),
@@ -187,8 +209,74 @@ Trip _buildDemoTrip() {
     InterestTag.photography,
     InterestTag.tech,
   ];
+  trip.tickets = [
+    Ticket(
+      id: 'preview-ticket',
+      kind: TicketKind.attraction.name,
+      label: 'Tokyo Disneyland',
+      purchased: true,
+      visitDate: start,
+      entryTime: '09:00',
+      localMediaRef: _previewTicketMediaRef,
+      emoji: '🎫',
+    ),
+  ];
 
   return ensureTripPreferences(trip);
+}
+
+const _previewTicketMediaRef = 'memory:preview/seed-ticket.png';
+final _previewTicketImageBytes = base64Decode(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+);
+
+class _PreviewTicketMediaStore implements TicketLocalMediaStore {
+  _PreviewTicketMediaStore.seeded()
+      : _committed = {
+          _previewTicketMediaRef: Uint8List.fromList(_previewTicketImageBytes),
+        };
+
+  final Map<String, Uint8List> _staged = {};
+  final Map<String, Uint8List> _committed;
+  var _nextId = 0;
+
+  @override
+  Future<StagedTicketMedia> stage({
+    required String planId,
+    required String ticketId,
+    required Uint8List bytes,
+    required String extension,
+  }) async {
+    final token = '$planId/$ticketId/${_nextId++}';
+    final normalized = normalizeTicketMediaExtension(extension);
+    _staged[token] = Uint8List.fromList(bytes);
+    return StagedTicketMedia(token: token, extension: normalized);
+  }
+
+  @override
+  Future<String> commit(StagedTicketMedia media) async {
+    final bytes = _staged.remove(media.token)!;
+    final ref = 'memory:${media.token}.${media.extension}';
+    _committed[ref] = bytes;
+    return ref;
+  }
+
+  @override
+  Future<Uint8List?> read(String localMediaRef) async =>
+      _committed[localMediaRef];
+
+  @override
+  Future<void> discard(StagedTicketMedia media) async {
+    _staged.remove(media.token);
+  }
+
+  @override
+  Future<void> delete(String localMediaRef) async {
+    _committed.remove(localMediaRef);
+  }
+
+  @override
+  Future<void> cleanupStale({required DateTime now}) async {}
 }
 
 String _shiftYmd(String ymd, int days) {
@@ -215,7 +303,12 @@ class _PreviewApp extends ConsumerWidget {
         GoRoute(
             path: '/plans/new', builder: (_, __) => const CreatePlanScreen()),
         // Gerçek uygulama ekranları (önizleme): giriş + "Planlarım".
-        GoRoute(path: '/auth', builder: (_, __) => const AuthScreen()),
+        GoRoute(
+          path: '/auth',
+          builder: (context, __) => AuthScreen(
+            onAuthSuccess: () => context.go('/plans'),
+          ),
+        ),
         GoRoute(
             path: '/planslist', builder: (_, __) => const PlansListScreen()),
         // Wizard kaldırıldı — eski deep-link'ler viewer'a düşer.

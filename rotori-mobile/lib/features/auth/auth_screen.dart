@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/l10n.dart';
@@ -37,7 +38,12 @@ String _friendlyAuthError(Object error, AppLang lang) {
 
 /// Login / Kayıt ekranı — e-posta + şifre + Sign in with Apple (iOS/macOS).
 class AuthScreen extends ConsumerStatefulWidget {
-  const AuthScreen({super.key});
+  const AuthScreen({super.key, this.onAuthSuccess});
+
+  /// Preview gibi auth guard kullanmayan kabukların başarılı işlemi kendi
+  /// rotasına bağlamasına izin verir. Production router bunu auth state
+  /// değişiminden aldığı için callback vermeden çalışır.
+  final VoidCallback? onAuthSuccess;
 
   @override
   ConsumerState<AuthScreen> createState() => _AuthScreenState();
@@ -80,6 +86,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           password: _passwordController.text,
         );
       }
+      widget.onAuthSuccess?.call();
       // Başarı: authStateProvider tetikler → router HomeScreen'e yönlendirir.
     } on Exception catch (e) {
       setState(() => _error = _friendlyAuthError(
@@ -91,13 +98,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
   }
 
-  /// Apple butonu yalnızca iOS/macOS'ta gösterilir. `kIsWeb` + platform
-  /// kontrolü `dart:io` kullanmadan (foundation) yapılır; böylece web
-  /// derlemesi `dart:io`'ya hiç dokunmaz ve buton web/Android'de render olmaz.
+  /// Apple butonu iOS/macOS'ta native, web'de Supabase OAuth akışıyla
+  /// gösterilir. Android'de Apple oturumu bu ekranda sunulmaz.
   bool get _canUseApple =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.macOS);
+      kIsWeb ||
+      defaultTargetPlatform == TargetPlatform.iOS ||
+      defaultTargetPlatform == TargetPlatform.macOS;
 
   Future<void> _signInWithApple() async {
     setState(() {
@@ -106,6 +112,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     });
     try {
       await ref.read(authRepositoryProvider).signInWithApple();
+      widget.onAuthSuccess?.call();
       // Başarı: authStateProvider tetikler → router yönlendirir.
     } on Exception catch (e) {
       if (!mounted) return;
@@ -128,6 +135,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     });
     try {
       await ref.read(authRepositoryProvider).signInWithGoogle();
+      widget.onAuthSuccess?.call();
       // Başarı: Supabase OAuth deep link ile döner → authStateProvider tetikler.
     } on Exception catch (e) {
       if (!mounted) return;
@@ -224,7 +232,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             : s.s('auth.noAccount'),
                       ),
                     ),
-                    // Sign in with Apple — yalnızca iOS/macOS'ta görünür.
+                    // Apple ile Giriş — iOS/macOS native, web'de OAuth.
                     if (_canUseApple) ...[
                       const SizedBox(height: 8),
                       Row(
@@ -252,14 +260,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text(
-                              '',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                height: 1,
-                              ),
-                            ),
+                            const Icon(LucideIcons.apple, size: 18),
                             const SizedBox(width: 8),
                             Text(s.s('auth.signInWithApple')),
                           ],
@@ -297,7 +298,20 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           color: Colors.grey.shade400,
                         ),
                       ),
-                      child: Text(s.s('auth.signInWithGoogle')),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            s.s('auth.signInWithGoogle'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

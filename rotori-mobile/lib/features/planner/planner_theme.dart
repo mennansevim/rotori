@@ -59,10 +59,11 @@ class PT {
       splashFactory: NoSplash.splashFactory,
     );
     return base.copyWith(
+      // Flutter'ın platform sistem fontunu kullan; `.SF Pro Text` web ve
+      // Android'de garanti edilen bir font ailesi değildir.
       textTheme: base.textTheme.apply(
         bodyColor: text,
         displayColor: text,
-        fontFamily: '.SF Pro Text',
       ),
     );
   }
@@ -147,7 +148,8 @@ class PCardTitle extends StatelessWidget {
 
 /// styles.css .field (label + kontrol + opsiyonel ipucu)
 class PField extends StatelessWidget {
-  const PField({super.key, required this.label, required this.child, this.hint});
+  const PField(
+      {super.key, required this.label, required this.child, this.hint});
   final String label;
   final Widget child;
   final Widget? hint;
@@ -162,7 +164,8 @@ class PField extends StatelessWidget {
                     fontSize: 14, fontWeight: FontWeight.w500, color: PT.text)),
             const SizedBox(height: 8),
             child,
-            if (hint != null) Padding(padding: const EdgeInsets.only(top: 6), child: hint!),
+            if (hint != null)
+              Padding(padding: const EdgeInsets.only(top: 6), child: hint!),
           ],
         ),
       );
@@ -193,12 +196,14 @@ class PTextField extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hint,
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         filled: true,
         fillColor: PT.bgSubtle,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: invalid ? const Color(0xFFDC2626) : PT.borderStrong),
+          borderSide: BorderSide(
+              color: invalid ? const Color(0xFFDC2626) : PT.borderStrong),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -211,7 +216,11 @@ class PTextField extends StatelessWidget {
 
 /// styles.css .chip / .chip-active (toggle çip)
 class PChip extends StatelessWidget {
-  const PChip({super.key, required this.label, required this.active, required this.onTap});
+  const PChip(
+      {super.key,
+      required this.label,
+      required this.active,
+      required this.onTap});
   final String label;
   final bool active;
   final VoidCallback onTap;

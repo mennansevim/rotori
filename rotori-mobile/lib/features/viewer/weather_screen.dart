@@ -441,7 +441,7 @@ class _DayRow extends StatelessWidget {
     );
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: EdgeInsets.zero,
       decoration: BoxDecoration(
         color: isActive ? palette.cardHover : palette.card,
         borderRadius: BorderRadius.circular(16),
@@ -450,8 +450,13 @@ class _DayRow extends StatelessWidget {
           width: isActive ? 1.5 : 1,
         ),
       ),
-      child: Row(
-        children: [
+      child: Material(
+        color: Colors.transparent,
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+          title: Row(
+            children: [
           // Tarih.
           SizedBox(
             width: 104,
@@ -552,6 +557,72 @@ class _DayRow extends StatelessWidget {
                 ),
               ],
             ),
+            ],
+          ),
+          children: [
+          if (forecast != null)
+            Column(
+              children: [
+                _WeatherDetailRow(
+                  label: s.s('wx.high'),
+                  value: '${forecast.tempMax.round()}°C',
+                  palette: palette,
+                ),
+                _WeatherDetailRow(
+                  label: s.s('wx.low'),
+                  value: '${forecast.tempMin.round()}°C',
+                  palette: palette,
+                ),
+                if (forecast.precipProb != null)
+                  _WeatherDetailRow(
+                    label: s.s('wx.precip'),
+                    value: '%${forecast.precipProb}',
+                    palette: palette,
+                  ),
+              ],
+            )
+          else
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                s.s('weather.noData'),
+                style: TextStyle(color: palette.textMuted, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WeatherDetailRow extends StatelessWidget {
+  const _WeatherDetailRow({
+    required this.label,
+    required this.value,
+    required this.palette,
+  });
+
+  final String label;
+  final String value;
+  final ViewerPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(color: palette.textSecondary)),
+          Text(
+            value,
+            style: TextStyle(
+              color: palette.textPrimary,
+              fontWeight: FontWeight.w700,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
         ],
       ),
     );
