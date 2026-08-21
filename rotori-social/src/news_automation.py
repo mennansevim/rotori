@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Any
 
 from src.config import Config, load_config
+from src.content_categories import category_label, normalize_category
 from src.utils.logging import get_logger
 
 log = get_logger("news")
@@ -581,12 +582,15 @@ def _copy_to_drive(cfg: Config, jpg: Path) -> list[str]:
 
 
 # ---------------- ana akış ----------------
-def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
+def run_once(cfg: Config, dry_run: bool = False,
+             category: str | None = None) -> dict[str, Any]:
     if cfg.news is None or not cfg.news.enabled:
         log.info("Haber otomasyonu kapalı (config: news_automation.enabled=false).")
         return {"ok": False, "reason": "disabled"}
     if cfg.openai is None:
         raise RuntimeError("OpenAI key gerekli (config.yaml → openai.api_key).")
+
+    category_slug = normalize_category(category) if category else ""
 
     from src.openai_client import OpenAIClient
     from src import editorial
@@ -674,8 +678,14 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
         _remember(tried_ids, cand)
 
     # Faz 2 — Evergreen konuları puanla (RSS'e bağımlı DEĞİL, her tur yarışır).
+    # Kategori kullanıcı tarafından açıkça seçildiyse kaynak hattı kesin olsun:
+    # Güncel Haberler yalnız RSS'ten, diğer kategoriler ise topic_automation'dan
+    # üretilir. Eski cron/CLI çağrılarında category=None olduğu için önceki karma
+    # RSS + evergreen davranışı korunur.
     ev_env = os.environ.get("NEWS_EVERGREEN_FALLBACK")
-    if ev_env is not None:
+    if category is not None:
+        ev_on = False
+    elif ev_env is not None:
         ev_on = ev_env not in ("0", "false", "False")
     else:
         ev_on = bool(getattr(ncfg, "evergreen_enabled", True))
@@ -806,6 +816,9 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
             "puan": editorial_data.get("puan", {}),
             "toplam_puan": editorial_data.get("toplam"),
             "kaynak": editorial_data.get("kaynak", ""),
+            "content_category": category_slug or None,
+            "content_category_label": category_label(category_slug) if category_slug else "",
+            "source_type": "rss" if category_slug == "guncel_haberler" else "mixed",
             "source_news": {"title": news["title"], "link": news["link"],
                             "source": news["source"]},
             "auto_generated": True,
@@ -873,6 +886,7 @@ def run_once(cfg: Config, dry_run: bool = False) -> dict[str, Any]:
 
     log.info("=== Haber otomasyonu bitti ===")
     return {"ok": True, "file": out_path.name, "copied": copied,
+            "category": category_slug or None,
             "news_title": news["title"], "news_link": news["link"],
             "pending": pending_notified}
 
@@ -882,13 +896,14 @@ _AUTO_PUBLISH_NEXT = False
 
 
 def run_once_with_publish(cfg: Config, auto_publish: bool = False,
-                          dry_run: bool = False) -> dict[str, Any]:
+                          dry_run: bool = False,
+                          category: str | None = None) -> dict[str, Any]:
     """run_once'un auto_publish flag'iyle sarmalanmış hali (module-global
     kullanmak yerine wrapper — thread-safe olmasa da tek job/tur akışında OK)."""
     global _AUTO_PUBLISH_NEXT
     _AUTO_PUBLISH_NEXT = bool(auto_publish and not dry_run)
     try:
-        return run_once(cfg, dry_run=dry_run)
+        return run_once(cfg, dry_run=dry_run, category=category)
     finally:
         _AUTO_PUBLISH_NEXT = False
 
@@ -899,12 +914,21 @@ def main(argv: list[str] | None = None) -> int:
                     help="Sadece haber seçimi + metin üret, dosya yazma/Drive'a atma")
     ap.add_argument("--publish", action="store_true",
                     help="Üretilen kartı Onay Bekleyen'e taşı")
+    ap.add_argument("--category", default=None,
+                    help="Kategori slug'ı (guncel_haberler)")
     ap.add_argument("--config", default=None, help="config.yaml yolu")
     args = ap.parse_args(argv)
     cfg = load_config(args.config)
     try:
-        res = run_once_with_publish(cfg, auto_publish=args.publish,
-                                    dry_run=args.dry_run)
+        publish_kwargs: dict[str, Any] = {
+            "auto_publish": args.publish,
+            "dry_run": args.dry_run,
+        }
+        # Kategori parametresi eski wrapper/mocked çağrı sözleşmesini bozmasın;
+        # kategori seçilmediğinde önceki üç parametreli çağrıyı koru.
+        if args.category:
+            publish_kwargs["category"] = args.category
+        res = run_once_with_publish(cfg, **publish_kwargs)
     except Exception as exc:
         log.error(f"HATA: {exc}")
         return 1

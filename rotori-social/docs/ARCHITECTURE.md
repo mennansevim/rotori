@@ -1,7 +1,7 @@
 # ARCHITECTURE.md — Güncel Mimari
 
 > Kod değiştiğinde bu dosya **aynı PR'da** güncellenmelidir.
-> Son revizyon: 2026-08-10 (modüler dashboard kullanıcı akışı ve güvenli eylemler)
+> Son revizyon: 2026-08-21 (manuel içerik kategorileri ve kategori bazlı üretim)
 
 ## 1. Yüksek seviye
 
@@ -25,7 +25,7 @@ onayı olmadan API çağrısı yapmaz.
 │  │  uvicorn / FastAPI  (src/web/app.py, 8420 → host 3090)           │  │
 │  │  ├─ StaticFiles: /static (index.html, manifest, Rotori icons)    │  │
 │  │  ├─ StaticFiles: /media/backgrounds (Unsplash cache)             │  │
-│  │  ├─ 66 REST route (bkz. §7)                                      │  │
+│  │  ├─ 67 REST route (bkz. §7)                                      │  │
 │  │  ├─ JobManager (in-process job + canlı log bridge)               │  │
 │  │  └─ Scheduler background thread (opsiyonel, config'e bağlı)      │  │
 │  └──────────────────────────────────────────────────────────────────┘  │
@@ -163,6 +163,25 @@ onayı olmadan API çağrısı yapmaz.
    Instagram Graph API veya Drive senkron klasörü
 ```
 
+### 5.1 Manuel içerik kategorileri
+
+`Yeni İçerik → Haber Üret` akışında kullanıcı üst kategoriyi elle seçer:
+
+| Slug | Arayüz etiketi | Üretim kaynağı |
+|---|---|---|
+| `guncel_haberler` | Güncel Haberler | RSS + editöryel AI puanı |
+| `seyahat_hazirligi` | Japonya Yolculuğu | Kategoriye filtrelenmiş evergreen konu havuzu |
+| `animeler` | Animeler | Kategoriye filtrelenmiş evergreen konu havuzu |
+| `teknoloji` | Teknolojik Ürünler | Kategoriye filtrelenmiş evergreen konu havuzu |
+
+Güncel Haberler seçildiğinde yalnız RSS adayları işlenir; diğer üç kategori
+konu havuzundan uygun başlık seçer ve aynı editöryel AI kapısından geçer. Dört
+akışın da görseli mevcut Unsplash aramasıyla otomatik bulunur, açıklama ve
+kart metni mevcut `editorial` hattıyla otomatik yazılır. Üretilen sidecar
+JSON'unda `content_category` ve `content_category_label` alanları tutulur;
+Kütüphane bu alanla filtreleme yapabilir. `GET /api/content/categories`
+arayüz sözleşmesindeki kategori listesini sağlar.
+
 ## 6a. İkinci frontend — `studio.html` (yeni, feature-flagged)
 
 - **Kaynak paket**: `japonya-ruyasi-dashboard-design.zip` (DESIGN-SPEC.md + prototipi + referans ekranlar).
@@ -227,7 +246,7 @@ onayı olmadan API çağrısı yapmaz.
 
 ## 7. API katmanı — Route envanteri (`src/web/app.py`)
 
-**Toplam 66 route**. Gruplar:
+**Toplam 67 route**. Gruplar:
 
 | Grup | Örnek | Sayı |
 |---|---|---|
@@ -235,6 +254,7 @@ onayı olmadan API çağrısı yapmaz.
 | Öneri/Analiz | `GET /api/suggestions`, `POST /api/analyze`, `POST /api/batch/generate` | 3 |
 | Reels üretim | `POST /api/generate/prompt`, `POST /api/reels/make`, `GET /api/reels/generated`, `POST /api/reels/caption`, `POST /api/reels/drive-upload/{name}` | 6 |
 | Story kartı | `POST /api/story/generate`, `POST /api/story/render_direct`, `GET /api/story/list`, `DELETE /api/story/{name}`, `POST /api/story/update/{name}`, `POST /api/story/mark_ready/{name}`, `POST /api/story/vary_text`, `POST /api/story/ai_*` | 12 |
+| İçerik kategorileri | `GET /api/content/categories` | 1 |
 | Arka plan | `POST /api/backgrounds/{download,preview,save}`, `GET /api/backgrounds/status`, `POST /api/story/upload_bg` | 5 |
 | Onay kuyruğu | `GET /api/approval/list`, `POST /api/approval/{approve,reject,defer,update}/{name}` | 5 |
 | Otomasyon | `GET/POST /api/automation/config`, `POST /api/automation/run_now`, `POST /api/news/run_now` | 4 |

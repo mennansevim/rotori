@@ -384,13 +384,13 @@
     "scheduled_at": "2026-08-12T23:21:00",
     "status": "failed",
     "added_at": "2026-08-05T13:39:29",
-    "result": "Story public URL erişilemedi. Aşağıdaki URL'ler test edildi: https://api.rotori.app/media/stories/ready/tokyo-kulesi-ni-ziyaret-etmeden-once-bu-_1785500489.jpg -> HTTP 404 | https://setaceous-shriekingly-soo.ngrok-free.dev/media/stories/ready/tokyo-kulesi-ni-ziyaret-etmeden-once-bu-_1785500489.jpg -> HTTP 404",
+    "result": "Story public URL erişilemedi. Aşağıdaki URL'ler test edildi: https://api.rotori.app/media/stories/ready/tokyo-kulesi-ni-ziyaret-etmeden-once-bu-_1785500489.jpg -> HTTP 404",
     "auto_publish": true,
     "automation_kind": "news",
-    "last_attempt_at": "2026-08-12T23:21:18",
+    "last_attempt_at": "2026-08-18T11:00:41",
     "attempt_count": 1,
-    "failure_reason": "Story public URL erişilemedi. Aşağıdaki URL'ler test edildi: https://api.rotori.app/media/stories/ready/tokyo-kulesi-ni-ziyaret-etmeden-once-bu-_1785500489.jpg -> HTTP 404 | https://setaceous-shriekingly-soo.ngrok-free.dev/media/stories/ready/tokyo-kulesi-ni-ziyaret-etmeden-once-bu-_1785500489.jpg -> HTTP 404",
-    "last_result_at": "2026-08-12T23:21:19",
+    "failure_reason": "Story public URL erişilemedi. Aşağıdaki URL'ler test edildi: https://api.rotori.app/media/stories/ready/tokyo-kulesi-ni-ziyaret-etmeden-once-bu-_1785500489.jpg -> HTTP 404",
+    "last_result_at": "2026-08-18T11:00:42",
     "last_result_status": "failed"
   },
   {
@@ -434,11 +434,16 @@
     "mp4_path": "/Users/sevimm/Documents/Projects/rotori-app/rotori-social/output/stories/ready/japonya-nin-huzur-dolu-zen-bahceleri-siz_1785701375.jpg",
     "caption": "🎌 Kültür Notu\n\nJaponya'da birçok Zen bahçesi, meditasyon ve huzur arayanlar için ideal. Bu bahçeler, doğanın güzelliğiyle dolu, sakin bir ortam sunuyor.\n\nZen bahçeleri, Japon kültüründe derin bir anlam taşır. Bu bahçelerdeki düzenlemeler, meditasyon ve içsel huzuru teşvik etmek için tasarlanmıştır. Taşlar, kumlar ve bitkilerle yaratılan bu düzen, ziyaretçilere sakinlik ve huzur sunar.\n\n📌 Turist için: Zen bahçelerini ziyaret ederek, stres atabilir ve doğanın tadını çıkarabilirsiniz. Ziyaret öncesi gideceğiniz bahçenin ziyaret saatlerini kontrol etmek, zaman kazanmanızı sağlar.\n\n💡 Rotori ipucu: Ziyaret edeceğiniz Zen bahçelerini önceden araştırarak, en sakin saatlerde gitmeyi tercih edin.\n\n🔗 Kaynak: Japonya Turizm Ofisi\n\n#kültürşoku #japonya #zenbahçesi #meditasyon #doğa",
     "scheduled_at": "2026-08-19T23:21:00",
-    "status": "pending",
+    "status": "failed",
     "added_at": "2026-08-05T13:39:29",
-    "result": null,
+    "result": "'_StubResp' object has no attribute 'raise_for_status'",
     "auto_publish": true,
-    "automation_kind": "news"
+    "automation_kind": "news",
+    "last_attempt_at": "2026-08-21T18:58:26",
+    "attempt_count": 1,
+    "failure_reason": "'_StubResp' object has no attribute 'raise_for_status'",
+    "last_result_at": "2026-08-21T18:58:26",
+    "last_result_status": "failed"
   },
   {
     "id": "story_kimono-japon-estetigini-ve-geleneklerini_1784670557_1785926369",

@@ -5,6 +5,37 @@
 
 ---
 
+## Karar 18 — 2026-08-21
+### Karar
+Haber üretimi manuel seçilen dört üst kategoriyle çalışır: `guncel_haberler`,
+`seyahat_hazirligi`, `animeler` ve `teknoloji`. Güncel Haberler RSS adaylarını
+AI editöryel puanlamadan geçirir; diğer kategoriler kategoriye göre filtrelenen
+konu havuzundan üretim yapar. Görsel arama, açıklama, kart metni ve kalite
+kapısı mevcut ortak hatlarda kalır.
+
+### Neden
+RSS akışı güncel içerik için güçlüdür ancak Japonya yolculuğu, anime ve
+teknolojik ürünler gibi evergreen içeriklerin düzenli ve kontrollü üretilmesi
+için tek başına yeterli değildir. Kullanıcı kategoriyi elle seçerek üretim
+niyetini açıkça belirleyebilir; sistem de kaynağı buna göre seçer.
+
+### Ödünler
+- **Yararı**: tek ekrandan öngörülebilir içerik türü seçimi; mevcut görsel ve
+  AI metin otomasyonu korunur; kategori bilgisi kütüphanede izlenebilir.
+- **Maliyet**: kategori sözleşmesi ve konu seed'leri elle bakımdan geçmelidir;
+  konu havuzu kategori bazında tükenirse yeni başlık eklemek gerekir.
+
+### Sonuçları
+- `src/content_categories.py` kategori sırası, etiket, alias, seed ve filtre
+  davranışının tek kaynağıdır.
+- `src/web/app.py` kategori listesini yayınlar; toplu üretim seçilen kategoriye
+  göre RSS veya konu otomasyonuna yönlenir.
+- Story sidecar'larına `content_category` ve `content_category_label` yazılır;
+  dashboard Kütüphane kategori filtresi sunar.
+- Kategori verilmeden yapılan eski çağrılar geriye dönük uyumluluk için korunur.
+
+---
+
 ## Karar 17 — 2026-08-11
 ### Karar
 Hiçbir görsel arama sorgusu ham hâlde Unsplash'e gitmez. Sorgu üç adımdan geçer

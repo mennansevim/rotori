@@ -4,8 +4,31 @@
 //   Görsel Üret : 3 adım — Konu → Görsel seç → Metin + Kartı oluştur
 //   Haber Üret  : RSS pipeline + otomatik yayın toggle
 // =========================================================================
-import { api, el, icons, toast, openModal } from '../lib.js?v=20260810-8';
-import { openGenOverlay, setGenStages, genAppendLog, finishGenOverlay, pollJobUntilDone, closeGenOverlay } from '../genoverlay.js?v=20260810-8';
+import { api, el, icons, toast, openModal } from '../lib.js?v=20260821-1';
+import { openGenOverlay, setGenStages, genAppendLog, finishGenOverlay, pollJobUntilDone, closeGenOverlay } from '../genoverlay.js?v=20260821-1';
+
+const NEWS_CATEGORIES = [
+  {
+    slug: 'guncel_haberler',
+    label: 'Güncel Haberler',
+    description: 'RSS akışlarını tara, turist için paylaşmaya değer haberi AI ile seç.',
+  },
+  {
+    slug: 'seyahat_hazirligi',
+    label: 'Japonya Yolculuğu',
+    description: 'Uçuş, bavul, ulaşım ve Japonya\'ya gitme süreci için pratik içerik üret.',
+  },
+  {
+    slug: 'animeler',
+    label: 'Animeler',
+    description: 'Anime kültürü, mekanları ve Japonya\'daki anime deneyimleri üzerine içerik üret.',
+  },
+  {
+    slug: 'teknoloji',
+    label: 'Teknolojik Ürünler',
+    description: 'Japonya\'daki teknoloji alışverişi ve gezginin işine yarayan ürünleri ele al.',
+  },
+];
 
 // -------------------------------------------------------------------------
 // Popup: iki üretim modunu sekmeli modal içinde açar.
@@ -389,9 +412,22 @@ function buildGorsel(ctx, onDone) {
 // HABER ÜRET — RSS pipeline (studio.html birebir davranış)
 // =========================================================================
 function buildHaber(ctx, onDone) {
+  const state = { category: 'guncel_haberler' };
   const autoPublish = el('input', { type: 'checkbox' });
   const runBtn = el('button', { class: 'btn btn--primary', onclick: () => run() },
     el('span', { html: icons.news }), 'Haberden kart üret');
+
+  const categorySelect = el('select', {
+    class: 'select',
+    'aria-label': 'İçerik kategorisi',
+    onchange: (event) => {
+      state.category = event.target.value;
+      updateCategoryCopy();
+    },
+  }, ...NEWS_CATEGORIES.map((category) => el('option', {
+    value: category.slug,
+  }, category.label)));
+  const categoryDescription = el('p', { class: 'muted', style: 'font-size:12.5px;margin:8px 0 14px' });
 
   const logBox = el('div', { style: 'font-size:12.5px;color:var(--ink-soft);min-height:60px' },
     el('span', { class: 'muted' },
@@ -409,13 +445,30 @@ function buildHaber(ctx, onDone) {
     el('div', { class: 'card' }, el('div', { class: 'card__body' },
       wiz,
       el('p', { class: 'muted', style: 'font-size:12.5px;margin:4px 0 14px' },
-        'Haber otomasyonu pipeline\'ı — mevcut algoritma değişmedi.'),
+        'Kategori seç; görsel Unsplash\'tan otomatik seçilsin, açıklama AI ile yazılsın.'),
+      el('div', { class: 'field' },
+        el('label', { class: 'field__label' }, 'İçerik kategorisi'),
+        categorySelect,
+        categoryDescription),
       el('label', { class: 'option', style: 'margin-bottom:16px' }, autoPublish,
         'Otomatik yayınla (yalnız planlanan saatte paylaşılır)'),
       el('div', { class: 'hstack' }, runBtn))),
     el('div', { class: 'card' },
       el('div', { class: 'card__head' }, el('h3', {}, 'Nasıl Çalışır?')),
       el('div', { class: 'card__body' }, logBox)));
+
+  function categorySpec() {
+    return NEWS_CATEGORIES.find((item) => item.slug === state.category) || NEWS_CATEGORIES[0];
+  }
+
+  function updateCategoryCopy() {
+    const spec = categorySpec();
+    categoryDescription.textContent = spec.description;
+    runBtn.lastChild.textContent = `${spec.label} içeriği üret`;
+    logBox.querySelector('.muted').textContent = spec.slug === 'guncel_haberler'
+      ? 'Tokyo Cheapo, SoraNews24, Nippon.com ve Japan Today RSS akışlarından son 48 saatin haberleri taranır; AI turist için değerli olanı seçer, görseli ve açıklamayı otomatik üretir.'
+      : `${spec.label} konu havuzundan bir başlık seçilir; AI editöryel açıklamayı ve caption\'ı yazar, görsel Unsplash\'tan otomatik seçilir.`;
+  }
 
   function askBulkCount() {
     const raw = window.prompt('Kaç haber üretelim? (1-20)', '1');
@@ -431,13 +484,20 @@ function buildHaber(ctx, onDone) {
   async function run() {
     const count = askBulkCount();
     if (!count) return;
+    const spec = categorySpec();
+    const isCurrent = spec.slug === 'guncel_haberler';
 
     // Üretim penceresini kapatıp asenkron akış overlay'ini aç
     onDone && onDone();
-    openGenOverlay(`Japon haberleri üretiliyor (x${count})`, 'RSS → editöryel gate → görsel → render → sıraya alma.');
+    openGenOverlay(
+      `${spec.label} üretiliyor (x${count})`,
+      isCurrent
+        ? 'RSS → editöryel gate → görsel → render → sıraya alma.'
+        : 'Kategori konusu → AI açıklama → görsel → render → sıraya alma.',
+    );
     setGenStages([
-      { key: 'rss', label: 'RSS akışları taranıyor' },
-      { key: 'gate', label: 'Editöryel gate (GPT 30/50)' },
+      { key: 'rss', label: isCurrent ? 'RSS akışları taranıyor' : 'Kategori konusu hazırlanıyor' },
+      { key: 'gate', label: 'AI editöryel açıklama ve kalite puanı' },
       { key: 'visual', label: 'Unsplash görseli seçiliyor' },
       { key: 'render', label: '1080×1350 kart render' },
       { key: 'queue', label: `Yayın sırasına ekleniyor (x${count})` },
@@ -450,11 +510,12 @@ function buildHaber(ctx, onDone) {
         topic: '',
         query: '',
         count,
+        category: spec.slug,
       });
       const ok = await pollJobUntilDone((line) => {
         if (!line) return;
         genAppendLog(line);
-        const m = line.match(/(?:haber|konu):\s*([^\s]+\.jpg)/i);
+        const m = line.match(/([^\s]+\.jpg)/i);
         if (m) resultFile = m[1];
       });
       if (ok) {
@@ -463,7 +524,7 @@ function buildHaber(ctx, onDone) {
           file: resultFile || `haber x${count}`,
           onResult: () => ctx.navigate('overview'),
         });
-        toast(`✓ ${count} adet haber üretimi tamamlandı.`, 'ok');
+        toast(`✓ ${count} adet ${spec.label} içeriği tamamlandı.`, 'ok');
       } else {
         finishGenOverlay(false, { outcome: 'error' });
       }
@@ -474,5 +535,6 @@ function buildHaber(ctx, onDone) {
     }
   }
 
+  updateCategoryCopy();
   return wrap;
 }

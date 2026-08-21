@@ -209,7 +209,7 @@ def test_dashboard_cachebuster_is_consistent():
     overview_js = (DASHBOARD_STATIC / "pages" / "overview.js").read_text(encoding="utf-8")
     settings_js = (DASHBOARD_STATIC / "pages" / "settings.js").read_text(encoding="utf-8")
     logs_js = (DASHBOARD_STATIC / "pages" / "logs.js").read_text(encoding="utf-8")
-    version = "20260810-8"
+    version = "20260821-1"
     assert f"styles.css?v={version}" in index_html
     assert f"app.js?v={version}" in index_html
     assert f"pages/automation.js?v={version}" in app_js

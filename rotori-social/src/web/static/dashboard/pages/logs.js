@@ -2,7 +2,7 @@
 // pages/logs.js — Yayın Logları
 // =========================================================================
 import { api, el, typeBadge, fmtDate, fmtTime, errorState, loadingState,
-         emptyState, icons, toast, confirmModal } from '../lib.js?v=20260810-8';
+         emptyState, icons, toast, confirmModal } from '../lib.js?v=20260821-1';
 
 export async function renderLogs(root, ctx) {
   root.innerHTML = '';

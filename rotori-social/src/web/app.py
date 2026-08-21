@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from src.config import Config, load_config
+from src.content_categories import category_label, category_list, normalize_category
 from src.utils.logging import get_logger
 from src.web import dependencies as deps
 from src.web.jobs import JobManager
@@ -1670,10 +1671,18 @@ class RunNowRequest(BaseModel):
     topic: str = ""          # (sadece kind=topic) özel konu başlığı — boşsa havuzdan rastgele
     query: str = ""          # (opsiyonel) özel Unsplash görsel arama sorgusu
     count: int = 1            # tek seferde kaç içerik üretilecek (bulk)
+    category: str = ""       # manuel Haber Üret kategorisi
 
 
 class NewsRunNowRequest(BaseModel):
     count: int = 1
+    category: str = ""
+
+
+@app.get("/api/content/categories")
+def content_categories() -> dict[str, Any]:
+    """Manuel içerik üretiminde sunulan üst kategori sözleşmesi."""
+    return {"categories": category_list()}
 
 
 def _normalized_bulk_count(raw: int | None) -> int:
@@ -1693,6 +1702,7 @@ def _run_now_bulk(
     query: str,
     emit: Callable[..., None],
     cancel_ev: Event,
+    category: str = "",
 ) -> None:
     """News/Topic run_now için tek iş içinde ardışık bulk üretim akışı.
 
@@ -1701,7 +1711,8 @@ def _run_now_bulk(
     Unsplash limiti gibi bir hata exception atıyor, iş "hata" olarak bitiyor
     ama o ana kadar üretilen 6 kart sessizce kalıyordu.
     """
-    label = "Haber" if kind == "news" else "Konu"
+    category_slug = normalize_category(category) if category else ""
+    label = category_label(category_slug) if category_slug else ("Haber" if kind == "news" else "Konu")
     ok_count = 0
     attempted = 0
     skipped = 0
@@ -1722,13 +1733,32 @@ def _run_now_bulk(
 
         try:
             if kind == "news":
-                from src import news_automation
+                if category_slug and category_slug != "guncel_haberler":
+                    from src import topic_automation
 
-                emit("① RSS kaynaklarına bağlanılıyor — son 48 saat taranacak.", "info")
-                emit("② Haber adayları toplanıyor; erişilemeyen akışlar atlanabilir.", "log")
-                res = news_automation.run_once_with_publish(
-                    cfg, auto_publish=forced_auto_publish
-                )
+                    emit(f"① {label} konu havuzu hazırlanıyor.", "info")
+                    emit("② AI editöryel açıklama ve kalite puanı üretiliyor.", "log")
+                    res = topic_automation.run_once(
+                        cfg,
+                        auto_publish=forced_auto_publish,
+                        category=category_slug,
+                    )
+                else:
+                    from src import news_automation
+
+                    emit("① RSS kaynaklarına bağlanılıyor — son 48 saat taranacak.", "info")
+                    emit("② Haber adayları toplanıyor; erişilemeyen akışlar atlanabilir.", "log")
+                    if category_slug:
+                        res = news_automation.run_once_with_publish(
+                            cfg,
+                            auto_publish=forced_auto_publish,
+                            category=category_slug,
+                        )
+                    else:
+                        # Eski çağrılar ve mevcut test double'ları için sözleşmeyi koru.
+                        res = news_automation.run_once_with_publish(
+                            cfg, auto_publish=forced_auto_publish
+                        )
             else:
                 from src import topic_automation
 
@@ -1736,11 +1766,19 @@ def _run_now_bulk(
                 if topic.strip():
                     override = {"title": topic.strip(), "query": query.strip() or topic.strip()}
                     emit(f"  Özel konu: {topic.strip()}", "log")
-                res = topic_automation.run_once(
-                    cfg,
-                    auto_publish=forced_auto_publish,
-                    topic_override=override,
-                )
+                if category_slug:
+                    res = topic_automation.run_once(
+                        cfg,
+                        auto_publish=forced_auto_publish,
+                        topic_override=override,
+                        category=category_slug,
+                    )
+                else:
+                    res = topic_automation.run_once(
+                        cfg,
+                        auto_publish=forced_auto_publish,
+                        topic_override=override,
+                    )
         except Exception as exc:  # noqa: BLE001 — tek tur tüm bulk'u durdurmasın
             errored += 1
             consecutive_errors += 1
@@ -1819,6 +1857,7 @@ def automation_run_now(req: RunNowRequest) -> dict[str, Any]:
             query=req.query,
             emit=emit,
             cancel_ev=cancel_ev,
+            category=req.category,
         )
 
     try:
@@ -1847,6 +1886,7 @@ def news_run_now(req: NewsRunNowRequest = NewsRunNowRequest()) -> dict[str, Any]
             query="",
             emit=emit,
             cancel_ev=cancel_ev,
+            category=req.category,
         )
 
     try:

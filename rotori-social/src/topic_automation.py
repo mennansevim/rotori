@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any
 
 from src.config import Config, load_config
+from src.content_categories import category_label, normalize_category, topics_for_category
 from src.utils.logging import get_logger
 
 log = get_logger("topic")
@@ -59,12 +60,15 @@ def _save_state(cfg: Config, state: dict[str, Any]) -> None:
     tmp.replace(p)
 
 
-def _load_pool(cfg: Config) -> list[dict[str, Any]]:
+def _load_pool(cfg: Config, category: str | None = None) -> list[dict[str, Any]]:
     p = cfg.project_root / _POOL_PATH
     if not p.exists():
         return []
     try:
-        return json.loads(p.read_text(encoding="utf-8")).get("topics", [])
+        pool = json.loads(p.read_text(encoding="utf-8")).get("topics", [])
+        if category:
+            return topics_for_category(category, pool)
+        return pool
     except (OSError, ValueError):
         return []
 
@@ -94,7 +98,8 @@ def _pick_topic(pool: list[dict[str, Any]], used: set[str],
 
 def run_once(cfg: Config, auto_publish: bool = False,
              dry_run: bool = False,
-             topic_override: dict[str, Any] | None = None) -> dict[str, Any]:
+             topic_override: dict[str, Any] | None = None,
+             category: str | None = None) -> dict[str, Any]:
     if cfg.openai is None:
         raise RuntimeError("OpenAI key gerekli (config.yaml → openai.api_key).")
     if cfg.stories is None:
@@ -105,9 +110,13 @@ def run_once(cfg: Config, auto_publish: bool = False,
         raise RuntimeError("OpenAI client kurulamadı.")
 
     log.info("=== Konu otomasyonu başladı ===")
-    pool = _load_pool(cfg)
+    category_slug = normalize_category(category) if category else ""
+    pool = _load_pool(cfg, category_slug or None)
     if not pool:
-        raise RuntimeError(f"Konu havuzu boş/bulunamadı: {_POOL_PATH}")
+        detail = f"Konu havuzu boş/bulunamadı: {_POOL_PATH}"
+        if category_slug:
+            detail = f"{category_label(category_slug)} kategorisi için konu bulunamadı."
+        raise RuntimeError(detail)
     log.info(f"  havuz: {len(pool)} konu")
 
     state = _load_state(cfg)
@@ -132,7 +141,11 @@ def run_once(cfg: Config, auto_publish: bool = False,
     # metin + caption — PAYLAŞIMLI 'Japonya Rüyası' editöryel prompt (konu modu).
     # 'Konudan Üret' butonu ve konu otomasyonu aynı kaliteyi/kalıbı kullanır.
     from src import editorial
-    res = editorial.generate_editorial_topic(oai, topic["title"])
+    res = editorial.generate_editorial_topic(
+        oai,
+        topic["title"],
+        category_label=category_label(category_slug) if category_slug else "",
+    )
     if not res.get("uygun"):
         log.info(f"  ⏭ Konu kalite kapısını geçemedi "
                  f"(toplam={res.get('toplam', 0)}/50, min={editorial.MIN_SCORE}).")
@@ -192,6 +205,9 @@ def run_once(cfg: Config, auto_publish: bool = False,
             "toplam_puan": editorial_data.get("toplam"),
             "kaynak": editorial_data.get("kaynak", ""),
             "source_topic": topic["title"],
+            "content_category": category_slug or None,
+            "content_category_label": category_label(category_slug) if category_slug else "",
+            "source_type": "category_topic" if category_slug else "evergreen",
             "auto_generated": True,
         }, ensure_ascii=False, indent=2), encoding="utf-8")
     except OSError as exc:
@@ -254,6 +270,7 @@ def run_once(cfg: Config, auto_publish: bool = False,
 
     log.info("=== Konu otomasyonu bitti ===")
     return {"ok": True, "file": out_path.name, "topic": topic["title"],
+            "category": category_slug or None,
             "pending": pending_notified}
 
 
@@ -261,11 +278,14 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Konu havuzundan rastgele kart")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--publish", action="store_true", help="Otomatik yayına at")
+    ap.add_argument("--category", default=None,
+                    help="Kategori slug'ı (seyahat_hazirligi, animeler, teknoloji)")
     ap.add_argument("--config", default=None)
     args = ap.parse_args(argv)
     cfg = load_config(args.config)
     try:
-        res = run_once(cfg, auto_publish=args.publish, dry_run=args.dry_run)
+        res = run_once(cfg, auto_publish=args.publish, dry_run=args.dry_run,
+                       category=args.category)
     except Exception as exc:
         log.error(f"HATA: {exc}")
         return 1

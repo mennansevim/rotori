@@ -1,13 +1,13 @@
 // =========================================================================
 // app.js — Router + sidebar + account · Japonya Rüyası İçerik Stüdyosu
 // =========================================================================
-import { api, el, icons } from './lib.js?v=20260810-8';
-import { renderOverview } from './pages/overview.js?v=20260810-8';
-import { renderCreate, openCreateModal } from './pages/create.js?v=20260810-8';
-import { renderAutomation } from './pages/automation.js?v=20260810-8';
-import { renderLogs } from './pages/logs.js?v=20260810-8';
-import { renderLibrary } from './pages/library.js?v=20260810-8';
-import { renderSettings } from './pages/settings.js?v=20260810-8';
+import { api, el, icons } from './lib.js?v=20260821-1';
+import { renderOverview } from './pages/overview.js?v=20260821-1';
+import { renderCreate, openCreateModal } from './pages/create.js?v=20260821-1';
+import { renderAutomation } from './pages/automation.js?v=20260821-1';
+import { renderLogs } from './pages/logs.js?v=20260821-1';
+import { renderLibrary } from './pages/library.js?v=20260821-1';
+import { renderSettings } from './pages/settings.js?v=20260821-1';
 
 const ROUTES = [
   { key: 'overview', label: 'Genel Bakış', icon: icons.overview, render: renderOverview },

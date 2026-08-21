@@ -35,6 +35,7 @@ GET_ENDPOINTS = [
     "/api/dashboard/library",
     "/api/dashboard/publishes",
     "/api/dashboard/automation",
+    "/api/content/categories",
 ]
 
 
@@ -56,6 +57,16 @@ def test_automation_config_shape(client):
         assert "days" in conf and isinstance(conf["days"], list)
         assert "hour" in conf and isinstance(conf["hour"], int)
         assert "minute" in conf and isinstance(conf["minute"], int)
+
+
+def test_content_categories_shape(client):
+    r = client.get("/api/content/categories")
+    assert r.status_code == 200
+    categories = r.json()["categories"]
+    assert [item["slug"] for item in categories] == [
+        "guncel_haberler", "seyahat_hazirligi", "animeler", "teknoloji"
+    ]
+    assert categories[0]["mode"] == "rss"
 
 
 def test_news_automation_rejects_more_than_one_weekly_day(client, monkeypatch):
@@ -174,3 +185,16 @@ def test_automation_run_now_accepts_count(client, monkeypatch):
     body = r.json()
     assert body.get("kind") == "news"
     assert body.get("count") == 2
+
+
+def test_automation_run_now_accepts_category(client, monkeypatch):
+    """Haber Üret modalı seçilen kategoriyi worker sözleşmesine taşıyabilmeli."""
+    import src.web.app as appmod
+
+    monkeypatch.setattr(appmod.manager, "start_callable",
+                        lambda *a, **k: None, raising=False)
+    r = client.post("/api/automation/run_now", json={
+        "kind": "news", "category": "animeler", "count": 1,
+    })
+    assert r.status_code == 200
+    assert r.json().get("count") == 1

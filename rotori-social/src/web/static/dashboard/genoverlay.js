@@ -6,7 +6,7 @@
 //   finishGenOverlay(ok, {file,onResult,outcome})
 //   pollJobUntilDone(onLine)            → /api/status + /api/logs long-poll
 // =========================================================================
-import { api, el } from './lib.js?v=20260810-8';
+import { api, el } from './lib.js?v=20260821-1';
 
 // Aşama açıklamaları (alt satır metni)
 const STAGE_DETAIL = {

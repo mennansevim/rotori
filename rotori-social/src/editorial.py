@@ -250,12 +250,19 @@ def assemble_caption(data: dict[str, Any]) -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 # Konu prompt'u — evergreen bir konuyu yapılandırılmış JSON'a çevir
 # ─────────────────────────────────────────────────────────────────────────────
-def build_topic_prompt(topic: str) -> str:
+def build_topic_prompt(topic: str, category_label: str = "") -> str:
+    kategori_bilgisi = (
+        f"ÜST KATEGORİ: {category_label}\n"
+        "Bu içerik seçilen üst kategoriye doğrudan bağlı olmalı; başka bir kategoriye "
+        "kaydırma.\n\n"
+        if category_label else ""
+    )
     return (
         "Aşağıdaki KONU, sistem talimatındaki İÇERİK FELSEFESİ ve PAYLAŞILABİLİR "
         "'BOOK FACT' kurallarına göre bir Instagram postuna dönüştürülecek. Bu bir "
         "haber değil, evergreen (her zaman geçerli) bir turist tüyosu/bilgisidir.\n\n"
-        f"KONU: {topic}\n\n"
+        + kategori_bilgisi
+        + f"KONU: {topic}\n\n"
         "Bu konu hakkında ilk kez Japonya'ya gidecek bir turistin GERÇEKTEN işine "
         "yarayacak, çoğu Japonya hesabının vermediği somut bilgiyi ver (para/zaman/"
         "güvenlik/gezi planı faydası). Uydurma spesifik sayı/tarih verme; genel ama "
@@ -313,12 +320,12 @@ def generate_editorial(oai, title: str, summary: str, source: str = "",
     return _finalize(data)
 
 
-def generate_editorial_topic(oai, topic: str) -> dict[str, Any]:
+def generate_editorial_topic(oai, topic: str, category_label: str = "") -> dict[str, Any]:
     """KONUDAN (evergreen tüyo) yapılandırılmış editöryel içerik üret.
 
     'Konudan Üret' butonu ve konu otomasyonu bunu kullanır. Aynı system
     prompt + puan kapısı; sadece kullanıcı prompt'u konu odaklı."""
-    user = build_topic_prompt(topic)
+    user = build_topic_prompt(topic, category_label=category_label)
     data = oai.chat_json(JAPONYA_RUYASI_SYSTEM, user, temperature=0.7,
                          max_tokens=1100)
     return _finalize(data)

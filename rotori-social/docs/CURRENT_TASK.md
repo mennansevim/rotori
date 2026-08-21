@@ -1,7 +1,26 @@
 # CURRENT_TASK.md — Aktif İş
 
 > Görev tamamlanır tamamlanmaz güncellenir. Sadece **bugünkü** işi tutar; geçmiş `DECISIONS.md`'e taşınır.
-> Son güncelleme: 2026-08-10 (otomasyon algoritması: bulk dayanıklılığı + konu tekrarı)
+> Son güncelleme: 2026-08-21 (manuel içerik kategorileri)
+
+## 2026-08-21 — Haber üretimi manuel kategorilere ayrıldı
+
+### Yapılan
+- `Yeni İçerik → Haber Üret` ekranına dört kategori eklendi: Güncel Haberler,
+  Japonya Yolculuğu, Animeler ve Teknolojik Ürünler.
+- Güncel Haberler seçimi mevcut RSS + AI editöryel puanlama hattını kullanır.
+- Diğer kategoriler mevcut konu havuzunu kategori ipuçlarıyla filtreler; havuz
+  eski içeriklerle uyumlu kalır ve eksik başlıklar kategori seed'leriyle tamamlanır.
+- Her kategori aynı otomatik Unsplash görsel aramasını ve AI açıklama/kart metni
+  üretimini kullanır.
+- Sidecar ve Kütüphane görünümüne `content_category` alanları eklendi; kategori
+  filtresi ve `GET /api/content/categories` endpoint'i eklendi.
+- Eski `run_now` ve CLI çağrıları kategori vermeden çalışmaya devam eder.
+
+### Doğrulama
+- `pytest -q` → 179 passed, 3 warning.
+- Yeni kategori sözleşmesi, konu havuzu, prompt, API ve yönlendirme testleri eklendi.
+- `node --check` ile kategori seçim ekranı ve kütüphane modülü doğrulandı.
 
 ## 2026-08-11 — Görsel arama sorgusu zenginleştirildi
 

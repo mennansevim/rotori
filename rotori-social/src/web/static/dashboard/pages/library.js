@@ -2,9 +2,16 @@
 // pages/library.js — İçerik yaşam döngüsü: Taslak → Onaylandı → Yayınlandı
 // =========================================================================
 import { api, el, icons, typeBadge, fmtDate, fmtTime,
-         emptyState, errorState, loadingState, toast, confirmModal } from '../lib.js?v=20260810-8';
-import { openContentModal, regenerate } from '../modals.js?v=20260810-8';
-import { openCreateModal } from './create.js?v=20260810-8';
+         emptyState, errorState, loadingState, toast, confirmModal } from '../lib.js?v=20260821-1';
+import { openContentModal, regenerate } from '../modals.js?v=20260821-1';
+import { openCreateModal } from './create.js?v=20260821-1';
+
+const CONTENT_CATEGORY_LABELS = {
+  guncel_haberler: 'Güncel Haberler',
+  seyahat_hazirligi: 'Japonya Yolculuğu',
+  animeler: 'Animeler',
+  teknoloji: 'Teknolojik Ürünler',
+};
 
 const STAGES = {
   draft: {
@@ -39,6 +46,7 @@ export async function renderLibrary(root, ctx, params) {
   const state = {
     stage: Object.hasOwn(STAGES, requestedStage) ? requestedStage : 'draft',
     type: 'all',
+    category: 'all',
     q: '',
     sort: 'new',
   };
@@ -138,12 +146,23 @@ export async function renderLibrary(root, ctx, params) {
     },
     el('option', { value: 'new' }, 'En yeni önce'),
     el('option', { value: 'old' }, 'En eski önce'));
-    toolbar.append(search, el('div', { class: 'library-toolbar__filters' }, type, sort));
+    const category = el('select', {
+      class: 'select',
+      'aria-label': 'İçerik kategorisi',
+      onchange: (event) => { state.category = event.target.value; renderGrid(); },
+    },
+    el('option', { value: 'all' }, 'Tüm kategoriler'),
+    ...Object.entries(CONTENT_CATEGORY_LABELS).map(([value, label]) =>
+      el('option', { value }, label)));
+    toolbar.append(search, el('div', { class: 'library-toolbar__filters' }, type, category, sort));
   };
 
   const filtered = () => {
     let items = stageItems(state.stage);
     if (state.type !== 'all') items = items.filter((item) => item.type === state.type);
+    if (state.category !== 'all') {
+      items = items.filter((item) => item.content_category === state.category);
+    }
     if (state.q.trim()) {
       const query = state.q.trim().toLocaleLowerCase('tr-TR');
       items = items.filter((item) =>
@@ -204,7 +223,10 @@ function contentCard(item, ctx) {
       : null,
     el('div', { class: 'library-card__meta' },
       el('span', { html: icons.clock }),
-      el('span', {}, `Oluşturuldu · ${fmtDate(item.created_at)}`)));
+      el('span', {}, `Oluşturuldu · ${fmtDate(item.created_at)}`)),
+    item.content_category_label
+      ? el('div', { class: 'library-card__category' }, item.content_category_label)
+      : null);
 
   if (item.scheduled_at) {
     body.append(el('div', { class: `library-card__schedule ${item.status === 'failed' ? 'is-failed' : ''}` },
