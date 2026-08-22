@@ -4,7 +4,7 @@
 > Kalıcı kurallar için `CLAUDE.md`, günlük iş için `CURRENT_TASK.md`.
 > Rota motorunun ayrıntılı akış ve maliyet notu: `ROUTE_OPTIMIZATION.md`.
 
-Son güncelleme: **2026-08-21** (§5 viewer haritasına zoom-gated planlı durak
+Son güncelleme: **2026-08-22** (§5 viewer haritasına zoom-gated planlı durak
 fotoğraf marker'ları eklendi; küratörlü görseller ve güvenli fallback korunur).
 
 ---
@@ -73,6 +73,7 @@ rotori-mobile/lib/features/
 │  │  day_map_screen.dart, experience_guide_screen.dart,
 │  │  japanese_phrases_screen.dart,
 │  │  must_know_screen.dart, pre_departure_checklist_screen.dart,
+│  │  explore_screen.dart,
 │  │  reward_map_screen.dart, weather_screen.dart, gps_sim_screen.dart
 │  ├─ geofence_service.dart  # GPS akışı → geofence + XP
 │  ├─ offline_tile_provider.dart  # OSM ağ tile sağlayıcısı (disk cache yok)
@@ -132,6 +133,11 @@ rotori-mobile/lib/features/
   görseller `assets/images/city-hero-*.webp` olarak paketlenir.
 - **Servis→UI:** UI `ref.watch()` ile Provider'ı dinler. Servis Supabase'e
   yazar, ardından provider `invalidate()` edilir.
+- **Keşfet yüzeyi:** `explore_screen.dart` seçili günün planlı duraklarını
+  inline OSM haritası ve taranabilir listeyle gösterir. `Planlı duraklar` ve
+  `Yakınımda` aynı plan verisini paylaşır; ikinci mod yalnız geofence konum
+  iznini bağlam içinde başlatır, harici POI araması yapmaz. XP/rozet ayrıntısı
+  `reward_map_screen.dart` içinde ikincil akış olarak açılır.
 - **Optimistic UI** planner adımlarında bilinçli kullanılır (kullanıcı
   yazdıkça yerelde tutulur, publish adımında senkronlanır).
 - **Plan düzenleme:** UI mutasyonları `PlanEditSession` üzerinden

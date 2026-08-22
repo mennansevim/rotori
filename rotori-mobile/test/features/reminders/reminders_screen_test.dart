@@ -176,6 +176,55 @@ void main() {
     expect(_saveButton(tester).onPressed, isNotNull);
     expect(find.byKey(const ValueKey('reminder-blocked-hint')), findsNothing);
   });
+
+  testWidgets(
+      'hatırlatıcılar biletler gibi net bir başlık ve ekleme aksiyonu sunar',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: LanguageScope(
+          lang: AppLang.tr,
+          child: MaterialApp(home: RemindersScreen()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('reminders-scroll')), findsOneWidget);
+    expect(find.byKey(const ValueKey('reminders-title')), findsOneWidget);
+    expect(find.byKey(const ValueKey('add-reminder')), findsOneWidget);
+    expect(find.byKey(const ValueKey('add-first-reminder')), findsOneWidget);
+  });
+
+  testWidgets('390pt ve büyük yazı ölçeğinde taşma üretmez', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: LanguageScope(
+          lang: AppLang.tr,
+          child: MaterialApp(
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                textScaler: const TextScaler.linear(2),
+              ),
+              child: child!,
+            ),
+            home: const RemindersScreen(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+  });
 }
 
 FilledButton _saveButton(WidgetTester tester) => tester.widget<FilledButton>(

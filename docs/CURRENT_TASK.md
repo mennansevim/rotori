@@ -3,10 +3,63 @@
 > Bu dosya *bugünkü* çalışmanın canlı görünümüdür. Her tamamlanan görevden
 > hemen sonra güncellenir.
 
-**Bugünün tarihi:** 2026-08-21
+**Bugünün tarihi:** 2026-08-22
 **Aktif branch:** `main`
 **Sprint hedefi:** Rota v3 saha gerçekliği katmanını üretim çağrılarına
 bağlamak, retry/fallback kaçaklarını kapatmak ve geniş QA ile doğrulamak.
+
+### 2026-08-22 — Keşfet ana yüzeyi (tamamlandı)
+
+- [x] Keşfet sekmesini büyük XP/şehir kartları yerine planlı durak merkezli
+      harita + liste akışına taşı.
+- [x] Planlı duraklar / Yakınımda ayrımını, gün seçimini ve mevcut tam rota
+      haritasına geçişi ekle.
+- [x] Konum iznini yalnız Yakınımda bağlamında sun; faz 1’de dış POI araması
+      veya yeni harita/POI servisi ekleme.
+- [x] Gerçek konum örneği varsa planlı durakları mesafeye göre sırala; konum
+      yoksa plan sırasını koru ve bunu kullanıcıya açıkça anlat.
+- [x] XP ve rozet ilerlemesini ikincil karta indir; TR/EN metinlerini, testleri
+      ve iPhone önizlemesini doğrula.
+
+**Sonuç:** Keşfet artık “Bugün · şehir” bağlamıyla açılıyor; gün çipleri,
+planlı durak haritası, küratörlü görsel marker’lar, sade durak listesi ve
+ikincil “İlerlemen” kartı aynı akışta. “Yakınımda” konum iznini açıklayan
+bağlamsal bir kart gösteriyor; konum örneği geldiğinde durakları yakından
+uzağa sıralıyor, gelene kadar plan sırasını koruyor. Faz 1 kapsamı dışında
+kalan harici POI araması yapılmıyor. Keşfet testleri **4/4**, şehir/koordinat
+testleriyle hedefli toplam **12/12** geçti; yeni analiz hatası yok.
+
+### 2026-08-22 — Hatırlatıcı web önizleme taşması (tamamlandı)
+
+- [x] Hatırlatıcı ekranındaki `Stack Overflow` hatasının gerçek kaynağını
+      kartlı, kayıtlı veriyle çalışan `/reminders` önizlemesinde izole et.
+- [x] Web derleyicisinde sorun çıkaran `LucideIcons.plus` ve `trash2`
+      kullanımlarını eşdeğer Material ikonlarıyla değiştir.
+- [x] Dar iPhone önizlemesini, hedefli analizi ve hatırlatıcı widget testlerini
+      yeniden doğrula.
+
+**Sonuç:** Hatırlatıcı ekranının ekleme ve kart silme ikonları web önizlemesinde
+artık modül yükleme kaynaklı `Stack Overflow` üretmiyor. Kayıtlı iki kartın
+bulunduğu iPhone 15 Pro önizlemesi görsel olarak temiz; hedefli analiz temiz ve
+hatırlatıcı testleri **5/5** geçti.
+
+### 2026-08-21 — Hatırlatıcılar Biletler UX diliyle yenilendi (tamamlandı)
+
+- [x] Hatırlatıcı listesini Biletler ekranındaki büyük başlık, özet ve öne
+      çıkan kart hiyerarşisine taşı.
+- [x] Sıradaki hatırlatıcıyı büyük kartta; diğerlerini kompakt, kolay taranan
+      kartlarda göster. Durum, tarih/saat, ipucu ve silme aksiyonunu ayır.
+- [x] Hatırlatıcı ekleme sheet'indeki büyük görsel kartları sade, tek satırlık
+      seçim kartlarına indir; tarih ve özel hatırlatıcı akışını koru.
+- [x] TR/EN metinleri, Premium kapısı, boş durum, erişilebilir dokunma alanı
+      ve widget regresyonlarını doğrula.
+
+**Sonuç:** Hatırlatmalar artık Biletler ile aynı sade görsel sistemde açılıyor:
+büyük ama küçültülmüş “Hatırlatmalar” başlığı, kısa özet, daha alçak mavi öne
+çıkan kart ve diğerleri için sakin liste kartları var. Ekleme sheet'inde renkli
+vitrin kartları yerine daha küçük seçim satırları kullanılıyor. Tek ekleme
+aksiyonu başlıkta kalıyor; silme ayrı ve 44 px dokunma alanına sahip.
+Hatırlatıcı + Biletler testleri **11/11** geçti, hedefli analiz temiz.
 
 ### 2026-08-21 — Viewer drawer tipografi ve başlık hiyerarşisi (tamamlandı)
 

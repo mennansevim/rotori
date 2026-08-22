@@ -93,66 +93,61 @@ class _ReminderComposerSheetState
         .toList();
 
     return DraggableScrollableSheet(
-      initialChildSize: .9,
-      minChildSize: .62,
-      maxChildSize: .96,
+      initialChildSize: .84,
+      minChildSize: .56,
+      maxChildSize: .94,
       expand: false,
       builder: (context, controller) => Material(
         color: theme.colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         clipBehavior: Clip.antiAlias,
         child: Column(
           children: [
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Container(
-              width: 42,
-              height: 5,
+              width: 36,
+              height: 4,
               decoration: BoxDecoration(
                 color: theme.colorScheme.outlineVariant,
                 borderRadius: BorderRadius.circular(99),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 10, 12),
+              padding: const EdgeInsets.fromLTRB(18, 12, 8, 8),
               child: Row(
                 children: [
                   Container(
-                    width: 42,
-                    height: 42,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          theme.colorScheme.primary,
-                          theme.colorScheme.tertiary,
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(14),
+                      color: theme.colorScheme.primary.withValues(alpha: .10),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     alignment: Alignment.center,
-                    child: const Icon(
+                    child: Icon(
                       Icons.notifications_active_rounded,
-                      color: Colors.white,
+                      size: 20,
+                      color: theme.colorScheme.primary,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          const LText('Rotori hatırlatıcısı', 'Rotori reminder')
+                          const LText('Hatırlatıcı ekle', 'Add reminder')
                               .of(lang),
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -.4,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                         Text(
                           const LText(
-                            'Birden fazla seçebilir, sonra tarihlerini ayrı ayrı belirleyebilirsin.',
-                            'Select several, then set each visit date separately.',
+                            'Seçimleri işaretle, tarihlerini belirle.',
+                            'Select the alerts and choose their dates.',
                           ).of(lang),
-                          style: theme.textTheme.bodySmall?.copyWith(
+                          style: theme.textTheme.labelMedium?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
@@ -171,10 +166,10 @@ class _ReminderComposerSheetState
             Expanded(
               child: ListView(
                 controller: controller,
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 130),
+                padding: const EdgeInsets.fromLTRB(16, 2, 16, 108),
                 children: [
                   _InfoBanner(lang: lang),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 14),
                   _ComposerTitle(
                     title: const LText('Hazır seçimler', 'Ready-made choices')
                         .of(lang),
@@ -183,37 +178,25 @@ class _ReminderComposerSheetState
                       'The sale date is calculated from your visit date.',
                     ).of(lang),
                   ),
-                  const SizedBox(height: 10),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final width = (constraints.maxWidth - 10) / 2;
-                      return Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: [
-                          for (var i = 0; i < kBookingWindows.length; i++)
-                            SizedBox(
-                              width: width,
-                              child: _PresetCard(
-                                window: kBookingWindows[i],
-                                lang: lang,
-                                selected:
-                                    _selected.contains(kBookingWindows[i].id),
-                                onTap: () => setState(() {
-                                  final id = kBookingWindows[i].id;
-                                  if (!_selected.add(id)) {
-                                    _selected.remove(id);
-                                    _eventDates.remove(id);
-                                  }
-                                }),
-                              ),
-                            ),
-                        ],
-                      );
-                    },
-                  ),
+                  const SizedBox(height: 8),
+                  for (var i = 0; i < kBookingWindows.length; i++) ...[
+                    _PresetCard(
+                      window: kBookingWindows[i],
+                      lang: lang,
+                      selected: _selected.contains(kBookingWindows[i].id),
+                      onTap: () => setState(() {
+                        final id = kBookingWindows[i].id;
+                        if (!_selected.add(id)) {
+                          _selected.remove(id);
+                          _eventDates.remove(id);
+                        }
+                      }),
+                    ),
+                    if (i != kBookingWindows.length - 1)
+                      const SizedBox(height: 8),
+                  ],
                   if (selectedWindows.isNotEmpty) ...[
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 16),
                     _ComposerTitle(
                       key: _datesSectionKey,
                       title: const LText('Ziyaret tarihleri', 'Visit dates')
@@ -223,7 +206,7 @@ class _ReminderComposerSheetState
                         'Choose the day you will use each selection.',
                       ).of(lang),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     for (final window in selectedWindows) ...[
                       _SelectedDateTile(
                         window: window,
@@ -234,7 +217,7 @@ class _ReminderComposerSheetState
                       const SizedBox(height: 8),
                     ],
                   ],
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
                   _CustomReminderCard(
                     enabled: _customEnabled,
                     titleController: _customTitle,
@@ -252,7 +235,7 @@ class _ReminderComposerSheetState
             Container(
               padding: EdgeInsets.fromLTRB(
                 16,
-                12,
+                8,
                 16,
                 12 + MediaQuery.paddingOf(context).bottom,
               ),
@@ -282,7 +265,7 @@ class _ReminderComposerSheetState
                           const LText('Tarihi seç', 'Pick the date').of(lang),
                       onTap: _scrollToDates,
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                   ] else if (!_canSave) ...[
                     _BlockedHint(
                       text: const LText(
@@ -310,9 +293,9 @@ class _ReminderComposerSheetState
                             ).of(lang),
                     ),
                     style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(52),
+                      minimumSize: const Size.fromHeight(48),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                   ),
@@ -455,18 +438,20 @@ class _InfoBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer.withValues(alpha: .5),
-        borderRadius: BorderRadius.circular(18),
-        border:
-            Border.all(color: theme.colorScheme.primary.withValues(alpha: .2)),
+        color: theme.colorScheme.primaryContainer.withValues(alpha: .35),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: .16),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.schedule_rounded, color: theme.colorScheme.primary),
-          const SizedBox(width: 10),
+          Icon(Icons.schedule_rounded,
+              size: 18, color: theme.colorScheme.primary),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               const LText(
@@ -474,7 +459,7 @@ class _InfoBanner extends StatelessWidget {
                 'Ready-made alerts fire at 09:00 device time on the calculated sale day. Recheck the official schedule before purchase.',
               ).of(lang),
               style: theme.textTheme.bodySmall?.copyWith(
-                height: 1.4,
+                height: 1.3,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -563,11 +548,11 @@ class _ComposerTitle extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title,
-            style: theme.textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.w900)),
-        const SizedBox(height: 2),
+            style: theme.textTheme.titleSmall
+                ?.copyWith(fontWeight: FontWeight.w800)),
+        const SizedBox(height: 1),
         Text(subtitle,
-            style: theme.textTheme.bodySmall
+            style: theme.textTheme.labelMedium
                 ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
       ],
     );
@@ -590,143 +575,91 @@ class _PresetCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const gold = Color(0xFFFFD166);
-    final accent = _presetAccent(window.id);
     return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(20),
+      color: theme.colorScheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(14),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         key: ValueKey('reminder-preset-${window.id}'),
         onTap: onTap,
         child: Ink(
-          height: 174,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: _presetGradient(window.id),
-            ),
-            borderRadius: BorderRadius.circular(20),
+            color: selected
+                ? theme.colorScheme.primaryContainer.withValues(alpha: .48)
+                : theme.colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: selected ? gold : Colors.white.withValues(alpha: .3),
-              width: selected ? 2.2 : 1,
+              color: selected
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.outlineVariant,
+              width: selected ? 1.5 : 1,
             ),
           ),
-          child: Stack(
+          child: Row(
             children: [
-              Positioned(
-                right: -28,
-                top: -34,
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: .10),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                alignment: Alignment.center,
                 child: Icon(
                   _presetIcon(window.id),
-                  size: 128,
-                  color: accent.withValues(alpha: .08),
+                  size: 20,
+                  color: theme.colorScheme.primary,
                 ),
               ),
-              const Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                height: 74,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Colors.black38],
-                    ),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(12),
+              const SizedBox(width: 10),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: accent.withValues(alpha: .14),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: accent.withValues(alpha: .42),
-                            ),
-                          ),
-                          child: Icon(
-                            _presetIcon(window.id),
-                            size: 28,
-                            color: accent,
-                          ),
-                        ),
-                        const Spacer(),
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 160),
-                          width: 27,
-                          height: 27,
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? gold
-                                : Colors.black.withValues(alpha: .28),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: selected
-                                  ? gold
-                                  : Colors.white.withValues(alpha: .74),
-                              width: 1.8,
-                            ),
-                          ),
-                          child: selected
-                              ? const Icon(
-                                  Icons.check_rounded,
-                                  color: Color(0xFF211A47),
-                                  size: 18,
-                                )
-                              : null,
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
                     Text(
                       L10n.resolve(window.title, lang),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        height: 1.12,
-                        shadows: const [
-                          Shadow(color: Colors.black54, blurRadius: 8),
-                        ],
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 5),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.notifications_active_rounded,
-                          size: 14,
-                          color: selected ? gold : accent,
-                        ),
-                        const SizedBox(width: 5),
-                        Expanded(
-                          child: Text(
-                            lang == AppLang.tr
-                                ? '${window.opensBeforeDays} gün önce'
-                                : '${window.opensBeforeDays} days ahead',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: selected ? gold : accent,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 2),
+                    Text(
+                      lang == AppLang.tr
+                          ? '${window.opensBeforeDays} gün önce satışa açılır'
+                          : 'Opens ${window.opensBeforeDays} days ahead',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(width: 10),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color:
+                      selected ? theme.colorScheme.primary : Colors.transparent,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: selected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.outline,
+                    width: 1.5,
+                  ),
+                ),
+                child: selected
+                    ? Icon(
+                        Icons.check_rounded,
+                        color: theme.colorScheme.onPrimary,
+                        size: 16,
+                      )
+                    : null,
               ),
             ],
           ),
@@ -755,24 +688,24 @@ class _SelectedDateTile extends StatelessWidget {
     final saleDate = date == null ? null : window.saleDateFor(date!);
     return Material(
       color: theme.colorScheme.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         child: Padding(
-          padding: const EdgeInsets.all(13),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primary.withValues(alpha: .1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   _presetIcon(window.id),
-                  size: 20,
+                  size: 18,
                   color: theme.colorScheme.primary,
                 ),
               ),
@@ -784,7 +717,7 @@ class _SelectedDateTile extends StatelessWidget {
                     Text(
                       L10n.resolve(window.title, lang),
                       style: theme.textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w800),
+                          ?.copyWith(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 3),
                     Text(
@@ -805,7 +738,11 @@ class _SelectedDateTile extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.calendar_month_rounded),
+              Icon(
+                Icons.calendar_month_rounded,
+                size: 20,
+                color: theme.colorScheme.primary,
+              ),
             ],
           ),
         ),
@@ -842,12 +779,12 @@ class _CustomReminderCard extends StatelessWidget {
     final theme = Theme.of(context);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: enabled
             ? theme.colorScheme.tertiaryContainer.withValues(alpha: .42)
             : theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Column(
@@ -855,7 +792,7 @@ class _CustomReminderCard extends StatelessWidget {
           Row(
             children: [
               const Icon(Icons.tune_rounded),
-              const SizedBox(width: 9),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   const LText(
@@ -863,7 +800,7 @@ class _CustomReminderCard extends StatelessWidget {
                     'Add a custom reminder',
                   ).of(lang),
                   style: theme.textTheme.titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w900),
+                      ?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
               Switch(
@@ -924,34 +861,6 @@ class _CustomReminderCard extends StatelessWidget {
 String _shortDate(DateTime date, AppLang lang) {
   final month = L10n.monthsFor(lang)[date.month].substring(0, 3);
   return '${date.day} $month ${date.year}';
-}
-
-List<Color> _presetGradient(String id) {
-  if (id == 'shinkansen-smartex') {
-    return const [Color(0xFF24385F), Color(0xFF17233E)];
-  }
-  if (id == 'tokyo-disney') {
-    return const [Color(0xFF524464), Color(0xFF2E293F)];
-  }
-  if (id == 'usj-express') {
-    return const [Color(0xFF5A3E49), Color(0xFF302938)];
-  }
-  if (id == 'teamlab-planets') {
-    return const [Color(0xFF24545E), Color(0xFF1B3442)];
-  }
-  if (id == 'teamlab-borderless') {
-    return const [Color(0xFF4B405E), Color(0xFF2D2B45)];
-  }
-  return const [Color(0xFF315847), Color(0xFF1E382E)];
-}
-
-Color _presetAccent(String id) {
-  if (id == 'shinkansen-smartex') return const Color(0xFFAEC9FF);
-  if (id == 'tokyo-disney') return const Color(0xFFD9C2F1);
-  if (id == 'usj-express') return const Color(0xFFFFC1CB);
-  if (id == 'teamlab-planets') return const Color(0xFF9ADFE9);
-  if (id == 'teamlab-borderless') return const Color(0xFFD4C4F5);
-  return const Color(0xFFA8DDB9);
 }
 
 IconData _presetIcon(String id) {

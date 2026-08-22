@@ -1615,3 +1615,45 @@ bilgi alanını iki kez adlandırıyor ve drawer'ın üst bölümünü gereksiz 
 uzatıyordu. Uçuşlar'ın daha küçük dense başlığı da aynı seviyedeki Konaklama
 satırıyla görsel dengeyi bozuyordu. Tek hiyerarşi ve ortak tipografi, hızlı
 tarama ile büyük yazı ayarlarında daha öngörülebilir kalır.
+
+---
+
+## 2026-08-21 — Hatırlatmalar, Biletler cüzdanının kart hiyerarşisini kullanır
+
+**Karar:** Hatırlatmalar ekranı standart liste/AppBar düzeni yerine Biletler
+cüzdanının iPhone-first bilgi hiyerarşisini kullanır: büyük sayfa başlığı,
+kısa durum özeti, sıradaki hatırlatıcı için tek öne çıkan kart ve kalanlar için
+kompakt kart listesi. Eklemek başlıkta tek dairesel aksiyon olarak kalır;
+silmek her kartta ayrı, 44 px erişilebilir hedef olarak gösterilir. Durum,
+tarih/saat ve ipucu aynı kart içinde farklı görsel seviyelerde sunulur.
+
+**Neden:** Hatırlatıcıların amacı “bir sonraki kritik satış anını kaçırmamak”
+olduğu için bütün kayıtları aynı ağırlıkta listelemek bu önceliği gizliyordu.
+Biletler'deki öne çıkarma modeli bir sonraki uyarıyı ilk bakışta görünür kılar;
+kompakt kartlar da çoklu hatırlatıcıları gereksiz görsel gürültü yaratmadan
+taşır. Aynı sistem Premium/boş durum ve büyük yazı ayarlarında da korunur.
+
+---
+
+## 2026-08-22 — Keşfet planlı durak merkezli ve faz 1’de dış POI’sizdir
+
+**Karar:** Viewer içindeki Keşfet sekmesi ana girişte XP/rozet gösteren bir
+ödül ekranı değil, seçili günün planlı duraklarını gösteren harita + liste
+yüzeyi olacaktır. Kullanıcı `Planlı duraklar` ve `Yakınımda` arasında geçebilir;
+gün/şehir çipleri aynı plan verisini değiştirir. Durak marker’larında yalnız
+önceden küratörlenmiş görseller kullanılır ve marker’a dokunmak mevcut yer
+detay sheet’ini açar. XP, rozetler ve geofence ayrıntısı ikincil
+`İlerlemen` kartından mevcut keşif ekranına açılır.
+
+`Yakınımda` faz 1’de yalnızca kullanıcının planındaki durakları konumla
+ilişkilendirir. Konum izni bu bağlamda ve açık kullanıcı eylemiyle istenir;
+gerçek bir GPS örneği alındığında planlı duraklar kuş uçuşu mesafeye göre
+yakından uzağa sıralanır. GPS örneği yoksa kullanıcıya sahte bir yakınlık
+iddiası göstermemek için orijinal plan sırası korunur. Harita pan/zoom
+sırasında yeni POI/Wikipedia araması yapılmaz ve harici POI servisi eklenmez.
+
+**Neden:** Kullanıcının ilk sorusu “bugün nereye gideceğim?” olmalıdır. Büyük
+ödül hero’su bu cevabı aşağı itiyordu; planlı durak haritası, mevcut rota
+verisiyle hemen değer üretir ve ücretsiz OSM katmanını korur. Yakındaki dış
+mekan araması ise ayrı veri, gizlilik ve maliyet kararları gerektirdiğinden
+faz 1’de açıkça kapsam dışı bırakılır.

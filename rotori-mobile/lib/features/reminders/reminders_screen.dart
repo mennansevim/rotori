@@ -9,6 +9,7 @@ import '../../core/l10n.dart';
 import '../../data/reminders_store.dart';
 import '../notifications/notifications_service.dart';
 import '../plans/premium_provider.dart';
+import '../viewer/viewer_theme.dart';
 import 'reminder_composer_sheet.dart';
 
 class RemindersScreen extends ConsumerWidget {
@@ -19,62 +20,87 @@ class RemindersScreen extends ConsumerWidget {
     final s = LanguageScope.of(context);
     final reminders = ref.watch(remindersProvider);
     final isPremium = ref.watch(premiumProvider);
+    final palette = ViewerPalette.of(context);
     final sorted = [...reminders]..sort((a, b) => a.fireAt.compareTo(b.fireAt));
+    final now = DateTime.now();
+    final today = _dateOnly(now);
+    final upcoming = sorted
+        .where((reminder) => !reminder.fireAt.isBefore(now))
+        .toList(growable: false);
+    final featured = upcoming.isNotEmpty
+        ? upcoming.first
+        : (sorted.isEmpty ? null : sorted.last);
+    final others = sorted
+        .where((reminder) => reminder.id != featured?.id)
+        .toList(growable: false);
 
     return Scaffold(
+      backgroundColor: palette.bg,
       appBar: AppBar(
+        backgroundColor: palette.bg,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
           icon: const Icon(LucideIcons.arrowLeft),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
-        title: Row(
-          children: [
-            Flexible(
-              child: Text(
-                s.s('reminders.title'),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 8),
-            _ProBadge(active: isPremium),
-          ],
-        ),
         actions: [
-          IconButton(
-            key: const ValueKey('add-reminder'),
-            tooltip: s.s('reminders.add'),
-            icon: const Icon(LucideIcons.plus),
-            onPressed: () => _openComposer(context, ref),
-          ),
           if (sorted.isNotEmpty)
             IconButton(
               tooltip: s.s('reminders.clearAll'),
-              icon: const Icon(LucideIcons.trash2),
+              icon: const Icon(Icons.delete_outline_rounded),
               onPressed: () => _confirmClear(context, ref),
             ),
         ],
       ),
-      body: sorted.isEmpty
-          ? _EmptyState(
-              isPremium: isPremium,
-              onAdd: () => _openComposer(context, ref),
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-              itemCount: sorted.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
-              itemBuilder: (_, i) => _ReminderTile(reminder: sorted[i]),
-            ),
-      floatingActionButton: sorted.isEmpty
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: () => _openComposer(context, ref),
-              icon: Icon(isPremium ? LucideIcons.plus : Icons.lock_rounded),
-              label: Text(
-                isPremium ? s.s('reminders.add') : s.s('reminders.premiumCta'),
+      body: CustomScrollView(
+        key: const ValueKey('reminders-scroll'),
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+            sliver: SliverToBoxAdapter(
+              child: _RemindersHeader(
+                palette: palette,
+                summary: _remindersSummary(
+                  context,
+                  count: sorted.length,
+                  featured: featured,
+                  today: today,
+                ),
+                isPremium: isPremium,
+                onAdd: () => _openComposer(context, ref),
               ),
             ),
+          ),
+          if (featured == null)
+            SliverToBoxAdapter(
+              child: _EmptyState(
+                palette: palette,
+                isPremium: isPremium,
+                onAdd: () => _openComposer(context, ref),
+              ),
+            ),
+          if (featured != null)
+            SliverToBoxAdapter(
+              child: _ReminderFeaturedCard(
+                reminder: featured,
+                palette: palette,
+                now: now,
+                onRemove: () => _removeReminder(context, ref, featured),
+              ),
+            ),
+          if (others.isNotEmpty)
+            SliverToBoxAdapter(
+              child: _ReminderList(
+                reminders: others,
+                palette: palette,
+                now: now,
+                onRemove: (reminder) => _removeReminder(context, ref, reminder),
+              ),
+            ),
+          const SliverToBoxAdapter(child: SizedBox(height: 28)),
+        ],
+      ),
     );
   }
 
@@ -117,189 +143,607 @@ class RemindersScreen extends ConsumerWidget {
     await ref.read(notificationsServiceProvider).cancelAll();
     await ref.read(remindersProvider.notifier).clear();
   }
-}
 
-class _ReminderTile extends ConsumerWidget {
-  const _ReminderTile({required this.reminder});
-  final Reminder reminder;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final s = LanguageScope.of(context);
-    final theme = Theme.of(context);
-    final now = DateTime.now();
-    final diff = reminder.fireAt.difference(now);
-    final passed = diff.isNegative;
-    final label = passed
-        ? s.s('reminders.passed')
-        : diff.inDays >= 1
-            ? s.p('reminders.inDays', {'n': '${diff.inDays}'})
-            : s.p('reminders.inHours', {'n': '${diff.inHours}'});
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: .1),
-              borderRadius: BorderRadius.circular(13),
-            ),
-            child: Icon(
-              _reminderIcon(reminder.windowId),
-              size: 21,
-              color: theme.colorScheme.primary,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(s.s(reminder.title),
-                    style: theme.textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 2),
-                Text(s.s(reminder.subtitle), style: theme.textTheme.bodySmall),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: [
-                    _Pill(
-                      icon: LucideIcons.calendarClock,
-                      text: _formatDate(reminder.fireAt, s),
-                      color: passed
-                          ? Colors.deepOrange
-                          : theme.colorScheme.primary,
-                    ),
-                    _Pill(
-                      icon: LucideIcons.timer,
-                      text: label,
-                      color: theme.colorScheme.secondary,
-                    ),
-                  ],
-                ),
-                if (reminder.tip.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text('💡 ${s.s(reminder.tip)}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant)),
-                ],
-              ],
-            ),
-          ),
-          IconButton(
-            tooltip: s.s('reminders.delete'),
-            icon: const Icon(LucideIcons.x),
-            onPressed: () async {
-              await ref.read(notificationsServiceProvider).cancel(reminder);
-              await ref.read(remindersProvider.notifier).remove(reminder.id);
-            },
-          ),
-        ],
-      ),
-    );
+  Future<void> _removeReminder(
+    BuildContext context,
+    WidgetRef ref,
+    Reminder reminder,
+  ) async {
+    await ref.read(notificationsServiceProvider).cancel(reminder);
+    await ref.read(remindersProvider.notifier).remove(reminder.id);
   }
 }
 
-class _Pill extends StatelessWidget {
-  const _Pill({required this.icon, required this.text, required this.color});
-  final IconData icon;
-  final String text;
-  final Color color;
+class _RemindersHeader extends StatelessWidget {
+  const _RemindersHeader({
+    required this.palette,
+    required this.summary,
+    required this.isPremium,
+    required this.onAdd,
+  });
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              text,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11,
-                color: color,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.isPremium, required this.onAdd});
-
+  final ViewerPalette palette;
+  final String? summary;
   final bool isPremium;
   final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) {
     final s = LanguageScope.of(context);
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+    final addLabel =
+        isPremium ? s.s('reminders.add') : s.s('reminders.premiumCta');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(
-              isPremium ? LucideIcons.bellOff : Icons.lock_rounded,
-              size: 42,
-              color: isPremium
-                  ? theme.colorScheme.outline
-                  : theme.colorScheme.primary,
+            Expanded(
+              child: Text(
+                s.s('reminders.title'),
+                key: const ValueKey('reminders-title'),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: palette.textPrimary,
+                  fontSize: 30,
+                  height: 1.04,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -.58,
+                ),
+              ),
             ),
-            const SizedBox(height: 12),
-            Text(
-                isPremium
-                    ? s.s('reminders.emptyTitle')
-                    : s.s('reminders.premiumTitle'),
-                style: theme.textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 6),
-            Text(
+            if (isPremium) ...[
+              const SizedBox(width: 8),
+              const _ProBadge(active: true),
+            ],
+            const SizedBox(width: 12),
+            _AddReminderButton(label: addLabel, onPressed: onAdd),
+          ],
+        ),
+        const SizedBox(height: 6),
+        if (summary != null)
+          Text(
+            summary!,
+            style: TextStyle(
+              color: palette.textSecondary,
+              fontSize: 13,
+              height: 1.25,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _AddReminderButton extends StatelessWidget {
+  const _AddReminderButton({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = ViewerPalette.of(context);
+    return Semantics(
+      button: true,
+      label: label,
+      onTap: onPressed,
+      child: SizedBox.square(
+        key: const ValueKey('add-reminder'),
+        dimension: 44,
+        child: Material(
+          color: palette.accent.withValues(alpha: .10),
+          shape: const CircleBorder(),
+          child: InkWell(
+            onTap: onPressed,
+            excludeFromSemantics: true,
+            customBorder: const CircleBorder(),
+            splashFactory: NoSplash.splashFactory,
+            overlayColor: WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.pressed)
+                  ? palette.accent.withValues(alpha: .17)
+                  : null,
+            ),
+            child: Icon(
+              Icons.add_rounded,
+              size: 23,
+              color: palette.accent,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReminderFeaturedCard extends StatelessWidget {
+  const _ReminderFeaturedCard({
+    required this.reminder,
+    required this.palette,
+    required this.now,
+    required this.onRemove,
+  });
+
+  final Reminder reminder;
+  final ViewerPalette palette;
+  final DateTime now;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = _statusFor(context, reminder, now);
+    final colors = [palette.accentStrong, palette.sky];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: colors,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: colors.last.withValues(alpha: .16),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 12, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _StatusChip(
+                        status: status,
+                        foreground: Colors.white,
+                        background: Colors.white.withValues(alpha: .16),
+                      ),
+                    ),
+                    _ReminderDeleteButton(
+                      reminder: reminder,
+                      foreground: Colors.white,
+                      background: Colors.white.withValues(alpha: .15),
+                      onPressed: onRemove,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  reminder.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    height: 1.1,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -.45,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  reminder.subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .84),
+                    fontSize: 12,
+                    height: 1.2,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _ReminderDateTime(
+                  reminder: reminder,
+                  foreground: Colors.white.withValues(alpha: .94),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReminderList extends StatelessWidget {
+  const _ReminderList({
+    required this.reminders,
+    required this.palette,
+    required this.now,
+    required this.onRemove,
+  });
+
+  final List<Reminder> reminders;
+  final ViewerPalette palette;
+  final DateTime now;
+  final ValueChanged<Reminder> onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            s.s('reminders.other'),
+            style: TextStyle(
+              color: palette.textSecondary,
+              fontSize: 12,
+              height: 1.2,
+              fontWeight: FontWeight.w700,
+              letterSpacing: .12,
+            ),
+          ),
+          const SizedBox(height: 10),
+          for (var index = 0; index < reminders.length; index++) ...[
+            _ReminderTile(
+              reminder: reminders[index],
+              palette: palette,
+              now: now,
+              onRemove: () => onRemove(reminders[index]),
+            ),
+            if (index != reminders.length - 1) const SizedBox(height: 10),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ReminderTile extends StatelessWidget {
+  const _ReminderTile({
+    required this.reminder,
+    required this.palette,
+    required this.now,
+    required this.onRemove,
+  });
+
+  final Reminder reminder;
+  final ViewerPalette palette;
+  final DateTime now;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = _statusFor(context, reminder, now);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: palette.card,
+        border: Border.all(color: status.tone.withValues(alpha: .24)),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 15, 10, 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: status.tone.withValues(alpha: .10),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                _reminderIcon(reminder.windowId),
+                size: 19,
+                color: status.tone,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    reminder.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: palette.textPrimary,
+                      fontSize: 16,
+                      height: 1.18,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -.18,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _StatusLine(status: status, palette: palette),
+                  const SizedBox(height: 7),
+                  _ReminderDateTime(
+                    reminder: reminder,
+                    foreground: palette.textSecondary,
+                  ),
+                ],
+              ),
+            ),
+            _ReminderDeleteButton(
+              reminder: reminder,
+              foreground: palette.textSecondary,
+              background: palette.bg,
+              onPressed: onRemove,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({
+    required this.status,
+    required this.foreground,
+    required this.background,
+  });
+
+  final _ReminderStatus status;
+  final Color foreground;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) => Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(status.icon, size: 15, color: foreground),
+              const SizedBox(width: 6),
+              Text(
+                status.label,
+                style: TextStyle(
+                  color: foreground,
+                  fontSize: 12,
+                  height: 1.15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _StatusLine extends StatelessWidget {
+  const _StatusLine({required this.status, required this.palette});
+
+  final _ReminderStatus status;
+  final ViewerPalette palette;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(status.icon, size: 16, color: status.tone),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              status.detail,
+              style: TextStyle(
+                color: palette.textSecondary,
+                fontSize: 13,
+                height: 1.25,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      );
+}
+
+class _ReminderDateTime extends StatelessWidget {
+  const _ReminderDateTime({
+    required this.reminder,
+    required this.foreground,
+  });
+
+  final Reminder reminder;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) => Wrap(
+        spacing: 12,
+        runSpacing: 7,
+        children: [
+          _InlineFact(
+            icon: Icons.calendar_today_rounded,
+            value: _formatDate(reminder.fireAt, LanguageScope.of(context)),
+            color: foreground,
+          ),
+        ],
+      );
+}
+
+class _InlineFact extends StatelessWidget {
+  const _InlineFact({
+    required this.icon,
+    required this.value,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: color),
+          const SizedBox(width: 6),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontSize: 13,
+              height: 1.2,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      );
+}
+
+class _ReminderDeleteButton extends StatelessWidget {
+  const _ReminderDeleteButton({
+    required this.reminder,
+    required this.foreground,
+    required this.background,
+    required this.onPressed,
+  });
+
+  final Reminder reminder;
+  final Color foreground;
+  final Color background;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
+    final label = s.p('reminders.remove', {'name': reminder.title});
+    return Semantics(
+      button: true,
+      label: label,
+      onTap: onPressed,
+      child: SizedBox.square(
+        key: ValueKey('reminder-remove-${reminder.id}'),
+        dimension: 44,
+        child: Material(
+          color: background,
+          shape: const CircleBorder(),
+          child: InkWell(
+            onTap: onPressed,
+            excludeFromSemantics: true,
+            customBorder: const CircleBorder(),
+            splashFactory: NoSplash.splashFactory,
+            overlayColor: WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.pressed)
+                  ? foreground.withValues(alpha: .16)
+                  : null,
+            ),
+            child: Icon(
+              Icons.delete_outline_rounded,
+              size: 19,
+              color: foreground,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({
+    required this.palette,
+    required this.isPremium,
+    required this.onAdd,
+  });
+
+  final ViewerPalette palette;
+  final bool isPremium;
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = LanguageScope.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 48, 28, 48),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ExcludeSemantics(
+            child: Container(
+              width: 68,
+              height: 68,
+              decoration: BoxDecoration(
+                color: palette.accent.withValues(alpha: .09),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                isPremium ? LucideIcons.bellOff : Icons.lock_rounded,
+                size: 30,
+                color: palette.accent,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            isPremium
+                ? s.s('reminders.emptyTitle')
+                : s.s('reminders.premiumTitle'),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: palette.textPrimary,
+              fontSize: 22,
+              height: 1.15,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -.3,
+            ),
+          ),
+          const SizedBox(height: 10),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 320),
+            child: Text(
               isPremium
                   ? s.s('reminders.emptyBody')
                   : s.s('reminders.premiumBody'),
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall,
+              style: TextStyle(
+                color: palette.textSecondary,
+                fontSize: 15,
+                height: 1.45,
+              ),
             ),
-            const SizedBox(height: 18),
-            FilledButton.icon(
+          ),
+          const SizedBox(height: 24),
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: FilledButton.icon(
+              key: const ValueKey('add-first-reminder'),
               onPressed: onAdd,
               icon: Icon(
-                isPremium ? LucideIcons.plus : Icons.lock_rounded,
+                isPremium ? Icons.add_rounded : Icons.lock_rounded,
               ),
               label: Text(
                 isPremium ? s.s('reminders.add') : s.s('reminders.premiumCta'),
               ),
+              style: FilledButton.styleFrom(
+                backgroundColor: palette.accent,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(0, 44),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: const StadiumBorder(),
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -312,36 +756,31 @@ class _ProBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = ViewerPalette.of(context);
     final s = LanguageScope.of(context);
-    const gold = Color(0xFFFFC857);
+    final color = active ? palette.gold : palette.textMuted;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: active
-            ? gold.withValues(alpha: .2)
-            : Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: color.withValues(alpha: .11),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: active
-              ? gold.withValues(alpha: .55)
-              : Theme.of(context).colorScheme.outlineVariant,
-        ),
+        border: Border.all(color: color.withValues(alpha: .28)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             active ? Icons.workspace_premium_rounded : Icons.lock_rounded,
-            size: 11,
-            color: active ? const Color(0xFF9A6500) : null,
+            size: 12,
+            color: color,
           ),
           const SizedBox(width: 4),
           Text(
             s.s('reminders.premiumBadge'),
             style: TextStyle(
-              color: active ? const Color(0xFF815500) : null,
+              color: color,
               fontSize: 10,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               letterSpacing: .5,
             ),
           ),
@@ -351,6 +790,87 @@ class _ProBadge extends StatelessWidget {
   }
 }
 
+class _ReminderStatus {
+  const _ReminderStatus({
+    required this.label,
+    required this.detail,
+    required this.icon,
+    required this.tone,
+  });
+
+  final String label;
+  final String detail;
+  final IconData icon;
+  final Color tone;
+}
+
+_ReminderStatus _statusFor(
+  BuildContext context,
+  Reminder reminder,
+  DateTime now,
+) {
+  final s = LanguageScope.of(context);
+  final palette = ViewerPalette.of(context);
+  final difference = reminder.fireAt.difference(now);
+  if (difference.isNegative) {
+    return _ReminderStatus(
+      label: s.s('reminders.status.passed'),
+      detail: s.s('reminders.status.passed'),
+      icon: Icons.history_rounded,
+      tone: palette.textMuted,
+    );
+  }
+  final dayDifference =
+      _dateOnly(reminder.fireAt).difference(_dateOnly(now)).inDays;
+  if (dayDifference == 0) {
+    return _ReminderStatus(
+      label: s.s('reminders.status.today'),
+      detail: s.p('reminders.inHours', {'n': '${difference.inHours}'}),
+      icon: Icons.today_rounded,
+      tone: palette.sunset,
+    );
+  }
+  return _ReminderStatus(
+    label: s.s('reminders.status.upcoming'),
+    detail: s.p('reminders.inDays', {'n': '$dayDifference'}),
+    icon: Icons.notifications_active_rounded,
+    tone: palette.accent,
+  );
+}
+
+String? _remindersSummary(
+  BuildContext context, {
+  required int count,
+  required Reminder? featured,
+  required DateTime today,
+}) {
+  if (count == 0) return null;
+  final s = LanguageScope.of(context);
+  final parts = <String>[
+    s.p(
+      count == 1
+          ? 'reminders.summary.count.singular'
+          : 'reminders.summary.count.plural',
+      {'count': '$count'},
+    ),
+  ];
+  if (featured != null) {
+    final dayDifference = _dateOnly(featured.fireAt).difference(today).inDays;
+    final next = dayDifference < 0
+        ? s.s('reminders.summary.next.none')
+        : dayDifference == 0
+            ? s.s('reminders.summary.next.today')
+            : dayDifference == 1
+                ? s.s('reminders.summary.next.tomorrow')
+                : s.p(
+                    'reminders.summary.next.days',
+                    {'count': '$dayDifference'},
+                  );
+    parts.add(next);
+  }
+  return parts.join(s.s('reminders.summary.separator'));
+}
+
 IconData _reminderIcon(String windowId) {
   if (windowId == 'shinkansen-smartex') return Icons.train_rounded;
   if (windowId == 'tokyo-disney') return Icons.castle_rounded;
@@ -358,6 +878,9 @@ IconData _reminderIcon(String windowId) {
   if (windowId.startsWith('teamlab-')) return Icons.auto_awesome_rounded;
   return Icons.notifications_rounded;
 }
+
+DateTime _dateOnly(DateTime value) =>
+    DateTime(value.year, value.month, value.day);
 
 String _formatDate(DateTime d, LanguageScope s) {
   final month = s.s('reminders.mon.${d.month}');

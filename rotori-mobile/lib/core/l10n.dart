@@ -4263,6 +4263,75 @@ const Map<String, Map<AppLang, String>> _strings = {
     AppLang.en: 'Sign out',
   },
   'reward.title': {AppLang.tr: 'Keşif haritası', AppLang.en: 'Explore Map'},
+  // Keşfet ana yüzeyi — harita + planlı duraklar. XP/rozet ekranı ayrı ve
+  // ikincil bir akış olarak kalır.
+  'explore.today': {
+    AppLang.tr: 'Bugün · {city}',
+    AppLang.en: 'Today · {city}',
+  },
+  'explore.mode.planned': {
+    AppLang.tr: 'Planlı duraklar',
+    AppLang.en: 'Planned stops',
+  },
+  'explore.mode.nearby': {
+    AppLang.tr: 'Yakınımda',
+    AppLang.en: 'Nearby',
+  },
+  'explore.day': {
+    AppLang.tr: '{n}. gün · {city}',
+    AppLang.en: 'Day {n} · {city}',
+  },
+  'explore.map': {AppLang.tr: 'Harita', AppLang.en: 'Map'},
+  'explore.openFullMap': {
+    AppLang.tr: 'Büyük haritada aç',
+    AppLang.en: 'Open full map',
+  },
+  'explore.mapHint': {
+    AppLang.tr: 'Bir durağa dokunarak ayrıntılarını gör.',
+    AppLang.en: 'Tap a stop to see its details.',
+  },
+  'explore.duration': {AppLang.tr: '{n} dk', AppLang.en: '{n} min'},
+  'explore.distanceMeters': {AppLang.tr: '{n} m', AppLang.en: '{n} m'},
+  'explore.distanceKilometers': {
+    AppLang.tr: '{n} km',
+    AppLang.en: '{n} km',
+  },
+  'explore.nearbyWaiting': {
+    AppLang.tr: 'Konum alınana kadar planındaki durakları gösteriyoruz.',
+    AppLang.en: 'We show your planned stops until a location fix is available.',
+  },
+  'explore.nearbyActive': {
+    AppLang.tr: 'Duraklar konumuna göre yakından uzağa sıralanıyor.',
+    AppLang.en: 'Stops are ordered from nearest to farthest from you.',
+  },
+  'explore.inPlan': {AppLang.tr: 'Rotanda', AppLang.en: 'In your plan'},
+  'explore.visited': {AppLang.tr: 'Gezildi', AppLang.en: 'Visited'},
+  'explore.noStopsTitle': {
+    AppLang.tr: 'Bu gün için planlı durak yok',
+    AppLang.en: 'No planned stops for this day',
+  },
+  'explore.noStopsBody': {
+    AppLang.tr: 'Gün akışına bir yer eklediğinde burada haritada görünür.',
+    AppLang.en: 'Places added to the day flow will appear here on the map.',
+  },
+  'explore.nearbyHint': {
+    AppLang.tr:
+        'Yakındaki planlı durakları göstermek için konumunu paylaş. Rotori dışarıdan rastgele yer aramaz.',
+    AppLang.en:
+        'Share your location to see planned stops nearby. Rotori does not search random places outside your plan.',
+  },
+  'explore.progressTitle': {
+    AppLang.tr: 'İlerlemen',
+    AppLang.en: 'Your progress',
+  },
+  'explore.progressSummary': {
+    AppLang.tr: '{visited} / {total} durak',
+    AppLang.en: '{visited} / {total} stops',
+  },
+  'explore.viewProgress': {
+    AppLang.tr: 'Tüm ilerlemeyi gör',
+    AppLang.en: 'See all progress',
+  },
   'reward.gpsSimTooltip': {
     AppLang.tr: 'GPS Simülatörü (test)',
     AppLang.en: 'GPS Simulator (test)'

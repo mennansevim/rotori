@@ -85,7 +85,7 @@ import '../viewer/home_widget_hook.dart';
 import '../viewer/offline_translator_card.dart';
 import '../viewer/offline_tile_provider.dart';
 import '../viewer/pre_departure_checklist_screen.dart';
-import '../viewer/reward_map_screen.dart';
+import '../viewer/explore_screen.dart';
 import '../viewer/route_map_sheet.dart';
 import '../viewer/viewer_theme.dart';
 import '../viewer/weather_screen.dart';
@@ -985,7 +985,7 @@ class _ViewerBodyState extends ConsumerState<_ViewerBody>
                   // Tab 4 — Keşfet. Parent Scaffold'ın içinde kaldığı için
                   // alt navigasyon route animasyonuna katılmaz.
                   _exploreInitialized
-                      ? RewardMapScreen(trip: trip)
+                      ? ExploreScreen(trip: trip)
                       : const SizedBox.shrink(),
                 ],
               ),
